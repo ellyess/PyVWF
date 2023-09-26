@@ -3,36 +3,20 @@
 `PyVWF` is a Python rewrite of the [VWF model](https://github.com/renewables-ninja/vwf/tree/master) developed by Iain Staffell. The wind energy simulations on [Renewables.ninja](https://www.renewables.ninja/) are based on the VWF model.
 
 ---
-title: 'PyVWF: A Bias Corrected Wind Power Simulator'
-tags:
-  - Python
-  - energy system model
-  - wind
-authors:
-  - name: Ellyess F. Benmoufok
-    equal-contrib: true
-    affiliation: "1"
-affiliations:
- - name: Department of Earth Science and Engineering, Imperial College London, London SW7 2AZ, UK
-   index: 1
-date: 22 September 2023
-bibliography: paper.bib
 
----
+## Functionality
+This model has the ability to produce bias corrected power output from wind farms based on reanalysis data. The model has two main methods in calculating wind speed:
+- `method_1 : w(h) = A * np.log(h / z)` (based on original `vwf` model)
+- `method_2 : w(h) = v(100m) * ln(h/z0)/ln(100m/z0), where z0 is surface roughness`
 
-# Summary
+If using MERRA-2 `method_1` is the only viable method currently. If using ERA-5 either method can be used. I recommend only using ERA-5 and `method_2` for results as this is the route we wish for this model to go.
 
-With climate change having such a significant impact on the world, countries are turning to renewable energy resources. Among the renewable energy resources, wind energy is abundant and widely distributed; the global installed wind power capacity has increased greater than four-fold from 180.9 GW in 2010 to 823.5GW in 2021. Unlike traditional energy sources, wind is inherently stochastic and non-stationary, and there is a need for accurate models and tools to predict the wind resource power output.
+## Setup
 
-Renewables.Ninja (RN) allows you to run simulations of the hourly power output from wind and solar power plants located anywhere in the world. Wind speeds are converted into power output using the `vwf` (Virtual Wind Farm) model by Iain Staffell.
+### Download reanalysis wind speed data
+First, download the necessary input  reanalysis data data:
+- NASA's [MERRA-2 reanalysis](https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/), specifically the [SLV tables](http://dx.doi.org/10.5067/VJAFPLI1CSIV) (M2T1NXSLV).
+The easiest (and most wasteful) option is to use the 'Online archive' link and download the complete files (approx 400 MB per day).  Alternatively you could use the various subsetting tools available, selecting the DISPH, U2M, V2M, U10M, V10M, U50M and V50M variables, and whatever region and time period you are interested in.  Good luck, they rarely function correctly!
+- ECMWF's [ERA-5 reanalysis](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form), for `method_2` we required `100m u-component of wind`, `100m v-component of wind` and `Forecast surface roughness`.
 
-`vwf` calculates hourly power output at any given location in the world using reanalysis data from MERRA-2. The novelty of this model is the bias-correction process, that is capable of achieving a R-squared score of 0.95 for national hourly power output of 23 European countries. The bias correction is done using factors on a country-wide basis.
-
-
-
-# Statement of need
-
-`PyVWF` is a Python package for generating bias corrected wind power output at a given location using reanalysis data. The `vwf` model was designed to make scientific-quality weather and energy data available to a wider community. A key use has been as an input into energy system models, such as `TIMES` and `PyPSA`.
-
-In `PyVWF` the capability of the code has been expanded to use ERA-5 reanalysis data, as well as MERRA-2. A notable addition from this change is the improved resolution of the data allows for the bias correction factors to be calculated at a finer spacial resolution than country-wide. Another notable addition to this release is the bias correction factors are now calculated on a monthly basis, allowing for bi-monthly and seasonal factors to more accurately bias correct. The `vwf` package has been completely reworked into a streamline workflow using Python, orginally written in R. This was to enable further improvements and functionality as much of the open-source research in this field is done in Python (PyPSA etc)
 
