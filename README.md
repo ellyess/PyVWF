@@ -4,7 +4,7 @@
 
 ---
 ## IMPORTANT
-I recommend only using ERA-5 and `method_2` for results as this is the focuse development of this project. MERRA-2 is difficult to download and preprocessing of MERRA-2 can be ruined with access issues.
+I recommend only using ERA-5 data and `method_2` for for your output as the project intends to proceed research with this data and method. MERRA-2 is difficult to download and preprocessing of MERRA-2 can be ruined with access issues.
 
 ## Functionality
 This model has the ability to produce bias corrected power output from wind farms based on reanalysis data. The model has two main methods in calculating wind speed:
