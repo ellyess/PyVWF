@@ -5,6 +5,7 @@
 ---
 ## IMPORTANT
 I recommend only using ERA-5 data and `method_2` for for your output as the project intends to proceed research with this data and method. MERRA-2 is difficult to download and preprocessing of MERRA-2 can be ruined with access issues.
+For now the MERRA-2 functionality has been removed.
 
 ## Functionality
 This model has the ability to produce bias corrected power output from wind farms based on reanalysis data. The model has two main methods in calculating wind speed:
@@ -25,7 +26,7 @@ If using MERRA-2 `method_1` is the only viable method currently. If using ERA-5 
 
 ## Setup
 ### Download reanalysis wind speed data
-First, download the necessary input  reanalysis data data:
+First, download the necessary input  reanalysis data:
 - NASA's [MERRA-2 reanalysis](https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/), specifically the [SLV tables](http://dx.doi.org/10.5067/VJAFPLI1CSIV) (M2T1NXSLV).
 The easiest (and most wasteful) option is to use the 'Online archive' link and download the complete files (approx 400 MB per day).  Alternatively you could use the various subsetting tools available, selecting the DISPH, U2M, V2M, U10M, V10M, U50M and V50M variables, and whatever region and time period you are interested in.  Good luck, they rarely function correctly!
 - ECMWF's [ERA-5 reanalysis](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form), for `method_2` this requires: the 100m u-component of wind, 100m v-component of wind and Forecast surface roughness.
