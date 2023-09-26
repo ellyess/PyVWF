@@ -6,7 +6,6 @@ import time
 from vwf.preprocessing import (
     prep_era5_method_1,
     prep_era5_method_2,
-    prep_merra2_method_1,
     prep_metadata_2020,
     prep_obs_and_turb_info
 )
@@ -42,23 +41,20 @@ class VWF():
         self.powerCurveFile = pd.read_csv(powerCurveFileLoc)
         self.meta_2020 = prep_metadata_2020()
         
-        if self.mode == 'merra2':
-            self.reanal_data_test = prep_merra2_method_1(year_, year_)  
-            
+
+        # for train and test
+        if self.method == 'method_1':
+            self.reanal_data = prep_era5_method_1(year_star, year_end)
+            self.reanal_data_test = prep_era5_method_1(year_, year_)  
         else:
-            # for train and test
-            if self.method == 'method_1':
-                self.reanal_data = prep_era5_method_1(year_star, year_end)
-                self.reanal_data_test = prep_era5_method_1(year_, year_)  
-            else:
-                self.reanal_data = prep_era5_method_2(year_star, year_end)
-                # this file is currently saved from atlite's cutout
-                ncFile = 'data/reanalysis/era5/'+str(year_)+'-'+str(year_)+'_clean.nc'
-                reanal_data_test = xr.open_dataset(ncFile)
-                self.reanal_data_test = reanal_data_test.resample(time='1D').mean() # hourly is too slow
-        
-            self.obs_gen, self.turb_info_train = prep_obs_and_turb_info(self.meta_2020, year_star, year_end)
-            self.uncorr_speed_train, self.uncorr_cf_train = simulate_wind(self.reanal_data, self.turb_info_train, self.powerCurveFile)     
+            self.reanal_data = prep_era5_method_2(year_star, year_end)
+            # this file is currently saved from atlite's cutout
+            ncFile = 'data/reanalysis/era5/'+str(year_)+'-'+str(year_)+'_clean.nc'
+            reanal_data_test = xr.open_dataset(ncFile)
+            self.reanal_data_test = reanal_data_test.resample(time='1D').mean() # hourly is too slow
+    
+        self.obs_gen, self.turb_info_train = prep_obs_and_turb_info(self.meta_2020, year_star, year_end)
+        self.uncorr_speed_train, self.uncorr_cf_train = simulate_wind(self.reanal_data, self.turb_info_train, self.powerCurveFile)     
            
         self.year_star = year_star
         self.year_end = year_end
@@ -70,6 +66,7 @@ class VWF():
     def train(self, num_clu):
 
         my_file = Path('data/bias_correction/'+self.mode+'_'+self.method+'_bcfactors_'+str(self.year_star)+'-'+str(self.year_end)+'_'+str(num_clu)+'_clusters.csv')
+        
         if my_file.is_file():
             print(self.method, " using ", num_clu,  "clusters is trained already.")
             print(" ")
@@ -83,8 +80,7 @@ class VWF():
                 index_col=None
                 )
         
-        else:
-            
+        else:  
             print("Training for ", self.method, " using ", num_clu,  " is taking place.")
             start_time = time.time()
             
@@ -120,18 +116,8 @@ class VWF():
 
     
     def test(self, time_res):
-        
-        if self.mode == 'merra2':
-            self.num_clu = 1
-            turb_info = self.meta_2020.copy()
-            turb_info['cluster'] = 0
-
-            bias_fact_dict = {'0': [0 , 0.597, 2.836]}
-            self.bias_factors = pd.DataFrame.from_dict(bias_fact_dict, orient='index',
-                                        columns=['cluster', 'scalar', 'offset'])
-                                        
-        else:                            
-            turb_info = closest_cluster(self.clus_data, self.meta_2020)
+                                                          
+        turb_info = closest_cluster(self.clus_data, self.meta_2020)
         
         # producing uncorrected results
         uncorr_file = Path('data/results/raw/'+self.mode+'_'+self.method+'_'+str(self.year_)+'_speed_uncorr.csv')
@@ -141,10 +127,6 @@ class VWF():
         
         else:
             uncorr_speed, uncorr_cf = simulate_wind(self.reanal_data_test, turb_info, self.powerCurveFile)
-            
-            if self.mode == 'merra2':
-                uncorr_speed = hours_to_days(uncorr_speed)
-                uncorr_cf = hours_to_days(uncorr_cf)
             
             uncorr_speed.to_csv('data/results/raw/'+self.mode+'_'+self.method+'_'+str(self.year_)+'_speed_uncorr.csv', index = None)
             uncorr_cf.to_csv('data/results/raw/'+self.mode+'_'+self.method+'_'+str(self.year_)+'_cf_uncorr.csv', index = None)
@@ -160,11 +142,6 @@ class VWF():
             start_time = time.time()
             
             corr_speed, corr_cf = simulate_wind(self.reanal_data_test, turb_info, self.powerCurveFile, time_res, False, True, self.bias_factors)
-            
-            if self.mode == 'merra2':
-                corr_speed = hours_to_days(corr_speed)
-                corr_cf = hours_to_days(corr_cf)
-                
             corr_speed.to_csv('data/results/raw/'+self.mode+'_'+self.method+'_'+str(self.year_)+'_'+time_res+'_'+str(self.num_clu)+'_clusters_speed_corr.csv', index = None)
             corr_cf.to_csv('data/results/raw/'+self.mode+'_'+self.method+'_'+str(self.year_)+'_'+time_res+'_'+str(self.num_clu)+'_clusters_cf_corr.csv', index = None)
             

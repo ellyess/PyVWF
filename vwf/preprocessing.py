@@ -34,19 +34,6 @@ def prep_era5_method_2(year_star, year_end):
     ds = ds.resample(time='1D').mean()
     return _rename_and_clean_coords(ds, False)
     
-def prep_merra2_method_1(year_star, year_end):
-    """
-    Reading Iain's preprepped MERRA 2 Az file and selecting desired location.
-    In future this will be replaced with my own Az function.
-    """
-    
-    area = [7., 12.75, 54.3, 57.8]    
-    ncFile = '../../../../ReanalysisData/merra2/DailyAZ/'+str(2020)+'-'+str(2020)+'_dailyAz_ian.nc'
-    reanal_data = xr.open_dataset(ncFile)
-    reanal_data = reanal_data.sel(lat=slice(area[2], area[3]), lon=slice(area[0], area[1]))
-    updated_times = np.asarray(pd.date_range(start=str(year_star)+'/01/01', end=str(year_end+1)+'/01/01', freq='1H'))[:-1]
-    reanal_data["time"] = ("time", updated_times)
-    return _rename_and_clean_coords(reanal_data, False)
     
 def prep_metadata_2020():
     """
