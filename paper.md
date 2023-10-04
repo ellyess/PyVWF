@@ -17,9 +17,11 @@ bibliography: paper.bib
 
 # Summary
 
-With climate change having such a significant impact on the world, countries are turning to renewable energy resources. Among the renewable energy resources, wind energy is abundant and widely distributed; the global installed wind power capacity has increased greater than four-fold from 180.9 GW in 2010 to 823.5GW in 2021. Unlike traditional energy sources, wind is inherently stochastic and non-stationary, and there is a need for accurate models and tools to predict the wind resource power output.
+With climate change having such a significant impact on the world, countries are turning to renewable energy resources. Among the renewable energy resources, wind energy is abundant and widely distributed; the global installed wind power capacity has increased greater than four-fold from 180.9 GW in 2010 to 823.5GW in 2021 [@irena2022] . Unlike traditional energy sources, wind is inherently stochastic and non-stationary, and there is a need for accurate models and tools to predict the wind resource power output.
 
-Renewables.Ninja (RN) allows you to run simulations of the hourly power output from wind and solar power plants located anywhere in the world. Wind speeds are converted into power output using the `vwf` (Virtual Wind Farm) model by Iain Staffell.
+Renewables.Ninja (RN) [@staffell2016, pfenninger2016] allows you to run simulations of the hourly power output from wind and solar power plants located anywhere in the world. Wind speeds are converted into power output using the `vwf` (Virtual Wind Farm) model by Iain Staffell [@staffell2016].
+
+Currently, most studies use reanalysis data (particularly ERA-5 [@era5] or MERRA-2 [@merra2]) [@kiss2009,kubik2013] to simulate wind power for energy system modelling. However, it has been found that the direct simulation outputs from reanalysis data suffer from up to ± 50\% of bias [@staffell2016]. 
 
 `vwf` calculates hourly power output at any given location in the world using reanalysis data from MERRA-2. The novelty of this model is the bias-correction process, that is capable of achieving a R-squared score of 0.95 for national hourly power output of 23 European countries. The bias correction is done using factors on a country-wide basis.
 
