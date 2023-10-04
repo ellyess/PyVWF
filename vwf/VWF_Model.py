@@ -108,8 +108,6 @@ class VWF():
             print("Training parameters completed and saved. Elapsed time: {:.2f} seconds".format(elapsed_time))
             print(" ")
             
-            return self
-            
         self.num_clu = num_clu
 
         return self

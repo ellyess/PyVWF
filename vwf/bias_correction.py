@@ -303,7 +303,6 @@ def find_farm_offset(gendata, azfile, powerCurveFile, myScalar, energyInitial, e
         
         # Calculate the simulated CF using the new offset
         mylf = simulate_wind(azfile, gendata, powerCurveFile, 'month', True,False,myScalar,myOffset)
-        # mylf = simulate_wind_train(azfile, gendata, powerCurveFile, myScalar, myOffset)
         # print(mylf)
 
         # If we have overshot our target, then repeat, searching the other direction
