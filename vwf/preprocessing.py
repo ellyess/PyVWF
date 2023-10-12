@@ -2,19 +2,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 
-def prep_era5_method_1(year_star, year_end):
-    """
-    Correcting the times of the Az file produced from preprocessing.
-    In future implement this directly into the output of preprocessing.
-    """
-    ncFile = 'data/reanalysis/era5/'+str(year_star)+'-'+str(year_end)+'_dailyAz.nc'
-    ds = xr.open_dataset(ncFile)
-    # fixing the time dimension labels
-    updated_times = np.asarray(pd.date_range(start=str(year_star)+'/01/01', end=str(year_end+1)+'/01/01', freq='1d'))[:-1]
-    ds["time"] = ("time", updated_times)
-    return _rename_and_clean_coords(ds, False)
-
-def prep_era5_method_2(year_star, year_end):
+def prep_era5(year_star, year_end):
     """
     Reading a saved ERA5 file with 100m wind speeds and fsr.
     changing names and converting wind speed components into wind speed.

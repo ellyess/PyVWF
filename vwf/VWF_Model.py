@@ -4,8 +4,7 @@ from pathlib import Path
 import time
 
 from vwf.preprocessing import (
-    prep_era5_method_1,
-    prep_era5_method_2,
+    prep_era5,
     prep_metadata_2020,
     prep_obs_and_turb_info
 )
@@ -27,11 +26,11 @@ class VWF():
     """
     This class allows both the training and testing of the VWF model.
     """
-    def __init__(self, mode, method):
+    def __init__(self):
 
         # variables for training and testing
-        self.mode = mode
-        self.method = method
+        self.mode = 'era5'
+        self.method = 'method_2'
         
         # fixed inputs files for now
     
@@ -41,17 +40,11 @@ class VWF():
         self.powerCurveFile = pd.read_csv(powerCurveFileLoc)
         self.meta_2020 = prep_metadata_2020()
         
-
-        # for train and test
-        if self.method == 'method_1':
-            self.reanal_data = prep_era5_method_1(year_star, year_end)
-            self.reanal_data_test = prep_era5_method_1(year_, year_)  
-        else:
-            self.reanal_data = prep_era5_method_2(year_star, year_end)
-            # this file is currently saved from atlite's cutout
-            ncFile = 'data/reanalysis/era5/'+str(year_)+'-'+str(year_)+'_clean.nc'
-            reanal_data_test = xr.open_dataset(ncFile)
-            self.reanal_data_test = reanal_data_test.resample(time='1D').mean() # hourly is too slow
+        self.reanal_data = prep_era5(year_star, year_end)
+        # this file is currently saved from atlite's cutout
+        ncFile = 'data/reanalysis/era5/'+str(year_)+'-'+str(year_)+'_clean.nc'
+        reanal_data_test = xr.open_dataset(ncFile)
+        self.reanal_data_test = reanal_data_test.resample(time='1D').mean() # hourly is too slow
     
         self.obs_gen, self.turb_info_train = prep_obs_and_turb_info(self.meta_2020, year_star, year_end)
         self.uncorr_speed_train, self.uncorr_cf_train = simulate_wind(self.reanal_data, self.turb_info_train, self.powerCurveFile)     
