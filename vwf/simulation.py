@@ -5,7 +5,7 @@ from scipy import interpolate
 
 from vwf.extras import add_times
 
-def extrapolate_wind_speed(ds, turbine_info):
+def extrapolate_wind_speed(ds, turb_info):
  
     # calculating wind speed from era5 variables
     w = ds.wnd100m * (
@@ -15,9 +15,9 @@ def extrapolate_wind_speed(ds, turbine_info):
     w = w.where(w < 40 , 40)
     
     # creating coordinates to spatially interpolate to
-    lat =  xr.DataArray(turbine_info['latitude'], dims='turbine', coords={'turbine':turbine_info['ID']})
-    lon =  xr.DataArray(turbine_info['longitude'], dims='turbine', coords={'turbine':turbine_info['ID']})
-    height =  xr.DataArray(turbine_info['height'], dims='turbine', coords={'turbine':turbine_info['ID']})
+    lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})
+    lon =  xr.DataArray(turb_info['lon'], dims='turbine', coords={'turbine':turb_info['ID']})
+    height =  xr.DataArray(turb_info['height'], dims='turbine', coords={'turbine':turb_info['ID']})
 
     # spatial interpolating to turbine positions
     wnd_spd = w.interp(
@@ -27,11 +27,11 @@ def extrapolate_wind_speed(ds, turbine_info):
     return wnd_spd
 
 
-def speed_to_power(speed_frame, turbine_info, powerCurveFile, train=False): 
+def speed_to_power(speed_frame, turb_info, powerCurveFile, train=False): 
     x = powerCurveFile['data$speed']
     
     if train == True:
-        turb_name = turbine_info.loc[turbine_info['ID'] == speed_frame.turbine.data, 'turb_match']
+        turb_name = turb_info.loc[turb_info['ID'] == speed_frame.turbine.data, 'model']
         y = powerCurveFile[turb_name].to_numpy().flatten()
         f2 = interpolate.Akima1DInterpolator(x, y)
         
@@ -41,7 +41,7 @@ def speed_to_power(speed_frame, turbine_info, powerCurveFile, train=False):
         power_frame = speed_frame.copy()
         for i in range(2, len(power_frame.columns)+1):          
             speed_single = power_frame.iloc[:,i-1]
-            turb_name = turbine_info.loc[turbine_info['ID'] == speed_single.name, 'turb_match']           
+            turb_name = turb_info.loc[turb_info['ID'] == speed_single.name, 'model']           
             y = powerCurveFile[turb_name].to_numpy().flatten()
             f2 = interpolate.Akima1DInterpolator(x, y)
             power_frame.iloc[:,i-1] = f2(speed_single)
@@ -49,12 +49,12 @@ def speed_to_power(speed_frame, turbine_info, powerCurveFile, train=False):
         return power_frame
 
 
-def simulate_wind(ds, turbine_info, powerCurveFile, time_res='month',train=False, bias_correct=False, *args):
-    all_heights = np.sort(turbine_info['height'].unique())
+def simulate_wind(ds, turb_info, powerCurveFile, time_res='month',train=False, bias_correct=False, *args):
+    all_heights = np.sort(turb_info['height'].unique())
     ds = ds.assign_coords(
         height=('height', all_heights))
 
-    wnd_spd = extrapolate_wind_speed(ds, turbine_info)
+    wnd_spd = extrapolate_wind_speed(ds, turb_info)
     
     if train == True:
         
@@ -64,7 +64,7 @@ def simulate_wind(ds, turbine_info, powerCurveFile, time_res='month',train=False
         wnd_spd = wnd_spd.where(wnd_spd > 0 , 0)
         wnd_spd = wnd_spd.where(wnd_spd < 40 , 40)
         
-        gen_power = speed_to_power(wnd_spd, turbine_info, powerCurveFile, train)
+        gen_power = speed_to_power(wnd_spd, turb_info, powerCurveFile, train)
         
         return np.mean(gen_power)
 
@@ -83,7 +83,7 @@ def simulate_wind(ds, turbine_info, powerCurveFile, time_res='month',train=False
         if bias_correct == True:
             bias_factors = args[0]
     
-            gen_speed = pd.merge(speed_frame, turbine_info[['ID', 'cluster']], on='ID', how='left')  
+            gen_speed = pd.merge(speed_frame, turb_info[['ID', 'cluster']], on='ID', how='left')  
             
             if time_res == 'year':
                 time_factors = bias_factors.groupby(['cluster'], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
@@ -98,11 +98,11 @@ def simulate_wind(ds, turbine_info, powerCurveFile, time_res='month',train=False
             gen_speed['speed'] = (gen_speed.speed * gen_speed.scalar) + gen_speed.offset # equation 2
             
             gen_speed = gen_speed.pivot(index=['time'], columns='ID', values='speed').reset_index()
-            gen_power = speed_to_power(gen_speed,turbine_info[['ID','turb_match']], powerCurveFile)
+            gen_power = speed_to_power(gen_speed,turb_info[['ID','model']], powerCurveFile)
             
             return gen_speed, gen_power
     
         else:
-            gen_power = speed_to_power(gen_speed,turbine_info[['ID','turb_match']], powerCurveFile)
+            gen_power = speed_to_power(gen_speed,turb_info[['ID','model']], powerCurveFile)
             
             return gen_speed, gen_power

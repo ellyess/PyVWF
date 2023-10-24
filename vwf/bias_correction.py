@@ -9,10 +9,10 @@ from vwf.extras import add_times
 from vwf.simulation import simulate_wind
 
 # Use K-means clustering, cluster the turbines by different number of clusters, and save the cluster labels.
-def cluster_labels(num_clu, gendata):
+def cluster_labels(num_clu, sim_cf):
     # for num_clu in [1, 2, 3, 5, 10, 15, 20, 30, 50, 100, 150, 200, 300, 400]:
-    lat = gendata['latitude']
-    lon = gendata['longitude']
+    lat = sim_cf['lat']
+    lon = sim_cf['lon']
 
     df = pd.DataFrame(list(zip(lat, lon)),
                     columns =['lat', 'lon'])
@@ -30,85 +30,67 @@ def cluster_labels(num_clu, gendata):
     
     return labels
     
-def closest_cluster(clus_data, turb_meta):
+def closest_cluster(clus_info, turb_info):
     """
     Assign turbines not found in training data to closest cluster.
     """
     
     # making sure ID column dtype is same   
-    clus_data['ID'] = clus_data['ID'].astype(str)
-    turb_meta['ID'] = turb_meta['ID'].astype(str)
+    clus_info['ID'] = clus_info['ID'].astype(str)
+    turb_info['ID'] = turb_info['ID'].astype(str)
     
-    avg = clus_data.groupby(['cluster'], as_index=False)[['latitude','longitude']].mean()
-    gen_data = pd.DataFrame.merge(clus_data[['ID','cluster']], turb_meta, on='ID', how='right')
+    avg = clus_info.groupby(['cluster'], as_index=False)[['lat','lon']].mean()
+    turb_info_new = pd.DataFrame.merge(clus_info[['ID','cluster']], turb_info, on='ID', how='right')
 
-    for i in range(len(gen_data)):
-        if np.isnan(gen_data.cluster[i]) == True:
+    for i in range(len(turb_info_new)):
+        if np.isnan(turb_info_new.cluster[i]) == True:
             # Find the cluster center closest to the new turbine
             # - find smallest distance between the new turbine and cluster centers
-            indx = np.argmin(np.sqrt((avg.latitude.values - gen_data.latitude[i])**2 + (avg.longitude.values - gen_data.longitude[i])**2))
-            gen_data.cluster[i] = avg.cluster[indx]
+            indx = np.argmin(np.sqrt((avg.lat.values - turb_info_new.lat[i])**2 + (avg.lon.values - turb_info_new.lon[i])**2))
+            turb_info_new.cluster[i] = avg.cluster[indx]
 
-    gen_data = gen_data.reset_index(drop=True)
-    # this makes a huge assumption that the metadata has the observation data NEEDS TO BE CHANGED IF I REMOVE OBSERVATION DATA FROM META
-    gen_data.columns = ['ID','cluster','capacity','longitude','latitude','height','turb_match','obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12']
+    turb_info_new = turb_info_new.reset_index(drop=True)
 
-    return gen_data
+    return turb_info_new
     
     
-def generate_training_data(uncorr_cf, obs_gen, turbine_info, num_clu):
+def generate_training_data(unc_cf, obs_cf, turb_info, num_clu):
 
-    uncorr_cf = uncorr_cf.groupby(pd.Grouper(key='time',freq='M')).mean().reset_index()
-    uncorr_cf = uncorr_cf.melt(id_vars=["time"], 
+    unc_cf = unc_cf.groupby(pd.Grouper(key='time',freq='M')).mean().reset_index()
+    unc_cf = unc_cf.melt(id_vars=["time"], 
                     var_name="ID", 
                     value_name="cf")
-    uncorr_cf.columns = ['time','ID', 'cf']
-    uncorr_cf = add_times(uncorr_cf)
+    unc_cf.columns = ['time','ID', 'cf']
+    unc_cf = add_times(unc_cf)
 
-    gen_cf = pd.merge(uncorr_cf, turbine_info[['ID', 'longitude', 'latitude', 'capacity', 'height', 'turb_match']], on='ID', how='left')       
-    gen_cf['cf'].where(gen_cf['cf'] > 0 , 0, inplace=True)
-    gen_cf['cf'].where(gen_cf['cf'] < 1 , 1, inplace=True)
-    gen_cf = gen_cf.pivot(index=['ID', 'longitude', 'latitude', 'capacity', 'height', 'year', 'turb_match'], columns='month', values='cf').reset_index()
-    gen_cf.columns = [f'sim_{i}' if i not in ['ID', 'year', 'longitude', 'latitude', 'capacity', 'height', 'turb_match'] else f'{i}' for i in gen_cf.columns]
+    df = pd.merge(unc_cf, turb_info[['ID', 'lon', 'lat', 'capacity', 'height', 'model']], on='ID', how='left')       
+    df['cf'].where(df['cf'] > 0 , 0, inplace=True)
+    df['cf'].where(df['cf'] < 1 , 1, inplace=True) 
+    unc_cf = df.pivot(index=['ID', 'lon', 'lat', 'capacity', 'height', 'year', 'model'], columns='month', values='cf').reset_index()
+    unc_cf.columns = [f'sim_{i}' if i not in ['ID', 'year', 'lon', 'lat', 'capacity', 'height', 'model'] else f'{i}' for i in unc_cf.columns]
     
-    def daysDuringMonth(yy, m):
-        result = []    
-        [result.append(monthrange(y, m)[1]) for y in yy]        
-        return result
         
-    all_gen = pd.merge(gen_cf, obs_gen,  how='left', on=['ID', 'year'])
-    
-    for i in range(1,13):
-        all_gen['obs_'+str(i)] = all_gen['obs_'+str(i)]/(((daysDuringMonth(all_gen.year, i))*all_gen['capacity'])*24)
-
-
-    all_gen['CF_mean'] = all_gen.filter(regex='sim_').mean(axis=1)
-    all_gen = all_gen.loc[all_gen['height'] > 1]
-    all_gen = all_gen.loc[all_gen['CF_mean'] >= 0.01]
-    all_gen['ID'] = all_gen['ID'].astype(str)
-    all_gen = all_gen.drop(['CF_mean'], axis=1)
+    # combining sim_cf and obs_cf
+    train_data = pd.merge(unc_cf, obs_cf,  how='left', on=['ID', 'year'])
+    train_data['ID'] = train_data['ID'].astype(str)
     
     # generating the labels
-    labels = cluster_labels(num_clu, all_gen)
-    clus_data = all_gen.copy()
-    clus_data['cluster'] = labels
-    clus_data = clus_data.drop_duplicates(subset=['ID'])
-    clus_data = clus_data[['ID','longitude','latitude','cluster']].reset_index(drop=True)
+    labels = cluster_labels(num_clu, train_data)
+    df = train_data.copy()
+    df['cluster'] = labels
+    df = df.drop_duplicates(subset=['ID'])
+    clus_info = df[['ID','lon','lat','cluster']].reset_index(drop=True)
     
-    year_start = uncorr_cf.time.min().year
-    year_end = uncorr_cf.time.max().year
-    
-    # clus_data.to_csv('data/bias_correction/cluster_labels_'+str(year_start)+'_'+str(year_end)+'_'+str(num_clu)+'_clusters.csv', index = None)
-    return all_gen, clus_data
+    return train_data, clus_info
 
 
-def training_bias(training_data, reanal_data, clus_data, year_star, year_end, powerCurveFile):
+def training_bias(train_data, reanal_data, clus_info, year_star, year_end, powerCurveFile):
     """
     Traiaing the bias correction factors, for all clusters, every training 
     year on a monthly resolution.
     
     Inputs:
-        training_data: Dataframe consisting of the simulated CF,
+        train_data: Dataframe consisting of the simulated CF,
                        observed CF, turbine metadata and coordinates
                        for every month in the training years.
         reanal_data: Xarray Dataset with relevant wind speed variables
@@ -126,19 +108,18 @@ def training_bias(training_data, reanal_data, clus_data, year_star, year_end, po
     end = 12
     for k in range(year_star,year_end+1):
     
-    
         # Find farms in the chosen year that have a cluster label
-        data_w_cluster = pd.DataFrame.merge(clus_data[['ID','cluster']], training_data.loc[training_data['year'] == k], on='ID', how='left')
+        data_w_cluster = pd.DataFrame.merge(clus_info[['ID','cluster']], train_data.loc[train_data['year'] == k], on='ID', how='left')
     
         # Get data for an 'average farm' for each cluster:
         # Average lat, lon, height, capacity, simulated and observed CF for all farm in a cluster
         # The turbine model with the most ocurrences is recorded
-        data_gen = data_w_cluster.groupby('cluster', as_index=False)[['latitude','longitude','height','obs_1', 
+        data_gen = data_w_cluster.groupby('cluster', as_index=False)[['lat','lon','height','obs_1', 
                                                             'obs_2', 'obs_3', 'obs_4', 'obs_5',
                                                             'obs_6', 'obs_7', 'obs_8', 'obs_9', 'obs_10', 'obs_11', 'obs_12', 'sim_1',
                                                             'sim_2', 'sim_3', 'sim_4', 'sim_5', 'sim_6', 'sim_7', 'sim_8', 'sim_9',
                                                             'sim_10', 'sim_11', 'sim_12', ]].mean()
-        data_gen['turb_match'] = data_w_cluster.groupby('cluster', as_index=False)['turb_match'].agg(lambda x: pd.Series.mode(x)[0])['turb_match']
+        data_gen['model'] = data_w_cluster.groupby('cluster', as_index=False)['model'].agg(lambda x: pd.Series.mode(x)[0])['model']
         data_gen['ID'] = data_w_cluster.groupby('cluster', as_index=False)['ID'].agg(lambda x: pd.Series.mode(x)[0])['ID']
         
         # Main bias correction function
@@ -203,7 +184,7 @@ def training_bias(training_data, reanal_data, clus_data, year_star, year_end, po
         merged7 = list(itertools.chain(*sim_l))
         merged8 = list(itertools.chain(*obs_l))
         df = pd.DataFrame(list(zip(merged1, merged2, merged3, merged4, merged5, merged6, merged7, merged8)),
-                    columns =['scalar', 'offset','month', 'latitude', 'longitude','cluster','sim','obs'])
+                    columns =['scalar', 'offset','month', 'lat', 'lon','cluster','sim','obs'])
         df['prt'] = df['obs']/df['sim']
     
         # print(df.groupby(['month'], as_index=False)[['scalar','offset']].mean())
