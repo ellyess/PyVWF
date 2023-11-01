@@ -3,11 +3,10 @@ import xarray as xr
 from pathlib import Path
 import time
 
-import vwf.prep as prep
-
 from vwf.preprocessing import (
     prep_era5,
-    prep_obs
+    prep_obs,
+    prep_obs_test,
 )
 # make a way for the country we want to work on to be read
 
@@ -40,7 +39,8 @@ class VWF():
         self.powerCurveFile = pd.read_csv(powerCurveFileLoc)
         
         # files for training
-        self.era5_train = prep_era5(self.year_star, self.year_end)
+        # self.era5_train = prep_era5(self.year_star, self.year_end, True)
+        self.era5_train = prep_era5(True)
         self.obs_cf, self.turb_info_train = prep_obs(self.country, self.year_star, self.year_end)
         # self.obs_cf = pd.read_csv('data/wind_data/'+self.country+'/obs_cf_train.csv')
         # self.turb_info_train = pd.read_csv('data/wind_data/'+self.country+'/turb_info_train.csv')
@@ -48,15 +48,18 @@ class VWF():
            
         # files for testing
         # this file is currently saved from atlite's cutout
-        ncFile = 'data/reanalysis/era5/'+str(self.year_test)+'-'+str(self.year_test)+'_clean.nc'
-        era5_test = xr.open_dataset(ncFile)
-        self.era5_test = era5_test.resample(time='1D').mean() # hourly is too slow
-    
+        # ncFile = 'data/reanalysis/test/'+str(self.year_test)+'-'+str(self.year_test)+'_clean.nc'
+        # era5_test = xr.open_dataset(ncFile)
+        # self.era5_test = era5_test.resample(time='1D').mean() # hourly is too slow
+        self.era5_test = prep_era5()
+        self.user_input = prep_obs_test(self.country, self.year_test) # probably should be in test but for research its here
+        
         return self
         
         
     def train(self, num_clu):
-
+        print(len(self.turb_info_train), " turbines in training.")
+        
         my_file = Path('data/bias_correction/bc_factors_'+str(self.year_star)+'-'+str(self.year_end)+'_'+str(num_clu)+'.csv')
         
         if my_file.is_file():
@@ -109,9 +112,10 @@ class VWF():
     def test(self, time_res):
         
         # user_input = pd.read_csv('data/wind_data/'+self.country+'/turb_info.csv')
-        user_input = pd.read_csv('data/input.csv')
+        # obs_cf_test, user_input = prep_obs(self.country, self.year_test, self.year_test)
+        # user_input = pd.read_csv('data/input.csv') # for single input or to change for future
                                  
-        turb_info = closest_cluster(self.clus_info, user_input)
+        turb_info = closest_cluster(self.clus_info, self.user_input)
         
         # producing uncorrected results
         unc_ws, unc_cf = simulate_wind(self.era5_test, turb_info, self.powerCurveFile)
