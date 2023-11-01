@@ -5,6 +5,7 @@ import pandas as pd
 import time
 import utm
 from calendar import monthrange
+import datetime
 
 
 def prep_obs(country, year_star, year_end):
@@ -23,7 +24,7 @@ def prep_obs(country, year_star, year_end):
         # producing turb_info
         ##############################
         # reading in the messy denmark turbine info that we have matched
-        df = pd.read_excel('data/wind_data/DK/match_turb_dk.xlsx')
+        df = pd.read_excel('data/wind_data/DK/raw/match_turb_dk.xlsx')
         columns = ['Turbine identifier (GSRN)','Capacity (kW)','X (east) coordinate\nUTM 32 Euref89','Y (north) coordinate\nUTM 32 Euref89','Hub height (m)', 'Date of original connection to grid', 'turb_match']
         df = df[columns]
         rename_col = ['ID','capacity','x_east_32','y_north_32','height', 'date', 'model']
@@ -56,7 +57,7 @@ def prep_obs(country, year_star, year_end):
 
         # Load observation data and slice the observed CF for chosen years
         appended_data = []
-        for i in range(year_star, year_end+2): # change this back to +1 when i dont need 2020 obs
+        for i in range(year_star, year_end+1): # change this back to +1 when i dont need 2020 obs
             data = pd.read_excel('data/wind_data/DK/observation/Denmark_'+str(i)+'.xlsx')
             data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
             data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
@@ -86,25 +87,116 @@ def prep_obs(country, year_star, year_end):
         obs_cf = df.drop(['capacity','cf_mean'], axis=1).reset_index(drop=True)
 
 
+        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
+        obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True)
+        # obs_cf.to_csv('data/wind_data/DK/obs_cf_train.csv', index = None)
+        
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
         turb_info.to_csv('data/wind_data/DK/turb_info_train.csv', index = None)
-        obs_cf.to_csv('data/wind_data/DK/obs_cf_train.csv', index = None)
-
-
-        # creating a turb_info_test for 2020
-        turb_info_test = turb_info.loc[turb_info['ID'].isin(obs_cf[obs_cf['year'] == 2020]['ID'])].reset_index(drop=True)
-        turb_info_test.to_csv('data/wind_data/DK/turb_info.csv', index = None)
         
         return obs_cf, turb_info
+        
+        
+        
+def prep_obs_test(country, year_test):
+    
+    if country == "DK":
+        """
+        For Denmark's data there had to be a lot of manual manipulation of the excel file. 
+        I had to manually match the turbines that exist in the power curves file, with Denmarks naming convention then match it to the ID's. 
+        anlaeg.xlsx is the raw file and match_turb_dk.xlsx is where the matching is done.
+        After this we are required to fill in missing turbine matches and also convert the coordinate system.
+        We also produce the observational data which is again manually seperated into yearly sheets from a megasheet for the years we desire.
+        As the observational data is power output we converted that to capacity factor with the matched turbines.
+        the ID's here are the gsrn ID
+        """
+        ##############################
+        # producing turb_info
+        ##############################
+        # reading in the messy denmark turbine info that we have matched
+        df = pd.read_excel('data/wind_data/DK/raw/match_turb_dk.xlsx')
+        columns = ['Turbine identifier (GSRN)','Capacity (kW)','X (east) coordinate\nUTM 32 Euref89','Y (north) coordinate\nUTM 32 Euref89','Hub height (m)', 'Date of original connection to grid', 'turb_match']
+        df = df[columns]
+        rename_col = ['ID','capacity','x_east_32','y_north_32','height', 'date', 'model']
+        df.columns = rename_col
+        df = df.dropna()
+
+        # matching modelless turbines with closest model via capacity
+        metadata = pd.read_csv('data/turbine_info/models.csv')
+        metadata = metadata.sort_values('capacity')
+
+        df['model'][df['model'] == 0] = np.nan
+        df['capacity'] = df['capacity'].astype(int)
+        df = df.sort_values('capacity').reset_index(drop=True)
+        df.loc[df['model'].isna(), 'model'] = pd.merge_asof(df, metadata, left_on=["capacity"], right_on=["capacity"], direction="nearest")['model_y']
+
+        # convert coordinate system
+        def rule(row):
+            lat, lon = utm.to_latlon(row["x_east_32"], row["y_north_32"], 32, 'W')
+            return pd.Series({"lat": lat, "lon": lon})
+
+        df = df.merge(df.apply(rule, axis=1), left_index= True, right_index= True)
+        df = df[['ID','capacity','lat','lon','height', 'date', 'model']]
+        df['ID'] = df['ID'].astype(str)
+        turb_info = df.drop(df[df['height'] < 1].index).reset_index(drop=True)
 
 
-def prep_era5(year_star, year_end):
+        ##############################
+        # producing obs_cf
+        ##############################
+
+        # Load observation data and slice the observed CF for chosen years
+
+        data = pd.read_excel('data/wind_data/DK/observation/Denmark_'+str(year_test)+'.xlsx')
+        data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
+        data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
+        data['ID'] = data['ID'].astype(str)
+        
+        obs_gen = data.reset_index(drop=True)
+        obs_gen.columns = [f'obs_{i}' if i not in ['ID'] else f'{i}' for i in obs_gen.columns]
+
+        # converting obs_gen into obs_cf by turning power into capacity factor
+        df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
+        df = df.dropna().reset_index(drop=True)
+
+
+        for i in range(1,13):
+            df['obs_'+str(i)] = df['obs_'+str(i)]/(((monthrange(year_test, i)[1])*df['capacity'])*24)
+
+        df['cf_mean'] = df.iloc[:,1:13].mean(axis=1)
+        df = df.drop(df[df['cf_mean'] <= 0.01].index)
+        obs_cf = df.drop(['capacity','cf_mean'], axis=1).reset_index(drop=True)
+        
+        # some random stuff to make it easier to plot for research
+        dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
+        cols = dates.tolist()
+        obs_cf.columns = ['ID'] + cols
+
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
+        turb_info.to_csv('data/wind_data/DK/turb_info_test.csv', index = None)
+        
+        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])]
+        obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
+        obs_cf.to_csv('data/wind_data/DK/obs_cf_test.csv', index = None)
+        
+        return turb_info
+
+
+# def prep_era5(year_star, year_end, train=False):
+def prep_era5(train=False):
     """
     Reading a saved ERA5 file with 100m wind speeds and fsr.
     changing names and converting wind speed components into wind speed.
     """
     # Load the corresponding raw ERA5 file
-    ncFile = 'data/reanalysis/era5/'+str(year_star)+'-'+str(year_end)+'_raw.nc'
-    ds = xr.open_dataset(ncFile)
+    # ncFile = 'data/reanalysis/era5/'+str(year_star)+'-'+str(year_end)+'_raw.nc'
+    # ncFile = 'data/reanalysis/train/era5_'+str(year_star)+'_'+str(year_end)+'.nc'
+    # ds = xr.open_dataset(ncFile)
+    if train == True:
+        ds = xr.open_mfdataset('data/reanalysis/train/*.nc')
+    else:
+        ds = xr.open_mfdataset('data/reanalysis/test/*.nc')
+    ds = ds.compute() # this allows it to not be dask chunks
     
     ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2).assign_attrs(
         units=ds["u100"].attrs["units"], long_name="100 metre wind speed"
