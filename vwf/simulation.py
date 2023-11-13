@@ -7,11 +7,30 @@ from vwf.extras import add_times
 
 def extrapolate_wind_speed(reanal_data, turb_info):
  
-    # calculating wind speed from reanalysis dataset variables
-    ws = reanal_data.wnd100m * (
-        np.log(reanal_data.height/ reanal_data.roughness) / np.log(100 / reanal_data.roughness))
-    ws = ws.where(ws > 0 , 0)
-    ws = ws.where(ws < 40 , 40)
+    # ADDED FOR MERRA 2 RUN, THIS SHOULDN'T BE USED ITS JUST FOR A COMPARISON REMOVE EVENTUALLY
+    try:
+        exception_flag = True
+        ws = reanal_data.A * np.log(reanal_data.height / reanal_data.z)
+        exception_flag = False
+
+    except:
+        pass
+        
+    finally:
+        if exception_flag:
+            # calculating wind speed from reanalysis dataset variables
+            ws = reanal_data.wnd100m * (
+                np.log(reanal_data.height/ reanal_data.roughness) / np.log(100 / reanal_data.roughness))
+            ws = ws.where(ws > 0 , 0)
+            ws = ws.where(ws < 40 , 40)
+    ##########################################################        
+            
+    
+    # # calculating wind speed from reanalysis dataset variables
+    # ws = reanal_data.wnd100m * (
+    #     np.log(reanal_data.height/ reanal_data.roughness) / np.log(100 / reanal_data.roughness))
+    # ws = ws.where(ws > 0 , 0)
+    # ws = ws.where(ws < 40 , 40)
     
     # creating coordinates to spatially interpolate to
     lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})

@@ -7,6 +7,7 @@ from vwf.preprocessing import (
     prep_era5,
     prep_obs,
     prep_obs_test,
+    prep_merra2_method_1
 )
 # make a way for the country we want to work on to be read
 
@@ -39,18 +40,11 @@ class VWF():
         self.powerCurveFile = pd.read_csv(powerCurveFileLoc)
         
         # files for training
-        # self.era5_train = prep_era5(self.year_star, self.year_end, True)
         self.era5_train = prep_era5(True)
         self.obs_cf, self.turb_info_train = prep_obs(self.country, self.year_star, self.year_end)
-        # self.obs_cf = pd.read_csv('data/wind_data/'+self.country+'/obs_cf_train.csv')
-        # self.turb_info_train = pd.read_csv('data/wind_data/'+self.country+'/turb_info_train.csv')
         self.unc_ws_train, self.unc_cf_train = simulate_wind(self.era5_train, self.turb_info_train, self.powerCurveFile)     
            
         # files for testing
-        # this file is currently saved from atlite's cutout
-        # ncFile = 'data/reanalysis/test/'+str(self.year_test)+'-'+str(self.year_test)+'_clean.nc'
-        # era5_test = xr.open_dataset(ncFile)
-        # self.era5_test = era5_test.resample(time='1D').mean() # hourly is too slow
         self.era5_test = prep_era5()
         self.user_input = prep_obs_test(self.country, self.year_test) # probably should be in test but for research its here
         
@@ -93,11 +87,6 @@ class VWF():
                 'data/bias_correction/bc_factors_'+str(self.year_star)+'-'+str(self.year_end)+'_'+str(num_clu)+'.csv',
                 index = None
                 )
-            
-            # bcfactors.to_csv(
-            #     'data/bias_correction/bc_fact_'+str(self.year_star)+'-'+str(self.year_end)+'_'+str(num_clu)+'_raw.csv',
-            #     index = None
-            #     )
                 
             end_time = time.time()
             elapsed_time = end_time - start_time
@@ -110,6 +99,7 @@ class VWF():
 
     
     def test(self, time_res):
+
         
         # user_input = pd.read_csv('data/wind_data/'+self.country+'/turb_info.csv')
         # obs_cf_test, user_input = prep_obs(self.country, self.year_test, self.year_test)
@@ -139,6 +129,29 @@ class VWF():
         self.time_res = time_res
         
         return self
-
         
+    def test_merra(self, time_res):
 
+        self.user_input = prep_obs_test(self.country, self.year_test) # probably should be in test but for research its here
+
+        powerCurveFileLoc = 'data/turbine_info/Wind Turbine Power Curves.csv'
+        self.powerCurveFile = pd.read_csv(powerCurveFileLoc)
+        self.merra2_test = prep_merra2_method_1(2020, 2020)
+        self.num_clu = 1
+        turb_info = self.user_input
+        turb_info['cluster'] = 0
+        bias_fact_dict = {'0': [0 , 0.597, 2.836]}
+        self.bc_factors = pd.DataFrame.from_dict(bias_fact_dict, orient='index',
+                                    columns=['cluster', 'scalar', 'offset'])
+        
+        unc_ws, unc_cf = simulate_wind(self.merra2_test, turb_info, self.powerCurveFile)
+    
+        unc_ws.to_csv('data/results/merra_'+str(self.year_test)+'_unc_ws.csv', index = None)
+        unc_cf.to_csv('data/results/merra_'+str(self.year_test)+'_unc_cf.csv', index = None)
+        cor_ws, cor_cf = simulate_wind(self.merra2_test, turb_info, self.powerCurveFile, time_res, False, True, self.bc_factors)
+        cor_ws.to_csv('data/results/merra_'+str(self.year_test)+'_'+time_res+'_'+str(self.num_clu)+'_cor_ws.csv', index = None)
+        cor_cf.to_csv('data/results/merra_'+str(self.year_test)+'_'+time_res+'_'+str(self.num_clu)+'_cor_cf.csv', index = None)
+        
+        self.time_res = time_res
+        
+        return self
