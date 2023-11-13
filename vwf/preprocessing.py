@@ -7,6 +7,26 @@ import utm
 from calendar import monthrange
 import datetime
 
+##############################################################################
+# MERRA 2 STUFF PLEASE DELETE THIS 
+def prep_merra2_method_1(year_star, year_end):
+    """
+    Reading Iain's preprepped MERRA 2 Az file and selecting desired location.
+    In future this will be replaced with my own Az function.
+    """
+    
+    area = [7., 16, 54.3, 58]    
+    ncFile = '../../ReanalysisData/merra2/DailyAZ/'+str(2020)+'-'+str(2020)+'_dailyAz_ian.nc'
+    ds = xr.open_dataset(ncFile)
+    ds = ds.sel(lat=slice(area[2], area[3]), lon=slice(area[0], area[1]))
+    updated_times = np.asarray(pd.date_range(start=str(year_star)+'/01/01', end=str(year_end+1)+'/01/01', freq='1H'))[:-1]
+    ds["time"] = ("time", updated_times)
+    ds = ds.resample(time='1D').mean()
+    return _rename_and_clean_coords(ds, False)
+    
+    
+#################################################################
+
 
 def prep_obs(country, year_star, year_end):
     
@@ -113,6 +133,7 @@ def prep_obs_test(country, year_test):
         ##############################
         # producing turb_info
         ##############################
+        
         # reading in the messy denmark turbine info that we have matched
         df = pd.read_excel('data/wind_data/DK/raw/match_turb_dk.xlsx')
         columns = ['Turbine identifier (GSRN)','Capacity (kW)','X (east) coordinate\nUTM 32 Euref89','Y (north) coordinate\nUTM 32 Euref89','Hub height (m)', 'Date of original connection to grid', 'turb_match']
@@ -140,13 +161,11 @@ def prep_obs_test(country, year_test):
         df['ID'] = df['ID'].astype(str)
         turb_info = df.drop(df[df['height'] < 1].index).reset_index(drop=True)
 
-
         ##############################
         # producing obs_cf
         ##############################
-
+        
         # Load observation data and slice the observed CF for chosen years
-
         data = pd.read_excel('data/wind_data/DK/observation/Denmark_'+str(year_test)+'.xlsx')
         data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
         data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
@@ -158,7 +177,6 @@ def prep_obs_test(country, year_test):
         # converting obs_gen into obs_cf by turning power into capacity factor
         df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
         df = df.dropna().reset_index(drop=True)
-
 
         for i in range(1,13):
             df['obs_'+str(i)] = df['obs_'+str(i)]/(((monthrange(year_test, i)[1])*df['capacity'])*24)
@@ -189,9 +207,6 @@ def prep_era5(train=False):
     changing names and converting wind speed components into wind speed.
     """
     # Load the corresponding raw ERA5 file
-    # ncFile = 'data/reanalysis/era5/'+str(year_star)+'-'+str(year_end)+'_raw.nc'
-    # ncFile = 'data/reanalysis/train/era5_'+str(year_star)+'_'+str(year_end)+'.nc'
-    # ds = xr.open_dataset(ncFile)
     if train == True:
         ds = xr.open_mfdataset('data/reanalysis/train/*.nc')
     else:
