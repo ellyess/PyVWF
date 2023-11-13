@@ -6,7 +6,18 @@
 
 ## Functionality
 This model has the ability to produce bias corrected power output from wind farms based on reanalysis data. The model calculates wind speed with this equation:
-- `w(h) = v(100m) * ln(h/z0)/ln(100m/z0), where z0 is surface roughness`
+
+```math
+w(h)= w_{100m} \frac{\ln(h / z_{0})}{\ln(100 / z_{0})} $$
+```
+Where:
+- the hub height $h$;
+- the surface roughness $z_{0}$.
+
+Bias correction is applied on wind speeds from the reanalysis data as we assume this is where the error comes from rather than the conversion to power. Wind speeds are corrected using the following scheme adapted from [@staffell2016]:
+
+$$ w_{corrected} = \alpha w_{original} + \beta. $$
+
 
 
 ## Installation:
