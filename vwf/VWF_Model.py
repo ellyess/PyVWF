@@ -52,7 +52,6 @@ class VWF():
         
         
     def train(self, num_clu):
-        print(len(self.turb_info_train), " turbines in training.")
         
         my_file = Path('data/bias_correction/bc_factors_'+str(self.year_star)+'-'+str(self.year_end)+'_'+str(num_clu)+'.csv')
         
