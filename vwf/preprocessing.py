@@ -68,6 +68,7 @@ def prep_obs(country, year_star, year_end):
         df = df.merge(df.apply(rule, axis=1), left_index= True, right_index= True)
         df = df[['ID','capacity','lat','lon','height', 'date', 'model']]
         df['ID'] = df['ID'].astype(str)
+        print("Number of turbines before preprocessing: ", len(df))
         turb_info = df.drop(df[df['height'] < 1].index).reset_index(drop=True)
 
 
@@ -102,18 +103,23 @@ def prep_obs(country, year_star, year_end):
         for i in range(1,13):
             df['obs_'+str(i)] = df['obs_'+str(i)]/(((daysDuringMonth(df.year, i))*df['capacity'])*24)
 
+        df = df.drop(['capacity'], axis=1).reset_index(drop=True)
+        df['cf_max'] = df.iloc[:,1:13].max(axis=1)
+        df = df.drop(df[df['cf_max'] > 1].index)
+        df['cf_min'] = df.iloc[:,1:13].min(axis=1)
+        df = df.drop(df[df['cf_min'] <= 0.01].index)
         df['cf_mean'] = df.iloc[:,1:13].mean(axis=1)
         df = df.drop(df[df['cf_mean'] <= 0.01].index)
-        obs_cf = df.drop(['capacity','cf_mean'], axis=1).reset_index(drop=True)
-
+        obs_cf = df.drop(['cf_mean', 'cf_max', 'cf_min'], axis=1).reset_index(drop=True)
 
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
         obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True)
-        # obs_cf.to_csv('data/wind_data/DK/obs_cf_train.csv', index = None)
+        obs_cf.to_csv('data/wind_data/DK/obs_cf_train.csv', index = None)
         
         turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
         turb_info.to_csv('data/wind_data/DK/turb_info_train.csv', index = None)
         
+        print("Number of turbines used in training: ", len(turb_info))
         return obs_cf, turb_info
         
         
@@ -181,9 +187,16 @@ def prep_obs_test(country, year_test):
         for i in range(1,13):
             df['obs_'+str(i)] = df['obs_'+str(i)]/(((monthrange(year_test, i)[1])*df['capacity'])*24)
 
+        # need to make sure to remove turbines giving a capacity factor greater than 1
+        df = df.drop(['capacity'], axis=1).reset_index(drop=True)
+
+        df['cf_max'] = df.iloc[:,1:13].max(axis=1)
+        df = df.drop(df[df['cf_max'] > 1].index)
+        df['cf_min'] = df.iloc[:,1:13].min(axis=1)
+        df = df.drop(df[df['cf_min'] <= 0.01].index)
         df['cf_mean'] = df.iloc[:,1:13].mean(axis=1)
         df = df.drop(df[df['cf_mean'] <= 0.01].index)
-        obs_cf = df.drop(['capacity','cf_mean'], axis=1).reset_index(drop=True)
+        obs_cf = df.drop(['cf_mean', 'cf_max' , 'cf_min'], axis=1).reset_index(drop=True)
         
         # some random stuff to make it easier to plot for research
         dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
