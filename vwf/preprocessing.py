@@ -193,7 +193,7 @@ def prep_obs_test(country, year_test):
         df['cf_max'] = df.iloc[:,1:13].max(axis=1)
         df = df.drop(df[df['cf_max'] > 1].index)
         df['cf_min'] = df.iloc[:,1:13].min(axis=1)
-        df = df.drop(df[df['cf_min'] <= 0.01].index)
+        # df = df.drop(df[df['cf_min'] <= 0.01].index)
         df['cf_mean'] = df.iloc[:,1:13].mean(axis=1)
         df = df.drop(df[df['cf_mean'] <= 0.01].index)
         obs_cf = df.drop(['cf_mean', 'cf_max' , 'cf_min'], axis=1).reset_index(drop=True)
@@ -244,18 +244,6 @@ def prep_era5(train=False):
 #############################################################################################################
 #############################################################################################################
 
-def maybe_swap_spatial_dims(ds, namex="x", namey="y"):
-    """Swap order of spatial dimensions according to atlite concention."""
-    swaps = {}
-    lx, rx = ds.indexes[namex][[0, -1]]
-    ly, uy = ds.indexes[namey][[0, -1]]
-
-    if lx > rx:
-        swaps[namex] = slice(None, None, -1)
-    if uy < ly:
-        swaps[namey] = slice(None, None, -1)
-
-    return ds.isel(**swaps) if swaps else ds
 
 def _rename_and_clean_coords(ds, add_lon_lat=True):
     """Rename 'longitude' and 'latitude' columns to 'x' and 'y' and fix roundings.
