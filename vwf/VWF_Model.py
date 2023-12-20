@@ -85,6 +85,7 @@ class VWF():
     def test(self, year_test, cluster_list, time_res_list):
         era5 = prep_era5()
         obs_cf, turb_info = prep_obs(self.country, False, year_test)
+        obs_cf.to_csv('data/results/raw/'+self.country+"_"+str(year_test)+'_obs_ws.csv', index = None)
         turb_info.to_csv('data/correction_factors/simulated_turbines/'+self.country+'_'+str(year_test)+'_turb_info.csv', index = None)
         
         unc_ws, unc_cf = simulate_wind(era5, turb_info, self.powerCurveFile)
