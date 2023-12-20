@@ -3,34 +3,17 @@ import numpy as np
 import pandas as pd
 from scipy import interpolate
 
-from vwf.extras import add_times
+from vwf.extras import (
+    add_times,
+    add_time_res
+)
 
-def extrapolate_wind_speed(reanal_data, turb_info):
- 
-    # ADDED FOR MERRA 2 RUN, THIS SHOULDN'T BE USED ITS JUST FOR A COMPARISON REMOVE EVENTUALLY
-    try:
-        exception_flag = True
-        ws = reanal_data.A * np.log(reanal_data.height / reanal_data.z)
-        exception_flag = False
-
-    except:
-        pass
-        
-    finally:
-        if exception_flag:
-            # calculating wind speed from reanalysis dataset variables
-            ws = reanal_data.wnd100m * (
-                np.log(reanal_data.height/ reanal_data.roughness) / np.log(100 / reanal_data.roughness))
-            ws = ws.where(ws > 0 , 0)
-            ws = ws.where(ws < 40 , 40)
-    ##########################################################        
-            
+def simulate_wind_speed(reanalysis, turb_info):
+    reanalysis = reanalysis.assign_coords(
+        height=('height', turb_info['height'].unique()))
     
-    # # calculating wind speed from reanalysis dataset variables
-    # ws = reanal_data.wnd100m * (
-    #     np.log(reanal_data.height/ reanal_data.roughness) / np.log(100 / reanal_data.roughness))
-    # ws = ws.where(ws > 0 , 0)
-    # ws = ws.where(ws < 40 , 40)
+    # calculating wind speed from reanalysis dataset variables
+    ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
     
     # creating coordinates to spatially interpolate to
     lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})
@@ -38,80 +21,56 @@ def extrapolate_wind_speed(reanal_data, turb_info):
     height =  xr.DataArray(turb_info['height'], dims='turbine', coords={'turbine':turb_info['ID']})
 
     # spatial interpolating to turbine positions
-    raw_ws = ws.interp(
-            x=lon, y=lat, height=height,
+    sim_ws = ws.interp(
+            lon=lon, lat=lat, height=height,
             kwargs={"fill_value": None})
     
-    return raw_ws
+    return sim_ws
 
-
-def speed_to_power(sim_ws, turb_info, powerCurveFile, train=False): 
+def speed_to_power(column, powerCurveFile, turb_info):
     x = powerCurveFile['data$speed']
-    
-    if train == True:
-        turb_name = turb_info.loc[turb_info['ID'] == sim_ws.turbine.data, 'model']
-        y = powerCurveFile[turb_name].to_numpy().flatten()
-        f = interpolate.Akima1DInterpolator(x, y)
-        return f(sim_ws.data)
+    turb_name = turb_info.loc[turb_info['ID'] == column.name, 'model']           
+    y = powerCurveFile[turb_name].to_numpy().flatten()
+    f = interpolate.Akima1DInterpolator(x, y)
+    return f(column)
 
-    else:
-        # identifying the model assigned to this turbine ID to access the power curve
-        # and covert the speed into power
-        sim_cf = sim_ws.copy()
-        for i in range(2, len(sim_cf.columns)+1):          
-            speed_single = sim_cf.iloc[:,i-1]
-            turb_name = turb_info.loc[turb_info['ID'] == speed_single.name, 'model']           
-            y = powerCurveFile[turb_name].to_numpy().flatten()
-            f = interpolate.Akima1DInterpolator(x, y)
-            sim_cf.iloc[:,i-1] = f(speed_single)
-        return sim_cf
-
-
-def simulate_wind(reanal_data, turb_info, powerCurveFile, time_res='month',train=False, bias_correct=False, *args):
-    # grouping reanalysis data to speed up calculation
-    all_heights = np.sort(turb_info['height'].unique())
-    reanal_data = reanal_data.assign_coords(
-        height=('height', all_heights))
+def simulate_wind(reanalysis, turb_info, powerCurveFile, *args): 
     # calculating wind speed from reanalysis data
-    raw_ws = extrapolate_wind_speed(reanal_data, turb_info)
-    
-    if train == True:
-        scalar, offset = args
-        # raw_ws = (raw_ws + offset) * scalar # equation 1 
-        raw_ws = (raw_ws * scalar) + offset # equation 2
-        raw_ws = raw_ws.where(raw_ws > 0 , 0)
-        raw_ws = raw_ws.where(raw_ws < 40 , 40)
-        raw_cf = speed_to_power(raw_ws, turb_info, powerCurveFile, train)
-        return np.mean(raw_cf)
+    # start_time = time.time()
+    sim_ws = simulate_wind_speed(reanalysis, turb_info)
+    sim_ws = sim_ws.to_pandas()
 
-    else:
-        unc_ws = raw_ws.to_pandas().reset_index()
+    if len(args) >= 1: 
+        bc_factors = args[0]
+        time_res = args[1]
+        
+        sim_ws = sim_ws.reset_index()
+        sim_ws = sim_ws.melt(id_vars=["time"], # adding in turbine ID for merging
+            var_name="ID", 
+            value_name="ws")
 
-        if bias_correct == False:
-            unc_cf = speed_to_power(unc_ws, turb_info[['ID','model']], powerCurveFile)
-            return unc_ws, unc_cf
-            
-        else:
-            bc_factors = args[0] # reading in bias correction factors
-            unc_ws = unc_ws.melt(id_vars=["time"], # adding in turbine ID for merging
-                var_name="ID", 
-                value_name="ws")
-            unc_ws = add_times(unc_ws)
-            
-            # matching the correct resolution bias correction factors
-            unc_ws = pd.merge(unc_ws, turb_info[['ID', 'cluster']], on='ID', how='left')  
-            if time_res == 'year':
-                time_factors = bc_factors.groupby(['cluster'], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
-                unc_ws = pd.merge(unc_ws, time_factors[['cluster','scalar', 'offset']],  how='left', on=['cluster'])
-            
-            else:        
-                unc_ws = pd.merge(unc_ws, bc_factors[['cluster', 'month','two_month','season']],  how='left', on=['cluster', 'month'])
-                time_factors = bc_factors.groupby(['cluster',time_res], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
-                unc_ws = pd.merge(unc_ws, time_factors[['cluster', time_res, 'scalar', 'offset']],  how='left', on=['cluster', time_res])
-    
-            # applying the bias correction factors to wind speed
-            # cor_ws['speed'] = (unc_ws.ws + unc_ws.offset) * gen_speed.scalar # equation 1 
-            unc_ws['ws'] = (unc_ws.ws * unc_ws.scalar) + unc_ws.offset # equation 2
-            cor_ws = unc_ws.pivot(index=['time'], columns='ID', values='ws').reset_index()
-            cor_cf = speed_to_power(cor_ws,turb_info[['ID','model']], powerCurveFile)
-            return cor_ws, cor_cf
+
+        sim_ws = add_times(sim_ws)
+        sim_ws = add_time_res(sim_ws)
+        
+        sim_ws['month'] = sim_ws['month'].astype(str)
+        bc_factors[time_res] = bc_factors[time_res].astype(str)
+        # turb_info['ID'] = turb_info['ID'].astype(str)
+        # bc_factors['ID'] = bc_factors['ID'].astype(str)
+        sim_ws = pd.merge(sim_ws, turb_info[['ID','cluster']], on=['ID'], how='left')
+        sim_ws = pd.merge(sim_ws, bc_factors, on=['cluster',time_res], how='left')
+        sim_ws['ws'] = (sim_ws.ws * sim_ws.scalar) + sim_ws.offset # equation 2
+        sim_ws = sim_ws.pivot(index=['time'], columns='ID', values='ws')
+
+    sim_cf = sim_ws.apply(speed_to_power, args=(powerCurveFile, turb_info), axis=0)
+
+    return sim_ws.reset_index(), sim_cf.reset_index()
+
+def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0): 
+    # calculating wind speed from reanalysis data
+    sim_ws = simulate_wind_speed(reanalysis, turb_info)
+    unc_ws = sim_ws.to_pandas()
+    cor_ws = (unc_ws * scalar) + offset
+    # converting to power
+    cor_cf = cor_ws.apply(speed_to_power, args=(powerCurveFile, turb_info), axis=0)
+    return np.mean(cor_cf)
