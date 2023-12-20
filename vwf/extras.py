@@ -10,7 +10,7 @@ def add_times(data):
 
 
 def calc_metrics_era5(cluster_list):
-    time_res_list = ['year', 'season', 'two_month', 'month'] 
+    time_res_list = ['yearly', 'season', 'bimonth', 'month'] 
     year_test = 2020
     
     # importing observation for denmark 2020.
