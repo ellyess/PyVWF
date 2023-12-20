@@ -142,7 +142,7 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
             # If we have reached unreasonable places, stop
             if myOffset < -20 or myOffset > 20:
                 break
-        elif mean_cf == 0:
+        elif mean_sim_cf == 0:
             myOffset = 0
             break
 
