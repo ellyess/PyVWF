@@ -34,3 +34,10 @@ plots/scalar.png
 plots/turb_c.png
 plots/turb_loc.png
 plots/unc_cf.png
+data/wind_data/.DS_Store
+data/results/.DS_Store
+data/wind_data/.DS_Store
+data/reanalysis/.DS_Store
+.DS_Store
+data/.DS_Store
+data/bias_correction/.DS_Store

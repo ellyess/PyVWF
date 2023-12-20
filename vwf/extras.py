@@ -7,6 +7,22 @@ def add_times(data):
     data.insert(1, 'year', data.pop('year'))
     data.insert(2, 'month', data.pop('month'))
     return data
+    
+def add_time_res(df):
+    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
+    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
+    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
+    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
+    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
+    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
+    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
+    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
+    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
+    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
+    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
+    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
+    df['yearly'] = 'year'
+    return df
 
 
 def calc_metrics_era5(cluster_list):
@@ -16,7 +32,6 @@ def calc_metrics_era5(cluster_list):
     # importing observation for denmark 2020.
     cf_obs = obs = pd.read_csv('data/wind_data/DK/obs_cf_test.csv', parse_dates=['time'])
     cf_obs_month = cf_obs.groupby(pd.Grouper(key='time',freq='M')).mean().transpose().mean()
-    
     
     months = np.array(range(1,13))
     
