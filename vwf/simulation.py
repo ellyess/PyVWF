@@ -73,4 +73,11 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     cor_ws = (unc_ws * scalar) + offset
     # converting to power
     cor_cf = cor_ws.apply(speed_to_power, args=(powerCurveFile, turb_info), axis=0)
-    return np.mean(cor_cf)
+    cor_cf = cor_cf.reset_index()
+    cor_cf = cor_cf.melt(
+        id_vars=["time"], # adding in turbine ID for merging
+        var_name="ID", 
+        value_name="cf"
+    )
+    cor_cf = pd.merge(cor_cf, turb_info[['ID','capacity']], on=['ID'], how='left')
+    return np.average(cor_cf.cf, weights=cor_cf.capacity)

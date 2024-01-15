@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 import pandas as pd
+import difflib
 
 import time
 import utm
@@ -14,26 +15,6 @@ from vwf.extras import (
 
 from vwf.simulation import simulate_wind
 
-##############################################################################
-# MERRA 2 STUFF PLEASE DELETE THIS 
-def prep_merra2_method_1(year_star, year_end):
-    """
-    Reading Iain's preprepped MERRA 2 Az file and selecting desired location.
-    In future this will be replaced with my own Az function.
-    """
-    
-    area = [7., 16, 54.3, 58]    
-    ncFile = '../../ReanalysisData/merra2/DailyAZ/'+str(2020)+'-'+str(2020)+'_dailyAz_ian.nc'
-    ds = xr.open_dataset(ncFile)
-    ds = ds.sel(lat=slice(area[2], area[3]), lon=slice(area[0], area[1]))
-    updated_times = np.asarray(pd.date_range(start=str(year_star)+'/01/01', end=str(year_end+1)+'/01/01', freq='1H'))[:-1]
-    ds["time"] = ("time", updated_times)
-    ds = ds.resample(time='1D').mean()
-    return _rename_and_clean_coords(ds, False)
-    
-    
-#################################################################
-
 def prep_era5(train=False):
     """
     Reading a saved ERA5 file with 100m wind speeds and fsr.
@@ -41,9 +22,9 @@ def prep_era5(train=False):
     """
     # Load the corresponding raw ERA5 file
     if train == True:
-        ds = xr.open_mfdataset('data/reanalysis/train/*.nc')
+        ds = xr.open_mfdataset('data/input/reanalysis/train/*.nc')
     else:
-        ds = xr.open_mfdataset('data/reanalysis/test/*.nc')
+        ds = xr.open_mfdataset('data/input/reanalysis/test/*.nc')
     ds = ds.compute() # this allows it to not be dask chunks
     
     ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2).assign_attrs(
@@ -64,146 +45,282 @@ def prep_era5(train=False):
         lon=np.round(ds.lon.astype(float), 5), lat=np.round(ds.lat.astype(float), 5)
     )
     return ds
-
-def prep_obs(country, train=False, *args):
     
-    if country == "DK":
-        """
-        For Denmark's data there had to be a lot of manual manipulation of the excel file. 
-        I had to manually match the turbines that exist in the power curves file, with Denmarks naming convention then match it to the ID's. 
-        anlaeg.xlsx is the raw file and match_turb_dk.xlsx is where the matching is done.
-        After this we are required to fill in missing turbine matches and also convert the coordinate system.
-        We also produce the observational data which is again manually seperated into yearly sheets from a megasheet for the years we desire.
-        As the observational data is power output we converted that to capacity factor with the matched turbines.
-        the ID's here are the gsrn ID
-        """
-        ##############################
-        # producing turb_info
-        ##############################
+    
+def add_models(df):
+    """
+    Using our collection of models to assign power curves to observational data,
+    matching is done via most similar power density, using the manufacturer if
+    possible.
+    """
+    
+    models = pd.read_csv('data/input/models.csv')
+    models['model'] = models['model'].astype(pd.StringDtype())
+    models['manufacturer'] = models['manufacturer'].str.lower()
+
+    print("Total observed turbines/farms before conditions: ", len(df))
+    # removing turbines that are unrealistic
+    df = df.drop(df[df['height'] < 1].index).reset_index(drop=True)
+    
+    df['capacity'] = df['capacity'].astype(float)
+    df['p_density'] = (df['capacity']*1000) / (np.pi * (df['diameter']/2)**2)
+    df['capacity'] = df['capacity'].astype(int)
+    df['ID'] = df['ID'].astype(str)
+    
+    # merging by manufacturer and power density if available
+    if 'manufacturer' in df:
+        df['manufacturer'] = df['manufacturer'].astype(pd.StringDtype())
+        df['manufacturer'] = df['manufacturer'].str.lower()
+
+        df = df.merge(models
+            .assign(match=models['manufacturer'].apply(lambda x: difflib.get_close_matches(x, df['manufacturer'],cutoff=0.3,n=100)))
+            .explode('match').drop_duplicates(),
+            # .explode('manufacturer'),
+            left_on=['manufacturer'], right_on=['match'],
+            how="outer"
+        )
+        df = df.dropna(subset=['ID'])
         
-        # reading in the messy denmark turbine info that we have matched
-        df = pd.read_excel('data/wind_data/DK/raw/match_turb_dk.xlsx')
-        columns = ['Turbine identifier (GSRN)','Capacity (kW)','X (east) coordinate\nUTM 32 Euref89','Y (north) coordinate\nUTM 32 Euref89','Hub height (m)', 'Date of original connection to grid', 'turb_match']
-        df = df[columns]
-        rename_col = ['ID','capacity','x_east_32','y_north_32','height', 'date', 'model']
-        df.columns = rename_col
-        df = df.dropna()
+        df = (
+            df.assign(
+                closest= np.abs(df['p_density_x'] - df['p_density_y'])
+            )
+            .sort_values("closest")
+            .drop_duplicates(subset=["ID"], keep="first")
+        )
+        # allowing for better power density match if manufaturer model is not close enough
+        df['model'].where(df['closest'] < 1, np.nan, inplace=True)
+        df = df.drop(['diameter_y', 'p_density_y', 'offshore','manufacturer_y', 'capacity_y','match','closest','manufacturer_x'], axis=1)
 
-        # matching modelless turbines with closest model via capacity
-        metadata = pd.read_csv('data/turbine_info/models.csv')
-        metadata = metadata.sort_values('capacity')
+    if 'type' in df.columns:
+        df.columns = ['ID','capacity','diameter','height','lon','lat','type','p_density','model']
+    else:
+        df.columns = ['ID','capacity','diameter','height','lon','lat','p_density','model']
+        df['type'] = 'onshore'
+        
+    df = df[['ID','type','capacity','diameter','height','lon','lat','model', 'p_density']]
+    
+    # matching on closest power density with a given tolerance
+    df = df.sort_values('p_density').reset_index(drop=True)
+    models = models.sort_values('p_density')
+    df.loc[df['model'].isna(), 'model'] = pd.merge_asof(df, models, on='p_density', direction="nearest",tolerance=100)['model_y']
 
-        df['model'][df['model'] == 0] = np.nan
-        df['capacity'] = df['capacity'].astype(int)
-        df = df.sort_values('capacity').reset_index(drop=True)
-        df.loc[df['model'].isna(), 'model'] = pd.merge_asof(df, metadata, left_on=["capacity"], right_on=["capacity"], direction="nearest")['model_y']
+    df = df.dropna(subset=['model'])
+    df = df.sort_values('ID').reset_index(drop=True)
+    return df
 
+
+def prep_country(country, train=False, *args):
+    """
+    Prepping the relevant countries observational data into a format that can
+    be managed in `prep_obs()` each country will be unique here.
+    
+    Firstly, produce turb_info which consists of the turbines meta-data;
+    latitude, longitude, capacity, height, rotor diameter and model
+    
+    Lastly, produce obs_gen which is a time series of the power generated by
+    a turbine identified by it's ID that will match with a turbine in
+    turb_info
+    """
+    
+    # For Denmark the metadata of existing turbines exist on anlaeg.xlsx,
+    # sourced from Denmark Energy Agency. DK_md.csv is a tidied version.
+    if country == "DK":
+        # producing turb_info
+        dk_md = pd.read_csv('data/input/country-data/DK/observations/DK_md.csv') # contains turbine metda data
+
+        # selecting relevent columns
+        columns = ['Turbine identifier (GSRN)',
+                'Manufacture','Capacity (kW)',
+                'Rotor diameter (m)','Hub height (m)',
+                'X (east) coordinate\nUTM 32 Euref89',
+                'Y (north) coordinate\nUTM 32 Euref89', 
+                'Type of location']
+        dk_md = dk_md[columns]
+        dk_md.columns = ['ID','manufacturer','capacity','diameter','height','x_east_32','y_north_32', 'type']
+        dk_md['x_east_32'] = pd.to_numeric(dk_md['x_east_32'],errors = 'coerce')
+        dk_md['y_north_32'] = pd.to_numeric(dk_md['y_north_32'],errors = 'coerce')
+        dk_md = dk_md.dropna(subset=['capacity', 'diameter', 'x_east_32','y_north_32']).reset_index(drop=True)
+        
+        # onshore or offshore
+        dk_md['type'] = dk_md['type'].str.lower()
+        dk_md.loc[dk_md['type'] == 'land', 'type'] = 'onshore'
+        dk_md.loc[dk_md['type'] == 'hav', 'type'] = 'offshore'
+        
         # convert coordinate system
         def rule(row):
             lat, lon = utm.to_latlon(row["x_east_32"], row["y_north_32"], 32, 'W')
             return pd.Series({"lat": lat, "lon": lon})
-
-        df = df.merge(df.apply(rule, axis=1), left_index= True, right_index= True)
-        df = df[['ID','capacity','lat','lon','height', 'date', 'model']]
-        df['ID'] = df['ID'].astype(str)
-        print("Number of observed turbines/farms before preprocessing: ", len(df))
-        turb_info = df.drop(df[df['height'] < 1].index).reset_index(drop=True)
-
-        ##############################
-        # producing obs_cf
-        ##############################
-
-        # Load observation data and slice the observed CF for chosen years
+        
+        dk_md = dk_md.merge(dk_md.apply(rule, axis=1), left_index= True, right_index= True)
+        dk_md = dk_md[['ID','manufacturer','capacity','diameter','height','lon','lat', 'type']]
+        dk_md['manufacturer'] = dk_md['manufacturer'].str.split(' ').str[0]
+        
+        turb_info = add_models(dk_md)
+    
+        # producing obs_gen
+        # load observation data and slice the observed power for chosen years
         if train == True:
             year_star = 2015 # start year of training period
             year_end = 2019 # end year of training period
-
+            
             appended_data = []
             for i in range(year_star, year_end+1):
-                data = pd.read_excel('data/wind_data/DK/observation/Denmark_'+str(i)+'.xlsx')
+                data = pd.read_excel('data/input/country-data/DK/observations/Denmark_'+str(i)+'.xlsx')
                 data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
                 data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
                 data['ID'] = data['ID'].astype(str)
                 data = data.reset_index(drop=True)
                 data['year'] = i
-    
                 appended_data.append(data[:-1])
-    
+
             obs_gen = pd.concat(appended_data).reset_index(drop=True)
-            obs_gen.columns = [f'obs_{i}' if i not in ['ID', 'year'] else f'{i}' for i in obs_gen.columns]
-
-            # converting obs_gen into obs_cf by turning power into capacity factor
-            df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
-            df = df.dropna().reset_index(drop=True)
-
-            def daysDuringMonth(yy, m):
-                result = []    
-                [result.append(monthrange(y, m)[1]) for y in yy]        
-                return result
-    
-            for i in range(1,13):
-                df['obs_'+str(i)] = df['obs_'+str(i)]/(((daysDuringMonth(df.year, i))*df['capacity'])*24)
-
+            
         else:
             year_test = args[0]
-            data = pd.read_excel('data/wind_data/DK/observation/Denmark_'+str(year_test)+'.xlsx')
+            data = pd.read_excel('data/input/country-data/DK/observations/Denmark_'+str(year_test)+'.xlsx')
             data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
             data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
             data['ID'] = data['ID'].astype(str)
-            
-            obs_gen = data.reset_index(drop=True)
-            obs_gen.columns = [f'obs_{i}' if i not in ['ID'] else f'{i}' for i in obs_gen.columns]
-
-            # converting obs_gen into obs_cf by turning power into capacity factor
-            df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
-            df = df.dropna().reset_index(drop=True)
     
-            for i in range(1,13):
-                df['obs_'+str(i)] = df['obs_'+str(i)]/(((monthrange(year_test, i)[1])*df['capacity'])*24)
+            obs_gen = data.reset_index(drop=True)
+    
 
-        # need to make sure to remove turbines giving a capacity factor greater than 1
-        df = df.drop(['capacity'], axis=1).reset_index(drop=True)
-        df['cf_max'] = df.iloc[:,1:13].max(axis=1)
-        df = df.drop(df[df['cf_max'] > 1].index)
-        df['cf_min'] = df.iloc[:,1:13].min(axis=1)
+    # germany
+    elif country == "DE":
+        # producing turb_info
+        de_geo = pd.read_csv('data/input/country-data/DE/observations/geolocate.germany.csv') # contains the postcode and lat lon
+        de_md = pd.read_csv('data/input/country-data/DE/observations/DE_md.csv') # contains turbine metda data
+        
+        # selecting relevent columns
+        de_md = de_md[['V1','Manufacturer','kW','Rotor..m.','Tower..m.']]
+        de_md.columns = ['ID','manufacturer','capacity','diameter','height']
+        de_md['postcode'] = de_md['ID'].astype(str).str[:5].astype(int)
+    
+        de_md = pd.merge(de_md, de_geo[['postcode','lon','lat']], on='postcode', how='left')
+        de_md = de_md.drop(["postcode"], axis=1)
+        de_md = de_md.dropna(subset=['capacity', 'diameter', 'lon', 'lat']).reset_index(drop=True)
+        
+        turb_info = add_models(de_md)
+        
+        # producing obs_cf
+        # load observation data and slice the observed power for chosen years
+        de_data = pd.read_csv('data/input/country-data/DE/observations/DE_data.csv') # contains the output
         
         if train == True:
-            df = df.drop(df[df['cf_min'] <= 0.01].index)
+            year_star = 2011 # start year of training period
+            year_end = 2014 # end year of training period
             
-        df['cf_mean'] = df.iloc[:,1:13].mean(axis=1)
-        df = df.drop(df[df['cf_mean'] <= 0.01].index)
-        obs_cf = df.drop(['cf_mean', 'cf_max' , 'cf_min'], axis=1).reset_index(drop=True)
-        
-
-        if train == True:
-            obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
-            obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True)
-            obs_cf.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12','year']
+            de_data = de_data.loc[(de_data["Year"] >= year_star) & (de_data["Year"] <= year_end)].drop(['Downtime'], axis=1).reset_index(drop=True)
+            de_data.columns = ['ID','year','month','output']
+            de_data = de_data.dropna(subset=['ID', 'year', 'month'])
+            obs_gen = de_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
+            obs_gen = obs_gen.fillna(0)
             
-            turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
-            # turb_info.to_csv('data/wind_data/DK/train_turb_info.csv', index = None)
-            
-            obs_cf = obs_cf.melt(id_vars=["ID", "year"], 
-                            var_name="month", 
-                            value_name="obs")
-
-            # obs_cf.to_csv('data/wind_data/DK/train_obs_cf.csv', index = None)
-
         else:
-            # some random stuff to make it easier to plot for research
-            dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
-            cols = dates.tolist()
-            obs_cf.columns = ['ID'] + cols
-            obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])]
+            year_test = args[0]
 
-            turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
-            obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
-            # turb_info.to_csv('data/wind_data/DK/'+str(year_test)+'turb_info.csv', index = None)
-            # obs_cf.to_csv('data/wind_data/DK/'+str(year_test)+'obs_cf.csv', index = None)
-
-        print("Number of valid observed turbines/farms: ", len(turb_info))
+            de_data = de_data.loc[de_data["Year"] == year_test].drop(['Downtime'], axis=1).reset_index(drop=True)
+            de_data.columns = ['ID','year','month','output']
+            de_data = de_data.dropna(subset=['ID', 'year', 'month'])
+            obs_gen = de_data.pivot(index='ID', columns='month', values='output').reset_index()
+            obs_gen = obs_gen.fillna(0)
         
-        return obs_cf, turb_info
+    return obs_gen, turb_info
+            
+def prep_obs(country, train=False, *args):
+    """
+    Prepares the observational data (obs_cf and turb_info) for the desired country
+    used in the model. Converts observed power generation into observed CF and ensures
+    that all turbines in the data are acceptable.
+    """
+    obs_gen, turb_info = prep_country(country, train, *args)
+    
+    if train == True:
+        obs_gen.columns = [f'obs_{i}' if i not in ['ID', 'year'] else f'{i}' for i in obs_gen.columns]
+    
+        # converting obs_gen into obs_cf by turning power into capacity factor
+        df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
+        df = df.dropna().reset_index(drop=True)
+    
+        def daysDuringMonth(yy, m):
+            result = []    
+            [result.append(monthrange(y, m)[1]) for y in yy]        
+            return result
+    
+        for i in range(1,13):
+            df['obs_'+str(i)] = df['obs_'+str(i)]/(((daysDuringMonth(df.year, i))*df['capacity'])*24)
+            
+        # # contemplate removing this
+        # if country == 'DE':
+        #     df['postcode'] = df['ID'].astype(str).str[:5].astype(object)
+        #     df = df.replace(0, np.nan).groupby(['postcode','year'])[['obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12','capacity']].mean().reset_index()
+        #     df.columns = ['ID','year','obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12','capacity']
+        #     # df = df.fillna(0)
+        #     turb_info['postcode'] = turb_info['ID'].astype(str).str[:5].astype(object)
+        #     turb_info = turb_info.groupby(['postcode']).agg({'capacity': 'sum', 'height': 'mean','lon': 'mean','lat': 'mean','model': lambda x: x.value_counts().index[0]}).reset_index()
+        #     turb_info.columns = ['ID', 'capacity', 'height', 'lon', 'lat', 'model']
+            
+    else:
+        year_test = args[0]
+        obs_gen.columns = [f'obs_{i}' if i not in ['ID'] else f'{i}' for i in obs_gen.columns]
+    
+        # converting obs_gen into obs_cf by turning power into capacity factor
+        df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
+        df = df.dropna().reset_index(drop=True)
+    
+        for i in range(1,13):
+            df['obs_'+str(i)] = df['obs_'+str(i)]/(((monthrange(year_test, i)[1])*df['capacity'])*24)
+    
+    df = df.drop(['capacity'], axis=1).reset_index(drop=True) # removing column that isn't needed
+    
+    # the conditions to determine if a turbine should be removed from the data
+    # cf can't be > 1
+    df['cf_max'] = df[df.columns[df.columns.str.startswith('obs')]].max(axis=1)
+    df = df.drop(df[df['cf_max'] > 1].index)
+    
+    # removes all turbines that have a month of no CF
+    # this needs to be adjusted to accomodate for countries that aren't denmark
+    # ideally this should keep them but weigh how much it modifies the CF when averaging
+    df['cf_min'] = df[df.columns[df.columns.str.startswith('obs')]].min(axis=1)
+    if (train == True) & (country == 'DK'):
+        df = df.drop(df[df['cf_min'] <= 0.01].index)
+        
+    # this is similar to above but removes if over a period the cf is less than 0.01
+    df['cf_mean'] = df[df.columns[df.columns.str.startswith('obs')]].mean(axis=1)
+    df = df.drop(df[df['cf_mean'] <= 0.01].index)
+    obs_cf = df.drop(['cf_mean', 'cf_max' , 'cf_min'], axis=1).reset_index(drop=True)
+    
+    
+    # filtering the data to be ideal for training
+    # the turbine should exist throughout the whole training period
+    if train == True:
+        year_star = obs_cf.year.min()
+        year_end = obs_cf.year.max()
+        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
+        obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True)
+        obs_cf = obs_cf[['ID','year','obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12']]
+        obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12']
+        
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)    
+        obs_cf = obs_cf.melt(id_vars=["ID", "year"], 
+                        var_name="month", 
+                        value_name="obs")
+    
+    # formatting for test scenarios
+    else:
+        # some random stuff to make it easier to plot for research
+        dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
+        cols = dates.tolist()
+        obs_cf.columns = ['ID'] + cols
+        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])]
+    
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
+        obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
+    
+    print("Number of valid observed turbines/farms: ", len(turb_info))
+    
+    return obs_cf, turb_info
 
 
 def merge_gen_cf(reanalysis, obs_cf, turb_info, powerCurveFile):

@@ -70,7 +70,20 @@ def calculate_scalar(time_res, gen_data):
     #     bias_data['time_slice'] = 'year'
         
     # else:
-    bias_data = gen_data.groupby([time_res, 'cluster', 'year'])[['obs','sim']].mean()
+    
+
+    def weighted_avg(group_df, whole_df, values, weights):
+        v = whole_df.loc[group_df.index, values]
+        w = whole_df.loc[group_df.index, weights]
+        return (v * w).sum() / w.sum()
+        
+    bias_data = gen_data.groupby([time_res, 'cluster', 'year']).agg({
+                            "obs": lambda x: weighted_avg(x, gen_data, 'obs', 'capacity'),
+                            "sim": lambda x: weighted_avg(x, gen_data, 'sim', 'capacity'),
+                            })
+        
+        
+    # bias_data = gen_data.groupby([time_res, 'cluster', 'year'])[['obs','sim']].mean()
     # bias_data['scalar'] = (scalar_alpha * (bias_data['obs'] / bias_data['sim'])) + scalar_beta
     bias_data['scalar'] = bias_data['obs'] / bias_data['sim']
     bias_data = bias_data.reset_index()
@@ -116,7 +129,7 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
         stepSize = 0.64
         
     # start_time = time.time()
-    myOffset = 0
+    myOffset = 0.000
     while np.abs(stepSize) > 0.002: # Stop when step-size is smaller than our power curve's resolution
         myOffset += stepSize # If we are still far from energytarget, increase stepsize
         
@@ -136,14 +149,15 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
         
         # if we have overshot our target, then repeat, searching the other direction
         # ((guess < target & sign(step) < 0) | (guess > target & sign(step) > 0))
-        if mean_sim_cf != 0:
+        if mean_sim_cf != 0.000:
             if np.sign(mean_sim_cf - row.obs) == np.sign(stepSize):
                 stepSize = -stepSize / 2
             # If we have reached unreasonable places, stop
             if myOffset < -20 or myOffset > 20:
+                myOffset = np.nan
                 break
-        elif mean_sim_cf == 0:
-            myOffset = 0
+        elif mean_sim_cf == 0.000:
+            myOffset = np.nan
             break
 
     # end_time = time.time()
