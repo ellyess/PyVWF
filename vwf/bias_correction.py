@@ -147,13 +147,11 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
     else:
         time_slice = int(row['time_slice'])
     
-    
     #initialize step size
     step = np.sign(row.obs - row.sim) * 10
     step_prev = step
     offset = 0
-    # loop will run until the step size is smaller than our power curve's resolution
-    while np.abs(step) > 0.002:
+    while np.abs(step) > 0.002: # loop will run until the step size is smaller than our power curve's resolution
         # calculate the mean simulated CF using the new offset
         mean_sim_cf = train_simulate_wind(
             reanalysis.sel(
@@ -167,25 +165,19 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
             row.scalar, 
             offset
         )
-        # print('sim: ', mean_sim_cf, 'obs: ', row.obs)
-
+        # wind power is roughly cube of wind speed, this provides a good step size
         step = np.cbrt(row.obs - mean_sim_cf)
         
+        # prevent the step size oscilating between + and -
         if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
             step = -step_prev/2
-            # print("rule 1 applied")
+
+        # ensure the step size reduces through iterations
         elif np.sign(step) == np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
             step = step_prev/2
-            # print("rule 2 applied")
             
-        # print('iteration: ', n, 'offset: ', offset, 'step: ', step, 'step_prev: ', step_prev)
         step_prev = step
         offset += step
-        # if our offset is getting unreasonable
-        # if offset < -20 or offset > 20:
-        #     offset = np.nan
-        #     break
-
     return offset
 
 # # working offset
