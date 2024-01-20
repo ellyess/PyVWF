@@ -240,8 +240,27 @@ def prep_country(country, train=False, *args):
         de_data = de_data.dropna(subset=['ID', 'year', 'month'])
         obs_gen = de_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
         obs_gen = obs_gen.fillna(0)
+    
+    # turning power into capacity factor
+    obs_gen.columns = [f'obs_{i}' if i not in ['ID', 'year'] else f'{i}' for i in obs_gen.columns]
+    obs_gen = obs_gen.merge(turb_info[['ID', 'capacity']], how='left', on=['ID'])
+    obs_gen = obs_gen.dropna().reset_index(drop=True)
+
+    def daysDuringMonth(yy, m):
+        result = []    
+        [result.append(monthrange(y, m)[1]) for y in yy]        
+        return result
+
+    for i in range(1,13):
+        obs_gen['obs_'+str(i)] = obs_gen['obs_'+str(i)]/(((daysDuringMonth(obs_gen.year, i))*obs_gen['capacity'])*24)
         
+    obs_gen = obs_gen.drop(['capacity'], axis=1)
+
     return obs_gen, turb_info
+            
+            
+            
+            
             
 def prep_obs(country, train=False, *args):
     """
@@ -259,83 +278,66 @@ def prep_obs(country, train=False, *args):
             turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
     """
 
-    obs_gen, turb_info = prep_country(country, train, *args)
+    df, turb_info = prep_country(country, train, *args)
 
-    # if train == True:
-    obs_gen.columns = [f'obs_{i}' if i not in ['ID', 'year'] else f'{i}' for i in obs_gen.columns]
-    # else:
-    #     year_test = args[0]
-    #     obs_gen.columns = [f'obs_{i}' if i not in ['ID'] else f'{i}' for i in obs_gen.columns]
+    # conditions to remove turbines from the data
+    cf_columns = df[df.columns[df.columns.str.startswith('obs')]]
     
-    # converting obs_gen into obs_cf by turning power into capacity factor
-    df = pd.merge(obs_gen, turb_info[['ID', 'capacity']],  how='left', on=['ID'])
-    df = df.dropna().reset_index(drop=True)
-
-    def daysDuringMonth(yy, m):
-        result = []    
-        [result.append(monthrange(y, m)[1]) for y in yy]        
-        return result
-
-    for i in range(1,13):
-        df['obs_'+str(i)] = df['obs_'+str(i)]/(((daysDuringMonth(df.year, i))*df['capacity'])*24)
-        
-    # df = df.replace(0, np.nan) # converting back into NaN for ignoring in the next few steps
-    df = df.drop(['capacity'], axis=1).reset_index(drop=True) # removing column that isn't needed
-    
-    # the conditions to determine if a turbine should be removed from the data
-    # cf can't be > 1
-    df['cf_max'] = df[df.columns[df.columns.str.startswith('obs')]].max(axis=1)
+    # cf can't be greater than 100%
+    df['cf_max'] = cf_columns.max(axis=1)
     df = df.drop(df[df['cf_max'] > 1].index)
     
-    # removes all turbines that have a month of no CF
-    # this needs to be adjusted to accomodate for countries that aren't denmark
-    # ideally this should keep them but weigh how much it modifies the CF when averaging
-    df['cf_min'] = df[df.columns[df.columns.str.startswith('obs')]].min(axis=1)
+    # case exists for Denmark solely, develop a method to consider the weight of missing data
+    # remove any turbines that have cf of 0 at any point
     if (train == True) & (country == 'DK'):
+        df['cf_min'] = cf_columns.min(axis=1)
         df = df.drop(df[df['cf_min'] <= 0.01].index)
         
-    # this is similar to above but removes if over a period the cf is less than 0.01
-    df['cf_mean'] = df[df.columns[df.columns.str.startswith('obs')]].mean(axis=1)
+    # remove turbines that have a cf less than 1% over the period
+    df['cf_mean'] = cf_columns.mean(axis=1)
     df = df.drop(df[df['cf_mean'] <= 0.01].index)
-    obs_cf = df.drop(['cf_mean', 'cf_max' , 'cf_min'], axis=1).reset_index(drop=True)
-    # obs_cf = df.drop(['cf_mean', 'cf_max'], axis=1).reset_index(drop=True)
-    obs_cf = obs_cf.replace(0, np.nan) # converting back into NaN for ignoring in the next few steps
     
-    # filtering the data to be ideal for training
-    # the turbine should exist throughout the whole training period
+    df = df.drop(['cf_mean', 'cf_max'], axis=1)
+    df = df.replace(0, np.nan) # converting back into NaN for so value is skipped in calculations.
+    obs_cf = df.copy()
+
+    # further rules for the training data and formatting
     if train == True:
         year_star = obs_cf.year.min()
         year_end = obs_cf.year.max()
-        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
-        obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True)
-        obs_cf = obs_cf[['ID','year','obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12']]
-        obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12']
         
-        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)    
-        obs_cf = obs_cf.melt(id_vars=["ID", "year"], 
-                        var_name="month", 
-                        value_name="obs")
-                        
+        obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True) # turbines should exist the entire period
+        obs_cf = obs_cf[['ID','year','obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12']] # reordering columns
+        obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12'] # renaming columns
+        
+        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True) # keeping data that has a turbine match
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True) 
+        
+        obs_cf = obs_cf.melt(
+            id_vars=["ID", "year"], 
+            var_name="month", 
+            value_name="obs"
+        )               
         obs_cf['month'] = obs_cf['month'].astype(int)
         obs_cf['year'] = obs_cf['year'].astype(int)
     
-    # formatting for test scenarios
+    # formatting for testing
     else:
-        # some random stuff to make it easier to plot for research
-        obs_cf = obs_cf.drop('year', axis=1)
         year_test = args[0]
+        
         dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
         cols = dates.tolist()
+        obs_cf = obs_cf.drop('year', axis=1)
         obs_cf.columns = ['ID'] + cols
-        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])]
-    
+        
+        obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
         turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
+        
         obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
     
     print("Number of valid observed turbines/farms: ", len(turb_info))
     
-    return obs_cf, turb_info
-
+    return obs_cf, turb_info  
 
 def merge_gen_cf(reanalysis, obs_cf, turb_info, powerCurveFile):
     

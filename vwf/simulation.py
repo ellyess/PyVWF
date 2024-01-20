@@ -37,28 +37,19 @@ def simulate_wind_speed(reanalysis, turb_info):
             kwargs={"fill_value": None}
             )
     
-    # can add models like this
-    sim_ws = sim_ws.assign_coords({'model':('turbine', turb_info['model'])})
-    
+    # assign models and capacity for future functions
+    sim_ws = sim_ws.assign_coords({
+        'model':('turbine', turb_info['model']),
+        'capacity':('turbine', turb_info['capacity']),
+    })
     return sim_ws
 
-def speed_to_power(column, powerCurveFile, turb_info):
-    """
-    Convert wind speed into capacity factor.
-
-        Args:
-            column (pandas.Series): column name is the turbine ID and values are wind speeds
-            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
-
-        Returns:
-            f(column) (pandas.Series): the original input with the wind speeds as capacity factor
-    """
-    x = powerCurveFile['data$speed']
-    turb_name = turb_info.loc[turb_info['ID'] == column.name, 'model']           
-    y = powerCurveFile[turb_name].to_numpy().flatten()
+def speed_to_power(data):
+    x = powerCurveFile['data$speed']          
+    y = powerCurveFile[data.model[0].data]
     f = interpolate.Akima1DInterpolator(x, y)
-    return f(column)
+    return f(data)
+    
 
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args): 
     """
@@ -76,36 +67,15 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
             sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info
     """
     sim_ws = simulate_wind_speed(reanalysis, turb_info)
-    sim_ws = sim_ws.to_pandas()
 
     if len(args) >= 1: 
         bc_factors = args[0]
         time_res = args[1]
-        
-        # adding in turbine ID for merging
-        sim_ws = sim_ws.reset_index()
-        sim_ws = sim_ws.melt(
-            id_vars=["time"], 
-            var_name="ID", 
-            value_name="ws"
-        )
+        sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
 
-        sim_ws = add_times(sim_ws)
-        sim_ws = add_time_res(sim_ws)
-        
-        sim_ws['month'] = sim_ws['month'].astype(str)
-        bc_factors[time_res] = bc_factors[time_res].astype(str)
-
-        # merging to assign correction factors, then applying them to correct wind speed
-        # sim_ws = sim_ws.set_index('ID').join(turb_info.set_index('ID'), how='left').reset_index()
-        # sim_ws = sim_ws.set_index(['cluster',time_res]).join(bc_factors.set_index(['cluster',time_res]), how='left')
-        sim_ws = pd.merge(sim_ws, turb_info[['ID','cluster']], on=['ID'], how='left')
-        sim_ws = pd.merge(sim_ws, bc_factors, on=['cluster',time_res], how='left')
-        sim_ws['ws'] = (sim_ws.ws * sim_ws.scalar) + sim_ws.offset 
-        sim_ws = sim_ws.pivot(index=['time'], columns='ID', values='ws')
-
-    sim_cf = sim_ws.apply(speed_to_power, args=(powerCurveFile, turb_info), axis=0)
-    return sim_ws.reset_index(), sim_cf.reset_index()
+    sim_cf = sim_ws.groupby('model').map(speed_to_power)
+    return sim_ws.to_pandas().reset_index(), sim_cf.to_pandas().reset_index()
+    
 
 def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
     """
@@ -121,22 +91,45 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
         Returns:
             float: weighted average of simulated CF
     """
-    # calculating wind speed from reanalysis data
-    sim_ws = simulate_wind_speed(reanalysis, turb_info)
-    unc_ws = sim_ws.to_pandas()
+    unc_ws = simulate_wind_speed(reanalysis, turb_info)
     cor_ws = (unc_ws * scalar) + offset
     
-    # print('unc: ', np.mean(unc_ws), 'cor: ', np.mean(cor_ws))
+    cor_cf = cor_ws.groupby('model').map(speed_to_power_xarray)
+    avg_cf = cor_cf.weighted(cor_cf['capacity']).mean()
+    return avg_cf.data
+
+def correct_wind_speed(ds, time_res, bc_factors, turb_info):
+    # can add models like this
+    ds = ds.assign_coords({
+        'cluster':('turbine', turb_info['cluster']),  
+    })
     
-    # converting to power
-    cor_cf = cor_ws.apply(speed_to_power, args=(powerCurveFile, turb_info), axis=0)
+    df = ds.to_dataframe('unc_ws').reset_index()
+    df['year'] = pd.DatetimeIndex(df['time']).year
+    df['month'] = pd.DatetimeIndex(df['time']).month
+    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
+    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
+    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
+    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
+    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
+    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
+    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
+    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
+    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
+    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
+    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
+    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
+    df['yearly'] = '1/1'
+    df = df.merge(
+        bc_factors, 
+        on=['cluster',time_res],
+        how='left'
+    ).set_index(['time','turbine'])
+
+    ds = df[['scalar','offset','unc_ws']].to_xarray()
+    ds = ds.assign(cor_ws= (ds["unc_ws"] * ds["scalar"]) + ds["offset"])
+    ds = ds.assign_coords({
+        'model':('turbine', turb_info['model']),
+    })
+    return ds.cor_ws   
     
-    # adding in turbine ID for merging
-    cor_cf = cor_cf.reset_index()
-    cor_cf = cor_cf.melt( 
-        id_vars=["time"], 
-        var_name="ID", 
-        value_name="cf"
-    )
-    cor_cf = pd.merge(cor_cf, turb_info[['ID','capacity']], on=['ID'], how='left')
-    return np.average(cor_cf.cf, weights=cor_cf.capacity)

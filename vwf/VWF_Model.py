@@ -131,12 +131,6 @@ class VWF():
                 start_time = time.time()
                 
                 bc_factors = format_bc_factors(time_res, num_clu, self.country)
-                # bias_data = pd.read_csv('data/training/correction-factors/'+self.country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
-                # bias_data[['obs','sim','scalar']] = bias_data[['obs','sim','scalar']].replace(0, np.nan)
-                # bc_factors = bias_data.groupby(['cluster', 'time_slice'], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
-                # bc_factors.columns = ['cluster',time_res,'scalar','offset']
-                # bc_factors['scalar'] = bc_factors['scalar'].fillna(1)
-                # bc_factors['offset'] = bc_factors['offset'].fillna(0)
         
                 # simulate corrected wind
                 cor_ws, cor_cf = simulate_wind(era5, clus_info, self.powerCurveFile, bc_factors, time_res)
