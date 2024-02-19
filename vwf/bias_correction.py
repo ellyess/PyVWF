@@ -151,7 +151,13 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
     step = np.sign(row.obs - row.sim) * 10
     step_prev = step
     offset = 0
+    n = 30 # max 30 iterations
     while np.abs(step) > 0.002: # loop will run until the step size is smaller than our power curve's resolution
+        if n == 0:
+            offset = np.nan
+            break
+        n -= 1
+        
         # calculate the mean simulated CF using the new offset
         mean_sim_cf = train_simulate_wind(
             reanalysis.sel(
@@ -165,9 +171,10 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
             row.scalar, 
             offset
         )
+        
         # wind power is roughly cube of wind speed, this provides a good step size
         step = np.cbrt(row.obs - mean_sim_cf)
-        
+        # print('obs: ', row.obs, 'sim: ', mean_sim_cf)
         # prevent the step size oscilating between + and -
         if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
             step = -step_prev/2
@@ -178,6 +185,7 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
             
         step_prev = step
         offset += step
+        # print(offset)
     return offset
 
 # # working offset
@@ -280,21 +288,32 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
     
 #     return bc_factors
 
-### USING SEQUENTIAL TIME RES
+# # USING SEQUENTIAL TIME RES
+# def format_bc_factors(time_res, num_clu, country):
+#     bias_data = pd.read_csv('data/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
+#     bias_data = clean_bias_data(bias_data)
+#     bias_data.columns = ['year',time_res,'cluster','scalar','offset']
+#     # bias_data.columns = ['cluster',time_res,'scalar','year','offset']
+#     bias_data = bias_time_res(bias_data, time_res)
+
+#     if time_res == 'month':
+#         bias_data = fill_factor_nan(bias_data, 'bimonth', num_clu, country)
+        
+#     if time_res == 'month' or time_res == 'bimonth':
+#         bias_data = fill_factor_nan(bias_data, 'season', num_clu, country)
+        
+#     if time_res != 'yearly':
+#         bias_data = fill_factor_nan(bias_data, 'yearly', num_clu, country)
+
+#     bc_factors = bias_data.groupby(['cluster', time_res], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
+#     bc_factors.loc[bc_factors['scalar'].isna(), 'offset'] = 0
+#     bc_factors.loc[bc_factors['scalar'].isna(), 'scalar'] = 1
+#     return bc_factors
+
 def format_bc_factors(time_res, num_clu, country):
     bias_data = pd.read_csv('data/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
     bias_data = clean_bias_data(bias_data)
     bias_data.columns = ['year',time_res,'cluster','scalar','offset']
-    bias_data = bias_time_res(bias_data, time_res)
-
-    if time_res == 'month':
-        bias_data = fill_factor_nan(bias_data, 'bimonth', num_clu, country)
-        
-    if time_res == 'month' or time_res == 'bimonth':
-        bias_data = fill_factor_nan(bias_data, 'season', num_clu, country)
-        
-    if time_res != 'yearly':
-        bias_data = fill_factor_nan(bias_data, 'yearly', num_clu, country)
 
     bc_factors = bias_data.groupby(['cluster', time_res], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
     bc_factors.loc[bc_factors['scalar'].isna(), 'offset'] = 0
