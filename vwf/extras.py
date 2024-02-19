@@ -1,36 +1,6 @@
 import numpy as np
 import pandas as pd
 
-def add_times(df):
-    """
-    Add columns to identify year and month.
-    """
-    df['year'] = pd.DatetimeIndex(df['time']).year
-    df['month'] = pd.DatetimeIndex(df['time']).month
-    df.insert(1, 'year', df.pop('year'))
-    df.insert(2, 'month', df.pop('month'))
-    df['month'] = df['month'].astype(int)
-    df['year'] = df['year'].astype(int)
-    return df
-    
-def add_time_res(df):
-    """
-    Add columns to identify time resolutions.
-    """
-    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
-    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
-    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
-    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
-    df['yearly'] = '1/1'
-    return df
 
 def weighted_monthly_cf(df, turb_info):
     """

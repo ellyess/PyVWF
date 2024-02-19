@@ -3,10 +3,6 @@ import numpy as np
 import pandas as pd
 from scipy import interpolate
 
-from vwf.extras import (
-    add_times,
-    add_time_res
-)
 
 def simulate_wind_speed(reanalysis, turb_info):
     """
@@ -73,6 +69,11 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
         time_res = args[1]
         sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
 
+    def speed_to_power(data):
+        x = powerCurveFile['data$speed']          
+        y = powerCurveFile[data.model[0].data]
+        f = interpolate.Akima1DInterpolator(x, y)
+        return f(data)
     sim_cf = sim_ws.groupby('model').map(speed_to_power)
     return sim_ws.to_pandas().reset_index(), sim_cf.to_pandas().reset_index()
     
@@ -94,7 +95,12 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     unc_ws = simulate_wind_speed(reanalysis, turb_info)
     cor_ws = (unc_ws * scalar) + offset
     
-    cor_cf = cor_ws.groupby('model').map(speed_to_power_xarray)
+    def speed_to_power(data):
+        x = powerCurveFile['data$speed']
+        y = powerCurveFile[data.model[0].data]
+        f = interpolate.Akima1DInterpolator(x, y)
+        return f(data)
+    cor_cf = cor_ws.groupby('model').map(speed_to_power)
     avg_cf = cor_cf.weighted(cor_cf['capacity']).mean()
     return avg_cf.data
 

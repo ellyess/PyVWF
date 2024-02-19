@@ -8,12 +8,10 @@ import utm
 from calendar import monthrange
 import datetime
 
-from vwf.extras import (
-    add_times,
-    add_time_res
-)
-
 from vwf.simulation import simulate_wind
+
+from itertools import product
+from random import sample
 
 def prep_era5(train=False):
     """
@@ -258,10 +256,7 @@ def prep_country(country, train=False, *args):
 
     return obs_gen, turb_info
             
-            
-            
-            
-            
+    
 def prep_obs(country, train=False, *args):
     """
     Preprocess the turbines/farms found in the observed data.
@@ -281,24 +276,30 @@ def prep_obs(country, train=False, *args):
     df, turb_info = prep_country(country, train, *args)
 
     # conditions to remove turbines from the data
-    cf_columns = df[df.columns[df.columns.str.startswith('obs')]]
+    # cf_columns = df[df.columns[df.columns.str.startswith('obs')]]
     
     # cf can't be greater than 100%
-    df['cf_max'] = cf_columns.max(axis=1)
+    df['cf_max'] = df[df.columns[df.columns.str.startswith('obs')]].max(axis=1)
     df = df.drop(df[df['cf_max'] > 1].index)
+    df = df.drop('cf_max', axis=1)
     
     # case exists for Denmark solely, develop a method to consider the weight of missing data
     # remove any turbines that have cf of 0 at any point
     if (train == True) & (country == 'DK'):
-        df['cf_min'] = cf_columns.min(axis=1)
+        df['cf_min'] = df[df.columns[df.columns.str.startswith('obs')]].min(axis=1)
         df = df.drop(df[df['cf_min'] <= 0.01].index)
+        df = df.drop('cf_min', axis=1)
         
     # remove turbines that have a cf less than 1% over the period
-    df['cf_mean'] = cf_columns.mean(axis=1)
-    df = df.drop(df[df['cf_mean'] <= 0.01].index)
-    
-    df = df.drop(['cf_mean', 'cf_max'], axis=1)
     df = df.replace(0, np.nan) # converting back into NaN for so value is skipped in calculations.
+    # if (train == True) & (country == 'DK'):
+    #     df = remove_percentage(df, 0.5)
+    #     # df = interp_nans(df, 3)
+        
+    df['cf_mean'] = df[df.columns[df.columns.str.startswith('obs')]].mean(axis=1)
+    df = df.drop(df[df['cf_mean'] <= 0.01].index)
+    df = df.drop(['cf_mean'], axis=1)
+
     obs_cf = df.copy()
 
     # further rules for the training data and formatting
@@ -311,7 +312,11 @@ def prep_obs(country, train=False, *args):
         obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12'] # renaming columns
         
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True) # keeping data that has a turbine match
-        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True) 
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
+        
+        # setting turbine model to fixed turbine just for testing in data
+        # turb_info['model'] = 'GE.1.5se'
+        # turb_info['model'] = 'Vestas.V66.2000'
         
         obs_cf = obs_cf.melt(
             id_vars=["ID", "year"], 
@@ -333,12 +338,42 @@ def prep_obs(country, train=False, *args):
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
         turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
         
+        # turb_info['model'] = 'Vestas.V66.2000'
+        
         obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
     
     print("Number of valid observed turbines/farms: ", len(turb_info))
     
-    return obs_cf, turb_info  
+    return obs_cf, turb_info
 
+def remove_percentage(df, p):
+    p = 1-p
+    df = df.set_index(['ID','year'])
+    
+    df = df.stack().sample(frac=p, random_state=42).unstack().reindex(index=df.index, columns=df.columns)
+
+    return df.reset_index()
+    
+def interp_nans(df, limit):
+    data = df.melt(
+        id_vars=["ID", "year"], 
+        var_name="month", 
+        value_name="obs"
+    ).sort_values(['ID','year']).groupby(['ID']).apply(
+        lambda group: group.interpolate(
+            method='linear',
+            limit=limit, 
+            limit_direction='both'
+    ))
+
+    df = data.sort_values('month').pivot(
+        index=['ID','year'], 
+        columns='month', 
+        values='obs'
+    ).reset_index().dropna()
+    
+    return df
+    
 def merge_gen_cf(reanalysis, obs_cf, turb_info, powerCurveFile):
     
     sim_ws, sim_cf = simulate_wind(reanalysis, turb_info, powerCurveFile)
@@ -356,3 +391,34 @@ def merge_gen_cf(reanalysis, obs_cf, turb_info, powerCurveFile):
     gen_cf = gen_cf.drop(['time'], axis=1).reset_index(drop=True)
     
     return gen_cf
+    
+def add_times(df):
+    """
+    Add columns to identify year and month.
+    """
+    df['year'] = pd.DatetimeIndex(df['time']).year
+    df['month'] = pd.DatetimeIndex(df['time']).month
+    df.insert(1, 'year', df.pop('year'))
+    df.insert(2, 'month', df.pop('month'))
+    df['month'] = df['month'].astype(int)
+    df['year'] = df['year'].astype(int)
+    return df
+    
+def add_time_res(df):
+    """
+    Add columns to identify time resolutions.
+    """
+    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
+    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
+    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
+    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
+    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
+    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
+    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
+    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
+    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
+    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
+    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
+    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
+    df['yearly'] = '1/1'
+    return df
