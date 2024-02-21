@@ -19,8 +19,23 @@ def simulate_wind_speed(reanalysis, turb_info):
     reanalysis = reanalysis.assign_coords(
         height=('height', turb_info['height'].unique()))
     
+    # ADDED FOR MERRA 2 RUN, THIS SHOULDN'T BE USED ITS JUST FOR A COMPARISON REMOVE EVENTUALLY
+    try:
+        exception_flag = True
+        ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
+        exception_flag = False
+
+    except:
+        pass
+        
+    finally:
+        if exception_flag:
+            ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
+        
+        
+        
     # calculating wind speed from reanalysis dataset variables,
-    ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
+    # ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
     
     # creating coordinates to spatially interpolate to
     lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})

@@ -65,10 +65,6 @@ def train_data(time_res, gen_cf, clus_info):
     """
     Create data for training.
     """
-    # if time_res == 'yearly':
-    #     gen_data = gen_cf.groupby(['year','ID'], as_index=False)[['obs','sim']].mean()
-    #     gen_data['yearly'] = 'year'
-    # else:
     gen_data = gen_cf.groupby(['year',time_res,'ID'], as_index=False)[['obs','sim']].mean()
 
     gen_data = pd.merge(gen_data, clus_info[['ID', 'cluster', 'lon', 'lat', 'capacity', 'height', 'model']], on='ID', how='left')
@@ -98,7 +94,7 @@ def calculate_scalar(time_res, gen_data):
                             })
         
 
-    bias_data['scalar'] = bias_data['obs'] / bias_data['sim']
+    bias_data['scalar'] = (0.6 * (bias_data['obs'] / bias_data['sim'])) + 0.2
     bias_data = bias_data.reset_index()
     bias_data.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
         
@@ -188,6 +184,40 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
         # print(offset)
     return offset
 
+def format_bc_factors(run, time_res, num_clu, country):
+    bias_data = pd.read_csv(run+'/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
+    bias_data = clean_bias_data(bias_data)
+    bias_data.columns = ['year',time_res,'cluster','scalar','offset']
+
+    bc_factors = bias_data.groupby(['cluster', time_res], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
+    bc_factors.loc[bc_factors['scalar'].isna(), 'offset'] = 0
+    bc_factors.loc[bc_factors['scalar'].isna(), 'scalar'] = 1
+    return bc_factors
+
+def fill_factor_nan(df, time_res, num_clu, country):
+    df2 = pd.read_csv(run+'/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
+    df2 = clean_bias_data(df2)
+    df2.columns = ['year',time_res,'cluster','scalar','offset']
+
+    fill = df.merge(
+        df2, 
+        on=['year','cluster',time_res],
+        how='left'
+    )
+
+    df.loc[df['scalar'].isna(), 'offset'] = fill['offset_y']
+    df.loc[df['scalar'].isna(), 'scalar'] = fill['scalar_y']
+    return df
+    
+
+def clean_bias_data(df):
+    df = df.drop(['obs','sim', 'Unnamed: 0'], axis=1)
+    df['scalar'] = df['scalar'].replace(0, np.nan)
+    return df
+    
+    
+    
+    
 # # working offset
 # def find_offset(row, turb_info, reanalysis, powerCurveFile):
 
@@ -264,7 +294,7 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
     
 ######## POST PROCESSING OF BIAS CORRECTION FACTORS
 
-### USING FIXED TIME RES
+### USING yearly TIME RES
 # def format_bc_factors(time_res, num_clu, country):
 #     bias_data = pd.read_csv('data/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
 #     bias_data = clean_bias_data(bias_data)
@@ -309,71 +339,6 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
 #     bc_factors.loc[bc_factors['scalar'].isna(), 'offset'] = 0
 #     bc_factors.loc[bc_factors['scalar'].isna(), 'scalar'] = 1
 #     return bc_factors
-
-def format_bc_factors(time_res, num_clu, country):
-    bias_data = pd.read_csv('data/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
-    bias_data = clean_bias_data(bias_data)
-    bias_data.columns = ['year',time_res,'cluster','scalar','offset']
-
-    bc_factors = bias_data.groupby(['cluster', time_res], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
-    bc_factors.loc[bc_factors['scalar'].isna(), 'offset'] = 0
-    bc_factors.loc[bc_factors['scalar'].isna(), 'scalar'] = 1
-    return bc_factors
-
-def fill_factor_nan(df, time_res, num_clu, country):
-    df2 = pd.read_csv('data/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
-    df2 = clean_bias_data(df2)
-    df2.columns = ['year',time_res,'cluster','scalar','offset']
-
-    fill = df.merge(
-        df2, 
-        on=['year','cluster',time_res],
-        how='left'
-    )
-
-    df.loc[df['scalar'].isna(), 'offset'] = fill['offset_y']
-    df.loc[df['scalar'].isna(), 'scalar'] = fill['scalar_y']
-    return df
-    
-def bias_time_res(df, time_res):
-    """
-    Add columns to identify time resolutions.
-    """
-    if time_res == 'month':
-        df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
-        df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
-        df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
-        df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
-        df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
-        df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
-        df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
-        df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
-        df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
-        df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
-        df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
-        df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
-        
-    elif time_res == 'bimonth':
-        df.loc[df['bimonth'] == '1/6', 'season'] = 'winter'
-        df.loc[df['bimonth'] == '2/6', 'season'] = 'spring'
-        df.loc[df['bimonth'] == '3/6', 'season'] = 'spring'
-        df.loc[df['bimonth'] == '4/6', 'season'] = 'summer'
-        df.loc[df['bimonth'] == '5/6', 'season'] = 'autumn'
-        df.loc[df['bimonth'] == '6/6', 'season'] = 'autumn'
-        df = pd.concat([df, df.loc[df['bimonth'] == '3/6'].assign(**{'season': 'summer'})])
-        df = pd.concat([df, df.loc[df['bimonth'] == '6/6'].assign(**{'season': 'winter'})])
-
-    df['yearly'] = '1/1'
-    return df
-
-def clean_bias_data(df):
-    df = df.drop(['obs','sim', 'Unnamed: 0'], axis=1)
-    df['scalar'] = df['scalar'].replace(0, np.nan)
-    return df
-    
-    
-    
-    
     
 # # with modification for iains method
 # def calculate_scalar(time_res, gen_data, scalar_alpha = 0.6, scalar_beta = 0.2):
@@ -412,3 +377,35 @@ def clean_bias_data(df):
 #     bias_data.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
         
 #     return bias_data[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
+
+
+# def bias_time_res(df, time_res):
+#     """
+#     Add columns to identify time resolutions.
+#     """
+#     if time_res == 'month':
+#         df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
+#         df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
+#         df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
+#         df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
+#         df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
+#         df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
+#         df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
+#         df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
+#         df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
+#         df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
+#         df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
+#         df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
+        
+#     elif time_res == 'bimonth':
+#         df.loc[df['bimonth'] == '1/6', 'season'] = 'winter'
+#         df.loc[df['bimonth'] == '2/6', 'season'] = 'spring'
+#         df.loc[df['bimonth'] == '3/6', 'season'] = 'spring'
+#         df.loc[df['bimonth'] == '4/6', 'season'] = 'summer'
+#         df.loc[df['bimonth'] == '5/6', 'season'] = 'autumn'
+#         df.loc[df['bimonth'] == '6/6', 'season'] = 'autumn'
+#         df = pd.concat([df, df.loc[df['bimonth'] == '3/6'].assign(**{'season': 'summer'})])
+#         df = pd.concat([df, df.loc[df['bimonth'] == '6/6'].assign(**{'season': 'winter'})])
+
+#     df['yearly'] = '1/1'
+#     return df

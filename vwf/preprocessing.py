@@ -13,7 +13,36 @@ from vwf.simulation import simulate_wind
 from itertools import product
 from random import sample
 
-def prep_era5(train=False):
+def prep_merra2(country):
+    """
+    Reading Iain's preprepped MERRA 2 Az file and selecting desired location.
+    In future this will be replaced with my own Az function.
+    """
+    year_star = 2020
+    year_end = 2020
+    
+    area = [7., 16, 54.3, 58]    
+    ncFile = 'input/merra2/DailyAZ/'+str(2020)+'-'+str(2020)+'_dailyAz_ian.nc'
+    ds = xr.open_dataset(ncFile)
+    ds = ds.sel(lat=slice(area[2], area[3]), lon=slice(area[0], area[1]))
+    updated_times = np.asarray(pd.date_range(start=str(year_star)+'/01/01', end=str(year_end+1)+'/01/01', freq='1H'))[:-1]
+    ds["time"] = ("time", updated_times)
+    
+    # turn hourly data into daily for speed of existing code
+    ds = ds.resample(time='1D').mean()
+    
+    try:
+        ds = ds.rename({"longitude": "lon", "latitude": "lat"})
+    except:
+        pass
+        
+    # keeping values at fixed float length
+    ds = ds.assign_coords(
+        lon=np.round(ds.lon.astype(float), 5), lat=np.round(ds.lat.astype(float), 5)
+    )
+    return ds
+    
+def prep_era5(country, train=False):
     """
     Reading and processing a saved ERA5 file with 100m wind speeds and fsr.
 
@@ -25,9 +54,9 @@ def prep_era5(train=False):
     """
     # load the corresponding raw ERA5 file
     if train == True:
-        ds = xr.open_mfdataset('data/input/reanalysis/train/*.nc')
+        ds = xr.open_mfdataset('input/era5/'+country+'/train/*.nc')
     else:
-        ds = xr.open_mfdataset('data/input/reanalysis/test/*.nc')
+        ds = xr.open_mfdataset('input/era5/'+country+'/test/*.nc')
     ds = ds.compute() # this allows it to not be dask chunks
     
     # converting wind speed components into wind speed
@@ -68,7 +97,7 @@ def add_models(df):
             df (pandas.DataFrame): input df with added column called model
     """
 
-    models = pd.read_csv('data/input/models.csv')
+    models = pd.read_csv('input/models.csv')
     models['model'] = models['model'].astype(pd.StringDtype())
     models['manufacturer'] = models['manufacturer'].str.lower()
 
@@ -126,7 +155,7 @@ def add_models(df):
     return df
 
 
-def prep_country(country, train=False, *args):
+def prep_country(country, year_test=None):
     """
     Country specific preprocessing of observational data.
     
@@ -142,11 +171,16 @@ def prep_country(country, train=False, *args):
             turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
     """
 
+    if year_test != None:
+        train = False
+    else:
+        train = True
+        
     # for Denmark the metadata of existing turbines exist on anlaeg.xlsx,
     # sourced from Denmark Energy Agency. DK_md.csv is a tidied version.
     if country == "DK":
         # producing turb_info
-        dk_md = pd.read_csv('data/input/country-data/DK/observations/DK_md.csv')
+        dk_md = pd.read_csv('input/country-data/DK/observations/DK_md.csv')
         # selecting relevent columns
         columns = ['Turbine identifier (GSRN)',
                 'Manufacture','Capacity (kW)',
@@ -186,13 +220,12 @@ def prep_country(country, train=False, *args):
             year_end = 2019 # end year of training period
             
         else: # this is for testing I use year_star and end for the sake of keeping code same
-            year_test = args[0]
             year_star = year_test 
             year_end = year_test 
             
         appended_data = []
         for i in range(year_star, year_end+1):
-            data = pd.read_excel('data/input/country-data/DK/observations/Denmark_'+str(i)+'.xlsx')
+            data = pd.read_excel('input/country-data/DK/observations/Denmark_'+str(i)+'.xlsx')
             data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
             data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
             data['ID'] = data['ID'].astype(str)
@@ -206,8 +239,8 @@ def prep_country(country, train=False, *args):
     # Germany data is sourced from Iain Staffell
     elif country == "DE":
         # producing turb_info
-        de_geo = pd.read_csv('data/input/country-data/DE/observations/geolocate.germany.csv') # contains the postcode and lat lon
-        de_md = pd.read_csv('data/input/country-data/DE/observations/DE_md.csv') # contains turbine metda data
+        de_geo = pd.read_csv('input/country-data/DE/observations/geolocate.germany.csv') # contains the postcode and lat lon
+        de_md = pd.read_csv('input/country-data/DE/observations/DE_md.csv') # contains turbine metda data
         
         # selecting relevent columns
         de_md = de_md[['V1','Manufacturer','kW','Rotor..m.','Tower..m.']]
@@ -227,12 +260,11 @@ def prep_country(country, train=False, *args):
             year_end = 2014 # end year of training period
             
         else: # this is for testing I use year_star and end for the sake of keeping code same
-            year_test = args[0]
             year_star = year_test 
             year_end = year_test 
             
         # load observation data and slice the observed power for chosen years
-        de_data = pd.read_csv('data/input/country-data/DE/observations/DE_data.csv')
+        de_data = pd.read_csv('input/country-data/DE/observations/DE_data.csv')
         de_data = de_data.loc[(de_data["Year"] >= year_star) & (de_data["Year"] <= year_end)].drop(['Downtime'], axis=1).reset_index(drop=True)   
         de_data.columns = ['ID','year','month','output']
         de_data = de_data.dropna(subset=['ID', 'year', 'month'])
@@ -257,7 +289,7 @@ def prep_country(country, train=False, *args):
     return obs_gen, turb_info
             
     
-def prep_obs(country, train=False, *args):
+def prep_obs(country, year_test=None, remove=None, interp=None, set_turb=None):
     """
     Preprocess the turbines/farms found in the observed data.
     
@@ -272,12 +304,14 @@ def prep_obs(country, train=False, *args):
             obs_gen (pandas.DataFrame): obs_gen which is a time series of the power generated by a turbine
             turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
     """
+    if year_test != None:
+        train = False
+    else:
+        train = True
+        
+    df, turb_info = prep_country(country, year_test)
 
-    df, turb_info = prep_country(country, train, *args)
-
-    # conditions to remove turbines from the data
-    # cf_columns = df[df.columns[df.columns.str.startswith('obs')]]
-    
+    ## conditions to remove turbines from the data
     # cf can't be greater than 100%
     df['cf_max'] = df[df.columns[df.columns.str.startswith('obs')]].max(axis=1)
     df = df.drop(df[df['cf_max'] > 1].index)
@@ -289,13 +323,10 @@ def prep_obs(country, train=False, *args):
         df['cf_min'] = df[df.columns[df.columns.str.startswith('obs')]].min(axis=1)
         df = df.drop(df[df['cf_min'] <= 0.01].index)
         df = df.drop('cf_min', axis=1)
+    
         
-    # remove turbines that have a cf less than 1% over the period
-    df = df.replace(0, np.nan) # converting back into NaN for so value is skipped in calculations.
-    # if (train == True) & (country == 'DK'):
-    #     df = remove_percentage(df, 0.5)
-    #     # df = interp_nans(df, 3)
-        
+    df = df.replace(0, np.nan)
+    # turbine should atleast produce greater than 1% power
     df['cf_mean'] = df[df.columns[df.columns.str.startswith('obs')]].mean(axis=1)
     df = df.drop(df[df['cf_mean'] <= 0.01].index)
     df = df.drop(['cf_mean'], axis=1)
@@ -312,24 +343,30 @@ def prep_obs(country, train=False, *args):
         obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12'] # renaming columns
         
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True) # keeping data that has a turbine match
-        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
-        
-        # setting turbine model to fixed turbine just for testing in data
-        # turb_info['model'] = 'GE.1.5se'
-        # turb_info['model'] = 'Vestas.V66.2000'
-        
         obs_cf = obs_cf.melt(
             id_vars=["ID", "year"], 
             var_name="month", 
             value_name="obs"
-        )               
+        )
+        
+        if remove != None:
+            obs_cf['obs'] = obs_cf['obs'].sample(frac=(1-remove), random_state=42)
+        
         obs_cf['month'] = obs_cf['month'].astype(int)
         obs_cf['year'] = obs_cf['year'].astype(int)
+
+        if interp != None:
+            obs_cf = interp_nans(obs_cf, interp)
+        
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
+
+        # setting turbine model to fixed turbine just for testing in data
+        if set_turb != None:
+            turb_info['model'] = set_turb #'GE.1.5se' # 'Vestas.V66.2000'
+
     
     # formatting for testing
     else:
-        year_test = args[0]
-        
         dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
         cols = dates.tolist()
         obs_cf = obs_cf.drop('year', axis=1)
@@ -338,7 +375,8 @@ def prep_obs(country, train=False, *args):
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
         turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
         
-        # turb_info['model'] = 'Vestas.V66.2000'
+        if set_turb != None:
+            turb_info['model'] = set_turb #'GE.1.5se' # 'Vestas.V66.2000'
         
         obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
     
@@ -346,33 +384,14 @@ def prep_obs(country, train=False, *args):
     
     return obs_cf, turb_info
 
-def remove_percentage(df, p):
-    p = 1-p
-    df = df.set_index(['ID','year'])
-    
-    df = df.stack().sample(frac=p, random_state=42).unstack().reindex(index=df.index, columns=df.columns)
-
-    return df.reset_index()
-    
 def interp_nans(df, limit):
-    data = df.melt(
-        id_vars=["ID", "year"], 
-        var_name="month", 
-        value_name="obs"
-    ).sort_values(['ID','year']).groupby(['ID']).apply(
+    data = df.sort_values(['ID','year']).groupby(['ID']).apply(
         lambda group: group.interpolate(
             method='linear',
             limit=limit, 
-            limit_direction='both'
-    ))
-
-    df = data.sort_values('month').pivot(
-        index=['ID','year'], 
-        columns='month', 
-        values='obs'
-    ).reset_index().dropna()
-    
-    return df
+            limit_direction='both',
+    )).reset_index(drop=True).sort_values(['year','month'])
+    return data
     
 def merge_gen_cf(reanalysis, obs_cf, turb_info, powerCurveFile):
     
