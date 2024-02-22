@@ -5,7 +5,11 @@
 ---
 
 ## Functionality
-This model has the ability to produce bias corrected power output from wind farms based on reanalysis data. The model calculates wind speed with this equation:
+This model simulates the daily wind speed and capacity factor of a defined turbine at given coordinates from the ERA-5 reanalysis product. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
+
+The code gives accessibility to the training process of the bias correction factors. This requires observational generation data for the areas of interest, the factors can be derived at varying spatial and temporal resolutions that is dependent on the data.
+
+The model calculates wind speed with this equation:
 
 ```math
 w(h)= w_{100m} \frac{\ln(h / z_{0})}{\ln(100 / z_{0})} $$
@@ -14,18 +18,17 @@ Where:
 - the hub height $h$;
 - the surface roughness $z_{0}$.
 
-Bias correction is applied on wind speeds from the reanalysis data as we assume this is where the error comes from rather than the conversion to power. Wind speeds are corrected using the following scheme adapted from [@staffell2016]:
+Bias correction is applied on wind speeds from the reanalysis data as we assume this is where the error comes from rather than the power conversion. Wind speeds are corrected using the following scheme adapted from [@staffell2016]:
 
 $$ w_{corrected} = \alpha w_{original} + \beta. $$
 
 
-
 ## Installation:
 * Clone the repository from Github:
-  * Using command line:
+  * Using command-line:
   `git clone https://github.com/EllyessB/PyVWF.git`
   * Downloading the repository as a .zip
-* Installing all the requirements by using command line:
+* Installing all the requirements by using command-line:
  `pip install -r requirement.txt`
 
 
@@ -42,17 +45,17 @@ The files you should provide are:
 - Wind turbine power curves in a .csv file with model names in each column providing the power output with respect to wind speed. This exists already in `data/turb_info/`, extra curves can be added, these are found through the manufaturer.
 
 ### Setup the VWF model
-With the required libraries installed and input files inplace, minor modification of paths may be required.
+With the required libraries installed and input files in place, minor modifications of paths may be required.
 
 ## Usage
 Open `run.py` and edit the parameters you wish to use and save. 
 
-Run the file using `python run.py`, this should work if all paths and input files are inplace. Run time will vary depending on number of clusters required to train and size of the area etc. If model has been trained for a number of clusters, running this again will skip the training.
+Run the file using `python run.py`, this should work if all paths and input files are in place. Run time will vary depending on the number of clusters required to train and the size of the area etc. If correction factors have been derived for the desired area and resolution settings, running this again will skip the training.
 
 
 ## CREDITS & CONTACT
 
-The PyVWF code is devloped by Ellyess F. Benmoufok. You can email me via benmoufok.ellyess@gmail.com.
+The PyVWF code is developed by Ellyess F. Benmoufok. You can email me via benmoufok.ellyess@gmail.com.
 
 The original VWF code this is based on is developed by Iain Staffell.  You can try emailing them at i.staffell@imperial.ac.uk
 
