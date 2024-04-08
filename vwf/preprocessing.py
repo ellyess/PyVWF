@@ -12,11 +12,12 @@ from vwf.simulation import simulate_wind
 
 from itertools import product
 from random import sample
+from vwf.extras import add_time_res
 
 def prep_merra2(country):
     """
     Reading Iain's preprepped MERRA 2 Az file and selecting desired location.
-    In future this will be replaced with my own Az function.
+    This is purely for research purposes and should be ignored.
     """
     year_star = 2020
     year_end = 2020
@@ -289,7 +290,7 @@ def prep_country(country, year_test=None):
     return obs_gen, turb_info
             
     
-def prep_obs(country, year_test=None, remove=None, interp=None, set_turb=None):
+def prep_obs(country, mode='all', year_test=None, add_nan=None, interp_nan=None, fix_turb=None):
     """
     Preprocess the turbines/farms found in the observed data.
     
@@ -310,6 +311,9 @@ def prep_obs(country, year_test=None, remove=None, interp=None, set_turb=None):
         train = True
         
     df, turb_info = prep_country(country, year_test)
+    
+    if mode != 'all':
+            turb_info = turb_info[turb_info['type'] == mode].copy()
 
     ## conditions to remove turbines from the data
     # cf can't be greater than 100%
@@ -341,7 +345,6 @@ def prep_obs(country, year_test=None, remove=None, interp=None, set_turb=None):
         obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True) # turbines should exist the entire period
         obs_cf = obs_cf[['ID','year','obs_1','obs_2','obs_3','obs_4','obs_5','obs_6','obs_7','obs_8','obs_9','obs_10','obs_11','obs_12']] # reordering columns
         obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12'] # renaming columns
-        
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True) # keeping data that has a turbine match
         obs_cf = obs_cf.melt(
             id_vars=["ID", "year"], 
@@ -349,22 +352,21 @@ def prep_obs(country, year_test=None, remove=None, interp=None, set_turb=None):
             value_name="obs"
         )
         
-        if remove != None:
-            obs_cf['obs'] = obs_cf['obs'].sample(frac=(1-remove), random_state=42)
+        if add_nan != None:
+            obs_cf['obs'] = obs_cf['obs'].sample(frac=(1-add_nan), random_state=42)
         
         obs_cf['month'] = obs_cf['month'].astype(int)
         obs_cf['year'] = obs_cf['year'].astype(int)
-
-        if interp != None:
-            obs_cf = interp_nans(obs_cf, interp)
         
-        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
+        if interp_nan != None:
+            obs_cf = interp_nans(obs_cf, interp_nan)
+        
+        turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True) # keeping data that has a turbine match
 
-        # setting turbine model to fixed turbine just for testing in data
-        if set_turb != None:
-            turb_info['model'] = set_turb #'GE.1.5se' # 'Vestas.V66.2000'
+        # setting turbine model to one turbine model for research
+        if fix_turb != None:
+            turb_info['model'] = fix_turb 
 
-    
     # formatting for testing
     else:
         dates = np.arange(str(year_test)+'-01', str(year_test+1)+'-01', dtype='datetime64[M]')
@@ -375,12 +377,10 @@ def prep_obs(country, year_test=None, remove=None, interp=None, set_turb=None):
         obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
         turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
         
-        if set_turb != None:
-            turb_info['model'] = set_turb #'GE.1.5se' # 'Vestas.V66.2000'
+        if fix_turb != None:
+            turb_info['model'] = fix_turb
         
         obs_cf = obs_cf.set_index('ID').transpose().rename_axis('time').reset_index()
-    
-    print("Number of valid observed turbines/farms: ", len(turb_info))
     
     return obs_cf, turb_info
 
@@ -394,7 +394,9 @@ def interp_nans(df, limit):
     return data
     
 def merge_gen_cf(reanalysis, obs_cf, turb_info, powerCurveFile):
-    
+    """
+    Merging the observed CF and the simulated CF for the every turbine.
+    """
     sim_ws, sim_cf = simulate_wind(reanalysis, turb_info, powerCurveFile)
     sim_cf = sim_cf.groupby(pd.Grouper(key='time',freq='M')).mean().reset_index()
     sim_cf = sim_cf.melt(id_vars=["time"], 
@@ -421,23 +423,4 @@ def add_times(df):
     df.insert(2, 'month', df.pop('month'))
     df['month'] = df['month'].astype(int)
     df['year'] = df['year'].astype(int)
-    return df
-    
-def add_time_res(df):
-    """
-    Add columns to identify time resolutions.
-    """
-    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
-    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
-    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
-    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
-    df['yearly'] = '1/1'
     return df
