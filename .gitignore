@@ -934,3 +934,6 @@ run/paper-plot/offset.png
 run/paper-plot/scalar.png
 .DS_Store
 vwf/.DS_Store
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+*.lapce/
