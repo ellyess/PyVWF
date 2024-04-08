@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 from scipy import interpolate
-
+from vwf.extras import add_time_res
 
 def simulate_wind_speed(reanalysis, turb_info):
     """
@@ -19,7 +19,7 @@ def simulate_wind_speed(reanalysis, turb_info):
     reanalysis = reanalysis.assign_coords(
         height=('height', turb_info['height'].unique()))
     
-    # ADDED FOR MERRA 2 RUN, THIS SHOULDN'T BE USED ITS JUST FOR A COMPARISON REMOVE EVENTUALLY
+    # this is for research purposes and is added for the use of merra 2, can be removed for the code below
     try:
         exception_flag = True
         ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
@@ -32,9 +32,7 @@ def simulate_wind_speed(reanalysis, turb_info):
         if exception_flag:
             ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
         
-        
-        
-    # calculating wind speed from reanalysis dataset variables,
+    # # calculating wind speed from reanalysis dataset variables
     # ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
     
     # creating coordinates to spatially interpolate to
@@ -55,11 +53,11 @@ def simulate_wind_speed(reanalysis, turb_info):
     })
     return sim_ws
 
-def speed_to_power(data):
-    x = powerCurveFile['data$speed']          
-    y = powerCurveFile[data.model[0].data]
-    f = interpolate.Akima1DInterpolator(x, y)
-    return f(data)
+# def speed_to_power(data):
+#     x = powerCurveFile['data$speed']          
+#     y = powerCurveFile[data.model[0].data]
+#     f = interpolate.Akima1DInterpolator(x, y)
+#     return f(data)
     
 
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args): 
@@ -120,37 +118,27 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     return avg_cf.data
 
 def correct_wind_speed(ds, time_res, bc_factors, turb_info):
-    # can add models like this
-    ds = ds.assign_coords({
-        'cluster':('turbine', turb_info['cluster']),  
-    })
-    
+    """
+    Correct simulated windspeeds with assigned bias correction factors
+
+        Args:
+            ds (xarray.Dataset): wind speeds and coordinates
+            time_res (str): temporal resolution of the bias correction factors
+            bc_factors (pandas.DataFrame): the derived bias correction factors
+            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
+
+        Returns:
+            np.array: corrected wind speeds for every turbine
+    """
+    ds = ds.assign_coords({'cluster':('turbine', turb_info['cluster'])})
     df = ds.to_dataframe('unc_ws').reset_index()
     df['year'] = pd.DatetimeIndex(df['time']).year
     df['month'] = pd.DatetimeIndex(df['time']).month
-    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
-    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
-    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
-    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
-    df['yearly'] = '1/1'
-    df = df.merge(
-        bc_factors, 
-        on=['cluster',time_res],
-        how='left'
-    ).set_index(['time','turbine'])
+    df = add_time_res(df)
+    df = df.merge(bc_factors, on=['cluster',time_res],how='left').set_index(['time','turbine'])
 
     ds = df[['scalar','offset','unc_ws']].to_xarray()
     ds = ds.assign(cor_ws= (ds["unc_ws"] * ds["scalar"]) + ds["offset"])
-    ds = ds.assign_coords({
-        'model':('turbine', turb_info['model']),
-    })
+    ds = ds.assign_coords({'model':('turbine', turb_info['model'])})
     return ds.cor_ws   
     
