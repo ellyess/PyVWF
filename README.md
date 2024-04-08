@@ -26,7 +26,7 @@ $$ w_{corrected} = \alpha w_{original} + \beta. $$
 ## Installation:
 * Clone the repository from Github:
   * Using command-line:
-  `git clone https://github.com/EllyessB/PyVWF.git`
+  `git clone https://github.com/ellyess/PyVWF.git`
   * Downloading the repository as a .zip
 * Installing all the requirements by using command-line:
  `pip install -r requirement.txt`
@@ -37,12 +37,12 @@ $$ w_{corrected} = \alpha w_{original} + \beta. $$
 First, download the necessary input ERA-5 data:
 - ECMWF's [ERA-5 reanalysis](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form), the required variables are: the 100m u-component of wind, 100m v-component of wind and Forecast surface roughness.
 
-### Inputing data required for model to run
+### Inputting data required for the model to run
 The files you should provide are:
-- Observation data for all training years placed in `data/observation`. Example files are in the respository.
-- Reanalysis data for all training years and test years in `data/reanalysis/<set_used>/`
+- Observation data for all training years placed in `input/country-data/observation/`. Example files are in the repository.
+- Reanalysis data for all training years and test years in `data/era5/<country>/<test/train>/`
 - Turbine metadata which contains information such as the height, latitude, longitude, turbine ID, turbine model and capacity placed in `data/turb_info/`. An example is provided, plan to make this file easier to create.
-- Wind turbine power curves in a .csv file with model names in each column providing the power output with respect to wind speed. This exists already in `data/turb_info/`, extra curves can be added, these are found through the manufaturer.
+- Wind turbine power curves in a .csv file with model names in each column providing the power output with respect to wind speed. Due to proprietary data used in our curve file an example of the format is shown in `input/power_curves.csv`
 
 ### Setup the VWF model
 With the required libraries installed and input files in place, minor modifications of paths may be required.
