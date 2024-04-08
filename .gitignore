@@ -2,10 +2,8 @@
 data/reanalysis/.DS_Store
 data/.DS_Store
 *.nc
-*.csv
 *.pyc
 *.pyc
-*.xml
 *.cpg
 *.dbf
 *.prj
@@ -937,3 +935,5 @@ vwf/.DS_Store
 .ipynb_checkpoints
 *.ipynb_checkpoints/
 *.lapce/
+/run
+/input/country-data/DK/shape
