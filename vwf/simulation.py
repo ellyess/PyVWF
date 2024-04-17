@@ -52,14 +52,7 @@ def simulate_wind_speed(reanalysis, turb_info):
         'capacity':('turbine', turb_info['capacity']),
     })
     return sim_ws
-
-# def speed_to_power(data):
-#     x = powerCurveFile['data$speed']          
-#     y = powerCurveFile[data.model[0].data]
-#     f = interpolate.Akima1DInterpolator(x, y)
-#     return f(data)
     
-
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args): 
     """
     Simulate wind speed and capacity factor, optionally can be corrected.
