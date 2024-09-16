@@ -53,7 +53,8 @@ class VWF():
                 run += '-i'+str(interp_nan)
             if fix_turb != None:
                 run += '-'+fix_turb
-        
+        # for calculated FSR
+        run += '-calculate_z0'
         # Specify where to make the new directory path
         directory_path = os.path.join('run',run)
         # Define a list of folders to make in that directory
@@ -133,19 +134,19 @@ class VWF():
                     bc_factors = format_bc_factors(bias_data, time_res)
                     bc_factors.to_csv(self.directory_path+'/training/correction-factors/'+self.country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
                     
-                    if check == True:
-                        # simulate corrected wind
-                        cor_ws, cor_cf = simulate_wind(era5, clus_info, powerCurveFile, bc_factors, time_res)
-                        cor_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+'_train_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', index = None)
+                    # if check == True:
+                    #     # simulate corrected wind
+                    #     cor_ws, cor_cf = simulate_wind(era5, clus_info, powerCurveFile, bc_factors, time_res)
+                    #     cor_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+'_train_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', index = None)
                     
                     end_time = time.time()
                     elapsed_time = end_time - start_time
                     print("Completed and saved. Elapsed time: {:.2f} seconds\n".format(elapsed_time))
                     
-        #         if check == True:
-        #             # simulate corrected wind
-        #             cor_ws, cor_cf = simulate_wind(era5, clus_info, powerCurveFile, bc_factors, time_res)
-        #             cor_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+'_train_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', index = None)
+                if check == True:
+                    # simulate corrected wind
+                    cor_ws, cor_cf = simulate_wind(era5, clus_info, powerCurveFile, bc_factors, time_res)
+                    cor_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+'_train_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', index = None)
                     
         if check == True:
             unc_ws, unc_cf = simulate_wind(era5, turb_info, powerCurveFile)
