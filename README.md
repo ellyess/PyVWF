@@ -34,8 +34,10 @@ $$ w_{corrected} = \alpha w_{original} + \beta. $$
 
 ## Setup
 ### Download reanalysis wind speed data
-First, download the necessary input ERA-5 data:
-- ECMWF's [ERA-5 reanalysis](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form), the required variables are: the 100m u-component of wind, 100m v-component of wind and Forecast surface roughness.
+First, download the necessary input ERA-5 data (Years in a period can be downloaded separately or together as they will be joined. Ensure training data is separate to validation):
+- ECMWF's [ERA-5 reanalysis](https://cds-beta.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download), the required variables are either:
+    - 100m u-component of wind, 100m v-component of wind, 10m u-component of wind and 10m v-component of wind (surface roughness is calculated instead and is more accurate).
+    - 100m u-component of wind, 100m v-component of wind and Forecast surface roughness. 
 
 ### Inputting data required for the model to run
 The files you should provide are:

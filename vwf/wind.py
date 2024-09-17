@@ -2,9 +2,10 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 from scipy import interpolate
-from vwf.extras import add_time_res
 
-def simulate_wind_speed(reanalysis, turb_info):
+import vwf.data as data
+
+def interpolate_wind(reanalysis, turb_info):
     """
     Simulate wind speeds at turbine locations.
 
@@ -68,7 +69,7 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
             sim_ws (pandas.DataFrame): time-series of simulated wind speeds at every turbine in turb_info
             sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info
     """
-    sim_ws = simulate_wind_speed(reanalysis, turb_info)
+    sim_ws = interpolate_wind(reanalysis, turb_info)
 
     if len(args) >= 1: 
         bc_factors = args[0]
@@ -81,34 +82,8 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
         f = interpolate.Akima1DInterpolator(x, y)
         return f(data)
     sim_cf = sim_ws.groupby('model').map(speed_to_power)
+    
     return sim_ws.to_pandas().reset_index(), sim_cf.to_pandas().reset_index()
-    
-
-def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
-    """
-    Simulate average capacity factor of desired resolution for training.
-
-        Args:
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
-            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
-            scalar (float): multiplicative correction factor
-            offset (float): additive correction factor
-
-        Returns:
-            float: weighted average of simulated CF
-    """
-    unc_ws = simulate_wind_speed(reanalysis, turb_info)
-    cor_ws = (unc_ws * scalar) + offset
-    
-    def speed_to_power(data):
-        x = powerCurveFile['data$speed']
-        y = powerCurveFile[data.model[0].data]
-        f = interpolate.Akima1DInterpolator(x, y)
-        return f(data)
-    cor_cf = cor_ws.groupby('model').map(speed_to_power)
-    avg_cf = cor_cf.weighted(cor_cf['capacity']).mean()
-    return avg_cf.data
 
 def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     """
@@ -127,11 +102,39 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     df = ds.to_dataframe('unc_ws').reset_index()
     df['year'] = pd.DatetimeIndex(df['time']).year
     df['month'] = pd.DatetimeIndex(df['time']).month
-    df = add_time_res(df)
+    df = data.add_time_res(df)
     df = df.merge(bc_factors, on=['cluster',time_res],how='left').set_index(['time','turbine'])
 
     ds = df[['scalar','offset','unc_ws']].to_xarray()
     ds = ds.assign(cor_ws= (ds["unc_ws"] * ds["scalar"]) + ds["offset"])
     ds = ds.assign_coords({'model':('turbine', turb_info['model'])})
     return ds.cor_ws   
+
+def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
+    """
+    Simulate average capacity factor of desired resolution for training.
+
+        Args:
+            reanalysis (xarray.Dataset): wind parameters on a grid
+            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
+            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
+            scalar (float): multiplicative correction factor
+            offset (float): additive correction factor
+
+        Returns:
+            float: weighted average of simulated CF
+    """ 
+    unc_ws = interpolate_wind(reanalysis, turb_info)
+    cor_ws = (unc_ws * scalar) + offset
+    
+    def speed_to_power(data):
+        x = powerCurveFile['data$speed']
+        y = powerCurveFile[data.model[0].data]
+        f = interpolate.Akima1DInterpolator(x, y)
+        return f(data)
+    cor_cf = cor_ws.groupby('model').map(speed_to_power)
+    avg_cf = cor_cf.weighted(cor_cf['capacity']).mean()
+    return avg_cf.data
+
+
     

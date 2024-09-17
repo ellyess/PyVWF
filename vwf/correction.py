@@ -4,52 +4,12 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from calendar import monthrange
 
-from vwf.simulation import train_simulate_wind
+from vwf.wind import (
+    train_simulate_wind
+)
 
 
-def cluster_turbines(num_clu, turb_train, train=False, *args):
-    """
-    Spatially cluster the turbines using the coordinates.
-
-        Args:
-            num_clu (int): number of clusters to split turbines into
-            turb_train (pandas.DataFrame): dataframe with the turbines that exist in training
-            train (bool): if the clustering is being used in training or on new turbines
-            *args (pandas.DataFrame): dataframe with new turbines to cluster based on the training turbines
-
-        Returns:
-            turb_info (pandas.DataFrame): turbine metadata with assigned cluster column
-    """
-    # fitting clusters to training data
-    kmeans = KMeans(
-            init="random",
-            n_clusters = num_clu,
-            n_init = 10,
-            max_iter = 300,
-            random_state = 42
-        )
-    kmeans.fit(turb_train[['lat','lon']])
-        
-    if train == True:
-        turb_train['cluster'] = kmeans.predict(turb_train[['lat','lon']])
-        return turb_train
-    else:
-        turb_info = args[0]
-        turb_info['cluster'] = kmeans.predict(turb_info[['lat','lon']])
-        return turb_info
-
-def train_data(time_res, gen_cf, clus_info):
-    """
-    Create data for training.
-    """
-    gen_data = gen_cf.groupby(['year',time_res,'ID'], as_index=False)[['obs','sim']].mean()
-
-    gen_data = pd.merge(gen_data, clus_info[['ID', 'cluster', 'lon', 'lat', 'capacity', 'height', 'model']], on='ID', how='left')
-    bias_data = calculate_scalar(time_res, gen_data)
-
-    return bias_data
-    
-def calculate_scalar(time_res, gen_data):
+def calculate_scalar(gen_cf, time_res):
     """
     Calculate the scalar, multiplicative correction factor.
 
@@ -65,17 +25,17 @@ def calculate_scalar(time_res, gen_data):
         w = whole_df.loc[group_df.index, weights]
         return (v * w).sum() / w.sum()
         
-    bias_data = gen_data.groupby([time_res, 'cluster', 'year']).agg({
-                            "obs": lambda x: weighted_avg(x, gen_data, 'obs', 'capacity'),
-                            "sim": lambda x: weighted_avg(x, gen_data, 'sim', 'capacity'),
+    df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
+                            "obs": lambda x: weighted_avg(x, gen_cf, 'obs', 'capacity'),
+                            "sim": lambda x: weighted_avg(x, gen_cf, 'sim', 'capacity'),
                             })
         
     # bias_data['scalar'] = (0.6 * (bias_data['obs'] / bias_data['sim'])) + 0.2
-    bias_data['scalar'] = bias_data['obs'] / bias_data['sim']
-    bias_data = bias_data.reset_index()
-    bias_data.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
+    df['scalar'] = df['obs'] / df['sim']
+    df = df.reset_index()
+    df.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
         
-    return bias_data[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
+    return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
     
 def find_offset(row, turb_info, reanalysis, powerCurveFile):
     """
@@ -160,20 +120,4 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile):
         step_prev = step
         offset += step
     return offset
-
-def format_bc_factors(bias_data, time_res):
-    """
-    Mean of all the bias corrections factors calculated for every cluster and time period.
-    If the scalar is NA then set to unbiascorrected.
-    """
-    # clean the bias data up
-    bias_data = bias_data.drop(['obs','sim'], axis=1)
-    bias_data['scalar'] = bias_data['scalar'].replace(0, np.nan)
-    bias_data.columns = ['year',time_res,'cluster','scalar','offset']
-
-    # group and calculate the mean
-    bc_factors = bias_data.groupby(['cluster', time_res], as_index=False).agg({'scalar': 'mean', 'offset': 'mean'})
-    bc_factors.loc[bc_factors['scalar'].isna(), 'offset'] = 0
-    bc_factors.loc[bc_factors['scalar'].isna(), 'scalar'] = 1
-    return bc_factors
 
