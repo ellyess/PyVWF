@@ -5,16 +5,16 @@ from scipy import interpolate
 
 import vwf.data as data
 
-def interpolate_wind(reanalysis, turb_info):
+def interpolate_wind(reanalysis, turb_info):    
     """
     Simulate wind speeds at turbine locations.
 
-        Args:
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
+    Args:
+        reanalysis (xarray.Dataset): reanalysis wind data variables assigned to latitude, longitude and time.
+        turb_info (pandas.DataFrame): input turbine metadata.
 
-        Returns:
-            sim_ws (xarray.DataArray): time-series of simulated wind speeds at every turbine in turb_info
+    Returns:
+        xarray.DataArray: time-series of simulated wind speeds for every turbine in turb_info
     """
     # heights are assigned to allow speed to be calculated for every height at every gridpoint
     reanalysis = reanalysis.assign_coords(
