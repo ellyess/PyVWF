@@ -54,20 +54,20 @@ def interpolate_wind(reanalysis, turb_info):
     })
     return sim_ws
     
-def simulate_wind(reanalysis, turb_info, powerCurveFile, *args): 
+def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
     """
     Simulate wind speed and capacity factor, optionally can be corrected.
 
-        Args:
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
-            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
-            Optional:
-                args (pandas.DataFrame): correction factor for every cluster and time period in time resolution
+    Args:
+        reanalysis (xarray.Dataset): wind parameters on a grid.
+        turb_info (pandas.DataFrame): turbine metadata including height and coordinates.
+        powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models.
+        bc_factors (pandas.DataFrame, optional): correction factor for every cluster and time period in time resolution.
+        time_res (str, optional): time resolution to be set.
 
-        Returns:
-            sim_ws (pandas.DataFrame): time-series of simulated wind speeds at every turbine in turb_info
-            sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info
+    Returns:
+        sim_ws (pandas.DataFrame): time-series of simulated wind speeds at every turbine in turb_info.
+        sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info.
     """
     sim_ws = interpolate_wind(reanalysis, turb_info)
 

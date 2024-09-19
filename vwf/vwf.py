@@ -61,20 +61,6 @@ class PyVWF:
         interp_nan=None, 
         fix_turb=None
         ):
-        """_summary_
-
-        Args:
-            path (_type_): _description_
-            country (_type_): _description_
-            correct (_type_): _description_
-            calc_z0 (_type_): _description_
-            cluster_mode (_type_): _description_
-            cluster_list (_type_, optional): _description_. Defaults to None.
-            time_res_list (_type_, optional): _description_. Defaults to None.
-            add_nan (_type_, optional): _description_. Defaults to None.
-            interp_nan (_type_, optional): _description_. Defaults to None.
-            fix_turb (_type_, optional): _description_. Defaults to None.
-        """
         
         # creating folders
         directory_path = os.path.join(path,'run')
