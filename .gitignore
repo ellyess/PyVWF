@@ -53,6 +53,8 @@ GTAGS
 # OS generated files #
 ######################
 .DS_Store*
+*.DS_Store
+.DS_Store
 
 
 # Things specific to this project #
