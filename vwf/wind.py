@@ -20,21 +20,21 @@ def interpolate_wind(reanalysis, turb_info):
     reanalysis = reanalysis.assign_coords(
         height=('height', turb_info['height'].unique()))
     
-    # this is for research purposes and is added for the use of merra 2, can be removed for the code below
-    try:
-        exception_flag = True
-        ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
-        exception_flag = False
+    # # this is for research purposes and is added for the use of merra 2, can be removed for the code below
+    # try:
+    #     exception_flag = True
+    #     ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
+    #     exception_flag = False
 
-    except:
-        pass
+    # except:
+    #     pass
         
-    finally:
-        if exception_flag:
-            ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
+    # finally:
+    #     if exception_flag:
+    #         ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
         
-    # # calculating wind speed from reanalysis dataset variables
-    # ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
+    # calculating wind speed from reanalysis dataset variables
+    ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
     
     # creating coordinates to spatially interpolate to
     lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})
