@@ -39,14 +39,13 @@ class PyVWF:
             False - use surface roughness from ERA-5, fsr variable
         cluster_mode (str): 
             'all' forms clusters mixing onshore and offshore,
-            'onshore' forms clusters with onshore ignoring offshore
-            'offshore' forms clusters with onshore ignoring onshore    
-        cluster_list (int): list of the spatial resolutions for the model
-        time_res_list (str): list of the temporal resolutions for the model    
-        add_nan (float): percentage of data to randomly remove from training data 0 < add_nan < 1
-        interp_nan (float): set limit on simultaneous missing data points when interpolating nan 
-        fix_turb (str): turbine model name as seen in models file, fixes to this turbine
-        directory_path (string): where files will be saved
+            'onshore' forms clusters with onshore ignoring offshore,
+            'offshore' forms clusters with onshore ignoring onshore.
+        cluster_list (int, optional): list of the spatial resolutions for the model. Defaults to None.
+        time_res_list (str, optional): list of the temporal resolutions for the model. Defaults to None.
+        add_nan (float, optional): percentage of data to randomly remove from training data 0 < add_nan < 1. Defaults to None.
+        interp_nan (float, optional): set limit on simultaneous missing data points when interpolating nan. Defaults to None.
+        fix_turb (str, optional): turbine model name as seen in models file, fixes to this turbine. Defaults to None.
     """
 
     def __init__(
@@ -135,7 +134,6 @@ class PyVWF:
             self.cluster_list = untrained_cluster_list
             self.time_res_list = untrained_time_res_list
             
-            
             self.add_nan = add_nan
             self.interp_nan = interp_nan
             self.fix_turb = fix_turb
@@ -151,11 +149,12 @@ class PyVWF:
         
     def train(self, check=False): 
         """
-        Training of the VWF model.
-        
-        Saves the turbine metadata used in training, the clustered turbine
-        metadata and the correction factors.
+        Derives bias correction factors at the desired spatiotemporal resolutions.
+
+        Args:
+            check (bool, optional): _description_. Defaults to False.
         """
+
         if len(self.cluster_list) < 1:
             print("All correction factors are trained ... Ending train.")
             
@@ -191,13 +190,11 @@ class PyVWF:
     def simulate_cf(self, year_test, fix_turb_test=None):
         """
         Simulating capacity factor using the defined model.
-        
-        Saves the simulated wind speeds and capacity factors, both corrected
-        and uncorrected.
 
         Args:
-            year_test (int): year for the model to simulate
-            fix_turb_test (list): fixing a single turbine model to be simulated
+            year_test (int): year to simulate wind for.
+            fix_turb_test (str, optional): turbine model name to use as power curve. Defaults to None.
+
         """
         # load and preprocess input data
         obs_cf, turb_info, reanalysis, power_curves = val_set(self.country, self.calc_z0, self.cluster_mode, year_test, fix_turb_test)
@@ -246,6 +243,9 @@ class PyVWF:
         return self
             
     def research_error(self):
+        """
+        Plots the overall error of the bias correction
+        """
         temporal_metrics = metrics.overall_error('temporal-focus', self.directory_path, self.country, self.turb_info, self.full_clus_list, self.full_time_list, False, self.year_test)
         spatial_metrics = metrics.overall_error('spatial-focus', self.directory_path, self.country, self.turb_info, self.full_clus_list, self.full_time_list, False, self.year_test)
         total_metrics = metrics.overall_error('total', self.directory_path, self.country, self.turb_info, self.full_clus_list, self.full_time_list, False, self.year_test)

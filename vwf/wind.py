@@ -5,36 +5,36 @@ from scipy import interpolate
 
 import vwf.data as data
 
-def interpolate_wind(reanalysis, turb_info):
+def interpolate_wind(reanalysis, turb_info):    
     """
     Simulate wind speeds at turbine locations.
 
-        Args:
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
+    Args:
+        reanalysis (xarray.Dataset): reanalysis wind data variables assigned to latitude, longitude and time.
+        turb_info (pandas.DataFrame): input turbine metadata.
 
-        Returns:
-            sim_ws (xarray.DataArray): time-series of simulated wind speeds at every turbine in turb_info
+    Returns:
+        xarray.DataArray: time-series of simulated wind speeds for every turbine in turb_info
     """
     # heights are assigned to allow speed to be calculated for every height at every gridpoint
     reanalysis = reanalysis.assign_coords(
         height=('height', turb_info['height'].unique()))
     
-    # this is for research purposes and is added for the use of merra 2, can be removed for the code below
-    try:
-        exception_flag = True
-        ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
-        exception_flag = False
+    # # this is for research purposes and is added for the use of merra 2, can be removed for the code below
+    # try:
+    #     exception_flag = True
+    #     ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
+    #     exception_flag = False
 
-    except:
-        pass
+    # except:
+    #     pass
         
-    finally:
-        if exception_flag:
-            ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
+    # finally:
+    #     if exception_flag:
+    #         ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
         
-    # # calculating wind speed from reanalysis dataset variables
-    # ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
+    # calculating wind speed from reanalysis dataset variables
+    ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
     
     # creating coordinates to spatially interpolate to
     lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})
@@ -54,20 +54,20 @@ def interpolate_wind(reanalysis, turb_info):
     })
     return sim_ws
     
-def simulate_wind(reanalysis, turb_info, powerCurveFile, *args): 
+def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
     """
     Simulate wind speed and capacity factor, optionally can be corrected.
 
-        Args:
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
-            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
-            Optional:
-                args (pandas.DataFrame): correction factor for every cluster and time period in time resolution
+    Args:
+        reanalysis (xarray.Dataset): wind parameters on a grid.
+        turb_info (pandas.DataFrame): turbine metadata including height and coordinates.
+        powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models.
+        bc_factors (pandas.DataFrame, optional): correction factor for every cluster and time period in time resolution.
+        time_res (str, optional): time resolution to be set.
 
-        Returns:
-            sim_ws (pandas.DataFrame): time-series of simulated wind speeds at every turbine in turb_info
-            sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info
+    Returns:
+        sim_ws (pandas.DataFrame): time-series of simulated wind speeds at every turbine in turb_info.
+        sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info.
     """
     sim_ws = interpolate_wind(reanalysis, turb_info)
 
