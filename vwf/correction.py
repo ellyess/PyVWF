@@ -1,3 +1,28 @@
+"""
+correction module.
+
+Summary
+-------
+Bias correction modules.
+
+Data conventions
+----------------
+Expected dimensions follow xarray conventions (e.g., time × lat × lon) unless stated otherwise.
+Time coordinates are assumed to be UTC unless explicitly converted by the caller.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+References
+----------
+Add dataset and methodological references relevant to this module.
+"""
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -21,6 +46,23 @@ def calculate_scalar(gen_cf, time_res):
             turb_info (pandas.DataFrame): turbine metadata with assigned cluster column
     """
     def weighted_avg(group_df, whole_df, values, weights):
+        """
+        Weighted avg.
+
+            Args:
+                group_df (Any): TODO.
+                whole_df (Any): TODO.
+                values (Any): TODO.
+                weights (Any): TODO.
+                *args (tuple): Additional positional arguments.
+
+            Returns:
+                None: TODO.
+
+            Assumptions:
+                - Datetime handling is assumed to be UTC unless stated otherwise.
+                - Units are assumed to be consistent with SI conventions unless stated otherwise.
+        """
         v = whole_df.loc[group_df.index, values]
         w = whole_df.loc[group_df.index, weights]
         return (v * w).sum() / w.sum()

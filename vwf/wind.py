@@ -1,3 +1,28 @@
+"""
+wind module.
+
+Summary
+-------
+Interpolation and simulation of wind speeds and power at turbine locations.
+
+Data conventions
+----------------
+Expected dimensions follow xarray conventions (e.g., time × lat × lon) unless stated otherwise.
+Time coordinates are assumed to be UTC unless explicitly converted by the caller.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+References
+----------
+Add dataset and methodological references relevant to this module.
+"""
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -83,6 +108,18 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
         sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
 
     def speed_to_power(data):
+        """
+        Speed to power.
+
+            Args:
+                data (pandas.DataFrame): data containing simulated wind speeds.
+
+            Assumptions:
+                - Datetime handling is assumed to be UTC unless stated otherwise.
+                - Units are assumed to be consistent with SI conventions unless stated otherwise.
+                - Power curves are assumed to be static and representative (no wake, curtailment, or availability losses unless explicitly modelled).
+                - Capacity factor is assumed to be bounded in [0, 1].
+        """
         x = powerCurveFile['data$speed']          
         y = powerCurveFile[data.model[0].data]
         f = interpolate.Akima1DInterpolator(x, y)
@@ -134,10 +171,23 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     cor_ws = (unc_ws * scalar) + offset
     
     def speed_to_power(data):
+        """
+        Speed to power.
+
+            Args:
+                data (pandas.DataFrame): data containing simulated wind speeds.
+
+            Assumptions:
+                - Datetime handling is assumed to be UTC unless stated otherwise.
+                - Units are assumed to be consistent with SI conventions unless stated otherwise.
+                - Power curves are assumed to be static and representative (no wake, curtailment, or availability losses unless explicitly modelled).
+                - Capacity factor is assumed to be bounded in [0, 1].
+        """
         x = powerCurveFile['data$speed']
         y = powerCurveFile[data.model[0].data]
         f = interpolate.Akima1DInterpolator(x, y)
         return f(data)
+    
     cor_cf = cor_ws.groupby('model').map(speed_to_power)
     avg_cf = cor_cf.weighted(cor_cf['capacity']).mean()
     return avg_cf.data

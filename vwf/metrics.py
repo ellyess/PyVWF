@@ -1,3 +1,28 @@
+"""
+metrics module.
+
+Summary
+-------
+Calculate the metrics for model evaluation.
+
+Data conventions
+----------------
+Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
+Datetime columns are assumed to be timezone-naive UTC unless specified.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+References
+----------
+Add dataset and methodological references relevant to this module.
+"""
 import numpy as np
 import pandas as pd
 # def cluster_metrics(num_clu, turb_train, train=False, *args):
@@ -23,9 +48,25 @@ import pandas as pd
 #         turb_info['silhouette_vals'] = silhouette_samples(turb_info[['lat','lon']], turb_info['cluster'])
 #         return turb_info
 
-
-
 def calculate_error(type, df_sim, df_obs, turb_info, train=False):
+    """
+    Calculate error.
+
+        Args:
+            type (Any): TODO.
+            df_sim (Any): TODO.
+            df_obs (Any): TODO.
+            turb_info (Any): TODO.
+            train (Any): TODO.
+            *args (tuple): Additional positional arguments.
+
+        Returns:
+            None: TODO.
+
+        Assumptions:
+            - Datetime handling is assumed to be UTC unless stated otherwise.
+            - Units are assumed to be consistent with SI conventions unless stated otherwise.
+    """
     if train == True:
         df_obs = df_obs.pivot(
                 index=['year','month'], 
@@ -69,6 +110,22 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
     merged = merged.dropna(subset=['cf_sim', 'cf_obs', 'capacity']).reset_index(drop=True)
 
     def weighted_avg(df, values, weights):
+        """
+        Weighted avg.
+
+            Args:
+                df (Any): TODO.
+                values (Any): TODO.
+                weights (Any): TODO.
+                *args (tuple): Additional positional arguments.
+
+            Returns:
+                None: TODO.
+
+            Assumptions:
+                - Datetime handling is assumed to be UTC unless stated otherwise.
+                - Units are assumed to be consistent with SI conventions unless stated otherwise.
+        """
         return (df[values] * df[weights]).sum() / df[weights].sum()
 
 
@@ -169,6 +226,26 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
     
     
 def overall_error(type, run, country, turb_info, cluster_list, time_res_list, train, *args):
+    """
+Overall error.
+
+    Args:
+        type (Any): TODO.
+        run (Any): TODO.
+        country (Any): TODO.
+        turb_info (Any): TODO.
+        cluster_list (Any): TODO.
+        time_res_list (Any): TODO.
+        train (Any): TODO.
+        *args (tuple): Additional positional arguments.
+
+    Returns:
+        None: TODO.
+
+    Assumptions:
+        - Datetime handling is assumed to be UTC unless stated otherwise.
+        - Units are assumed to be consistent with SI conventions unless stated otherwise.
+"""
     rmse_all = []
     mae_all = []
     mbe_all = []

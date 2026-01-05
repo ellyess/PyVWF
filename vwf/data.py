@@ -1,3 +1,28 @@
+"""
+data module.
+
+Summary
+-------
+Preprocessing of the data required in the model.
+
+Data conventions
+----------------
+Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
+Datetime columns are assumed to be timezone-naive UTC unless specified.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+References
+----------
+Add dataset and methodological references relevant to this module.
+"""
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -58,6 +83,9 @@ def clean_obs_data(df, country, train=False):
     
     
 def load_power_curves():
+    """
+    Load power curves.
+    """
     file_loc = 'input/power_curves.csv'
     df = pd.read_csv(file_loc)
     return df
@@ -426,6 +454,16 @@ def prep_country(country, year_test=None):
         dk_md = dk_md.dropna(subset=['capacity', 'diameter', 'x_east_32','y_north_32']).reset_index(drop=True)
         
         def rule(row):
+            """
+            Rule.
+
+                Args:
+                    row (Any): TODO.
+                    *args (tuple): Additional positional arguments.
+
+                Returns:
+                    None: TODO.
+            """
             lat, lon = utm.to_latlon(row["x_east_32"], row["y_north_32"], 32, 'W')
             return pd.Series({"lat": lat, "lon": lon})
         
