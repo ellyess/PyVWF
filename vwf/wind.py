@@ -1,9 +1,12 @@
 import xarray as xr
 import numpy as np
 import pandas as pd
-from scipy import interpolate
+import scipy.interpolate as interpolate
+from scipy.interpolate import Akima1DInterpolator
 
 import vwf.data as data
+
+
 
 def interpolate_wind(reanalysis, turb_info):    
     """
@@ -52,8 +55,11 @@ def interpolate_wind(reanalysis, turb_info):
         'model':('turbine', turb_info['model']),
         'capacity':('turbine', turb_info['capacity']),
     })
+    # print(sim_ws)
     return sim_ws
     
+
+
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
     """
     Simulate wind speed and capacity factor, optionally can be corrected.
@@ -70,7 +76,7 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
         sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info.
     """
     sim_ws = interpolate_wind(reanalysis, turb_info)
-
+    print("Interpolated wind speeds to turbine locations")
     if len(args) >= 1: 
         bc_factors = args[0]
         time_res = args[1]
@@ -135,6 +141,3 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     cor_cf = cor_ws.groupby('model').map(speed_to_power)
     avg_cf = cor_cf.weighted(cor_cf['capacity']).mean()
     return avg_cf.data
-
-
-    

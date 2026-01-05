@@ -47,7 +47,6 @@ class PyVWF:
         interp_nan (float, optional): set limit on simultaneous missing data points when interpolating nan. Defaults to None.
         fix_turb (str, optional): turbine model name as seen in models file, fixes to this turbine. Defaults to None.
     """
-
     def __init__(
         self, 
         path,
@@ -61,12 +60,15 @@ class PyVWF:
         interp_nan=None, 
         fix_turb=None
         ):
-        
+        """
+        Initialising the PyVWF object and creating necessary folders.
+
+        """
         # creating folders
         directory_path = os.path.join(path,'run')
         run = country
         
-        if correct == True:
+        if correct:
             run += '-'+cluster_mode
             if (add_nan == None) & (interp_nan == None) & (fix_turb == None):
                 run += '-corrected'
@@ -82,7 +84,7 @@ class PyVWF:
             run += '-uncorrected'
         
         # for calculated FSR
-        if calc_z0 == True:
+        if calc_z0:
             run += '-calc_z0'
         
         # Specify where to make the new directory path
@@ -106,7 +108,7 @@ class PyVWF:
             else:
                 print(f"Created {new_path}")
         
-        if correct == True:
+        if correct:
             trained_res = []
             untrained_res = []
             untrained_cluster_list = []
@@ -121,11 +123,12 @@ class PyVWF:
                         untrained_res.append(str(num_clu)+"-"+time_res)
                         untrained_cluster_list.append(num_clu)
                         untrained_time_res_list.append(time_res)
-            print("PyVWF is already trained for the following clusters--time-res:")
+            print("PyVWF is already trained for the following [Clusters-Temporal Resolution]:")
             print(trained_res)
             print("")
             print("PyVWF will be trained for:")
             print(untrained_res)
+            print("--------------------------------")
             
             # setting attributes specific to correction
             self.full_clus_list = cluster_list
@@ -151,12 +154,15 @@ class PyVWF:
         """
         Derives bias correction factors at the desired spatiotemporal resolutions.
 
-        Args:
-            check (bool, optional): _description_. Defaults to False.
+            Args:
+                check (bool, optional): _description_. Defaults to False.
+            Returns:
+                self (PyVWF): the PyVWF object with trained attributes.
         """
 
         if len(self.cluster_list) < 1:
             print("All correction factors are trained ... Ending train.")
+            print("--------------------------------")
             
         else:
             gen_cf, turb_info_train, reanalysis, power_curves = train_set(self.country, self.calc_z0, self.cluster_mode, add_nan=self.add_nan, interp_nan=self.interp_nan, fix_turb=self.fix_turb)
@@ -183,6 +189,7 @@ class PyVWF:
                 end_time = time.time()
                 elapsed_time = end_time - start_time
                 print("Completed and saved. Elapsed time: {:.2f} seconds\n".format(elapsed_time))
+                print("--------------------------------")
                 
         return self
 
@@ -191,15 +198,16 @@ class PyVWF:
         """
         Simulating capacity factor using the defined model.
 
-        Args:
-            year_test (int): year to simulate wind for.
-            fix_turb_test (str, optional): turbine model name to use as power curve. Defaults to None.
-
+            Args:
+                year_test (int): year to simulate wind for.
+                fix_turb_test (str, optional): turbine model name to use as power curve. Defaults to None.
+            Returns:
+                self (PyVWF): the PyVWF object with simulated attributes.
         """
         # load and preprocess input data
         obs_cf, turb_info, reanalysis, power_curves = val_set(self.country, self.calc_z0, self.cluster_mode, year_test, fix_turb_test)
-         
-         # for research purpose
+        
+        # for research purpose
         obs_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_obs_cf.csv', index = None)
         turb_info.to_csv(self.directory_path+'/training/simulated-turbines/'+self.country+'_'+str(year_test)+'_turb_info.csv', index = None)
     
@@ -214,7 +222,7 @@ class PyVWF:
             # unc_ws.to_csv(self.directory_path+'results/wind-speed/'+self.country+"_"+str(year_test)+'_unc_ws.csv', index = None)
             unc_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_unc_cf.csv', index = None)
         
-        if self.correct == True:
+        if self.correct:
             turb_info_train = pd.read_csv(self.directory_path+'/training/simulated-turbines/'+self.country+'_train_turb_info.csv')
             for num_clu, time_res in itertools.product(self.full_clus_list, self.full_time_list):
                 my_file = Path(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_'+time_res+'_'+str(num_clu)+'_cor_cf.csv')

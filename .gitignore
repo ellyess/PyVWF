@@ -31,6 +31,8 @@ GTAGS
 .mypy_cache/
 *.ipynb_checkpoints/
 *.lapce/
+*.pyc
+__pycache__
 
 # Packages #
 ############
@@ -63,3 +65,9 @@ run/
 input/era5
 input/merra2
 /input/country-data/DK/shape
+*.nc
+atlite_run.ipynb
+*.png
+input/country-data/EMHIRES_WIND_COUNTRY_June2019.xlsx
+input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
+/input/country-data
