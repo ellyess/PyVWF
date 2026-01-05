@@ -1,3 +1,28 @@
+"""
+clustering module.
+
+Summary
+-------
+Clustering turbines based on their spatial coordinates.
+
+Data conventions
+----------------
+Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
+Datetime columns are assumed to be timezone-naive UTC unless specified.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-].
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+References
+----------
+Add dataset and methodological references relevant to this module.
+"""
 from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd

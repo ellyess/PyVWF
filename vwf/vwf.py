@@ -1,3 +1,28 @@
+"""
+PyVWF module.
+
+Summary
+-------
+Creates virtual wind farm models and simulations.
+
+Data conventions
+----------------
+Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
+Datetime columns are assumed to be timezone-naive UTC unless specified.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+References
+----------
+Add dataset and methodological references relevant to this module.
+"""
 import os
 import time
 from pathlib import Path
@@ -155,7 +180,7 @@ class PyVWF:
         Derives bias correction factors at the desired spatiotemporal resolutions.
 
             Args:
-                check (bool, optional): _description_. Defaults to False.
+                check (bool, optional): plot the training errors. Defaults to False.
             Returns:
                 self (PyVWF): the PyVWF object with trained attributes.
         """
@@ -179,6 +204,17 @@ class PyVWF:
                     
                 # parellisation to find offset
                 def find_offset_parallel(df):
+                    """
+                    Find offset parallel.
+
+                        Args:
+                            df (pandas.DataFrame): TODO.
+                            *args (tuple): Additional positional arguments.
+
+                        Assumptions:
+                            - Datetime handling is assumed to be UTC unless stated otherwise.
+                            - Units are assumed to be consistent with SI conventions unless stated otherwise.
+                    """
                     return df.apply(correction.find_offset, args=(clus_info, reanalysis, power_curves), axis=1)
                 ddf = dd.from_pandas(train_bias_df, npartitions=40)
                 ddf["offset"] = ddf.map_partitions(find_offset_parallel, meta=('offset', 'float'))
@@ -192,7 +228,6 @@ class PyVWF:
                 print("--------------------------------")
                 
         return self
-
 
     def simulate_cf(self, year_test, fix_turb_test=None):
         """

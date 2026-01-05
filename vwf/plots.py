@@ -1,3 +1,25 @@
+"""
+plots module.
+
+Summary
+-------
+Plots the results and diagnostics of the virtual wind farm simulations.
+
+Data conventions
+----------------
+Datetime handling is assumed to be UTC unless specified.
+Units follow SI conventions unless stated otherwise.
+
+Units
+-----
+Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
+
+Assumptions
+-----------
+- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
+- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
+
+"""
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -7,6 +29,23 @@ custom_params = {'xtick.bottom': True, 'axes.edgecolor': 'black', 'axes.spines.r
 sns.set_theme(style='ticks', rc=custom_params)
 
 def plot_overall_error(run, country, df_metrics, name):
+    """
+    Plot overall error.
+
+        Args:
+            run (Any): TODO.
+            country (Any): TODO.
+            df_metrics (Any): TODO.
+            name (Any): TODO.
+            *args (tuple): Additional positional arguments.
+
+        Returns:
+            None: TODO.
+
+        Assumptions:
+            - Datetime handling is assumed to be UTC unless stated otherwise.
+            - Units are assumed to be consistent with SI conventions unless stated otherwise.
+    """
     # fig, axes = plt.subplots(1, 2, figsize=(6.67, 3)) # for normal
     # fig, axes = plt.subplots(1, 2, figsize=(6.8, 3)) # for train with the legend
     fig, axes = plt.subplots(1, 3, figsize=(12, 3)) # for train with the legend
@@ -65,7 +104,6 @@ def plot_overall_error(run, country, df_metrics, name):
     axes[2].set_xticks([1, 10, 100,1000])
     axes[2].get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-    
     # fig.suptitle(name)
     axes[2].get_legend().remove()
     handles, labels = plt.gca().get_legend_handles_labels()
