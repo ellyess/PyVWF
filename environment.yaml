@@ -1,0 +1,16 @@
+name: pyvwf-env
+channels:
+- conda-forge
+- bioconda
+dependencies:
+- python>=3.8
+- pip
+- pip:
+  - -r requirements.txt
+
+# Inhouse packages
+- pypsa>=0.31
+- atlite>=0.2.9
+- linopy
+- powerplantmatching>=0.5.15,<0.6
+- utm

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import difflib
 
 import utm
@@ -31,7 +32,7 @@ def clean_obs_data(df, country, train=False):
             turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
     """
 
-    ################################################
+    ################################################################################
     ### conditions to remove turbines from the data    
     # cf can't be greater than 100%
     df['cf_max'] = df[df.columns[df.columns.str.startswith('obs')]].max(axis=1)
@@ -40,7 +41,7 @@ def clean_obs_data(df, country, train=False):
     
     # case exists for Denmark solely, develop a method to consider the weight of missing data
     # remove any turbines that have cf of 0 at any point
-    if (train == True) & (country == 'DK'):
+    if (train) & (country == 'DK'):
         df['cf_min'] = df[df.columns[df.columns.str.startswith('obs')]].min(axis=1)
         df = df.drop(df[df['cf_min'] <= 0.01].index)
         df = df.drop('cf_min', axis=1)
@@ -61,7 +62,7 @@ def load_power_curves():
     df = pd.read_csv(file_loc)
     return df
     
-    
+
 def train_set(
     country,
     calc_z0,
@@ -89,13 +90,14 @@ def train_set(
     
     if mode != 'all':
             turb_info = turb_info[turb_info['type'] == mode].copy()
-     
+
     obs_cf = clean_obs_data(obs_cf, country, True)
     
     # further rules for the training data and formatting
     year_star = obs_cf.year.min()
     year_end = obs_cf.year.max()
     
+    ################################################################################
     # turbines should exist the entire period
     obs_cf = obs_cf[obs_cf.groupby('ID').ID.transform('count') == ((year_end-year_star)+1)].reset_index(drop=True) 
     # reordering and renaming columns
@@ -105,10 +107,8 @@ def train_set(
         'obs_7','obs_8','obs_9','obs_10','obs_11','obs_12'
         ]]      
     obs_cf.columns = ['ID','year','1','2','3','4','5','6','7','8','9','10','11','12']
-    
     # keeping data that has a turbine match
     obs_cf = obs_cf.loc[obs_cf['ID'].isin(turb_info['ID'])].reset_index(drop=True)
-    
     #  changing shape of df and setting types
     obs_cf = obs_cf.melt(
         id_vars=["ID", "year"], 
@@ -118,38 +118,34 @@ def train_set(
     obs_cf['month'] = obs_cf['month'].astype(int)
     obs_cf['year'] = obs_cf['year'].astype(int)
     
-    ################################################
+    ################################################################################
     ### extra functionality to modify train data
     # creates nans for sparser data
     if add_nan != None:
         obs_cf['obs'] = obs_cf['obs'].sample(frac=(1-add_nan), random_state=42)
-    
     # interpolates nan values
     if interp_nan != None:
         obs_cf = interp_nans(obs_cf, interp_nan)
-    
     # setting turbine model to one turbine model for research
     if fix_turb != None:
         turb_info['model'] = fix_turb 
-    ################################################
-    
+
+    ################################################################################
     # keeping data that has a turbine match
     turb_info = turb_info.loc[turb_info['ID'].isin(obs_cf['ID'])].reset_index(drop=True)
-
     # preping era5 for train
     reanalysis = prep_era5(country, True, calc_z0)
-    
     # loading power curve df
     power_curves = load_power_curves()
     
-    ################################################
+    ################################################################################
     ### merging the observed CF and the simulated CF for the every turbine
     # simulating turbines in the observed data
     sim_ws, sim_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
     
     # making it monthly to match the resolution of observation
     # splitting data into month and year and adding the associated time slice
-    sim_cf = sim_cf.groupby(pd.Grouper(key='time',freq='M')).mean().reset_index()
+    sim_cf = sim_cf.groupby(pd.Grouper(key='time',freq='ME')).mean().reset_index()
     sim_cf = sim_cf.melt(id_vars=["time"], 
                     var_name="ID", 
                     value_name="sim")
@@ -160,18 +156,32 @@ def train_set(
     
     gen_cf = pd.merge(sim_cf, obs_cf, on=['ID', 'month', 'year'], how='left')
     gen_cf = gen_cf.drop(['time'], axis=1).reset_index(drop=True)
-    ################################################
     
     return gen_cf, turb_info, reanalysis, power_curves 
         
 
 def val_set(country, calc_z0, mode='all', year_test=None, fix_turb=None):
-    
+    """
+    Validation set preparation.
+
+        Args:
+            country (str): Country code e.g. Denmark "DK"
+            calc_z0 (bool): If True calculate z0 from landuse data.
+            mode (str, optional): Choose a mode running the function for onshore, offshore or all turbines. Defaults to 'all'.
+            year_test (int, optional): _description_. Defaults to None.
+            fix_turb (str, optional): _description_. Defaults to None.
+
+        Returns:
+            obs_cf (pandas.DataFrame): monthly obs cf which is a time series of the power generated by a turbine
+            turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
+            reanalysis (pandas.DataFrame): reanalysis data for the country and period
+            power_curves (pandas.DataFrame): power curves dataframe
+    """
     obs_cf, turb_info = prep_country(country, year_test)
 
     if mode != 'all':
             turb_info = turb_info[turb_info['type'] == mode].copy()
-  
+
     if fix_turb != None:
         turb_info['model'] = fix_turb
     
@@ -198,6 +208,16 @@ def val_set(country, calc_z0, mode='all', year_test=None, fix_turb=None):
 def cluster_train_set(gen_cf, time_res, num_clu, turb_info):
     """
     Applying desired resolution to train set and calculating scalar.
+    
+        Args:
+            gen_cf (pandas.DataFrame): monthly obs and sim cf which is a time series of the power generated by a turbine
+            time_res (str): desired temporal resolution e.g. 'month', 'bimonth', 'season', 'fixed'
+            num_clu (int): number of clusters to generate
+            turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
+        
+        Returns:
+            train_bias_df (pandas.DataFrame): dataframe consisting of the bias correction scalars for each cluster and time period
+            clus_info (pandas.DataFrame): dataframe consisting of the turbine cluster assignments and metadata 
     """
 
     # time average to desired temporal resolution
@@ -214,6 +234,9 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info):
     
 
 def interp_nans(df, limit):
+    """
+    Interpolate nans in observed data.
+    """
     df = df.sort_values(['ID','year']).groupby(['ID']).apply(
         lambda group: group.interpolate(
             method='linear',
@@ -245,10 +268,13 @@ def add_models(df):
 
     print("Total observed turbines/farms before conditions: ", len(df))
     
+    df['capacity'] = df['capacity'].astype(float)
+    df['diameter'] = df['diameter'].astype(float)
+    df['height'] = df['height'].astype(float)
     # removing turbines that are unrealistic
     df = df.drop(df[df['height'] < 1].index).reset_index(drop=True)
     
-    df['capacity'] = df['capacity'].astype(float)
+    
     df['p_density'] = (df['capacity']*1000) / (np.pi * (df['diameter']/2)**2)
     df['capacity'] = df['capacity'].astype(int)
     df['ID'] = df['ID'].astype(str)
@@ -275,7 +301,9 @@ def add_models(df):
             .drop_duplicates(subset=["ID"], keep="first")
         )
         # allowing for better power density match if manufaturer model is not close enough
-        df['model'].where(df['closest'] < 1, np.nan, inplace=True)
+        # df['model'].where(df['closest'] < 1, np.nan, inplace=True)
+        df['model'] = df['model'].where(df['closest'] < 1, np.nan)
+        
         df = df.drop(['diameter_y', 'p_density_y', 'offshore','manufacturer_y', 'capacity_y','match','closest','manufacturer_x'], axis=1)
 
     if 'type' in df.columns:
@@ -300,8 +328,13 @@ def format_bc_factors(train_bias_df, time_res):
     """
     Mean of all the bias corrections factors calculated for every cluster and time period.
     If the scalar is NA then set to unbiascorrected.
-    """
     
+        Args:
+            train_bias_df (pandas.DataFrame): dataframe consisting of the bias correction scalars for each cluster and time period
+            time_res (str): desired temporal resolution e.g. 'month', 'bimonth', 'season', 'fixed'
+        Returns:
+            bc_factors (pandas.DataFrame): dataframe consisting of the mean bias correction scalars for each cluster and time period
+    """
     # clean the bias data up
     train_bias_df = train_bias_df.drop(['obs','sim'], axis=1)
     train_bias_df['scalar'] = train_bias_df['scalar'].replace(0, np.nan)
@@ -356,12 +389,12 @@ def prep_country(country, year_test=None):
 
         Args:
             country (str): country code e.g. Denmark "DK"
+            year_test (int, optional): year for testing data. Defaults to None.
             
         Returns:
             obs_gen (pandas.DataFrame): obs_gen which is a time series of the power generated by a turbine
             turb_info (pandas.DataFrame): consists of the turbines metadata; latitude, longitude, capacity, height, rotor diameter and model
     """
-
     if year_test != None:
         train = False
     else:
@@ -409,8 +442,9 @@ def prep_country(country, year_test=None):
         if train == True:
             year_star = 2015 # start year of training period
             year_end = 2019 # end year of training period
-            
-        else: # this is for testing I use year_star and end for the sake of keeping code same
+        
+        # this is for testing I use year_star and end for the sake of keeping code same
+        else:
             year_star = year_test 
             year_end = year_test 
             
@@ -447,8 +481,8 @@ def prep_country(country, year_test=None):
         
         # producing obs_gen
         if train == True:
-            year_star = 2011 # start year of training period
-            year_end = 2014 # end year of training period
+            year_star = 2015 # start year of training period
+            year_end = 2018 # end year of training period
             
         else: # this is for testing I use year_star and end for the sake of keeping code same
             year_star = year_test 
@@ -462,16 +496,222 @@ def prep_country(country, year_test=None):
         obs_gen = de_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
         obs_gen = obs_gen.fillna(0)
     
+    # UK data and code was sourced from https://doi.org/10.48550/arXiv.2511.04781
+    elif country == "UK":
+        uk_md = pd.read_csv('input/country-data/UK/observations/uk_md.csv')
+        turb_info = add_models(uk_md)
+
+        # producing obs_gen
+        if train == True:
+            year_star = 2015  # start year of training period
+            year_end = 2018  # end year of training period
+            
+        # this is for testing I use year_star and end for the sake of keeping code same
+        else:
+            year_star = year_test
+            year_end = year_test
+            
+        obs_gen = pd.read_csv('input/country-data/UK/observations/ukobs.csv')
+    
+    elif country == "FR":
+        fr_md = gpd.read_file("input/country-data/fr/fr_turb_info.csv")
+        fr_md = fr_md.loc[fr_md['statut_parc'] == 'Autorisé'].reset_index(drop=True)
+        fr_md = fr_md.loc[
+            :, [
+            "id_aerogenerateur", 
+            "puissance_mw", 
+            "diametre_rotor",
+            "hauteur_mat_nacelle",
+
+            "constructeur",
+            "x_aerogenerateur",
+            "y_aerogenerateur",
+            "epsg"
+            ]]
+        fr_md.columns = [
+            "ID",
+            "capacity",
+            "diameter",
+            "height",
+            "manufacturer",
+            "x",
+            "y",
+            "epsg"
+            ]
+
+        points_gdf = gpd.GeoDataFrame(
+            fr_md[["ID","capacity","diameter","height","manufacturer"]],
+            geometry=gpd.points_from_xy(fr_md.x, fr_md.y, crs=fr_md.epsg.iloc[0])
+            ).to_crs(epsg=4326)
+
+        points_gdf['capacity'] = points_gdf['capacity'].astype(float) * 1e3  # MW to kW
+        points_gdf['lon'] = points_gdf.geometry.x  
+        points_gdf['lat'] = points_gdf.geometry.y
+        points_gdf = points_gdf.drop(columns='geometry')
+        turb_info = add_models(points_gdf)
+
+        # producing obs_gen
+        if train == True:
+            year_star = 2015  # start year of training period
+            year_end = 2018  # end year of training period
+            
+        # this is for testing I use year_star and end for the sake of keeping code same
+        else:
+            year_star = year_test
+            year_end = year_test
+    
+        # fr_data = pd.read_csv("input/country-data/FR/observations/Wind_power_generation_in_France.csv")
+        # fr_data.columns = ["date", "filter", "output", "nature"]
+
+        # fr_data = fr_data.loc[fr_data['filter'].str.contains('evolution')].reset_index(drop=True)
+        # # fr_data["type"] = fr_data["filter"].str.split(" ").str[0].str.lower()
+        # fr_data["output"] = fr_data["output"].replace(',', '.', regex=True)
+        # fr_data = fr_data.drop(columns=["nature","filter"])
+        # fr_data['date'] = pd.to_datetime(fr_data['date'])
+        # fr_data['output'] = pd.to_numeric(fr_data['output'])
+        # # convert from terawatts to kilowatts
+        # fr_data['output'] = fr_data['output'] * 1e9
+        # fr_data['year'] = fr_data['date'].dt.year.astype(int)
+        # fr_data['month'] = fr_data['date'].dt.month.astype(int)
+        # fr_data = fr_data.drop(columns=['date'])
+
+        # fr_data = fr_data.fillna(0).groupby(['year','month'])['output'].sum().reset_index()
+        # # fr_data['type'] = 'onshore'
+
+        # turb_info["ratio"] = turb_info['capacity'] / turb_info['capacity'].sum()
+
+        # fr_data = fr_data.merge(turb_info[['ID', 'ratio']], how="cross")
+        # fr_data["output"] = fr_data["output"] * fr_data["ratio"]
+        # fr_data = fr_data.dropna(subset=['ID', 'year', 'month'])
+        # fr_data = fr_data.loc[(fr_data["year"] >= year_star) & (fr_data["year"] <= year_end)].reset_index(drop=True)   
+        # obs_gen = fr_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
+        
+        # ALTERNATIVE FR GENERATION DATA
+        # https://ec.europa.eu/eurostat/databrowser/view/nrg_cb_pem__custom_19402431/default/table
+        ns_data = pd.read_csv("input/country-data/northsea_country_generation.csv")
+        ns_data = ns_data.loc[
+            :, [
+            "Standard international energy product classification (SIEC)", 
+            "TIME_PERIOD", 
+            "OBS_VALUE",
+            "geo",
+            ]]
+        ns_data.columns = [
+            "carrier",
+            "date",
+            "output",
+            "country",
+            ]
+
+        country = 'FR'  # Example country code
+        ns_data = ns_data.loc[(ns_data['country']==country) & (ns_data['carrier']=='Wind')].reset_index(drop=True)
+        ns_data['date'] = pd.to_datetime(ns_data['date'])
+        # convert from gigawatt hours to kilowatt hours
+        ns_data['output'] = pd.to_numeric(ns_data['output'])
+        ns_data['output'] = ns_data['output'] * 1e6
+        ns_data['year'] = ns_data['date'].dt.year.astype(int)
+        ns_data['month'] = ns_data['date'].dt.month.astype(int)
+        ns_data = ns_data.drop(columns=['date'])
+
+        ns_data = ns_data.fillna(0).groupby(['year','month'])['output'].sum().reset_index()
+
+        turb_info["ratio"] = turb_info['capacity'] / turb_info['capacity'].sum()
+
+        ns_data = ns_data.merge(turb_info[['ID', 'ratio']], how="cross")
+        ns_data["output"] = ns_data["output"] * ns_data["ratio"]
+        ns_data = ns_data.dropna(subset=['ID', 'year', 'month'])
+        ns_data = ns_data.loc[(ns_data["year"] >= year_star) & (ns_data["year"] <= year_end)].reset_index(drop=True)   
+        obs_gen = ns_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
+    
+    elif country == "NL":
+        # https://nationaalgeoregister.nl/geonetwork/srv/dut/catalog.search#/metadata/90f5eab6-9cea-4869-a031-2a228fb82fea
+        nl_md = gpd.read_file("input/country-data/NL/nl_md.json").to_crs(epsg=4326)
+        nl_md['lon'] = nl_md.geometry.x  
+        nl_md['lat'] = nl_md.geometry.y
+        nl_md = nl_md.drop(columns=['geometry','x','y','prov_naam','gem_naam','naam'])
+        nl_md["ondergrond"] = nl_md["ondergrond"].replace({"land": "onshore", "zee": "offshore"})
+        nl_md["land"] = nl_md["land"].replace({"België": "BE", "Duitsland": "DE", "Nederland": "NL"})
+        nl_md.columns = [
+            "ID",
+            "diameter",
+            "height",
+            "capacity",
+            "country",
+            "manufacturer",
+            "type",
+            "lon",
+            "lat"
+        ]
+        nl_md = nl_md.loc[nl_md['country']=='NL'].reset_index(drop=True).drop(columns=['country'])
+        nl_md = nl_md[["ID","capacity","diameter","height","manufacturer","lon","lat","type"]]
+        nl_md['manufacturer'] = nl_md['manufacturer'].str.split(' ').str[0].str.strip('123-.,').astype(str)
+        turb_info = add_models(nl_md)
+        
+        # producing obs_gen
+        if train == True:
+            year_star = 2015  # start year of training period
+            year_end = 2018  # end year of training period
+            
+        # this is for testing I use year_star and end for the sake of keeping code same
+        else:
+            year_star = year_test
+            year_end = year_test
+        
+        ns_data = pd.read_csv("input/country-data/northsea_country_generation.csv")
+        ns_data = ns_data.loc[
+            :, [
+            "Standard international energy product classification (SIEC)", 
+            "TIME_PERIOD", 
+            "OBS_VALUE",
+            "geo",
+            ]]
+        ns_data.columns = [
+            "carrier",
+            "date",
+            "output",
+            "country",
+            ]
+
+        country = 'NL'  # Example country code
+        ns_data = ns_data.loc[(ns_data['country']==country) & (ns_data['carrier']=='Wind')].reset_index(drop=True)
+        ns_data['date'] = pd.to_datetime(ns_data['date'])
+        # convert from gigawatt hours to kilowatt hours
+        ns_data['output'] = pd.to_numeric(ns_data['output'])
+        ns_data['output'] = ns_data['output'] * 1e6
+        ns_data['year'] = ns_data['date'].dt.year.astype(int)
+        ns_data['month'] = ns_data['date'].dt.month.astype(int)
+        ns_data = ns_data.drop(columns=['date'])
+
+        ns_data = ns_data.fillna(0).groupby(['year','month'])['output'].sum().reset_index()
+
+        turb_info["ratio"] = turb_info['capacity'] / turb_info['capacity'].sum()
+
+        ns_data = ns_data.merge(turb_info[['ID', 'ratio']], how="cross")
+        ns_data["output"] = ns_data["output"] * ns_data["ratio"]
+        ns_data = ns_data.dropna(subset=['ID', 'year', 'month'])
+        ns_data = ns_data.loc[(ns_data["year"] >= year_star) & (ns_data["year"] <= year_end)].reset_index(drop=True)   
+        obs_gen = ns_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
+        
+    else:
+        raise ValueError("Country not recognised, please choose from: DK, DE, UK, FR")
+    
+    ####################################################################################
+    ############# common processing for all countries to turn power into cf ############
+    ####################################################################################
     # turning power into capacity factor
     obs_gen.columns = [f'obs_{i}' if i not in ['ID', 'year'] else f'{i}' for i in obs_gen.columns]
     obs_gen = obs_gen.merge(turb_info[['ID', 'capacity']], how='left', on=['ID'])
     obs_gen = obs_gen.dropna().reset_index(drop=True)
 
     def daysDuringMonth(yy, m):
+        """
+        Attach number of days in month to each year in yy for month m.
+        """
         result = []    
         [result.append(monthrange(y, m)[1]) for y in yy]        
         return result
 
+    # converting power to cf
     for i in range(1,13):
         obs_gen['obs_'+str(i)] = obs_gen['obs_'+str(i)]/(((daysDuringMonth(obs_gen.year, i))*obs_gen['capacity'])*24)
         
