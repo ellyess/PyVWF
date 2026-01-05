@@ -1,16 +1,17 @@
-name: pyvwf-env
+name: pyvwf
 channels:
 - conda-forge
 - bioconda
 dependencies:
-- python>=3.8
-- pip
-- pip:
-  - -r requirements.txt
-
-# Inhouse packages
-- pypsa>=0.31
-- atlite>=0.2.9
-- linopy
-- powerplantmatching>=0.5.15,<0.6
-- utm
+- python>=3.10
+- pandas=2.2.2
+- dask=2025.11.0
+- xarray=2024.9.0
+- utm=0.7.0
+- scipy=1.14.1
+- scikit-learn=1.5.2
+- matplotlib=3.9.2
+- seaborn=0.13.2
+- openpyxl=3.1.5
+- netcdf4=1.7.1
+- bottleneck=1.4.0
