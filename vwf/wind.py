@@ -29,9 +29,7 @@ import pandas as pd
 import scipy.interpolate as interpolate
 from scipy.interpolate import Akima1DInterpolator
 
-import vwf.data as data
-
-
+from vwf.timeutils import add_time_res
 
 def interpolate_wind(reanalysis, turb_info):    
     """
@@ -47,20 +45,7 @@ def interpolate_wind(reanalysis, turb_info):
     # heights are assigned to allow speed to be calculated for every height at every gridpoint
     reanalysis = reanalysis.assign_coords(
         height=('height', turb_info['height'].unique()))
-    
-    # # this is for research purposes and is added for the use of merra 2, can be removed for the code below
-    # try:
-    #     exception_flag = True
-    #     ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
-    #     exception_flag = False
 
-    # except:
-    #     pass
-        
-    # finally:
-    #     if exception_flag:
-    #         ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
-        
     # calculating wind speed from reanalysis dataset variables
     ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
     
@@ -80,7 +65,6 @@ def interpolate_wind(reanalysis, turb_info):
         'model':('turbine', turb_info['model']),
         'capacity':('turbine', turb_info['capacity']),
     })
-    # print(sim_ws)
     return sim_ws
     
 
@@ -145,7 +129,7 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     df = ds.to_dataframe('unc_ws').reset_index()
     df['year'] = pd.DatetimeIndex(df['time']).year
     df['month'] = pd.DatetimeIndex(df['time']).month
-    df = data.add_time_res(df)
+    df = add_time_res(df)
     df = df.merge(bc_factors, on=['cluster',time_res],how='left').set_index(['time','turbine'])
 
     ds = df[['scalar','offset','unc_ws']].to_xarray()

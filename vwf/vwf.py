@@ -23,10 +23,13 @@ References
 ----------
 Add dataset and methodological references relevant to this module.
 """
-import os
-import time
+from __future__ import annotations
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Iterable, Dict, Tuple, Any
+import logging
 import itertools
+import time
 
 import pandas as pd
 import dask.dataframe as dd
@@ -47,243 +50,308 @@ from vwf.clustering import (
     cluster_turbines
 )
 
-pd.options.mode.chained_assignment = None  # default='warn'
+
+log = logging.getLogger(__name__)
+
+@dataclass(frozen=True)
+class RunConfig:
+    country: str
+    correct: bool
+    calc_z0: bool
+    cluster_mode: str
+    cluster_list: Tuple[int, ...] = ()
+    time_res_list: Tuple[str, ...] = ()
+    add_nan: Optional[float] = None
+    interp_nan: Optional[float] = None
+    fix_turb: Optional[str] = None
 
 class PyVWF:
-    """
-    This class trains and creates the virtual wind farm model.
-    
-    Attributes:
-        path (str): path to where you want the outputs to be
-        country (str): country code e.g. Denmark "DK"
-        correct (bool):
-            True - apply bias correction
-            False - simulate uncorrected reanalysis
-        calc_z0 (bool):
-            True - calculate surface roughness using log wind profile
-            False - use surface roughness from ERA-5, fsr variable
-        cluster_mode (str): 
-            'all' forms clusters mixing onshore and offshore,
-            'onshore' forms clusters with onshore ignoring offshore,
-            'offshore' forms clusters with onshore ignoring onshore.
-        cluster_list (int, optional): list of the spatial resolutions for the model. Defaults to None.
-        time_res_list (str, optional): list of the temporal resolutions for the model. Defaults to None.
-        add_nan (float, optional): percentage of data to randomly remove from training data 0 < add_nan < 1. Defaults to None.
-        interp_nan (float, optional): set limit on simultaneous missing data points when interpolating nan. Defaults to None.
-        fix_turb (str, optional): turbine model name as seen in models file, fixes to this turbine. Defaults to None.
-    """
-    def __init__(
-        self, 
-        path,
-        country,
-        correct,
-        calc_z0,
-        cluster_mode,
-        cluster_list=None,
-        time_res_list=None,
-        add_nan=None, 
-        interp_nan=None, 
-        fix_turb=None
-        ):
-        """
-        Initialising the PyVWF object and creating necessary folders.
+    def __init__(self, path: str | Path, country: str, correct: bool, calc_z0: bool,
+                cluster_mode: str, cluster_list=None, time_res_list=None,
+                add_nan=None, interp_nan=None, fix_turb=None):
+        self.base_path = Path(path)
+        self.cfg = RunConfig(
+            country=country,
+            correct=bool(correct),
+            calc_z0=bool(calc_z0),
+            cluster_mode=str(cluster_mode),
+            cluster_list=tuple(cluster_list or ()),
+            time_res_list=tuple(time_res_list or ()),
+            add_nan=add_nan,
+            interp_nan=interp_nan,
+            fix_turb=fix_turb,
+        )
+        self.directory_path = self.base_path / "run" / self._run_id()
 
-        """
-        # creating folders
-        directory_path = os.path.join(path,'run')
-        run = country
-        
-        if correct:
-            run += '-'+cluster_mode
-            if (add_nan == None) & (interp_nan == None) & (fix_turb == None):
-                run += '-corrected'
+        # Validate early
+        if self.cfg.correct:
+            if not self.cfg.cluster_list or not self.cfg.time_res_list:
+                raise ValueError("When correct=True, cluster_list and time_res_list must be provided (non-empty).")
+
+        # Keep your existing behavior but make it explicit:
+        self.setup_dirs()
+        self._discover_training_status()
+
+    def _run_id(self) -> str:
+        c = self.cfg
+        run = c.country
+        if c.correct:
+            run += f"-{c.cluster_mode}"
+            if c.add_nan is None and c.interp_nan is None and c.fix_turb is None:
+                run += "-corrected"
             else:
-                if add_nan != None:
-                    run += '-r'+str(add_nan)
-                if interp_nan != None:
-                    run += '-i'+str(interp_nan)
-                if fix_turb != None:
-                    run += '-'+fix_turb
-        
+                if c.add_nan is not None:
+                    run += f"-r{c.add_nan}"
+                if c.interp_nan is not None:
+                    run += f"-i{c.interp_nan}"
+                if c.fix_turb is not None:
+                    run += f"-{c.fix_turb}"
         else:
-            run += '-uncorrected'
-        
-        # for calculated FSR
-        if calc_z0:
-            run += '-calc_z0'
-        
-        # Specify where to make the new directory path
-        directory_path = os.path.join(directory_path,run)
-        # Define a list of folders to make in that directory
-        folder_names = [
-            'training/correction-factors',
-            'training/simulated-turbines',
-            'results/capacity-factor',
-            'results/wind-speed',
-            'plots'
+            run += "-uncorrected"
+        if c.calc_z0:
+            run += "-calc_z0"
+        return run
+
+    def setup_dirs(self) -> None:
+        folders = [
+            "training/correction-factors",
+            "training/simulated-turbines",
+            "results/capacity-factor",
+            "results/wind-speed",
+            "plots",
         ]
-        print(f"Creating new directories in '{directory_path}':")
-        
-        for folder_name in folder_names:
-            new_path = os.path.join(directory_path, folder_name)
-            try:
-                os.makedirs(new_path)
-            except OSError:
-                pass  # We suppress any error and instead continue with the list
-            else:
-                print(f"Created {new_path}")
-        
-        if correct:
-            trained_res = []
-            untrained_res = []
-            untrained_cluster_list = []
-            untrained_time_res_list =[]
-            ######### # checking if bc factors have been derived already
-            for num_clu in cluster_list:
-                for time_res in time_res_list:
-                    my_file = Path(directory_path+'/training/correction-factors/'+country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
-                    if my_file.is_file():
-                        trained_res.append(str(num_clu)+"-"+time_res)
-                    else:
-                        untrained_res.append(str(num_clu)+"-"+time_res)
-                        untrained_cluster_list.append(num_clu)
-                        untrained_time_res_list.append(time_res)
-            print("PyVWF is already trained for the following [Clusters-Temporal Resolution]:")
-            print(trained_res)
-            print("")
-            print("PyVWF will be trained for:")
-            print(untrained_res)
-            print("--------------------------------")
-            
-            # setting attributes specific to correction
-            self.full_clus_list = cluster_list
-            self.full_time_list = time_res_list
-            self.untrained_time_res_list = untrained_time_res_list
-            self.cluster_list = untrained_cluster_list
-            self.time_res_list = untrained_time_res_list
-            
-            self.add_nan = add_nan
-            self.interp_nan = interp_nan
-            self.fix_turb = fix_turb
-            
-        self.cluster_mode = cluster_mode
-        
-        # setting attributes
-        self.country = country
-        self.directory_path = directory_path
-        self.correct = correct
-        self.calc_z0 = calc_z0
-        
-        
-    def train(self, check=False): 
-        """
-        Derives bias correction factors at the desired spatiotemporal resolutions.
+        for f in folders:
+            (self.directory_path / f).mkdir(parents=True, exist_ok=True)
 
-            Args:
-                check (bool, optional): plot the training errors. Defaults to False.
-            Returns:
-                self (PyVWF): the PyVWF object with trained attributes.
-        """
+    def _factor_path(self, time_res: str, num_clu: int) -> Path:
+        return self.directory_path / "training/correction-factors" / f"{self.cfg.country}_factors_{time_res}_{num_clu}.csv"
 
-        if len(self.cluster_list) < 1:
-            print("All correction factors are trained ... Ending train.")
-            print("--------------------------------")
-            
-        else:
-            gen_cf, turb_info_train, reanalysis, power_curves = train_set(self.country, self.calc_z0, self.cluster_mode, add_nan=self.add_nan, interp_nan=self.interp_nan, fix_turb=self.fix_turb)
-            
-            turb_info_train.to_csv(self.directory_path+'/training/simulated-turbines/'+self.country+'_train_turb_info.csv', index = None)
-            
-            print("Training on ", len(turb_info_train), " turbines/farms | ", len(turb_info_train[turb_info_train['type'] == 'onshore']), " onshore | ", len(turb_info_train[turb_info_train['type'] == 'offshore']), " offshore")
-            
-            for num_clu, time_res in zip(self.cluster_list, self.time_res_list):
-                print("Deriving correction factors for PyVWF(",num_clu,",",time_res,") ...")
-                start_time = time.time()
-                # creating the dataframe that will contain the resulted bc factors
-                train_bias_df, clus_info = cluster_train_set(gen_cf, time_res, num_clu, turb_info_train)
-                    
-                # parellisation to find offset
-                def find_offset_parallel(df):
-                    """
-                    Find offset parallel.
+    def _discover_training_status(self) -> None:
+        if not self.cfg.correct:
+            self.trained = {}
+            self.untrained = {}
+            return
 
-                        Args:
-                            df (pandas.DataFrame): TODO.
-                            *args (tuple): Additional positional arguments.
-
-                        Assumptions:
-                            - Datetime handling is assumed to be UTC unless stated otherwise.
-                            - Units are assumed to be consistent with SI conventions unless stated otherwise.
-                    """
-                    return df.apply(correction.find_offset, args=(clus_info, reanalysis, power_curves), axis=1)
-                ddf = dd.from_pandas(train_bias_df, npartitions=40)
-                ddf["offset"] = ddf.map_partitions(find_offset_parallel, meta=('offset', 'float'))
-    
-                train_bias_df = ddf.compute(scheduler='processes')
-                bc_factors = format_bc_factors(train_bias_df, time_res)
-                bc_factors.to_csv(self.directory_path+'/training/correction-factors/'+self.country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
-                end_time = time.time()
-                elapsed_time = end_time - start_time
-                print("Completed and saved. Elapsed time: {:.2f} seconds\n".format(elapsed_time))
-                print("--------------------------------")
-                
-        return self
-
-    def simulate_cf(self, year_test, fix_turb_test=None):
-        """
-        Simulating capacity factor using the defined model.
-
-            Args:
-                year_test (int): year to simulate wind for.
-                fix_turb_test (str, optional): turbine model name to use as power curve. Defaults to None.
-            Returns:
-                self (PyVWF): the PyVWF object with simulated attributes.
-        """
-        # load and preprocess input data
-        obs_cf, turb_info, reanalysis, power_curves = val_set(self.country, self.calc_z0, self.cluster_mode, year_test, fix_turb_test)
-        
-        # for research purpose
-        obs_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_obs_cf.csv', index = None)
-        turb_info.to_csv(self.directory_path+'/training/simulated-turbines/'+self.country+'_'+str(year_test)+'_turb_info.csv', index = None)
-    
-        print("Simulating ", len(turb_info), " turbines/farms | ", len(turb_info[turb_info['type'] == 'onshore']), " onshore | ", len(turb_info[turb_info['type'] == 'offshore']), " offshore")
-        print(" ")
-        my_file = Path(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_unc_cf.csv')
-        if my_file.is_file():
-            print("Uncorrected CF was previously simulated.\n")
-        else:
-            print("Simulating uncorrected CF ... ")
-            unc_ws, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
-            # unc_ws.to_csv(self.directory_path+'results/wind-speed/'+self.country+"_"+str(year_test)+'_unc_ws.csv', index = None)
-            unc_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_unc_cf.csv', index = None)
-        
-        if self.correct:
-            turb_info_train = pd.read_csv(self.directory_path+'/training/simulated-turbines/'+self.country+'_train_turb_info.csv')
-            for num_clu, time_res in itertools.product(self.full_clus_list, self.full_time_list):
-                my_file = Path(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_'+time_res+'_'+str(num_clu)+'_cor_cf.csv')
-                if my_file.is_file():
-                    print("PyVWF(",num_clu,"--",time_res,") was previously simulated.\n")
+        trained, untrained = [], []
+        for num_clu in self.cfg.cluster_list:
+            for time_res in self.cfg.time_res_list:
+                if self._factor_path(time_res, num_clu).is_file():
+                    trained.append((num_clu, time_res))
                 else:
-                    print("Simulating CF using PyVWF(", num_clu, ", ", time_res, ") ...")
-                    start_time = time.time()
-                    clus_info = cluster_turbines(num_clu, turb_info_train, False, turb_info)  
-                    # loading and formatting bc factors
-                    bc_factors = pd.read_csv(self.directory_path+'/training/correction-factors/'+self.country+'_factors_'+time_res+'_'+str(num_clu)+'.csv')
-                    
-                    # simulate corrected wind
-                    cor_ws, cor_cf = wind.simulate_wind(reanalysis, clus_info, power_curves, bc_factors, time_res)
-                    # cor_ws.to_csv(self.directory_path+'results/wind-speed/'+self.country+"_"+str(year_test)+'_'+time_res+'_'+str(num_clu)+'_cor_ws.csv', index = None)
-                    cor_cf.to_csv(self.directory_path+'/results/capacity-factor/'+self.country+"_"+str(year_test)+'_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', index = None)
-        
-                    end_time = time.time()
-                    elapsed_time = end_time - start_time
-                    print("Completed and saved. Elapsed time: {:.2f} seconds".format(elapsed_time))
-                    print(" ")
-                
-        self.turb_info = turb_info 
-        self.year_test = year_test      
-            
+                    untrained.append((num_clu, time_res))
+
+        self.trained = set(trained)
+        self.untrained = set(untrained)
+
+        log.info("Already trained: %s", trained)
+        log.info("To train: %s", untrained)
+
+    def train(self, check: bool = False, npartitions: int = 40, save: bool = True):
+        if not self.cfg.correct:
+            raise ValueError("train() only applies when correct=True.")
+
+        if not self.untrained:
+            log.info("All correction factors are trained; skipping.")
+            return {}
+
+        # existing call
+        gen_cf, turb_info_train, reanalysis, power_curves = train_set(
+            self.cfg.country, self.cfg.calc_z0, self.cfg.cluster_mode,
+            add_nan=self.cfg.add_nan, interp_nan=self.cfg.interp_nan, fix_turb=self.cfg.fix_turb
+        )
+
+        if save:
+            turb_info_train.to_csv(self.directory_path / "training/simulated-turbines" / f"{self.cfg.country}_train_turb_info.csv", index=None)
+
+        out: Dict[Tuple[int, str], pd.DataFrame] = {}
+        for (num_clu, time_res) in sorted(self.untrained):
+            start = time.time()
+            train_bias_df, clus_info = cluster_train_set(gen_cf, time_res, num_clu, turb_info_train)
+
+            def part_apply(df: pd.DataFrame) -> pd.Series:
+                return df.apply(correction.find_offset, args=(clus_info, reanalysis, power_curves), axis=1)
+
+            ddf = dd.from_pandas(train_bias_df, npartitions=npartitions)
+            offsets = ddf.map_partitions(part_apply, meta=("offset", "float64")).compute(scheduler="processes")
+            train_bias_df = train_bias_df.assign(offset=offsets)
+
+            bc_factors = format_bc_factors(train_bias_df, time_res)
+            out[(num_clu, time_res)] = bc_factors
+
+            if save:
+                bc_factors.to_csv(self._factor_path(time_res, num_clu), index=False)
+
+            log.info("Trained (%s, %s) in %.2fs", num_clu, time_res, time.time() - start)
+
+        # refresh status
+        self._discover_training_status()
+        return out
+
+
+def simulate_cf(
+    self,
+    year_test: int,
+    fix_turb_test: str | None = None,
+    *,
+    save: bool = True,
+    overwrite: bool = False,
+    return_data: bool = True,
+):
+    """
+    Simulate capacity factor time series for a given validation year.
+
+    This method:
+        1) Loads validation inputs (obs_cf, turb_info, reanalysis, power_curves).
+        2) Simulates uncorrected CF if not already cached (or overwrite=True).
+        3) If self.correct=True, simulates corrected CF for each (cluster, time_res).
+
+    Parameters
+    ----------
+    year_test : int
+        Year to simulate.
+    fix_turb_test : str, optional
+        Turbine model name to use as power curve for validation. Default None.
+    save : bool, keyword-only
+        If True, write CSV outputs to the run directory (same filenames as before).
+    overwrite : bool, keyword-only
+        If True, recompute and overwrite cached CSVs.
+    return_data : bool, keyword-only
+        If True, return a dict of outputs as pandas DataFrames.
+
+    Returns
+    -------
+    dict or PyVWF
+        If return_data=True, returns a dict:
+            {
+            "obs_cf": DataFrame,
+            "turb_info": DataFrame,
+            "unc_cf": DataFrame,
+            "corrected": {(num_clu, time_res): DataFrame, ...}
+            }
+        Otherwise returns self.
+    """
+    from pathlib import Path
+    import itertools
+    import time
+    import pandas as pd
+
+    # --- paths ---
+    base = Path(self.directory_path)
+    cf_dir = base / "results" / "capacity-factor"
+    train_turb_dir = base / "training" / "simulated-turbines"
+    factors_dir = base / "training" / "correction-factors"
+
+    obs_cf_path = cf_dir / f"{self.country}_{year_test}_obs_cf.csv"
+    unc_cf_path = cf_dir / f"{self.country}_{year_test}_unc_cf.csv"
+    year_turb_info_path = train_turb_dir / f"{self.country}_{year_test}_turb_info.csv"
+    train_turb_info_path = train_turb_dir / f"{self.country}_train_turb_info.csv"
+
+    # --- load and preprocess validation data ---
+    obs_cf, turb_info, reanalysis, power_curves = val_set(
+        self.country, self.calc_z0, self.cluster_mode, year_test, fix_turb_test
+    )
+
+    # Persist validation inputs for research reproducibility (optional)
+    if save:
+        if overwrite or not obs_cf_path.exists():
+            obs_cf.to_csv(obs_cf_path, index=None)
+        if overwrite or not year_turb_info_path.exists():
+            turb_info.to_csv(year_turb_info_path, index=None)
+
+    print(
+        "Simulating ",
+        len(turb_info),
+        " turbines/farms | ",
+        len(turb_info[turb_info["type"] == "onshore"]),
+        " onshore | ",
+        len(turb_info[turb_info["type"] == "offshore"]),
+        " offshore",
+    )
+    print(" ")
+
+    # --- uncorrected simulation (cached) ---
+    unc_cf = None
+    if unc_cf_path.is_file() and not overwrite:
+        print("Uncorrected CF was previously simulated.\n")
+        if return_data:
+            unc_cf = pd.read_csv(unc_cf_path)
+    else:
+        print("Simulating uncorrected CF ... ")
+        _unc_ws, unc_cf_calc = wind.simulate_wind(reanalysis, turb_info, power_curves)
+        unc_cf = unc_cf_calc
+        if save:
+            unc_cf.to_csv(unc_cf_path, index=None)
+
+    # --- corrected simulations (if enabled) ---
+    corrected: dict[tuple[int, str], pd.DataFrame] = {}
+
+    if self.correct:
+        # Ensure we have the training turbine info used to form clusters
+        if not train_turb_info_path.is_file():
+            raise FileNotFoundError(
+                f"Missing training turbine info: {train_turb_info_path}\n"
+                f"Run `train()` first (or ensure training outputs exist in this run directory)."
+            )
+
+        turb_info_train = pd.read_csv(train_turb_info_path)
+
+        # Prefer full lists if they exist (your code sets these in __init__ when correct=True)
+        full_clus_list = getattr(self, "full_clus_list", None) or self.cluster_list
+        full_time_list = getattr(self, "full_time_list", None) or self.time_res_list
+
+        for num_clu, time_res in itertools.product(full_clus_list, full_time_list):
+            cor_cf_path = cf_dir / f"{self.country}_{year_test}_{time_res}_{num_clu}_cor_cf.csv"
+            factors_path = factors_dir / f"{self.country}_factors_{time_res}_{num_clu}.csv"
+
+            if cor_cf_path.is_file() and not overwrite:
+                print(f"PyVWF({num_clu}--{time_res}) was previously simulated.\n")
+                if return_data:
+                    corrected[(num_clu, time_res)] = pd.read_csv(cor_cf_path)
+                continue
+
+            if not factors_path.is_file():
+                raise FileNotFoundError(
+                    f"Missing correction factors for PyVWF({num_clu}, {time_res}): {factors_path}\n"
+                    f"Run `train()` for this (cluster, time_res) or check your run directory."
+                )
+
+            print(f"Simulating CF using PyVWF({num_clu}, {time_res}) ...")
+            start_time = time.time()
+
+            # Build clusters for this validation set against training turbine info
+            clus_info = cluster_turbines(num_clu, turb_info_train, False, turb_info)
+
+            # Load bias correction factors
+            bc_factors = pd.read_csv(factors_path)
+
+            # Simulate corrected wind/CF
+            _cor_ws, cor_cf = wind.simulate_wind(
+                reanalysis, clus_info, power_curves, bc_factors, time_res
+            )
+
+            if save:
+                cor_cf.to_csv(cor_cf_path, index=None)
+
+            if return_data:
+                corrected[(num_clu, time_res)] = cor_cf
+
+            elapsed_time = time.time() - start_time
+            print(f"Completed and saved. Elapsed time: {elapsed_time:.2f} seconds")
+            print(" ")
+
+    # Keep these for backwards compatibility with your research_error() method
+    self.turb_info = turb_info
+    self.year_test = year_test
+
+    if not return_data:
         return self
+
+    return {
+        "obs_cf": obs_cf,
+        "turb_info": turb_info,
+        "unc_cf": unc_cf,
+        "corrected": corrected,
+    }
             
     def research_error(self):
         """

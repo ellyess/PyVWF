@@ -23,6 +23,9 @@ References
 ----------
 Add dataset and methodological references relevant to this module.
 """
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -32,7 +35,7 @@ import utm
 from calendar import monthrange
 
 
-import vwf.wind as wind
+from vwf.timeutils import add_times, add_time_res
 from vwf.datasets.era5 import (
     prep_era5,
 )
@@ -40,6 +43,17 @@ from vwf.clustering import (
     cluster_turbines,
 )
 import vwf.correction as correction
+
+# Resolve repo root robustly (assumes structure: <repo_root>/vwf/data.py and <repo_root>/input/...)
+VWF_ROOT = Path(__file__).resolve().parents[1]
+
+# Allow override for web deployments / custom layouts
+# e.g. export PYVWF_INPUT_ROOT="/data/pyvwf/input"
+INPUT_ROOT = Path(os.environ.get("PYVWF_INPUT_ROOT", str(VWF_ROOT / "input"))).resolve()
+
+def _in(*parts: str) -> Path:
+    """Build a path under INPUT_ROOT."""
+    return INPUT_ROOT.joinpath(*parts)
 
 def clean_obs_data(df, country, train=False):
     """
@@ -86,9 +100,8 @@ def load_power_curves():
     """
     Load power curves.
     """
-    file_loc = 'input/power_curves.csv'
-    df = pd.read_csv(file_loc)
-    return df
+    file_loc = _in("power_curves.csv")
+    return pd.read_csv(file_loc)
     
 
 def train_set(
@@ -168,6 +181,8 @@ def train_set(
     
     ################################################################################
     ### merging the observed CF and the simulated CF for the every turbine
+    # Local import to avoid circular dependency at import time
+    from vwf import wind
     # simulating turbines in the observed data
     sim_ws, sim_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
     
@@ -290,7 +305,7 @@ def add_models(df):
             df (pandas.DataFrame): input df with added column called model
     """
 
-    models = pd.read_csv('input/models.csv')
+    models = pd.read_csv(_in("models.csv"))
     models['model'] = models['model'].astype(pd.StringDtype())
     models['manufacturer'] = models['manufacturer'].str.lower()
 
@@ -375,37 +390,6 @@ def format_bc_factors(train_bias_df, time_res):
     
     return bc_factors
 
-
-def add_times(df):
-    """
-    Add columns to identify year and month.
-    """
-    df['year'] = pd.DatetimeIndex(df['time']).year
-    df['month'] = pd.DatetimeIndex(df['time']).month
-    df.insert(1, 'year', df.pop('year'))
-    df.insert(2, 'month', df.pop('month'))
-    df['month'] = df['month'].astype(int)
-    df['year'] = df['year'].astype(int)
-    return df
-
-def add_time_res(df):
-    """
-    Add columns to identify time resolutions.
-    """
-    df.loc[df['month'] == 1, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 2, ['bimonth','season']] = ['1/6', 'winter']
-    df.loc[df['month'] == 3, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 4, ['bimonth','season']] = ['2/6', 'spring']
-    df.loc[df['month'] == 5, ['bimonth','season']] = ['3/6', 'spring']
-    df.loc[df['month'] == 6, ['bimonth','season']] = ['3/6', 'summer']
-    df.loc[df['month'] == 7, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 8, ['bimonth','season']] = ['4/6', 'summer']
-    df.loc[df['month'] == 9, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 10, ['bimonth','season']] = ['5/6', 'autumn']
-    df.loc[df['month'] == 11, ['bimonth','season']] = ['6/6', 'autumn']
-    df.loc[df['month'] == 12, ['bimonth','season']] = ['6/6', 'winter']
-    df['fixed'] = '1/1'
-    return df
     
 def prep_country(country, year_test=None):
     """
@@ -432,7 +416,7 @@ def prep_country(country, year_test=None):
     # sourced from Denmark Energy Agency. DK_md.csv is a tidied version.
     if country == "DK":
         # producing turb_info
-        dk_md = pd.read_csv('input/country-data/DK/observations/DK_md.csv')
+        dk_md = pd.read_csv(_in("country-data", "DK", "observations", "DK_md.csv"))
         # selecting relevent columns
         columns = ['Turbine identifier (GSRN)',
                 'Manufacture','Capacity (kW)',
@@ -488,7 +472,7 @@ def prep_country(country, year_test=None):
             
         appended_data = []
         for i in range(year_star, year_end+1):
-            data = pd.read_excel('input/country-data/DK/observations/Denmark_'+str(i)+'.xlsx')
+            data = pd.read_excel(_in("country-data", "DK", "observations", f"Denmark_{i}.xlsx"))
             data = data.iloc[3:,np.r_[0:1, 3:15]] # the slicing done here is file dependent please consider this when other files are used
             data.columns = ['ID','1','2','3','4','5','6','7','8','9','10','11','12']
             data['ID'] = data['ID'].astype(str)
@@ -497,13 +481,15 @@ def prep_country(country, year_test=None):
             appended_data.append(data[:-1])
 
         obs_gen = pd.concat(appended_data).reset_index(drop=True)
-        obs_gen = obs_gen.fillna(0)
+        obs_gen = obs_gen.fillna(0).infer_objects(copy=False)
+
+
 
     # Germany data is sourced from Iain Staffell
     elif country == "DE":
         # producing turb_info
-        de_geo = pd.read_csv('input/country-data/DE/observations/geolocate.germany.csv') # contains the postcode and lat lon
-        de_md = pd.read_csv('input/country-data/DE/observations/DE_md.csv') # contains turbine metda data
+        de_geo = pd.read_csv(_in("country-data", "DE", "observations", "geolocate.germany.csv"))
+        de_md  = pd.read_csv(_in("country-data", "DE", "observations", "DE_md.csv"))
         
         # selecting relevent columns
         de_md = de_md[['V1','Manufacturer','kW','Rotor..m.','Tower..m.']]
@@ -527,16 +513,16 @@ def prep_country(country, year_test=None):
             year_end = year_test 
             
         # load observation data and slice the observed power for chosen years
-        de_data = pd.read_csv('input/country-data/DE/observations/DE_data.csv')
+        de_data = pd.read_csv(_in("country-data", "DE", "observations", "DE_data.csv"))
         de_data = de_data.loc[(de_data["Year"] >= year_star) & (de_data["Year"] <= year_end)].drop(['Downtime'], axis=1).reset_index(drop=True)   
         de_data.columns = ['ID','year','month','output']
         de_data = de_data.dropna(subset=['ID', 'year', 'month'])
         obs_gen = de_data.pivot(index=['ID','year'], columns='month', values='output').reset_index()
-        obs_gen = obs_gen.fillna(0)
+        obs_gen = obs_gen.fillna(0).infer_objects(copy=False)
     
     # UK data and code was sourced from https://doi.org/10.48550/arXiv.2511.04781
     elif country == "UK":
-        uk_md = pd.read_csv('input/country-data/UK/observations/uk_md.csv')
+        uk_md = pd.read_csv(_in("country-data", "UK", "observations", "uk_md.csv"))
         turb_info = add_models(uk_md)
 
         # producing obs_gen
@@ -549,10 +535,10 @@ def prep_country(country, year_test=None):
             year_star = year_test
             year_end = year_test
             
-        obs_gen = pd.read_csv('input/country-data/UK/observations/ukobs.csv')
+        obs_gen = pd.read_csv(_in("country-data", "UK", "observations", "ukobs.csv"))
     
     elif country == "FR":
-        fr_md = gpd.read_file("input/country-data/fr/fr_turb_info.csv")
+        fr_md = gpd.read_file(_in("country-data", "fr", "fr_turb_info.csv"))
         fr_md = fr_md.loc[fr_md['statut_parc'] == 'Autorisé'].reset_index(drop=True)
         fr_md = fr_md.loc[
             :, [
@@ -626,7 +612,7 @@ def prep_country(country, year_test=None):
         
         # ALTERNATIVE FR GENERATION DATA
         # https://ec.europa.eu/eurostat/databrowser/view/nrg_cb_pem__custom_19402431/default/table
-        ns_data = pd.read_csv("input/country-data/northsea_country_generation.csv")
+        ns_data = pd.read_csv(_in("country-data", "northsea_country_generation.csv"))
         ns_data = ns_data.loc[
             :, [
             "Standard international energy product classification (SIEC)", 
@@ -663,7 +649,7 @@ def prep_country(country, year_test=None):
     
     elif country == "NL":
         # https://nationaalgeoregister.nl/geonetwork/srv/dut/catalog.search#/metadata/90f5eab6-9cea-4869-a031-2a228fb82fea
-        nl_md = gpd.read_file("input/country-data/NL/nl_md.json").to_crs(epsg=4326)
+        nl_md = gpd.read_file(_in("country-data", "NL", "nl_md.json")).to_crs(epsg=4326)
         nl_md['lon'] = nl_md.geometry.x  
         nl_md['lat'] = nl_md.geometry.y
         nl_md = nl_md.drop(columns=['geometry','x','y','prov_naam','gem_naam','naam'])
@@ -695,7 +681,7 @@ def prep_country(country, year_test=None):
             year_star = year_test
             year_end = year_test
         
-        ns_data = pd.read_csv("input/country-data/northsea_country_generation.csv")
+        ns_data = pd.read_csv(_in("country-data", "northsea_country_generation.csv"))
         ns_data = ns_data.loc[
             :, [
             "Standard international energy product classification (SIEC)", 
