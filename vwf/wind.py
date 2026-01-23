@@ -29,129 +29,205 @@ import pandas as pd
 import scipy.interpolate as interpolate
 from scipy.interpolate import Akima1DInterpolator
 
-import vwf.data as data
+import xarray as xr
+import numpy as np
+import pandas as pd
+import scipy.interpolate as interpolate
 
+# --- local helper to avoid circular import with vwf.data ---
+def _add_time_res_local(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df.loc[df["month"] == 1, ["bimonth", "season"]] = ["1/6", "winter"]
+    df.loc[df["month"] == 2, ["bimonth", "season"]] = ["1/6", "winter"]
+    df.loc[df["month"] == 3, ["bimonth", "season"]] = ["2/6", "spring"]
+    df.loc[df["month"] == 4, ["bimonth", "season"]] = ["2/6", "spring"]
+    df.loc[df["month"] == 5, ["bimonth", "season"]] = ["3/6", "spring"]
+    df.loc[df["month"] == 6, ["bimonth", "season"]] = ["3/6", "summer"]
+    df.loc[df["month"] == 7, ["bimonth", "season"]] = ["4/6", "summer"]
+    df.loc[df["month"] == 8, ["bimonth", "season"]] = ["4/6", "summer"]
+    df.loc[df["month"] == 9, ["bimonth", "season"]] = ["5/6", "autumn"]
+    df.loc[df["month"] == 10, ["bimonth", "season"]] = ["5/6", "autumn"]
+    df.loc[df["month"] == 11, ["bimonth", "season"]] = ["6/6", "autumn"]
+    df.loc[df["month"] == 12, ["bimonth", "season"]] = ["6/6", "winter"]
+    df["fixed"] = "1/1"
+    return df
 
-
-def interpolate_wind(reanalysis, turb_info):    
+def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFrame:
     """
-    Simulate wind speeds at turbine locations.
+    Collapse turbines onto nearest reanalysis grid cell to massively reduce interpolation cost.
 
-    Args:
-        reanalysis (xarray.Dataset): reanalysis wind data variables assigned to latitude, longitude and time.
-        turb_info (pandas.DataFrame): input turbine metadata.
-
-    Returns:
-        xarray.DataArray: time-series of simulated wind speeds for every turbine in turb_info
+    Returns a turb_info-like dataframe with one row per (lat_cell, lon_cell, height_bin/model)
+    and capacity summed. Keeps required cols: ID, lat, lon, height, capacity, model.
     """
-    # heights are assigned to allow speed to be calculated for every height at every gridpoint
-    reanalysis = reanalysis.assign_coords(
-        height=('height', turb_info['height'].unique()))
-    
-    # # this is for research purposes and is added for the use of merra 2, can be removed for the code below
-    # try:
-    #     exception_flag = True
-    #     ws = reanalysis.A * np.log(reanalysis.height / reanalysis.z)
-    #     exception_flag = False
+    ti = turb_info.copy()
 
-    # except:
-    #     pass
-        
-    # finally:
-    #     if exception_flag:
-    #         ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
-        
-    # calculating wind speed from reanalysis dataset variables
-    ws = reanalysis.wnd100m * (np.log(reanalysis.height/ reanalysis.roughness) / np.log(100 / reanalysis.roughness))
-    
-    # creating coordinates to spatially interpolate to
-    lat =  xr.DataArray(turb_info['lat'], dims='turbine', coords={'turbine':turb_info['ID']})
-    lon =  xr.DataArray(turb_info['lon'], dims='turbine', coords={'turbine':turb_info['ID']})
-    height =  xr.DataArray(turb_info['height'], dims='turbine', coords={'turbine':turb_info['ID']})
+    # Ensure numeric
+    for c in ["lat", "lon", "height", "capacity"]:
+        ti[c] = pd.to_numeric(ti[c], errors="coerce")
+    ti["ID"] = ti["ID"].astype(str)
 
-    # spatial interpolation to turbine positions
-    sim_ws = ws.interp(
-            lon=lon, lat=lat, height=height,
-            kwargs={"fill_value": None}
-            )
-    
-    # assign models and capacity for future functions
-    sim_ws = sim_ws.assign_coords({
-        'model':('turbine', turb_info['model']),
-        'capacity':('turbine', turb_info['capacity']),
-    })
-    # print(sim_ws)
+    # Drop unusable rows
+    ti = ti.dropna(subset=["lat", "lon", "height", "capacity"]).reset_index(drop=True)
+    if ti.empty:
+        raise ValueError("aggregate_turbines_to_grid: turb_info has no valid rows after cleaning.")
+
+    # Reanalysis grid coordinates
+    grid_lats = np.asarray(reanalysis["lat"].values)
+    grid_lons = np.asarray(reanalysis["lon"].values)
+
+    # Nearest gridpoint index for each turbine
+    lat_idx = np.abs(ti["lat"].to_numpy()[:, None] - grid_lats[None, :]).argmin(axis=1)
+    lon_idx = np.abs(ti["lon"].to_numpy()[:, None] - grid_lons[None, :]).argmin(axis=1)
+
+    ti["lat_cell"] = grid_lats[lat_idx]
+    ti["lon_cell"] = grid_lons[lon_idx]
+
+    # Optional: bin heights to reduce unique heights further (change bin if you want)
+    ti["height_bin"] = (ti["height"] / 10.0).round().astype(int) * 10.0
+
+    # Model: for country-level, one model is usually enough, but keep per-model if present
+    if "model" not in ti.columns:
+        ti["model"] = None
+
+    g = ti.groupby(["lat_cell", "lon_cell", "height_bin", "model"], dropna=False, as_index=False)
+
+    out = g.agg(
+        capacity=("capacity", "sum"),
+        lat=("lat_cell", "first"),
+        lon=("lon_cell", "first"),
+        height=("height_bin", "first"),
+    )
+
+    # Create stable IDs
+    out["ID"] = (
+        out["lat"].astype(str)
+        + "_"
+        + out["lon"].astype(str)
+        + "_"
+        + out["height"].astype(str)
+        + "_"
+        + out["model"].astype(str)
+    )
+
+    return out[["ID", "lat", "lon", "height", "capacity", "model"]]
+
+def simulate_country_cf(
+    reanalysis,
+    turb_info,
+    powerCurveFile,
+    bc_factors=None,
+    time_res=None,
+    *,
+    resample="ME",
+):
+    # >>> ADD THIS (massive speed-up) <<<
+    turb_info = aggregate_turbines_to_grid(turb_info, reanalysis)
+
+    sim_ws = interpolate_wind(reanalysis, turb_info)
+
+    if bc_factors is not None:
+        if time_res is None:
+            raise ValueError("time_res must be provided when bc_factors is provided.")
+        sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
+
+    x = powerCurveFile["data$speed"].to_numpy()
+    curve_by_model = {
+        m: powerCurveFile[m].to_numpy()
+        for m in powerCurveFile.columns
+        if m != "data$speed"
+    }
+
+    def speed_to_cf_fast(da):
+        model = da.model[0].item()
+        y = curve_by_model[model]
+        vals = np.interp(da.data, x, y, left=0.0, right=1.0)
+        return xr.DataArray(vals, coords=da.coords, dims=da.dims)
+
+    sim_cf = sim_ws.groupby("model").map(speed_to_cf_fast)
+
+    w = sim_cf["capacity"]
+    country_cf = sim_cf.weighted(w).mean("turbine")
+
+    if resample is not None:
+        country_cf = country_cf.resample(time=resample).mean()
+
+    return country_cf.to_series()
+
+
+def interpolate_wind(reanalysis, turb_info):
+    reanalysis = reanalysis.assign_coords(height=("height", turb_info["height"].unique()))
+
+    EPS = 1e-6  # meters
+    z0 = reanalysis["roughness"].clip(min=EPS)
+
+    # Avoid denom = log(100/z0) ~ 0 when z0 ~ 100m (unphysical but can exist via bad values)
+    denom = np.log(100.0 / z0)
+    denom = denom.where(np.abs(denom) > 1e-12)
+
+    numer = np.log(reanalysis["height"] / z0)
+
+    ws = reanalysis["wnd100m"] * (numer / denom)
+
+    lat = xr.DataArray(turb_info["lat"], dims="turbine", coords={"turbine": turb_info["ID"]})
+    lon = xr.DataArray(turb_info["lon"], dims="turbine", coords={"turbine": turb_info["ID"]})
+    height = xr.DataArray(turb_info["height"], dims="turbine", coords={"turbine": turb_info["ID"]})
+
+    sim_ws = ws.interp(lon=lon, lat=lat, height=height, kwargs={"fill_value": None})
+
+    sim_ws = sim_ws.assign_coords(
+        {
+            "model": ("turbine", turb_info["model"]),
+            "capacity": ("turbine", turb_info["capacity"]),
+        }
+    )
     return sim_ws
-    
 
 
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args):
-    """
-    Simulate wind speed and capacity factor, optionally can be corrected.
-
-    Args:
-        reanalysis (xarray.Dataset): wind parameters on a grid.
-        turb_info (pandas.DataFrame): turbine metadata including height and coordinates.
-        powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models.
-        bc_factors (pandas.DataFrame, optional): correction factor for every cluster and time period in time resolution.
-        time_res (str, optional): time resolution to be set.
-
-    Returns:
-        sim_ws (pandas.DataFrame): time-series of simulated wind speeds at every turbine in turb_info.
-        sim_cf (pandas.DataFrame): time-series of simulated capacity factors of every turbine in turb_info.
-    """
     sim_ws = interpolate_wind(reanalysis, turb_info)
     print("Interpolated wind speeds to turbine locations")
-    if len(args) >= 1: 
+
+    if len(args) >= 1:
         bc_factors = args[0]
         time_res = args[1]
         sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
 
     def speed_to_power(data):
-        """
-        Speed to power.
-
-            Args:
-                data (pandas.DataFrame): data containing simulated wind speeds.
-
-            Assumptions:
-                - Datetime handling is assumed to be UTC unless stated otherwise.
-                - Units are assumed to be consistent with SI conventions unless stated otherwise.
-                - Power curves are assumed to be static and representative (no wake, curtailment, or availability losses unless explicitly modelled).
-                - Capacity factor is assumed to be bounded in [0, 1].
-        """
-        x = powerCurveFile['data$speed']          
+        x = powerCurveFile["data$speed"]
         y = powerCurveFile[data.model[0].data]
         f = interpolate.Akima1DInterpolator(x, y)
         return f(data)
-    sim_cf = sim_ws.groupby('model').map(speed_to_power)
-    
+
+    sim_cf = sim_ws.groupby("model").map(speed_to_power)
+
     return sim_ws.to_pandas().reset_index(), sim_cf.to_pandas().reset_index()
 
+
 def correct_wind_speed(ds, time_res, bc_factors, turb_info):
-    """
-    Correct simulated windspeeds with assigned bias correction factors
+    # robust cluster handling
+    if "cluster" in turb_info.columns:
+        clusters = turb_info["cluster"].to_numpy()
+    else:
+        clusters = np.zeros(len(turb_info), dtype=int)
 
-        Args:
-            ds (xarray.Dataset): wind speeds and coordinates
-            time_res (str): temporal resolution of the bias correction factors
-            bc_factors (pandas.DataFrame): the derived bias correction factors
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
+    ds = ds.assign_coords({"cluster": ("turbine", clusters)})
 
-        Returns:
-            np.array: corrected wind speeds for every turbine
-    """
-    ds = ds.assign_coords({'cluster':('turbine', turb_info['cluster'])})
-    df = ds.to_dataframe('unc_ws').reset_index()
-    df['year'] = pd.DatetimeIndex(df['time']).year
-    df['month'] = pd.DatetimeIndex(df['time']).month
-    df = data.add_time_res(df)
-    df = df.merge(bc_factors, on=['cluster',time_res],how='left').set_index(['time','turbine'])
+    df = ds.to_dataframe("unc_ws").reset_index()
+    df["year"] = pd.DatetimeIndex(df["time"]).year
+    df["month"] = pd.DatetimeIndex(df["time"]).month
 
-    ds = df[['scalar','offset','unc_ws']].to_xarray()
-    ds = ds.assign(cor_ws= (ds["unc_ws"] * ds["scalar"]) + ds["offset"])
-    ds = ds.assign_coords({'model':('turbine', turb_info['model'])})
-    return ds.cor_ws   
+    df = _add_time_res_local(df)
+
+    df = df.merge(bc_factors, on=["cluster", time_res], how="left").set_index(["time", "turbine"])
+
+    ds2 = df[["scalar", "offset", "unc_ws"]].to_xarray()
+    ds2 = ds2.assign(cor_ws=(ds2["unc_ws"] * ds2["scalar"]) + ds2["offset"])
+
+    # model coord for downstream mapping
+    ds2 = ds2.assign_coords({"model": ("turbine", turb_info["model"])})
+    ds2 = ds2.assign_coords({"capacity": ("turbine", turb_info["capacity"])})
+
+    return ds2.cor_ws
 
 def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
     """
