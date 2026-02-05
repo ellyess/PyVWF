@@ -15,6 +15,8 @@ import geopandas as gpd
 from shapely.geometry import Point
 from shapely.prepared import prep
 
+from vwf.geospatial import categorize_points_spatial_join
+
 
 def _coerce_finite_lonlat(
     df: pd.DataFrame,
@@ -87,11 +89,19 @@ def mask_from_geojson_fast(
     *,
     name: str,
 ) -> xr.DataArray:
-    """
-    Vectorised mask on (lat, lon) for points inside GeoJSON union.
+    """Create a boolean mask for points inside a GeoJSON union.
 
-    Uses GeoPandas spatial join if a spatial index (rtree/pygeos) is available.
-    Falls back to a slower Point-in-Polygon loop otherwise.
+    Uses GeoPandas spatial join if a spatial index (rtree/pygeos) is available
+    and falls back to point-in-polygon checks otherwise.
+
+    Args:
+        lon: 1D longitude array.
+        lat: 1D latitude array.
+        geojson_path: GeoJSON file path.
+        name: Name for the output DataArray.
+
+    Returns:
+        Boolean DataArray with dims ``("lat", "lon")``.
     """
     geom = _union_geom(geojson_path)
     poly = gpd.GeoDataFrame(geometry=[geom], crs="EPSG:4326")
@@ -207,13 +217,31 @@ def export_pyvwf_grid(
     n_closest_onshore: int = 50,
     n_closest_offshore: int = 80,
 ) -> Path:
-    """
-    Export PyVWF correction fields onto an atlite cutout grid.
+    """Export PyVWF correction fields onto an atlite cutout grid.
 
     Designed to be feasible for large point sets:
-        - builds onshore/offshore AOI masks from user-provided GeoJSONs (fast sjoin path)
-        - (optionally) spatially thins large onshore point sets via bin-averaging
-        - uses local kriging (n_closest_points) to avoid global O(N^2) scaling
+        - builds onshore/offshore AOI masks from GeoJSONs
+        - optionally thins large onshore point sets via bin-averaging
+        - uses local kriging to avoid global $O(N^2)$ scaling
+
+    Args:
+        cutout_nc: Atlite cutout NetCDF path.
+        points_csv: CSV with correction points.
+        out_nc: Output NetCDF path.
+        onshore_geojson: GeoJSON path for onshore polygons.
+        offshore_geojson: GeoJSON path for offshore polygons.
+        domain_col: Column name for onshore/offshore labels.
+        scalar_col: Column name for scalar correction factors.
+        offset_col: Column name for offset correction factors.
+        variogram_model: Variogram model for kriging.
+        workers: Number of workers for parallel steps.
+        onshore_thin_if_gt: Thin onshore points if count exceeds this threshold.
+        onshore_bin_ddeg: Bin size (degrees) for thinning.
+        n_closest_onshore: Number of nearest points for onshore kriging.
+        n_closest_offshore: Number of nearest points for offshore kriging.
+
+    Returns:
+        Path to the output NetCDF file.
     """
     ds_cut = xr.open_dataset(cutout_nc)
     lon, lat = cutout_lonlat(ds_cut)
@@ -256,19 +284,16 @@ def export_pyvwf_grid(
                 break
 
     if domain_series is None:
-        # fall back to AOI membership of the point (centre)
-        on_prep = prep(_union_geom(onshore_geojson))
-        off_prep = prep(_union_geom(offshore_geojson))
-
-        def classify(lon_, lat_):
-            p = Point(float(lon_), float(lat_))
-            if on_prep.contains(p):
-                return "onshore"
-            if off_prep.contains(p):
-                return "offshore"
-            return "unknown"
-
-        domain_series = pts.apply(lambda r: classify(r["lon"], r["lat"]), axis=1)
+        # Use the new geospatial utility to categorize points
+        print("[pyvwf_to_atlite] No domain column found, categorizing points by location...")
+        domain_series = categorize_points_spatial_join(
+            pts,
+            onshore_geojson=onshore_geojson,
+            offshore_geojson=offshore_geojson,
+            lon_col="lon",
+            lat_col="lat",
+            prefer_onshore=True,
+        )
 
     pts["domain_final"] = domain_series.astype(str).str.lower().str.strip()
     unknown = (pts["domain_final"] == "unknown").sum()

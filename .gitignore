@@ -74,3 +74,6 @@ input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 /tools
 vwf/.DS_Store
 /pyvwf.egg-info
+/input/terrain
+/ml/ml_comparison
+/ml/ml_europe

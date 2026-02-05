@@ -1,36 +1,16 @@
-"""
-era5 module.
-
-Summary
--------
-Importing and processing ERA5 reanalysis data.
-
-Data conventions
-----------------
-Expected dimensions follow xarray conventions (e.g., time × lat × lon) unless stated otherwise.
-Time coordinates are assumed to be UTC unless explicitly converted by the caller.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
-"""
+"""ERA5 reanalysis import and preprocessing utilities."""
 import xarray as xr
 import numpy as np
 
 
 def unify_time_coordinate(ds):
-    """
-    Ensure the dataset uses ONLY a 'time' dimension/coordinate.
-    Handles cases where both 'valid_time' and 'time' exist.
+    """Ensure the dataset uses a single ``time`` coordinate.
+
+    Args:
+        ds: Input dataset that may contain ``valid_time`` or ``time``.
+
+    Returns:
+        Dataset with a normalized ``time`` coordinate.
     """
     # CASE 1: both exist
     if "valid_time" in ds.coords and "time" in ds.coords:
@@ -67,9 +47,14 @@ BBOX = {
 }
 
 def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.Dataset:
-    """
-    bbox = (lon_min, lon_max, lat_min, lat_max)
-    Handles ERA5 lat being descending or ascending.
+    """Slice a dataset to a lon/lat bounding box.
+
+    Args:
+        ds: Input dataset with ``lon`` and ``lat`` coordinates.
+        bbox: Tuple of ``(lon_min, lon_max, lat_min, lat_max)``.
+
+    Returns:
+        Dataset spatially subset to the bounding box.
     """
     lon_min, lon_max, lat_min, lat_max = bbox
 
@@ -83,15 +68,25 @@ def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.D
     return ds.sel(lon=slice(lon_min, lon_max), lat=lat_slice)
 
 def prep_era5(country, train=False, calc_z0=True, bbox=None):
-    """
-    Memory-light, fast version of ERA5 preprocessing.
+    """Preprocess ERA5 reanalysis data.
 
-    bbox: optional (lon_min, lon_max, lat_min, lat_max). If None, uses BBOX[country] when available.
+    Args:
+        country: Country code used to select data paths and defaults.
+        train: If True, use training-period files where applicable.
+        calc_z0: If True, compute surface roughness length from 10m/100m winds.
+        bbox: Optional ``(lon_min, lon_max, lat_min, lat_max)`` tuple. If None,
+            uses ``BBOX[country]`` when available.
+
+    Returns:
+        xarray.Dataset: Preprocessed ERA5 dataset.
     """
     print(f"prepping ERA5 data for {country}, train={train}, calc_z0={calc_z0}")
 
     # Load ERA5 files
-    path = f"input/era5/EU/*.nc"
+    if country == "DK":
+        path = "input/era5/DK/train/*.nc"
+    else:
+        path = "input/era5/EU/*.nc"
     ds = xr.open_mfdataset(path, combine="by_coords", parallel=False)
     ds = unify_time_coordinate(ds)
 

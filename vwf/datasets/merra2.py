@@ -1,35 +1,17 @@
-"""
-merra2 module.
-
-Summary
--------
-Importing and processing MERRA-2 reanalysis data.
-
-Data conventions
-----------------
-Expected dimensions follow xarray conventions (e.g., time × lat × lon) unless stated otherwise.
-Time coordinates are assumed to be UTC unless explicitly converted by the caller.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
-"""
+"""MERRA-2 reanalysis import and preprocessing utilities."""
 import xarray as xr
 import numpy as np
 
 def prep_merra2(country):
-    """
-    Reading Iain's preprepped MERRA 2 Az file and selecting desired location.
-    This is purely for research purposes and should be ignored.
+    """Load and preprocess a pre-prepared MERRA-2 DailyAZ file.
+
+    This helper is specific to the current research workflow.
+
+    Args:
+        country: Country code (currently unused).
+
+    Returns:
+        xarray.Dataset: Preprocessed dataset for the selected area.
     """
     year_star = 2020
     year_end = 2020

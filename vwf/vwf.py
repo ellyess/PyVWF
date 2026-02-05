@@ -1,28 +1,4 @@
-"""
-PyVWF module.
-
-Summary
--------
-Creates virtual wind farm models and simulations.
-
-Data conventions
-----------------
-Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
-Datetime columns are assumed to be timezone-naive UTC unless specified.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
-"""
+"""Core PyVWF training and simulation workflow."""
 import os
 import time
 from pathlib import Path
@@ -92,9 +68,7 @@ class PyVWF:
         *,
         obs_level: str = "turbine",  # NEW
     ):
-        """
-        Initialising the PyVWF object and creating necessary folders.
-        """
+        """Initialize the PyVWF object and create output folders."""
         # validate obs_level early
         if obs_level not in ("turbine", "country"):
             raise ValueError("obs_level must be one of: 'turbine', 'country'")
@@ -198,9 +172,7 @@ class PyVWF:
         self.calc_z0 = calc_z0
 
     def train(self, check=False):
-        """
-        Derives bias correction factors at the desired spatiotemporal resolutions.
-        """
+        """Derive bias correction factors at desired spatiotemporal resolutions."""
         if len(self.cluster_list) < 1:
             print("All correction factors are trained ... Ending train.")
             print("--------------------------------")
@@ -253,9 +225,7 @@ class PyVWF:
             if self.obs_level == "turbine":
                 # parallelisation to find offset
                 def find_offset_parallel(df):
-                    """
-                    Find offset parallel.
-                    """
+                    """Compute offsets in parallel for a partition."""
                     return df.apply(correction.find_offset, args=(clus_info, reanalysis, power_curves), axis=1)
 
                 ddf = dd.from_pandas(train_bias_df, npartitions=40)
@@ -287,9 +257,7 @@ class PyVWF:
         return self
 
     def simulate_cf(self, year_test, fix_turb_test=None):
-        """
-        Simulating capacity factor using the defined model.
-        """
+        """Simulate capacity factor for a test year."""
         # NOTE: obs_level forwarded
         obs_cf, turb_info, reanalysis, power_curves = val_set(
             self.country,
@@ -428,9 +396,7 @@ class PyVWF:
         return self
 
     def research_error(self):
-        """
-        Plots the overall error of the bias correction
-        """
+        """Plot overall error diagnostics for bias correction."""
         temporal_metrics = metrics.overall_error(
             "temporal-focus",
             self.directory_path,
