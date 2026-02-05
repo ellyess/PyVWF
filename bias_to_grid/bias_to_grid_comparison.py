@@ -1078,7 +1078,7 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
-# python bias_to_grid_comparison.py \
+# python bias_to_grid/bias_to_grid_comparison.py \
 #   --controls-csv out/correction_points.csv \
 #   --grid-nc /Users/ellyess/Library/CloudStorage/OneDrive-ImperialCollegeLondon/PhD/pypsa-eur-wind/cutouts/europe-2023-sarah3-era5.nc \
 #   --onshore-geojson input/regions/country_shapes.geojson \

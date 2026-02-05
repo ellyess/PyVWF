@@ -67,9 +67,15 @@ def _ensure_lonlat_from_geometry(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 def _dedup_by_distance(df: pd.DataFrame, *, km: float = 0.25, prefer_sources: Optional[list[str]] = None):
-    """
-    Simple greedy spatial de-dup on lon/lat within 'km' radius.
-    If a 'source' column exists and prefer_sources given, higher priority kept.
+    """Greedy spatial de-duplication within a distance threshold.
+
+    Args:
+        df: Input DataFrame with ``lon`` and ``lat`` columns.
+        km: Distance threshold in kilometers.
+        prefer_sources: Optional source priority list (lower index = higher priority).
+
+    Returns:
+        DataFrame with near-duplicate points removed.
     """
     if df.empty:
         return df
@@ -133,9 +139,7 @@ def _overpass_post(query: str, *, timeout: int = 240, tries_per_mirror: int = 2)
 # Belgium fetchers
 # -----------------------------
 def _fetch_be_flanders_mercator(*, timeout: int = 120) -> gpd.GeoDataFrame:
-    """
-    Mercator OGC API Features collection: er:er_windturb_omv
-    """
+    """Fetch Flanders onshore turbines from the Mercator OGC API."""
     limit = 1000
     start = 0
     feats = []
@@ -453,14 +457,20 @@ def create_turbine_metadata_be(
     dedup_km: float = 0.25,
     timeout: int = 120,
 ) -> pd.DataFrame:
-    """
-    Build Belgium turbine metadata (onshore + offshore) into one DataFrame with SCHEMA.
-    Sources:
-      - Flanders (onshore): Mercator OGC API (rich specs)
-      - Offshore: RBINS WFS points
-      - Wallonia+Brussels (onshore, best-effort): OSM Overpass (mirrors + retries)
+    """Build Belgium turbine metadata with a unified schema.
 
-    Returns: DataFrame with columns SCHEMA.
+    Sources:
+        - Flanders (onshore): Mercator OGC API (rich specs)
+        - Offshore: RBINS WFS points
+        - Wallonia+Brussels (onshore, best-effort): OSM Overpass
+
+    Args:
+        include_osm_wallonia_brussels: Include OSM-based onshore data.
+        dedup_km: De-duplication radius in kilometers.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        DataFrame with columns defined by ``SCHEMA``.
     """
     parts = []
 
@@ -499,15 +509,20 @@ def create_turbine_metadata_no(
     seed: int = 0,
     timeout: int = 120,
 ) -> pd.DataFrame:
-    """
-    Build Norway pseudo-turbine metadata (onshore) into SCHEMA.
-    Sources:
-      - NVE operational API: turbine blocks (count, size, manufacturer)
-      - Enrichment CSV: plant lon/lat + avg hub height + avg rotor diameter (best-effort)
+        """Build Norway pseudo-turbine metadata with a unified schema.
 
-    Parameters:
-      jitter_km: if >0, spatially jitter pseudo-turbines around plant centroid (useful for maps).
-    """
+        Sources:
+                - NVE operational API: turbine blocks (count, size, manufacturer)
+                - Enrichment CSV: plant lon/lat + avg hub height + avg rotor diameter (best-effort)
+
+        Args:
+                jitter_km: If >0, spatially jitter pseudo-turbines around plant centroids.
+                seed: Random seed for jittering.
+                timeout: Request timeout in seconds.
+
+        Returns:
+                DataFrame with columns defined by ``SCHEMA``.
+        """
     nve = _fetch_no_nve_operational(timeout=min(timeout, 120))
     meta_raw = _fetch_no_enrichment_csv(timeout=timeout)
     enrich = _build_no_enrichment(meta_raw)
@@ -522,14 +537,19 @@ def clean_and_impute_turbine_metadata(
     drop_if_no_capacity: bool = True,
     verbose: bool = True,
 ) -> pd.DataFrame:
-    """
-    Cleans turbine metadata by:
-    - imputing missing capacity / diameter / height
-    - converting capacity from MW -> kW (FINAL OUTPUT)
-    - optionally dropping rows still missing capacity
+    """Clean and impute turbine metadata.
 
-    Assumes INPUT capacity is in MW.
-    Works for BE and NO outputs.
+    This performs imputation for missing values and converts capacity from MW
+    to kW in the returned output.
+
+    Args:
+        df: Input turbine metadata DataFrame.
+        country: Country code for logging.
+        drop_if_no_capacity: If True, drop rows still missing capacity.
+        verbose: If True, print a summary report.
+
+    Returns:
+        Cleaned DataFrame with capacity in kW.
     """
 
     df = df.copy()

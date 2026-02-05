@@ -24,6 +24,7 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - Power curve–based generation modelling
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
+- **ML correction prediction experiments** (see `ml/` directory - experimental and for research use only)
 
 ## Installation
 
@@ -49,12 +50,42 @@ conda activate pyvwf
 python -c "import pandas, xarray, scipy; print('Environment OK')"
 ```
 
-## Quickstart (Example research run)
+## Quickstart
 
-PyVWF includes an example script that reproduces a typical research workflow
-(training + simulation of capacity factor time series).
+### PyVWF Training Example (Denmark)
 
-The model writes all outputs to a user-specified output directory.
+A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:
+
+```bash
+# Basic usage with Denmark data
+python examples/pyvwf_quickstart_denmark.py
+
+# With custom options
+python examples/pyvwf_quickstart_denmark.py \
+    --year-test 2020 \
+    --clusters 5 \
+    --time-res month \
+    --calc-z0
+```
+
+This script demonstrates:
+1. Loading turbine metadata and observations
+2. Processing ERA5 reanalysis data
+3. Spatial clustering of turbines
+4. Training bias correction factors (scalar + offset)
+5. Simulating test year with corrections applied
+6. Validation against observations
+7. Exporting results and metrics
+
+Output includes:
+- Turbine metadata and cluster assignments
+- Bias correction factors (scalar/offset)
+- Simulated capacity factors (corrected & uncorrected)
+- Validation metrics comparing with observations
+
+### Full Research Run
+
+For comprehensive analysis with multiple configurations:
 
 ```bash
 python examples/quick_run.py \
@@ -64,20 +95,227 @@ python examples/quick_run.py \
     --calc-z0
 ```
 
-This command will:
-
-1. Train bias-correction factors using the available training data
-2. Simulate capacity factor (CF) time series for the specified test year
-3. Write all results, diagnostics, and figures to the output directory
+This runs the full research pipeline:
+1. Train bias-correction factors using available training data
+2. Simulate capacity factor (CF) time series for test year
+3. Generate diagnostic plots and error metrics
+4. Write all results to output directory
 
 Key options:
-
 - `--outdir`: Output directory (folders and files are created here)
 - `--country`: Country code (e.g. DK, DE)
 - `--year-test`: Year to simulate
 - `--cluster-mode`: all | onshore | offshore
 - `--cluster-list`: List of cluster counts to evaluate
 - `--time-res-list`: fixed | season | bimonth | month
+
+## Geospatial Utilities - Categorizing Turbines
+
+PyVWF now includes utilities to automatically categorize turbines as onshore or offshore based on their geographic location relative to region definitions (GeoJSON files).
+
+### Basic Usage
+
+```python
+import pandas as pd
+from vwf import add_domain_column, filter_by_domain
+
+# Load turbine data with lat/lon coordinates
+turbines = pd.read_csv('input/turbines.csv')
+
+# Automatically categorize based on GeoJSON regions
+turbines = add_domain_column(
+    turbines,
+    onshore_geojson='input/regions/country_shapes.geojson',
+    offshore_geojson='input/regions/north_sea_shape.geojson',
+)
+
+# The 'domain' column now contains 'onshore', 'offshore', or 'unknown'
+print(turbines['domain'].value_counts())
+
+# Filter by domain
+onshore_turbines = filter_by_domain(turbines, "onshore")
+offshore_turbines = filter_by_domain(turbines, "offshore")
+```
+
+### Advanced Options
+
+```python
+# Use faster spatial join method (requires rtree or pygeos)
+turbines = add_domain_column(
+    turbines,
+    onshore_geojson='regions/onshore.geojson',
+    offshore_geojson='regions/offshore.geojson',
+    method='spatial_join',  # Default, fast
+    prefer_onshore=True,     # If point in both regions, use onshore
+)
+
+# Or use point-in-polygon (slower but more reliable)
+turbines = add_domain_column(
+    turbines,
+    onshore_geojson='regions/onshore.geojson',
+    offshore_geojson='regions/offshore.geojson',
+    method='point_in_polygon',
+)
+
+# Handle custom column names
+turbines = add_domain_column(
+    turbines,
+    onshore_geojson='regions/onshore.geojson',
+    offshore_geojson='regions/offshore.geojson',
+    lon_col='longitude',
+    lat_col='latitude',
+)
+```
+
+### Atlite Integration - Export Corrections to Grid
+
+> ⚠️ **Experimental (research use only):** The ML workflows in `ml/` and the atlite export utilities are experimental and intended for research purposes, not production use.
+
+Export PyVWF bias corrections onto an atlite cutout grid for wind simulations:
+
+```python
+from vwf import export_pyvwf_grid
+
+# Export correction factors to atlite cutout grid
+export_pyvwf_grid(
+    cutout_nc='cutouts/europe-2023.nc',
+    points_csv='out/correction_points.csv',  # Your bias correction results
+    out_nc='output/bias_grid.nc',
+    onshore_geojson='input/regions/country_shapes.geojson',
+    offshore_geojson='input/regions/north_sea_shape.geojson',
+    variogram_model='spherical',  # Spatial interpolation method
+    n_closest_onshore=50,         # Local kriging for performance
+    n_closest_offshore=80,
+)
+```
+
+The output NetCDF contains gridded `scalar` and `offset` correction fields that can be applied to atlite wind power calculations.
+
+**Quick demo (creates synthetic data):**
+```bash
+python examples/atlite_quickstart.py
+```
+
+For more examples, see:
+- `examples/atlite_quickstart.py` - Ready-to-run demo with synthetic data
+- `examples/atlite_export_examples.py` - 8 comprehensive examples
+- `examples/categorize_turbines.py` - Geospatial classification examples
+
+## Machine Learning Experiments
+
+The `ml/` directory contains experimental scripts for predicting correction factors using terrain/climate features. **Note: These experiments showed that ML transfer learning is ineffective for correction factors.**
+
+Key findings:
+- ❌ Cross-country prediction: All R² < 0 (worse than baseline)
+- ❌ Within-country: Only Denmark shows weak positive R² (0.029), likely spurious
+- ✅ Conclusion: Region-specific calibration with local observations required
+
+See [ml/README.md](ml/README.md) for full documentation and [ml/WITHIN_COUNTRY_RESULTS.md](ml/WITHIN_COUNTRY_RESULTS.md) for detailed results.
+
+**Not recommended for production use** - included for research transparency.
+
+## Machine Learning-Based Bias Correction
+
+PyVWF now supports machine learning models to learn the relationship between terrain features and bias correction factors. This enables:
+
+- **Physical understanding**: Identify which terrain features drive model bias
+- **Spatial transfer**: Apply corrections to regions without observations
+- **Improved interpolation**: Use terrain predictors instead of pure spatial interpolation
+
+### Quick Start
+
+```python
+from vwf import export_ml_correction_grid
+
+# Train ML model and export gridded corrections in one step
+export_ml_correction_grid(
+    corrections_csv='out/correction_points.csv',
+    grid_nc='cutouts/europe-2023.nc',
+    out_nc='out/ml_bias_grid.nc',
+    terrain_nc='input/terrain/europe_terrain.nc',  # Optional: elevation, slope, etc.
+    coastline_geojson='input/regions/coastline.geojson',  # Optional: for distance-to-coast
+    model_type='random_forest',  # Or: gradient_boosting, xgboost, lightgbm, ridge
+    n_estimators=200,
+    max_depth=15,
+)
+```
+
+### Training Individual Models
+
+```python
+from vwf.ml_correction import create_feature_matrix, train_correction_model
+
+# Load correction points and add terrain features
+corrections = pd.read_csv('out/correction_points.csv')
+
+features = create_feature_matrix(
+    corrections,
+    terrain_nc='input/terrain/europe_terrain.nc',
+    coastline_geojson='input/regions/coastline.geojson',
+)
+
+# Train model for scalar correction
+scalar_model = train_correction_model(
+    features,
+    target_col='scalar',
+    model_type='random_forest',
+    cv_folds=5,
+)
+
+# View feature importance
+print(scalar_model['feature_importance'])
+```
+
+### Comparing Methods
+
+```python
+from vwf.ml_correction import compare_interpolation_methods
+
+# Compare different ML models
+comparison = compare_interpolation_methods(
+    features,
+    feature_cols=['elevation', 'slope', 'roughness', 'distance_to_coast_km'],
+    target_col='scalar',
+    models=['random_forest', 'gradient_boosting', 'xgboost', 'ridge'],
+    cv_folds=5,
+)
+
+# Results show R², MAE, RMSE for each model
+print(comparison)
+```
+
+### Transfer Learning
+
+Train on one region and apply to another:
+
+```python
+from vwf.ml_correction import train_correction_model, predict_correction_grid
+
+# Train on UK data
+uk_features = create_feature_matrix(uk_corrections, terrain_nc='terrain.nc')
+model = train_correction_model(uk_features, target_col='scalar')
+
+# Apply to Germany (no observations needed)
+de_corrections = predict_correction_grid(
+    model,
+    grid_nc='cutouts/germany-2023.nc',
+    terrain_nc='terrain.nc',
+)
+```
+
+### Required Dependencies
+
+Install ML dependencies:
+
+```bash
+# Basic ML (required)
+pip install scikit-learn
+
+# Optional: Advanced models
+pip install xgboost lightgbm
+```
+
+For comprehensive examples, see `examples/ml_terrain_correction.py`.
 
 ## Data Requirements
 

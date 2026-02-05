@@ -1,25 +1,4 @@
-"""
-plots module.
-
-Summary
--------
-Plots the results and diagnostics of the virtual wind farm simulations.
-
-Data conventions
-----------------
-Datetime handling is assumed to be UTC unless specified.
-Units follow SI conventions unless stated otherwise.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-"""
+"""Plotting utilities for PyVWF diagnostics and results."""
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -29,22 +8,16 @@ custom_params = {'xtick.bottom': True, 'axes.edgecolor': 'black', 'axes.spines.r
 sns.set_theme(style='ticks', rc=custom_params)
 
 def plot_overall_error(run, country, df_metrics, name):
-    """
-    Plot overall error.
+    """Plot overall error metrics across clustering and time-resolution settings.
 
-        Args:
-            run (Any): TODO.
-            country (Any): TODO.
-            df_metrics (Any): TODO.
-            name (Any): TODO.
-            *args (tuple): Additional positional arguments.
+    Args:
+        run: Run directory containing output plots.
+        country: Country code used to build file names.
+        df_metrics: DataFrame with ``rmse``, ``mae``, ``mbe`` and grouping columns.
+        name: Plot name suffix.
 
-        Returns:
-            None: TODO.
-
-        Assumptions:
-            - Datetime handling is assumed to be UTC unless stated otherwise.
-            - Units are assumed to be consistent with SI conventions unless stated otherwise.
+    Returns:
+        None.
     """
     # fig, axes = plt.subplots(1, 2, figsize=(6.67, 3)) # for normal
     # fig, axes = plt.subplots(1, 2, figsize=(6.8, 3)) # for train with the legend

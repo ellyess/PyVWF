@@ -1,28 +1,4 @@
-"""
-wind module.
-
-Summary
--------
-Interpolation and simulation of wind speeds and power at turbine locations.
-
-Data conventions
-----------------
-Expected dimensions follow xarray conventions (e.g., time × lat × lon) unless stated otherwise.
-Time coordinates are assumed to be UTC unless explicitly converted by the caller.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
-"""
+"""Wind interpolation and simulation utilities for PyVWF."""
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -53,11 +29,20 @@ def _add_time_res_local(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFrame:
-    """
-    Collapse turbines onto nearest reanalysis grid cell to massively reduce interpolation cost.
+    """Collapse turbines onto nearest reanalysis grid cell.
 
-    Returns a turb_info-like dataframe with one row per (lat_cell, lon_cell, height_bin/model)
-    and capacity summed. Keeps required cols: ID, lat, lon, height, capacity, model.
+    This reduces interpolation cost by aggregating turbines to grid cells and
+    height bins, summing capacity within each group.
+
+    Args:
+        turb_info: Turbine metadata with ``lat``, ``lon``, ``height``, and ``capacity``.
+        reanalysis: Reanalysis dataset with ``lat`` and ``lon`` coordinates.
+
+    Returns:
+        DataFrame with columns ``ID``, ``lat``, ``lon``, ``height``, ``capacity``, and ``model``.
+
+    Raises:
+        ValueError: If no valid turbines remain after cleaning.
     """
     ti = turb_info.copy()
 
@@ -230,34 +215,29 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     return ds2.cor_ws
 
 def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
+    """Simulate a mean capacity factor for training.
+
+    Args:
+        reanalysis: Wind parameters on a grid.
+        turb_info: Turbine metadata including height and coordinates.
+        powerCurveFile: Power curve data for turbine models.
+        scalar: Multiplicative correction factor.
+        offset: Additive correction factor.
+
+    Returns:
+        float: Weighted average of simulated capacity factor.
     """
-    Simulate average capacity factor of desired resolution for training.
-
-        Args:
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
-            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
-            scalar (float): multiplicative correction factor
-            offset (float): additive correction factor
-
-        Returns:
-            float: weighted average of simulated CF
-    """ 
     unc_ws = interpolate_wind(reanalysis, turb_info)
     cor_ws = (unc_ws * scalar) + offset
     
     def speed_to_power(data):
-        """
-        Speed to power.
+        """Convert wind speed to power using the turbine power curve.
 
-            Args:
-                data (pandas.DataFrame): data containing simulated wind speeds.
+        Args:
+            data: DataArray with simulated wind speeds.
 
-            Assumptions:
-                - Datetime handling is assumed to be UTC unless stated otherwise.
-                - Units are assumed to be consistent with SI conventions unless stated otherwise.
-                - Power curves are assumed to be static and representative (no wake, curtailment, or availability losses unless explicitly modelled).
-                - Capacity factor is assumed to be bounded in [0, 1].
+        Returns:
+            DataArray of capacity factor values.
         """
         x = powerCurveFile['data$speed']
         y = powerCurveFile[data.model[0].data]

@@ -1,28 +1,4 @@
-"""
-correction module.
-
-Summary
--------
-Bias correction modules.
-
-Data conventions
-----------------
-Expected dimensions follow xarray conventions (e.g., time × lat × lon) unless stated otherwise.
-Time coordinates are assumed to be UTC unless explicitly converted by the caller.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
-"""
+"""Bias correction utilities for PyVWF."""
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -35,33 +11,27 @@ from vwf.wind import (
 
 
 def calculate_scalar(gen_cf, time_res):
-    """
-    Calculate the scalar, multiplicative correction factor.
+    """Calculate multiplicative (scalar) correction factors.
 
-        Args:
-            time_res (str): time resolution we want to simulate
-            gen_data (pandas.DataFrame): dataframe with the observed and simulated cf for training period
+    Args:
+        gen_cf: DataFrame with observed and simulated capacity factors.
+        time_res: Time resolution used for aggregation.
 
-        Returns:
-            turb_info (pandas.DataFrame): turbine metadata with assigned cluster column
+    Returns:
+        pandas.DataFrame: DataFrame with ``year``, ``time_slice``, ``cluster``,
+        ``obs``, ``sim``, and ``scalar`` columns.
     """
     def weighted_avg(group_df, whole_df, values, weights):
-        """
-        Weighted avg.
+        """Compute a weighted average for a group.
 
-            Args:
-                group_df (Any): TODO.
-                whole_df (Any): TODO.
-                values (Any): TODO.
-                weights (Any): TODO.
-                *args (tuple): Additional positional arguments.
+        Args:
+            group_df: Grouped DataFrame view.
+            whole_df: Full DataFrame for indexing.
+            values: Column name with values to average.
+            weights: Column name with weights.
 
-            Returns:
-                None: TODO.
-
-            Assumptions:
-                - Datetime handling is assumed to be UTC unless stated otherwise.
-                - Units are assumed to be consistent with SI conventions unless stated otherwise.
+        Returns:
+            Weighted average as a float.
         """
         v = whole_df.loc[group_df.index, values]
         w = whole_df.loc[group_df.index, weights]
@@ -80,22 +50,19 @@ def calculate_scalar(gen_cf, time_res):
     return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
     
 def find_offset(row, turb_info, reanalysis, powerCurveFile):
-    """
-    Optimize the offset, additive correction factor.
-    
-    This function applies the correction factors to the simulated wind speed
-    which is converted into capacity factor, this is done repeatedly till an
-    offset is calculated that makes the simulated capacity factor match the
-    observed capacity factor.
+    """Optimize the additive offset correction factor.
 
-        Args:
-            row (pandas.Series): row has the year, cluster and time slice
-            turb_info (pandas.DataFrame): turbine metadata including height and coordinates
-            reanalysis (xarray.Dataset): wind parameters on a grid
-            powerCurveFile (pandas.DataFrame): capacity factor at increasing wind speeds for different models
-            
-        Returns:
-            offset (float): best offset value
+    This iteratively applies offsets to simulated wind speeds until the
+    simulated capacity factor matches observations for the given row.
+
+    Args:
+        row (pandas.Series): Row with ``year``, ``cluster``, and ``time_slice``.
+        turb_info (pandas.DataFrame): Turbine metadata including height and coordinates.
+        reanalysis (xarray.Dataset): Wind parameters on a grid.
+        powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
+
+    Returns:
+        float: Best-fit offset value.
     """
     if row['time_slice'] == 'spring':
         time_slice = [3,4,5]

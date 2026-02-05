@@ -1,27 +1,7 @@
-"""
-metrics module.
+"""Metrics utilities for model evaluation.
 
-Summary
--------
-Calculate the metrics for model evaluation.
-
-Data conventions
-----------------
-Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
-Datetime columns are assumed to be timezone-naive UTC unless specified.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-] (unless stated otherwise).
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
+This module provides error aggregation and summary metrics for simulated versus
+observed capacity factors.
 """
 import numpy as np
 import pandas as pd
@@ -49,23 +29,17 @@ import pandas as pd
 #         return turb_info
 
 def calculate_error(type, df_sim, df_obs, turb_info, train=False):
-    """
-    Calculate error.
+    """Calculate error summaries between simulated and observed data.
 
-        Args:
-            type (Any): TODO.
-            df_sim (Any): TODO.
-            df_obs (Any): TODO.
-            turb_info (Any): TODO.
-            train (Any): TODO.
-            *args (tuple): Additional positional arguments.
+    Args:
+        type: Error type selector (e.g., ``"monthly-error"``, ``"regional-error"``).
+        df_sim: Simulated capacity factor data.
+        df_obs: Observed capacity factor data.
+        turb_info: Turbine metadata with capacity and grouping fields.
+        train: If True, treat observations as training-period data.
 
-        Returns:
-            None: TODO.
-
-        Assumptions:
-            - Datetime handling is assumed to be UTC unless stated otherwise.
-            - Units are assumed to be consistent with SI conventions unless stated otherwise.
+    Returns:
+        Varies by ``type``. Typically returns error summaries or metric tuples.
     """
     if train == True:
         df_obs = df_obs.pivot(
@@ -110,21 +84,15 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
     merged = merged.dropna(subset=['cf_sim', 'cf_obs', 'capacity']).reset_index(drop=True)
 
     def weighted_avg(df, values, weights):
-        """
-        Weighted avg.
+        """Compute a weighted average for a DataFrame column.
 
-            Args:
-                df (Any): TODO.
-                values (Any): TODO.
-                weights (Any): TODO.
-                *args (tuple): Additional positional arguments.
+        Args:
+            df: Input DataFrame.
+            values: Column name with values to average.
+            weights: Column name with weights.
 
-            Returns:
-                None: TODO.
-
-            Assumptions:
-                - Datetime handling is assumed to be UTC unless stated otherwise.
-                - Units are assumed to be consistent with SI conventions unless stated otherwise.
+        Returns:
+            Weighted average as a float.
         """
         return (df[values] * df[weights]).sum() / df[weights].sum()
 
@@ -226,26 +194,22 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
     
     
 def overall_error(type, run, country, turb_info, cluster_list, time_res_list, train, *args):
-    """
-Overall error.
+    """Compute overall error metrics across clustering and time-resolution settings.
 
     Args:
-        type (Any): TODO.
-        run (Any): TODO.
-        country (Any): TODO.
-        turb_info (Any): TODO.
-        cluster_list (Any): TODO.
-        time_res_list (Any): TODO.
-        train (Any): TODO.
-        *args (tuple): Additional positional arguments.
+        type: Error type selector passed to ``calculate_error``.
+        run: Run directory containing results.
+        country: Country code used to build file paths.
+        turb_info: Turbine metadata.
+        cluster_list: List of cluster counts to evaluate.
+        time_res_list: List of temporal resolutions to evaluate.
+        train: If True, use training-period files.
+        *args: Additional positional arguments (e.g., ``year_test``).
 
     Returns:
-        None: TODO.
-
-    Assumptions:
-        - Datetime handling is assumed to be UTC unless stated otherwise.
-        - Units are assumed to be consistent with SI conventions unless stated otherwise.
-"""
+        pandas.DataFrame: Metrics table with columns ``num_clu``, ``time_res``,
+        ``rmse``, ``mae``, and ``mbe``.
+    """
     rmse_all = []
     mae_all = []
     mbe_all = []

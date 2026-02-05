@@ -1,44 +1,23 @@
-"""
-clustering module.
+"""Clustering utilities for turbine metadata.
 
-Summary
--------
-Clustering turbines based on their spatial coordinates.
-
-Data conventions
-----------------
-Tabular inputs are assumed to be tidy (one observation per row) unless stated otherwise.
-Datetime columns are assumed to be timezone-naive UTC unless specified.
-
-Units
------
-Wind speed: [m s^-1]; Hub height: [m]; Power: [MW]; Energy: [MWh]; Capacity factor: [-].
-
-Assumptions
------------
-- ERA5/reanalysis fields are treated as representative at the chosen spatial/temporal resolution.
-- Wake effects, curtailment, availability losses are not modelled unless explicitly implemented in this module.
-
-References
-----------
-Add dataset and methodological references relevant to this module.
+This module provides spatial clustering of turbine coordinates for training and
+evaluation workflows.
 """
 from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
 
 def cluster_turbines(num_clu, turb_info_train, train=False, *args):
-    """
-    Spatially cluster the turbines using the coordinates.
+    """Cluster turbines by spatial coordinates.
 
-        Args:
-            num_clu (int): number of clusters to split turbines into
-            turb_train (pandas.DataFrame): dataframe with the turbines that exist in training
-            train (bool): if the clustering is being used in training or on new turbines
-            *args (pandas.DataFrame): dataframe with new turbines to cluster based on the training turbines
+    Args:
+        num_clu (int): Number of clusters.
+        turb_info_train (pandas.DataFrame): Training turbine metadata with ``lat`` and ``lon``.
+        train (bool): If True, assign clusters to ``turb_info_train`` and return it.
+        *args (pandas.DataFrame): Optional turbine metadata to cluster using the fitted model.
 
-        Returns:
-            turb_info (pandas.DataFrame): turbine metadata with assigned cluster column
+    Returns:
+        pandas.DataFrame: Turbine metadata with an added ``cluster`` column.
     """
     # fitting clusters to training data
     kmeans = KMeans(

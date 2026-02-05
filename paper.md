@@ -35,9 +35,16 @@ The `PyVWF` model is a complete rework of the `vwf` model, written to make non-c
 
 `PyVWF` provides accessibility to the training process for the bias correction factors on top of the base simulation function that uses already derived bias correction factors. The capability of the code has been expanded to use ERA-5 reanalysis data providing an improved resolution of the reanalysis data from 0.5° x 0.625° to  0.25° x 0.25°. A notable addition possible from these changes is the bias correction factors can be calculated at finer spatial resolutions than the existing national scale factors, through the use of spatial clustering. Another notable implementation of this release is the option to add time dependency to the calculation of the bias correction factors to more accurately correct seasonal trends.
 
+# Scope and significance
+
+`PyVWF` is an open-source, research-oriented Python package that simulates wind power generation from reanalysis datasets (ERA-5, MERRA-2) with explicit bias correction. It re-implements the Virtual Wind Farm (VWF) methodology in a modern, extensible codebase and exposes the full training and application workflow for bias-correction factors. This enables researchers to generate calibrated capacity-factor time series at turbine, regional, or national scale, with configurable spatial clustering and temporal aggregation. The software targets energy systems researchers, climate scientists, and power system analysts who require reproducible, transparent wind resource simulations.
+
+Relative to existing tools, `PyVWF` fills a gap between closed or API-only implementations (e.g. Renewables.ninja/VWF) and general-purpose reanalysis-to-power tools (e.g. `atlite`) by providing a fully open, research-grade implementation of bias-corrected wind power simulation. Its main contribution is the accessible, extensible training pipeline for correction factors and the ability to compute these factors at finer spatial scales than national averages. This supports more accurate resource assessment and sensitivity studies in scientific workflows, while remaining fully reproducible via a pinned environment and documented examples.
+
 # Core Functionality
 
 ## Simulating Capacity Factor
+
 - Obtain wind speed data: Acquire surface roughness $z_{0}$, eastward $u$ and northward $v$ wind speed components at 100m above ground at each ERA-5 grid point. 
 - Derive wind speed magnitude: Derive wind speed magnitude at 100m, $w_{100m}$,  from the $u$ and $v$ wind components at each grid point.
 - Height extrapolation: Derive the wind speed at hub height assuming the log wind profile [@holmesWindLoading2017]:
@@ -46,13 +53,20 @@ The `PyVWF` model is a complete rework of the `vwf` model, written to make non-c
 - Location interpolation: Linearly interpolate speeds to the specific geographic coordinates of each wind turbine, using Python's `xarray.DataArray.interp`.
 - Convert wind speed to capacity factor: Using smoothed manufacturers' power curves, convert wind speed $w_{sim}$ to capacity factors $CF_{sim}$.
 
-## Bias Correction 
+## Bias Correction
+
 Bias correction is applied on wind speeds from the reanalysis data as we assume this is where the error comes from rather than the power conversion. Wind speeds are corrected using the following scheme adapted from [@staffell2016]:
 $$w_{corrected} = \alpha w_{uncorrected} + \beta,$$
 where $w_{\textnormal{uncorrected}}$ is the uncorrected wind speed from the ERA-5 renalysis data. The training process to find the multiplicative scalar $\alpha$ and the linear offset $\beta$, involves the following steps:
+
 - Compute the simulated CF $CF_{sim}$ using $w_{uncorrected}$ and calculate the error factor $\varepsilon_{CF}$ from the mean (calculated over desired spatiotemporal resolution) $CF_{sim}$ and observed CF $CF_{obs}$ via $\varepsilon_{cf}=\frac{CF_{obs}}{CF_{sim}}$;
 - Derive the multiplicative scalar using the bias factor (note [@staffellUsingBiascorrected2016] used $\alpha=0.6\varepsilon_{CF}+0.2$ calculated per country to allow for generalisation of the method to be applied to other locations where only the long-run mean observed CF is known and reduce over-fitting. This is based on the observation of reanalysis tending to overestimate variability in wind. This has been modified for this study as we are deriving $\alpha$ at varying spatial resolutions and are assessing the performance without generalising.): $\alpha=\varepsilon_{cf}$;
 - Perform an iterative process on \ref{eq3} to find $\beta$ such that $CF_{sim}=CF_{obs}$.
+
+
+# AI disclosure
+
+The author used AI-assisted writing tools (GPT-5.2-Codex) to help draft and edit portions of the manuscript for clarity and concision. All technical content, claims, and citations were reviewed and verified by the author, who takes full responsibility for the final text.
 
 
 # Acknowledgements
