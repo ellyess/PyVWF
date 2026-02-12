@@ -24,7 +24,7 @@ The turbine metadata contains information from Denmark's official wind turbine r
 - Capacity (kW)
 - Rotor diameter (m)
 - Hub height (m)
-- Manufacture
+- Manufacturer
 - Model
 - Local authority information
 - Type of location (Land/Hav - onshore/offshore)
