@@ -10,7 +10,7 @@ Denmark (DK) is used as the primary example throughout PyVWF documentation and q
 
 **File:** `input/country-data/DK/observations/DK_md.csv`
 
-**Source:** The turbine metadata is derived from the **Danish Energy Agency's Master Data Register** via the **GSRN (Global Location Number System for Energy)** identifier system.
+**Source:** The turbine metadata is derived from the **Danish Energy Agency's Master Data Register** via the **GSRN (Global System of Registration Numbers)** identifier system.
 
 **Data Provider:** [Energinet](https://www.energinet.dk/) (Danish Transmission System Operator)
 
