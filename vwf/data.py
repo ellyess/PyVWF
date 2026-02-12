@@ -270,6 +270,10 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
     country = country.upper()
 
     if country == "DK":
+        # Denmark turbine metadata
+        # Source: Danish Energy Agency Master Data Register via GSRN (Global System of Registration Numbers)
+        # Data provider: Energinet (Danish TSO)
+        # See DATA_SOURCES.md for detailed information about data sources and attribution
         dk_md = pd.read_csv(COUNTRY_DIR / "DK/observations/DK_md.csv")
         columns = [
             "Turbine identifier (GSRN)",
@@ -354,6 +358,10 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
     country = country.upper()
 
     if country == "DK":
+        # Denmark turbine generation observations
+        # Source: Turbine-level generation data indexed by GSRN identifier
+        # Data provider: Energinet (Danish TSO) operational/metering data
+        # See DATA_SOURCES.md for detailed information about data sources and attribution
         appended = []
         for y in range(year_start, year_end + 1):
             data = pd.read_excel(COUNTRY_DIR / f"DK/observations/Denmark_{y}.xlsx")

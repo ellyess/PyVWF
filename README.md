@@ -56,6 +56,8 @@ python -c "import pandas, xarray, scipy; print('Environment OK')"
 
 A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:
 
+> **📖 Note:** For information about Denmark data sources, see [DATA_SOURCES.md](DATA_SOURCES.md)
+
 ```bash
 # Basic usage with Denmark data
 python examples/pyvwf_quickstart_denmark.py
@@ -320,6 +322,8 @@ For comprehensive examples, see `examples/ml_terrain_correction.py`.
 ## Data Requirements
 
 PyVWF expects the following input data types.
+
+> **📖 For detailed information about data sources (including Denmark example data), see [DATA_SOURCES.md](DATA_SOURCES.md)**
 
 ### Required Inputs
 
