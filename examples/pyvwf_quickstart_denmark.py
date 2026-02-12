@@ -10,6 +10,11 @@ This script demonstrates the complete PyVWF workflow:
 5. Validate against observations
 6. Export results and plots
 
+Data Sources:
+    Denmark turbine metadata and generation observations are included as example data.
+    For information about data sources and attribution, see DATA_SOURCES.md in the
+    repository root.
+
 Example usage:
     python examples/pyvwf_quickstart_denmark.py
     python examples/pyvwf_quickstart_denmark.py --year-test 2020

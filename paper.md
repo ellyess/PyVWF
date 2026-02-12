@@ -64,6 +64,10 @@ where $w_{\textnormal{uncorrected}}$ is the uncorrected wind speed from the ERA-
 - Perform an iterative process on \ref{eq3} to find $\beta$ such that $CF_{sim}=CF_{obs}$.
 
 
+# Data Availability
+
+Example datasets for Denmark (DK) are included in the repository for demonstration purposes. These include turbine metadata and generation observations sourced from Energinet (Danish TSO) and the Danish Energy Agency's Master Data Register. ERA5 reanalysis data must be obtained separately from the Copernicus Climate Data Store. For detailed information about data sources, access procedures, and proper attribution, see `DATA_SOURCES.md` in the repository.
+
 # AI disclosure
 
 The author used AI-assisted writing tools (GPT-5.2-Codex) to help draft and edit portions of the manuscript for clarity and concision. All technical content, claims, and citations were reviewed and verified by the author, who takes full responsibility for the final text.
