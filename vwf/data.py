@@ -262,11 +262,11 @@ def load_country_generation_monthly_kwh(country: str, year_start: int, year_end:
 # Turbine metadata loaders (country-specific; keep small + focused)
 # -----------------------------------------------------------------------------
 def load_turbine_metadata(country: str) -> pd.DataFrame:
-        """Load raw turbine metadata for a country.
+    """Load raw turbine metadata for a country.
 
-        Returns a DataFrame with columns such as ``ID``, ``capacity``, ``diameter``,
-        ``height``, ``manufacturer``, ``lon``, ``lat``, and ``type``.
-        """
+    Returns a DataFrame with columns such as ``ID``, ``capacity``, ``diameter``,
+    ``height``, ``manufacturer``, ``lon``, ``lat``, and ``type``.
+    """
     country = country.upper()
 
     if country == "DK":
