@@ -52,6 +52,8 @@ python -c "import pandas, xarray, scipy; print('Environment OK')"
 
 ## Quickstart
 
+> 💡 **New users:** See [DATA_SOURCES.md](DATA_SOURCES.md) for information on where to obtain turbine metadata and generation observations for different countries.
+
 ### PyVWF Training Example (Denmark)
 
 A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:
@@ -336,6 +338,8 @@ The files you should provide are:
 - Reanalysis data for all training years and test years in `data/era5/<country>/<test/train>/`
 - Turbine metadata which contains information such as the height, latitude, longitude, turbine ID, turbine model and capacity placed in `data/turb_info/`. An example is provided, plan to make this file easier to create.
 - Wind turbine power curves in a .csv file with model names in each column providing the power output with respect to wind speed. Due to proprietary data used in our curve file an example of the format is shown in `input/power_curves.csv`
+
+**For detailed information about data sources, including where to obtain turbine metadata and generation observations for different countries, see [DATA_SOURCES.md](DATA_SOURCES.md).**
 
 #### Download reanalysis wind speed data
 
