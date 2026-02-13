@@ -1,12 +1,12 @@
-"""
-Quick run example for PyVWF (research workflow).
+"""Run a quick PyVWF research workflow.
 
-This script mirrors a typical research run:
-1) Instantiate PyVWF with an output directory (created if missing)
-2) Train the model(s)
-3) Simulate capacity factor (CF) time series for a chosen year
+This script mirrors a typical run:
+    1) Instantiate PyVWF with an output directory
+    2) Train the model(s)
+    3) Simulate capacity factor time series for a chosen year
 
-The first PyVWF argument is the OUTPUT PATH where folders/files will be created.
+Notes:
+    The first PyVWF argument is the output path where folders/files are created.
 """
 
 import argparse
@@ -16,6 +16,7 @@ import vwf.vwf as model
 
 
 def parse_args():
+    """Parse command-line arguments."""
     p = argparse.ArgumentParser(description="PyVWF quick run example (train + simulate CF)")
 
     p.add_argument(
@@ -45,7 +46,7 @@ def parse_args():
         "--cluster-list",
         type=int,
         nargs="*",
-        default=[1, 2, 5, 7, 10]
+        default=[1, 2, 5, 7, 10],
         help="List of cluster counts to evaluate",
     )
     p.add_argument(
@@ -76,6 +77,7 @@ def parse_args():
 
 
 def main():
+    """Run the quick training and simulation workflow."""
     args = parse_args()
 
     outdir = Path(args.outdir).expanduser().resolve()

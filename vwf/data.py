@@ -1,14 +1,49 @@
-"""Data preprocessing utilities for PyVWF.
+"""Data preprocessing and orchestration for PyVWF.
 
-This module prepares turbine metadata, observations, and time-resolution helpers
-used across the workflow.
+This module provides the main orchestration functions for preparing training
+and validation datasets for wind generation modeling.
+
+Main Functions:
+    train_set: Prepare training data (observations + simulations + reanalysis)
+    val_set: Prepare validation data for testing
+    cluster_train_set: Apply clustering and compute bias corrections
+
+Data Loaders (re-exported from vwf.loaders):
+    load_turbine_metadata: Load turbine metadata for DK, DE, UK
+    load_turbine_observations: Load turbine-level generation data
+
+Supporting Functions:
+    prep_country: Preprocess observations for a country
+    clean_obs_data: Filter and clean observation data
+    add_models: Assign turbine models based on metadata
+    interp_nans: Interpolate missing observation values
+    sim_turbines_to_country_cf: Aggregate turbine simulations to country level
+
+Examples:
+    Turbine-level workflow:
+        >>> gen_cf, turb_info, reanalysis, power_curves = train_set(
+        ...     country='DK',
+        ...     calc_z0=True,
+        ...     mode='onshore',
+        ...     obs_level='turbine'
+        ... )
+        >>> bias_df, clus_info = cluster_train_set(gen_cf, 'season', 10, turb_info)
+
+    Country-level workflow:
+        >>> # Load data externally and use with PyVWF
+        >>> model = PyVWF("", "NL", True, True, "all", [5], ["fixed"], obs_level="country")
+        >>> gen_cf, turb_info, reanalysis, power_curves = train_set(
+        ...     country='NL',
+        ...     calc_z0=True,
+        ...     obs_level='country',
+        ...     external_grid_points=data['grid_points'],
+        ...     external_obs_data=data['train_obs']
+        ... )
 """
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import difflib
-
-import utm
 from calendar import monthrange
 
 import vwf.wind as wind
@@ -21,144 +56,31 @@ from vwf.wind import simulate_country_cf
 
 from pathlib import Path
 
-COUNTRY_DIR = Path("input/country-data")
+# Import from new utility modules
+from vwf.config import PyVWFPaths
+from vwf.time_utils import add_time_resolution_columns
+from vwf.loaders import (
+    load_turbine_metadata,
+    load_turbine_observations,
+)
+from vwf.loaders.country_level_loaders import country_gen_to_cf
 
-# -----------------------------------------------------------------------------
-# Small helpers
-# -----------------------------------------------------------------------------
+# Keep for backward compatibility with any scripts using these paths
+COUNTRY_DIR = PyVWFPaths.COUNTRY_DATA
+TURBINE_DIR = PyVWFPaths.TURBINE_DATA
+COUNTRY_LEVEL_DIR = PyVWFPaths.COUNTRY_LEVEL_DATA
+
+# ============================================================================
+# INTERNAL HELPERS
+# ============================================================================
+
 def _year_range(train: bool, year_test: int | None, default_train=(2015, 2018)) -> tuple[int, int]:
+    """Determine year range for train or test data."""
     if train:
         return int(default_train[0]), int(default_train[1])
     if year_test is None:
         raise ValueError("year_test must be provided when train=False")
     return int(year_test), int(year_test)
-
-
-def _ensure_numeric(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
-    for c in cols:
-        if c in df.columns:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
-    return df
-
-
-def _standardise_turb_info_minimal(df: pd.DataFrame) -> pd.DataFrame:
-    """Standardize turbine metadata for interpolation.
-
-    Args:
-        df: Turbine metadata with at least ``ID``, ``capacity``, ``height``, ``lon``, and ``lat``.
-
-    Returns:
-        Cleaned DataFrame with required columns and types.
-
-    Raises:
-        ValueError: If required columns are missing or no valid turbines remain.
-    """
-    df = df.copy()
-
-    if "ID" not in df.columns:
-        raise ValueError("turbine metadata must contain 'ID'")
-    df["ID"] = df["ID"].astype(str)
-
-    if "type" not in df.columns:
-        df["type"] = "onshore"
-
-    df = _ensure_numeric(df, ["capacity", "diameter", "height", "lon", "lat"])
-
-    # enforce physical hub heights
-    df = df[df["height"].notna()]
-    df = df[df["height"] > 1.0]   # or >0, but >1 m avoids pathological cases
-
-    if df.empty:
-        raise ValueError("No turbines with valid hub height (>1 m) after standardisation")
-
-    return df.reset_index(drop=True)
-
-def load_fr_turbine_metadata_standard(
-    path: str | Path,
-    *,
-    only_authorised: bool = True,
-    default_type: str = "onshore",
-) -> pd.DataFrame:
-    """Load France turbine metadata into the standard PyVWF format.
-
-    Args:
-        path: CSV path with turbine metadata.
-        only_authorised: If True, filter to authorised turbines.
-        default_type: Default turbine type.
-
-    Returns:
-        DataFrame with columns ``ID``, ``capacity``, ``diameter``, ``height``, ``lon``, ``lat``,
-        ``manufacturer``, and ``type``.
-
-    Raises:
-        ValueError: If required columns are missing or geometry conversion fails.
-    """
-    path = Path(path)
-    df = pd.read_csv(path)
-
-    if only_authorised and "statut_parc" in df.columns:
-        df = df.loc[df["statut_parc"] == "Autorisé"].copy()
-
-    # Select + rename
-    keep = {
-        "id_aerogenerateur": "ID",
-        "puissance_mw": "capacity_mw",
-        "diametre_rotor": "diameter",
-        "hauteur_mat_nacelle": "height",
-        "constructeur": "manufacturer",
-        "x_aerogenerateur": "x",
-        "y_aerogenerateur": "y",
-        "epsg": "epsg",
-    }
-    missing = [k for k in keep if k not in df.columns]
-    if missing:
-        raise ValueError(f"FR metadata missing columns: {missing}")
-
-    df = df[list(keep.keys())].rename(columns=keep)
-
-    # Numeric coercion
-    for c in ["capacity_mw", "diameter", "height", "x", "y", "epsg"]:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-
-    df["ID"] = df["ID"].astype(str)
-    df["manufacturer"] = df["manufacturer"].astype("string")
-
-    # Build geometry + reproject (supports mixed EPSG)
-    df = df.dropna(subset=["x", "y", "epsg"]).copy()
-
-    parts = []
-    for epsg, g in df.groupby("epsg"):
-        if not np.isfinite(epsg):
-            continue
-        gdf = gpd.GeoDataFrame(
-            g,
-            geometry=gpd.points_from_xy(g["x"], g["y"]),
-            crs=f"EPSG:{int(epsg)}",
-        ).to_crs(4326)
-        gdf["lon"] = gdf.geometry.x
-        gdf["lat"] = gdf.geometry.y
-        parts.append(gdf.drop(columns=["geometry"]))
-
-    if not parts:
-        raise ValueError("FR metadata: could not build any valid geometries (x/y/epsg).")
-
-    out = pd.concat(parts, ignore_index=True)
-
-    # Convert MW -> kW
-    out["capacity"] = out["capacity_mw"] * 1000.0
-
-    out["type"] = default_type
-    out = out.drop(columns=["capacity_mw", "x", "y", "epsg"])
-
-    # Final sanity filter: needs these for interpolate_wind()
-    out = out.dropna(subset=["capacity", "height", "lon", "lat"]).reset_index(drop=True)
-
-    return out[["ID", "type", "capacity", "diameter", "height", "lon", "lat", "manufacturer"]]
-# -----------------------------------------------------------------------------
-# New helpers for country-level observations
-# -----------------------------------------------------------------------------
-def _hours_in_month(year: int, month: int) -> int:
-    return monthrange(int(year), int(month))[1] * 24
 
 
 def _default_power_curve(power_curves: pd.DataFrame) -> str:
@@ -169,225 +91,17 @@ def _default_power_curve(power_curves: pd.DataFrame) -> str:
     return cols[0]
 
 
-def country_gen_to_cf(
-    obs_country_gen: pd.DataFrame,
-    turb_info: pd.DataFrame,
-    *,
-    output_col: str = "output_kwh",
-    capacity_unit: str = "kW",  # "kW" or "MW"
-) -> pd.DataFrame:
-    """Convert country-level monthly generation to capacity factor.
+# ============================================================================
+# DATA LOADING (Re-exported from vwf.loaders for backward compatibility)
+# ============================================================================
+# The following functions are now imported from vwf.loaders:
+# - load_turbine_metadata
+# - load_turbine_observations
 
-    Args:
-        obs_country_gen: DataFrame with columns ``year``, ``month``, and ``output_col``.
-        turb_info: Turbine metadata with a ``capacity`` column.
-        output_col: Column name for generation output.
-        capacity_unit: Capacity units (``"kW"`` or ``"MW"``).
+# ============================================================================
+# DATA PREPROCESSING AND ORCHESTRATION
+# ============================================================================
 
-    Returns:
-        DataFrame with columns ``year``, ``month``, and ``obs`` (capacity factor).
-    """
-    if "capacity" not in turb_info.columns:
-        raise ValueError("turb_info must contain a 'capacity' column.")
-
-    cap = pd.to_numeric(turb_info["capacity"], errors="coerce")
-
-    if capacity_unit.lower() == "mw":
-        cap_kw = float(cap.sum() * 1000.0)
-    else:
-        cap_kw = float(cap.sum())
-
-    if cap_kw < 10_000:  # entire country < 10 MW? probably wrong units
-        raise ValueError("Total capacity looks too small; check units (kW vs MW).")
-    
-    if not np.isfinite(cap_kw) or cap_kw <= 0:
-        raise ValueError(
-            "Total capacity from turb_info is not valid for converting country gen to CF. "
-            f"(sum capacity={cap.sum()}, unit={capacity_unit})"
-        )
-
-    df = obs_country_gen.copy()
-    if not {"year", "month", output_col}.issubset(df.columns):
-        raise ValueError(f"country_gen_to_cf expects columns ['year','month','{output_col}'].")
-
-    df["hours"] = df.apply(lambda r: _hours_in_month(r["year"], r["month"]), axis=1)
-    df["obs"] = pd.to_numeric(df[output_col], errors="coerce") / (cap_kw * df["hours"].astype(float))
-    return df[["year", "month", "obs"]]
-
-# -----------------------------------------------------------------------------
-# Country generation (generic, extendable)
-# -----------------------------------------------------------------------------
-def load_country_generation_monthly_kwh(country: str, year_start: int, year_end: int) -> pd.DataFrame:
-    """Load tidy monthly country generation in kWh.
-
-    Args:
-        country: Country code.
-        year_start: Start year (inclusive).
-        year_end: End year (inclusive).
-
-    Returns:
-        DataFrame with columns ``year``, ``month``, and ``output_kwh``.
-    """
-    country = country.upper()
-
-    ns_path = COUNTRY_DIR / "northsea_country_generation.csv"
-    if ns_path.exists():
-        ns = pd.read_csv(ns_path)
-        ns = ns.loc[:, ["Standard international energy product classification (SIEC)", "TIME_PERIOD", "OBS_VALUE", "geo"]]
-        ns.columns = ["carrier", "date", "output", "country"]
-
-        ns = ns.loc[(ns["country"] == country) & (ns["carrier"] == "Wind")].copy()
-        if not ns.empty:
-            ns["date"] = pd.to_datetime(ns["date"], errors="coerce")
-            ns["output"] = pd.to_numeric(ns["output"], errors="coerce") * 1e6  # GWh -> kWh
-            ns["year"] = ns["date"].dt.year.astype(int)
-            ns["month"] = ns["date"].dt.month.astype(int)
-
-            out = (
-                ns.drop(columns=["date", "carrier", "country"])
-                .groupby(["year", "month"], as_index=False)["output"]
-                .sum()
-                .rename(columns={"output": "output_kwh"})
-            )
-            out = out.loc[(out["year"] >= year_start) & (out["year"] <= year_end)].reset_index(drop=True)
-            return out
-
-    raise ValueError(
-        f"No country-level generation data available for {country} in known sources "
-        f"(tried: {ns_path})."
-    )
-
-
-# -----------------------------------------------------------------------------
-# Turbine metadata loaders (country-specific; keep small + focused)
-# -----------------------------------------------------------------------------
-def load_turbine_metadata(country: str) -> pd.DataFrame:
-        """Load raw turbine metadata for a country.
-
-        Returns a DataFrame with columns such as ``ID``, ``capacity``, ``diameter``,
-        ``height``, ``manufacturer``, ``lon``, ``lat``, and ``type``.
-        """
-    country = country.upper()
-
-    if country == "DK":
-        dk_md = pd.read_csv(COUNTRY_DIR / "DK/observations/DK_md.csv")
-        columns = [
-            "Turbine identifier (GSRN)",
-            "Manufacture",
-            "Capacity (kW)",
-            "Rotor diameter (m)",
-            "Hub height (m)",
-            "X (east) coordinate\nUTM 32 Euref89",
-            "Y (north) coordinate\nUTM 32 Euref89",
-            "Type of location",
-        ]
-        dk_md = dk_md[columns]
-        dk_md.columns = ["ID", "manufacturer", "capacity", "diameter", "height", "x_east_32", "y_north_32", "type"]
-
-        dk_md["type"] = dk_md["type"].str.lower().replace({"land": "onshore", "hav": "offshore"})
-        dk_md = _ensure_numeric(dk_md, ["x_east_32", "y_north_32", "capacity", "diameter", "height"])
-        dk_md = dk_md.dropna(subset=["capacity", "diameter", "x_east_32", "y_north_32"]).reset_index(drop=True)
-
-        def rule(row):
-            lat, lon = utm.to_latlon(row["x_east_32"], row["y_north_32"], 32, "W")
-            return pd.Series({"lat": lat, "lon": lon})
-
-        dk_md = dk_md.merge(dk_md.apply(rule, axis=1), left_index=True, right_index=True)
-        dk_md = dk_md[["ID", "manufacturer", "capacity", "diameter", "height", "lon", "lat", "type"]]
-        dk_md["manufacturer"] = dk_md["manufacturer"].astype(str).str.split(" ").str[0]
-        return _standardise_turb_info_minimal(dk_md)
-
-    if country == "DE":
-        de_geo = pd.read_csv(COUNTRY_DIR / "DE/observations/geolocate.germany.csv")
-        de_md = pd.read_csv(COUNTRY_DIR / "DE/observations/DE_md.csv")
-
-        de_md = de_md[["V1", "Manufacturer", "kW", "Rotor..m.", "Tower..m."]]
-        de_md.columns = ["ID", "manufacturer", "capacity", "diameter", "height"]
-        de_md["postcode"] = de_md["ID"].astype(str).str[:5].astype(int)
-
-        de_md = pd.merge(de_md, de_geo[["postcode", "lon", "lat"]], on="postcode", how="left").drop(columns=["postcode"])
-        de_md = de_md.dropna(subset=["capacity", "diameter", "lon", "lat"]).reset_index(drop=True)
-        de_md["type"] = "onshore"
-        return _standardise_turb_info_minimal(de_md)
-
-    if country == "UK":
-        uk_md = pd.read_csv(COUNTRY_DIR / "UK/observations/uk_md.csv")
-        return _standardise_turb_info_minimal(uk_md)
-
-    if country == "FR":
-        return _standardise_turb_info_minimal(
-            load_fr_turbine_metadata_standard(COUNTRY_DIR / "fr/fr_turb_info.csv")
-        )
-
-    if country == "NL":
-        nl_md = gpd.read_file(COUNTRY_DIR / "NL/nl_md.json").to_crs(epsg=4326)
-        nl_md["lon"] = nl_md.geometry.x
-        nl_md["lat"] = nl_md.geometry.y
-        nl_md = nl_md.drop(columns=["geometry", "x", "y", "prov_naam", "gem_naam", "naam"])
-        nl_md["ondergrond"] = nl_md["ondergrond"].replace({"land": "onshore", "zee": "offshore"})
-        nl_md["land"] = nl_md["land"].replace({"België": "BE", "Duitsland": "DE", "Nederland": "NL"})
-        nl_md.columns = ["ID", "diameter", "height", "capacity", "country", "manufacturer", "type", "lon", "lat"]
-        nl_md = nl_md.loc[nl_md["country"] == "NL"].reset_index(drop=True).drop(columns=["country"])
-        nl_md = nl_md[["ID", "capacity", "diameter", "height", "manufacturer", "lon", "lat", "type"]]
-        nl_md["manufacturer"] = nl_md["manufacturer"].astype(str).str.split(" ").str[0].str.strip("123-.,")
-        return _standardise_turb_info_minimal(nl_md)
-
-    if country == "BE":
-        be_md = pd.read_csv(COUNTRY_DIR / "BE/be_md.csv")
-        return _standardise_turb_info_minimal(be_md)
-
-    if country == "NO":
-        no_md = pd.read_csv(COUNTRY_DIR / "NO/no_md.csv")
-        return _standardise_turb_info_minimal(no_md)
-
-    raise ValueError(f"Unsupported country={country}")
-
-
-# -----------------------------------------------------------------------------
-# Turbine-level observations loaders
-# -----------------------------------------------------------------------------
-def load_turbine_observations(country: str, year_start: int, year_end: int) -> pd.DataFrame:
-    """Load turbine-level monthly generation in wide form.
-
-    Returns a DataFrame with columns ``ID``, ``year``, and month columns.
-    """
-    country = country.upper()
-
-    if country == "DK":
-        appended = []
-        for y in range(year_start, year_end + 1):
-            data = pd.read_excel(COUNTRY_DIR / f"DK/observations/Denmark_{y}.xlsx")
-            data = data.iloc[3:, np.r_[0:1, 3:15]]
-            data.columns = ["ID", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
-            data["ID"] = data["ID"].astype(str)
-            data["year"] = y
-            appended.append(data[:-1])
-        obs = pd.concat(appended).reset_index(drop=True).fillna(0)
-        return obs
-
-    if country == "DE":
-        de_data = pd.read_csv(COUNTRY_DIR / "DE/observations/DE_data.csv")
-        de_data = (
-            de_data.loc[(de_data["Year"] >= year_start) & (de_data["Year"] <= year_end)]
-            .drop(columns=["Downtime"])
-            .reset_index(drop=True)
-        )
-        de_data.columns = ["ID", "year", "month", "output"]
-        de_data = de_data.dropna(subset=["ID", "year", "month"])
-        obs = de_data.pivot(index=["ID", "year"], columns="month", values="output").reset_index().fillna(0)
-        return obs
-
-    if country == "UK":
-        # expecting a wide monthly dataset similar to your current usage
-        obs = pd.read_csv(COUNTRY_DIR / "UK/observations/ukobs.csv")
-        return obs
-
-    raise ValueError(f"No turbine-level observation loader implemented for {country}.")
-
-
-# -----------------------------------------------------------------------------
-# Main orchestrator
-# -----------------------------------------------------------------------------
 def prep_country(country, year_test=None, *, obs_level: str = "turbine"):
     """Preprocess observational data for a country.
 
@@ -413,19 +127,6 @@ def prep_country(country, year_test=None, *, obs_level: str = "turbine"):
 
     # ---- metadata ----
     turb_raw = load_turbine_metadata(country)
-
-    # ---- country-level path (generic) ----
-    if obs_level == "country":
-        turb_info = turb_raw.dropna(subset=["capacity", "height", "lon", "lat"]).reset_index(drop=True)
-        if "type" not in turb_info.columns:
-            turb_info["type"] = "onshore"
-
-        obs_country = load_country_generation_monthly_kwh(country, year_start, year_end)
-        return obs_country, turb_info
-
-    # ---- turbine-level path ----
-    if obs_level != "turbine":
-        raise ValueError("obs_level must be 'turbine' or 'country'")
 
     turb_info = add_models(turb_raw)
 
@@ -486,9 +187,10 @@ def sim_turbines_to_country_cf(sim_cf_long: pd.DataFrame, turb_info: pd.DataFram
     return sim_country
 
 
-# -----------------------------------------------------------------------------
-# Existing functions (mostly unchanged)
-# -----------------------------------------------------------------------------
+# ============================================================================
+# DATA CLEANING AND UTILITIES
+# ============================================================================
+
 def clean_obs_data(df, country, train=False):
     """Clean turbine observations for modeling.
 
@@ -530,6 +232,10 @@ def load_power_curves():
     return df
 
 
+# ============================================================================
+# MAIN ORCHESTRATION FUNCTIONS
+# ============================================================================
+
 def train_set(
     country,
     calc_z0,
@@ -540,8 +246,32 @@ def train_set(
     fix_turb=None,
     *,
     obs_level: str = "turbine",
+    external_grid_points: pd.DataFrame | None = None,
+    external_obs_data: pd.DataFrame | None = None,
 ):
-    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level)
+    """Prepare training inputs for PyVWF.
+
+    Args:
+        country: Country code.
+        calc_z0: Whether to calculate surface roughness from wind profiles.
+        mode: Turbine subset ("all", "onshore", "offshore").
+        year_test: Test year (used when loading observations).
+        add_nan: Fraction of data to randomly remove.
+        interp_nan: Limit on simultaneous missing data points when interpolating.
+        fix_turb: Turbine model name to fix to a single model.
+        obs_level: Observation level ("turbine" or "country").
+        external_grid_points: Optional externally provided grid points (for country-level).
+        external_obs_data: Optional externally provided observations (for country-level).
+
+    Returns:
+        Tuple of (gen_cf, turb_info, reanalysis, power_curves).
+    """
+    # Use external data if provided (country-level workflow)
+    if external_grid_points is not None and external_obs_data is not None:
+        turb_info = external_grid_points.copy()
+        obs_data = external_obs_data.copy()
+    else:
+        obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level)
 
     if mode != "all":
         turb_info = turb_info[turb_info["type"] == mode].copy()
@@ -557,7 +287,33 @@ def train_set(
     # Country-level branch
     # -------------------------
     if obs_level == "country":
-        obs_country = country_gen_to_cf(obs_data, turb_info, output_col="output_kwh")
+        # Check if obs_data is already in the correct format (external data)
+        if external_obs_data is not None:
+            # External data is already formatted (from ENTSO-E API)
+            # Expected format: index=datetime, columns=['capacity_factor', 'generation_mw', 'capacity_mw']
+            if 'capacity_factor' not in obs_data.columns:
+                raise ValueError("external_obs_data must have 'capacity_factor' column")
+
+            # Convert to year/month format expected by downstream
+            obs_country = obs_data.copy()
+            if not isinstance(obs_country.index, pd.DatetimeIndex):
+                obs_country.index = pd.to_datetime(obs_country.index, utc=True)
+
+            # Convert timezone-aware to naive UTC (remove timezone info)
+            if obs_country.index.tz is not None:
+                obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
+
+            # Aggregate to monthly means (matching simulation temporal resolution)
+            # Keep only capacity_factor for aggregation
+            obs_monthly = obs_country[['capacity_factor']].resample('ME').mean().reset_index()
+            obs_monthly.rename(columns={'index': 'time'}, inplace=True)
+            obs_monthly['year'] = obs_monthly['time'].dt.year.astype(int)
+            obs_monthly['month'] = obs_monthly['time'].dt.month.astype(int)
+            obs_country = obs_monthly.rename(columns={'capacity_factor': 'obs'})
+            obs_country = obs_country[['year', 'month', 'obs']]
+        else:
+            # Use legacy loader (converts generation kWh to CF)
+            obs_country = country_gen_to_cf(obs_data, turb_info, output_col="output_kwh")
 
         # -------------------------------------------------
         # Ensure a valid power-curve model exists
@@ -583,27 +339,26 @@ def train_set(
             subset=["capacity", "height", "lon", "lat", "model"]
         ).reset_index(drop=True)
 
-        sim_country_cf = simulate_country_cf(
-            reanalysis,
-            turb_info,
-            power_curves,
-            resample="ME",
+        # Simulate per-grid-point CF (not aggregated) to enable cluster-specific corrections
+        sim_ws, sim_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+
+        # Resample to monthly and reshape to long format with ID
+        sim_cf = sim_cf.groupby(pd.Grouper(key="time", freq="ME")).mean().reset_index()
+        sim_cf["time"] = pd.to_datetime(sim_cf["time"], errors="coerce")
+        sim_cf = sim_cf.dropna(subset=["time"]).reset_index(drop=True)
+
+        # Melt to long format (time x ID)
+        sim_long = sim_cf.melt(
+            id_vars=["time"],
+            var_name="ID",
+            value_name="sim"
         )
-        
-        sim_country = sim_country_cf.rename("sim").to_frame().reset_index()
+        sim_long["year"] = sim_long["time"].dt.year.astype(int)
+        sim_long["month"] = sim_long["time"].dt.month.astype(int)
+        sim_long = sim_long[["year", "month", "ID", "sim"]]
 
-        # -------------------------------------------------
-        # Ensure column names and types
-        # -------------------------------------------------
-        sim_country.columns = ["time", "sim"]  # because it's a Series with datetime index
-        sim_country["time"] = pd.to_datetime(sim_country["time"], errors="coerce")
-        sim_country = sim_country.dropna(subset=["time"]).reset_index(drop=True)
-
-        sim_country["year"] = sim_country["time"].dt.year.astype(int)
-        sim_country["month"] = sim_country["time"].dt.month.astype(int)
-        sim_country = sim_country[["year", "month", "sim"]]
-
-        gen_cf = sim_country.merge(obs_country, on=["year", "month"], how="inner")
+        # Merge with country-wide observations (same obs for all grid points)
+        gen_cf = sim_long.merge(obs_country, on=["year", "month"], how="inner")
         gen_cf = add_time_res(gen_cf)
 
         return gen_cf.reset_index(drop=True), turb_info, reanalysis, power_curves
@@ -655,7 +410,7 @@ def train_set(
     return gen_cf, turb_info, reanalysis, power_curves
 
 
-def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine"):
+def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None):
     """Prepare validation data for a country.
 
     Args:
@@ -665,11 +420,18 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         year_test: Test year.
         fix_turb: Optional turbine model override.
         obs_level: ``"turbine"`` or ``"country"``.
+        external_grid_points: Optional externally provided grid points (for country-level).
+        external_obs_data: Optional externally provided observations (for country-level).
 
     Returns:
         Tuple of observations, turbine metadata, reanalysis, and power curves.
     """
-    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level)
+    # Use external data if provided (country-level workflow)
+    if external_grid_points is not None and external_obs_data is not None:
+        turb_info = external_grid_points.copy()
+        obs_data = external_obs_data.copy()
+    else:
+        obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level)
 
     if mode != "all":
         turb_info = turb_info[turb_info["type"] == mode].copy()
@@ -679,20 +441,45 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
 
     # preping era5 for val
     reanalysis = prep_era5(country, False, calc_z0)
+
+    # Filter to test year only
+    if year_test is not None:
+        reanalysis = reanalysis.sel(time=str(year_test))
+
     power_curves = load_power_curves()
 
     if obs_level == "country":
-        # obs_data: ['year','month','output_kwh'] for year_test only (because year_test passed)
-        obs_country = country_gen_to_cf(obs_data, turb_info, output_col="output_kwh", capacity_unit="kW")
-        
+        # Check if obs_data is already in the correct format (external data)
+        if external_obs_data is not None:
+            # External data already has capacity_factor
+            obs_country = obs_data.copy()
+
+            if not isinstance(obs_country.index, pd.DatetimeIndex):
+                obs_country.index = pd.to_datetime(obs_country.index, utc=True)
+
+            # Convert timezone-aware to naive UTC (remove timezone info)
+            if obs_country.index.tz is not None:
+                obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
+
+            # Format for validation output
+            obs_country['year'] = obs_country.index.year
+            obs_country['month'] = obs_country.index.month
+            obs_country['time'] = obs_country.index
+            obs_country = obs_country.rename(columns={'capacity_factor': 'obs'})
+            obs_country = obs_country[['time', 'obs']].sort_values('time')
+        else:
+            # Use legacy loader
+            obs_country = country_gen_to_cf(obs_data, turb_info, output_col="output_kwh", capacity_unit="kW")
+
+            # build a time index similar to turbine val output
+            obs_country["time"] = pd.to_datetime(dict(year=obs_country["year"], month=obs_country["month"], day=1))
+            obs_country = obs_country.sort_values("time")[["time", "obs"]]
+
         if "model" not in turb_info.columns or turb_info["model"].isna().all():
             default_model = fix_turb if fix_turb is not None else _default_power_curve(power_curves)
             turb_info = turb_info.copy()
             turb_info["model"] = default_model
-            
-        # build a time index similar to turbine val output
-        obs_country["time"] = pd.to_datetime(dict(year=obs_country["year"], month=obs_country["month"], day=1))
-        obs_country = obs_country.sort_values("time")[["time", "obs"]]
+
         return obs_country, turb_info, reanalysis, power_curves
 
     # turbine-level path
@@ -714,23 +501,34 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
 def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = "turbine"):
     """Apply temporal resolution and compute correction factors.
 
-    For ``obs_level="country"``, a single cluster is returned.
+    For ``obs_level="country"``, corrections are computed per cluster using
+    country-wide observations.
     """
     if obs_level == "country":
-        # time average to desired temporal resolution
-        df = gen_cf.groupby(["year", time_res], as_index=False)[["obs", "sim"]].mean()
+        # For country-level: gen_cf has columns [year, time_res, obs, sim, ID]
+        # turb_info has cluster assignments for each ID
 
-        # compute scalar (and keep an offset column for compatibility)
-        df["cluster"] = 0
+        # Merge cluster info with gen_cf
+        gen_cf_with_cluster = pd.merge(
+            gen_cf,
+            turb_info[["ID", "cluster"]],
+            on="ID",
+            how="left"
+        )
+
+        # Group by year, time_res, and cluster - simple mean (no capacity weighting)
+        # All grid points in a cluster contribute equally to the bias correction
+        df = gen_cf_with_cluster.groupby(["year", time_res, "cluster"], as_index=False)[["obs", "sim"]].mean()
+
+        # Compute scalar per cluster with constraints to prevent extreme corrections
         df["scalar"] = df["obs"] / df["sim"]
+        df["scalar"] = df["scalar"].clip(lower=0.5, upper=1.5)
         df["offset"] = 0.0
 
-        # keep same column naming convention as downstream expects
-        # (your format_bc_factors expects columns: year, time_res, cluster, scalar, offset after dropping obs/sim)
+        # Keep same column naming convention
         df = df[["year", time_res, "cluster", "obs", "sim", "scalar", "offset"]]
 
         clus_info = turb_info.copy()
-        clus_info["cluster"] = 0
 
         return df, clus_info
 
@@ -749,6 +547,10 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
 
     return train_bias_df, clus_info
 
+
+# ============================================================================
+# SUPPORTING UTILITY FUNCTIONS
+# ============================================================================
 
 def interp_nans(df, limit):
     """Interpolate NaNs in long-form observations.
@@ -874,14 +676,27 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def format_bc_factors(train_bias_df, time_res):
-    """Aggregate bias correction factors by cluster and time slice."""
+    """Aggregate bias correction factors by cluster and time slice.
+
+    Scalar: varies by (cluster, time_res) - captures temporal/seasonal variation per cluster
+    Offset: varies by (cluster, time_res) - captures systematic spatial bias per season/period
+
+    Both are aggregated across years to form a repeatable seasonal pattern.
+    """
     train_bias_df = train_bias_df.drop(["obs", "sim"], axis=1)
     train_bias_df["scalar"] = train_bias_df["scalar"].replace(0, np.nan)
     train_bias_df.columns = ["year", time_res, "cluster", "scalar", "offset"]
 
-    bc_factors = train_bias_df.groupby(["cluster", time_res], as_index=False).agg({"scalar": "mean", "offset": "mean"})
-    bc_factors.loc[bc_factors["scalar"].isna(), "offset"] = 0
+    # Both scalar and offset: per (cluster, time_res), aggregated across years
+    # This captures seasonal spatial patterns that repeat annually
+    bc_factors = train_bias_df.groupby(["cluster", time_res], as_index=False).agg({
+        "scalar": "mean",
+        "offset": "mean"
+    })
+
+    # Handle NaN values
     bc_factors.loc[bc_factors["scalar"].isna(), "scalar"] = 1
+    bc_factors.loc[bc_factors["offset"].isna(), "offset"] = 0
 
     return bc_factors
 
@@ -897,19 +712,5 @@ def add_times(df):
     return df
 
 
-def add_time_res(df):
-    """Add bimonth, season, and fixed time-resolution columns."""
-    df.loc[df["month"] == 1, ["bimonth", "season"]] = ["1/6", "winter"]
-    df.loc[df["month"] == 2, ["bimonth", "season"]] = ["1/6", "winter"]
-    df.loc[df["month"] == 3, ["bimonth", "season"]] = ["2/6", "spring"]
-    df.loc[df["month"] == 4, ["bimonth", "season"]] = ["2/6", "spring"]
-    df.loc[df["month"] == 5, ["bimonth", "season"]] = ["3/6", "spring"]
-    df.loc[df["month"] == 6, ["bimonth", "season"]] = ["3/6", "summer"]
-    df.loc[df["month"] == 7, ["bimonth", "season"]] = ["4/6", "summer"]
-    df.loc[df["month"] == 8, ["bimonth", "season"]] = ["4/6", "summer"]
-    df.loc[df["month"] == 9, ["bimonth", "season"]] = ["5/6", "autumn"]
-    df.loc[df["month"] == 10, ["bimonth", "season"]] = ["5/6", "autumn"]
-    df.loc[df["month"] == 11, ["bimonth", "season"]] = ["6/6", "autumn"]
-    df.loc[df["month"] == 12, ["bimonth", "season"]] = ["6/6", "winter"]
-    df["fixed"] = "1/1"
-    return df
+# Backward compatibility alias for add_time_res (now in vwf.time_utils)
+add_time_res = add_time_resolution_columns
