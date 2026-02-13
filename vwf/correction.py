@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from calendar import monthrange
+from scipy.optimize import minimize, minimize_scalar
 
-from vwf.wind import (
-    train_simulate_wind
-)
+from vwf.wind import interpolate_wind, train_simulate_wind, train_simulate_wind_from_ws
+from vwf.time_utils import parse_time_slice
 
 
 def calculate_scalar(gen_cf, time_res):
@@ -21,18 +21,20 @@ def calculate_scalar(gen_cf, time_res):
         pandas.DataFrame: DataFrame with ``year``, ``time_slice``, ``cluster``,
         ``obs``, ``sim``, and ``scalar`` columns.
     """
+    # # Simple mean aggregation (no capacity weighting)
+    # # Scalars represent spatial reanalysis bias, not capacity distribution
+    # # Capacity weighting should only occur during final aggregation to country level
+    # df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
+    #                         "obs": "mean",
+    #                         "sim": "mean",
+    #                         })
+    
+    # OLD APPROACH: Capacity-weighted averaging (commented out)
+    # This was causing double-weighting issues where scalars were influenced by turbine size
+    # rather than just representing the meteorological bias at that location
+
     def weighted_avg(group_df, whole_df, values, weights):
-        """Compute a weighted average for a group.
-
-        Args:
-            group_df: Grouped DataFrame view.
-            whole_df: Full DataFrame for indexing.
-            values: Column name with values to average.
-            weights: Column name with weights.
-
-        Returns:
-            Weighted average as a float.
-        """
+        """Compute a weighted average for a group."""
         v = whole_df.loc[group_df.index, values]
         w = whole_df.loc[group_df.index, weights]
         return (v * w).sum() / w.sum()
@@ -42,91 +44,432 @@ def calculate_scalar(gen_cf, time_res):
                             "sim": lambda x: weighted_avg(x, gen_cf, 'sim', 'capacity'),
                             })
         
-    # bias_data['scalar'] = (0.6 * (bias_data['obs'] / bias_data['sim'])) + 0.2
     df['scalar'] = df['obs'] / df['sim']
+    
+    # Constrain scalars to prevent extreme corrections
+    # Values outside [0.5, 1.5] indicate potential overfitting or data issues
+    df['scalar'] = df['scalar'].clip(lower=0.5, upper=1.5)
+    
     df = df.reset_index()
     df.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
         
     return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
     
-def find_offset(row, turb_info, reanalysis, powerCurveFile):
+def _find_offset_iterative(row, unc_ws, powerCurveFile,
+                           max_iter=100, tolerance=0.002, initial_step=3.0):
+    """Fast iterative optimization using damped cube root step sizing.
+
+    Args:
+        row: Row with year, cluster, time_slice, obs, sim, scalar
+        unc_ws: Interpolated wind speeds for this cluster/time slice
+        powerCurveFile: Power curve lookup
+        max_iter: Maximum iterations (default: 100, increased to handle smaller steps)
+        tolerance: Convergence tolerance
+        initial_step: Initial step size (default: 3.0 m/s, constrained for realism)
+
+    Returns:
+        float: Optimized offset (or np.nan if failed), clipped to [-3, 3] m/s
+    """
+    step = np.sign(row.obs - row.sim) * initial_step
+    step_prev = step
+    offset = 0.0
+
+    for _ in range(max_iter):
+        # Check convergence
+        if np.abs(step) <= tolerance:
+            # Clip final offset to physically reasonable bounds
+            return np.clip(offset, -3.0, 3.0)
+
+        # Simulate with current offset
+        mean_sim_cf = train_simulate_wind_from_ws(
+            unc_ws,
+            powerCurveFile,
+            row.scalar,
+            offset
+        )
+
+        # Calculate error and step (damped cube root for power ~ wind³)
+        # Use smaller damping factor (0.3) to prevent overshooting
+        error = row.obs - mean_sim_cf
+        step = 0.3 * np.cbrt(error)
+
+        # Prevent oscillation
+        if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
+            step = -step_prev / 2
+        elif np.sign(step) == np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
+            step = step_prev / 2
+
+        # Update
+        step_prev = step
+        offset += step
+        
+        # Constrain offset search to physically reasonable bounds
+        offset = np.clip(offset, -3.0, 3.0)
+
+    # Failed to converge - return best effort within bounds
+    return np.clip(offset, -3.0, 3.0)
+
+
+def _find_offset_scipy(row, unc_ws, powerCurveFile, bounds=(-3, 3)):
+    """Robust scipy optimization fallback.
+
+    Args:
+        row: Row with correction factors
+        unc_ws: Interpolated wind speeds for this cluster/time slice
+        powerCurveFile: Power curve lookup
+        bounds: Offset search bounds (default: (-3, 3) m/s, constrained for realism)
+        bounds: Tuple (min, max) offset bounds
+
+    Returns:
+        float: Optimized offset (or np.nan if failed)
+    """
+    def objective(offset):
+        """Squared error between observed and simulated CF."""
+        sim_cf = train_simulate_wind_from_ws(
+            unc_ws,
+            powerCurveFile,
+            row.scalar,
+            offset
+        )
+        return (sim_cf - row.obs) ** 2
+
+    try:
+        result = minimize_scalar(
+            objective,
+            bounds=bounds,
+            method='bounded',
+            options={'xatol': 0.001}
+        )
+
+        if result.success:
+            return result.x
+        else:
+            return np.nan
+
+    except Exception:
+        return np.nan
+
+
+def find_offset(row, turb_info, reanalysis, powerCurveFile,
+                max_iter=30, tolerance=0.002, initial_step=3.0,
+                bounds=(-3, 3), use_scipy_fallback=True, verbose=False):
     """Optimize the additive offset correction factor.
 
+    Uses a hybrid approach: fast iterative method with scipy fallback for robustness.
     This iteratively applies offsets to simulated wind speeds until the
     simulated capacity factor matches observations for the given row.
 
     Args:
-        row (pandas.Series): Row with ``year``, ``cluster``, and ``time_slice``.
+        row (pandas.Series): Row with ``year``, ``cluster``, ``time_slice``, ``obs``, ``sim``, ``scalar``.
         turb_info (pandas.DataFrame): Turbine metadata including height and coordinates.
         reanalysis (xarray.Dataset): Wind parameters on a grid.
         powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
+        max_iter (int): Maximum iterations for fast method (default: 30).
+        tolerance (float): Convergence tolerance (default: 0.002).
+        initial_step (float): Initial step size for fast method (default: 3.0 m/s, constrained for realism).
+        bounds (tuple): Offset bounds for scipy method (default: (-3, 3) m/s, constrained for physical realism).
+        powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
+        max_iter (int): Maximum iterations for fast method (default: 30).
+        tolerance (float): Convergence tolerance (default: 0.002).
+        initial_step (float): Initial step size for fast method (default: 10.0).
+        bounds (tuple): Offset bounds for scipy method (default: (-3, 3) m/s, constrained for physical realism).
+        use_scipy_fallback (bool): Use scipy if fast method fails (default: True).
+        verbose (bool): Print warnings for failed optimizations (default: False).
 
     Returns:
-        float: Best-fit offset value.
+        float: Best-fit offset value (or np.nan if all methods fail).
     """
-    if row['time_slice'] == 'spring':
-        time_slice = [3,4,5]
-    elif row['time_slice'] == 'summer':
-        time_slice = [6,7,8]
-    elif row['time_slice'] == 'autumn':
-        time_slice = [9,10,11]
-    elif row['time_slice'] == 'winter':
-        time_slice = [1,2,12]
-    elif row['time_slice'] == '1/6':
-        time_slice = [1,2]
-    elif row['time_slice'] == '2/6':
-        time_slice = [3,4]
-    elif row['time_slice'] == '3/6':
-        time_slice = [5,6]
-    elif row['time_slice'] == '4/6':
-        time_slice = [7,8]
-    elif row['time_slice'] == '5/6':
-        time_slice = [9,10]
-    elif row['time_slice'] == '6/6':
-        time_slice = [11,12]
-    elif row['time_slice'] == '1/1':
-        time_slice = [1,2,3,4,5,6,7,8,9,10,11,12]
-    else:
-        time_slice = int(row['time_slice'])
-    
-    #initialize step size
-    step = np.sign(row.obs - row.sim) * 10
-    step_prev = step
-    offset = 0
-    n = 30 # max 30 iterations
-    
-    # loop will run until the step size is smaller than our power curve's resolution
-    while np.abs(step) > 0.002: 
-        if n == 0:
-            offset = np.nan
-            break
-        n -= 1
-        
-        # calculate the mean simulated CF using the new offset
-        mean_sim_cf = train_simulate_wind(
-            reanalysis.sel(
-                    time=np.logical_and(
-                    reanalysis.time.dt.year == row.year, 
-                    reanalysis.time.dt.month.isin(time_slice)
-                    )
-            ),
-            turb_info.loc[turb_info['cluster'] == row.cluster],
-            powerCurveFile, 
-            row.scalar, 
-            offset
-        )
-        
-        # wind power is roughly cube of wind speed, this provides a good step size
-        step = np.cbrt(row.obs - mean_sim_cf)
-        # prevent the step size oscilating between + and -
-        if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
-            step = -step_prev/2
+    # Parse time slice to months
+    months = parse_time_slice(row['time_slice'])
 
-        # ensure the step size reduces through iterations
-        elif np.sign(step) == np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
-            step = step_prev/2
-            
-        step_prev = step
-        offset += step
+    # Pre-filter reanalysis data once
+    reanalysis_filtered = reanalysis.sel(
+        time=np.logical_and(
+            reanalysis.time.dt.year == row.year,
+            reanalysis.time.dt.month.isin(months)
+        )
+    )
+
+    # Pre-filter cluster turbines once
+    cluster_turbs = turb_info.loc[turb_info['cluster'] == row.cluster].copy()
+
+    # Handle case where cluster filtering returns empty
+    if len(cluster_turbs) == 0:
+        if verbose:
+            print(f"Warning: No turbines found for cluster={row.cluster} (available: {sorted(turb_info['cluster'].unique())})")
+        return np.nan
+
+    # Pre-compute interpolated wind speeds once for this row
+    unc_ws = interpolate_wind(reanalysis_filtered, cluster_turbs)
+
+    # Try fast iterative method first
+    offset = _find_offset_iterative(
+        row, unc_ws, powerCurveFile, max_iter, tolerance, initial_step
+    )
+
+    # If failed and fallback enabled, use scipy
+    if np.isnan(offset) and use_scipy_fallback:
+        offset = _find_offset_scipy(
+            row, unc_ws, powerCurveFile, bounds
+        )
+
+    # Optional warning for failed optimizations
+    if verbose and np.isnan(offset):
+        print(f"Warning: Offset optimization failed for cluster={row.cluster}, "
+              f"year={row.year}, time_slice={row['time_slice']}")
+
     return offset
 
+
+def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_cluster, turb_info, reanalysis, powerCurveFile):
+    """Optimize offsets for all clusters in country-level mode.
+
+    For country-level data, all clusters share the same country-wide observation.
+    This function optimizes each cluster's offset simultaneously to minimize the
+    error when aggregated to country level.
+
+    Args:
+        year: Year to process
+        time_slice: Time period (e.g., '1/1' for fixed, 'winter' for season)
+        obs_country_cf: Observed country-wide capacity factor
+        scalars_by_cluster: Dict mapping cluster ID to scalar value
+        turb_info: Turbine/grid point metadata with cluster assignments
+        reanalysis: xarray Dataset with wind data
+        powerCurveFile: Power curve lookup table
+
+    Returns:
+        dict: Mapping of cluster ID to optimized offset value
+    """
+    # Parse time_slice to month list
+    months = parse_time_slice(time_slice)
+
+    # Filter reanalysis to time period
+    reanalysis_period = reanalysis.sel(
+        time=np.logical_and(
+            reanalysis.time.dt.year == year,
+            reanalysis.time.dt.month.isin(months)
+        )
+    )
+
+    # Get cluster IDs
+    clusters = sorted(turb_info['cluster'].unique())
+
+    # Get capacity weights for aggregation
+    capacity_by_cluster = turb_info.groupby('cluster')['capacity'].sum()
+    total_capacity = capacity_by_cluster.sum()
+
+    def objective(offsets):
+        """Objective function: squared error between simulated and observed country CF."""
+        cluster_cfs = []
+        cluster_weights = []
+
+        for i, cluster_id in enumerate(clusters):
+            scalar = scalars_by_cluster.get(cluster_id, 1.0)
+            offset = offsets[i]
+
+            # Get turbines in this cluster
+            cluster_turbs = turb_info[turb_info['cluster'] == cluster_id]
+
+            if len(cluster_turbs) == 0:
+                continue
+
+            # Simulate with this cluster's corrections
+            mean_cf = train_simulate_wind(
+                reanalysis_period,
+                cluster_turbs,
+                powerCurveFile,
+                scalar,
+                offset
+            )
+
+            cluster_cfs.append(mean_cf)
+            cluster_weights.append(capacity_by_cluster[cluster_id])
+
+        # Aggregate to country level (capacity-weighted average)
+        if len(cluster_cfs) == 0 or sum(cluster_weights) == 0:
+            return 1e6  # Large penalty
+
+        country_cf_sim = sum(cf * w for cf, w in zip(cluster_cfs, cluster_weights)) / sum(cluster_weights)
+
+        # Return squared error
+        error = (country_cf_sim - obs_country_cf) ** 2
+        return error
+
+    # Initial guess: all offsets = 0
+    x0 = np.zeros(len(clusters))
+
+    # Bounds: offsets between -10 and +10 m/s seem reasonable
+    bounds = [(-10, 10) for _ in clusters]
+
+    # Optimize
+    try:
+        result = minimize(
+            objective,
+            x0,
+            method='L-BFGS-B',
+            bounds=bounds,
+            options={'maxiter': 50, 'ftol': 1e-6}
+        )
+
+        # Return dict mapping cluster to offset
+        offsets_dict = {cluster_id: result.x[i] for i, cluster_id in enumerate(clusters)}
+
+        return offsets_dict
+
+    except Exception as e:
+        print(f"  Warning: Offset optimization failed for year={year}, time_slice={time_slice}: {e}")
+        # Return zero offsets as fallback
+        return {cluster_id: 0.0 for cluster_id in clusters}
+
+
+def apply_corrections_by_geometry(
+    simulation_points: pd.DataFrame,
+    correction_factors: pd.DataFrame,
+    cluster_geometries: pd.DataFrame,
+    year: int,
+    time_slice: str,
+) -> pd.DataFrame:
+    """Apply corrections based on spatial location rather than turbine ID.
+
+    This function applies spatial bias corrections. Instead of looking up corrections
+    by turbine ID, it uses the lat/lon location to determine which correction
+    cluster a point belongs to. This enables:
+    - Applying corrections to new locations not in training set
+    - Using grid-based corrections for country-level data
+    - Consistent correction application across different data sources
+
+    Args:
+        simulation_points: DataFrame with lat, lon, sim_cf (simulated capacity factors)
+        correction_factors: DataFrame from calculate_scalar() with columns:
+            year, time_slice, cluster, obs, sim, scalar
+        cluster_geometries: DataFrame or GeoDataFrame with cluster and geometry columns
+        year: Year to use for corrections
+        time_slice: Time slice to use (e.g., 'winter', 'spring', '1/1', etc.)
+
+    Returns:
+        DataFrame with columns:
+        - lat, lon: Original coordinates
+        - sim_cf: Original simulated capacity factor
+        - cluster: Assigned cluster ID
+        - scalar: Correction factor applied
+        - corrected_cf: sim_cf * scalar
+
+    Raises:
+        ValueError: If required columns are missing
+
+    Example:
+        >>> # Apply corrections from grid-based training to new simulation points
+        >>> from vwf.clustering import create_sampling_points, cluster_with_geometries
+        >>> from vwf.correction import calculate_scalar, apply_corrections_by_geometry
+        >>>
+        >>> # 1. Train corrections (done once)
+        >>> grid_points = create_sampling_points(nl_bounds, method="grid")
+        >>> # ... simulate and calculate corrections ...
+        >>> points_clustered, cluster_geoms = cluster_with_geometries(
+        ...     grid_points, num_clusters=5
+        ... )
+        >>> corrections = calculate_scalar(gen_cf, time_res='season')
+        >>>
+        >>> # 2. Apply to future simulation
+        >>> future_points = pd.DataFrame({
+        ...     'lat': [52.0, 52.5, 51.8],
+        ...     'lon': [4.5, 5.0, 4.2],
+        ...     'sim_cf': [0.30, 0.35, 0.28]
+        ... })
+        >>> corrected = apply_corrections_by_geometry(
+        ...     simulation_points=future_points,
+        ...     correction_factors=corrections,
+        ...     cluster_geometries=cluster_geoms,
+        ...     year=2021,
+        ...     time_slice='winter'
+        ... )
+        >>> print(corrected[['lat', 'lon', 'sim_cf', 'corrected_cf']])
+    """
+    # Validate inputs
+    required_sim_cols = ['lat', 'lon', 'sim_cf']
+    missing = [col for col in required_sim_cols if col not in simulation_points.columns]
+    if missing:
+        raise ValueError(f"simulation_points missing columns: {missing}")
+
+    required_corr_cols = ['year', 'time_slice', 'cluster', 'scalar']
+    missing = [col for col in required_corr_cols if col not in correction_factors.columns]
+    if missing:
+        raise ValueError(f"correction_factors missing columns: {missing}")
+
+    # Get correction factors for this year/time_slice
+    corrections = correction_factors[
+        (correction_factors['year'] == year) &
+        (correction_factors['time_slice'] == time_slice)
+    ].copy()
+
+    if len(corrections) == 0:
+        raise ValueError(
+            f"No correction factors found for year={year}, time_slice={time_slice}"
+        )
+
+    # Check if cluster_geometries has geometry column (GeoDataFrame)
+    if 'geometry' in cluster_geometries.columns:
+        # Use spatial join
+        try:
+            import geopandas as gpd
+            from shapely.geometry import Point
+
+            # Create Points from simulation locations
+            geometry = [Point(lon, lat) for lon, lat in
+                       zip(simulation_points['lon'], simulation_points['lat'])]
+
+            sim_gdf = gpd.GeoDataFrame(
+                simulation_points,
+                geometry=geometry,
+                crs="EPSG:4326"
+            )
+
+            # Ensure cluster_geometries is a GeoDataFrame
+            if not isinstance(cluster_geometries, gpd.GeoDataFrame):
+                cluster_geoms = gpd.GeoDataFrame(
+                    cluster_geometries,
+                    geometry='geometry',
+                    crs="EPSG:4326"
+                )
+            else:
+                cluster_geoms = cluster_geometries
+
+            # Spatial join: assign each point to a cluster based on geometry
+            joined = gpd.sjoin(
+                sim_gdf,
+                cluster_geoms[['cluster', 'geometry']],
+                how="left",
+                predicate="within"
+            )
+
+            # Drop geometry column for simplicity
+            result = pd.DataFrame(joined.drop(columns=['geometry']))
+
+        except ImportError:
+            raise ImportError(
+                "geopandas required for geometry-based corrections. "
+                "Install with: pip install geopandas"
+            )
+
+    else:
+        # No geometry column - assume cluster is directly provided
+        if 'cluster' not in simulation_points.columns:
+            raise ValueError(
+                "Either cluster_geometries must have 'geometry' column, "
+                "or simulation_points must have 'cluster' column"
+            )
+        result = simulation_points.copy()
+
+    # Merge with correction factors
+    result = result.merge(
+        corrections[['cluster', 'scalar']],
+        on='cluster',
+        how='left'
+    )
+
+    # Apply correction
+    # If no cluster assigned (point outside all geometries), use scalar=1.0
+    result['scalar'] = result['scalar'].fillna(1.0)
+    result['corrected_cf'] = result['sim_cf'] * result['scalar']
+
+    return result[['lat', 'lon', 'sim_cf', 'cluster', 'scalar', 'corrected_cf']]

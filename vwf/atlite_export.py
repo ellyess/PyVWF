@@ -1,3 +1,5 @@
+"""Export PyVWF correction fields to an atlite cutout grid."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,7 +27,17 @@ def _coerce_finite_lonlat(
     lat_col: str = "lat",
     name: str = "points",
 ) -> pd.DataFrame:
-    """Coerce lon/lat to numeric and drop rows with NaN/Inf coordinates."""
+    """Coerce lon/lat to numeric and drop non-finite coordinates.
+
+    Args:
+        df: Input table with longitude/latitude columns.
+        lon_col: Column name for longitudes.
+        lat_col: Column name for latitudes.
+        name: Label used in warning messages.
+
+    Returns:
+        DataFrame with finite lon/lat rows only.
+    """
     d = df.copy()
     d[lon_col] = pd.to_numeric(d[lon_col], errors="coerce")
     d[lat_col] = pd.to_numeric(d[lat_col], errors="coerce")
@@ -37,7 +49,14 @@ def _coerce_finite_lonlat(
 
 
 def _normalise_domain_series(s: pd.Series) -> pd.Series:
-    """Normalise various encodings to 'onshore'/'offshore'."""
+    """Normalize various encodings to "onshore"/"offshore".
+
+    Args:
+        s: Domain label series with mixed encodings.
+
+    Returns:
+        Series with standardized "onshore"/"offshore" labels.
+    """
     if s.dtype == bool:
         return s.map(lambda x: "offshore" if x else "onshore")
 
@@ -61,7 +80,17 @@ def _normalise_domain_series(s: pd.Series) -> pd.Series:
 
 
 def cutout_lonlat(ds: xr.Dataset) -> tuple[np.ndarray, np.ndarray]:
-    """Return 1D lon and lat coordinates from an atlite cutout dataset."""
+    """Return 1D lon and lat coordinates from an atlite cutout dataset.
+
+    Args:
+        ds: Atlite cutout dataset with x/y coordinates.
+
+    Returns:
+        Tuple of (lon, lat) coordinate arrays.
+
+    Raises:
+        KeyError: If lon/lat coordinates cannot be found after renaming.
+    """
     ds = ds.drop_vars(['lat','lon','height']).rename({'x':'lon', 'y':'lat'})
     if "lon" in ds.coords and "lat" in ds.coords:
         return ds["lon"].values, ds["lat"].values
@@ -69,6 +98,14 @@ def cutout_lonlat(ds: xr.Dataset) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _union_geom(path: Path):
+    """Load and union geometries from a GeoJSON file.
+
+    Args:
+        path: GeoJSON file path.
+
+    Returns:
+        Union geometry in EPSG:4326.
+    """
     gdf = gpd.read_file(path)
     if gdf.empty:
         raise ValueError(f"No geometries found in {path}")
@@ -140,7 +177,18 @@ def spatial_bin_average(
     lat_col: str = "lat",
     value_cols: tuple[str, ...] = ("scalar", "offset"),
 ) -> pd.DataFrame:
-    """Bin points onto a coarse lon/lat grid and average within bins."""
+    """Bin points onto a coarse lon/lat grid and average within bins.
+
+    Args:
+        df: Input points with lon/lat and value columns.
+        ddeg: Bin size in degrees.
+        lon_col: Longitude column name.
+        lat_col: Latitude column name.
+        value_cols: Columns to average per bin.
+
+    Returns:
+        DataFrame of binned averages.
+    """
     d = df[[lon_col, lat_col, *value_cols]].dropna().copy()
     d["lon_bin"] = np.floor(d[lon_col] / ddeg).astype(int)
     d["lat_bin"] = np.floor(d[lat_col] / ddeg).astype(int)
@@ -161,7 +209,20 @@ def krige_to_grid(
     nlags: int = 6,
     n_closest_points: int | None = None,
 ) -> xr.DataArray:
-    """Ordinary kriging from scattered points to a lon/lat grid."""
+    """Kriging from scattered points to a lon/lat grid.
+
+    Args:
+        df: Input points with lon/lat and value columns.
+        value_col: Column name of the values to interpolate.
+        lon_grid: 1D longitude grid.
+        lat_grid: 1D latitude grid.
+        variogram_model: Variogram model name.
+        nlags: Number of lags for variogram fitting.
+        n_closest_points: Optional local neighborhood size.
+
+    Returns:
+        DataArray of interpolated values on the grid.
+    """
     d = df[["lon", "lat", value_col]].dropna()
     d["lon"] = pd.to_numeric(d["lon"], errors="coerce")
     d["lat"] = pd.to_numeric(d["lat"], errors="coerce")
@@ -422,11 +483,8 @@ def export_pyvwf_grid(
     out_nc = Path(out_nc)
     out_nc.parent.mkdir(parents=True, exist_ok=True)
     
-    # 
     # Final rename for atlite compatibility
     # Atlite expects grid dimensions to be named 'x' and 'y'
-    # 
-
     ds_out = ds_out.rename({"lon": "x", "lat": "y"})
 
     # Ensure ordering is (y, x), which atlite uses internally
@@ -445,8 +503,8 @@ if __name__ == "__main__":
     )
     out = export_pyvwf_grid(
         cutout_nc=CUTOUT_PATH,
-        points_csv=Path("out/correction_points.csv"),
-        out_nc=Path("out/pyvwf_bias_grid.nc"),
+        points_csv=Path("output/correction_points.csv"),
+        out_nc=Path("output/pyvwf_bias_grid.nc"),
         onshore_geojson=Path("input/regions/country_shapes.geojson"),
         offshore_geojson=Path("input/regions/north_sea_shape.geojson"),
         domain_col="type",   # correction_points.csv uses 'type'

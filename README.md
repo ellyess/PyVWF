@@ -179,7 +179,7 @@ from vwf import export_pyvwf_grid
 # Export correction factors to atlite cutout grid
 export_pyvwf_grid(
     cutout_nc='cutouts/europe-2023.nc',
-    points_csv='out/correction_points.csv',  # Your bias correction results
+    points_csv='output/correction_points.csv',  # Your bias correction results
     out_nc='output/bias_grid.nc',
     onshore_geojson='input/regions/country_shapes.geojson',
     offshore_geojson='input/regions/north_sea_shape.geojson',
@@ -229,9 +229,9 @@ from vwf import export_ml_correction_grid
 
 # Train ML model and export gridded corrections in one step
 export_ml_correction_grid(
-    corrections_csv='out/correction_points.csv',
+    corrections_csv='output/correction_points.csv',
     grid_nc='cutouts/europe-2023.nc',
-    out_nc='out/ml_bias_grid.nc',
+    out_nc='output/ml_bias_grid.nc',
     terrain_nc='input/terrain/europe_terrain.nc',  # Optional: elevation, slope, etc.
     coastline_geojson='input/regions/coastline.geojson',  # Optional: for distance-to-coast
     model_type='random_forest',  # Or: gradient_boosting, xgboost, lightgbm, ridge
@@ -246,7 +246,7 @@ export_ml_correction_grid(
 from vwf.ml_correction import create_feature_matrix, train_correction_model
 
 # Load correction points and add terrain features
-corrections = pd.read_csv('out/correction_points.csv')
+corrections = pd.read_csv('output/correction_points.csv')
 
 features = create_feature_matrix(
     corrections,
