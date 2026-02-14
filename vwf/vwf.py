@@ -471,7 +471,7 @@ class PyVWF:
                 
                 # Drop the old capacity column and merge year-specific capacity
                 gen_cf = gen_cf.drop(columns=['capacity'], errors='ignore')
-                gen_cf = gen_cf.merge(year_capacity_df, on=['ID', 'year'], how='left')
+                w = gen_cf.merge(year_capacity_df, on=['ID', 'year'], how='left')
                 print(f"  ✓ Merged year-specific capacities for {len(self.grid_points_by_year)} years")
 
         turb_info_train.to_csv(
