@@ -42,10 +42,10 @@ except ImportError:
 # ============================================================================
 
 # Input data
-UNIFIED_CORRECTIONS_CSV = "output/unified_corrections/all_corrections_centroids.csv"
+UNIFIED_CORRECTIONS_CSV = "output/grid_run/turbine_grid/all_corrections_centroids.csv"
 
 # Output directory
-OUTPUT_DIR = Path("output/unified_corrections_grid_comparison")
+OUTPUT_DIR = Path("output/grid_run/turbine_grid/grid_comparison")
 
 # Grid resolution (degrees)
 GRID_RESOLUTION = 0.25

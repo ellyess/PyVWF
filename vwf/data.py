@@ -366,14 +366,6 @@ def train_set(
     # ---------------------------------
     # Turbine-level branch
     # ---------------------------------
-    sim_ws, sim_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
-
-    sim_cf = sim_cf.groupby(pd.Grouper(key="time", freq="ME")).mean().reset_index()
-    sim_cf = sim_cf.melt(id_vars=["time"], var_name="ID", value_name="sim")
-    sim_cf = add_times(sim_cf)
-    sim_cf = add_time_res(sim_cf)
-    sim_cf["ID"] = sim_cf["ID"].astype(str)
-
     obs_cf = obs_data
     obs_cf = clean_obs_data(obs_cf, country, True)
 
@@ -402,6 +394,16 @@ def train_set(
 
     turb_info = turb_info.loc[turb_info["ID"].isin(obs_cf["ID"])].reset_index(drop=True)
 
+    # Subset reanalysis to training years so sim_cf matches obs year range
+    reanalysis = reanalysis.sel(time=slice(str(year_star), str(year_end)))
+
+    sim_ws, sim_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+
+    sim_cf = sim_cf.groupby(pd.Grouper(key="time", freq="ME")).mean().reset_index()
+    sim_cf = sim_cf.melt(id_vars=["time"], var_name="ID", value_name="sim")
+    sim_cf = add_times(sim_cf)
+    sim_cf = add_time_res(sim_cf)
+    sim_cf["ID"] = sim_cf["ID"].astype(str)
     obs_cf["ID"] = obs_cf["ID"].astype(str)
 
     gen_cf = pd.merge(sim_cf, obs_cf, on=["ID", "month", "year"], how="left")
@@ -522,7 +524,7 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
 
         # Compute scalar per cluster with constraints to prevent extreme corrections
         df["scalar"] = df["obs"] / df["sim"]
-        df["scalar"] = df["scalar"].clip(lower=0.5, upper=1.5)
+        # df["scalar"] = df["scalar"].clip(lower=0.5, upper=1.5)
         df["offset"] = 0.0
 
         # Keep same column naming convention
@@ -694,9 +696,9 @@ def format_bc_factors(train_bias_df, time_res):
         "offset": "mean"
     })
 
-    # Handle NaN values
+    # Handle NaN values (zero offset BEFORE setting scalar, so the isna check works)
+    bc_factors.loc[bc_factors["scalar"].isna(), "offset"] = 0
     bc_factors.loc[bc_factors["scalar"].isna(), "scalar"] = 1
-    bc_factors.loc[bc_factors["offset"].isna(), "offset"] = 0
 
     return bc_factors
 

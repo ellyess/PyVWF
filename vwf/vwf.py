@@ -1,10 +1,18 @@
 """Core PyVWF training and simulation workflow."""
 import os
+
+# Prevent OpenBLAS/MKL thread contention when using Dask process workers.
+# Must be set before numpy is imported.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import time
 from pathlib import Path
 import itertools
 
 import pandas as pd
+import numpy as np
 import dask.dataframe as dd
 
 from vwf.data import (
@@ -504,10 +512,10 @@ class PyVWF:
             # Calculate offsets
             if self.obs_level == "turbine":
                 # Skip rows with zero or missing observations (can't optimize)
-                valid_obs = train_bias_df[train_bias_df['obs'] > 0].copy()
+                valid_obs = train_bias_df[train_bias_df['obs'].notna() & (train_bias_df['obs'] > 0)].copy()
 
                 if len(valid_obs) == 0:
-                    print("  Warning: No valid observations for offset optimization (all obs=0)")
+                    print("  Warning: No valid observations for offset optimization (all obs=0 or NaN)")
                     train_bias_df['offset'] = 0.0
                 else:
                     # parallelisation to find offset
@@ -519,13 +527,21 @@ class PyVWF:
                             axis=1,
                         )
 
-                    if dask_npartitions and dask_npartitions > 0:
-                        npartitions = dask_npartitions
-                    else:
-                        npartitions = max((dask_n_workers or 0) * 4, 1)
-                    ddf = dd.from_pandas(valid_obs, npartitions=npartitions)
+                    if not dask_n_workers or dask_n_workers == 0:
+                        # Direct pandas apply (no Dask overhead, avoids serialization issues)
+                        print(f"  Computing offsets sequentially for {len(valid_obs)} rows...")
+                        valid_obs["offset"] = valid_obs.apply(
+                            correction.find_offset,
+                            args=(clus_info, reanalysis, power_curves),
+                            axis=1,
+                        )
+                    elif dask_use_distributed:
+                        if dask_npartitions and dask_npartitions > 0:
+                            npartitions = dask_npartitions
+                        else:
+                            npartitions = max(dask_n_workers * 4, 1)
+                        ddf = dd.from_pandas(valid_obs, npartitions=npartitions)
 
-                    if dask_use_distributed and dask_n_workers and dask_n_workers > 0:
                         try:
                             from dask.distributed import Client, LocalCluster
 
@@ -552,20 +568,21 @@ class PyVWF:
                                 cluster.close()
                         except Exception as exc:
                             print(
-                                "Warning: Dask distributed setup failed; falling back to processes scheduler. "
+                                "Warning: Dask distributed setup failed; falling back to sequential. "
                                 f"Details: {exc}"
                             )
-                            ddf["offset"] = ddf.map_partitions(
-                                find_offset_parallel,
-                                clus_info,
-                                reanalysis,
-                                power_curves,
-                                meta=("offset", "float"),
+                            valid_obs["offset"] = valid_obs.apply(
+                                correction.find_offset,
+                                args=(clus_info, reanalysis, power_curves),
+                                axis=1,
                             )
-                            # Use synchronous scheduler when no workers requested
-                            scheduler = "synchronous" if dask_n_workers == 0 else "processes"
-                            valid_obs = ddf.compute(scheduler=scheduler)
                     else:
+                        # Dask with processes scheduler (no distributed)
+                        if dask_npartitions and dask_npartitions > 0:
+                            npartitions = dask_npartitions
+                        else:
+                            npartitions = max(dask_n_workers * 4, 1)
+                        ddf = dd.from_pandas(valid_obs, npartitions=npartitions)
                         ddf["offset"] = ddf.map_partitions(
                             find_offset_parallel,
                             clus_info,
@@ -573,14 +590,14 @@ class PyVWF:
                             power_curves,
                             meta=("offset", "float"),
                         )
-                        # Use synchronous scheduler when no workers requested (for testing/debugging)
-                        scheduler = "synchronous" if dask_n_workers == 0 else "processes"
-                        valid_obs = ddf.compute(scheduler=scheduler)
+                        valid_obs = ddf.compute(scheduler="processes")
 
-                    # Merge back with zero-obs rows
-                    zero_obs = train_bias_df[train_bias_df['obs'] == 0].copy()
+                    # Merge back with zero-obs and NaN-obs rows
+                    zero_obs = train_bias_df[(train_bias_df['obs'] == 0)].copy()
                     zero_obs['offset'] = 0.0
-                    train_bias_df = pd.concat([valid_obs, zero_obs], ignore_index=True).sort_index()
+                    nan_obs = train_bias_df[train_bias_df['obs'].isna()].copy()
+                    nan_obs['offset'] = np.nan
+                    train_bias_df = pd.concat([valid_obs, zero_obs, nan_obs], ignore_index=True).sort_index()
             else:
                 # Country-level: optimize offsets for all clusters simultaneously
                 print("  Optimizing offsets for country-level data...")
