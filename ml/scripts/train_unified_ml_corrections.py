@@ -65,9 +65,9 @@ plt.rcParams['figure.dpi'] = 100
 # Configuration
 # =============================================================================
 
-UNIFIED_CORRECTIONS_CSV = Path("output/unified_corrections/all_corrections_centroids.csv")
-TERRAIN_NC = Path("input/terrain/terrain_north_sea_full.nc")
-IDW_GRID_NC = Path("output/unified_corrections_grid_comparison/europe_corrections_idw.nc")
+UNIFIED_CORRECTIONS_CSV = Path("output/grid_run/turbine_grid/all_corrections_centroids.csv")
+TERRAIN_NC = Path("input/terrain/terrain_europe_full.nc")
+IDW_GRID_NC = Path("output/grid_run/turbine_grid/grid_comparison/europe_corrections_idw.nc")
 
 MODEL_TYPES = {
     'random_forest': RandomForestRegressor(

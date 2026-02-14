@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from calendar import monthrange
 from scipy.optimize import minimize, minimize_scalar
 
-from vwf.wind import interpolate_wind, train_simulate_wind, train_simulate_wind_from_ws
+from vwf.wind import interpolate_wind, train_simulate_wind, train_simulate_wind_from_ws, prepare_offset_arrays, fast_simulate_cf
 from vwf.time_utils import parse_time_slice
 
 
@@ -37,7 +37,9 @@ def calculate_scalar(gen_cf, time_res):
         """Compute a weighted average for a group."""
         v = whole_df.loc[group_df.index, values]
         w = whole_df.loc[group_df.index, weights]
-        return (v * w).sum() / w.sum()
+        # Use min_count=1 so that all-NaN groups return NaN instead of 0.0
+        # (pd.Series.sum() returns 0.0 for all-NaN by default with skipna=True)
+        return (v * w).sum(min_count=1) / w.sum()
         
     df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
                             "obs": lambda x: weighted_avg(x, gen_cf, 'obs', 'capacity'),
@@ -48,27 +50,26 @@ def calculate_scalar(gen_cf, time_res):
     
     # Constrain scalars to prevent extreme corrections
     # Values outside [0.5, 1.5] indicate potential overfitting or data issues
-    df['scalar'] = df['scalar'].clip(lower=0.5, upper=1.5)
+    # df['scalar'] = df['scalar'].clip(lower=0.1, upper=2.0)
     
     df = df.reset_index()
     df.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
         
     return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
     
-def _find_offset_iterative(row, unc_ws, powerCurveFile,
-                           max_iter=100, tolerance=0.002, initial_step=3.0):
-    """Fast iterative optimization using damped cube root step sizing.
+def _find_offset_iterative(row, offset_arrays,
+                           max_iter=100, tolerance=0.002, initial_step=10.0):
+    """Fast iterative optimization using cube root step sizing.
 
     Args:
         row: Row with year, cluster, time_slice, obs, sim, scalar
-        unc_ws: Interpolated wind speeds for this cluster/time slice
-        powerCurveFile: Power curve lookup
-        max_iter: Maximum iterations (default: 100, increased to handle smaller steps)
+        offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
+        max_iter: Maximum iterations (default: 100)
         tolerance: Convergence tolerance
-        initial_step: Initial step size (default: 3.0 m/s, constrained for realism)
+        initial_step: Initial step size (default: 10.0 m/s)
 
     Returns:
-        float: Optimized offset (or np.nan if failed), clipped to [-3, 3] m/s
+        float: Optimized offset (or np.nan if failed)
     """
     step = np.sign(row.obs - row.sim) * initial_step
     step_prev = step
@@ -77,21 +78,14 @@ def _find_offset_iterative(row, unc_ws, powerCurveFile,
     for _ in range(max_iter):
         # Check convergence
         if np.abs(step) <= tolerance:
-            # Clip final offset to physically reasonable bounds
-            return np.clip(offset, -3.0, 3.0)
+            return offset
 
-        # Simulate with current offset
-        mean_sim_cf = train_simulate_wind_from_ws(
-            unc_ws,
-            powerCurveFile,
-            row.scalar,
-            offset
-        )
+        # Simulate with current offset using fast numpy path
+        mean_sim_cf = fast_simulate_cf(offset_arrays, row.scalar, offset)
 
-        # Calculate error and step (damped cube root for power ~ wind³)
-        # Use smaller damping factor (0.3) to prevent overshooting
+        # Calculate error and step (cube root for power ~ wind^3)
         error = row.obs - mean_sim_cf
-        step = 0.3 * np.cbrt(error)
+        step = np.cbrt(error)
 
         # Prevent oscillation
         if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
@@ -102,35 +96,25 @@ def _find_offset_iterative(row, unc_ws, powerCurveFile,
         # Update
         step_prev = step
         offset += step
-        
-        # Constrain offset search to physically reasonable bounds
-        offset = np.clip(offset, -3.0, 3.0)
 
-    # Failed to converge - return best effort within bounds
-    return np.clip(offset, -3.0, 3.0)
+    # Failed to converge - fall back to scipy
+    return np.nan
 
 
-def _find_offset_scipy(row, unc_ws, powerCurveFile, bounds=(-3, 3)):
+def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3)):
     """Robust scipy optimization fallback.
 
     Args:
         row: Row with correction factors
-        unc_ws: Interpolated wind speeds for this cluster/time slice
-        powerCurveFile: Power curve lookup
-        bounds: Offset search bounds (default: (-3, 3) m/s, constrained for realism)
-        bounds: Tuple (min, max) offset bounds
+        offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
+        bounds: Offset search bounds
 
     Returns:
         float: Optimized offset (or np.nan if failed)
     """
     def objective(offset):
         """Squared error between observed and simulated CF."""
-        sim_cf = train_simulate_wind_from_ws(
-            unc_ws,
-            powerCurveFile,
-            row.scalar,
-            offset
-        )
+        sim_cf = fast_simulate_cf(offset_arrays, row.scalar, offset)
         return (sim_cf - row.obs) ** 2
 
     try:
@@ -151,28 +135,21 @@ def _find_offset_scipy(row, unc_ws, powerCurveFile, bounds=(-3, 3)):
 
 
 def find_offset(row, turb_info, reanalysis, powerCurveFile,
-                max_iter=30, tolerance=0.002, initial_step=3.0,
-                bounds=(-3, 3), use_scipy_fallback=True, verbose=False):
+                max_iter=100, tolerance=0.002, initial_step=10.0,
+                bounds=(-10, 10), use_scipy_fallback=True, verbose=False):
     """Optimize the additive offset correction factor.
 
     Uses a hybrid approach: fast iterative method with scipy fallback for robustness.
-    This iteratively applies offsets to simulated wind speeds until the
-    simulated capacity factor matches observations for the given row.
 
     Args:
         row (pandas.Series): Row with ``year``, ``cluster``, ``time_slice``, ``obs``, ``sim``, ``scalar``.
         turb_info (pandas.DataFrame): Turbine metadata including height and coordinates.
         reanalysis (xarray.Dataset): Wind parameters on a grid.
         powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
-        max_iter (int): Maximum iterations for fast method (default: 30).
-        tolerance (float): Convergence tolerance (default: 0.002).
-        initial_step (float): Initial step size for fast method (default: 3.0 m/s, constrained for realism).
-        bounds (tuple): Offset bounds for scipy method (default: (-3, 3) m/s, constrained for physical realism).
-        powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
-        max_iter (int): Maximum iterations for fast method (default: 30).
+        max_iter (int): Maximum iterations for fast method (default: 100).
         tolerance (float): Convergence tolerance (default: 0.002).
         initial_step (float): Initial step size for fast method (default: 10.0).
-        bounds (tuple): Offset bounds for scipy method (default: (-3, 3) m/s, constrained for physical realism).
+        bounds (tuple): Offset bounds for scipy method (default: (-10, 10)).
         use_scipy_fallback (bool): Use scipy if fast method fails (default: True).
         verbose (bool): Print warnings for failed optimizations (default: False).
 
@@ -202,15 +179,18 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile,
     # Pre-compute interpolated wind speeds once for this row
     unc_ws = interpolate_wind(reanalysis_filtered, cluster_turbs)
 
+    # Pre-extract numpy arrays for fast iteration (avoids xarray overhead per iteration)
+    offset_arrays = prepare_offset_arrays(unc_ws, powerCurveFile)
+
     # Try fast iterative method first
     offset = _find_offset_iterative(
-        row, unc_ws, powerCurveFile, max_iter, tolerance, initial_step
+        row, offset_arrays, max_iter, tolerance, initial_step
     )
 
     # If failed and fallback enabled, use scipy
     if np.isnan(offset) and use_scipy_fallback:
         offset = _find_offset_scipy(
-            row, unc_ws, powerCurveFile, bounds
+            row, offset_arrays, bounds
         )
 
     # Optional warning for failed optimizations

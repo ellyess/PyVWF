@@ -61,8 +61,81 @@ def parse_run_directory(run_dir: Path) -> dict:
     }
 
 
+def _aggregate_sim_to_country(df_sim: pd.DataFrame, turb_info: pd.DataFrame) -> pd.Series:
+    """Aggregate grid-level simulation to capacity-weighted country average.
+
+    Args:
+        df_sim: Simulation DataFrame with 'time' column and per-grid columns.
+        turb_info: Turbine info with 'ID' and 'capacity' columns.
+
+    Returns:
+        Series of capacity-weighted average CF values aligned with df_sim index.
+    """
+    grid_cols = [c for c in df_sim.columns if c != 'time']
+    cap_map = turb_info.set_index('ID')['capacity']
+    # Only use grid columns that have capacity info
+    valid_cols = [c for c in grid_cols if c in cap_map.index]
+    caps = cap_map[valid_cols].values.astype(float)
+    total_cap = caps.sum()
+    if total_cap == 0:
+        return pd.Series(np.nan, index=df_sim.index)
+    # Use nansum to skip NaN grid cells, adjusting weights accordingly
+    vals = df_sim[valid_cols].values
+    valid_mask = ~np.isnan(vals)
+    weighted = np.where(valid_mask, vals * caps, 0.0)
+    weight_sums = np.where(valid_mask, caps, 0.0).sum(axis=1)
+    result = np.where(weight_sums > 0, weighted.sum(axis=1) / weight_sums, np.nan)
+    return pd.Series(result, index=df_sim.index)
+
+
+def _country_level_metrics(df_sim: pd.DataFrame, df_obs: pd.DataFrame,
+                           turb_info: pd.DataFrame) -> tuple[float, float, float]:
+    """Compute MAE, RMSE, MBE for country-level obs vs aggregated sim.
+
+    Args:
+        df_sim: Grid-level simulation with 'time' and per-grid columns.
+        df_obs: Country-level observation with 'time' and 'obs' columns.
+        turb_info: Turbine info for capacity weighting.
+
+    Returns:
+        Tuple of (rmse, mae, mbe).
+    """
+    sim = df_sim.copy()
+    obs = df_obs.copy()
+    sim['time'] = pd.to_datetime(sim['time'])
+    obs['time'] = pd.to_datetime(obs['time'])
+
+    # Aggregate sim to country level
+    sim['cf_sim'] = _aggregate_sim_to_country(sim, turb_info)
+
+    # Aggregate both to monthly
+    sim['month'] = sim['time'].dt.month
+    sim['year'] = sim['time'].dt.year
+    sim_monthly = sim.groupby(['year', 'month'])['cf_sim'].mean().reset_index()
+
+    obs['month'] = obs['time'].dt.month
+    obs['year'] = obs['time'].dt.year
+    obs_monthly = obs.groupby(['year', 'month'])['obs'].mean().reset_index()
+    obs_monthly = obs_monthly.rename(columns={'obs': 'cf_obs'})
+
+    merged = pd.merge(sim_monthly, obs_monthly, on=['year', 'month'])
+    merged = merged.dropna(subset=['cf_sim', 'cf_obs'])
+
+    if len(merged) == 0:
+        return np.nan, np.nan, np.nan
+
+    diff = merged['cf_sim'] - merged['cf_obs']
+    rmse = np.sqrt((diff ** 2).mean())
+    mae = np.abs(diff).mean()
+    mbe = diff.mean()
+    return rmse, mae, mbe
+
+
 def evaluate_run(run_dir: Path) -> list[dict]:
-    """Evaluate a single PyVWF run directory using vwf.metrics.overall_error.
+    """Evaluate a single PyVWF run directory.
+
+    For turbine-level obs, uses vwf.metrics.overall_error.
+    For country-level obs, aggregates grid simulations to country level first.
 
     Args:
         run_dir: Path to PyVWF run directory.
@@ -129,7 +202,42 @@ def evaluate_run(run_dir: Path) -> list[dict]:
     print(f"  Found clusters: {cluster_list}")
     print(f"  Found time resolutions: {time_res_list}")
 
-    # Use overall_error to calculate metrics
+    # Country-level obs: aggregate sim to country level and compute metrics directly
+    if metadata['obs_level'] == 'country':
+        obs_df = pd.read_csv(obs_file)
+        results = []
+
+        # Uncorrected
+        unc_file = results_dir / f"{metadata['country']}_{year}_unc_cf.csv"
+        if unc_file.exists():
+            unc_df = pd.read_csv(unc_file)
+            rmse, mae, mbe = _country_level_metrics(unc_df, obs_df, turb_info)
+            results.append({
+                **metadata, "year": year,
+                "correction_type": "uncorrected", "time_res": None,
+                "n_clusters": None, "mae": mae, "rmse": rmse,
+                "r2": np.nan, "bias": mbe, "rel_bias": np.nan,
+                "mean_obs": np.nan, "mean_sim": np.nan, "n_points": np.nan,
+            })
+
+        # Corrected variants
+        for num_clu in cluster_list:
+            for time_res in time_res_list:
+                cor_file = results_dir / f"{metadata['country']}_{year}_{time_res}_{num_clu}_cor_cf.csv"
+                if cor_file.exists():
+                    cor_df = pd.read_csv(cor_file)
+                    rmse, mae, mbe = _country_level_metrics(cor_df, obs_df, turb_info)
+                    results.append({
+                        **metadata, "year": year,
+                        "correction_type": "corrected", "time_res": time_res,
+                        "n_clusters": num_clu, "mae": mae, "rmse": rmse,
+                        "r2": np.nan, "bias": mbe, "rel_bias": np.nan,
+                        "mean_obs": np.nan, "mean_sim": np.nan, "n_points": np.nan,
+                    })
+
+        return results
+
+    # Turbine-level obs: use overall_error as before
     try:
         metrics_df = overall_error(
             'total',

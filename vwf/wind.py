@@ -1,8 +1,7 @@
 """Wind interpolation and simulation utilities for PyVWF.
 
 Performance optimizations:
-- Uses np.interp instead of Akima (20-100x faster)
-- Caches power curve computations
+- Caches power curve Akima interpolators
 - Optional turbine aggregation for massive speedups
 - Vectorized operations where possible
 """
@@ -29,7 +28,7 @@ def _get_power_curve_cache(powerCurveFile):
 
     x = powerCurveFile["data$speed"].to_numpy()
     curve_by_model = {
-        m: powerCurveFile[m].to_numpy()
+        m: Akima1DInterpolator(x, powerCurveFile[m].to_numpy())
         for m in powerCurveFile.columns
         if m != "data$speed"
     }
@@ -143,8 +142,8 @@ def simulate_country_cf(
 
     def speed_to_cf_fast(da):
         model = da.model[0].item()
-        y = curve_by_model[model]
-        vals = np.interp(da.data, x, y, left=0.0, right=1.0)
+        akima = curve_by_model[model]
+        vals = np.clip(akima(da.data), 0.0, 1.0)
         return xr.DataArray(vals, coords=da.coords, dims=da.dims)
 
     sim_cf = sim_ws.groupby("model").map(speed_to_cf_fast)
@@ -236,16 +235,16 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False)
         time_res = args[1]
         sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
 
-    # OPTIMIZATION 2: Pre-compute power curves once (not repeatedly)
+    # Pre-compute power curves once (not repeatedly)
     x, curve_by_model = _get_power_curve_cache(powerCurveFile)
 
-    # OPTIMIZATION 3: Use fast np.interp instead of Akima (20-100x faster)
+    # Use Akima interpolation for power curve
     def speed_to_cf_fast(da):
-        """Convert wind speed to capacity factor using fast linear interpolation."""
+        """Convert wind speed to capacity factor using Akima interpolation."""
         model = da.model[0].item()
-        y = curve_by_model[model]
-        # np.interp is 20-100x faster than Akima!
-        vals = np.interp(da.data, x, y, left=0.0, right=1.0)
+        akima = curve_by_model[model]
+        vals = akima(da.data)
+        # vals = np.clip(akima(da.data), 0.0, 1.0)
         return xr.DataArray(vals, coords=da.coords, dims=da.dims)
 
     sim_cf = sim_ws.groupby("model").map(speed_to_cf_fast)
@@ -291,16 +290,84 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     return ds2.cor_ws
 
 
+def prepare_offset_arrays(unc_ws, powerCurveFile):
+    """Pre-extract numpy arrays from xarray for fast offset optimization.
+
+    Call this once before the iterative offset search to avoid repeated
+    xarray overhead.
+
+    Args:
+        unc_ws: Interpolated wind speed DataArray (time x turbine).
+        powerCurveFile: Power curve lookup table.
+
+    Returns:
+        dict with keys: ws_data, model_groups, capacities, total_weighted.
+    """
+    ws_data = unc_ws.values  # (n_time, n_turbine)
+    models = unc_ws.model.values
+    capacities = unc_ws.capacity.values.astype(float)
+
+    _, curve_by_model = _get_power_curve_cache(powerCurveFile)
+
+    # Pre-group turbine indices by model
+    unique_models = np.unique(models)
+    model_groups = []
+    for m in unique_models:
+        mask = models == m
+        model_groups.append((curve_by_model[m], mask))
+
+    return {
+        "ws_data": ws_data,
+        "model_groups": model_groups,
+        "capacities": capacities,
+    }
+
+
+def fast_simulate_cf(arrays, scalar, offset):
+    """Compute capacity-weighted mean CF using pure numpy.
+
+    Args:
+        arrays: Dict from prepare_offset_arrays.
+        scalar: Multiplicative correction.
+        offset: Additive correction.
+
+    Returns:
+        float: Capacity-weighted mean capacity factor.
+    """
+    ws = arrays["ws_data"]
+    cor_ws = ws * scalar + offset
+
+    # Allocate CF array same shape as wind speeds
+    cf = np.empty_like(cor_ws)
+
+    for akima, mask in arrays["model_groups"]:
+        cf[:, mask] = akima(cor_ws[:, mask])
+
+    # Capacity-weighted mean across all turbines and timesteps
+    capacities = arrays["capacities"]
+    weighted_cf = np.nanmean(cf, axis=0)  # mean over time per turbine
+
+    # Mask out turbines with all-NaN CF (matches xarray weighted().mean() NaN-skipping)
+    valid = ~np.isnan(weighted_cf)
+    if not valid.any():
+        return np.nan
+    valid_cap = capacities[valid]
+    total_cap = valid_cap.sum()
+    if total_cap == 0:
+        return np.nan
+    return np.dot(weighted_cf[valid], valid_cap) / total_cap
+
+
 def train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar=1, offset=0):
     """Simulate a mean capacity factor from pre-interpolated wind speeds."""
     cor_ws = (unc_ws * scalar) + offset
     x, curve_by_model = _get_power_curve_cache(powerCurveFile)
 
     def speed_to_cf_fast(data):
-        """Convert wind speed to capacity factor using fast linear interpolation."""
+        """Convert wind speed to capacity factor using Akima interpolation."""
         model = data.model[0].item()
-        y = curve_by_model[model]
-        vals = np.interp(data.data, x, y, left=0.0, right=1.0)
+        akima = curve_by_model[model]
+        vals = akima(data.data)
         return xr.DataArray(vals, coords=data.coords, dims=data.dims)
 
     cor_cf = cor_ws.groupby("model").map(speed_to_cf_fast)
@@ -308,11 +375,7 @@ def train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar=1, offset=0):
     return avg_cf.data
 
 def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
-    """Simulate a mean capacity factor for training (OPTIMIZED).
-
-    Performance improvements:
-    - Uses np.interp instead of Akima (20-100x faster)
-    - Pre-computes power curves once
+    """Simulate a mean capacity factor for training.
 
     Args:
         reanalysis: Wind parameters on a grid.

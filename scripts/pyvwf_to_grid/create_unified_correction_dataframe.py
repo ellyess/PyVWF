@@ -1,7 +1,7 @@
 """Create unified correction geometry dataframe for spatial interpolation.
 
 This script:
-1. Loads all correction factor GeoDataFrames (country-level and turbine-level)
+1. Loads all correction factor CSVs and cluster geometry files
 2. Combines them into a single dataframe with cluster centroids
 3. Adds country metadata for tracking
 4. Exports as both GeoJSON (for visualization) and CSV (for interpolation)
@@ -13,6 +13,7 @@ Output can be used for:
 - Creating continent-wide correction maps
 """
 
+import argparse
 import sys
 from pathlib import Path
 import pandas as pd
@@ -20,65 +21,69 @@ import geopandas as gpd
 from shapely.geometry import Point
 import numpy as np
 
-# Country-level corrections
+# Base path for the turbine_grid run
+RUNS_DIR = Path("output/runs/turbine_grid")
+
+# Country-level corrections: factors from run, geometries from input data
 COUNTRY_LEVEL_CONFIGS = {
     "NL": {
-        "path": "output/correction_geodataframes/nl/nl_corrections_fixed_5.geojson",
+        "factors_path": RUNS_DIR / "NL-all-obs_country-corrected-calc_z0/training/correction-factors/NL_factors_fixed_5.csv",
+        "geoms_path": "input/country_level_data/grid_points/nl/nl_correction_regions.geojson",
         "name": "Netherlands",
         "obs_level": "country",
         "n_clusters": 5,
     },
     "FR": {
-        "path": "output/correction_geodataframes/fr/fr_corrections_fixed_10.geojson",
+        "factors_path": RUNS_DIR / "FR-all-obs_country-corrected-calc_z0/training/correction-factors/FR_factors_fixed_10.csv",
+        "geoms_path": "input/country_level_data/grid_points/fr/fr_correction_regions.geojson",
         "name": "France",
         "obs_level": "country",
         "n_clusters": 10,
     },
     "BE": {
-        "path": "output/correction_geodataframes/be/be_corrections_fixed_3.geojson",
+        "factors_path": RUNS_DIR / "BE-all-obs_country-corrected-calc_z0/training/correction-factors/BE_factors_fixed_3.csv",
+        "geoms_path": "input/country_level_data/grid_points/be/be_correction_regions.geojson",
         "name": "Belgium",
         "obs_level": "country",
         "n_clusters": 3,
     },
     "NO": {
-        "factors_path": "output/run/NO-all-obs_country-corrected-calc_z0/training/correction-factors/NO_factors_fixed_5.csv",
-        "geoms_path": "input/country_level_data/grid_points/no/no_bidding_zones.geojson",
+        "factors_path": RUNS_DIR / "NO-all-obs_country-corrected-calc_z0/training/correction-factors/NO_factors_fixed_5.csv",
+        "geoms_path": "input/country_level_data/grid_points/no/no_correction_regions.geojson",
         "name": "Norway",
         "obs_level": "country",
         "n_clusters": 5,
     },
-    # Phase 1 Countries (multi-cluster)
     "ES": {
-        "factors_path": "output/run/ES-all-obs_country-corrected-calc_z0/training/correction-factors/ES_factors_fixed_4.csv",
+        "factors_path": RUNS_DIR / "ES-all-obs_country-corrected-calc_z0/training/correction-factors/ES_factors_fixed_4.csv",
         "geoms_path": "input/country_level_data/grid_points/es/es_correction_regions.geojson",
         "name": "Spain",
         "obs_level": "country",
         "n_clusters": 4,
     },
     "SE": {
-        "factors_path": "output/run/SE-all-obs_country-corrected-calc_z0/training/correction-factors/SE_factors_fixed_4.csv",
-        "geoms_path": "input/country_level_data/grid_points/se/se_bidding_zones.geojson",
+        "factors_path": RUNS_DIR / "SE-all-obs_country-corrected-calc_z0/training/correction-factors/SE_factors_fixed_4.csv",
+        "geoms_path": "input/country_level_data/grid_points/se/se_correction_regions.geojson",
         "name": "Sweden",
         "obs_level": "country",
         "n_clusters": 4,
-        "use_bidding_zones": True,
     },
     "IT": {
-        "factors_path": "output/run/IT-all-obs_country-corrected-calc_z0/training/correction-factors/IT_factors_fixed_3.csv",
+        "factors_path": RUNS_DIR / "IT-all-obs_country-corrected-calc_z0/training/correction-factors/IT_factors_fixed_3.csv",
         "geoms_path": "input/country_level_data/grid_points/it/it_correction_regions.geojson",
         "name": "Italy",
         "obs_level": "country",
         "n_clusters": 3,
     },
     "PT": {
-        "factors_path": "output/run/PT-all-obs_country-corrected-calc_z0/training/correction-factors/PT_factors_fixed_3.csv",
+        "factors_path": RUNS_DIR / "PT-all-obs_country-corrected-calc_z0/training/correction-factors/PT_factors_fixed_3.csv",
         "geoms_path": "input/country_level_data/grid_points/pt/pt_correction_regions.geojson",
         "name": "Portugal",
         "obs_level": "country",
         "n_clusters": 3,
     },
     "IE": {
-        "factors_path": "output/run/IE-all-obs_country-corrected-calc_z0/training/correction-factors/IE_factors_fixed_3.csv",
+        "factors_path": RUNS_DIR / "IE-all-obs_country-corrected-calc_z0/training/correction-factors/IE_factors_fixed_3.csv",
         "geoms_path": "input/country_level_data/grid_points/ie/ie_correction_regions.geojson",
         "name": "Ireland",
         "obs_level": "country",
@@ -86,38 +91,43 @@ COUNTRY_LEVEL_CONFIGS = {
     },
 }
 
-# Turbine-level corrections
+# Turbine-level corrections: factors from run, geometries from cluster geometry files
 TURBINE_LEVEL_CONFIGS = {
     "DE-onshore": {
-        "path": "output/correction_geodataframes_turbine/de/de_onshore_corrections_fixed_500.geojson",
+        "factors_path": RUNS_DIR / "DE-onshore-obs_turbine-corrected-calc_z0/training/correction-factors/DE_factors_fixed_500.csv",
+        "geoms_path": "output/pyvwf_to_grid/cluster_geometries/de/de_onshore_correction_regions_500.geojson",
         "name": "Germany",
         "obs_level": "turbine",
         "cluster_mode": "onshore",
         "n_clusters": 500,
     },
     "DK-onshore": {
-        "path": "output/correction_geodataframes_turbine/dk/dk_onshore_corrections_fixed_1000.geojson",
+        "factors_path": RUNS_DIR / "DK-onshore-obs_turbine-corrected-calc_z0/training/correction-factors/DK_factors_fixed_700.csv",
+        "geoms_path": "output/grid_run/turbine_grid/cluster_geometries/dk/dk_onshore_correction_regions_700.geojson",
         "name": "Denmark",
         "obs_level": "turbine",
         "cluster_mode": "onshore",
-        "n_clusters": 1000,
+        "n_clusters": 700,
     },
     "DK-offshore": {
-        "path": "output/correction_geodataframes_turbine/dk/dk_offshore_corrections_fixed_2.geojson",
+        "factors_path": RUNS_DIR / "DK-offshore-obs_turbine-corrected-calc_z0/training/correction-factors/DK_factors_fixed_2.csv",
+        "geoms_path": "output/pyvwf_to_grid/cluster_geometries/dk/dk_offshore_correction_regions_2.geojson",
         "name": "Denmark",
         "obs_level": "turbine",
         "cluster_mode": "offshore",
         "n_clusters": 2,
     },
     "UK-onshore": {
-        "path": "output/correction_geodataframes_turbine/uk/uk_onshore_corrections_fixed_300.geojson",
+        "factors_path": RUNS_DIR / "UK-onshore-obs_turbine-corrected-calc_z0/training/correction-factors/UK_factors_fixed_300.csv",
+        "geoms_path": "output/pyvwf_to_grid/cluster_geometries/uk/uk_onshore_correction_regions_300.geojson",
         "name": "United Kingdom",
         "obs_level": "turbine",
         "cluster_mode": "onshore",
         "n_clusters": 300,
     },
     "UK-offshore": {
-        "path": "output/correction_geodataframes_turbine/uk/uk_offshore_corrections_fixed_10.geojson",
+        "factors_path": RUNS_DIR / "UK-offshore-obs_turbine-corrected-calc_z0/training/correction-factors/UK_factors_fixed_10.csv",
+        "geoms_path": "output/pyvwf_to_grid/cluster_geometries/uk/uk_offshore_correction_regions_10.geojson",
         "name": "United Kingdom",
         "obs_level": "turbine",
         "cluster_mode": "offshore",
@@ -126,45 +136,17 @@ TURBINE_LEVEL_CONFIGS = {
 }
 
 
-def create_no_correction_geodataframe():
-    """Create correction GeoDataFrame for Norway (bidding zones)."""
-    print("Creating Norway correction GeoDataFrame...")
-
-    # Load correction factors
-    factors = pd.read_csv(COUNTRY_LEVEL_CONFIGS["NO"]["factors_path"])
-
-    # Load bidding zone geometries
-    zones = gpd.read_file(COUNTRY_LEVEL_CONFIGS["NO"]["geoms_path"])
-
-    # Merge on cluster ID
-    # Bidding zones use cluster IDs 0-4 for NO_1 to NO_5
-    gdf = zones.merge(factors, on='cluster', how='left')
-
-    # Save
-    output_dir = Path("output/correction_geodataframes/no")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "no_corrections_fixed_5.geojson"
-
-    gdf.to_file(output_path, driver='GeoJSON')
-    print(f"  ✓ Saved: {output_path}")
-
-    # Update config
-    COUNTRY_LEVEL_CONFIGS["NO"]["path"] = str(output_path)
-
-    return gdf
-
-
-def create_country_correction_geodataframe(country_code, config):
-    """Create correction GeoDataFrame from factors and geometries.
+def create_correction_geodataframe(config_name, config):
+    """Create correction GeoDataFrame from factors CSV and geometry file.
 
     Args:
-        country_code: Country code (e.g., 'ES', 'SE')
-        config: Country configuration dictionary
+        config_name: Config identifier (e.g., 'NL', 'DE-onshore').
+        config: Configuration dictionary with factors_path and geoms_path.
 
     Returns:
-        GeoDataFrame with corrections and geometries
+        GeoDataFrame with corrections and geometries.
     """
-    print(f"Creating {config['name']} correction GeoDataFrame...")
+    print(f"  Creating {config['name']} correction GeoDataFrame...")
 
     # Load correction factors
     factors = pd.read_csv(config["factors_path"])
@@ -172,19 +154,13 @@ def create_country_correction_geodataframe(country_code, config):
     # Load cluster geometries
     geoms = gpd.read_file(config["geoms_path"])
 
+    # Drop any existing scalar/offset columns from geoms (in case it's a pre-merged file)
+    drop_cols = [c for c in ['scalar', 'offset', 'fixed'] if c in geoms.columns]
+    if drop_cols:
+        geoms = geoms.drop(columns=drop_cols)
+
     # Merge on cluster ID
     gdf = geoms.merge(factors, on='cluster', how='left')
-
-    # Save
-    output_dir = Path(f"output/correction_geodataframes/{country_code.lower()}")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{country_code.lower()}_corrections_fixed_{config['n_clusters']}.geojson"
-
-    gdf.to_file(output_path, driver='GeoJSON')
-    print(f"  ✓ Saved: {output_path}")
-
-    # Update config
-    config["path"] = str(output_path)
 
     return gdf
 
@@ -234,18 +210,11 @@ def load_all_corrections():
     for country_code, config in COUNTRY_LEVEL_CONFIGS.items():
         print(f"\n  Loading {config['name']} ({country_code})...")
 
-        # Create GeoDataFrame if it doesn't exist (for countries with factors_path/geoms_path)
-        if "path" not in config:
-            if country_code == "NO":
-                gdf = create_no_correction_geodataframe()
-            else:
-                gdf = create_country_correction_geodataframe(country_code, config)
-        else:
-            try:
-                gdf = gpd.read_file(config["path"])
-            except Exception as e:
-                print(f"    ✗ Error loading {config['path']}: {e}")
-                continue
+        try:
+            gdf = create_correction_geodataframe(country_code, config)
+        except Exception as e:
+            print(f"    ✗ Error: {e}")
+            continue
 
         # Extract centroid coordinates
         gdf['centroid_lon'], gdf['centroid_lat'] = zip(*gdf['geometry'].apply(extract_cluster_centroid))
@@ -281,9 +250,9 @@ def load_all_corrections():
         print(f"\n  Loading {config['name']} {config['cluster_mode']} ({config_name})...")
 
         try:
-            gdf = gpd.read_file(config["path"])
+            gdf = create_correction_geodataframe(config_name, config)
         except Exception as e:
-            print(f"    ✗ Error loading {config['path']}: {e}")
+            print(f"    ✗ Error: {e}")
             continue
 
         # Extract centroid coordinates
@@ -297,7 +266,6 @@ def load_all_corrections():
             gdf = gdf[valid_mask].copy()
 
         # Add metadata
-        # For turbine-level, use full config name as country_code to differentiate onshore/offshore
         gdf['country_code'] = config_name  # e.g., "DE-onshore", "DK-offshore"
         gdf['country_name'] = config['name']
         gdf['obs_level'] = config['obs_level']
@@ -365,16 +333,16 @@ def create_interpolation_dataframe(gdf):
     return interp_df
 
 
-def save_outputs(gdf, interp_df):
+def save_outputs(gdf, interp_df, output_dir):
     """Save outputs in multiple formats.
 
     Args:
         gdf: Full GeoDataFrame with polygon geometries.
         interp_df: Simplified dataframe with point centroids.
+        output_dir: Output directory path.
     """
     print("\nSaving outputs...")
 
-    output_dir = Path("output/unified_corrections")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Full GeoDataFrame with polygons (for visualization)
@@ -440,6 +408,17 @@ def save_outputs(gdf, interp_df):
 
 def main():
     """Main execution."""
+    parser = argparse.ArgumentParser(
+        description="Create unified correction geometry dataframe"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("output/grid_run/turbine_grid"),
+        help="Output directory (default: output/grid_run/turbine_grid)",
+    )
+    args = parser.parse_args()
+
     print("="*80)
     print("Creating Unified Correction Geometry Dataframe")
     print("="*80)
@@ -451,24 +430,18 @@ def main():
     interp_df = create_interpolation_dataframe(combined_gdf)
 
     # Save outputs
-    save_outputs(combined_gdf, interp_df)
+    save_outputs(combined_gdf, interp_df, args.output_dir)
 
     print("\n" + "="*80)
     print("✓ COMPLETE")
     print("="*80)
-    print("\nOutputs:")
-    print("  1. output/unified_corrections/all_corrections_polygons.geojson")
+    print(f"\nOutputs in {args.output_dir}:")
+    print("  1. all_corrections_polygons.geojson")
     print("     - Full cluster polygons for visualization in QGIS")
-    print("\n  2. output/unified_corrections/all_corrections_centroids.geojson")
+    print("\n  2. all_corrections_centroids.geojson")
     print("     - Cluster centroids as points for interpolation")
-    print("\n  3. output/unified_corrections/all_corrections_centroids.csv")
+    print("\n  3. all_corrections_centroids.csv")
     print("     - CSV format for ML/interpolation (lon, lat, scalar, offset)")
-
-    print("\nUsage examples:")
-    print("  - Kriging: Use centroids CSV with pykrige")
-    print("  - IDW: Use centroids CSV with scipy.interpolate")
-    print("  - ML models: Train on (lon, lat) → (scalar, offset)")
-    print("  - Visualization: Load polygons GeoJSON in QGIS")
 
 
 if __name__ == "__main__":
