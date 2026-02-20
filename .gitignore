@@ -77,3 +77,11 @@ vwf/.DS_Store
 /input/terrain
 /ml/ml_comparison
 /ml/ml_europe
+/docs
+/input
+/ml/experiments
+/output
+/out
+/out
+chapter_ml_corrections.md
+chapter_grid_interpolation.md
