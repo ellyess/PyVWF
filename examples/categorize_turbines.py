@@ -1,9 +1,7 @@
-"""
-Example: Categorizing turbines by onshore/offshore location.
+"""Example: Categorize turbines by onshore/offshore location.
 
-This example demonstrates how to use PyVWF's geospatial utilities
-to automatically classify turbines based on their geographic location
-relative to onshore and offshore regions.
+This example demonstrates how to use PyVWF geospatial utilities to classify
+turbines based on their location relative to onshore and offshore regions.
 """
 from pathlib import Path
 import pandas as pd
@@ -11,7 +9,11 @@ from vwf import add_domain_column, filter_by_domain
 
 
 def example_basic_categorization():
-    """Basic example: categorize turbines from a CSV file."""
+    """Categorize a small in-memory turbine dataset.
+
+    Returns:
+        DataFrame with a ``domain`` column.
+    """
     # Load turbine data (must have 'lon' and 'lat' columns)
     turbines = pd.DataFrame({
         'turbine_id': [1, 2, 3, 4, 5],
@@ -43,7 +45,11 @@ def example_basic_categorization():
 
 
 def example_with_existing_csv():
-    """Example: Load turbines from CSV and add domain column."""
+    """Load turbines from CSV and add a domain column.
+
+    Returns:
+        DataFrame with a ``domain`` column.
+    """
     # Load from CSV file
     turbines = pd.read_csv('input/turbines.csv')
     
@@ -76,7 +82,11 @@ def example_with_existing_csv():
 
 
 def example_custom_regions():
-    """Example: Use custom region definitions for different countries."""
+    """Use custom region definitions for a specific country.
+
+    Returns:
+        DataFrame with a ``domain`` column.
+    """
     turbines = pd.read_csv('input/country-data/DE/turbines.csv')
     
     # For Germany, you might have specific onshore/offshore regions
@@ -96,7 +106,11 @@ def example_custom_regions():
 
 
 def example_comparison_methods():
-    """Example: Compare different categorization methods."""
+    """Compare different categorization methods.
+
+    Returns:
+        DataFrame with a ``domain`` column from the chosen method.
+    """
     import time
     
     turbines = pd.read_csv('input/turbines_large.csv')

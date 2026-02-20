@@ -2,23 +2,48 @@ name: pyvwf
 channels:
   - conda-forge
 dependencies:
+  # Python version
   - python>=3.10
 
   # Core scientific stack
+  - numpy>=1.24.0
   - pandas=2.2.2
-  - dask=2025.11.0
   - xarray=2024.9.0
-  - utm=0.7.0
+  - dask=2025.11.0
   - scipy=1.14.1
   - scikit-learn=1.5.2
+
+  # Geospatial
+  - geopandas>=0.13.0
+  - shapely>=2.0.0
+  - utm=0.7.0
+
+  # Visualization
   - matplotlib=3.9.2
   - seaborn=0.13.2
-  - openpyxl=3.1.5
+  - plotly>=5.14.0
+
+  # Data formats
   - netcdf4=1.7.1
+  - openpyxl=3.1.5
+  - pyarrow>=12.0.0
+
+  # Performance
   - bottleneck=1.4.0
-  - geopandas
-  
-  # Install local package into THIS conda env
+
+  # Development tools (optional)
+  - pytest>=7.0.0
+  - black>=23.0.0
+  - ruff>=0.1.0
+
+  # Install additional packages via pip
   - pip
   - pip:
+      # Energy data APIs (not available on conda-forge)
+      - entsoe-py>=0.6.0
+
+      # Interpolation
+      - pykrige>=1.7.0
+
+      # Install local package in editable mode
       - -e .
