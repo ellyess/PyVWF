@@ -79,8 +79,9 @@ def export_correction_factors_geodataframe(
 
 def export_all_country_corrections(
     country: str,
-    output_dir: str | Path = "output/correction_geodataframes",
-    config_dir: str | Path = "input/country_level_data"
+    output_dir: str | Path = "output/pyvwf_to_grid/correction_geodataframes_country",
+    config_dir: str | Path = "input/country_level_data",
+    runs_dir: str | Path = "output/runs/turbine_grid",
 ) -> dict[str, gpd.GeoDataFrame]:
     """Export all correction factors for a country as GeoDataFrames.
 
@@ -88,6 +89,7 @@ def export_all_country_corrections(
         country: Country code (e.g., "NL", "FR", "BE", "NO")
         output_dir: Directory to save GeoDataFrame outputs
         config_dir: Configuration directory with grid_points and geometries
+        runs_dir: Directory containing the country run outputs
 
     Returns:
         Dictionary mapping time_res to GeoDataFrame
@@ -100,11 +102,12 @@ def export_all_country_corrections(
     country_lower = country.lower()
     output_dir = Path(output_dir)
     config_dir = Path(config_dir)
+    runs_dir = Path(runs_dir)
 
     # Find output directory for this country
-    run_dirs = list(Path("output/run").glob(f"{country}-*"))
+    run_dirs = list(runs_dir.glob(f"{country}-*"))
     if not run_dirs:
-        raise ValueError(f"No run directory found for country {country}")
+        raise ValueError(f"No run directory found for country {country} in {runs_dir}")
 
     run_dir = run_dirs[0]
     factors_dir = run_dir / "training" / "correction-factors"
@@ -156,7 +159,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     country = sys.argv[1].upper()
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "output/correction_geodataframes"
+    output_dir = sys.argv[2] if len(sys.argv) > 2 else "output/pyvwf_to_grid/correction_geodataframes_country"
 
     print(f"Exporting correction factors for {country} as GeoDataFrames...")
     gdfs = export_all_country_corrections(country, output_dir)

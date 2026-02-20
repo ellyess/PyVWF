@@ -24,7 +24,7 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - Power curve–based generation modelling
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
-- **ML correction prediction experiments** (see `ml/` directory - experimental and for research use only)
+- **ML correction prediction experiments** (see `scripts/pyvwf_ml/` - experimental and for research use only)
 
 ## Installation
 
@@ -57,37 +57,6 @@ python -c "import pandas, xarray, scipy; print('Environment OK')"
 A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:
 
 ```bash
-# Basic usage with Denmark data
-python examples/pyvwf_quickstart_denmark.py
-
-# With custom options
-python examples/pyvwf_quickstart_denmark.py \
-    --year-test 2020 \
-    --clusters 5 \
-    --time-res month \
-    --calc-z0
-```
-
-This script demonstrates:
-1. Loading turbine metadata and observations
-2. Processing ERA5 reanalysis data
-3. Spatial clustering of turbines
-4. Training bias correction factors (scalar + offset)
-5. Simulating test year with corrections applied
-6. Validation against observations
-7. Exporting results and metrics
-
-Output includes:
-- Turbine metadata and cluster assignments
-- Bias correction factors (scalar/offset)
-- Simulated capacity factors (corrected & uncorrected)
-- Validation metrics comparing with observations
-
-### Full Research Run
-
-For comprehensive analysis with multiple configurations:
-
-```bash
 python examples/quick_run.py \
     --outdir outputs/demo_DK_2020 \
     --country DK \
@@ -108,6 +77,20 @@ Key options:
 - `--cluster-mode`: all | onshore | offshore
 - `--cluster-list`: List of cluster counts to evaluate
 - `--time-res-list`: fixed | season | bimonth | month
+
+### Full Multi-Country Training
+
+For comprehensive analysis across all supported countries:
+
+```bash
+# List available configuration sets
+python train_all_bias_corrections.py --list
+
+# Run turbine + country workflows
+python train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
+```
+
+See [PIPELINE.md](PIPELINE.md) for the complete three-stage pipeline (bias correction, grid interpolation, ML corrections).
 
 ## Geospatial Utilities - Categorizing Turbines
 
@@ -169,7 +152,7 @@ turbines = add_domain_column(
 
 ### Atlite Integration - Export Corrections to Grid
 
-> ⚠️ **Experimental (research use only):** The ML workflows in `ml/` and the atlite export utilities are experimental and intended for research purposes, not production use.
+> **Experimental (research use only):** The ML workflows in `scripts/pyvwf_ml/` and the atlite export utilities are experimental and intended for research purposes, not production use.
 
 Export PyVWF bias corrections onto an atlite cutout grid for wind simulations:
 
@@ -191,32 +174,12 @@ export_pyvwf_grid(
 
 The output NetCDF contains gridded `scalar` and `offset` correction fields that can be applied to atlite wind power calculations.
 
-**Quick demo (creates synthetic data):**
-```bash
-python examples/atlite_quickstart.py
-```
-
 For more examples, see:
-- `examples/atlite_quickstart.py` - Ready-to-run demo with synthetic data
-- `examples/atlite_export_examples.py` - 8 comprehensive examples
 - `examples/categorize_turbines.py` - Geospatial classification examples
-
-## Machine Learning Experiments
-
-The `ml/` directory contains experimental scripts for predicting correction factors using terrain/climate features. **Note: These experiments showed that ML transfer learning is ineffective for correction factors.**
-
-Key findings:
-- ❌ Cross-country prediction: All R² < 0 (worse than baseline)
-- ❌ Within-country: Only Denmark shows weak positive R² (0.029), likely spurious
-- ✅ Conclusion: Region-specific calibration with local observations required
-
-See [ml/README.md](ml/README.md) for full documentation and [ml/WITHIN_COUNTRY_RESULTS.md](ml/WITHIN_COUNTRY_RESULTS.md) for detailed results.
-
-**Not recommended for production use** - included for research transparency.
 
 ## Machine Learning-Based Bias Correction
 
-PyVWF now supports machine learning models to learn the relationship between terrain features and bias correction factors. This enables:
+PyVWF includes ML models to learn the relationship between terrain/environmental features and bias correction factors. This enables:
 
 - **Physical understanding**: Identify which terrain features drive model bias
 - **Spatial transfer**: Apply corrections to regions without observations
@@ -284,24 +247,9 @@ comparison = compare_interpolation_methods(
 print(comparison)
 ```
 
-### Transfer Learning
+### Pipeline Scripts
 
-Train on one region and apply to another:
-
-```python
-from vwf.ml_correction import train_correction_model, predict_correction_grid
-
-# Train on UK data
-uk_features = create_feature_matrix(uk_corrections, terrain_nc='terrain.nc')
-model = train_correction_model(uk_features, target_col='scalar')
-
-# Apply to Germany (no observations needed)
-de_corrections = predict_correction_grid(
-    model,
-    grid_nc='cutouts/germany-2023.nc',
-    terrain_nc='terrain.nc',
-)
-```
+For the full ML pipeline (terrain data download, feature engineering, model training, and figure generation), see [PIPELINE.md](PIPELINE.md) Stage 3.
 
 ### Required Dependencies
 
@@ -314,8 +262,6 @@ pip install scikit-learn
 # Optional: Advanced models
 pip install xgboost lightgbm
 ```
-
-For comprehensive examples, see `examples/ml_terrain_correction.py`.
 
 ## Data Requirements
 

@@ -42,21 +42,6 @@ def get_training_sets():
     configs = {}
 
     # -------------------------------------------------------------------------
-    # TURBINE-LEVEL: Simple baseline (fixed temporal, various clusters)
-    # -------------------------------------------------------------------------
-    configs['turbine_fixed_2015_2019'] = {
-        'name': 'Turbine-Level Simple (2015-2019 → 2020)',
-        'obs_level': 'turbine',
-        'train_years': (2015, 2019),
-        'test_year': 2020,
-        'countries': ['DK', 'DE', 'UK'],
-        'cluster_mode': 'all',
-        'cluster_list': [5, 10, 15],
-        'time_res_list': ['fixed'],
-        'calc_z0': True,
-    }
-
-    # -------------------------------------------------------------------------
     # TURBINE-LEVEL: Denmark Research Run (2015-2019 → 2020)
     # -------------------------------------------------------------------------
     configs['turbine_dk_research'] = {
@@ -75,6 +60,24 @@ def get_training_sets():
         }
     }
     
+    # -------------------------------------------------------------------------
+    # TURBINE-LEVEL: UK Offshore Research Run (2015-2018 → 2019)
+    # -------------------------------------------------------------------------
+    configs['turbine_uk_research'] = {
+        'name': 'UK Offshore Cluster Count Research Run (2015-2018 → 2019)',
+        'obs_level': 'turbine',
+        'train_years': (2015, 2018),
+        'test_year': 2019,
+        'countries': ['UK_offshore'],
+        'cluster_mode': 'all',
+        'cluster_list': [10],
+        'time_res_list': ['fixed'],
+        'calc_z0': True,
+        'per_country_config': {
+            'UK_offshore': { 'cluster_list': [1, 2, 3, 5, 10, 15, 17, 20]},
+        }
+    }
+
     configs['turbine_dk_research_fixed'] = {
         'name': 'Denmark Turbine-Level Research Run (2015-2019 → 2020)',
         'obs_level': 'turbine',
@@ -86,6 +89,65 @@ def get_training_sets():
         'time_res_list': ['fixed'],
         'calc_z0': True,
         }
+    # -------------------------------------------------------------------------
+    # SENSITIVITY: Data Quality Experiments (DK onshore)
+    # -------------------------------------------------------------------------
+    # Common settings for all sensitivity runs.
+    # Clusters: 1; 10; 100; 500; 1,000
+    # Temporal: monthly, bimonthly, seasonal, fixed
+    _sens_base = {
+        'obs_level': 'turbine',
+        'train_years': (2015, 2019),
+        'test_year': 2020,
+        'countries': ['DK'],
+        'cluster_mode': 'onshore',
+        'calc_z0': True,
+        'cluster_list': [1, 10, 100, 500, 1000],
+        'time_res_list': ['fixed', 'season', 'bimonth', 'month'],
+    }
+
+    # Scenario 1: 30% of training observations randomly removed
+    configs['sensitivity_missing_30pct'] = {
+        **_sens_base,
+        'name': 'Sensitivity: 30% Missing Observations (DK onshore)',
+        'add_nan': 0.3,
+    }
+
+    # Scenario 2: 50% of training observations randomly removed
+    configs['sensitivity_missing_50pct'] = {
+        **_sens_base,
+        'name': 'Sensitivity: 50% Missing Observations (DK onshore)',
+        'add_nan': 0.5,
+    }
+
+    # Scenario 3: Fixed turbine in training — GE.1.5se (medium power density)
+    configs['sensitivity_fix_train_ge15se'] = {
+        **_sens_base,
+        'name': 'Sensitivity: Fixed GE.1.5se in Training (DK onshore)',
+        'fix_turb': 'GE.1.5se',
+    }
+
+    # Scenario 4: Fixed turbine in training — Vestas.V66.2000 (highest power density)
+    configs['sensitivity_fix_train_vestas_v66'] = {
+        **_sens_base,
+        'name': 'Sensitivity: Fixed Vestas.V66.2000 in Training (DK onshore)',
+        'fix_turb': 'Vestas.V66.2000',
+    }
+
+    # Scenario 5: Fixed turbine in validation — GE.1.5se (medium power density)
+    configs['sensitivity_fix_test_ge15se'] = {
+        **_sens_base,
+        'name': 'Sensitivity: Fixed GE.1.5se in Validation (DK onshore)',
+        'fix_turb_test': 'GE.1.5se',
+    }
+
+    # Scenario 6: Fixed turbine in validation — Vestas.V66.2000 (highest power density)
+    configs['sensitivity_fix_test_vestas_v66'] = {
+        **_sens_base,
+        'name': 'Sensitivity: Fixed Vestas.V66.2000 in Validation (DK onshore)',
+        'fix_turb_test': 'Vestas.V66.2000',
+    }
+
     # -------------------------------------------------------------------------
     # GRID RESEARCH
     # -------------------------------------------------------------------------
@@ -125,8 +187,8 @@ def get_training_sets():
                 'test_year': 2019,
             },
             'UK_offshore': {
-                # UK offshore: More clusters (large offshore presence)
-                'cluster_list': [10],
+                # UK offshore: Sweep to find optimal cluster count
+                'cluster_list': [1, 2, 3, 5, 10, 15, 17, 20],
                 'train_years': (2015, 2018),
                 'test_year': 2019,
             },
@@ -256,6 +318,12 @@ def train_turbine_level(country_key: str, config: dict, output_dir: Path, args) 
     print(f"Time resolutions: {country_cfg['time_res_list']}")
     print(f"Cluster mode: {country_cfg['cluster_mode']}")
     print(f"Output: {output_dir}")
+    if country_cfg.get('add_nan'):
+        print(f"Sensitivity: add_nan={country_cfg['add_nan']}")
+    if country_cfg.get('fix_turb'):
+        print(f"Sensitivity: fix_turb={country_cfg['fix_turb']}")
+    if country_cfg.get('fix_turb_test'):
+        print(f"Sensitivity: fix_turb_test={country_cfg['fix_turb_test']}")
     print(f"{'='*80}")
 
     try:
@@ -269,6 +337,8 @@ def train_turbine_level(country_key: str, config: dict, output_dir: Path, args) 
             cluster_list=country_cfg['cluster_list'],
             time_res_list=country_cfg['time_res_list'],
             obs_level='turbine',
+            add_nan=country_cfg.get('add_nan'),
+            fix_turb=country_cfg.get('fix_turb'),
         )
 
         # Train
@@ -285,7 +355,10 @@ def train_turbine_level(country_key: str, config: dict, output_dir: Path, args) 
 
         # Simulate
         print(f"\nSimulating {country_key} for year {country_cfg['test_year']}...")
-        model.simulate_cf(country_cfg['test_year'])
+        model.simulate_cf(
+            country_cfg['test_year'],
+            fix_turb_test=country_cfg.get('fix_turb_test'),
+        )
         print(f"✓ Simulation completed for {country_key}")
 
         return {

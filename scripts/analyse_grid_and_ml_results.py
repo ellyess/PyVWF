@@ -56,15 +56,15 @@ STYLE = thesis_plot_style()
 cm = STYLE["cm"]
 
 # Data paths (relative to project root)
-CENTROIDS_CSV = PROJECT_ROOT / "output/grid_run/turbine_grid/all_corrections_centroids.csv"
-GRID_DIR = PROJECT_ROOT / "output/grid_run/turbine_grid/grid_comparison"
-ML_DIR = PROJECT_ROOT / "output/grid_run/turbine_grid/ml_results"
+CENTROIDS_CSV = PROJECT_ROOT / "output/pyvwf_to_grid/all_corrections_centroids.csv"
+GRID_DIR = PROJECT_ROOT / "output/pyvwf_to_grid/grid_comparison"
+ML_DIR = PROJECT_ROOT / "output/pyvwf_ml/ml_results"
 EVAL_METRICS_CSV = PROJECT_ROOT / "output/runs/turbine_grid/pyvwf_evaluation_metrics.csv"
 TERRAIN_NC = PROJECT_ROOT / "input/terrain/terrain_europe_full.nc"
 
 # Output — separate subdirectories per chapter
-CH1_DIR = PROJECT_ROOT / "output/grid_run/turbine_grid/analysis_plots/ch1_grid_interpolation"
-CH2_DIR = PROJECT_ROOT / "output/grid_run/turbine_grid/analysis_plots/ch2_ml_models"
+CH1_DIR = PROJECT_ROOT / "output/pyvwf_to_grid/analysis_plots/ch1_grid_interpolation"
+CH2_DIR = PROJECT_ROOT / "output/pyvwf_ml/analysis_plots/ch2_ml_models"
 
 # Map extent
 EUROPE_EXTENT = [-12, 32, 34, 73]

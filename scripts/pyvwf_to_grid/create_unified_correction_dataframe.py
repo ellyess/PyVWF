@@ -49,7 +49,7 @@ COUNTRY_LEVEL_CONFIGS = {
     },
     "NO": {
         "factors_path": RUNS_DIR / "NO-all-obs_country-corrected-calc_z0/training/correction-factors/NO_factors_fixed_5.csv",
-        "geoms_path": "input/country_level_data/grid_points/no/no_correction_regions.geojson",
+        "geoms_path": "input/country_level_data/grid_points/no/no_bidding_zones.geojson",
         "name": "Norway",
         "obs_level": "country",
         "n_clusters": 5,
@@ -102,12 +102,12 @@ TURBINE_LEVEL_CONFIGS = {
         "n_clusters": 500,
     },
     "DK-onshore": {
-        "factors_path": RUNS_DIR / "DK-onshore-obs_turbine-corrected-calc_z0/training/correction-factors/DK_factors_fixed_700.csv",
-        "geoms_path": "output/grid_run/turbine_grid/cluster_geometries/dk/dk_onshore_correction_regions_700.geojson",
+        "factors_path": RUNS_DIR / "DK-onshore-obs_turbine-corrected-calc_z0/training/correction-factors/DK_factors_fixed_1000.csv",
+        "geoms_path": "output/pyvwf_to_grid/cluster_geometries/dk/dk_onshore_correction_regions_1000.geojson",
         "name": "Denmark",
         "obs_level": "turbine",
         "cluster_mode": "onshore",
-        "n_clusters": 700,
+        "n_clusters": 1000,
     },
     "DK-offshore": {
         "factors_path": RUNS_DIR / "DK-offshore-obs_turbine-corrected-calc_z0/training/correction-factors/DK_factors_fixed_2.csv",
@@ -414,8 +414,8 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output/grid_run/turbine_grid"),
-        help="Output directory (default: output/grid_run/turbine_grid)",
+        default=Path("output/pyvwf_to_grid"),
+        help="Output directory (default: output/pyvwf_to_grid)",
     )
     args = parser.parse_args()
 
