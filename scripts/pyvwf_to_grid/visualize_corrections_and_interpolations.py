@@ -25,10 +25,10 @@ cm = STYLE['cm']
 
 
 # Paths
-CORRECTIONS_POLYGONS = "output/unified_corrections/all_corrections_polygons.geojson"
-CORRECTIONS_CENTROIDS = "output/unified_corrections/all_corrections_centroids.geojson"
-GRID_DIR = Path("output/unified_corrections_grid_comparison")
-OUTPUT_DIR = Path("output/unified_corrections_grid_comparison/maps")
+CORRECTIONS_POLYGONS = "output/pyvwf_to_grid/all_corrections_polygons.geojson"
+CORRECTIONS_CENTROIDS = "output/pyvwf_to_grid/all_corrections_centroids.geojson"
+GRID_DIR = Path("output/pyvwf_to_grid/grid_comparison")
+OUTPUT_DIR = Path("output/pyvwf_to_grid/grid_comparison/maps")
 
 # Interpolation methods
 METHODS = ['nearest', 'idw', 'kriging', 'rbf']
@@ -153,7 +153,7 @@ def plot_interpolated_surfaces():
             vmax = ds[var].max().values
             norm = TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
-            im = ax.pcolormesh(ds['lon'], ds['lat'], ds[var],
+            im = ax.pcolormesh(ds['x'], ds['y'], ds[var],
                               cmap='RdBu_r', norm=norm, shading='auto', alpha=0.7)
 
             # Overlay raw control points
@@ -223,7 +223,7 @@ def plot_method_comparison():
             setup_axes(ax)
 
             # Plot interpolated surface
-            im = ax.pcolormesh(ds['lon'], ds['lat'], ds[var],
+            im = ax.pcolormesh(ds['x'], ds['y'], ds[var],
                               cmap='RdBu_r', norm=norm, shading='auto', alpha=0.7)
 
             # Overlay control points
@@ -287,7 +287,7 @@ def plot_difference_maps():
             vmax = max(abs(diff.min().values), abs(diff.max().values))
             norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
 
-            im = ax.pcolormesh(ds['lon'], ds['lat'], diff,
+            im = ax.pcolormesh(ds['x'], ds['y'], diff,
                               cmap='RdBu_r', norm=norm, shading='auto', alpha=0.7)
 
             # Title
@@ -358,7 +358,7 @@ def plot_summary_figure():
         ax3 = fig.add_subplot(2, 3, row*3 + 3)
         setup_axes(ax3)
 
-        im = ax3.pcolormesh(ds_idw['lon'], ds_idw['lat'], ds_idw[var],
+        im = ax3.pcolormesh(ds_idw['x'], ds_idw['y'], ds_idw[var],
                            cmap='RdBu_r', norm=norm, shading='auto', alpha=0.7)
         ax3.scatter(centroids.geometry.x, centroids.geometry.y,
                    c='black', s=2, alpha=0.3, marker='x')

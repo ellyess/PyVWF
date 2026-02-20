@@ -1,38 +1,38 @@
 #!/usr/bin/env python3
 """Train ML models on unified European correction factors.
 
-This script uses the unified Voronoi corrections dataset (1,712 regions) to train
+This script uses the unified Voronoi corrections dataset to train
 ML models that predict correction factors from terrain features.
-
-Key Advantage: Unlike previous attempts, all corrections use CONSISTENT METHODOLOGY,
-eliminating country-specific calibration biases that plagued earlier ML efforts.
 
 Workflow:
     1. Load unified corrections (all_corrections_centroids.csv)
-    2. Extract terrain features at centroid locations
-    3. Train multiple ML models (Random Forest, Gradient Boosting, etc.)
-    4. Perform spatial cross-validation
-    5. Compare ML to IDW interpolation
-    6. Generate predictions on European grid
-    7. Export results and diagnostic plots
+    2. Create feature matrix (terrain, ERA5, fleet, CORINE, spatial)
+    3. Train ML models with configurable CV strategy
+    4. Optionally train regional or hybrid IDW+ML models
+    5. Generate diagnostic plots and comparison summaries
 
 Usage:
-    # Train with default settings
-    python train_unified_ml_corrections.py
+    # Basic training with spatial CV
+    python train_unified_ml_corrections.py --cv-strategy spatial_lon
 
-    # Custom configuration
+    # With all feature sources
     python train_unified_ml_corrections.py \
-        --model-type gradient_boosting \
-        --cv-folds 10 \
-        --output-dir ml/unified_ml_v2
+        --terrain-nc input/terrain/terrain_europe_enhanced.nc \
+        --invariant-nc input/era5_archive/invariant/era5_invariant_europe.nc \
+        --coastline input/terrain/coastlines.geojson \
+        --cv-strategy spatial_lon
 
-    # Compare all models
-    python train_unified_ml_corrections.py --compare-models
+    # Compare models
+    python train_unified_ml_corrections.py --compare-models --cv-strategy spatial_lon
 
-Requirements:
-    - Unified corrections: output/unified_corrections/all_corrections_centroids.csv
-    - Terrain data: input/terrain/terrain_north_sea_full.nc
-    - Python packages: sklearn, xarray, pandas, matplotlib
+    # Hybrid IDW+ML
+    python train_unified_ml_corrections.py --hybrid --cv-strategy spatial_lon
+
+    # Regional models
+    python train_unified_ml_corrections.py --regional
+
+    # Feature ablation study
+    python train_unified_ml_corrections.py --ablation --cv-strategy spatial_lon
 """
 
 import argparse
@@ -43,15 +43,12 @@ import warnings
 import numpy as np
 import pandas as pd
 import xarray as xr
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.model_selection import KFold, cross_val_score
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.linear_model import Ridge, Lasso, ElasticNet
-from sklearn.preprocessing import StandardScaler
-from scipy.interpolate import griddata
+from sklearn.metrics import r2_score, mean_absolute_error
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore')
@@ -60,906 +57,647 @@ warnings.filterwarnings('ignore')
 sns.set_style("whitegrid")
 plt.rcParams['figure.dpi'] = 100
 
+# Add project root to path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from vwf.ml_correction import (
+    build_turbine_level_dataset,
+    create_feature_matrix,
+    train_correction_model,
+    compare_interpolation_methods,
+    select_important_features,
+    train_regional_models,
+    predict_regional,
+    train_hybrid_model,
+    compute_idw_at_points,
+)
+
 
 # =============================================================================
 # Configuration
 # =============================================================================
 
-UNIFIED_CORRECTIONS_CSV = Path("output/grid_run/turbine_grid/all_corrections_centroids.csv")
+UNIFIED_CORRECTIONS_CSV = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 TERRAIN_NC = Path("input/terrain/terrain_europe_full.nc")
-IDW_GRID_NC = Path("output/grid_run/turbine_grid/grid_comparison/europe_corrections_idw.nc")
+COASTLINE_GEOJSON = Path("input/terrain/coastlines.geojson")
+INVARIANT_NC = Path("input/era5_archive/invariant/era5_invariant_europe.nc")
+IDW_GRID_NC = Path("output/pyvwf_to_grid/grid_comparison/europe_corrections_idw.nc")
 
-MODEL_TYPES = {
-    'random_forest': RandomForestRegressor(
-        n_estimators=100,
-        max_depth=15,
-        min_samples_split=10,
-        min_samples_leaf=5,
-        random_state=42,
-        n_jobs=-1
-    ),
-    'gradient_boosting': GradientBoostingRegressor(
-        n_estimators=100,
-        max_depth=5,
-        learning_rate=0.1,
-        min_samples_split=10,
-        min_samples_leaf=5,
-        random_state=42
-    ),
-    'ridge': Ridge(alpha=1.0, random_state=42),
-    'lasso': Lasso(alpha=0.1, random_state=42, max_iter=5000),
-    'elastic_net': ElasticNet(alpha=0.1, l1_ratio=0.5, random_state=42, max_iter=5000),
+
+# =============================================================================
+# Feature Group Definitions
+# =============================================================================
+
+FEATURE_GROUPS = {
+    'terrain': [
+        'elevation', 'slope', 'aspect', 'roughness', 'curvature',
+        'distance_to_coast', 'is_coastal', 'subgrid_variance',
+        'complexity', 'aspect_category', 'distance_to_coast_km',
+    ],
+    'era5': [
+        'era5_elevation', 'era5_lsm', 'era5_roughness_length',
+        'elevation_mismatch', 'era5_wind_mean', 'era5_wind_std',
+    ],
+    'era5_extended': [
+        'era5_wind_shear',
+        'era5_wind_winter_mean', 'era5_wind_summer_mean',
+        'era5_wind_seasonal_range',
+        'era5_weibull_k', 'era5_weibull_a',
+        'era5_diurnal_amplitude', 'era5_wind_night_mean',
+    ],
+    'fleet': [
+        'mean_hub_height', 'mean_rotor_diameter', 'mean_capacity',
+    ],
+    'turbine': [
+        'hub_height', 'rotor_diameter', 'capacity', 'specific_power',
+    ],
+    'corine': [
+        'is_urban', 'is_agricultural', 'is_forest', 'is_bare',
+        'is_water', 'roughness_from_lc',
+    ],
+    'spatial': [
+        'lat_norm', 'lon_norm',
+    ],
 }
 
 
 # =============================================================================
-# Data Loading
+# Turbine Metadata Loading
 # =============================================================================
 
-def load_unified_corrections():
-    """Load unified corrections from CSV.
-
-    Returns:
-        DataFrame with columns: lon, lat, scalar, offset, country_code, etc.
-    """
-    if not UNIFIED_CORRECTIONS_CSV.exists():
-        raise FileNotFoundError(
-            f"Unified corrections not found: {UNIFIED_CORRECTIONS_CSV}\n"
-            f"Run create_unified_correction_dataframe.py first"
-        )
-
-    df = pd.read_csv(UNIFIED_CORRECTIONS_CSV)
-
-    print(f"✓ Loaded {len(df)} correction centroids")
-    print(f"  Countries: {df['country_code'].unique()}")
-    print(f"  Scalar range: [{df['scalar'].min():.3f}, {df['scalar'].max():.3f}]")
-    print(f"  Offset range: [{df['offset'].min():.2f}, {df['offset'].max():.2f}] m/s")
-
-    return df
-
-
-def load_terrain_data():
-    """Load terrain features from NetCDF.
-
-    Returns:
-        xarray Dataset with terrain variables.
-    """
-    if not TERRAIN_NC.exists():
-        raise FileNotFoundError(
-            f"Terrain data not found: {TERRAIN_NC}\n"
-            f"Run ml/quick_terrain_setup.py or ml/download_terrain_data.py"
-        )
-
-    ds = xr.open_dataset(TERRAIN_NC)
-
-    print(f"\n✓ Loaded terrain data")
-    print(f"  Variables: {list(ds.data_vars)}")
-    print(f"  Coverage: lon [{ds.lon.min().item():.1f}, {ds.lon.max().item():.1f}], "
-          f"lat [{ds.lat.min().item():.1f}, {ds.lat.max().item():.1f}]")
-
-    return ds
-
-
-# =============================================================================
-# Feature Extraction
-# =============================================================================
-
-def extract_terrain_features(corrections_df, terrain_ds):
-    """Extract terrain features at correction centroid locations.
+def load_turbine_metadata(turbine_dir: Path, *, raw_de: bool = False) -> dict[str, pd.DataFrame]:
+    """Load and standardize turbine metadata from country CSVs.
 
     Args:
-        corrections_df: DataFrame with lon, lat columns.
-        terrain_ds: xarray Dataset with terrain variables.
+        turbine_dir: Directory containing DK/, UK/, DE/ subdirectories.
+        raw_de: If True, keep raw DE columns (V1, kW, etc.) for
+            geolocation via postcode.
 
-    Returns:
-        DataFrame with added terrain feature columns.
+    Returns dict mapping country prefix to standardized DataFrame.
     """
-    print("\nExtracting terrain features...")
+    metadata = {}
 
-    features_df = corrections_df.copy()
+    # Denmark
+    dk_path = turbine_dir / 'DK' / 'dk_md.csv'
+    if dk_path.exists():
+        dk = pd.read_csv(dk_path)
+        metadata['DK'] = pd.DataFrame({
+            'height': pd.to_numeric(dk['height'], errors='coerce'),
+            'diameter': pd.to_numeric(dk['diameter'], errors='coerce'),
+            'capacity': pd.to_numeric(dk['capacity'], errors='coerce'),
+            'lon': pd.to_numeric(dk['lon'], errors='coerce'),
+            'lat': pd.to_numeric(dk['lat'], errors='coerce'),
+        })
+        print(f"  DK: {len(metadata['DK'])} turbines")
 
-    # Extract each terrain variable
-    for var_name in terrain_ds.data_vars:
-        print(f"  - {var_name}")
+    # UK
+    uk_path = turbine_dir / 'UK' / 'uk_md.csv'
+    if uk_path.exists():
+        uk = pd.read_csv(uk_path)
+        metadata['UK'] = pd.DataFrame({
+            'height': pd.to_numeric(uk['height'], errors='coerce'),
+            'diameter': pd.to_numeric(uk['diameter'], errors='coerce'),
+            'capacity': pd.to_numeric(uk['capacity'], errors='coerce'),
+            'lon': pd.to_numeric(uk['lon'], errors='coerce'),
+            'lat': pd.to_numeric(uk['lat'], errors='coerce'),
+        })
+        print(f"  UK: {len(metadata['UK'])} turbines")
 
-        # Create xarray DataArray for point locations
-        lons = xr.DataArray(features_df['lon'].values, dims='points')
-        lats = xr.DataArray(features_df['lat'].values, dims='points')
+    # Germany (no coordinates)
+    de_path = turbine_dir / 'DE' / 'DE_md.csv'
+    if de_path.exists():
+        de = pd.read_csv(de_path)
+        if raw_de:
+            # Keep raw columns so build_turbine_level_dataset can
+            # geolocate via postcode from V1
+            de_df = de[['V1', 'kW', 'Rotor..m.', 'Tower..m.']].copy()
+            de_df = de_df.dropna(subset=['kW', 'Rotor..m.', 'Tower..m.'])
+            de_df['kW'] = pd.to_numeric(de_df['kW'], errors='coerce')
+            de_df['Rotor..m.'] = pd.to_numeric(de_df['Rotor..m.'], errors='coerce')
+            de_df['Tower..m.'] = pd.to_numeric(de_df['Tower..m.'], errors='coerce')
+            de_df = de_df.dropna()
+            de_df = de_df[
+                (de_df['kW'] > 0) & (de_df['kW'] < 20000)
+                & (de_df['Rotor..m.'] > 5) & (de_df['Rotor..m.'] < 300)
+                & (de_df['Tower..m.'] > 10) & (de_df['Tower..m.'] < 300)
+            ]
+            metadata['DE'] = de_df
+        else:
+            de_df = pd.DataFrame({
+                'height': pd.to_numeric(de['Tower..m.'], errors='coerce'),
+                'diameter': pd.to_numeric(de['Rotor..m.'], errors='coerce'),
+                'capacity': pd.to_numeric(de['kW'], errors='coerce'),
+            })
+            # Filter obvious outliers
+            de_df = de_df[
+                (de_df['capacity'] > 0) & (de_df['capacity'] < 20000)
+                & (de_df['diameter'] > 5) & (de_df['diameter'] < 300)
+                & (de_df['height'] > 10) & (de_df['height'] < 300)
+            ]
+            metadata['DE'] = de_df
+        print(f"  DE: {len(metadata['DE'])} turbines {'(raw for geolocation)' if raw_de else '(no coordinates)'}")
 
-        # Interpolate - this returns a 1D array
-        values = terrain_ds[var_name].interp(
-            lon=lons,
-            lat=lats,
-            method='linear'
-        ).values
-
-        features_df[f'terrain_{var_name}'] = values
-
-    # Add spatial features
-    print("  - spatial features")
-    features_df['abs_lat'] = np.abs(features_df['lat'])
-    features_df['lon_normalized'] = (features_df['lon'] - features_df['lon'].mean()) / features_df['lon'].std()
-    features_df['lat_normalized'] = (features_df['lat'] - features_df['lat'].mean()) / features_df['lat'].std()
-
-    # Check for NaN values and fill with appropriate defaults
-    n_nan = features_df.isnull().sum().sum()
-    if n_nan > 0:
-        print(f"\n  ⚠ Found {n_nan} NaN values - filling with feature medians")
-        # Fill NaN values with median for each feature column
-        for col in features_df.columns:
-            if features_df[col].isnull().any():
-                if col.startswith('terrain_'):
-                    # For terrain features, use median
-                    median_val = features_df[col].median()
-                    if pd.isna(median_val):
-                        # If all values are NaN, use 0
-                        features_df[col] = features_df[col].fillna(0)
-                    else:
-                        features_df[col] = features_df[col].fillna(median_val)
-                else:
-                    # For other features (scalar, offset, coordinates), use median
-                    features_df[col] = features_df[col].fillna(features_df[col].median())
-
-    print(f"\n✓ Extracted features for {len(features_df)} centroids")
-
-    return features_df
-
-
-# =============================================================================
-# Model Training
-# =============================================================================
-
-def train_model(X_train, y_train, model_type='random_forest', scale_features=True):
-    """Train an ML model.
-
-    Args:
-        X_train: Feature matrix (n_samples, n_features).
-        y_train: Target values (n_samples,).
-        model_type: Model type string.
-        scale_features: Whether to scale features.
-
-    Returns:
-        Trained model and scaler (if used).
-    """
-    # Get model
-    if model_type not in MODEL_TYPES:
-        raise ValueError(f"Unknown model type: {model_type}. Choose from {list(MODEL_TYPES.keys())}")
-
-    model = MODEL_TYPES[model_type]
-
-    # Scale features if needed
-    scaler = None
-    if scale_features and model_type in ['ridge', 'lasso', 'elastic_net']:
-        scaler = StandardScaler()
-        X_train = scaler.fit_transform(X_train)
-
-    # Train
-    model.fit(X_train, y_train)
-
-    return model, scaler
-
-
-def cross_validate_model(X, y, model_type='random_forest', cv_folds=5):
-    """Perform cross-validation.
-
-    Args:
-        X: Feature matrix.
-        y: Target values.
-        model_type: Model type string.
-        cv_folds: Number of CV folds.
-
-    Returns:
-        Dictionary with CV scores.
-    """
-    model = MODEL_TYPES[model_type]
-
-    # Scale if needed
-    if model_type in ['ridge', 'lasso', 'elastic_net']:
-        scaler = StandardScaler()
-        X = scaler.fit_transform(X)
-
-    # Perform CV
-    cv = KFold(n_splits=cv_folds, shuffle=True, random_state=42)
-
-    scores = {
-        'r2': cross_val_score(model, X, y, cv=cv, scoring='r2'),
-        'mae': -cross_val_score(model, X, y, cv=cv, scoring='neg_mean_absolute_error'),
-        'rmse': np.sqrt(-cross_val_score(model, X, y, cv=cv, scoring='neg_mean_squared_error')),
-    }
-
-    return scores
-
-
-# =============================================================================
-# Evaluation
-# =============================================================================
-
-def evaluate_predictions(y_true, y_pred, target_name='scalar'):
-    """Evaluate model predictions.
-
-    Args:
-        y_true: True values.
-        y_pred: Predicted values.
-        target_name: Name of target variable.
-
-    Returns:
-        Dictionary with metrics.
-    """
-    metrics = {
-        'r2': r2_score(y_true, y_pred),
-        'mae': mean_absolute_error(y_true, y_pred),
-        'rmse': np.sqrt(mean_squared_error(y_true, y_pred)),
-        'bias': np.mean(y_pred - y_true),
-    }
-
-    print(f"\n{target_name.upper()} Prediction Metrics:")
-    print(f"  R² = {metrics['r2']:.4f}")
-    print(f"  MAE = {metrics['mae']:.4f}")
-    print(f"  RMSE = {metrics['rmse']:.4f}")
-    print(f"  Bias = {metrics['bias']:.4f}")
-
-    return metrics
-
-
-def compare_to_idw(features_df, ml_predictions, target='scalar'):
-    """Compare ML predictions to IDW interpolation.
-
-    Args:
-        features_df: DataFrame with corrections.
-        ml_predictions: ML model predictions.
-        target: 'scalar' or 'offset'.
-
-    Returns:
-        Dictionary with comparison metrics.
-    """
-    print(f"\n{'='*70}")
-    print(f"Comparing ML to IDW for {target.upper()}")
-    print(f"{'='*70}")
-
-    # Load IDW grid
-    if not IDW_GRID_NC.exists():
-        print("  ✗ IDW grid not found - skipping comparison")
-        return None
-
-    idw_ds = xr.open_dataset(IDW_GRID_NC)
-
-    # Interpolate IDW to correction centroid locations using xarray DataArrays
-    lons = xr.DataArray(features_df['lon'].values, dims='points')
-    lats = xr.DataArray(features_df['lat'].values, dims='points')
-
-    idw_values = idw_ds[target].interp(
-        lon=lons,
-        lat=lats,
-        method='linear'
-    ).values
-
-    # True values
-    true_values = features_df[target].values
-
-    # Filter out NaN values (points outside IDW coverage)
-    valid_mask = ~np.isnan(idw_values)
-    n_invalid = (~valid_mask).sum()
-
-    if n_invalid > 0:
-        print(f"\n  ⚠ {n_invalid} points outside IDW coverage - filtering")
-        idw_values = idw_values[valid_mask]
-        true_values_filtered = true_values[valid_mask]
-        ml_predictions_filtered = ml_predictions[valid_mask]
-    else:
-        true_values_filtered = true_values
-        ml_predictions_filtered = ml_predictions
-
-    # Ensure we have enough points
-    if len(idw_values) < 10:
-        print(f"  ✗ Too few overlap points ({len(idw_values)}) - skipping IDW comparison")
-        return None
-
-    # Compute metrics for ML (on filtered points)
-    ml_r2 = r2_score(true_values_filtered, ml_predictions_filtered)
-    ml_mae = mean_absolute_error(true_values_filtered, ml_predictions_filtered)
-    ml_rmse = np.sqrt(mean_squared_error(true_values_filtered, ml_predictions_filtered))
-
-    print(f"\nML {target.upper()} Metrics (on {len(idw_values)} overlap points):")
-    print(f"  R² = {ml_r2:.4f}")
-    print(f"  MAE = {ml_mae:.4f}")
-    print(f"  RMSE = {ml_rmse:.4f}")
-
-    # Compute metrics for IDW
-    print(f"\nIDW {target.upper()} Metrics:")
-    idw_r2 = r2_score(true_values_filtered, idw_values)
-    idw_mae = mean_absolute_error(true_values_filtered, idw_values)
-    idw_rmse = np.sqrt(mean_squared_error(true_values_filtered, idw_values))
-
-    print(f"  R² = {idw_r2:.4f}")
-    print(f"  MAE = {idw_mae:.4f}")
-    print(f"  RMSE = {idw_rmse:.4f}")
-
-    # Comparison
-    print(f"\nML vs IDW:")
-    print(f"  Δ R² = {ml_r2 - idw_r2:+.4f} {'✓ ML better' if ml_r2 > idw_r2 else '✗ IDW better'}")
-    print(f"  Δ MAE = {ml_mae - idw_mae:+.4f} {'✓ ML better' if ml_mae < idw_mae else '✗ IDW better'}")
-
-    return {
-        'ml': {'r2': ml_r2, 'mae': ml_mae, 'rmse': ml_rmse},
-        'idw': {'r2': idw_r2, 'mae': idw_mae, 'rmse': idw_rmse},
-        'n_overlap': len(idw_values)
-    }
+    return metadata
 
 
 # =============================================================================
 # Visualization
 # =============================================================================
 
-def plot_predictions(y_true, y_pred, target_name='scalar', save_path=None):
-    """Plot actual vs predicted values.
-
-    Args:
-        y_true: True values.
-        y_pred: Predicted values.
-        target_name: Name of target variable.
-        save_path: Path to save figure.
-    """
+def plot_predictions(y_true, y_pred, target_name, save_path):
+    """Plot actual vs predicted with residuals."""
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    # Scatter plot
     ax = axes[0]
     ax.scatter(y_true, y_pred, alpha=0.5, s=20, edgecolors='k', linewidths=0.5)
-
-    # 1:1 line
-    lims = [
-        min(y_true.min(), y_pred.min()),
-        max(y_true.max(), y_pred.max())
-    ]
-    ax.plot(lims, lims, 'r--', lw=2, alpha=0.7, label='1:1 line')
-
-    # Metrics
+    lims = [min(y_true.min(), y_pred.min()), max(y_true.max(), y_pred.max())]
+    ax.plot(lims, lims, 'r--', lw=2, alpha=0.7)
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
+    ax.set_xlabel(f'True {target_name}')
+    ax.set_ylabel(f'Predicted {target_name}')
+    ax.set_title(f'{target_name.upper()}: R²={r2:.3f}, MAE={mae:.3f}')
 
-    ax.set_xlabel(f'True {target_name}', fontsize=11)
-    ax.set_ylabel(f'Predicted {target_name}', fontsize=11)
-    ax.set_title(f'ML Predictions: {target_name.upper()}\nR² = {r2:.3f}, MAE = {mae:.3f}',
-                 fontsize=12, fontweight='bold')
-    ax.legend()
-    ax.grid(alpha=0.3)
-
-    # Residuals
     ax = axes[1]
     residuals = y_pred - y_true
     ax.scatter(y_true, residuals, alpha=0.5, s=20, edgecolors='k', linewidths=0.5)
-    ax.axhline(0, color='r', linestyle='--', lw=2, alpha=0.7)
-
-    ax.set_xlabel(f'True {target_name}', fontsize=11)
-    ax.set_ylabel('Residual (Predicted - True)', fontsize=11)
-    ax.set_title(f'Residuals\nBias = {residuals.mean():.3f}, Std = {residuals.std():.3f}',
-                 fontsize=12, fontweight='bold')
-    ax.grid(alpha=0.3)
+    ax.axhline(0, color='r', linestyle='--', lw=2)
+    ax.set_xlabel(f'True {target_name}')
+    ax.set_ylabel('Residual')
+    ax.set_title(f'Bias={residuals.mean():.3f}, Std={residuals.std():.3f}')
 
     plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"  ✓ Saved: {save_path}")
-
-    return fig
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Saved: {save_path}")
 
 
-def plot_feature_importance(model, feature_names, target_name='scalar', save_path=None):
-    """Plot feature importance.
+def plot_feature_importance(result, target_name, save_path):
+    """Plot feature importance from a model result dict."""
+    fi = result.get('feature_importance')
+    if fi is None:
+        return
 
-    Args:
-        model: Trained model with feature_importances_ attribute.
-        feature_names: List of feature names.
-        target_name: Name of target variable.
-        save_path: Path to save figure.
-    """
-    if not hasattr(model, 'feature_importances_'):
-        print("  ⚠ Model does not have feature importance")
-        return None
-
-    # Get importances
-    importances = model.feature_importances_
-    indices = np.argsort(importances)[::-1]
-
-    # Plot
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    ax.barh(range(len(indices)), importances[indices], align='center')
-    ax.set_yticks(range(len(indices)))
-    ax.set_yticklabels([feature_names[i] for i in indices])
-    ax.set_xlabel('Feature Importance', fontsize=11)
-    ax.set_title(f'Feature Importance for {target_name.upper()} Prediction',
-                 fontsize=12, fontweight='bold')
-    ax.grid(alpha=0.3, axis='x')
-
+    fig, ax = plt.subplots(figsize=(10, max(4, len(fi) * 0.3)))
+    fi_sorted = fi.sort_values('importance', ascending=True)
+    ax.barh(fi_sorted['feature'], fi_sorted['importance'])
+    ax.set_xlabel('Importance')
+    ax.set_title(f'Feature Importance: {target_name.upper()}')
     plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"  ✓ Saved: {save_path}")
-
-    return fig
-
-
-def plot_spatial_predictions(features_df, y_pred, target_name='scalar', save_path=None):
-    """Plot predictions on map.
-
-    Args:
-        features_df: DataFrame with lon, lat columns.
-        y_pred: Predicted values.
-        target_name: Name of target variable.
-        save_path: Path to save figure.
-    """
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-    # True values
-    ax = axes[0]
-    sc = ax.scatter(
-        features_df['lon'], features_df['lat'],
-        c=features_df[target_name], s=30,
-        cmap='RdYlGn' if target_name == 'scalar' else 'RdBu_r',
-        edgecolors='k', linewidths=0.5
-    )
-    ax.set_xlabel('Longitude (°E)', fontsize=10)
-    ax.set_ylabel('Latitude (°N)', fontsize=10)
-    ax.set_title(f'True {target_name.upper()}', fontsize=11, fontweight='bold')
-    ax.set_aspect('equal')
-    plt.colorbar(sc, ax=ax, label=target_name)
-
-    # Predicted values
-    ax = axes[1]
-    sc = ax.scatter(
-        features_df['lon'], features_df['lat'],
-        c=y_pred, s=30,
-        cmap='RdYlGn' if target_name == 'scalar' else 'RdBu_r',
-        edgecolors='k', linewidths=0.5
-    )
-    ax.set_xlabel('Longitude (°E)', fontsize=10)
-    ax.set_ylabel('Latitude (°N)', fontsize=10)
-    ax.set_title(f'ML Predicted {target_name.upper()}', fontsize=11, fontweight='bold')
-    ax.set_aspect('equal')
-    plt.colorbar(sc, ax=ax, label=target_name)
-
-    plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"  ✓ Saved: {save_path}")
-
-    return fig
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Saved: {save_path}")
 
 
 # =============================================================================
-# Main Workflow
+# Feature Ablation
+# =============================================================================
+
+def run_ablation(features_df, feature_cols, args):
+    """Run feature group ablation study."""
+    print("\n" + "=" * 70)
+    print("FEATURE ABLATION STUDY")
+    print("=" * 70)
+
+    # Determine which feature groups are present
+    present_groups = {}
+    for group_name, group_cols in FEATURE_GROUPS.items():
+        cols_in_data = [c for c in group_cols if c in feature_cols]
+        if cols_in_data:
+            present_groups[group_name] = cols_in_data
+
+    print(f"Feature groups present: {list(present_groups.keys())}")
+    print(f"Total features: {len(feature_cols)}")
+
+    ablation_results = []
+
+    # Baseline: all features
+    print("\n--- Baseline (all features) ---")
+    baseline = train_correction_model(
+        features_df, target_col='scalar', feature_cols=feature_cols,
+        model_type=args.model_type, cv_strategy=args.cv_strategy,
+        cv_folds=args.cv_folds,
+    )
+    baseline_r2 = baseline['cv_scores']['test_r2'].mean()
+    ablation_results.append({
+        'dropped_group': 'none (baseline)',
+        'n_features': len(feature_cols),
+        'r2': baseline_r2,
+        'delta_r2': 0.0,
+    })
+
+    # Drop each group
+    for group_name, group_cols in present_groups.items():
+        remaining = [c for c in feature_cols if c not in group_cols]
+        if not remaining:
+            continue
+
+        print(f"\n--- Dropping: {group_name} ({len(group_cols)} features) ---")
+        result = train_correction_model(
+            features_df, target_col='scalar', feature_cols=remaining,
+            model_type=args.model_type, cv_strategy=args.cv_strategy,
+            cv_folds=args.cv_folds,
+        )
+        r2 = result['cv_scores']['test_r2'].mean()
+        ablation_results.append({
+            'dropped_group': group_name,
+            'n_features': len(remaining),
+            'r2': r2,
+            'delta_r2': r2 - baseline_r2,
+        })
+
+    ablation_df = pd.DataFrame(ablation_results)
+    print("\n" + "=" * 70)
+    print("ABLATION RESULTS")
+    print("=" * 70)
+    print(ablation_df.to_string(index=False))
+
+    ablation_path = args.output_dir / 'ablation_results.csv'
+    ablation_df.to_csv(ablation_path, index=False)
+    print(f"\nSaved: {ablation_path}")
+
+    return ablation_df
+
+
+# =============================================================================
+# Main
 # =============================================================================
 
 def main():
     parser = argparse.ArgumentParser(
         description="Train ML models on unified European correction factors",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
     )
-    parser.add_argument(
-        '--model-type',
-        choices=list(MODEL_TYPES.keys()),
-        default='random_forest',
-        help='ML model type (default: random_forest)'
-    )
-    parser.add_argument(
-        '--cv-folds',
-        type=int,
-        default=5,
-        help='Cross-validation folds (default: 5)'
-    )
-    parser.add_argument(
-        '--output-dir',
-        type=Path,
-        default=Path('ml/unified_ml'),
-        help='Output directory for results'
-    )
-    parser.add_argument(
-        '--compare-models',
-        action='store_true',
-        help='Compare all model types'
-    )
-    parser.add_argument(
-        '--no-plots',
-        action='store_true',
-        help='Skip generating plots'
-    )
-    parser.add_argument(
-        '--terrain-nc',
-        type=Path,
-        default=TERRAIN_NC,
-        help=f'Path to terrain NetCDF file (default: {TERRAIN_NC})'
-    )
-    parser.add_argument(
-        '--validation-countries',
-        type=str,
-        default=None,
-        help='Comma-separated list of countries to hold out for validation (e.g., "DE-onshore,UK-onshore")'
-    )
-    parser.add_argument(
-        '--exclude-spatial-features',
-        action='store_true',
-        help='Exclude spatial features (lon/lat) - use only terrain features for true terrain learning test'
-    )
+    parser.add_argument('--model-type', default='random_forest',
+                        choices=['random_forest', 'gradient_boosting',
+                                 'xgboost', 'lightgbm', 'ridge', 'lasso',
+                                 'elastic_net'],
+                        help='ML model type')
+    parser.add_argument('--cv-folds', type=int, default=5)
+    parser.add_argument('--cv-strategy', default='random',
+                        choices=['random', 'spatial_lon', 'leave_country_out'],
+                        help='Cross-validation strategy')
+    parser.add_argument('--output-dir', type=Path, default=Path('output/pyvwf_ml/unified_ml'))
+
+    # Data sources
+    parser.add_argument('--terrain-nc', type=Path, default=TERRAIN_NC)
+    parser.add_argument('--coastline', type=Path, default=COASTLINE_GEOJSON)
+    parser.add_argument('--invariant-nc', type=Path, default=None,
+                        help='ERA5 invariant NetCDF')
+    parser.add_argument('--corine-nc', type=Path, default=None,
+                        help='CORINE land cover NetCDF')
+    parser.add_argument('--turbine-dir', type=Path, default=None,
+                        help='Directory with turbine metadata CSVs')
+    parser.add_argument('--de-geolocate', type=Path, default=None,
+                        help='German postcode geolocation CSV')
+    parser.add_argument('--corrections-csv', type=Path,
+                        default=UNIFIED_CORRECTIONS_CSV)
+    parser.add_argument('--era5-wind-dir', type=Path, default=None,
+                        help='Directory with ERA5 u100/v100 NetCDF files')
+    parser.add_argument('--era5-wind10-dir', type=Path, default=None,
+                        help='Directory with ERA5 u10/v10 NetCDF files '
+                             '(default: same as --era5-wind-dir)')
+
+    # Feature control
+    parser.add_argument('--feature-groups', type=str, default=None,
+                        help='Comma-separated feature groups to use '
+                             '(terrain,era5,fleet,corine,spatial)')
+    parser.add_argument('--exclude-spatial-features', action='store_true')
+
+    # Model modes
+    parser.add_argument('--compare-models', action='store_true')
+    parser.add_argument('--regional', action='store_true',
+                        help='Train regional per-country models')
+    parser.add_argument('--hybrid', action='store_true',
+                        help='Train hybrid IDW+ML model')
+    parser.add_argument('--ablation', action='store_true',
+                        help='Run feature group ablation study')
+    parser.add_argument('--turbine-level', action='store_true',
+                        help='Train on individual turbines instead of centroids')
+    parser.add_argument('--log-target', action='store_true',
+                        help='Log-transform scalar target')
+    parser.add_argument('--tune', action='store_true',
+                        help='Run hyperparameter tuning before evaluation')
+    parser.add_argument('--select-features', action='store_true',
+                        help='Run feature selection (Lasso) before training')
+    parser.add_argument('--select-top-n', type=int, default=None,
+                        help='Keep only top N features (default: all non-zero)')
+    parser.add_argument('--no-plots', action='store_true')
 
     args = parser.parse_args()
-
-    # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("="*70)
+    print("=" * 70)
     print("ML Training on Unified European Corrections")
-    print("="*70)
-    print(f"\nModel type: {args.model_type}")
-    print(f"CV folds: {args.cv_folds}")
-    print(f"Output directory: {args.output_dir}")
-    print(f"Terrain file: {args.terrain_nc}")
+    print("=" * 70)
+    print(f"  Model:       {args.model_type}")
+    print(f"  CV strategy: {args.cv_strategy}")
+    print(f"  CV folds:    {args.cv_folds}")
+    print(f"  Terrain:     {args.terrain_nc}")
+    if args.turbine_level:
+        print(f"  Mode:        TURBINE-LEVEL")
 
-    # Step 1: Load data
-    print("\n" + "="*70)
+    # =========================================================================
+    # Step 1: Load corrections
+    # =========================================================================
+    print("\n" + "=" * 70)
     print("STEP 1: Load Data")
-    print("="*70)
+    print("=" * 70)
 
-    corrections_df = load_unified_corrections()
+    corrections_df = pd.read_csv(args.corrections_csv)
+    print(f"  Loaded {len(corrections_df)} correction centroids")
+    print(f"  Countries: {corrections_df['country_code'].nunique()}")
+    print(f"  Scalar: [{corrections_df['scalar'].min():.3f}, {corrections_df['scalar'].max():.3f}]")
+    print(f"  Offset: [{corrections_df['offset'].min():.2f}, {corrections_df['offset'].max():.2f}] m/s")
 
-    # Load terrain from specified path
-    if not args.terrain_nc.exists():
-        print(f"\n✗ Terrain file not found: {args.terrain_nc}")
-        print(f"  Run ml/quick_terrain_setup.py or ml/enhance_terrain_features.py first")
-        return 1
+    # =========================================================================
+    # Step 2: Build feature matrix
+    # =========================================================================
+    print("\n" + "=" * 70)
+    print("STEP 2: Build Feature Matrix")
+    print("=" * 70)
 
-    terrain_ds = xr.open_dataset(args.terrain_nc)
+    # Prepare optional data sources
+    terrain_nc = args.terrain_nc if args.terrain_nc.exists() else None
+    coastline = args.coastline if args.coastline.exists() else None
+    invariant_nc = args.invariant_nc
+    if invariant_nc is None and INVARIANT_NC.exists():
+        invariant_nc = INVARIANT_NC
+    corine_nc = args.corine_nc
+    era5_wind_dir = args.era5_wind_dir
+    if era5_wind_dir is None:
+        default_wind = Path('input/era5_archive/EU')
+        if default_wind.exists():
+            era5_wind_dir = default_wind
+    era5_wind10_dir = args.era5_wind10_dir
+    if era5_wind10_dir is None and era5_wind_dir is not None:
+        era5_wind10_dir = era5_wind_dir
 
-    print(f"\n✓ Loaded terrain data")
-    print(f"  Variables: {list(terrain_ds.data_vars)}")
-    print(f"  Coverage: lon [{terrain_ds.lon.min().item():.1f}, {terrain_ds.lon.max().item():.1f}], "
-          f"lat [{terrain_ds.lat.min().item():.1f}, {terrain_ds.lat.max().item():.1f}]")
-
-    # Step 2: Extract features
-    print("\n" + "="*70)
-    print("STEP 2: Extract Terrain Features")
-    print("="*70)
-
-    features_df = extract_terrain_features(corrections_df, terrain_ds)
-
-    # Separate features and targets
-    if args.exclude_spatial_features:
-        # Use only terrain features (no lon/lat/abs_lat)
-        feature_cols = [col for col in features_df.columns if col.startswith('terrain_')]
-        print(f"\n⚠️  EXCLUDING SPATIAL FEATURES - Using only terrain features for pure terrain learning test")
-    else:
-        # Use all features including spatial
-        feature_cols = [col for col in features_df.columns if col.startswith('terrain_') or
-                       col.endswith('_normalized') or col == 'abs_lat']
-
-    # Spatial cross-validation: hold out validation countries
-    if args.validation_countries:
-        validation_countries = [c.strip() for c in args.validation_countries.split(',')]
-
-        print(f"\n{'='*70}")
-        print("SPATIAL CROSS-VALIDATION")
-        print(f"{'='*70}")
-        print(f"\nValidation countries (held out): {', '.join(validation_countries)}")
-
-        # Split data
-        val_mask = features_df['country_code'].isin(validation_countries)
-        train_features = features_df[~val_mask].copy()
-        val_features = features_df[val_mask].copy()
-
-        print(f"\nTraining countries: {', '.join(train_features['country_code'].unique())}")
-        print(f"Training samples: {len(train_features)}")
-        print(f"Validation samples: {len(val_features)}")
-
-        if len(val_features) == 0:
-            print(f"\n✗ No validation samples found for countries: {validation_countries}")
-            print(f"Available countries: {features_df['country_code'].unique()}")
+    # Turbine-level mode: expand centroids to individual turbines
+    if args.turbine_level:
+        if not args.turbine_dir or not args.turbine_dir.exists():
+            print("ERROR: --turbine-level requires --turbine-dir")
             return 1
 
-        # Training and validation sets
-        X_train = train_features[feature_cols].values
-        y_train_scalar = train_features['scalar'].values
-        y_train_offset = train_features['offset'].values
+        print("\nLoading turbine metadata (raw for geolocation)...")
+        turbine_metadata = load_turbine_metadata(args.turbine_dir, raw_de=True)
 
-        X_val = val_features[feature_cols].values
-        y_val_scalar = val_features['scalar'].values
-        y_val_offset = val_features['offset'].values
+        # Resolve DE geolocate path
+        de_geo = args.de_geolocate
+        if de_geo is None:
+            default_geo = args.turbine_dir / 'DE' / 'geolocate.germany.csv'
+            if default_geo.exists():
+                de_geo = default_geo
 
-        # Use spatial validation instead of standard CV
-        use_spatial_validation = True
+        print("\nBuilding turbine-level dataset...")
+        training_df = build_turbine_level_dataset(
+            corrections_df, turbine_metadata, de_geolocate=de_geo,
+        )
 
+        print("\nCreating feature matrix at turbine locations...")
+        features_df = create_feature_matrix(
+            training_df,
+            terrain_nc=terrain_nc,
+            coastline_geojson=coastline,
+            invariant_nc=invariant_nc,
+            corine_nc=corine_nc,
+            era5_wind_dir=era5_wind_dir,
+            era5_wind10_dir=era5_wind10_dir,
+            # No fleet aggregation - turbine features are already per-row
+            turbine_metadata=None,
+        )
     else:
-        # Standard approach: use all data
-        X = features_df[feature_cols].values
-        y_scalar = features_df['scalar'].values
-        y_offset = features_df['offset'].values
-        use_spatial_validation = False
+        # Original centroid-level path
+        turbine_metadata = None
+        if args.turbine_dir and args.turbine_dir.exists():
+            print("\nLoading turbine metadata...")
+            turbine_metadata = load_turbine_metadata(args.turbine_dir)
 
-    print(f"\nFeature matrix shape: {X_train.shape if use_spatial_validation else X.shape}")
-    print(f"Features: {feature_cols}")
+        print("\nCreating feature matrix...")
+        features_df = create_feature_matrix(
+            corrections_df,
+            terrain_nc=terrain_nc,
+            coastline_geojson=coastline,
+            invariant_nc=invariant_nc,
+            corine_nc=corine_nc,
+            era5_wind_dir=era5_wind_dir,
+            era5_wind10_dir=era5_wind10_dir,
+            turbine_metadata=turbine_metadata,
+        )
 
+    # Determine feature columns
+    exclude = {
+        'scalar', 'offset', 'lon', 'lat', 'country_code', 'country_name',
+        'cluster', 'cluster_mode', 'obs_level', 'area_km2',
+        'land_cover_class', 'geometry', 'ID', 'turbine_id', 'domain', 'type',
+    }
+    all_feature_cols = [c for c in features_df.columns if c not in exclude]
+
+    # Apply feature group filter
+    if args.feature_groups:
+        allowed_groups = args.feature_groups.split(',')
+        allowed_cols = set()
+        for g in allowed_groups:
+            allowed_cols.update(FEATURE_GROUPS.get(g.strip(), []))
+        feature_cols = [c for c in all_feature_cols if c in allowed_cols]
+        print(f"\n  Using feature groups: {allowed_groups}")
+    elif args.exclude_spatial_features or args.turbine_level:
+        # Turbine-level mode excludes spatial by default
+        spatial_cols = set(FEATURE_GROUPS['spatial'])
+        feature_cols = [c for c in all_feature_cols if c not in spatial_cols]
+        if args.turbine_level:
+            print("\n  Turbine-level mode: excluding lat/lon features")
+        else:
+            print("\n  Excluding spatial features")
+    else:
+        feature_cols = all_feature_cols
+
+    # Filter to columns that actually exist in the data
+    feature_cols = [c for c in feature_cols if c in features_df.columns]
+
+    print(f"\n  Feature matrix: {features_df.shape}")
+    print(f"  Features ({len(feature_cols)}): {feature_cols}")
+
+    # NaN summary
+    n_nan = features_df[feature_cols].isna().sum()
+    nan_cols = n_nan[n_nan > 0]
+    if len(nan_cols) > 0:
+        print(f"\n  NaN values (will be filled with median):")
+        for col, count in nan_cols.items():
+            print(f"    {col}: {count} NaN ({100*count/len(features_df):.1f}%)")
+
+    # =========================================================================
     # Step 3: Train models
-    print("\n" + "="*70)
+    # =========================================================================
+    print("\n" + "=" * 70)
     print("STEP 3: Train ML Models")
-    print("="*70)
+    print("=" * 70)
 
-    results = {}
+    # Optional feature selection step
+    if args.select_features:
+        selected_per_target = {}
+        for target in ['scalar', 'offset']:
+            selected, importance_df = select_important_features(
+                features_df,
+                feature_cols=feature_cols,
+                target_col=target,
+                method='lasso',
+                cv_folds=args.cv_folds,
+                cv_strategy=args.cv_strategy,
+                tune_hyperparams=args.tune,
+                top_n=args.select_top_n,
+            )
+            selected_per_target[target] = selected
+            importance_df.to_csv(
+                args.output_dir / f'feature_importance_{target}.csv', index=False,
+            )
+
+        # Use union of features selected for either target
+        all_selected = sorted(set(
+            selected_per_target['scalar'] + selected_per_target['offset']
+        ), key=lambda f: feature_cols.index(f))
+        dropped = [f for f in feature_cols if f not in all_selected]
+
+        print(f"\n{'='*60}")
+        print("FEATURE SELECTION SUMMARY")
+        print(f"{'='*60}")
+        print(f"  Scalar selected: {len(selected_per_target['scalar'])}")
+        print(f"  Offset selected: {len(selected_per_target['offset'])}")
+        print(f"  Union (used):    {len(all_selected)}")
+        print(f"  Dropped:         {dropped}")
+        print(f"\n  Continuing with {len(all_selected)} features: {all_selected}")
+
+        feature_cols = all_selected
+
+    if args.ablation:
+        run_ablation(features_df, feature_cols, args)
+        print("\n" + "=" * 70)
+        print("TRAINING COMPLETE")
+        print("=" * 70)
+        return 0
 
     if args.compare_models:
-        # Compare all model types
         print("\nComparing all model types...")
+        for target in ['scalar', 'offset']:
+            print(f"\n{'='*60}")
+            print(f"TARGET: {target.upper()}")
+            print(f"{'='*60}")
+            comparison = compare_interpolation_methods(
+                features_df,
+                feature_cols=feature_cols,
+                target_col=target,
+                cv_folds=args.cv_folds,
+                cv_strategy=args.cv_strategy,
+                tune_hyperparams=args.tune,
+            )
+            comparison.to_csv(
+                args.output_dir / f'model_comparison_{target}.csv', index=False,
+            )
 
-        comparison_results = []
+    elif args.hybrid:
+        print("\nTraining hybrid IDW+ML models...")
+        for target in ['scalar', 'offset']:
+            print(f"\n{'='*60}")
+            print(f"HYBRID IDW+ML: {target.upper()}")
+            print(f"{'='*60}")
+            hybrid_result = train_hybrid_model(
+                features_df,
+                target_col=target,
+                feature_cols=feature_cols,
+                model_type=args.model_type,
+                cv_strategy=args.cv_strategy,
+                cv_folds=args.cv_folds,
+            )
 
-        for model_name in MODEL_TYPES.keys():
-            print(f"\n{'─'*70}")
-            print(f"Model: {model_name}")
-            print(f"{'─'*70}")
+            # Also compute pure IDW baseline
+            idw_preds = compute_idw_at_points(features_df, target_col=target)
+            idw_mae = np.nanmean(np.abs(features_df[target].values - idw_preds))
+            print(f"\n  Pure IDW MAE: {idw_mae:.4f}")
+            print(f"  Hybrid MAE:   {hybrid_result['cv_metrics']['mae'].mean():.4f}")
 
-            if use_spatial_validation:
-                # Spatial validation: train on training countries, test on validation countries
-                print("\nSpatial validation (held-out countries):")
-
-                # Scalar
-                scalar_model, scalar_scaler = train_model(X_train, y_train_scalar, model_name)
-                X_val_scaled = scalar_scaler.transform(X_val) if scalar_scaler else X_val
-                scalar_pred = scalar_model.predict(X_val_scaled)
-                scalar_r2 = r2_score(y_val_scalar, scalar_pred)
-                scalar_mae = mean_absolute_error(y_val_scalar, scalar_pred)
-                print(f"  Scalar - R² = {scalar_r2:.4f}, MAE = {scalar_mae:.4f}")
-
-                # Offset
-                offset_model, offset_scaler = train_model(X_train, y_train_offset, model_name)
-                X_val_scaled = offset_scaler.transform(X_val) if offset_scaler else X_val
-                offset_pred = offset_model.predict(X_val_scaled)
-                offset_r2 = r2_score(y_val_offset, offset_pred)
-                offset_mae = mean_absolute_error(y_val_offset, offset_pred)
-                print(f"  Offset - R² = {offset_r2:.4f}, MAE = {offset_mae:.4f}")
-
-            else:
-                # Standard CV
-                print("\nScalar CV scores:")
-                scalar_scores = cross_validate_model(X, y_scalar, model_name, args.cv_folds)
-                scalar_r2 = scalar_scores['r2'].mean()
-                scalar_mae = scalar_scores['mae'].mean()
-                print(f"  R² = {scalar_r2:.4f} ± {scalar_scores['r2'].std():.4f}")
-                print(f"  MAE = {scalar_mae:.4f} ± {scalar_scores['mae'].std():.4f}")
-
-                print("\nOffset CV scores:")
-                offset_scores = cross_validate_model(X, y_offset, model_name, args.cv_folds)
-                offset_r2 = offset_scores['r2'].mean()
-                offset_mae = offset_scores['mae'].mean()
-                print(f"  R² = {offset_r2:.4f} ± {offset_scores['r2'].std():.4f}")
-                print(f"  MAE = {offset_mae:.4f} ± {offset_scores['mae'].std():.4f}")
-
-            comparison_results.append({
-                'model': model_name,
-                'scalar_r2': scalar_r2,
-                'scalar_mae': scalar_mae,
-                'offset_r2': offset_r2,
-                'offset_mae': offset_mae,
-            })
-
-        # Save comparison
-        comparison_df = pd.DataFrame(comparison_results)
-        comparison_path = args.output_dir / 'model_comparison.csv'
-        comparison_df.to_csv(comparison_path, index=False)
-        print(f"\n✓ Saved model comparison: {comparison_path}")
-
-        # Print summary table
-        print("\n" + "="*70)
-        print("MODEL COMPARISON SUMMARY")
-        print("="*70)
-        print(comparison_df.to_string(index=False))
+    elif args.regional:
+        print("\nTraining regional models...")
+        for target in ['scalar', 'offset']:
+            print(f"\n{'='*60}")
+            print(f"REGIONAL MODELS: {target.upper()}")
+            print(f"{'='*60}")
+            regional_results = train_regional_models(
+                features_df,
+                target_col=target,
+                feature_cols=feature_cols,
+                model_type=args.model_type,
+                cv_strategy=args.cv_strategy,
+                cv_folds=args.cv_folds,
+            )
+            print(f"\n  Trained models for: {[k for k in regional_results if k != '_global']}")
 
     else:
-        # Train single model
-        print(f"\nTraining {args.model_type} models...")
+        # Standard single model training
+        results = {}
+        for target in ['scalar', 'offset']:
+            print(f"\n--- {target.upper()} CORRECTION ---")
+            use_log = args.log_target and target == 'scalar'
+            result = train_correction_model(
+                features_df,
+                target_col=target,
+                feature_cols=feature_cols,
+                model_type=args.model_type,
+                cv_folds=args.cv_folds,
+                cv_strategy=args.cv_strategy,
+                log_target=use_log,
+                tune_hyperparams=args.tune,
+            )
+            results[target] = result
 
-        if use_spatial_validation:
-            # Spatial validation
-            print("\n--- SCALAR CORRECTION (Spatial Validation) ---")
-            print(f"\nTraining on {len(X_train)} samples from {len(train_features['country_code'].unique())} countries...")
-            print(f"Testing on {len(X_val)} samples from {len(validation_countries)} countries...")
-
-            scalar_model, scalar_scaler = train_model(X_train, y_train_scalar, args.model_type)
-
-            # Predict on validation set
-            X_val_scaled = scalar_scaler.transform(X_val) if scalar_scaler else X_val
-            scalar_predictions = scalar_model.predict(X_val_scaled)
-
-            # Evaluate
-            scalar_metrics = evaluate_predictions(y_val_scalar, scalar_predictions, 'scalar')
-
-            # Offset
-            print("\n--- OFFSET CORRECTION (Spatial Validation) ---")
-            print(f"\nTraining on {len(X_train)} samples...")
-            print(f"Testing on {len(X_val)} samples...")
-
-            offset_model, offset_scaler = train_model(X_train, y_train_offset, args.model_type)
-
-            # Predict on validation set
-            X_val_scaled = offset_scaler.transform(X_val) if offset_scaler else X_val
-            offset_predictions = offset_model.predict(X_val_scaled)
-
-            # Evaluate
-            offset_metrics = evaluate_predictions(y_val_offset, offset_predictions, 'offset')
-
-            # Store results for plotting
-            results = {
-                'scalar_model': scalar_model,
-                'scalar_scaler': scalar_scaler,
-                'scalar_predictions': scalar_predictions,
-                'scalar_true': y_val_scalar,
-                'offset_model': offset_model,
-                'offset_scaler': offset_scaler,
-                'offset_predictions': offset_predictions,
-                'offset_true': y_val_offset,
-                'features_df': val_features,  # Use validation set for plots
-            }
-
-        else:
-            # Standard CV
-            print("\n--- SCALAR CORRECTION ---")
-            print("\nCross-validation:")
-            scalar_cv_scores = cross_validate_model(X, y_scalar, args.model_type, args.cv_folds)
-            print(f"  R² = {scalar_cv_scores['r2'].mean():.4f} ± {scalar_cv_scores['r2'].std():.4f}")
-            print(f"  MAE = {scalar_cv_scores['mae'].mean():.4f} ± {scalar_cv_scores['mae'].std():.4f}")
-            print(f"  RMSE = {scalar_cv_scores['rmse'].mean():.4f} ± {scalar_cv_scores['rmse'].std():.4f}")
-
-            print("\nTraining final model on all data:")
-            scalar_model, scalar_scaler = train_model(X, y_scalar, args.model_type)
-
-            # Predict
-            X_scaled = scalar_scaler.transform(X) if scalar_scaler else X
-            scalar_predictions = scalar_model.predict(X_scaled)
-
-            # Evaluate
-            scalar_metrics = evaluate_predictions(y_scalar, scalar_predictions, 'scalar')
-
-            # Compare to IDW
-            scalar_comparison = compare_to_idw(features_df, scalar_predictions, 'scalar')
-
-            # Offset model
-            print("\n--- OFFSET CORRECTION ---")
-            print("\nCross-validation:")
-            offset_cv_scores = cross_validate_model(X, y_offset, args.model_type, args.cv_folds)
-            print(f"  R² = {offset_cv_scores['r2'].mean():.4f} ± {offset_cv_scores['r2'].std():.4f}")
-            print(f"  MAE = {offset_cv_scores['mae'].mean():.4f} ± {offset_cv_scores['mae'].std():.4f}")
-            print(f"  RMSE = {offset_cv_scores['rmse'].mean():.4f} ± {offset_cv_scores['rmse'].std():.4f}")
-
-            print("\nTraining final model on all data:")
-            offset_model, offset_scaler = train_model(X, y_offset, args.model_type)
-
-            # Predict
-            X_scaled = offset_scaler.transform(X) if offset_scaler else X
-            offset_predictions = offset_model.predict(X_scaled)
-
-            # Evaluate
-            offset_metrics = evaluate_predictions(y_offset, offset_predictions, 'offset')
-
-            # Compare to IDW
-            offset_comparison = compare_to_idw(features_df, offset_predictions, 'offset')
-
-            # Store results
-            results = {
-                'scalar_model': scalar_model,
-                'scalar_scaler': scalar_scaler,
-                'scalar_predictions': scalar_predictions,
-                'scalar_true': y_scalar,
-                'scalar_cv_scores': scalar_cv_scores,
-                'offset_model': offset_model,
-                'offset_scaler': offset_scaler,
-                'offset_predictions': offset_predictions,
-                'offset_true': y_offset,
-                'offset_cv_scores': offset_cv_scores,
-                'features_df': features_df,
-            }
-
-        # Step 4: Generate plots
+        # Generate plots
         if not args.no_plots:
-            print("\n" + "="*70)
-            print("STEP 4: Generate Diagnostic Plots")
-            print("="*70)
+            print("\n" + "=" * 70)
+            print("STEP 4: Generate Plots")
+            print("=" * 70)
 
             plots_dir = args.output_dir / 'plots'
             plots_dir.mkdir(exist_ok=True)
 
-            # Get true values from results
-            y_scalar_plot = results.get('scalar_true', results.get('scalar_predictions'))
-            y_offset_plot = results.get('offset_true', results.get('offset_predictions'))          # Use stored true values
-            features_for_plot = results['features_df']
+            for target in ['scalar', 'offset']:
+                result = results[target]
+                y_true = features_df[target].values
+                X = features_df[feature_cols].copy().fillna(
+                    features_df[feature_cols].median()
+                )
+                y_pred = result['model'].predict(X)
 
-            # Scalar plots
-            print("\nScalar plots:")
-            plot_predictions(
-                y_scalar_plot, results['scalar_predictions'], 'scalar',
-                plots_dir / 'scalar_predictions.png'
-            )
-            plot_spatial_predictions(
-                features_for_plot, results['scalar_predictions'], 'scalar',
-                plots_dir / 'scalar_spatial.png'
-            )
-            if args.model_type in ['random_forest', 'gradient_boosting']:
+                plot_predictions(
+                    y_true, y_pred, target,
+                    plots_dir / f'{target}_predictions.png',
+                )
                 plot_feature_importance(
-                    results['scalar_model'], feature_cols, 'scalar',
-                    plots_dir / 'scalar_feature_importance.png'
+                    result, target,
+                    plots_dir / f'{target}_feature_importance.png',
                 )
 
-            # Offset plots
-            print("\nOffset plots:")
-            plot_predictions(
-                y_offset_plot, results['offset_predictions'], 'offset',
-                plots_dir / 'offset_predictions.png'
-            )
-            plot_spatial_predictions(
-                features_for_plot, results['offset_predictions'], 'offset',
-                plots_dir / 'offset_spatial.png'
-            )
-            if args.model_type in ['random_forest', 'gradient_boosting']:
-                plot_feature_importance(
-                    results['offset_model'], feature_cols, 'offset',
-                    plots_dir / 'offset_feature_importance.png'
-                )
+    # =========================================================================
+    # Save summary
+    # =========================================================================
+    summary_path = args.output_dir / 'training_summary.txt'
+    with open(summary_path, 'w') as f:
+        f.write("ML Training Summary\n")
+        f.write("=" * 70 + "\n\n")
+        f.write(f"Model: {args.model_type}\n")
+        f.write(f"CV strategy: {args.cv_strategy}\n")
+        f.write(f"CV folds: {args.cv_folds}\n")
+        f.write(f"Features ({len(feature_cols)}): {feature_cols}\n\n")
+        f.write(f"Data sources:\n")
+        f.write(f"  Terrain: {terrain_nc}\n")
+        f.write(f"  ERA5 invariant: {invariant_nc}\n")
+        f.write(f"  CORINE: {corine_nc}\n")
+        f.write(f"  Turbine metadata: {args.turbine_dir}\n")
+        f.write(f"  Coastline: {coastline}\n")
+    print(f"\nSaved summary: {summary_path}")
 
-            plt.close('all')
-
-        # Save summary
-        summary_path = args.output_dir / 'training_summary.txt'
-        with open(summary_path, 'w') as f:
-            f.write("ML Training Summary - Unified European Corrections\n")
-            f.write("="*70 + "\n\n")
-            f.write(f"Model: {args.model_type}\n")
-
-            # Note if spatial features were excluded
-            if args.exclude_spatial_features:
-                f.write(f"Feature set: TERRAIN ONLY (spatial features excluded)\n")
-            else:
-                f.write(f"Feature set: Terrain + Spatial (lon/lat/abs_lat)\n")
-
-            if use_spatial_validation:
-                f.write(f"Validation type: Spatial (held-out countries)\n")
-                f.write(f"Training countries: {', '.join(train_features['country_code'].unique())}\n")
-                f.write(f"Validation countries: {', '.join(validation_countries)}\n")
-                f.write(f"Training samples: {len(X_train)}\n")
-                f.write(f"Validation samples: {len(X_val)}\n")
-            else:
-                f.write(f"Validation type: {args.cv_folds}-fold CV\n")
-                f.write(f"Training samples: {len(X)}\n")
-
-            f.write(f"Features: {len(feature_cols)}\n\n")
-
-            f.write("SCALAR CORRECTION\n")
-            f.write("-" * 70 + "\n")
-            if use_spatial_validation:
-                f.write(f"Validation R²: {scalar_metrics['r2']:.4f}\n")
-                f.write(f"Validation MAE: {scalar_metrics['mae']:.4f}\n")
-                f.write(f"Validation RMSE: {scalar_metrics['rmse']:.4f}\n\n")
-            else:
-                f.write(f"CV R²: {results['scalar_cv_scores']['r2'].mean():.4f} ± {results['scalar_cv_scores']['r2'].std():.4f}\n")
-                f.write(f"CV MAE: {results['scalar_cv_scores']['mae'].mean():.4f} ± {results['scalar_cv_scores']['mae'].std():.4f}\n")
-                f.write(f"CV RMSE: {results['scalar_cv_scores']['rmse'].mean():.4f} ± {results['scalar_cv_scores']['rmse'].std():.4f}\n\n")
-
-            f.write("OFFSET CORRECTION\n")
-            f.write("-" * 70 + "\n")
-            if use_spatial_validation:
-                f.write(f"Validation R²: {offset_metrics['r2']:.4f}\n")
-                f.write(f"Validation MAE: {offset_metrics['mae']:.4f}\n")
-                f.write(f"Validation RMSE: {offset_metrics['rmse']:.4f}\n")
-            else:
-                f.write(f"CV R²: {results['offset_cv_scores']['r2'].mean():.4f} ± {results['offset_cv_scores']['r2'].std():.4f}\n")
-                f.write(f"CV MAE: {results['offset_cv_scores']['mae'].mean():.4f} ± {results['offset_cv_scores']['mae'].std():.4f}\n")
-                f.write(f"CV RMSE: {results['offset_cv_scores']['rmse'].mean():.4f} ± {results['offset_cv_scores']['rmse'].std():.4f}\n")
-
-        print(f"\n✓ Saved training summary: {summary_path}")
-
-    # Final message
-    print("\n" + "="*70)
-    print("✓ TRAINING COMPLETE")
-    print("="*70)
-    print(f"\nResults saved to: {args.output_dir}")
+    print("\n" + "=" * 70)
+    print("TRAINING COMPLETE")
+    print("=" * 70)
+    print(f"Results: {args.output_dir}")
 
     return 0
 

@@ -33,31 +33,31 @@ CONFIGS = {
         "country": "DE",
         "cluster_mode": "onshore",
         "n_clusters": 500,
-        "run_dir": "output/run/DE-onshore-obs_turbine-corrected-calc_z0",
+        "run_dir": "output/runs/turbine_grid/DE-onshore-obs_turbine-corrected-calc_z0",
     },
     "DK-onshore": {
         "country": "DK",
         "cluster_mode": "onshore",
-        "n_clusters": 1000,
-        "run_dir": "output/run/DK-onshore-obs_turbine-corrected-calc_z0",
+        "n_clusters": 700,
+        "run_dir": "output/runs/turbine_grid/DK-onshore-obs_turbine-corrected-calc_z0",
     },
     "DK-offshore": {
         "country": "DK",
         "cluster_mode": "offshore",
         "n_clusters": 2,
-        "run_dir": "output/run/DK-offshore-obs_turbine-corrected-calc_z0",
+        "run_dir": "output/runs/turbine_grid/DK-offshore-obs_turbine-corrected-calc_z0",
     },
     "UK-onshore": {
         "country": "UK",
         "cluster_mode": "onshore",
         "n_clusters": 300,
-        "run_dir": "output/run/UK-onshore-obs_turbine-corrected-calc_z0",
+        "run_dir": "output/runs/turbine_grid/UK-onshore-obs_turbine-corrected-calc_z0",
     },
     "UK-offshore": {
         "country": "UK",
         "cluster_mode": "offshore",
         "n_clusters": 10,
-        "run_dir": "output/run/UK-offshore-obs_turbine-corrected-calc_z0",
+        "run_dir": "output/runs/turbine_grid/UK-offshore-obs_turbine-corrected-calc_z0",
     },
 }
 
@@ -130,7 +130,7 @@ def generate_cluster_geometries_from_turb_info(config_name: str, config: dict):
     print(f"  ✓ Generated {len(cluster_geoms)} cluster geometries")
 
     # Save cluster geometries
-    geom_output_dir = Path("output/cluster_geometries") / country.lower()
+    geom_output_dir = Path("output/pyvwf_to_grid/cluster_geometries") / country.lower()
     geom_output_dir.mkdir(parents=True, exist_ok=True)
 
     geom_file = geom_output_dir / f"{country.lower()}_{cluster_mode}_correction_regions_{n_clusters}.geojson"
@@ -148,7 +148,7 @@ def generate_cluster_geometries_from_turb_info(config_name: str, config: dict):
         return False
 
     # Export as GeoDataFrame
-    output_dir = Path("output/correction_geodataframes_turbine") / country.lower()
+    output_dir = Path("output/pyvwf_to_grid/correction_geodataframes_turbine") / country.lower()
     output_file = output_dir / f"{country.lower()}_{cluster_mode}_corrections_fixed_{n_clusters}.geojson"
 
     try:

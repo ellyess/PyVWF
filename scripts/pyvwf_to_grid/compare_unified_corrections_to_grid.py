@@ -42,10 +42,10 @@ except ImportError:
 # ============================================================================
 
 # Input data
-UNIFIED_CORRECTIONS_CSV = "output/grid_run/turbine_grid/all_corrections_centroids.csv"
+UNIFIED_CORRECTIONS_CSV = "output/pyvwf_to_grid/all_corrections_centroids.csv"
 
 # Output directory
-OUTPUT_DIR = Path("output/grid_run/turbine_grid/grid_comparison")
+OUTPUT_DIR = Path("output/pyvwf_to_grid/grid_comparison")
 
 # Grid resolution (degrees)
 GRID_RESOLUTION = 0.25
@@ -154,8 +154,8 @@ def create_europe_grid(resolution=0.25, extent=EUROPE_EXTENT):
 
     ds = xr.Dataset(
         coords={
-            'lat': lats,
-            'lon': lons,
+            'y': lats,
+            'x': lons,
         }
     )
 
@@ -303,21 +303,24 @@ def interpolate_kriging(control_points, grid_lons, grid_lats):
     # Create grid
     lon_grid, lat_grid = np.meshgrid(grid_lons, grid_lats)
 
-    # Interpolate scalar
-    print("    Kriging scalar...")
+    # Use exponential variogram + geographic coordinates
+    # (best config from test_kriging_improvements.py CV analysis)
+    print("    Kriging scalar (exponential, geographic)...")
     ok_scalar = OrdinaryKriging(
         lons, lats, scalars,
-        variogram_model='spherical',
+        variogram_model='exponential',
+        coordinates_type='geographic',
         verbose=False,
         enable_plotting=False
     )
     scalar_grid, _ = ok_scalar.execute('grid', grid_lons, grid_lats)
 
     # Interpolate offset
-    print("    Kriging offset...")
+    print("    Kriging offset (exponential, geographic)...")
     ok_offset = OrdinaryKriging(
         lons, lats, offsets,
-        variogram_model='spherical',
+        variogram_model='exponential',
+        coordinates_type='geographic',
         verbose=False,
         enable_plotting=False
     )
@@ -380,8 +383,8 @@ def interpolate_to_grid(control_points, grid_ds, method='idw', **kwargs):
     """
     print(f"\nInterpolating using method: {method.upper()}")
 
-    grid_lons = grid_ds['lon'].values
-    grid_lats = grid_ds['lat'].values
+    grid_lons = grid_ds['x'].values
+    grid_lats = grid_ds['y'].values
 
     # Remove any NaN values from control points
     control_points = control_points.dropna(subset=['lon', 'lat', 'scalar', 'offset'])
@@ -407,12 +410,12 @@ def interpolate_to_grid(control_points, grid_ds, method='idw', **kwargs):
     # Create output dataset
     ds = xr.Dataset(
         {
-            'scalar': (['lat', 'lon'], scalar_grid),
-            'offset': (['lat', 'lon'], offset_grid),
+            'scalar': (['y', 'x'], scalar_grid),
+            'offset': (['y', 'x'], offset_grid),
         },
         coords={
-            'lat': grid_lats,
-            'lon': grid_lons,
+            'y': grid_lats,
+            'x': grid_lons,
         },
         attrs={
             'method': method,
@@ -442,7 +445,7 @@ def apply_distance_mask(ds, control_points, max_distance_deg=5.0):
     print(f"\nApplying distance mask (max distance: {max_distance_deg}°)...")
 
     # Create grid of coordinates
-    lon_grid, lat_grid = np.meshgrid(ds['lon'].values, ds['lat'].values)
+    lon_grid, lat_grid = np.meshgrid(ds['x'].values, ds['y'].values)
     grid_coords = np.column_stack([lon_grid.ravel(), lat_grid.ravel()])
 
     # Control point coordinates
@@ -474,7 +477,7 @@ def apply_distance_mask(ds, control_points, max_distance_deg=5.0):
     ds_masked['offset'] = xr.where(valid_mask, ds['offset'], 0.0)
 
     # Add distance field for visualization
-    ds_masked['distance_to_nearest_control'] = (['lat', 'lon'], distance_grid)
+    ds_masked['distance_to_nearest_control'] = (['y', 'x'], distance_grid)
 
     # Update attributes (use int instead of bool for NetCDF compatibility)
     ds_masked.attrs['max_distance_deg'] = max_distance_deg
@@ -655,25 +658,28 @@ def interpolate_kriging_points(control_points, test_lons, test_lats):
     scalars = control_points['scalar'].values
     offsets = control_points['offset'].values
 
-    # Scalar
+    # Scalar - use exponential variogram + geographic coordinates
+    # (best config from test_kriging_improvements.py CV analysis)
     ok_scalar = OrdinaryKriging(
         lons, lats, scalars,
-        variogram_model='spherical',
+        variogram_model='exponential',
+        coordinates_type='geographic',
         verbose=False,
         enable_plotting=False
     )
-    scalar_pred = np.array([ok_scalar.execute('points', lon, lat)[0][0]
-                            for lon, lat in zip(test_lons, test_lats)])
+    scalar_pred, _ = ok_scalar.execute('points', test_lons, test_lats)
+    scalar_pred = np.asarray(scalar_pred).ravel()
 
     # Offset
     ok_offset = OrdinaryKriging(
         lons, lats, offsets,
-        variogram_model='spherical',
+        variogram_model='exponential',
+        coordinates_type='geographic',
         verbose=False,
         enable_plotting=False
     )
-    offset_pred = np.array([ok_offset.execute('points', lon, lat)[0][0]
-                            for lon, lat in zip(test_lons, test_lats)])
+    offset_pred, _ = ok_offset.execute('points', test_lons, test_lats)
+    offset_pred = np.asarray(offset_pred).ravel()
 
     return scalar_pred, offset_pred
 
@@ -734,7 +740,7 @@ def plot_interpolation_comparison(datasets, control_points, output_dir):
 
         # Plot interpolated scalar field with diverging colormap
         im = ax.pcolormesh(
-            ds['lon'], ds['lat'], ds['scalar'],
+            ds['x'], ds['y'], ds['scalar'],
             cmap='RdBu_r', norm=scalar_norm, shading='auto'
         )
 
@@ -778,7 +784,7 @@ def plot_interpolation_comparison(datasets, control_points, output_dir):
 
         # Plot interpolated offset field with diverging colormap
         im = ax.pcolormesh(
-            ds['lon'], ds['lat'], ds['offset'],
+            ds['x'], ds['y'], ds['offset'],
             cmap='RdBu_r', norm=offset_norm, shading='auto'
         )
 

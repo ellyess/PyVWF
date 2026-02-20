@@ -22,7 +22,6 @@ from vwf.data import (
     cluster_train_set,
 )
 import vwf.wind as wind
-import vwf.plots as plots
 import vwf.metrics as metrics
 
 import vwf.correction as correction
@@ -814,40 +813,3 @@ class PyVWF:
         self.year_test = year_test
 
         return self
-
-    def research_error(self):
-        """Plot overall error diagnostics for bias correction."""
-        temporal_metrics = metrics.overall_error(
-            "temporal-focus",
-            self.directory_path,
-            self.country,
-            self.turb_info,
-            self.full_clus_list,
-            self.full_time_list,
-            False,
-            self.year_test,
-        )
-        spatial_metrics = metrics.overall_error(
-            "spatial-focus",
-            self.directory_path,
-            self.country,
-            self.turb_info,
-            self.full_clus_list,
-            self.full_time_list,
-            False,
-            self.year_test,
-        )
-        total_metrics = metrics.overall_error(
-            "total",
-            self.directory_path,
-            self.country,
-            self.turb_info,
-            self.full_clus_list,
-            self.full_time_list,
-            False,
-            self.year_test,
-        )
-
-        plots.plot_overall_error(self.directory_path, self.country, total_metrics, "full")
-        plots.plot_overall_error(self.directory_path, self.country, temporal_metrics, "temporal_focus")
-        plots.plot_overall_error(self.directory_path, self.country, spatial_metrics, "spatial_focus")

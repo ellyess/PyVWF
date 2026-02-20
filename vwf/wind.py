@@ -391,37 +391,3 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     return train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar, offset)
 
 
-# ============================================================================
-# UTILITY FUNCTIONS
-# ============================================================================
-
-def clear_power_curve_cache():
-    """Clear the power curve interpolator cache.
-
-    Useful when switching between different power curve datasets
-    or to free memory.
-
-    Examples:
-        >>> from vwf.wind import clear_power_curve_cache
-        >>> clear_power_curve_cache()
-    """
-    global _power_curve_cache
-    _power_curve_cache.clear()
-
-
-def get_cache_info():
-    """Get information about the power curve cache.
-
-    Returns:
-        dict: Cache statistics including size and cached models.
-
-    Examples:
-        >>> from vwf.wind import get_cache_info
-        >>> info = get_cache_info()
-        >>> print(f"Cached models: {info['size']}")
-    """
-    return {
-        'size': len(_power_curve_cache),
-        'models': list(_power_curve_cache.keys()),
-    }
-
