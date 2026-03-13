@@ -131,7 +131,7 @@ def _country_level_metrics(df_sim: pd.DataFrame, df_obs: pd.DataFrame,
     return rmse, mae, mbe
 
 
-def evaluate_run(run_dir: Path) -> list[dict]:
+def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
     """Evaluate a single PyVWF run directory.
 
     For turbine-level obs, uses vwf.metrics.overall_error.
@@ -139,6 +139,8 @@ def evaluate_run(run_dir: Path) -> list[dict]:
 
     Args:
         run_dir: Path to PyVWF run directory.
+        metric_type: Error mode passed to vwf.metrics.overall_error.
+            Supported values include 'total', 'temporal-focus', 'spatial-focus'.
 
     Returns:
         List of dictionaries with evaluation metrics for each correction variant.
@@ -151,17 +153,20 @@ def evaluate_run(run_dir: Path) -> list[dict]:
         return []
 
     # Find observation file to extract year
-    obs_files = list(results_dir.glob("*_obs_cf.csv"))
+    obs_files = sorted(results_dir.glob("*_obs_cf.csv"))
     if not obs_files:
         print(f"  ⚠ No observation file found in {results_dir}")
         return []
 
-    obs_file = obs_files[0]
+    # Prefer a year-specific observation file (e.g. DK_2020_obs_cf.csv) when available
+    year_obs = [path for path in obs_files if re.search(r"_\d{4}_obs_cf\.csv$", path.name)]
+    obs_file = year_obs[0] if year_obs else obs_files[0]
     print(f"  Loading observations: {obs_file.name}")
 
     # Extract year from filename
     year_match = re.search(r"_(\d{4})_", obs_file.name)
     year = int(year_match.group(1)) if year_match else None
+    is_train = "_train_" in obs_file.name
 
     # Load turbine info for capacity weighting
     info_dir = run_dir / "training" / "simulated-turbines"
@@ -208,12 +213,16 @@ def evaluate_run(run_dir: Path) -> list[dict]:
         results = []
 
         # Uncorrected
-        unc_file = results_dir / f"{metadata['country']}_{year}_unc_cf.csv"
+        if is_train:
+            unc_file = results_dir / f"{metadata['country']}_train_unc_cf.csv"
+        else:
+            unc_file = results_dir / f"{metadata['country']}_{year}_unc_cf.csv"
         if unc_file.exists():
             unc_df = pd.read_csv(unc_file)
             rmse, mae, mbe = _country_level_metrics(unc_df, obs_df, turb_info)
             results.append({
                 **metadata, "year": year,
+                "error_mode": metric_type,
                 "correction_type": "uncorrected", "time_res": None,
                 "n_clusters": None, "mae": mae, "rmse": rmse,
                 "r2": np.nan, "bias": mbe, "rel_bias": np.nan,
@@ -223,12 +232,16 @@ def evaluate_run(run_dir: Path) -> list[dict]:
         # Corrected variants
         for num_clu in cluster_list:
             for time_res in time_res_list:
-                cor_file = results_dir / f"{metadata['country']}_{year}_{time_res}_{num_clu}_cor_cf.csv"
+                if is_train:
+                    cor_file = results_dir / f"{metadata['country']}_train_{time_res}_{num_clu}_cor_cf.csv"
+                else:
+                    cor_file = results_dir / f"{metadata['country']}_{year}_{time_res}_{num_clu}_cor_cf.csv"
                 if cor_file.exists():
                     cor_df = pd.read_csv(cor_file)
                     rmse, mae, mbe = _country_level_metrics(cor_df, obs_df, turb_info)
                     results.append({
                         **metadata, "year": year,
+                        "error_mode": metric_type,
                         "correction_type": "corrected", "time_res": time_res,
                         "n_clusters": num_clu, "mae": mae, "rmse": rmse,
                         "r2": np.nan, "bias": mbe, "rel_bias": np.nan,
@@ -239,16 +252,18 @@ def evaluate_run(run_dir: Path) -> list[dict]:
 
     # Turbine-level obs: use overall_error as before
     try:
-        metrics_df = overall_error(
-            'total',
+        overall_args = [
+            metric_type,
             str(run_dir.resolve()),
             metadata['country'],
             turb_info,
             cluster_list,
             time_res_list,
-            False,
-            year
-        )
+            is_train,
+        ]
+        if not is_train:
+            overall_args.append(year)
+        metrics_df = overall_error(*overall_args)
     except Exception as e:
         print(f"  ⚠ Error calculating metrics: {e}")
         return []
@@ -270,6 +285,7 @@ def evaluate_run(run_dir: Path) -> list[dict]:
             "mean_obs": np.nan,  # overall_error doesn't return these
             "mean_sim": np.nan,
             "n_points": np.nan,
+            "error_mode": metric_type,
         }
         results.append(result)
 
@@ -371,6 +387,7 @@ def main():
         "mode",
         "obs_level",
         "year",
+        "error_mode",
         "correction_type",
         "time_res",
         "n_clusters",
