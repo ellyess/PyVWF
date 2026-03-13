@@ -54,6 +54,7 @@ def get_training_sets():
         'cluster_list': [10],
         'time_res_list': ['fixed', 'season', 'bimonth', 'month'],
         'calc_z0': True,
+        'save_train_cf': True,
         'per_country_config': {
             'DK_onshore': { 'cluster_list': [1,2,3,5,7,10,20,50,70,100,200,500,700,800,900,1000,2000,3000,3300]}, 
             'DK_offshore': { 'cluster_list': [1,2,3,5]},
@@ -352,6 +353,26 @@ def train_turbine_level(country_key: str, config: dict, output_dir: Path, args) 
             dask_npartitions=args.dask_npartitions,
         )
         print(f"✓ Training completed for {country_key}")
+
+        # Save training sim/obs CF series if requested
+        if config.get('save_train_cf') and hasattr(model, 'gen_cf'):
+            print(f"\nSaving training CF series for {country_key}...")
+            gen_cf = model.gen_cf.copy()
+            gen_cf['time'] = pd.to_datetime(
+                gen_cf['year'].astype(str) + '-' + gen_cf['month'].astype(str) + '-01'
+            )
+
+            train_sim_cf = gen_cf.pivot_table(
+                index='time', columns='ID', values='sim'
+            ).reset_index()
+            train_obs_cf = gen_cf.pivot_table(
+                index='time', columns='ID', values='obs'
+            ).reset_index()
+
+            cf_dir = model.directory_path + "/results/capacity-factor/"
+            train_sim_cf.to_csv(cf_dir + f"{base_country}_train_sim_cf.csv", index=False)
+            train_obs_cf.to_csv(cf_dir + f"{base_country}_train_obs_cf.csv", index=False)
+            print(f"✓ Saved training sim/obs CF to {cf_dir}")
 
         # Simulate
         print(f"\nSimulating {country_key} for year {country_cfg['test_year']}...")

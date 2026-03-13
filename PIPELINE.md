@@ -97,17 +97,7 @@ python scripts/pyvwf_to_grid/compare_unified_corrections_to_grid.py
   - `output/pyvwf_to_grid/grid_comparison/europe_corrections_{method}.nc`
   - `output/pyvwf_to_grid/grid_comparison/cv_scores.csv`
 
-### 2.4 Visualize Results
-
-```bash
-python scripts/pyvwf_to_grid/visualize_corrections_and_interpolations.py
-```
-
-- Maps of raw clusters, interpolated surfaces, method comparisons, difference maps
-- **Requires:** Steps 2.1 + 2.3 outputs
-- **Output:** `output/pyvwf_to_grid/grid_comparison/maps/` (17 maps)
-
-### 2.5 Evaluate Grid Corrections
+### 2.4 Evaluate Grid Corrections
 
 ```bash
 python scripts/pyvwf_to_grid/evaluate_grid_corrections.py
@@ -119,7 +109,7 @@ python scripts/pyvwf_to_grid/evaluate_grid_corrections.py
 - **Requires:** Steps 2.1 + 2.3 outputs
 - **Output:** `output/pyvwf_to_grid/grid_evaluation/`
 
-### 2.6 Generate Best Correction Grids
+### 2.5 Generate Best Correction Grids
 
 ```bash
 python scripts/pyvwf_to_grid/generate_best_correction_grids.py
@@ -131,7 +121,7 @@ python scripts/pyvwf_to_grid/generate_best_correction_grids.py
 - **Requires:** Steps 2.1 + 2.3 outputs
 - **Output:** `output/pyvwf_to_grid/` (production-ready `.nc` files)
 
-### 2.7 Generate Chapter 4 Thesis Figures
+### 2.6 Generate Chapter 4 Thesis Figures
 
 ```bash
 python scripts/pyvwf_to_grid/generate_ch4_grid_plots.py
@@ -141,16 +131,6 @@ python scripts/pyvwf_to_grid/generate_ch4_grid_plots.py
 - Control point maps, correction distributions, interpolation surfaces, CV scores, grid vs cluster comparisons
 - **Requires:** Steps 2.1 + 2.3 + 1.2 outputs
 - **Output:** `output/pyvwf_to_grid/analysis_plots/ch4_grid_interpolation/`
-
-### 2.8 Test Kriging Improvements (Optional)
-
-```bash
-python scripts/pyvwf_to_grid/test_kriging_improvements.py
-```
-
-- Compares 13 Kriging configurations via 5-fold spatial CV
-- Tests variogram models, coordinate systems, Universal vs Ordinary Kriging
-- **Output:** `output/pyvwf_to_grid/grid_comparison/kriging_improvement_cv_scores.csv`
 
 ---
 
@@ -196,46 +176,40 @@ python scripts/pyvwf_ml/prepare_turbine_fleet_features.py
 - **Requires:** `output/pyvwf_to_grid/all_corrections_centroids.csv` (from Stage 2.1)
 - **Output:** `output/pyvwf_to_grid/fleet_features.csv`
 
-### 3.3 Train ML Models
+### 3.3 Train Centroid-Level ML Models
 
 ```bash
-# Basic training with random CV
-python scripts/pyvwf_ml/train_unified_ml_corrections.py
-
-# With spatial cross-validation (recommended for honest evaluation)
-python scripts/pyvwf_ml/train_unified_ml_corrections.py --cv-strategy spatial_lon
-
-# Compare all models
+# Compare all models with random CV
 python scripts/pyvwf_ml/train_unified_ml_corrections.py --compare-models
 
-# Feature ablation study
-python scripts/pyvwf_ml/train_unified_ml_corrections.py --ablation
+# With spatial cross-validation
+python scripts/pyvwf_ml/train_unified_ml_corrections.py --cv-strategy spatial_lon
 ```
 
-Supported models: Random Forest, Gradient Boosting, XGBoost, LightGBM, Ridge, Lasso, ElasticNet
-
-CV strategies: `random` (baseline), `spatial_lon` (longitude folds), `leave_country_out`
-
-Feature groups: terrain, ERA5 invariants, turbine fleet, CORINE land cover, spatial
+Supported models: Random Forest, Gradient Boosting, XGBoost, LightGBM, Ridge, Lasso, ElasticNet, SVR
 
 - **Requires:** Steps 2.1 + 3.1 (+ optionally 3.0 CORINE, 3.2 fleet features)
-- **Output:** `output/pyvwf_ml/unified_ml/` or `output/pyvwf_ml/ml_results/`
+- **Output:** `output/pyvwf_ml/unified_ml/`
 
-### 3.4 Generate Figures
+### 3.4 Run Turbine-Level Model Comparisons
 
 ```bash
-# Chapter 2 ML figures (standalone)
-python scripts/pyvwf_ml/generate_ch2_ml_plots.py
-
-# Combined grid + ML figures
-python scripts/analyse_grid_and_ml_results.py
+python scripts/pyvwf_ml/run_turbine_model_comparisons.py
 ```
 
-- **Ch2 figures:** ML model comparison, feature importance, predictions scatter, random vs spatial CV, ML vs interpolation
-- **Combined figures:** Correction maps, distributions, interpolation surfaces, CV scores + ML results
-- **Output:**
-  - `output/pyvwf_ml/analysis_plots/ch2_ml_models/`
-  - `output/pyvwf_to_grid/analysis_plots/`
+- Runs 3 experiments: 35-feature default, 35-feature tuned, 7-feature Lasso-selected tuned
+- 8 models compared per experiment (RF, GBM, XGBoost, LightGBM, Ridge, Lasso, EN, SVR)
+- **Requires:** Turbine-level correction data + enhanced terrain features
+- **Output:** `output/pyvwf_ml/turbine_35feat_default/`, `turbine_35feat_tuned/`, `turbine_7feat_tuned/`
+
+### 3.5 Generate Chapter 5 Figures
+
+```bash
+python scripts/pyvwf_ml/generate_ch5_ml_plots.py
+```
+
+- ML model comparison, feature importance, predictions scatter, random vs spatial CV, ML vs interpolation
+- **Output:** `output/pyvwf_ml/analysis_plots/ch5_ml_models/`
 
 ---
 
@@ -253,6 +227,9 @@ python scripts/pyvwf_to_grid/compare_unified_corrections_to_grid.py
 python scripts/pyvwf_ml/download_terrain_data.py
 python scripts/pyvwf_ml/enhance_terrain_features.py
 python scripts/pyvwf_ml/train_unified_ml_corrections.py --cv-strategy spatial_lon
+
+# 3b. (Optional) Turbine-level model comparisons
+python scripts/pyvwf_ml/run_turbine_model_comparisons.py
 ```
 
 ## Dependency Graph
@@ -276,12 +253,10 @@ _to_grid.py                        │                       │
           v          │  prepare_turbine_fleet_features.py  │
 evaluate_grid_       │           │                         │
 corrections.py       │           v                         v
-          │          │  train_unified_ml_corrections   analyse_grid_and
-          v          │           │                     _ml_results.py
-generate_best_       │           v
-correction_grids.py  │  generate_ch2_ml_plots.py
-                     │
-                     v
-          visualize_corrections
-          _and_interpolations.py
+          │          │  train_unified_ml_corrections   generate_ch3_plots.py
+          v          │           │
+generate_best_       │           ├── run_turbine_model_comparisons.py
+correction_grids.py  │           │
+                     │           v
+                     │  generate_ch5_ml_plots.py
 ```

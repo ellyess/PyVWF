@@ -436,11 +436,6 @@ class PyVWF:
             dask_use_distributed: If True, use dask.distributed LocalCluster.
             dask_npartitions: Override Dask partition count (0 to auto).
         """
-        if len(self.cluster_list) < 1:
-            print("All correction factors are trained ... Ending train.")
-            print("--------------------------------")
-            return self
-
         # NOTE: obs_level forwarded, plus external data if loaded
         gen_cf, turb_info_train, reanalysis, power_curves = train_set(
             self.country,
@@ -453,6 +448,14 @@ class PyVWF:
             external_grid_points=self.grid_points,  # NEW
             external_obs_data=self.obs_data_train,  # NEW
         )
+
+        # Store training data for downstream access
+        self.gen_cf = gen_cf
+
+        if len(self.cluster_list) < 1:
+            print("All correction factors are trained ... Ending train.")
+            print("--------------------------------")
+            return self
 
         # For country-level with year-specific grid points: merge year-specific capacity
         if self.obs_level == "country" and hasattr(self, 'grid_points_by_year') and self.grid_points_by_year:

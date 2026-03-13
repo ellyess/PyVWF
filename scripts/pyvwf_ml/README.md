@@ -1,97 +1,88 @@
 # PyVWF ML Corrections Module
 
-This directory contains machine learning experiments for predicting ERA5 wind speed bias correction factors from terrain features, using the unified European corrections dataset.
+This directory contains machine learning experiments for predicting ERA5 wind speed bias correction factors from terrain and environmental features, using the unified European corrections dataset.
 
 ## Overview
 
 The core question: **can terrain features predict where and how much ERA5 wind speeds need correcting?**
 
-We train ML models on 1,474 Voronoi correction regions across 14 country/region configurations (9 countries with country-level observations + 5 turbine-level configurations for DE, DK, UK). The corrections were generated using a unified PyVWF calibration methodology, ensuring consistency across all regions.
+Two levels of analysis are explored:
 
-### Key Results
+1. **Centroid-level**: 1,729 Voronoi correction centroids across 12 European countries (14 country–mode combinations), using 37 spatial/terrain/ERA5 features.
+2. **Turbine-level**: 23,009 individual turbine samples from DE, DK, and UK, using 35 terrain/ERA5/turbine features. This enables direct comparison of model types and feature selection strategies.
+
+### Key Results (Turbine-Level, 7 Lasso-Selected Features)
 
 | Model | Scalar R² (CV) | Scalar MAE | Offset R² (CV) | Offset MAE |
 |-------|----------------|------------|----------------|------------|
-| **Random Forest** | **0.351** | **0.137** | **0.414** | **0.541** |
-| Gradient Boosting | 0.356 | 0.144 | 0.374 | 0.564 |
-| Ridge | 0.098 | 0.173 | 0.158 | 0.684 |
-| Lasso | -0.011 | 0.181 | 0.123 | 0.677 |
-| Elastic Net | 0.050 | 0.175 | 0.141 | 0.674 |
+| **Elastic Net** | **0.295** | **0.151** | **0.295** | **0.620** |
+| Ridge | 0.293 | 0.151 | 0.293 | 0.621 |
+| Lasso | 0.279 | 0.153 | 0.279 | 0.631 |
+| Random Forest | 0.273 | 0.151 | 0.254 | 0.631 |
+| Gradient Boosting | 0.275 | 0.153 | 0.252 | 0.637 |
+| XGBoost | 0.256 | 0.155 | 0.229 | 0.644 |
+| LightGBM | 0.258 | 0.155 | 0.233 | 0.644 |
+| SVR | 0.205 | 0.162 | 0.202 | 0.659 |
 
-Random Forest and Gradient Boosting perform similarly and clearly outperform linear models, confirming that correction patterns are non-linear.
+With Lasso feature selection (7 features: `era5_wind_night_mean`, `subgrid_variance`, `era5_weibull_k`, `era5_wind_seasonal_range`, `is_forest`, `aspect_category`, `curvature`), linear models slightly outperform tree-based models, achieving R² ≈ 0.295 for both targets.
 
 ### ML vs Spatial Interpolation (at control points)
 
-| Method | Scalar R² | Scalar MAE | Offset R² | Offset MAE |
-|--------|-----------|------------|-----------|------------|
-| **IDW** | **0.779** | 0.095 | **0.754** | 0.383 |
-| ML (Random Forest) | 0.653 | **0.093** | 0.714 | **0.363** |
+| Method | Scalar MAE | Offset MAE |
+|--------|------------|------------|
+| **IDW** | **0.161** | **0.641** |
+| ML (Elastic Net, turbine-level) | 0.151 | 0.620 |
 
-IDW outperforms ML on R² at the control point locations (where IDW naturally excels), while ML achieves slightly better MAE. The more informative comparison is cross-validation performance, where ML achieves R² = 0.35-0.41 on truly held-out data.
+ML achieves slightly better MAE than IDW, though these use different evaluation strategies (random CV vs spatial CV), making direct comparison approximate.
 
 ---
 
 ## Directory Structure
 
 ```
-ml/
-├── README.md                     # This file
-├── scripts/
-│   ├── train_unified_ml_corrections.py   # Main ML training script
-│   ├── enhance_terrain_features.py       # Add derived terrain features
-│   ├── download_terrain_data.py          # Download real ETOPO elevation
-│   └── quick_terrain_setup.py            # Generate synthetic terrain
-├── docs/
-│   └── ML_RESULTS_SUMMARY.md    # Consolidated results and analysis
-├── _archive/                     # Previous experiments and old docs
-└── results/                      # Experiment outputs
+scripts/pyvwf_ml/
+├── README.md                             # This file
+├── ML_RESULTS_SUMMARY.md                 # Consolidated results and analysis
+├── download_terrain_data.py              # Download ETOPO elevation data
+├── download_corine_data.py               # Download CORINE Land Cover 2018
+├── enhance_terrain_features.py           # Add derived terrain features
+├── prepare_turbine_fleet_features.py     # Link turbine metadata to clusters
+├── train_unified_ml_corrections.py       # Train centroid-level ML corrections
+├── run_turbine_model_comparisons.py      # Run turbine-level model comparison experiments
+└── generate_ch5_ml_plots.py              # Thesis Chapter 5 figures
 ```
 
 ### Key Outputs
 
-Results from the current `turbine_grid` run are in:
-- `output/grid_run/turbine_grid/ml_results/` -- ML model comparison, plots, training summary
-- `output/grid_run/turbine_grid/grid_comparison/` -- Spatial interpolation (IDW, RBF, Kriging) grids and CV scores
+- `output/pyvwf_ml/unified_ml/` — Centroid-level ML model results
+- `output/pyvwf_ml/turbine_35feat_default/` — Turbine-level, 35 features, default hyperparameters
+- `output/pyvwf_ml/turbine_35feat_tuned/` — Turbine-level, 35 features, tuned hyperparameters
+- `output/pyvwf_ml/turbine_7feat_tuned/` — Turbine-level, 7 Lasso-selected features, tuned hyperparameters
 
 ---
 
 ## Usage
 
-### 1. Train with Random CV (default)
+### 1. Train Centroid-Level Models
 
 ```bash
-python ml/scripts/train_unified_ml_corrections.py \
-    --output-dir output/grid_run/turbine_grid/ml_results
-```
-
-### 2. Compare All Models
-
-```bash
-python ml/scripts/train_unified_ml_corrections.py \
+python scripts/pyvwf_ml/train_unified_ml_corrections.py \
     --compare-models \
-    --output-dir output/grid_run/turbine_grid/ml_results
+    --output-dir output/pyvwf_ml/unified_ml
 ```
 
-### 3. Spatial Cross-Validation (Country Holdout)
+### 2. Run Turbine-Level Model Comparisons
 
 ```bash
-# Hold out Germany
-python ml/scripts/train_unified_ml_corrections.py \
-    --validation-countries DE-onshore \
-    --output-dir ml/results/spatial_cv_de
-
-# Hold out UK
-python ml/scripts/train_unified_ml_corrections.py \
-    --validation-countries UK-onshore,UK-offshore \
-    --output-dir ml/results/spatial_cv_uk
+python scripts/pyvwf_ml/run_turbine_model_comparisons.py
 ```
 
-### 4. Terrain-Only Test (No Spatial Features)
+Runs three experiments: 35-feature default, 35-feature tuned, and 7-feature tuned (Lasso selection).
+
+### 3. Generate Chapter 5 Figures
 
 ```bash
-python ml/scripts/train_unified_ml_corrections.py \
-    --exclude-spatial-features \
-    --output-dir ml/results/terrain_only
+python scripts/pyvwf_ml/generate_ch5_ml_plots.py
 ```
 
 ---
@@ -100,18 +91,11 @@ python ml/scripts/train_unified_ml_corrections.py \
 
 The ML module sits downstream of the correction pipeline:
 
-1. **PyVWF runs** (`output/runs/turbine_grid/`) -- generate per-cluster correction factors
-2. **Unified dataframe** (`scripts/pyvwf_to_grid/create_unified_correction_dataframe.py`) -- combines all corrections with cluster geometry centroids
-3. **Spatial interpolation** (`scripts/pyvwf_to_grid/compare_unified_corrections_to_grid.py`) -- IDW/RBF/Kriging grid comparison
-4. **ML training** (`ml/scripts/train_unified_ml_corrections.py`) -- trains models on terrain features
-
-### Input Files
-
-| File | Description |
-|------|-------------|
-| `output/grid_run/turbine_grid/all_corrections_centroids.csv` | 1,474 correction centroids with scalar/offset |
-| `input/terrain/terrain_europe_full.nc` | Real ETOPO terrain (elevation, slope, aspect, roughness, curvature) |
-| `output/grid_run/turbine_grid/grid_comparison/europe_corrections_idw.nc` | IDW-interpolated correction grid |
+1. **PyVWF runs** (`output/runs/turbine_grid/`) — generate per-cluster correction factors
+2. **Unified dataframe** (`scripts/pyvwf_to_grid/create_unified_correction_dataframe.py`) — combines all corrections with cluster geometry centroids
+3. **Spatial interpolation** (`scripts/pyvwf_to_grid/compare_unified_corrections_to_grid.py`) — IDW/RBF/Kriging grid comparison
+4. **Centroid-level ML** (`scripts/pyvwf_ml/train_unified_ml_corrections.py`) — trains models on centroid features
+5. **Turbine-level ML** (`scripts/pyvwf_ml/run_turbine_model_comparisons.py`) — trains models on individual turbine features
 
 ---
 
@@ -119,30 +103,10 @@ The ML module sits downstream of the correction pipeline:
 
 ### What ML captures
 
-With 8 features (5 terrain + 3 spatial), Random Forest explains ~35% of scalar variance and ~41% of offset variance in cross-validation. The spatial features (lon/lat) contribute substantially to this. Tree-based models capture non-linear interactions between terrain characteristics and correction magnitude.
+At the turbine level with 7 Lasso-selected features, Elastic Net explains ~30% of variance in both scalar and offset targets. The selected features are primarily ERA5-derived wind climatology variables and terrain characteristics, suggesting corrections correlate with systematic local climate patterns.
 
 ### Transfer learning caveat
 
-Previous experiments (documented in `docs/ML_RESULTS_SUMMARY.md`) showed that spatial cross-validation (holding out entire countries) yields negative R². This means:
+Spatial cross-validation (holding out entire countries) yields negative R², meaning ML **does not transfer** to entirely new geographic regions. Corrections have country-specific components (turbine fleet, climate regime, observation quality) not captured by terrain features alone.
 
-- ML works well for **interpolation** within regions where training data exists
-- ML **does not transfer** reliably to completely new countries/regions
-- Spatial features (lon/lat) are essential for interpolation but prevent generalisation
-- Terrain-only models achieve modest R² (0.15-0.24) but still fail in spatial CV
-
-For prediction at new locations without nearby training data, use IDW or Kriging interpolation of existing correction factors instead.
-
-### Practical recommendation
-
-For extending corrections across Europe:
-- **Within trained regions**: ML or IDW both work well
-- **Between trained regions**: IDW/Kriging spatial interpolation is more reliable
-- **Untrained countries**: Use PyVWF physics-based corrections with local observations
-
----
-
-## Requirements
-
-```bash
-pip install scikit-learn>=1.0 xarray pandas numpy matplotlib seaborn
-```
+For new regions, use the physics-based PyVWF pipeline with local observations, then interpolate the resulting corrections spatially using IDW or Kriging.
