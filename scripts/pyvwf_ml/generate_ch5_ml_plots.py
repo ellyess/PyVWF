@@ -38,7 +38,8 @@ import seaborn as sns
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from plotting_style import thesis_plot_style
+from plotting_style import thesis_plot_style, format_axes_standard, savefig_thesis
+from thesis_colors import OKABE_ITO, MODEL_COLOURS, GROUP_COLOURS
 from vwf.ml_correction import (
     build_turbine_level_dataset,
     create_feature_matrix,
@@ -51,22 +52,9 @@ from vwf.ml_correction import (
 # ===========================================================================
 STYLE = thesis_plot_style()
 cm = STYLE["cm"]
-
-# Thesis page width constants
-FULL_WIDTH = 16 * cm    # ~6.3 in
-HALF_WIDTH = 8 * cm     # ~3.15 in
-
-# Okabe-Ito colourblind-safe palette (consistent with Chapters 3 & 4)
-OKABE_ITO = [
-    "#E69F00",  # 0 orange
-    "#56B4E9",  # 1 sky blue
-    "#009E73",  # 2 bluish green
-    "#F0E442",  # 3 yellow
-    "#0072B2",  # 4 blue
-    "#D55E00",  # 5 vermillion
-    "#CC79A7",  # 6 reddish purple
-    "#000000",  # 7 black
-]
+FULL_WIDTH = STYLE["FULL_WIDTH"]
+HALF_WIDTH = STYLE["HALF_WIDTH"]
+MAP_WIDTH = STYLE["MAP_WIDTH"]
 
 # ===========================================================================
 # Paths
@@ -159,15 +147,7 @@ FEATURE_LABELS = {
     "mean_capacity": "Mean capacity",
 }
 
-# Feature group colours (Okabe-Ito)
-GROUP_COLOURS = {
-    "terrain": OKABE_ITO[1],   # sky blue
-    "era5": OKABE_ITO[0],      # orange
-    "turbine": OKABE_ITO[2],   # bluish green
-    "fleet": OKABE_ITO[2],     # bluish green (same as turbine)
-    "corine": OKABE_ITO[6],    # reddish purple
-    "spatial": OKABE_ITO[3],   # yellow
-}
+# GROUP_COLOURS and MODEL_COLOURS imported from thesis_colors
 
 # Model display names
 MODEL_NAMES = {
@@ -179,18 +159,6 @@ MODEL_NAMES = {
     "lasso": "Lasso",
     "elastic_net": "Elastic Net",
     "mlp": "MLP (ANN)",
-}
-
-# Model colours (Okabe-Ito)
-MODEL_COLOURS = {
-    "ridge": OKABE_ITO[4],              # blue
-    "gradient_boosting": OKABE_ITO[5],  # vermillion
-    "lightgbm": OKABE_ITO[2],           # bluish green
-    "xgboost": OKABE_ITO[6],            # reddish purple
-    "random_forest": OKABE_ITO[1],      # sky blue
-    "lasso": OKABE_ITO[0],              # orange
-    "elastic_net": OKABE_ITO[7],        # black
-    "mlp": OKABE_ITO[3],                # yellow
 }
 
 
@@ -344,8 +312,9 @@ def fig1_model_comparison():
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig1_ml_model_comparison.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -356,7 +325,7 @@ def fig2_feature_importance(features_df, feature_cols):
     """Side-by-side feature importance for scalar and offset."""
     print("\n--- Figure 2: Feature Importance ---")
 
-    fig, axes = plt.subplots(1, 2, figsize=(FULL_WIDTH, 8 * cm))
+    fig, axes = plt.subplots(1, 2, figsize=(FULL_WIDTH, 13 * cm))
 
     for ax, target in zip(axes, ["scalar", "offset"]):
         result = train_correction_model(
@@ -388,7 +357,7 @@ def fig2_feature_importance(features_df, feature_cols):
 
         for bar, val in zip(bars, fi["importance"]):
             ax.text(bar.get_width() + 0.002, bar.get_y() + bar.get_height() / 2,
-                    f"{val:.3f}", va="center", fontsize=4.5)
+                    f"{val:.3f}", va="center", fontsize=5.5)
 
     # Legend for feature groups
     from matplotlib.patches import Patch
@@ -399,8 +368,9 @@ def fig2_feature_importance(features_df, feature_cols):
 
     fig.tight_layout(rect=[0, 0.04, 1, 1.0])
     path = OUTPUT_DIR / "ch5_fig2_feature_importance.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
     return result
@@ -463,8 +433,9 @@ def fig3_predictions_scatter(features_df, feature_cols):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig3_predictions_scatter.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -548,8 +519,9 @@ def fig4_ablation():
     sns.despine(ax=ax2)
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig4_feature_ablation.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -611,8 +583,9 @@ def fig5_results_progression():
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig5_results_progression.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -694,8 +667,9 @@ def fig6_per_fold_cv(features_df, feature_cols):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig6_per_fold_cv.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -768,8 +742,9 @@ def fig7_random_vs_spatial_cv(features_df, feature_cols):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig7_random_vs_spatial_cv.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -905,8 +880,9 @@ def fig8_feature_selection():
 
     fig.tight_layout(rect=[0, 0.03, 1, 1.0])
     path = OUTPUT_DIR / "ch5_fig8_feature_selection.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -974,8 +950,9 @@ def fig9_ml_vs_interpolation():
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch5_fig9_ml_vs_interpolation.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 

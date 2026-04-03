@@ -40,7 +40,8 @@ from sklearn.metrics import silhouette_score
 # Add project root to path for local imports
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from plotting_style import thesis_plot_style
+from plotting_style import thesis_plot_style, format_axes_standard, savefig_thesis
+from thesis_colors import OKABE_ITO, TIME_RES_COLOURS, EXISTING_NEW_COLOURS
 from scripts.evaluate_all_pyvwf_runs import evaluate_run
 from vwf.datasets.era5 import prep_era5
 from vwf.data import load_power_curves
@@ -54,6 +55,10 @@ import vwf.wind as wind
 # =============================================================================
 STYLE = thesis_plot_style()
 cm = STYLE["cm"]
+FULL_WIDTH = STYLE["FULL_WIDTH"]
+HALF_WIDTH = STYLE["HALF_WIDTH"]
+THIRD_WIDTH = STYLE["THIRD_WIDTH"]
+MAP_WIDTH = STYLE["MAP_WIDTH"]
 
 COUNTRY = "DK"
 YEAR_TEST = 2020
@@ -67,12 +72,7 @@ TIME_RES_LABELS = {
     "month": "Monthly",
 }
 TIME_RES_ORDER = {"fixed": 0, "season": 1, "bimonth": 2, "month": 3}
-TIME_RES_COLOURS = {
-    "fixed": "#D55E00",    # Okabe-Ito vermillion
-    "season": "#009E73",   # Okabe-Ito bluish green
-    "bimonth": "#56B4E9",  # Okabe-Ito sky blue
-    "month": "#E69F00",    # Okabe-Ito orange
-}
+# TIME_RES_COLOURS imported from thesis_colors
 TIME_RES_LINESTYLES = {
     "fixed": "-.",
     "season": ":",
@@ -80,22 +80,7 @@ TIME_RES_LINESTYLES = {
     "month": "-",
 }
 
-# Okabe-Ito colourblind-safe palette (standard 8 colours)
-OKABE_ITO = [
-    "#E69F00",  # 0 orange
-    "#56B4E9",  # 1 sky blue
-    "#009E73",  # 2 bluish green
-    "#F0E442",  # 3 yellow
-    "#0072B2",  # 4 blue
-    "#D55E00",  # 5 vermillion
-    "#CC79A7",  # 6 reddish purple
-    "#000000",  # 7 black
-]
-
-EXISTING_NEW_COLOURS = {
-    "Yes": OKABE_ITO[4],
-    "No": OKABE_ITO[5],
-}
+# OKABE_ITO and EXISTING_NEW_COLOURS imported from thesis_colors
 EXISTING_NEW_LABELS = {
     "Yes": "Existing turbines",
     "No": "New turbines",
@@ -224,11 +209,11 @@ def plot_cluster_analysis(turb_info_train, output_dir):
         if k % 500 == 0:
             print(f"  k={k} done")
 
-    fig, axes = plt.subplots(1, 2, figsize=(16 * cm, 6 * cm), dpi=STYLE["dpi"])
-    tick_list = list(range(100, 3400, 200))
+    fig, axes = plt.subplots(1, 2, figsize=(FULL_WIDTH, 6.5 * cm), dpi=STYLE["dpi"])
+    tick_list = list(range(100, 3400, 400))
 
     # SSE (elbow)
-    axes[0].plot(clu_range, sse_scores, "o", markersize=2)
+    axes[0].plot(clu_range, sse_scores, "o", markersize=2.5)
     axes[0].set_xlabel("Number of Clusters ($n_{clu}$)")
     axes[0].set_ylabel("Sum of Squared Distance (SSE)")
     # Annotate the elbow around k=500 (index 4)
@@ -239,20 +224,19 @@ def plot_cluster_analysis(turb_info_train, output_dir):
         arrowprops=dict(arrowstyle="->", color="r", lw=1, ls="--"),
     )
     axes[0].set_xticks(tick_list)
-    axes[0].set_xticklabels(tick_list, rotation=45)
+    axes[0].set_xticklabels(tick_list, rotation=45, fontsize=6)
 
     # Silhouette
-    axes[1].plot(clu_range, sil_scores, "o", markersize=2)
+    axes[1].plot(clu_range, sil_scores, "o", markersize=2.5)
     axes[1].set_xlabel("Number of Clusters ($n_{clu}$)")
     axes[1].set_ylabel("Silhouette Score")
     axes[1].set_xticks(tick_list)
-    axes[1].set_xticklabels(tick_list, rotation=45)
+    axes[1].set_xticklabels(tick_list, rotation=45, fontsize=6)
 
     plt.tight_layout()
     out = output_dir / "cluster_analysis.png"
-    plt.savefig(out, bbox_inches="tight")
-    print(f"  Saved: {out}")
-    plt.close()
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
 
 
 # =============================================================================
@@ -277,12 +261,13 @@ def plot_offset_vs_scalar(turb_info_train, run_dir, output_dir,
         x="scalar", y="offset", data=df,
         s=10, marginal_kws=dict(bins=10), color="#471164",
     )
-    g.fig.set_figwidth(3.7)
-    g.fig.set_figheight(3.4)
+    g.fig.set_figwidth(HALF_WIDTH)
+    g.fig.set_figheight(HALF_WIDTH)
     g.set_axis_labels("Scalar", "Offset")
     plt.tight_layout()
     out = output_dir / "offset_vs_scalar.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(g.fig)
+    savefig_thesis(g.fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -349,7 +334,7 @@ def plot_voronoi_maps(kmeans, df_with_factors, turb_info_train, output_dir):
 
     plot_idx = 3
     for col, midpoint, label in [("scalar", 1.0, "Scalar"), ("offset", 0.0, "Offset")]:
-        fig, ax = plt.subplots(figsize=(8 * cm, 8 * cm), dpi=STYLE["dpi"])
+        fig, ax = plt.subplots(figsize=(THIRD_WIDTH, 8 * cm), dpi=STYLE["dpi"])
 
         vmin, vmax = maps[col].min(), maps[col].max()
         norm = TwoSlopeNorm(vcenter=midpoint, vmin=vmin, vmax=vmax)
@@ -364,7 +349,8 @@ def plot_voronoi_maps(kmeans, df_with_factors, turb_info_train, output_dir):
         plt.tight_layout()
         fname = f"voronoi_{col}_map.png"
         out = output_dir / fname
-        plt.savefig(out, bbox_inches="tight")
+        format_axes_standard(fig)
+        savefig_thesis(fig, out)
         print(f"  [{plot_idx}/9] Saved: {out}")
         plot_idx += 1
         plt.close()
@@ -381,7 +367,7 @@ def plot_turbine_locations(turb_info_train, turb_info_val, output_dir):
     if dk_shape is not None:
         dk_shape = dk_shape.to_crs("EPSG:3395")
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15 * cm, 7 * cm))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(FULL_WIDTH, 7 * cm))
     ms, mlw, marker = 5, 0.5, "2"
 
     # --- Training ---
@@ -394,7 +380,7 @@ def plot_turbine_locations(turb_info_train, turb_info_val, output_dir):
     scatter_mercator(ax1, offshore, s=ms, c="#A23B72", alpha=0.8, label="Offshore",
                      marker=marker, linewidths=mlw)
     ax1.set_title(f"Training Turbines (2015-2019)\n(n={len(turb_info_train)})")
-    ax1.legend(loc="upper right", markerscale=3, frameon=False, fontsize=7)
+    ax1.legend(loc="upper right", markerscale=3, frameon=False)
     ax1.set_axis_off()
 
     # --- Validation ---
@@ -420,12 +406,13 @@ def plot_turbine_locations(turb_info_train, turb_info_val, output_dir):
 
     n_new = int(val["is_new"].sum())
     ax2.set_title(f"Validation Turbines ({YEAR_TEST})\n(n={len(val)}, new={n_new})")
-    ax2.legend(loc="upper right", markerscale=3, frameon=False, fontsize=7)
+    ax2.legend(loc="upper right", markerscale=3, frameon=False)
     ax2.set_axis_off()
 
     plt.tight_layout()
     out = output_dir / "train_turbine_locations.png"
-    plt.savefig(out, dpi=STYLE["dpi"], bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -445,7 +432,7 @@ def plot_temporal_slicing(output_dir):
     }
     palette = ["#2E86AB", "#A23B72", "#06A77D", "#D84A05", "#F18F01", "#C73E1D"]
 
-    fig, axes = plt.subplots(4, 1, figsize=(16 * cm, 7 * cm))
+    fig, axes = plt.subplots(4, 1, figsize=(FULL_WIDTH, 7 * cm))
     for idx, (tres, groups) in enumerate(schemes.items()):
         ax = axes[idx]
         for gi, months in enumerate(groups):
@@ -468,7 +455,8 @@ def plot_temporal_slicing(output_dir):
     plt.suptitle("Temporal Slicing Schemes", fontweight="bold")
     plt.tight_layout()
     out = output_dir / "temporal_slicing.png"
-    plt.savefig(out, dpi=STYLE["dpi"], bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -498,7 +486,7 @@ def plot_cf_at_turbine_locations(sim_cf, obs_cf, turb_info_train, output_dir):
     if dk_shape is not None:
         dk_shape = dk_shape.to_crs("EPSG:3395")
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15 * cm, 7 * cm))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(FULL_WIDTH, 7 * cm))
 
     vals = pd.concat([cf_df["observed_cf"], cf_df["simulated_cf"]]).dropna()
     vmin, vmax = float(vals.min()), float(vals.max())
@@ -534,7 +522,8 @@ def plot_cf_at_turbine_locations(sim_cf, obs_cf, turb_info_train, output_dir):
 
     plt.tight_layout()
     out = output_dir / "observed_vs_simulated_cf.png"
-    plt.savefig(out, dpi=STYLE["dpi"], bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -555,7 +544,7 @@ def plot_train_bias(gen_train, output_dir):
     )
     comp[["obs", "sim"]] = comp[["obs", "sim"]] * 100
 
-    fig, ax = plt.subplots(figsize=(8 * cm, 5 * cm), dpi=STYLE["dpi"])
+    fig, ax = plt.subplots(figsize=(HALF_WIDTH, 5 * cm), dpi=STYLE["dpi"])
     sns.scatterplot(
         data=comp, x="obs", y="sim",
         hue="type", hue_order=["onshore"],
@@ -574,7 +563,8 @@ def plot_train_bias(gen_train, output_dir):
     sns.despine(ax=ax)
     plt.tight_layout()
     out = output_dir / f"era5_{COUNTRY}_train_bias.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -589,7 +579,7 @@ def plot_train_bias(gen_train, output_dir):
     comp_m = comp_m.melt(id_vars=["ID", "month"], var_name="model", value_name="cf")
     comp_m["cf"] = comp_m["cf"] * 100
 
-    fig, ax = plt.subplots(figsize=(11 * cm, 5 * cm), dpi=STYLE["dpi"])
+    fig, ax = plt.subplots(figsize=(FULL_WIDTH, 5.5 * cm), dpi=STYLE["dpi"])
     sns.boxplot(
         data=comp_m, x="month", y="cf",
         hue="model", hue_order=["sim", "obs"],
@@ -601,12 +591,13 @@ def plot_train_bias(gen_train, output_dir):
     ax.set_xlim(-0.5, 11.5)
     ax.set_ylim(bottom=0)
     handles, _ = ax.get_legend_handles_labels()
-    ax.legend(handles, ["Simulated", "Observed"], loc="upper center",
+    ax.legend(handles, ["Simulated", "Observed"], loc="upper right",
               frameon=False, title=None)
     sns.despine(ax=ax)
     plt.tight_layout()
     out = output_dir / f"era5_{COUNTRY}_train_monthly.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -718,7 +709,7 @@ def plot_train_error_vs_clusters(gen_train, turb_info, run_dir, output_dir, coun
         print("  ! No corrected training metrics available")
         return
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16 * cm, 6.8 * cm), dpi=STYLE["dpi"])
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(HALF_WIDTH, 6.8 * cm), dpi=STYLE["dpi"])
 
     for tres in time_res_list:
         subset = corrected[corrected["time_res"] == tres].sort_values("num_clu")
@@ -735,24 +726,25 @@ def plot_train_error_vs_clusters(gen_train, turb_info, run_dir, output_dir, coun
 
     for ax, metric in [(ax1, "MAE"), (ax2, "RMSE")]:
         ax.set_xscale("log")
-        ax.set_xlabel("Number of Clusters")
-        ax.set_ylabel(f"{metric} (capacity factor)")
-        ax.set_title(f"Training {metric} vs Spatial Resolution")
-        ax.legend(fontsize=6, frameon=True, framealpha=0.9)
+        ax.set_xlabel(r"Number of Clusters ($n_{\mathrm{clu}}$)")
+        ax.set_ylabel(metric)
         ax.grid(True, alpha=0.3, linewidth=0.5)
 
-    best_idx = corrected["rmse"].idxmin()
-    best = corrected.loc[best_idx]
-    fig.suptitle(
-        f"Denmark Onshore – Training Error vs Clusters\n"
-        f"Best RMSE: n={int(best['num_clu'])}, {best['time_res']} "
-        f"(RMSE={best['rmse']:.4f})",
-        fontsize=8, fontweight="bold",
+    handles, labels = ax1.get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.08),
+        ncol=len(labels),
+        title=r"Temporal Frequency ($t_{freq}$)",
+        frameon=False,
     )
 
-    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.94])
+    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.90])
     out = output_dir / f"era5_{country}_train_error_vs_clusters.png"
-    plt.savefig(out, dpi=STYLE["dpi"], bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -888,7 +880,7 @@ def plot_sensitivity_analysis(data, output_dir, runs_dir):
     }
 
     for key in scenario_order:
-        fig, ax = plt.subplots(1, 1, figsize=(6.2 * cm, 5.0 * cm), dpi=STYLE["dpi"])
+        fig, ax = plt.subplots(1, 1, figsize=(THIRD_WIDTH, 5.0 * cm), dpi=STYLE["dpi"])
 
         if key not in sensitivity_data:
             ax.text(
@@ -921,20 +913,20 @@ def plot_sensitivity_analysis(data, output_dir, runs_dir):
 
             ax.set_xscale("log")
 
-        ax.set_xlabel(r"Number of Clusters ($n_{\mathrm{clu}}$)", fontsize=6)
-        ax.set_ylabel("RMSE", fontsize=6)
+        ax.set_xlabel(r"Number of Clusters ($n_{\mathrm{clu}}$)")
+        ax.set_ylabel("RMSE")
         ax.set_ylim(y_min, y_max)
-        ax.tick_params(labelsize=5)
         ax.grid(True, alpha=0.3, linewidth=0.5)
 
         plt.tight_layout()
         panel_name = panel_names.get(key, key)
         panel_path = sensitivity_dir / f"{COUNTRY}_{panel_name}_test_rmse.png"
-        plt.savefig(panel_path, dpi=STYLE["dpi"], bbox_inches="tight")
+        format_axes_standard(fig)
+        savefig_thesis(fig, panel_path)
         print(f"  Saved: {panel_path}")
         plt.close(fig)
 
-    legend_fig, legend_ax = plt.subplots(1, 1, figsize=(6.2 * cm, 2.2 * cm), dpi=STYLE["dpi"])
+    legend_fig, legend_ax = plt.subplots(1, 1, figsize=(THIRD_WIDTH, 2.2 * cm), dpi=STYLE["dpi"])
     legend_ax.set_axis_off()
     lines = []
     labels = []
@@ -958,13 +950,11 @@ def plot_sensitivity_analysis(data, output_dir, runs_dir):
         frameon=False,
         ncol=1,
         title=r"Temporal Frequency ($t_{freq}$)",
-        fontsize=7,
-        title_fontsize=7,
     )
 
     plt.tight_layout()
     legend_path = sensitivity_dir / f"{COUNTRY}_legend_test_rmse.png"
-    plt.savefig(legend_path, dpi=STYLE["dpi"], bbox_inches="tight", transparent=True)
+    savefig_thesis(legend_fig, legend_path)
     print(f"  Saved: {legend_path}")
     plt.close(legend_fig)
 
@@ -1020,7 +1010,7 @@ def plot_error_vs_clusters(run_dir, turb_info, output_dir,
             print(f"  ! No corrected results for {mode_label}")
             continue
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14 * cm, 6 * cm), dpi=STYLE["dpi"])
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(HALF_WIDTH, 6.5 * cm), dpi=STYLE["dpi"])
 
         time_res_vals = sorted(
             corrected["time_res"].unique(),
@@ -1044,25 +1034,16 @@ def plot_error_vs_clusters(run_dir, turb_info, output_dir,
 
         for ax, metric in [(ax1, "RMSE"), (ax2, "MAE")]:
             ax.set_xscale("log")
-            ax.set_xlabel("Number of Clusters")
-            ax.set_ylabel(f"{metric} (capacity factor)")
-            ax.set_title(f"{metric} vs Spatial Resolution")
+            ax.set_xlabel(r"Number of Clusters ($n_{\mathrm{clu}}$)")
+            ax.set_ylabel(metric)
             # ax.legend(fontsize=6, frameon=False)
             ax.grid(True, alpha=0.3, linewidth=0.5)
 
-        best_idx = corrected["mae"].idxmin()
-        best = corrected.loc[best_idx]
-        fig.suptitle(
-            f"Denmark Onshore \u2013 {mode_label} Error Analysis\n"
-            f"Best: n={int(best['n_clu'])}, {best['time_res']} "
-            f"(MAE={best['mae']:.4f})",
-            fontsize=8, fontweight="bold",
-        )
-
-        plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.93])
+        plt.tight_layout()
         fname = f"error_vs_clusters_{mode_slug}.png"
         output_path = output_dir / fname
-        plt.savefig(output_path, dpi=STYLE["dpi"], bbox_inches="tight")
+        format_axes_standard(fig)
+        savefig_thesis(fig, output_path)
         print(f"  Saved: {output_path}")
         plt.close()
 
@@ -1105,7 +1086,7 @@ def plot_spatial_split_error_vs_clusters(
         cluster_list, time_res_list, False, year_test
     )
 
-    fig, axes = plt.subplots(1, 3, figsize=(18 * cm, 6.2 * cm), dpi=STYLE["dpi"])
+    fig, axes = plt.subplots(1, 3, figsize=(FULL_WIDTH, 6.2 * cm), dpi=STYLE["dpi"])
 
     plot_specs = [
         (spatial_metrics, "All turbines", axes[0], False),
@@ -1157,7 +1138,8 @@ def plot_spatial_split_error_vs_clusters(
 
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.90])
     out = output_dir / f"{country}_spatial_separate_test_error.png"
-    plt.savefig(out, dpi=STYLE["dpi"], bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close()
 
@@ -1323,6 +1305,7 @@ def plot_spatial_error_correlation(
         palette=EXISTING_NEW_COLOURS,
         col="error_type",
         col_order=feature_order,
+        col_wrap=2,
         markers="o",
         truncate=True,
         facet_kws=dict(sharex=False, sharey=True),
@@ -1330,13 +1313,21 @@ def plot_spatial_error_correlation(
             linewidth=2,
             path_effects=[pe.withStroke(linewidth=3, foreground="black")],
         ),
-        scatter_kws=dict(linewidths=0.1, edgecolor="black", s=10),
-        height=3,
-        aspect=0.83,
+        scatter_kws=dict(linewidths=0.1, edgecolor="black", s=18),
+        height=2.1,
+        aspect=2,
         n_boot=1000,
     )
 
-    g.axes[0, 0].set_ylabel("Absolute of the MBE")
+    # --- Increase font sizes for readability at this figure size ---
+    _fs_label = 12
+    _fs_tick = 10
+    _fs_annot = 11
+    _fs_legend = 12
+
+    g.axes.flat[0].set_ylabel("Absolute of the MBE", fontsize=_fs_label)
+    if len(g.axes.flat) > 2:
+        g.axes.flat[2].set_ylabel("Absolute of the MBE", fontsize=_fs_label)
     xlabel_map = {
         "err_capacity": "Capacity Diff, %",
         "err_diameter": "Diameter Diff, %",
@@ -1344,7 +1335,8 @@ def plot_spatial_error_correlation(
         "distance": "Euclidean Distance, °",
     }
     for ax, feat in zip(g.axes.flat, g.col_names):
-        ax.set_xlabel(xlabel_map.get(feat, feat))
+        ax.set_xlabel(xlabel_map.get(feat, feat), fontsize=_fs_label)
+        ax.tick_params(labelsize=_fs_tick)
     g.set_titles(col_template="")
 
     if g._legend is not None:
@@ -1352,7 +1344,8 @@ def plot_spatial_error_correlation(
         if len(g._legend.texts) >= 2:
             g._legend.texts[0].set_text(EXISTING_NEW_LABELS["Yes"])
             g._legend.texts[1].set_text(EXISTING_NEW_LABELS["No"])
-    sns.move_legend(g, "center right", bbox_to_anchor=(1.02, 0.5), frameon=False)
+    sns.move_legend(g, "center right", bbox_to_anchor=(1.15, 0.5), frameon=False,
+                    fontsize=_fs_legend, markerscale=2.5)
 
     for ax, feature in zip(g.axes.flat, g.col_names):
         feat_points = plot_melt[plot_melt["error_type"] == feature]
@@ -1370,13 +1363,15 @@ def plot_spatial_error_correlation(
 
         ax.text(
             0.35,
-            0.8,
+            0.7,
             f"$R_e^2$={r2_exist:.2f}\n$R_n^2$={r2_new:.2f}",
             transform=ax.transAxes,
+            fontsize=_fs_annot,
         )
 
     out = output_dir / f"{country}_spatial_error_correlation.png"
-    g.savefig(out, dpi=STYLE["dpi"], bbox_inches="tight")
+    format_axes_standard(g.fig)
+    savefig_thesis(g.fig, out)
     print(f"  Saved: {out}")
     plt.close(g.fig)
 
@@ -1461,7 +1456,7 @@ def plot_regional_error(run_dir, country, df_metrics):
     choice_clu2 = 700
     choice_clu3 = 3300
 
-    fig, axes = plt.subplots(1, figsize=(8 * cm, 6 * cm), sharey="all", dpi=STYLE["dpi"])
+    fig, axes = plt.subplots(1, figsize=(FULL_WIDTH, 4.5 * cm), sharey="all", dpi=STYLE["dpi"])
     subset = df_metrics[
         (df_metrics["time_res"] == "fixed")
         & (df_metrics["In training?"] == "Both")
@@ -1502,7 +1497,8 @@ def plot_regional_error(run_dir, country, df_metrics):
 
     plt.tight_layout(rect=[0.0, 0.0, 0.88, 1.0])
     out = run_dir / "plots" / f"{country}_regional_difference.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close(fig)
 
@@ -1517,7 +1513,7 @@ def plot_regional_map(region_info_test, output_dir):
     df["region"] = df["region"].astype(str)
 
     dk_shape = load_dk_shape()
-    fig, ax = plt.subplots(figsize=(8 * cm, 8 * cm), dpi=STYLE["dpi"])
+    fig, ax = plt.subplots(figsize=(FULL_WIDTH, 6 * cm), dpi=STYLE["dpi"])
 
     if dk_shape is not None:
         dk_merc = dk_shape.to_crs("EPSG:3395")
@@ -1556,7 +1552,8 @@ def plot_regional_map(region_info_test, output_dir):
 
     plt.tight_layout(rect=[0.0, 0.0, 0.88, 1.0])
     out = output_dir / f"{COUNTRY}_regional_labels.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close(fig)
 
@@ -1692,7 +1689,7 @@ def plot_obs_vs_unc_monthly_cf(run_dir, country, year_test, turb_info, turb_info
     wavg = lambda x: weighted_avg(df_sim_monthly.loc[x.index], "cf", "capacity")
     df_sim_monthly = df_sim_monthly.groupby("month").agg({"cf": wavg}).reset_index()
 
-    fig, ax = plt.subplots(1, figsize=(9.8 * cm, 5.8 * cm), dpi=STYLE["dpi"])
+    fig, ax = plt.subplots(1, figsize=(HALF_WIDTH, 6.5 * cm), dpi=STYLE["dpi"])
     sns.lineplot(
         x="month", y="obs", data=comp_month,
         hue="year", estimator="mean", errorbar="sd", legend=True, palette="tab10", ax=ax,
@@ -1705,7 +1702,7 @@ def plot_obs_vs_unc_monthly_cf(run_dir, country, year_test, turb_info, turb_info
     _ = df_sim_monthly
 
     handles, labels = ax.get_legend_handles_labels()
-    ax.set_ylabel("Capacity Factors, %")w
+    ax.set_ylabel("Capacity Factors, %")
     ax.set_xlabel("Month")
     ax.set_xlim(0.5, 12.5)
     ax.set_xticks(range(1, 13))
@@ -1715,7 +1712,8 @@ def plot_obs_vs_unc_monthly_cf(run_dir, country, year_test, turb_info, turb_info
     plt.tight_layout()
 
     out = output_dir / f"{country}_obs_cf.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close(fig)
 
@@ -1759,7 +1757,7 @@ def plot_monthly_error(run_dir, country, df_metrics, output_dir):
     """Plot monthly MBE for n_clu=1 and n_clu=3300 across temporal resolutions."""
     print("\n[12] Plotting monthly error profiles...")
     base_clu = 1
-    fig, axes = plt.subplots(1, 2, figsize=(14 * cm, 5.8 * cm), sharey="all", dpi=STYLE["dpi"])
+    fig, axes = plt.subplots(1, 2, figsize=(FULL_WIDTH, 6.5 * cm), sharey="all", dpi=STYLE["dpi"])
 
     left_df = df_metrics[
         ((df_metrics["num_clu"] == base_clu) & (df_metrics["time_res"] != "uncorrected"))
@@ -1795,17 +1793,22 @@ def plot_monthly_error(run_dir, country, df_metrics, output_dir):
                 label=TIME_RES_LABELS.get(tres, tres),
             )
 
+    month_labels = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"]
+
     axes[0].set_ylabel("MBE")
     axes[0].set_xlabel("Month")
     axes[0].set_xticks(range(1, 13))
+    axes[0].set_xticklabels(month_labels)
     axes[0].set_title(r"No. of Clusters ($n_{clu}$) = 1")
 
     axes[1].set_ylabel("MBE")
     axes[1].set_xlabel("Month")
     axes[1].set_xticks(range(1, 13))
+    axes[1].set_xticklabels(month_labels)
     axes[1].set_title(r"No. of Clusters ($n_{clu}$) = 3300")
 
     for ax in axes:
+        ax.axhline(0, color="grey", linewidth=0.5, linestyle="--", alpha=0.5)
         ax.grid(True, alpha=0.3, linewidth=0.5)
 
     handles, labels = axes[1].get_legend_handles_labels()
@@ -1821,7 +1824,8 @@ def plot_monthly_error(run_dir, country, df_metrics, output_dir):
 
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.90])
     out = output_dir / f"{country}_monthly_difference.png"
-    plt.savefig(out, bbox_inches="tight")
+    format_axes_standard(fig)
+    savefig_thesis(fig, out)
     print(f"  Saved: {out}")
     plt.close(fig)
 
@@ -1855,66 +1859,66 @@ def main():
     # 1. Cluster analysis
     # plot_cluster_analysis(turb_info_train, output_dir)
 
-    # 2–4. Offset vs scalar + Voronoi maps
-    kmeans, df_factors = plot_offset_vs_scalar(turb_info_train, RUN_DIR, output_dir)
-    plot_voronoi_maps(kmeans, df_factors, turb_info_train, output_dir)
+    # # 2–4. Offset vs scalar + Voronoi maps
+    # kmeans, df_factors = plot_offset_vs_scalar(turb_info_train, RUN_DIR, output_dir)
+    # plot_voronoi_maps(kmeans, df_factors, turb_info_train, output_dir)
 
-    # 5. Turbine locations
-    plot_turbine_locations(turb_info_train, turb_info_val, output_dir)
+    # # 5. Turbine locations
+    # plot_turbine_locations(turb_info_train, turb_info_val, output_dir)
 
-    # 6. Temporal slicing
-    plot_temporal_slicing(output_dir)
+    # # 6. Temporal slicing
+    # plot_temporal_slicing(output_dir)
 
-    # 7. CF at turbine locations
-    plot_cf_at_turbine_locations(sim_cf, obs_cf, turb_info_train, output_dir)
+    # # 7. CF at turbine locations
+    # plot_cf_at_turbine_locations(sim_cf, obs_cf, turb_info_train, output_dir)
 
-    # 8. Error vs clusters from evaluator outputs (overall / temporal / spatial)
-    plot_error_vs_clusters(RUN_DIR, turb_info_train, output_dir)
+    # # 8. Error vs clusters from evaluator outputs (overall / temporal / spatial)
+    # plot_error_vs_clusters(RUN_DIR, turb_info_train, output_dir)
 
-    # 8a. Spatial split (all / existing / new turbines)
-    plot_spatial_split_error_vs_clusters(RUN_DIR, turb_info_val, output_dir)
+    # # 8a. Spatial split (all / existing / new turbines)
+    # plot_spatial_split_error_vs_clusters(RUN_DIR, turb_info_val, output_dir)
 
-    # 8b. Sensitivity analysis
-    runs_dir = PROJECT_ROOT / "output" / "runs"
-    plot_sensitivity_analysis(None, output_dir, runs_dir)
+    # # 8b. Sensitivity analysis
+    # runs_dir = PROJECT_ROOT / "output" / "runs"
+    # plot_sensitivity_analysis(None, output_dir, runs_dir)
 
-    # 9–11. Training bias + training error-vs-clusters
-    sim_long = to_long_cf(sim_cf, "sim")
-    obs_long = to_long_cf(obs_cf, "obs")
-    sim_long["ID"] = sim_long["ID"].astype(str)
-    obs_long["ID"] = obs_long["ID"].astype(str)
-    turb_info_train["ID"] = turb_info_train["ID"].astype(str)
+    # # 9–11. Training bias + training error-vs-clusters
+    # sim_long = to_long_cf(sim_cf, "sim")
+    # obs_long = to_long_cf(obs_cf, "obs")
+    # sim_long["ID"] = sim_long["ID"].astype(str)
+    # obs_long["ID"] = obs_long["ID"].astype(str)
+    # turb_info_train["ID"] = turb_info_train["ID"].astype(str)
 
-    merge_keys = [c for c in ["time", "year", "month", "ID"]
-                  if c in sim_long.columns and c in obs_long.columns]
-    gen_train = sim_long.merge(obs_long, on=merge_keys, how="inner")
-    gen_train = gen_train.merge(
-        turb_info_train[["ID", "type"]].drop_duplicates(), on="ID", how="left"
-    )
-    if "month" not in gen_train.columns and "time" in gen_train.columns:
-        gen_train["time"] = pd.to_datetime(gen_train["time"])
-        gen_train["month"] = gen_train["time"].dt.month
+    # merge_keys = [c for c in ["time", "year", "month", "ID"]
+    #               if c in sim_long.columns and c in obs_long.columns]
+    # gen_train = sim_long.merge(obs_long, on=merge_keys, how="inner")
+    # gen_train = gen_train.merge(
+    #     turb_info_train[["ID", "type"]].drop_duplicates(), on="ID", how="left"
+    # )
+    # if "month" not in gen_train.columns and "time" in gen_train.columns:
+    #     gen_train["time"] = pd.to_datetime(gen_train["time"])
+    #     gen_train["month"] = gen_train["time"].dt.month
 
-    plot_train_bias(gen_train, output_dir)
-    plot_train_error_vs_clusters(gen_train, turb_info_train, RUN_DIR, output_dir)
+    # plot_train_bias(gen_train, output_dir)
+    # plot_train_error_vs_clusters(gen_train, turb_info_train, RUN_DIR, output_dir)
 
     # 12. Spatial turbine error correlation plot
     plot_spatial_error_correlation(RUN_DIR, turb_info_train, turb_info_val, output_dir)
 
-    # 13. Regional analysis plots
-    run_regional_analysis(RUN_DIR, COUNTRY, turb_info_val, turb_info_train, output_dir, YEAR_TEST)
+    # # 13. Regional analysis plots
+    # run_regional_analysis(RUN_DIR, COUNTRY, turb_info_val, turb_info_train, output_dir, YEAR_TEST)
 
-    # 14. Monthly observed vs uncorrected CF and monthly error profiles
-    plot_obs_vs_unc_monthly_cf(RUN_DIR, COUNTRY, YEAR_TEST, turb_info_val, turb_info_train, output_dir)
-    monthly_diff = _monthly_error_metrics(
-        RUN_DIR,
-        COUNTRY,
-        turb_info_val,
-        [1, 700, 3300],
-        ["fixed", "season", "bimonth", "month"],
-        YEAR_TEST,
-    )
-    plot_monthly_error(RUN_DIR, COUNTRY, monthly_diff, output_dir)
+    # # 14. Monthly observed vs uncorrected CF and monthly error profiles
+    # plot_obs_vs_unc_monthly_cf(RUN_DIR, COUNTRY, YEAR_TEST, turb_info_val, turb_info_train, output_dir)
+    # monthly_diff = _monthly_error_metrics(
+    #     RUN_DIR,
+    #     COUNTRY,
+    #     turb_info_val,
+    #     [1, 700, 3300],
+    #     ["fixed", "season", "bimonth", "month"],
+    #     YEAR_TEST,
+    # )
+    # plot_monthly_error(RUN_DIR, COUNTRY, monthly_diff, output_dir)
 
     print("\nAll plots generated successfully!")
 
