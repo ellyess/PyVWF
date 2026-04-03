@@ -39,29 +39,17 @@ import seaborn as sns
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from plotting_style import thesis_plot_style
+from plotting_style import thesis_plot_style, format_axes_standard, savefig_thesis
+from thesis_colors import OKABE_ITO, METHOD_COLOURS, COUNTRY_COLOURS
 
 # ===========================================================================
 # Style -- apply rcParams globally, then use them everywhere
 # ===========================================================================
 STYLE = thesis_plot_style()
 cm = STYLE["cm"]
-
-# Thesis page width is ~16 cm; use full or half width as needed
-FULL_WIDTH = 16 * cm    # ~6.3 in
-HALF_WIDTH = 8 * cm     # ~3.15 in
-
-# Okabe-Ito colourblind-safe palette (consistent with Chapter 3)
-OKABE_ITO = [
-    "#E69F00",  # 0 orange
-    "#56B4E9",  # 1 sky blue
-    "#009E73",  # 2 bluish green
-    "#F0E442",  # 3 yellow
-    "#0072B2",  # 4 blue
-    "#D55E00",  # 5 vermillion
-    "#CC79A7",  # 6 reddish purple
-    "#000000",  # 7 black
-]
+FULL_WIDTH = STYLE["FULL_WIDTH"]
+HALF_WIDTH = STYLE["HALF_WIDTH"]
+MAP_WIDTH = STYLE["MAP_WIDTH"]
 
 # ===========================================================================
 # Paths
@@ -83,28 +71,8 @@ INTERP_LABELS = {
     "rbf": "RBF",
     "kriging": "Kriging",
 }
-METHOD_COLOURS = {
-    "nearest": OKABE_ITO[7],   # black
-    "idw": OKABE_ITO[4],       # blue
-    "rbf": OKABE_ITO[5],       # vermillion
-    "kriging": OKABE_ITO[2],   # bluish green
-}
 
-# Country display order and colours (Okabe-Ito based cycling)
-COUNTRY_COLOURS = {
-    "DE": OKABE_ITO[4],   # blue
-    "DK": OKABE_ITO[0],   # orange
-    "UK": OKABE_ITO[2],   # bluish green
-    "FR": OKABE_ITO[5],   # vermillion
-    "ES": OKABE_ITO[6],   # reddish purple
-    "NL": OKABE_ITO[1],   # sky blue
-    "BE": OKABE_ITO[3],   # yellow
-    "SE": OKABE_ITO[7],   # black
-    "NO": "#bcbd22",       # olive (extended)
-    "PT": "#17becf",       # teal (extended)
-    "IE": "#aec7e8",       # light blue (extended)
-    "IT": "#ffbb78",       # light orange (extended)
-}
+# METHOD_COLOURS and COUNTRY_COLOURS imported from thesis_colors
 
 
 # ===========================================================================
@@ -204,8 +172,9 @@ def fig1_correction_map(centroids_df):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch4_fig1_correction_map.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -266,8 +235,9 @@ def fig2_country_performance(eval_df):
     fig.tight_layout()
 
     path = OUTPUT_DIR / "ch4_fig2_country_performance.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -281,7 +251,7 @@ def fig3_correction_distributions(centroids_df):
     order = (centroids_df.groupby("label")["scalar"]
              .median().sort_values().index.tolist())
 
-    fig, axes = plt.subplots(1, 2, figsize=(FULL_WIDTH, 6 * cm))
+    fig, axes = plt.subplots(1, 2, figsize=(FULL_WIDTH, 7 * cm))
 
     for ax, (var, title, ref_line) in zip(axes, [
         ("scalar", "Scalar Correction", 1.0),
@@ -302,21 +272,44 @@ def fig3_correction_distributions(centroids_df):
             patch.set_alpha(0.6)
         ax.axhline(ref_line, color=OKABE_ITO[5], linewidth=0.6, linestyle="--", alpha=0.6,
                     label=f"Identity ({ref_line})")
-        ax.set_xticklabels(order, rotation=45, ha="right")
+        ax.set_xticklabels(order, rotation=45, ha="right", fontsize=6)
         ax.set_title(title, fontweight="bold")
         ax.legend(frameon=False)
         sns.despine(ax=ax)
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch4_fig3_correction_distributions.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
 # ===========================================================================
 # Figure 4: Interpolation surfaces
 # ===========================================================================
+def _diverging_norm_cmap(vmin, vcenter, vmax, cmap_name="RdBu_r"):
+    """Return (cmap, norm) using plain Normalize but a colormap that shifts the
+    white point to vcenter.  Visually identical to TwoSlopeNorm + RdBu_r but
+    avoids the matplotlib 3.9.2 bug where TwoSlopeNorm + colorbar tick placement
+    produces NaN positions when the range is highly asymmetric."""
+    white_frac = (vcenter - vmin) / (vmax - vmin)
+    base = plt.cm.get_cmap(cmap_name)
+    n = 512
+    vals = np.linspace(0, 1, n)
+    colors = []
+    for v in vals:
+        if v <= white_frac:
+            colors.append(base(0.5 * v / white_frac if white_frac > 0 else 0.0))
+        else:
+            colors.append(base(0.5 + 0.5 * (v - white_frac) / (1.0 - white_frac)
+                               if white_frac < 1 else 1.0))
+    from matplotlib.colors import LinearSegmentedColormap, Normalize
+    cmap = LinearSegmentedColormap.from_list("_div_shifted", colors, N=n)
+    norm = Normalize(vmin=vmin, vmax=vmax)
+    return cmap, norm
+
+
 def fig4_interpolation_surfaces(grids):
     """2x4 grid of interpolated surfaces."""
     print("\n--- Figure 4: Interpolation Surfaces ---")
@@ -326,8 +319,10 @@ def fig4_interpolation_surfaces(grids):
         print("  No grids found, skipping.")
         return
 
-    fig = plt.figure(figsize=(FULL_WIDTH, 10 * cm))
+    fig = plt.figure(figsize=(FULL_WIDTH, 9 * cm))
 
+    row_axes = {0: [], 1: []}
+    row_cbar_info = {}  # (pcm_artist, vmin, vcenter, vmax)
     for row, (var, vcenter, label) in enumerate([
         ("scalar", 1.0, "Scalar"),
         ("offset", 0.0, "Offset (m/s)"),
@@ -345,42 +340,49 @@ def fig4_interpolation_surfaces(grids):
         vmax = np.nanpercentile(all_vals, 98)
         vmin = min(vmin, vcenter - 0.01)
         vmax = max(vmax, vcenter + 0.01)
-        norm = TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
+        cmap, norm = _diverging_norm_cmap(vmin, vcenter, vmax)
 
+        last_pcm = None
         for col, method in enumerate(methods):
             idx = row * ncols + col + 1
             ax = make_map_ax(fig, 2, ncols, idx)
+            row_axes[row].append(ax)
             ds = grids[method]
             if var not in ds:
                 continue
             lon_key = "lon" if "lon" in ds else "x"
             lat_key = "lat" if "lat" in ds else "y"
-            ax.pcolormesh(ds[lon_key].values, ds[lat_key].values, ds[var].values,
-                          cmap="RdBu_r", norm=norm, shading="auto")
+            last_pcm = ax.pcolormesh(ds[lon_key].values, ds[lat_key].values, ds[var].values,
+                                     cmap=cmap, norm=norm, shading="auto")
             if row == 1:
                 ax.set_xlabel("Longitude")
             else:
                 ax.set_xticklabels([])
             if col == 0:
-                ax.set_ylabel("Latitude")
+                ax.set_ylabel(label, fontweight="bold")
             else:
                 ax.set_yticklabels([])
             if row == 0:
                 ax.set_title(INTERP_LABELS.get(method, method), fontweight="bold")
-            if col == 0:
-                ax.text(-0.35, 0.5, label, transform=ax.transAxes,
-                        fontweight="bold", rotation=90, va="center", ha="center")
 
-        cbar_ax = fig.add_axes([0.92, 0.55 - row * 0.45, 0.015, 0.35])
-        sm = plt.cm.ScalarMappable(cmap="RdBu_r", norm=norm)
-        cbar = fig.colorbar(sm, cax=cbar_ax, extend="both")
-        # Ensure endpoints and centre are labelled
-        cbar.set_ticks([round(vmin, 1), vcenter, round(vmax, 1)])
+        if last_pcm is not None:
+            row_cbar_info[row] = (last_pcm, vmin, vcenter, vmax)
 
-    fig.subplots_adjust(wspace=0.05, hspace=0.15, right=0.9)
+    fig.subplots_adjust(wspace=0.02, hspace=0.08)
+
+    # Add colorbars — plain Normalize (via _diverging_norm_cmap) avoids the
+    # matplotlib 3.9.2 TwoSlopeNorm + colorbar tick-placement NaN bug.
+    for row in row_cbar_info:
+        pcm, vmin, vcenter, vmax = row_cbar_info[row]
+        cbar = fig.colorbar(pcm, ax=row_axes[row], shrink=0.7, pad=0.01, aspect=25)
+        tick_vals = [round(vmin, 2), vcenter, round(vmax, 2)]
+        cbar.set_ticks(tick_vals)
+        cbar.ax.tick_params(labelsize=6)
+
     path = OUTPUT_DIR / "ch4_fig4_interpolation_surfaces.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -416,8 +418,9 @@ def fig5_spatial_coverage(grids, centroids_df):
     ax.set_ylabel("Latitude")
     fig.tight_layout()
     path = OUTPUT_DIR / "ch4_fig5_spatial_coverage.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -466,8 +469,9 @@ def fig6_interpolation_cv(cv_df):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch4_fig6_interpolation_cv.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -528,8 +532,9 @@ def fig7_scalar_vs_offset(centroids_df):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch4_fig7_scalar_vs_offset.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -599,8 +604,9 @@ def fig8_country_summary(centroids_df):
 
     fig.tight_layout()
     path = OUTPUT_DIR / "ch4_fig8_country_summary.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -682,8 +688,9 @@ def fig9_grid_vs_cluster_mae(grid_eval_df):
     fig.tight_layout()
 
     path = OUTPUT_DIR / "ch4_fig9_grid_vs_cluster_mae.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -777,8 +784,9 @@ def fig10_grid_vs_cluster_improvement(grid_eval_df):
     fig.tight_layout()
 
     path = OUTPUT_DIR / "ch4_fig10_grid_vs_cluster_improvement.png"
-    plt.savefig(path, dpi=STYLE["dpi"], bbox_inches="tight")
-    plt.close(fig)
+    format_axes_standard(fig)
+
+    savefig_thesis(fig, path)
     print(f"  Saved: {path}")
 
 
@@ -808,16 +816,16 @@ def main():
         print(f"  Grid evaluation: {len(grid_eval_df)} rows")
 
     # Generate figures
-    fig1_correction_map(centroids_df)
-    fig2_country_performance(eval_df)
-    fig3_correction_distributions(centroids_df)
+    # fig1_correction_map(centroids_df)
+    # fig2_country_performance(eval_df)
+    # fig3_correction_distributions(centroids_df)
     fig4_interpolation_surfaces(grids)
-    fig5_spatial_coverage(grids, centroids_df)
-    fig6_interpolation_cv(cv_df)
-    fig7_scalar_vs_offset(centroids_df)
-    fig8_country_summary(centroids_df)
-    fig9_grid_vs_cluster_mae(grid_eval_df)
-    fig10_grid_vs_cluster_improvement(grid_eval_df)
+    # fig5_spatial_coverage(grids, centroids_df)
+    # fig6_interpolation_cv(cv_df)
+    # fig7_scalar_vs_offset(centroids_df)
+    # fig8_country_summary(centroids_df)
+    # fig9_grid_vs_cluster_mae(grid_eval_df)
+    # fig10_grid_vs_cluster_improvement(grid_eval_df)
 
     # Print summary statistics
     print("\n" + "=" * 70)
