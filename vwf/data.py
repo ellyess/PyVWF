@@ -42,7 +42,6 @@ Examples:
 """
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import difflib
 from calendar import monthrange
 
@@ -52,9 +51,7 @@ from vwf.datasets.era5 import prep_era5
 from vwf.clustering import cluster_turbines
 import vwf.correction as correction
 
-from vwf.wind import simulate_country_cf
 
-from pathlib import Path
 
 # Import from new utility modules
 from vwf.config import PyVWFPaths

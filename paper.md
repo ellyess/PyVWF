@@ -1,72 +1,111 @@
-title: 'PyVWF: A Bias Corrected Wind Power Simulator'
+---
+title: 'PyVWF: An open Python framework for bias-corrected wind power simulation from reanalysis data'
 tags:
   - Python
-  - energy system model
-  - wind
+  - wind energy
+  - bias correction
+  - reanalysis
+  - energy system modelling
+  - capacity factor
 authors:
   - name: Ellyess F. Benmoufok
-    equal-contrib: true
+    orcid: 0000-0000-0000-0000
     affiliation: "1"
 affiliations:
- - name: Department of Earth Science and Engineering, Imperial College London, London SW7 2AZ, UK
-   index: 1
-date: 22 September 2023
+  - name: Department of Earth Science and Engineering, Imperial College London, London SW7 2AZ, UK
+    index: 1
+date: 20 May 2026
 bibliography: paper.bib
-
 ---
 
 # Summary
 
-With climate change having such a significant impact on the world, a recent pledge at COP 28 to triple the world's installed renewable energy capacity by 2030 has been called. Among these, wind energy is abundant and widely distributed; the global installed wind power capacity has increased more than four-fold from 181 GW in 2010 to 899 GW in 2022 [@irena2023]. With the expected rapid uptake of new wind farms, it is crucial to understand the wind power output accurately. Unlike traditional energy sources, wind is inherently stochastic and non-stationary, and there is a need for accurate models and tools to predict the power output from the wind resource.
-
-`PyVWF` is an open Python software package designed to make scientific-quality weather and energy data available to a wider community.  It takes historical weather data and converts it into potential wind power output at requested locations that correspond with wind turbine placement. The wind speeds are bias corrected to ensure a higher accuracy than directly converting the historical weather data. 
+`PyVWF` (the Python Virtual Wind Farm) is an open, research-oriented framework
+that converts atmospheric reanalysis data into bias-corrected wind power
+generation. It re-implements, in a modular and extensible Python codebase, the
+Virtual Wind Farm (VWF) methodology that underpins the wind simulations on
+[Renewables.ninja](https://www.renewables.ninja) [@staffell2016; @pfenninger2016].
+Given gridded reanalysis winds (e.g. ERA5 [@era5] or MERRA-2 [@merra2]), turbine
+metadata, smoothed manufacturer power curves, and observed generation, `PyVWF`
+extrapolates wind to hub height, interpolates to turbine locations, learns
+statistical bias corrections from observations, and converts wind to capacity
+factor. Unlike API-only or general-purpose reanalysis-to-power tools, it exposes
+the full **training** workflow for the bias-correction factors and lets
+researchers compute them at finer spatial and temporal resolution than the
+conventional national-scale factors, through configurable spatial clustering and
+temporal grouping. The package implements the granular bias-correction method of
+@benmoufok2024 and provides the gridded, cross-border interpolation and
+machine-learning experiments that accompany it.
 
 # Statement of need
 
-A popular product used to produce simulations of the hourly power output from wind and solar power plants located anywhere in the world is Renewables.Ninja (RN) [@staffell2016, pfenninger2016]. In the case of wind power, atmospheric flow speeds are converted into power output using the `vwf` (Virtual Wind Farm) model [@staffell2016].
+Continental-scale energy system models depend on wind power time series derived
+from reanalysis, but reanalysis-derived capacity factors can carry biases of up
+to ±50 % [@staffell2016], which propagate through non-linear power conversion and
+spatial aggregation into misleading conclusions about generation mix,
+transmission investment, and system cost. The original VWF model corrects this
+bias but is closed and primarily accessible only through the Renewables.ninja
+API, while open tools such as `atlite` [@atlite] deliberately omit the
+observation-based bias correction that gives VWF its accuracy. `PyVWF` fills this
+gap: it is a fully open, reproducible, research-grade implementation of
+bias-corrected wind power simulation, with the correction *training* pipeline
+exposed so that methods can be inspected, extended, and applied at arbitrary
+spatial and temporal granularity. Corrections can be interpolated onto a regular
+grid and exported for use with `atlite`/`PyPSA-Eur` workflows, supporting
+resource assessment and sensitivity studies across scales. The framework targets
+energy systems researchers, climate scientists, and power system analysts who
+need transparent, reproducible, and calibrated wind resource simulations.
 
-Currently, most studies use reanalysis data (particularly ERA-5 [@era5] or MERRA-2 [@merra2]) [@kiss2009,kubik2013] to simulate wind power for energy system modelling. However, it has been found that the direct simulation outputs of capacity factors derived from reanalysis data can suffer from up to ± 50\% of bias [@staffell2016].
+# Functionality
 
-`vwf` calculates hourly power output at any given location using reanalysis data from MERRA-2. A key novelty of this model is the bias correction process that it employs which is capable of achieving a R-squared score of 0.95 for the national scale hourly power output of 23 European countries [@staffell2016]. The bias correction is performed using factors on a country-wide basis. It has already been used in several scientific publications [@pennock2023, @zhang2023, @fliegner2022] showing there is a significant importance to ensuring this model is maintained and improved.
+`PyVWF` supports a turbine-, regional-, or national-scale workflow:
 
-The `vwf` code exhibits challenges to use locally and, thus is primarily accessed via the API, Renewables.Ninja[@staffell2016, pfenninger2016]. Noting this factor, the development of similar models such as `atlite` [@atlite] which provide easier usage for non-commercial use.
+- **Wind processing.** Hub-height extrapolation via the log wind profile using
+  ERA5 surface roughness (or roughness derived from 10 m/100 m wind shear), and
+  bilinear interpolation to turbine coordinates with `xarray`.
+- **Bias-correction training.** Per-cluster, per-time-slice multiplicative
+  scalar and additive offset factors (`w_corrected = α·w + β`) learned from
+  observed capacity factors [@benmoufok2024], with spatial clustering and
+  temporal grouping (fixed, seasonal, bimonthly, monthly) as user-set
+  resolutions.
+- **Gridded corrections.** Interpolation of point corrections onto a regular
+  ERA5 grid (nearest neighbour, IDW, RBF, kriging) with spatial cross-validation
+  and export to NetCDF for `atlite`/`PyPSA-Eur`.
+- **Experimental extensions.** Machine-learning prediction of corrections from
+  terrain/environmental features, and a *distribution-aware* correction module
+  implementing empirical quantile mapping and trend-preserving quantile delta
+  mapping [@cannon2015], together with distributional skill metrics (variance
+  ratio, Wasserstein/Kolmogorov–Smirnov distance, quantile and ramp-rate bias)
+  that complement conventional mean-error metrics.
 
-The `PyVWF` model is a complete rework of the `vwf` model, written to make non-commercial usage more accessible while keeping the novel bias correction that similar models do not incorporate. It is written in a streamlined workflow using Python, to provide an open and extensible library for further development. Python has an abundance of packages (e.g. `xarray`, `dask` and `geopandas`) that are desirable for easy processing of the weather reanalysis data and the potential to be parallelised to perform well on even large datasets.
+The package ships with an automated `pytest` suite that runs on synthetic data
+(no large reanalysis downloads required) and continuous integration, and a
+pinned `conda` environment for reproducibility. The granular bias-correction
+method has been applied in peer-reviewed studies of European and UK wind
+resources [@benmoufok2024; @wang2026].
 
-`PyVWF` provides accessibility to the training process for the bias correction factors on top of the base simulation function that uses already derived bias correction factors. The capability of the code has been expanded to use ERA-5 reanalysis data providing an improved resolution of the reanalysis data from 0.5° x 0.625° to  0.25° x 0.25°. A notable addition possible from these changes is the bias correction factors can be calculated at finer spatial resolutions than the existing national scale factors, through the use of spatial clustering. Another notable implementation of this release is the option to add time dependency to the calculation of the bias correction factors to more accurately correct seasonal trends.
+# State of the field
 
-# Scope and significance
-
-`PyVWF` is an open-source, research-oriented Python package that simulates wind power generation from reanalysis datasets (ERA-5, MERRA-2) with explicit bias correction. It re-implements the Virtual Wind Farm (VWF) methodology in a modern, extensible codebase and exposes the full training and application workflow for bias-correction factors. This enables researchers to generate calibrated capacity-factor time series at turbine, regional, or national scale, with configurable spatial clustering and temporal aggregation. The software targets energy systems researchers, climate scientists, and power system analysts who require reproducible, transparent wind resource simulations.
-
-Relative to existing tools, `PyVWF` fills a gap between closed or API-only implementations (e.g. Renewables.ninja/VWF) and general-purpose reanalysis-to-power tools (e.g. `atlite`) by providing a fully open, research-grade implementation of bias-corrected wind power simulation. Its main contribution is the accessible, extensible training pipeline for correction factors and the ability to compute these factors at finer spatial scales than national averages. This supports more accurate resource assessment and sensitivity studies in scientific workflows, while remaining fully reproducible via a pinned environment and documented examples.
-
-# Core Functionality
-
-## Simulating Capacity Factor
-
-- Obtain wind speed data: Acquire surface roughness $z_{0}$, eastward $u$ and northward $v$ wind speed components at 100m above ground at each ERA-5 grid point. 
-- Derive wind speed magnitude: Derive wind speed magnitude at 100m, $w_{100m}$,  from the $u$ and $v$ wind components at each grid point.
-- Height extrapolation: Derive the wind speed at hub height assuming the log wind profile [@holmesWindLoading2017]:
-- $$w_{sim}(h)=w_{100m}\frac{\ln(h / z_{0})}{\ln(100 / z_{0})},$$
-    where wind speed $w_{\textnormal{sim}}$ is a function of the height $h$ and the surface roughness $z_{0}$.
-- Location interpolation: Linearly interpolate speeds to the specific geographic coordinates of each wind turbine, using Python's `xarray.DataArray.interp`.
-- Convert wind speed to capacity factor: Using smoothed manufacturers' power curves, convert wind speed $w_{sim}$ to capacity factors $CF_{sim}$.
-
-## Bias Correction
-
-Bias correction is applied on wind speeds from the reanalysis data as we assume this is where the error comes from rather than the power conversion. Wind speeds are corrected using the following scheme adapted from [@staffell2016]:
-$$w_{corrected} = \alpha w_{uncorrected} + \beta,$$
-where $w_{\textnormal{uncorrected}}$ is the uncorrected wind speed from the ERA-5 renalysis data. The training process to find the multiplicative scalar $\alpha$ and the linear offset $\beta$, involves the following steps:
-
-- Compute the simulated CF $CF_{sim}$ using $w_{uncorrected}$ and calculate the error factor $\varepsilon_{CF}$ from the mean (calculated over desired spatiotemporal resolution) $CF_{sim}$ and observed CF $CF_{obs}$ via $\varepsilon_{cf}=\frac{CF_{obs}}{CF_{sim}}$;
-- Derive the multiplicative scalar using the bias factor (note [@staffellUsingBiascorrected2016] used $\alpha=0.6\varepsilon_{CF}+0.2$ calculated per country to allow for generalisation of the method to be applied to other locations where only the long-run mean observed CF is known and reduce over-fitting. This is based on the observation of reanalysis tending to overestimate variability in wind. This has been modified for this study as we are deriving $\alpha$ at varying spatial resolutions and are assessing the performance without generalising.): $\alpha=\varepsilon_{cf}$;
-- Perform an iterative process on \ref{eq3} to find $\beta$ such that $CF_{sim}=CF_{obs}$.
-
+`PyVWF` occupies the space between closed/API-only VWF (Renewables.ninja
+[@staffell2016; @pfenninger2016]) and open general-purpose reanalysis-to-power
+tools such as `atlite` [@atlite]. Its distinguishing contribution is an open,
+extensible training pipeline for observation-based bias corrections and the
+ability to resolve those corrections below the national scale. The optional
+quantile-mapping module connects the wind-energy correction literature to
+distribution-based bias correction established in climate downscaling
+[@cannon2015].
 
 # AI disclosure
 
-The author used AI-assisted writing tools (GPT-5.2-Codex) to help draft and edit portions of the manuscript for clarity and concision. All technical content, claims, and citations were reviewed and verified by the author, who takes full responsibility for the final text.
-
+AI-assisted tools were used to help with software refactoring, test scaffolding,
+and editing portions of this manuscript for clarity. All technical content,
+claims, methods, and citations were reviewed and verified by the author, who
+takes full responsibility for the final software and text.
 
 # Acknowledgements
+
+The original VWF model was developed by Iain Staffell, and Renewables.ninja by
+Stefan Pfenninger and Iain Staffell. The author thanks collaborators on the
+underlying bias-correction research [@benmoufok2024].
+
+# References

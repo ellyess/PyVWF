@@ -24,7 +24,7 @@ from scipy.spatial import cKDTree
 from scipy.special import gamma as _gamma_func
 
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import KFold, cross_validate, GroupKFold, RandomizedSearchCV
+from sklearn.model_selection import KFold, cross_validate, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
@@ -2073,7 +2073,6 @@ def export_ml_correction_grid(
     )
     
     # Load masks if provided
-    from vwf.geospatial import union_geometries
     
     onshore_mask = None
     offshore_mask = None

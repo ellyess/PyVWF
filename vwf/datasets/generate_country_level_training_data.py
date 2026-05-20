@@ -41,7 +41,7 @@ from shapely.geometry import box
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from vwf.datasets.fetch_entsoe_capacity_factors import ENTSOEWindDataFetcher, save_capacity_factors
+from vwf.datasets.fetch_entsoe_capacity_factors import ENTSOEWindDataFetcher
 from vwf.clustering import create_sampling_points, cluster_with_geometries
 
 
@@ -333,7 +333,7 @@ def generate_norway_zone_grids(
 
     print(f"\n{'─'*70}")
     print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones")
-    print(f"\nZone distribution:")
+    print("\nZone distribution:")
     for zone_id in sorted(grid_all_zones['zone'].unique()):
         count = len(grid_all_zones[grid_all_zones['zone'] == zone_id])
         print(f"  {zone_id}: {count} points")
@@ -472,7 +472,7 @@ def generate_sweden_zone_grids(
 
     print(f"\n{'─'*70}")
     print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones")
-    print(f"\nZone distribution:")
+    print("\nZone distribution:")
     for zone_id in sorted(grid_all_zones['zone'].unique()):
         count = len(grid_all_zones[grid_all_zones['zone'] == zone_id])
         print(f"  {zone_id}: {count} points")
@@ -555,7 +555,6 @@ def generate_norway_zone_grids_fallback(
         all_zones_grids.append(zone_grid)
 
         # Create zone geometry (bounding box)
-        from shapely.geometry import mapping
         zone_geometries.append({
             'cluster': zone_num,
             'zone': zone_id,
@@ -569,7 +568,7 @@ def generate_norway_zone_grids_fallback(
 
     print(f"\n{'─'*70}")
     print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(NORWAY_ZONES)} zones")
-    print(f"\nZone distribution:")
+    print("\nZone distribution:")
     for zone_id in sorted(grid_all_zones['zone'].unique()):
         count = len(grid_all_zones[grid_all_zones['zone'] == zone_id])
         print(f"  {zone_id}: {count} points")
@@ -620,7 +619,7 @@ def generate_kmeans_grid(
 
     # Create grid with turbine metadata
     print(f"\nGrid resolution: {config['grid_resolution']}° (~{config['grid_resolution']*100:.0f} km)")
-    print(f"Representative turbine:")
+    print("Representative turbine:")
     print(f"  Hub height: {config['height']} m")
     print(f"  Power curve: {config['model']}")
     print(f"  Capacity: {config['capacity']} MW")
@@ -650,7 +649,7 @@ def generate_kmeans_grid(
 
     # Print cluster distribution
     cluster_counts = grid_clustered['cluster'].value_counts().sort_index()
-    print(f"\nCluster distribution:")
+    print("\nCluster distribution:")
     for cluster_id, count in cluster_counts.items():
         print(f"  Cluster {cluster_id}: {count} points")
 
@@ -669,7 +668,7 @@ def generate_kmeans_grid(
         print(f"✓ Saved cluster geometries: {geom_path}")
 
     # Print metadata summary
-    print(f"\nGrid points ready for PyVWF simulation!")
+    print("\nGrid points ready for PyVWF simulation!")
     print(f"Columns: {list(grid_clustered.columns)}")
 
     return grid_clustered, cluster_geoms
@@ -1318,7 +1317,7 @@ def main():
 
         try:
             fetcher = ENTSOEWindDataFetcher()
-            observations = fetch_observations(
+            fetch_observations(
                 fetcher=fetcher,
                 countries=[c.upper() for c in args.countries],
                 train_years=args.train_years,

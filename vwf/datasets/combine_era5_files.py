@@ -324,7 +324,7 @@ def main():
         if args.roughness_source == 'constant':
             print(f"Roughness value: {args.roughness_value}m")
         else:
-            print(f"Roughness method: PyVWF (from 10m-100m wind shear)")
+            print("Roughness method: PyVWF (from 10m-100m wind shear)")
     print(f"Output directory: {args.output_dir or era5_dir}")
     print("="*80)
 

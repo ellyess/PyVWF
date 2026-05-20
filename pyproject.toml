@@ -71,7 +71,28 @@ docs = [
 ]
 
 [tool.setuptools]
-packages = ["vwf"]
+packages = ["vwf", "vwf.datasets", "vwf.loaders"]
 
 [tool.setuptools.package-data]
 vwf = ["*.csv", "*.geojson"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# E: pycodestyle errors, F: pyflakes. Kept intentionally lean so the legacy
+# research scripts pass while still catching dead code, unused imports, and
+# real bugs (e.g. the discarded-merge bug fixed in vwf/vwf.py).
+select = ["E", "F"]
+ignore = [
+    "E501",  # line length handled case-by-case in research code
+    "E741",  # ambiguous names (l, I) are common in maths-heavy code
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]  # sys.path manipulation before imports in a few tests

@@ -276,7 +276,7 @@ def overall_error(type, run, country, turb_info, cluster_list, time_res_list, tr
     cluster_all = []
     time_all = []
     
-    if train == True:
+    if train:
         obs_cf = pd.read_csv(run+'/results/capacity-factor/'+country+'_train_obs_cf.csv')
         unc_cf = pd.read_csv(run+'/results/capacity-factor/'+country+'_train_unc_cf.csv', parse_dates=['time'])
     else:
@@ -294,7 +294,7 @@ def overall_error(type, run, country, turb_info, cluster_list, time_res_list, tr
     
     for num_clu in cluster_list:
         for time_res in time_res_list:
-            if train == True:
+            if train:
                 cor_cf = pd.read_csv(run+'/results/capacity-factor/'+country+'_train_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', parse_dates=['time'])
             else:
                 cor_cf = pd.read_csv(run+'/results/capacity-factor/'+country+"_"+str(year_test)+'_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', parse_dates=['time'])
