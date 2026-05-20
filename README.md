@@ -24,7 +24,9 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - Power curve–based generation modelling
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
+- **Distribution-aware bias correction** via quantile mapping / quantile delta mapping (see below)
 - **ML correction prediction experiments** (see `scripts/pyvwf_ml/` - experimental and for research use only)
+- **Automated test suite** (`pytest`) and continuous integration
 
 ## Installation
 
@@ -263,6 +265,90 @@ pip install scikit-learn
 pip install xgboost lightgbm
 ```
 
+## Distribution-Aware Bias Correction (Quantile Mapping)
+
+The default PyVWF correction is a per-cluster, per-time-slice **linear map**
+`w_corrected = α·w + β`, tuned so the *mean* simulated capacity factor matches
+the *mean* observed capacity factor. This corrects the first moment but leaves
+the variance and tail behaviour of the distribution unchanged — yet reanalysis
+is known to misrepresent wind *variability*, which drives ramps, calm spells,
+and high-wind extremes that matter for energy-system studies.
+
+`vwf.quantile_correction` adds **distribution-aware** correction ported from the
+climate-downscaling literature:
+
+- **Empirical Quantile Mapping (EQM)** — corrects the entire marginal
+  distribution, not just its mean.
+- **Quantile Delta Mapping (QDM)** [Cannon, Sobie & Murdock 2015] — a
+  trend-preserving variant that retains the model's own change between the
+  training and application periods.
+
+```python
+from vwf.quantile_correction import empirical_quantile_mapping
+from vwf.distribution_metrics import distribution_report
+
+# Train a mapping on (model, obs) and apply it to a new period
+corrected = empirical_quantile_mapping(model_train, obs_train, model_test)
+
+# Compare distributional skill of competing corrections
+report = distribution_report(
+    {"uncorrected": unc, "linear": lin, "quantile_mapping": qm}, obs
+)
+print(report)  # variance_ratio, wasserstein, KS, quantile bias, ramp metrics
+```
+
+`vwf.distribution_metrics` complements the mean-focused `vwf.metrics` with
+variance ratio, quantile bias, Wasserstein/KS distance, and ramp-rate skill.
+
+### Using it inside the PyVWF model
+
+Quantile mapping is selectable end-to-end via the `correction_method` argument.
+It is trained and applied on **monthly** capacity factors (the resolution at
+which observations exist), per cluster and time-slice. Outputs are written as
+`<COUNTRY>_<YEAR>_<time_res>_<k>_qm_cf.csv` and factors as
+`<COUNTRY>_qmfactors_<time_res>_<k>.csv`, so quantile runs never overwrite the
+linear (`scalar`+`offset`) ones.
+
+```python
+from vwf.vwf import PyVWF
+
+model = PyVWF(
+    path="outputs/DK_qm", country="DK", correct=True, calc_z0=True,
+    cluster_mode="all", cluster_list=[10], time_res_list=["season"],
+    correction_method="quantile",   # <- distribution-aware instead of "linear"
+    qm_n_quantiles=100,
+)
+model.train()
+model.simulate_cf(2020)
+```
+
+A self-contained, data-free demonstration of the underlying method is in
+[`examples/quantile_correction_demo.py`](examples/quantile_correction_demo.py):
+
+```bash
+python examples/quantile_correction_demo.py
+```
+
+> **Caveat:** quantile mapping degenerates where the model distribution
+> saturates against a hard bound (capacity factor pinned at 1.0). Applying it to
+> monthly means — as PyVWF does — keeps it well clear of that regime.
+
+## Testing
+
+PyVWF ships with a `pytest` suite that runs on **synthetic data** (no ERA5 or
+ENTSO-E access required), covering the wind log-law/interpolation, power-curve
+conversion, the linear bias-correction optimiser, temporal-resolution utilities,
+and the quantile-mapping correction and distributional metrics.
+
+```bash
+pip install -e ".[dev]"
+pytest                 # run the suite
+ruff check vwf tests   # lint
+```
+
+Continuous integration (`.github/workflows/ci.yml`) runs the suite and linter on
+Python 3.10–3.12 for every push and pull request.
+
 ## Data Requirements
 
 PyVWF expects the following input data types.
@@ -369,8 +455,8 @@ For published work, we recommend citing the repository and documenting:
 
 ## Citation
 
-If you use PyVWF in academic work, please cite the repository.  
-A `CITATION.cff` file may be added in future releases.
+If you use PyVWF in academic work, please cite the repository using the
+metadata in [`CITATION.cff`](CITATION.cff).
 
 ## Contributing
 
@@ -381,7 +467,10 @@ Contributions are welcome, especially:
 - Validation case studies
 - Performance optimisations
 
-Please open an issue to discuss changes before submitting a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, how to run the
+tests and linter, how to report bugs or request features, and pull-request
+guidelines. Please open an issue to discuss larger changes before submitting a
+pull request.
 
 ## Credits & Contact
 

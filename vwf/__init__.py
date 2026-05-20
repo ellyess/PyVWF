@@ -30,6 +30,16 @@ from vwf.loaders import (
 )
 from vwf.config import PyVWFPaths, BoundingBoxes
 
+# Distribution-aware bias correction (experimental research extension)
+from vwf.quantile_correction import (
+    QuantileMapper,
+    empirical_quantile_mapping,
+    quantile_delta_mapping,
+    fit_quantile_correction_table,
+    apply_quantile_correction,
+)
+from vwf.distribution_metrics import distribution_report
+
 # ============================================================================
 # OPTIONAL FUNCTIONALITY
 # ============================================================================
@@ -92,6 +102,13 @@ __all__ = [
     # Configuration
     "PyVWFPaths",
     "BoundingBoxes",
+    # Distribution-aware correction (experimental)
+    "QuantileMapper",
+    "empirical_quantile_mapping",
+    "quantile_delta_mapping",
+    "fit_quantile_correction_table",
+    "apply_quantile_correction",
+    "distribution_report",
     # Optional: Atlite
     "export_pyvwf_grid",
     "HAS_ATLITE",

@@ -7,8 +7,7 @@ from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from shapely.geometry import Point, Polygon, MultiPoint
-from scipy.spatial import Voronoi
+from shapely.geometry import Point, Polygon
 import warnings
 
 try:
@@ -110,7 +109,7 @@ def cluster_turbines(num_clu, turb_info_train, train=False, *args):
         )
     kmeans.fit(turb_info_train[['lat','lon']])
         
-    if train == True:
+    if train:
         turb_info_train['cluster'] = kmeans.predict(turb_info_train[['lat','lon']])
         return turb_info_train
     else:

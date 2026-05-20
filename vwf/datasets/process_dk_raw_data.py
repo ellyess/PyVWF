@@ -9,7 +9,6 @@ Output files are compatible with PyVWF format.
 """
 
 import pandas as pd
-import numpy as np
 from pathlib import Path
 from datetime import datetime, date
 import warnings
@@ -260,7 +259,7 @@ def process_dk_monthly_observations(
 
     if verbose:
         print(f"\n{'='*80}")
-        print(f"Combined data:")
+        print("Combined data:")
         print(f"  Total turbine-months: {len(df_long):,}")
         print(f"  Unique turbines: {df_long['ID'].nunique():,}")
         print(f"  Year range: {df_long['year'].min()}-{df_long['year'].max()}")
@@ -333,7 +332,7 @@ def main():
     if not args.observations_only:
         if metadata_input.exists():
             try:
-                df_md = process_dk_metadata(
+                process_dk_metadata(
                     metadata_input,
                     metadata_output,
                     verbose=True
@@ -349,7 +348,7 @@ def main():
     if not args.metadata_only:
         if observations_input.exists():
             try:
-                df_obs = process_dk_monthly_observations(
+                process_dk_monthly_observations(
                     observations_input,
                     observations_output,
                     verbose=True
@@ -364,7 +363,7 @@ def main():
     print("\n" + "="*80)
     print("✓ PROCESSING COMPLETE")
     print("="*80)
-    print(f"\nOutput files:")
+    print("\nOutput files:")
     if metadata_output.exists():
         print(f"  ✓ {metadata_output}")
     if observations_output.exists():
