@@ -3,12 +3,26 @@
 This module provides spatial clustering of turbine coordinates for training and
 evaluation workflows.
 """
+# Lazy (string) annotations so optional geometry types (e.g. Polygon) in
+# function signatures don't require shapely to be importable.
+from __future__ import annotations
+
 from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from shapely.geometry import Point, Polygon
 import warnings
+
+# shapely powers the optional Voronoi/geometry helpers below; the core
+# KMeans-based cluster_turbines() does not need it, so guard the import to keep
+# the package importable in minimal environments.
+try:
+    from shapely.geometry import Point, Polygon
+    HAS_SHAPELY = True
+except ImportError:
+    HAS_SHAPELY = False
+    Point = Polygon = None
+    warnings.warn("shapely not installed. Geometry-based features will be limited.")
 
 try:
     import geopandas as gpd
