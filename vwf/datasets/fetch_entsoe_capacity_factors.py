@@ -436,7 +436,7 @@ class ENTSOEWindDataFetcher:
         # Fetch capacity
         cap = self.fetch_installed_capacity(country, start, end, psr_type)
         if cap.empty:
-            print(f"  ⚠ No capacity data - using mean generation as proxy")
+            print("  ⚠ No capacity data - using mean generation as proxy")
             # Fallback: estimate capacity as max generation / 0.9 (assuming 90% availability)
             estimated_cap = gen["generation_mw"].max() / 0.9
             cap = pd.DataFrame(

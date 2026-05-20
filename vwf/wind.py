@@ -8,7 +8,6 @@ Performance optimizations:
 import xarray as xr
 import numpy as np
 import pandas as pd
-import scipy.interpolate as interpolate
 from scipy.interpolate import Akima1DInterpolator
 
 from vwf.time_utils import add_time_resolution_columns
