@@ -179,17 +179,22 @@ def interpolate_wind(reanalysis, turb_info):
 
     ws = reanalysis["wnd100m"] * (numer / denom)
 
-    lat = xr.DataArray(turb_info["lat"], dims="turbine", coords={"turbine": turb_info["ID"]})
-    lon = xr.DataArray(turb_info["lon"], dims="turbine", coords={"turbine": turb_info["ID"]})
-    height = xr.DataArray(turb_info["height"], dims="turbine", coords={"turbine": turb_info["ID"]})
+    # Coerce pandas columns to plain numpy arrays before building xarray
+    # coordinates. Under pandas >= 3.0 string columns are backed by
+    # ArrowStringArray, which xarray cannot use as an indexable coordinate
+    # (it breaks groupby("model") and label-based indexing on the turbine dim).
+    ids = np.asarray(turb_info["ID"], dtype=object)
+    lat = xr.DataArray(np.asarray(turb_info["lat"], dtype=float), dims="turbine", coords={"turbine": ids})
+    lon = xr.DataArray(np.asarray(turb_info["lon"], dtype=float), dims="turbine", coords={"turbine": ids})
+    height = xr.DataArray(np.asarray(turb_info["height"], dtype=float), dims="turbine", coords={"turbine": ids})
 
     # print(f"Interpolating wind speeds for {len(turb_info)} turbines (this may take a few minutes)...")
     sim_ws = ws.interp(lon=lon, lat=lat, height=height, kwargs={"fill_value": None})
 
     sim_ws = sim_ws.assign_coords(
         {
-            "model": ("turbine", turb_info["model"]),
-            "capacity": ("turbine", turb_info["capacity"]),
+            "model": ("turbine", np.asarray(turb_info["model"], dtype=object)),
+            "capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float)),
         }
     )
     return sim_ws
@@ -282,9 +287,10 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     ds2 = df[["scalar", "offset", "unc_ws"]].to_xarray()
     ds2 = ds2.assign(cor_ws=(ds2["unc_ws"] * ds2["scalar"]) + ds2["offset"])
 
-    # model coord for downstream mapping
-    ds2 = ds2.assign_coords({"model": ("turbine", turb_info["model"])})
-    ds2 = ds2.assign_coords({"capacity": ("turbine", turb_info["capacity"])})
+    # model coord for downstream mapping (coerce to numpy so the coordinate is
+    # not a pandas ArrowStringArray, which breaks groupby("model") on pandas>=3)
+    ds2 = ds2.assign_coords({"model": ("turbine", np.asarray(turb_info["model"], dtype=object))})
+    ds2 = ds2.assign_coords({"capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float))})
 
     return ds2.cor_ws
 
