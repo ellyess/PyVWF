@@ -31,6 +31,11 @@ jobs:
           # tests use synthetic data and do not require geospatial/atlite/ML).
           pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn
           pip install pytest pytest-cov ruff
+          # Install PyVWF itself so `import vwf` resolves under the `pytest`
+          # console script (which does not add the repo root to sys.path).
+          # --no-deps keeps the run lightweight and verifies the package imports
+          # without the optional geospatial/atlite/ML extras.
+          pip install -e . --no-deps
 
       - name: Lint (ruff)
         run: ruff check vwf tests
