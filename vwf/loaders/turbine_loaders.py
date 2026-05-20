@@ -4,7 +4,6 @@ This module provides functions to load turbine metadata and observations
 from supported countries (DK, DE, UK).
 """
 import pandas as pd
-from pathlib import Path
 
 from vwf.config import PyVWFPaths
 from vwf.utils import ensure_numeric

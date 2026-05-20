@@ -1,12 +1,8 @@
 """Bias correction utilities for PyVWF."""
-import xarray as xr
 import numpy as np
-import pandas as pd
-from sklearn.cluster import KMeans
-from calendar import monthrange
 from scipy.optimize import minimize, minimize_scalar
 
-from vwf.wind import interpolate_wind, train_simulate_wind, train_simulate_wind_from_ws, prepare_offset_arrays, fast_simulate_cf
+from vwf.wind import interpolate_wind, train_simulate_wind, prepare_offset_arrays, fast_simulate_cf
 from vwf.time_utils import parse_time_slice
 
 
@@ -236,7 +232,6 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
 
     # Get capacity weights for aggregation
     capacity_by_cluster = turb_info.groupby('cluster')['capacity'].sum()
-    total_capacity = capacity_by_cluster.sum()
 
     def objective(offsets):
         """Objective function: squared error between simulated and observed country CF."""
