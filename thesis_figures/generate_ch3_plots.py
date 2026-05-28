@@ -40,8 +40,8 @@ from sklearn.metrics import silhouette_score
 # Add project root to path for local imports
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-from plotting_style import thesis_plot_style, format_axes_standard, savefig_thesis
-from thesis_colors import OKABE_ITO, TIME_RES_COLOURS, EXISTING_NEW_COLOURS
+from vwf.viz.style import thesis_plot_style, format_axes_standard, savefig_thesis
+from vwf.viz.palettes import OKABE_ITO, TIME_RES_COLOURS, EXISTING_NEW_COLOURS
 from scripts.evaluate_all_pyvwf_runs import evaluate_run
 from vwf.datasets.era5 import prep_era5
 from vwf.data import load_power_curves

@@ -68,21 +68,26 @@ input/merra2
 *.nc
 atlite_run.ipynb
 *.png
+# README references docs/img/*.png; keep those tracked even though *.png is ignored generally.
+!docs/img/*.png
 input/country-data/EMHIRES_WIND_COUNTRY_June2019.xlsx
 input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 /input/country-data
 /tools
-vwf/.DS_Store
-/pyvwf.egg-info
+# Build artefacts (catch both legacy root and src/ layout locations)
+**/pyvwf.egg-info/
 /input/terrain
 /ml/ml_comparison
 /ml/ml_europe
-/docs
 /input
 /ml/experiments
 /output
 /out
-/out
 chapter_ml_corrections.md
 chapter_grid_interpolation.md
 /overleaf
+
+# Internal research-log docs kept local-only (research dates, "next steps"
+# language not appropriate for the public-facing docs/ folder).
+docs/TRAINING_2015_2021_SUMMARY.md
+docs/TURBINE_GRID_EVALUATION_ANALYSIS.md

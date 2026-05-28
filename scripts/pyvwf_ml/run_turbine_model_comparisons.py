@@ -21,7 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
-from vwf.ml_correction import (
+from vwf.extensions.ml.correction import (
     build_turbine_level_dataset,
     compare_interpolation_methods,
     create_feature_matrix,

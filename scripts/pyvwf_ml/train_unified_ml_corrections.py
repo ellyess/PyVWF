@@ -61,7 +61,7 @@ plt.rcParams['figure.dpi'] = 100
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from vwf.ml_correction import (
+from vwf.extensions.ml.correction import (
     build_turbine_level_dataset,
     create_feature_matrix,
     train_correction_model,

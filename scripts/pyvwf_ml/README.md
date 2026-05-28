@@ -49,8 +49,10 @@ scripts/pyvwf_ml/
 ├── prepare_turbine_fleet_features.py     # Link turbine metadata to clusters
 ├── train_unified_ml_corrections.py       # Train centroid-level ML corrections
 ├── run_turbine_model_comparisons.py      # Run turbine-level model comparison experiments
-└── generate_ch5_ml_plots.py              # Thesis Chapter 5 figures
 ```
+
+> Thesis Chapter 5 figure generator lives in `thesis_figures/generate_ch5_ml_plots.py`
+> (separated from this reusable-pipeline directory).
 
 ### Key Outputs
 
@@ -82,7 +84,7 @@ Runs three experiments: 35-feature default, 35-feature tuned, and 7-feature tune
 ### 3. Generate Chapter 5 Figures
 
 ```bash
-python scripts/pyvwf_ml/generate_ch5_ml_plots.py
+python thesis_figures/generate_ch5_ml_plots.py
 ```
 
 ---

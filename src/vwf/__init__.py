@@ -11,8 +11,10 @@ Core functionality (always available):
 
 Optional functionality (requires additional dependencies):
 - Geospatial features: Requires geopandas, shapely
-- Atlite export: Requires atlite
-- ML corrections: Requires scikit-learn, xgboost
+- Grid extension (vwf.extensions.grid): Spatial interpolation onto an atlite
+  cutout. Requires pykrige (core dep today; will move to ``pyvwf[grid]`` extra).
+- ML extension (vwf.extensions.ml): Learned correction models. Optional model
+  backends via ``pip install pyvwf[ml]`` (xgboost, lightgbm).
 """
 
 __version__ = "0.1.0"
@@ -34,11 +36,14 @@ from vwf.config import PyVWFPaths, BoundingBoxes
 # OPTIONAL FUNCTIONALITY
 # ============================================================================
 
-# Atlite export (requires: atlite)
+# Grid extension (requires: pykrige)
 try:
-    from vwf.atlite_export import export_pyvwf_grid
-    HAS_ATLITE = True
+    from vwf.extensions.grid import export_pyvwf_grid
+    HAS_GRID = True
+    # Backwards-compatible alias for the pre-extensions-split flag name.
+    HAS_ATLITE = HAS_GRID
 except ImportError:
+    HAS_GRID = False
     HAS_ATLITE = False
     export_pyvwf_grid = None
 
@@ -58,9 +63,9 @@ except ImportError:
     categorize_points_spatial_join = None
     filter_by_domain = None
 
-# ML corrections (requires: scikit-learn, xgboost)
+# ML extension (requires: scikit-learn; optional: xgboost, lightgbm)
 try:
-    from vwf.ml_correction import (
+    from vwf.extensions.ml import (
         train_correction_model,
         predict_correction_grid,
         create_feature_matrix,
@@ -108,9 +113,10 @@ __all__ = [
     # Configuration
     "PyVWFPaths",
     "BoundingBoxes",
-    # Optional: Atlite
+    # Optional: Grid extension
     "export_pyvwf_grid",
-    "HAS_ATLITE",
+    "HAS_GRID",
+    "HAS_ATLITE",  # alias of HAS_GRID; retained for back-compat
     # Optional: Geospatial
     "add_domain_column",
     "categorize_points_by_region",

@@ -38,7 +38,7 @@ jobs:
           pip install -e . --no-deps
 
       - name: Lint (ruff)
-        run: ruff check vwf tests
+        run: ruff check src/vwf tests
 
       - name: Run tests
         run: pytest tests -q --cov=vwf --cov-report=term-missing

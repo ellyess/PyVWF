@@ -2082,7 +2082,7 @@ def export_ml_correction_grid(
         lon = grid_ds.x.values if 'x' in grid_ds.coords else grid_ds.lon.values
         lat = grid_ds.y.values if 'y' in grid_ds.coords else grid_ds.lat.values
         
-        from vwf.atlite_export import mask_from_geojson_fast
+        from vwf.extensions.grid.atlite_export import mask_from_geojson_fast
         onshore_mask = mask_from_geojson_fast(lon, lat, Path(onshore_mask_geojson), name='onshore')
         
         if offshore_mask_geojson:
