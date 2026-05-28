@@ -601,7 +601,7 @@ def main():
     print("="*70)
     print("\n1. Use terrain data in PyVWF ML training:")
     print()
-    print("   from vwf.ml_correction import create_feature_matrix, train_correction_model")
+    print("   from vwf.extensions.ml.correction import create_feature_matrix, train_correction_model")
     print()
     print("   # Create feature matrix from terrain")
     print("   features = create_feature_matrix(")

@@ -57,6 +57,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Optional model backends for the ML extension (vwf.extensions.ml).
+# scikit-learn is already in the core deps; these add the boosted-tree options.
+ml = [
+    "xgboost>=1.7.0",
+    "lightgbm>=4.0.0",
+]
+
+# Convenience meta-group installing every extension's extras.
+all = [
+    "pyvwf[ml]",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -70,8 +82,13 @@ docs = [
     "sphinx-rtd-theme>=1.2.0",
 ]
 
-[tool.setuptools]
-packages = ["vwf", "vwf.datasets", "vwf.loaders"]
+[project.scripts]
+pyvwf-train = "vwf.cli.train:main"
+pyvwf-grid  = "vwf.extensions.grid.cli:main"
+pyvwf-ml    = "vwf.extensions.ml.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.package-data]
 vwf = ["*.csv", "*.geojson"]

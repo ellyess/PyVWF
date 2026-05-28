@@ -24,7 +24,7 @@ import warnings
 sys.path.insert(0, str(Path(__file__).parent))
 
 from vwf.clustering import cluster_with_geometries
-from vwf.export_correction_geodataframes import export_correction_factors_geodataframe
+from vwf.extensions.grid.geodataframes import export_correction_factors_geodataframe
 
 
 # Configurations

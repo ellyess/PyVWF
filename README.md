@@ -51,6 +51,29 @@ conda activate pyvwf
 python -c "import pandas, xarray, scipy; print('Environment OK')"
 ```
 
+#### Optional: install via pip (with extras)
+
+PyVWF is also a regular pip package. The core install is the bias-correction
+pipeline; the experimental extensions opt in via extras:
+
+```bash
+pip install pyvwf            # core: pyvwf-train, the linear bias-correction pipeline
+pip install pyvwf[ml]        # + xgboost / lightgbm backends for vwf.extensions.ml
+pip install pyvwf[all]       # everything
+```
+
+After install, three console commands are available on your PATH:
+
+| Command       | Stage | Wraps                                                  |
+|---------------|-------|--------------------------------------------------------|
+| `pyvwf-train` | 1     | `PyVWF.train` + `simulate_cf` for one country/year     |
+| `pyvwf-grid`  | 2     | `vwf.extensions.grid.export_pyvwf_grid` (kriging)      |
+| `pyvwf-ml`    | 3     | `vwf.extensions.ml.export_ml_correction_grid`          |
+
+Run any of them with `--help` to see arguments. The research drivers under
+`scripts/pyvwf_to_grid/` and `scripts/pyvwf_ml/` cover the multi-method
+comparisons and chapter figures.
+
 ## Quickstart
 
 ### PyVWF Training Example (Denmark)
@@ -58,6 +81,10 @@ python -c "import pandas, xarray, scipy; print('Environment OK')"
 A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:
 
 ```bash
+# After `pip install pyvwf` the console script is on your PATH:
+pyvwf-train --outdir outputs/demo_DK_2020 --country DK --year-test 2020 --calc-z0
+
+# Equivalent (from a repo checkout):
 python examples/quick_run.py \
     --outdir outputs/demo_DK_2020 \
     --country DK \
@@ -85,10 +112,10 @@ For comprehensive analysis across all supported countries:
 
 ```bash
 # List available configuration sets
-python train_all_bias_corrections.py --list
+python scripts/train_all_bias_corrections.py --list
 
 # Run turbine + country workflows
-python train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
+python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
 ```
 
 See [PIPELINE.md](PIPELINE.md) for the complete three-stage pipeline (bias correction, grid interpolation, ML corrections).
@@ -207,7 +234,7 @@ export_ml_correction_grid(
 ### Training Individual Models
 
 ```python
-from vwf.ml_correction import create_feature_matrix, train_correction_model
+from vwf.extensions.ml import create_feature_matrix, train_correction_model
 
 # Load correction points and add terrain features
 corrections = pd.read_csv('output/correction_points.csv')
@@ -233,7 +260,7 @@ print(scalar_model['feature_importance'])
 ### Comparing Methods
 
 ```python
-from vwf.ml_correction import compare_interpolation_methods
+from vwf.extensions.ml import compare_interpolation_methods
 
 # Compare different ML models
 comparison = compare_interpolation_methods(

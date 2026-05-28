@@ -35,12 +35,12 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
 import seaborn as sns
 
-# Add project root
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Add project root (this file lives in thesis_figures/, one level below repo root)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from plotting_style import thesis_plot_style, format_axes_standard, savefig_thesis
-from thesis_colors import OKABE_ITO, METHOD_COLOURS, COUNTRY_COLOURS
+from vwf.viz.style import thesis_plot_style, format_axes_standard, savefig_thesis
+from vwf.viz.palettes import OKABE_ITO, METHOD_COLOURS, COUNTRY_COLOURS
 
 # ===========================================================================
 # Style -- apply rcParams globally, then use them everywhere

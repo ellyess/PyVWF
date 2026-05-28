@@ -26,7 +26,7 @@ from sklearn.model_selection import KFold
 import warnings
 
 # Import thesis plotting style
-from plotting_style import thesis_plot_style
+from vwf.viz.style import thesis_plot_style
 
 # Try importing pykrige for kriging
 try:
