@@ -70,8 +70,9 @@ Python 3.10–3.12 for every pull request.
 ## Scientific contributions
 
 New bias-correction or interpolation methods are especially welcome. Where
-possible, include a short validation (e.g. against the Denmark case study) and a
-distributional skill comparison using `vwf.distribution_metrics`.
+possible, include a short validation (e.g. against the Denmark case study,
+reporting RMSE/MAE/MBE per Section 3.3.9 of the thesis) and the diagnostic
+distribution / QQ plots from `vwf.viz`.
 
 ## Code of conduct
 

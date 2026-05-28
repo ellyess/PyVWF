@@ -30,16 +30,6 @@ from vwf.loaders import (
 )
 from vwf.config import PyVWFPaths, BoundingBoxes
 
-# Distribution-aware bias correction (experimental research extension)
-from vwf.quantile_correction import (
-    QuantileMapper,
-    empirical_quantile_mapping,
-    quantile_delta_mapping,
-    fit_quantile_correction_table,
-    apply_quantile_correction,
-)
-from vwf.distribution_metrics import distribution_report
-
 # ============================================================================
 # OPTIONAL FUNCTIONALITY
 # ============================================================================
@@ -86,6 +76,22 @@ except ImportError:
     export_ml_correction_grid = None
     compare_interpolation_methods = None
 
+# Visualisation (requires: matplotlib — already a core dependency)
+try:
+    from vwf.viz import (
+        Results,
+        load_results,
+        plot_cf_distribution,
+        plot_qq,
+    )
+    HAS_VIZ = True
+except ImportError:
+    HAS_VIZ = False
+    Results = None
+    load_results = None
+    plot_cf_distribution = None
+    plot_qq = None
+
 # ============================================================================
 # PUBLIC API
 # ============================================================================
@@ -102,13 +108,6 @@ __all__ = [
     # Configuration
     "PyVWFPaths",
     "BoundingBoxes",
-    # Distribution-aware correction (experimental)
-    "QuantileMapper",
-    "empirical_quantile_mapping",
-    "quantile_delta_mapping",
-    "fit_quantile_correction_table",
-    "apply_quantile_correction",
-    "distribution_report",
     # Optional: Atlite
     "export_pyvwf_grid",
     "HAS_ATLITE",
@@ -125,4 +124,10 @@ __all__ = [
     "export_ml_correction_grid",
     "compare_interpolation_methods",
     "HAS_ML",
+    # Optional: Viz
+    "Results",
+    "load_results",
+    "plot_cf_distribution",
+    "plot_qq",
+    "HAS_VIZ",
 ]
