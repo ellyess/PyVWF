@@ -51,7 +51,7 @@ from vwf.data import load_power_curves
 from vwf.metrics import calculate_error
 
 # Import thesis plotting style
-from plotting_style import thesis_plot_style
+from vwf.viz.style import thesis_plot_style
 
 # Style setup
 STYLE = thesis_plot_style()

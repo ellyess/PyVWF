@@ -2,6 +2,18 @@
 
 Three-stage pipeline: **PyVWF** (bias correction training) → **PyVWF Grid** (spatial interpolation) → **PyVWF ML** (machine learning corrections).
 
+After `pip install pyvwf[all]`, the three stages also have console entry points
+covering the common one-shot case:
+
+| Stage | Console command | Wraps                                              |
+|-------|-----------------|----------------------------------------------------|
+| 1     | `pyvwf-train`   | `PyVWF.train` + `simulate_cf` (single country/year) |
+| 2     | `pyvwf-grid`    | `vwf.extensions.grid.export_pyvwf_grid` (kriging)  |
+| 3     | `pyvwf-ml`      | `vwf.extensions.ml.export_ml_correction_grid`      |
+
+The scripts below remain the right entry point for batch/multi-method/research
+workflows (CV comparisons, chapter figures, terrain feature engineering).
+
 ---
 
 ## Stage 1: PyVWF Core — Bias Correction Training
@@ -26,10 +38,10 @@ python vwf/datasets/generate_country_level_training_data.py
 
 ```bash
 # List available configuration sets
-python train_all_bias_corrections.py --list
+python scripts/train_all_bias_corrections.py --list
 
 # Run turbine + country workflows
-python train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
+python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
 ```
 
 Master orchestrator supporting all training configurations:
@@ -124,7 +136,7 @@ python scripts/pyvwf_to_grid/generate_best_correction_grids.py
 ### 2.6 Generate Chapter 4 Thesis Figures
 
 ```bash
-python scripts/pyvwf_to_grid/generate_ch4_grid_plots.py
+python thesis_figures/generate_ch4_grid_plots.py
 ```
 
 - 10 publication-quality figures for thesis Chapter 4 (grid interpolation)
@@ -205,7 +217,7 @@ python scripts/pyvwf_ml/run_turbine_model_comparisons.py
 ### 3.5 Generate Chapter 5 Figures
 
 ```bash
-python scripts/pyvwf_ml/generate_ch5_ml_plots.py
+python thesis_figures/generate_ch5_ml_plots.py
 ```
 
 - ML model comparison, feature importance, predictions scatter, random vs spatial CV, ML vs interpolation
@@ -217,7 +229,7 @@ python scripts/pyvwf_ml/generate_ch5_ml_plots.py
 
 ```bash
 # 1. Train corrections
-python train_all_bias_corrections.py --sets turbine_grid
+python scripts/train_all_bias_corrections.py --sets turbine_grid
 
 # 2. Unify and interpolate to grid
 python scripts/pyvwf_to_grid/create_unified_correction_dataframe.py

@@ -34,13 +34,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 
-# Add project root
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Add project root (this file lives in thesis_figures/, one level below repo root)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from plotting_style import thesis_plot_style, format_axes_standard, savefig_thesis
-from thesis_colors import OKABE_ITO, MODEL_COLOURS, GROUP_COLOURS
-from vwf.ml_correction import (
+from vwf.viz.style import thesis_plot_style, format_axes_standard, savefig_thesis
+from vwf.viz.palettes import OKABE_ITO, MODEL_COLOURS, GROUP_COLOURS
+from vwf.extensions.ml.correction import (
     build_turbine_level_dataset,
     create_feature_matrix,
     train_correction_model,

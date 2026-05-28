@@ -16,9 +16,10 @@ from datetime import datetime
 import pandas as pd
 import traceback
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
-sys.path.insert(0, str(Path(__file__).parent / "input" / "country_level_data"))
+# Add project root to path (this file now lives in scripts/, so go up one level)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "input" / "country_level_data"))
 
 from vwf.vwf import PyVWF
 try:
