@@ -28,7 +28,6 @@ import vwf.correction as correction
 from vwf.clustering import (
     cluster_turbines
 )
-from vwf.time_utils import add_time_resolution_columns
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
