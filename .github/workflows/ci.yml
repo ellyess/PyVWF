@@ -29,7 +29,8 @@ jobs:
           python -m pip install --upgrade pip
           # Core scientific stack needed by the unit tests (kept light: the
           # tests use synthetic data and do not require geospatial/atlite/ML).
-          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn
+          # matplotlib is needed by tests/test_viz.py (uses the Agg backend).
+          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib
           pip install pytest pytest-cov ruff
           # Install PyVWF itself so `import vwf` resolves under the `pytest`
           # console script (which does not add the repo root to sys.path).
