@@ -28,10 +28,6 @@ import vwf.correction as correction
 from vwf.clustering import (
     cluster_turbines
 )
-from vwf.quantile_correction import (
-    fit_quantile_factor_frame,
-    apply_quantile_factor_frame,
-)
 from vwf.time_utils import add_time_resolution_columns
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -101,27 +97,11 @@ class PyVWF:
         interp_nan=None,
         fix_turb=None,
         *,
-        obs_level: str = "turbine",  # NEW
-        correction_method: str = "linear",  # NEW: "linear" or "quantile"
-        qm_n_quantiles: int = 100,
-        qm_kind: str = "additive",
+        obs_level: str = "turbine",
     ):
-        """Initialize the PyVWF object and create output folders.
-
-        Args:
-            correction_method: Bias-correction scheme. ``"linear"`` (default)
-                uses the scalar+offset wind-speed correction. ``"quantile"``
-                uses distribution-aware quantile mapping on monthly capacity
-                factors (see :mod:`vwf.quantile_correction`).
-            qm_n_quantiles: Number of quantile knots when
-                ``correction_method="quantile"``.
-            qm_kind: ``"additive"`` or ``"multiplicative"`` quantile mapping.
-        """
-        # validate obs_level early
+        """Initialize the PyVWF object and create output folders."""
         if obs_level not in ("turbine", "country"):
             raise ValueError("obs_level must be one of: 'turbine', 'country'")
-        if correction_method not in ("linear", "quantile"):
-            raise ValueError("correction_method must be one of: 'linear', 'quantile'")
 
         # creating folders
         # If path is empty or ".", use default output/run structure
@@ -138,10 +118,6 @@ class PyVWF:
 
             # include obs_level in run name so you don't overwrite factors
             run += f"-obs_{obs_level}"
-
-            # include correction method so quantile runs don't clobber linear ones
-            if correction_method == "quantile":
-                run += "-qm"
 
             if (add_nan is None) & (interp_nan is None) & (fix_turb is None):
                 run += "-corrected"
@@ -185,16 +161,13 @@ class PyVWF:
             untrained_cluster_list = []
             untrained_time_res_list = []
 
-            factor_tag = "qmfactors" if correction_method == "quantile" else "factors"
             for num_clu in cluster_list:
                 for time_res in time_res_list:
                     my_file = Path(
                         directory_path
                         + "/training/correction-factors/"
                         + country
-                        + "_"
-                        + factor_tag
-                        + "_"
+                        + "_factors_"
                         + time_res
                         + "_"
                         + str(num_clu)
@@ -228,11 +201,6 @@ class PyVWF:
 
         # NEW: store obs_level
         self.obs_level = obs_level
-
-        # NEW: store correction method + quantile-mapping hyperparameters
-        self.correction_method = correction_method
-        self.qm_n_quantiles = qm_n_quantiles
-        self.qm_kind = qm_kind
 
         # NEW: country-level data (can be set via load_country_data() or from_config())
         self.grid_points = None
@@ -448,83 +416,6 @@ class PyVWF:
 
         return model
 
-    # ------------------------------------------------------------------
-    # Quantile-mapping correction helpers
-    # ------------------------------------------------------------------
-    def _qm_factor_path(self, num_clu, time_res):
-        """Path of the serialised quantile-mapping factor table."""
-        return (
-            self.directory_path
-            + "/training/correction-factors/"
-            + self.country
-            + "_qmfactors_"
-            + time_res
-            + "_"
-            + str(num_clu)
-            + ".csv"
-        )
-
-    def _fit_and_save_quantile_factors(self, gen_cf, clus_info, num_clu, time_res):
-        """Fit per-(cluster, time-slice) quantile mappers and write them to CSV.
-
-        Operates on the monthly ``gen_cf`` training frame (one row per
-        month/grid-point with ``sim`` and ``obs`` capacity factors), attaching
-        the cluster assignment from ``clus_info``.
-        """
-        df = gen_cf.copy()
-        df["ID"] = df["ID"].astype(str)
-        clusters = clus_info[["ID", "cluster"]].copy()
-        clusters["ID"] = clusters["ID"].astype(str)
-        if "cluster" in df.columns:
-            df = df.drop(columns=["cluster"])
-        df = df.merge(clusters, on="ID", how="left").dropna(subset=["cluster"])
-        df["cluster"] = df["cluster"].astype(int)
-
-        frame = fit_quantile_factor_frame(
-            df,
-            time_res,
-            value_col="sim",
-            obs_col="obs",
-            cluster_col="cluster",
-            n_quantiles=self.qm_n_quantiles,
-            kind=self.qm_kind,
-        )
-        frame.to_csv(self._qm_factor_path(num_clu, time_res), index=False)
-        return frame
-
-    def _simulate_quantile_cf(self, unc_cf_path, clus_info, num_clu, time_res, out_path):
-        """Apply saved quantile factors to monthly-aggregated simulated CF.
-
-        Quantile mapping is trained and applied at monthly resolution (the scale
-        at which observations exist), so the output is a monthly capacity-factor
-        series indexed by month start, with one column per turbine/grid-point.
-        """
-        unc = pd.read_csv(unc_cf_path, parse_dates=["time"])
-        sim_monthly = (
-            unc.groupby(pd.Grouper(key="time", freq="ME")).mean().reset_index()
-        )
-        sim_long = sim_monthly.melt(id_vars=["time"], var_name="ID", value_name="sim")
-        sim_long["ID"] = sim_long["ID"].astype(str)
-        sim_long["year"] = sim_long["time"].dt.year.astype(int)
-        sim_long["month"] = sim_long["time"].dt.month.astype(int)
-        sim_long = add_time_resolution_columns(sim_long)
-
-        clusters = clus_info[["ID", "cluster"]].copy()
-        clusters["ID"] = clusters["ID"].astype(str)
-        sim_long = sim_long.merge(clusters, on="ID", how="left")
-
-        factor_frame = pd.read_csv(self._qm_factor_path(num_clu, time_res))
-        corrected = apply_quantile_factor_frame(
-            sim_long, factor_frame, time_res, value_col="sim", out_col="cor"
-        )
-
-        wide = corrected.pivot_table(
-            index="time", columns="ID", values="cor"
-        ).reset_index()
-        wide.columns.name = None
-        wide.to_csv(out_path, index=False)
-        return wide
-
     def train(
         self,
         check=False,
@@ -618,16 +509,6 @@ class PyVWF:
                 turb_info_train,
                 obs_level=self.obs_level,  # NEW
             )
-
-            # Quantile-mapping branch: fit distribution-aware factors and skip
-            # the scalar/offset optimisation entirely.
-            if self.correction_method == "quantile":
-                self._fit_and_save_quantile_factors(gen_cf, clus_info, num_clu, time_res)
-                elapsed_time = time.time() - start_time
-                print("Completed and saved (quantile mapping). Elapsed time: "
-                      "{:.2f} seconds\n".format(elapsed_time))
-                print("--------------------------------")
-                continue
 
             # Calculate offsets
             if self.obs_level == "turbine":
@@ -872,18 +753,6 @@ class PyVWF:
                 + "_train_turb_info.csv"
             )
 
-            # quantile mapping writes a monthly "_qm_cf.csv"; the linear scheme
-            # writes the hourly "_cor_cf.csv".
-            result_tag = "qm" if self.correction_method == "quantile" else "cor"
-            unc_cf_path = (
-                self.directory_path
-                + "/results/capacity-factor/"
-                + self.country
-                + "_"
-                + str(year_test)
-                + "_unc_cf.csv"
-            )
-
             for num_clu, time_res in itertools.product(self.full_clus_list, self.full_time_list):
                 out_path = (
                     self.directory_path
@@ -895,9 +764,7 @@ class PyVWF:
                     + time_res
                     + "_"
                     + str(num_clu)
-                    + "_"
-                    + result_tag
-                    + "_cf.csv"
+                    + "_cor_cf.csv"
                 )
                 if Path(out_path).is_file():
                     print("PyVWF(", num_clu, "--", time_res, ") was previously simulated.\n")
@@ -913,24 +780,19 @@ class PyVWF:
                     else:
                         clus_info = cluster_turbines(num_clu, turb_info_train, False, turb_info)
 
-                    if self.correction_method == "quantile":
-                        self._simulate_quantile_cf(
-                            unc_cf_path, clus_info, num_clu, time_res, out_path
-                        )
-                    else:
-                        bc_factors = pd.read_csv(
-                            self.directory_path
-                            + "/training/correction-factors/"
-                            + self.country
-                            + "_factors_"
-                            + time_res
-                            + "_"
-                            + str(num_clu)
-                            + ".csv"
-                        )
+                    bc_factors = pd.read_csv(
+                        self.directory_path
+                        + "/training/correction-factors/"
+                        + self.country
+                        + "_factors_"
+                        + time_res
+                        + "_"
+                        + str(num_clu)
+                        + ".csv"
+                    )
 
-                        cor_ws, cor_cf = wind.simulate_wind(reanalysis, clus_info, power_curves, bc_factors, time_res)
-                        cor_cf.to_csv(out_path, index=None)
+                    cor_ws, cor_cf = wind.simulate_wind(reanalysis, clus_info, power_curves, bc_factors, time_res)
+                    cor_cf.to_csv(out_path, index=None)
 
                     end_time = time.time()
                     elapsed_time = end_time - start_time
