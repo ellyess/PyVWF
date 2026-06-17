@@ -72,11 +72,9 @@ need transparent, reproducible, and calibrated wind resource simulations.
   ERA5 grid (nearest neighbour, IDW, RBF, kriging) with spatial cross-validation
   and export to NetCDF for `atlite`/`PyPSA-Eur`.
 - **Experimental extensions.** Machine-learning prediction of corrections from
-  terrain/environmental features, and a *distribution-aware* correction module
-  implementing empirical quantile mapping and trend-preserving quantile delta
-  mapping [@cannon2015], together with distributional skill metrics (variance
-  ratio, Wasserstein/Kolmogorov–Smirnov distance, quantile and ramp-rate bias)
-  that complement conventional mean-error metrics.
+  terrain/environmental features, and distributional diagnostics (capacity-factor
+  histograms, empirical CDFs, and quantile-quantile plots via `vwf.viz`) that
+  complement conventional mean-error metrics.
 
 The package ships with an automated `pytest` suite that runs on synthetic data
 (no large reanalysis downloads required) and continuous integration, and a
@@ -90,10 +88,7 @@ resources [@benmoufok2024; @wang2026].
 [@staffell2016; @pfenninger2016]) and open general-purpose reanalysis-to-power
 tools such as `atlite` [@atlite]. Its distinguishing contribution is an open,
 extensible training pipeline for observation-based bias corrections and the
-ability to resolve those corrections below the national scale. The optional
-quantile-mapping module connects the wind-energy correction literature to
-distribution-based bias correction established in climate downscaling
-[@cannon2015].
+ability to resolve those corrections below the national scale.
 
 # AI disclosure
 

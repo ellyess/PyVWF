@@ -2,9 +2,35 @@
 
 PyVWF is a research-oriented Python framework for processing, bias-correcting, and simulating wind resources and wind power generation using reanalysis data (e.g. ERA5), turbine metadata, and observed generation data. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
 
-`PyVWF` is a Python rewrite of the [VWF model](https://github.com/renewables-ninja/vwf/tree/master) developed by Iain Staffell. The wind energy simulations on [Renewables.ninja](https://www.renewables.ninja/) are based on the VWF model. 
+`PyVWF` is a Python rewrite of the [VWF model](https://github.com/renewables-ninja/vwf/tree/master) developed by Iain Staffell. The wind energy simulations on [Renewables.ninja](https://www.renewables.ninja/) are based on the VWF model.
 
-## Overview
+## What makes it different
+
+Raw reanalysis winds carry systematic, location-dependent biases, so capacity factors simulated straight from ERA5 drift away from what wind fleets actually generate. PyVWF learns a per-cluster, per-time-slice linear correction of the wind speed (`w_corrected = α·w + β`) from observed generation, then converts the corrected wind to power. Unlike API-only or general-purpose reanalysis-to-power tools, it exposes the full **training** workflow for the correction factors and lets you compute them at finer spatial and temporal resolution than the conventional national-scale factors, through configurable spatial clustering and temporal grouping. The factors are yours to inspect, retrain, and interpolate, and simulated capacity factors track observations far more closely than uncorrected reanalysis.
+
+## Status and provenance
+
+PyVWF implements the granular bias-correction method introduced in Benmoufok et al. (2024, *Energy*, lead author), [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759). The method is also applied in co-authored follow-on work that extends the framework to high-resolution UK bias correction (Wang et al., 2026, *Energy Conversion and Management*, [doi:10.1016/j.enconman.2026.121066](https://doi.org/10.1016/j.enconman.2026.121066)). It ships a synthetic-data `pytest` suite with continuous integration on Python 3.10 to 3.12, and is pip-installable.
+
+New here? See [How it works](#how-it-works) for the five-step pipeline, then [Quickstart](#quickstart) to run it.
+
+## Contents
+
+- [How it works](#how-it-works)
+- [Key features](#key-features)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Visualising distributional fit](#visualising-distributional-fit)
+- [Going further](#going-further)
+- [Detailed usage and reference](#detailed-usage-and-reference)
+- [Testing](#testing)
+- [Assumptions and limitations](#assumptions-and-limitations)
+- [Reproducibility](#reproducibility)
+- [Citation](#citation)
+- [Contributing](#contributing)
+- [Credits and contact](#credits-and-contact)
+
+## How it works
 
 PyVWF supports the following workflow:
 
@@ -16,7 +42,7 @@ PyVWF supports the following workflow:
 
 The framework is intended for **daily to monthly** analysis at **turbine, regional, or national scale**.
 
-## Key Features
+## Key features
 
 - ERA5-based wind speed processing
 - Hub-height extrapolation with configurable methods
@@ -24,8 +50,8 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - Power curve–based generation modelling
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
-- **ML correction prediction experiments** (see `scripts/pyvwf_ml/` - experimental and for research use only)
 - **Automated test suite** (`pytest`) and continuous integration
+- Experimental research extensions for grid interpolation and ML-predicted corrections (see [Detailed usage and reference](#detailed-usage-and-reference))
 
 ## Installation
 
@@ -106,191 +132,6 @@ Key options:
 - `--cluster-list`: List of cluster counts to evaluate
 - `--time-res-list`: fixed | season | bimonth | month
 
-### Full Multi-Country Training
-
-For comprehensive analysis across all supported countries:
-
-```bash
-# List available configuration sets
-python scripts/train_all_bias_corrections.py --list
-
-# Run turbine + country workflows
-python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
-```
-
-See [PIPELINE.md](PIPELINE.md) for the complete three-stage pipeline (bias correction, grid interpolation, ML corrections).
-
-## Geospatial Utilities - Categorizing Turbines
-
-PyVWF now includes utilities to automatically categorize turbines as onshore or offshore based on their geographic location relative to region definitions (GeoJSON files).
-
-### Basic Usage
-
-```python
-import pandas as pd
-from vwf import add_domain_column, filter_by_domain
-
-# Load turbine data with lat/lon coordinates
-turbines = pd.read_csv('input/turbines.csv')
-
-# Automatically categorize based on GeoJSON regions
-turbines = add_domain_column(
-    turbines,
-    onshore_geojson='input/regions/country_shapes.geojson',
-    offshore_geojson='input/regions/north_sea_shape.geojson',
-)
-
-# The 'domain' column now contains 'onshore', 'offshore', or 'unknown'
-print(turbines['domain'].value_counts())
-
-# Filter by domain
-onshore_turbines = filter_by_domain(turbines, "onshore")
-offshore_turbines = filter_by_domain(turbines, "offshore")
-```
-
-### Advanced Options
-
-```python
-# Use faster spatial join method (requires rtree or pygeos)
-turbines = add_domain_column(
-    turbines,
-    onshore_geojson='regions/onshore.geojson',
-    offshore_geojson='regions/offshore.geojson',
-    method='spatial_join',  # Default, fast
-    prefer_onshore=True,     # If point in both regions, use onshore
-)
-
-# Or use point-in-polygon (slower but more reliable)
-turbines = add_domain_column(
-    turbines,
-    onshore_geojson='regions/onshore.geojson',
-    offshore_geojson='regions/offshore.geojson',
-    method='point_in_polygon',
-)
-
-# Handle custom column names
-turbines = add_domain_column(
-    turbines,
-    onshore_geojson='regions/onshore.geojson',
-    offshore_geojson='regions/offshore.geojson',
-    lon_col='longitude',
-    lat_col='latitude',
-)
-```
-
-### Atlite Integration - Export Corrections to Grid
-
-> **Experimental (research use only):** The ML workflows in `scripts/pyvwf_ml/` and the atlite export utilities are experimental and intended for research purposes, not production use.
-
-Export PyVWF bias corrections onto an atlite cutout grid for wind simulations:
-
-```python
-from vwf import export_pyvwf_grid
-
-# Export correction factors to atlite cutout grid
-export_pyvwf_grid(
-    cutout_nc='cutouts/europe-2023.nc',
-    points_csv='output/correction_points.csv',  # Your bias correction results
-    out_nc='output/bias_grid.nc',
-    onshore_geojson='input/regions/country_shapes.geojson',
-    offshore_geojson='input/regions/north_sea_shape.geojson',
-    variogram_model='spherical',  # Spatial interpolation method
-    n_closest_onshore=50,         # Local kriging for performance
-    n_closest_offshore=80,
-)
-```
-
-The output NetCDF contains gridded `scalar` and `offset` correction fields that can be applied to atlite wind power calculations.
-
-For more examples, see:
-- `examples/categorize_turbines.py` - Geospatial classification examples
-
-## Machine Learning-Based Bias Correction
-
-PyVWF includes ML models to learn the relationship between terrain/environmental features and bias correction factors. This enables:
-
-- **Physical understanding**: Identify which terrain features drive model bias
-- **Spatial transfer**: Apply corrections to regions without observations
-- **Improved interpolation**: Use terrain predictors instead of pure spatial interpolation
-
-### Quick Start
-
-```python
-from vwf import export_ml_correction_grid
-
-# Train ML model and export gridded corrections in one step
-export_ml_correction_grid(
-    corrections_csv='output/correction_points.csv',
-    grid_nc='cutouts/europe-2023.nc',
-    out_nc='output/ml_bias_grid.nc',
-    terrain_nc='input/terrain/europe_terrain.nc',  # Optional: elevation, slope, etc.
-    coastline_geojson='input/regions/coastline.geojson',  # Optional: for distance-to-coast
-    model_type='random_forest',  # Or: gradient_boosting, xgboost, lightgbm, ridge
-    n_estimators=200,
-    max_depth=15,
-)
-```
-
-### Training Individual Models
-
-```python
-from vwf.extensions.ml import create_feature_matrix, train_correction_model
-
-# Load correction points and add terrain features
-corrections = pd.read_csv('output/correction_points.csv')
-
-features = create_feature_matrix(
-    corrections,
-    terrain_nc='input/terrain/europe_terrain.nc',
-    coastline_geojson='input/regions/coastline.geojson',
-)
-
-# Train model for scalar correction
-scalar_model = train_correction_model(
-    features,
-    target_col='scalar',
-    model_type='random_forest',
-    cv_folds=5,
-)
-
-# View feature importance
-print(scalar_model['feature_importance'])
-```
-
-### Comparing Methods
-
-```python
-from vwf.extensions.ml import compare_interpolation_methods
-
-# Compare different ML models
-comparison = compare_interpolation_methods(
-    features,
-    feature_cols=['elevation', 'slope', 'roughness', 'distance_to_coast_km'],
-    target_col='scalar',
-    models=['random_forest', 'gradient_boosting', 'xgboost', 'ridge'],
-    cv_folds=5,
-)
-
-# Results show R², MAE, RMSE for each model
-print(comparison)
-```
-
-### Pipeline Scripts
-
-For the full ML pipeline (terrain data download, feature engineering, model training, and figure generation), see [PIPELINE.md](PIPELINE.md) Stage 3.
-
-### Required Dependencies
-
-Install ML dependencies:
-
-```bash
-# Basic ML (required)
-pip install scikit-learn
-
-# Optional: Advanced models
-pip install xgboost lightgbm
-```
-
 ## Visualising distributional fit
 
 `vwf.viz` turns a run's outputs into two diagnostic figures showing how well a
@@ -322,104 +163,50 @@ The tail inset (top right) zooms into `CF ≥ 0.7` so distributional differences
 between sims in the upper tail remain visible. A data-free reproduction is in
 [`examples/viz_demo.py`](examples/viz_demo.py).
 
+## Going further
+
+### Full multi-country training
+
+For comprehensive analysis across all supported countries:
+
+```bash
+# List available configuration sets
+python scripts/train_all_bias_corrections.py --list
+
+# Run turbine + country workflows
+python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
+```
+
+See [PIPELINE.md](PIPELINE.md) for the complete three-stage pipeline (bias correction, grid interpolation, ML corrections).
+
+## Detailed usage and reference
+
+Reference material that used to live inline has moved into `docs/` to keep this
+page focused:
+
+- [Geospatial utilities](docs/GEOSPATIAL.md): classify turbines as onshore or offshore from GeoJSON regions.
+- [Experimental extensions](docs/EXTENSIONS.md): grid export to atlite and ML-predicted corrections (research use only).
+- [Data requirements](docs/DATA_REQUIREMENTS.md): input data formats and how to download ERA5 winds.
+- [Output structure](docs/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
+- [PIPELINE.md](PIPELINE.md): the full three-stage script execution order.
+
 ## Testing
 
 PyVWF ships with a `pytest` suite that runs on **synthetic data** (no ERA5 or
 ENTSO-E access required), covering the wind log-law/interpolation, power-curve
 conversion, the linear bias-correction optimiser, temporal-resolution utilities,
-and the quantile-mapping correction and distributional metrics.
+and the distributional visualisation layer.
 
 ```bash
 pip install -e ".[dev]"
-pytest                 # run the suite
-ruff check vwf tests   # lint
+pytest                     # run the suite
+ruff check src/vwf tests   # lint
 ```
 
 Continuous integration (`.github/workflows/ci.yml`) runs the suite and linter on
 Python 3.10–3.12 for every push and pull request.
 
-## Data Requirements
-
-PyVWF expects the following input data types.
-
-### Required Inputs
-
-|Data|Format|Description|
-|---|---|---|
-|Reanalysis wind data|NetCDF|ERA5 wind components (e.g. u100, v100)|
-|Turbine metadata|CSV|Location, capacity, hub height, turbine model|
-|Observed generation|CSV|Time series of wind generation or capacity factor|
-|Power curves|CSV|Wind speed to power conversion|
-
-The files you should provide are:
-
-- Observation data for all training years placed in `input/country-data/observation/`. Example files are in the repository.
-- Reanalysis data for all training years and test years in `data/era5/<country>/<test/train>/`
-- Turbine metadata which contains information such as the height, latitude, longitude, turbine ID, turbine model and capacity placed in `data/turb_info/`. An example is provided, plan to make this file easier to create.
-- Wind turbine power curves in a .csv file with model names in each column providing the power output with respect to wind speed. Due to proprietary data used in our curve file an example of the format is shown in `input/power_curves.csv`
-
-#### Download reanalysis wind speed data
-
-Download the necessary input ERA-5 data (Years in a period can be downloaded separately or together as they will be joined. Ensure training data is separate to validation):
-
-- ECMWF's [ERA-5 reanalysis](https://cds-beta.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download), the required variables are either:
-  - 100m u-component of wind, 100m v-component of wind, 10m u-component of wind and 10m v-component of wind (surface roughness is calculated instead and is more accurate).
-  - 100m u-component of wind, 100m v-component of wind and Forecast surface roughness. 
-
-## Output structure
-
-All PyVWF outputs are written to the user-specified output directory (`outdir`)
-and organised by run configuration. Each run is fully self-contained.
-
-### Directory layout
-
-```text
-outdir/
-└── run/
-    └── <run_name>/
-        ├── plots/
-        ├── results/
-        │   ├── capacity-factor/
-        │   └── wind-speed/
-        └── training/
-            ├── correction-factors/
-            └── simulated-turbines/
-```
-
-The `<run_name>` encodes the scenario configuration (e.g. country, correction
-mode, surface roughness treatment).
-
-#### Plots (`plots/`)
-
-Diagnostic figures summarising model performance:
-
-- `*_full_error_appendix.png`
-Overall error metrics across all clusters and time resolutions.
-
-- `*_spatial_focus_error_appendix.png`
-Error metrics emphasising spatial structure.
-
-- `*_temporal_focus_error_appendix.png`
-Error metrics emphasising temporal variability.
-
-- These figures are intended for appendix or supplementary material.
-
-#### Capacity factor results (`results/capacity-factor/`)
-
-CSV time series of simulated and observed capacity factor:
-
-- `<COUNTRY>_<YEAR>_<time_res>_<k>_cor_cf.csv`
-Bias-corrected capacity factor for a given time-resolution and cluster count.
-
-- `<COUNTRY>_<YEAR>_unc_cf.csv`
-Uncorrected (raw reanalysis-based) capacity factor.
-
-- `<COUNTRY>_<YEAR>_obs_cf.csv`
-Observed capacity factor used for validation.
-
-All files share a common time index.
-
-## Assumptions & Limitations
+## Assumptions and limitations
 
 - Bias correction is statistical, not physical
 - Accuracy depends on the quality and representativeness of observed data
@@ -428,7 +215,6 @@ All files share a common time index.
 - Power curve selection strongly influences results
 
 These assumptions should be considered when interpreting results.
-
 
 ## Reproducibility
 
@@ -461,7 +247,7 @@ tests and linter, how to report bugs or request features, and pull-request
 guidelines. Please open an issue to discuss larger changes before submitting a
 pull request.
 
-## Credits & Contact
+## Credits and contact
 
 The PyVWF code is developed by Ellyess F. Benmoufok. You can email me via benmoufok.ellyess@gmail.com.
 

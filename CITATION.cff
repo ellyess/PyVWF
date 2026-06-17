@@ -14,13 +14,12 @@ abstract: >-
   Renewables.ninja, exposing the full training and application workflow for
   bias-correction factors at turbine, regional, or national scale, with
   configurable spatial clustering and temporal aggregation. It additionally
-  provides experimental distribution-aware (quantile-mapping) corrections and
+  provides experimental spatial interpolation of corrections onto a grid and
   machine-learning correction models.
 keywords:
   - wind energy
   - virtual wind farm
   - bias correction
-  - quantile mapping
   - capacity factor
   - renewable energy
   - reanalysis
@@ -58,14 +57,22 @@ references:
     year: 2016
     doi: 10.1016/j.energy.2016.08.068
   - type: article
-    title: "Bias correction of GCM precipitation by quantile mapping: How well do methods preserve changes in quantiles and extremes?"
+    title: "Geographic variability in reanalysis wind speed biases: A high-resolution bias correction approach for UK wind energy"
     authors:
-      - family-names: Cannon
-        given-names: Alex J.
-      - family-names: Sobie
-        given-names: Stephen R.
-      - family-names: Murdock
-        given-names: Trevor Q.
-    journal: "Journal of Climate"
-    year: 2015
-    doi: 10.1175/JCLI-D-14-00754.1
+      - family-names: Wang
+        given-names: Yan
+      - family-names: Warder
+        given-names: Simon C.
+      - family-names: Benmoufok
+        given-names: Ellyess F.
+      - family-names: Wynn
+        given-names: Andrew
+      - family-names: Buxton
+        given-names: Oliver R. H.
+      - family-names: Staffell
+        given-names: Iain
+      - family-names: Piggott
+        given-names: Matthew D.
+    journal: "Energy Conversion and Management"
+    year: 2026
+    doi: 10.1016/j.enconman.2026.121066
