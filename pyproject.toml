@@ -51,24 +51,9 @@ dependencies = [
 
     # Energy data APIs
     "entsoe-py>=0.6.0",
-
-    # Interpolation
-    "pykrige>=1.7.0",
 ]
 
 [project.optional-dependencies]
-# Optional model backends for the ML extension (vwf.extensions.ml).
-# scikit-learn is already in the core deps; these add the boosted-tree options.
-ml = [
-    "xgboost>=1.7.0",
-    "lightgbm>=4.0.0",
-]
-
-# Convenience meta-group installing every extension's extras.
-all = [
-    "pyvwf[ml]",
-]
-
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -84,8 +69,6 @@ docs = [
 
 [project.scripts]
 pyvwf-train = "vwf.cli.train:main"
-pyvwf-grid  = "vwf.extensions.grid.cli:main"
-pyvwf-ml    = "vwf.extensions.ml.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
