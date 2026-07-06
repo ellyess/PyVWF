@@ -9,12 +9,18 @@ tags:
   - capacity factor
 authors:
   - name: Ellyess F. Benmoufok
-    orcid: 0000-0000-0000-0000
+    orcid: 0009-0000-0337-5690
+    affiliation: "1"
+  - name: Simon C. Warder
+    orcid: 0000-0003-0445-4280
+    affiliation: "1"
+  - name: Matthew D. Piggott
+    orcid: 0000-0002-7526-6853
     affiliation: "1"
 affiliations:
   - name: Department of Earth Science and Engineering, Imperial College London, London SW7 2AZ, UK
     index: 1
-date: 20 May 2026
+date: 6 July 2026
 bibliography: paper.bib
 ---
 
