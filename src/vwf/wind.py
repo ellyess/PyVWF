@@ -5,6 +5,8 @@ Performance optimizations:
 - Optional turbine aggregation for massive speedups
 - Vectorized operations where possible
 """
+import warnings
+
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -17,6 +19,46 @@ from vwf.utils import ensure_numeric
 _power_curve_cache = {}
 
 
+class _CurveByModel(dict):
+    """Model name -> Akima power-curve interpolator, with a warned fallback.
+
+    Looking up a model that has no column in the loaded power-curve table returns
+    the default model's curve instead of raising ``KeyError``, after emitting a
+    warning that names both the missing model and the fallback used. This keeps a
+    run going when a configured or requested model is absent from the table (for
+    example against the shipped synthetic curves) without ever *silently*
+    substituting: the warning makes the fallback explicit, so a real run cannot
+    quietly use the wrong curve.
+
+    When the requested model IS present, lookup behaves exactly like a plain
+    ``dict`` (``__missing__`` is never called), so runs against a table that
+    contains the model are unaffected.
+    """
+
+    def __init__(self, *args, default_model=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._default_model = default_model
+        self._warned = set()
+
+    def __missing__(self, model):
+        default = self._default_model
+        if default is None or default not in self:
+            # Last resort: the first available model column, if any.
+            default = next(iter(self)) if len(self) else None
+        if default is None:
+            # Genuinely empty table: nothing to fall back to.
+            raise KeyError(model)
+        if model not in self._warned:
+            self._warned.add(model)
+            warnings.warn(
+                f"Power curve for model {model!r} not found in the loaded "
+                f"power-curve table; falling back to {default!r}. Add the "
+                f"model's column to power_curves.csv to avoid this fallback.",
+                stacklevel=2,
+            )
+        return self[default]
+
+
 def _get_power_curve_cache(powerCurveFile):
     """Return cached power curve arrays for a given power curve table."""
     cache_key = id(powerCurveFile)
@@ -26,11 +68,11 @@ def _get_power_curve_cache(powerCurveFile):
         return cached["x"], cached["curve_by_model"]
 
     x = powerCurveFile["data$speed"].to_numpy()
-    curve_by_model = {
-        m: Akima1DInterpolator(x, powerCurveFile[m].to_numpy())
-        for m in powerCurveFile.columns
-        if m != "data$speed"
-    }
+    model_cols = [m for m in powerCurveFile.columns if m != "data$speed"]
+    curve_by_model = _CurveByModel(
+        {m: Akima1DInterpolator(x, powerCurveFile[m].to_numpy()) for m in model_cols},
+        default_model=model_cols[0] if model_cols else None,
+    )
     _power_curve_cache[cache_key] = {
         "columns": columns,
         "x": x,
