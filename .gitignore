@@ -66,7 +66,6 @@ input/era5
 input/merra2
 /input/country-data/DK/shape
 *.nc
-atlite_run.ipynb
 *.png
 # README references docs/img/*.png; keep those tracked even though *.png is ignored generally.
 !docs/img/*.png
@@ -77,14 +76,9 @@ input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 # Build artefacts (catch both legacy root and src/ layout locations)
 **/pyvwf.egg-info/
 /input/terrain
-/ml/ml_comparison
-/ml/ml_europe
 /input
-/ml/experiments
 /output
 /out
-chapter_ml_corrections.md
-chapter_grid_interpolation.md
 /overleaf
 
 # Internal research-log docs kept local-only (research dates, "next steps"

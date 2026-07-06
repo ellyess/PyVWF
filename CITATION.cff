@@ -13,9 +13,7 @@ abstract: >-
   re-implements the Virtual Wind Farm (VWF) methodology used by
   Renewables.ninja, exposing the full training and application workflow for
   bias-correction factors at turbine, regional, or national scale, with
-  configurable spatial clustering and temporal aggregation. It additionally
-  provides experimental spatial interpolation of corrections onto a grid and
-  machine-learning correction models.
+  configurable spatial clustering and temporal aggregation.
 keywords:
   - wind energy
   - virtual wind farm

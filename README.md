@@ -6,7 +6,7 @@ PyVWF is a research-oriented Python framework for processing, bias-correcting, a
 
 ## What makes it different
 
-Raw reanalysis winds carry systematic, location-dependent biases, so capacity factors simulated straight from ERA5 drift away from what wind fleets actually generate. PyVWF learns a per-cluster, per-time-slice linear correction of the wind speed (`w_corrected = α·w + β`) from observed generation, then converts the corrected wind to power. Unlike API-only or general-purpose reanalysis-to-power tools, it exposes the full **training** workflow for the correction factors and lets you compute them at finer spatial and temporal resolution than the conventional national-scale factors, through configurable spatial clustering and temporal grouping. The factors are yours to inspect, retrain, and interpolate, and simulated capacity factors track observations far more closely than uncorrected reanalysis.
+Raw reanalysis winds carry systematic, location-dependent biases, so capacity factors simulated straight from ERA5 drift away from what wind fleets actually generate. PyVWF learns a per-cluster, per-time-slice linear correction of the wind speed (`w_corrected = α·w + β`) from observed generation, then converts the corrected wind to power. Unlike API-only or general-purpose reanalysis-to-power tools, it exposes the full **training** workflow for the correction factors and lets you compute them at finer spatial and temporal resolution than the conventional national-scale factors, through configurable spatial clustering and temporal grouping. The factors are yours to inspect and retrain, and simulated capacity factors track observations far more closely than uncorrected reanalysis.
 
 ## Status and provenance
 
@@ -51,7 +51,6 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
 - **Automated test suite** (`pytest`) and continuous integration
-- Experimental research extensions for grid interpolation and ML-predicted corrections (see [Detailed usage and reference](#detailed-usage-and-reference))
 
 ## Installation
 
@@ -77,28 +76,21 @@ conda activate pyvwf
 python -c "import pandas, xarray, scipy; print('Environment OK')"
 ```
 
-#### Optional: install via pip (with extras)
+#### Optional: install via pip
 
-PyVWF is also a regular pip package. The core install is the bias-correction
-pipeline; the experimental extensions opt in via extras:
+PyVWF is also a regular pip package covering the bias-correction pipeline:
 
 ```bash
-pip install pyvwf            # core: pyvwf-train, the linear bias-correction pipeline
-pip install pyvwf[ml]        # + xgboost / lightgbm backends for vwf.extensions.ml
-pip install pyvwf[all]       # everything
+pip install pyvwf            # pyvwf-train, the linear bias-correction pipeline
 ```
 
-After install, three console commands are available on your PATH:
+After install, the `pyvwf-train` console command is available on your PATH:
 
-| Command       | Stage | Wraps                                                  |
-|---------------|-------|--------------------------------------------------------|
-| `pyvwf-train` | 1     | `PyVWF.train` + `simulate_cf` for one country/year     |
-| `pyvwf-grid`  | 2     | `vwf.extensions.grid.export_pyvwf_grid` (kriging)      |
-| `pyvwf-ml`    | 3     | `vwf.extensions.ml.export_ml_correction_grid`          |
+| Command       | Wraps                                              |
+|---------------|----------------------------------------------------|
+| `pyvwf-train` | `PyVWF.train` + `simulate_cf` for one country/year |
 
-Run any of them with `--help` to see arguments. The research drivers under
-`scripts/pyvwf_to_grid/` and `scripts/pyvwf_ml/` cover the multi-method
-comparisons and chapter figures.
+Run it with `--help` to see arguments.
 
 ## Quickstart
 
@@ -177,18 +169,16 @@ python scripts/train_all_bias_corrections.py --list
 python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
 ```
 
-See [PIPELINE.md](PIPELINE.md) for the complete three-stage pipeline (bias correction, grid interpolation, ML corrections).
+See [PIPELINE.md](PIPELINE.md) for the full script execution order.
 
 ## Detailed usage and reference
 
 Reference material that used to live inline has moved into `docs/` to keep this
 page focused:
 
-- [Geospatial utilities](docs/GEOSPATIAL.md): classify turbines as onshore or offshore from GeoJSON regions.
-- [Experimental extensions](docs/EXTENSIONS.md): grid export to atlite and ML-predicted corrections (research use only).
 - [Data requirements](docs/DATA_REQUIREMENTS.md): input data formats and how to download ERA5 winds.
 - [Output structure](docs/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
-- [PIPELINE.md](PIPELINE.md): the full three-stage script execution order.
+- [PIPELINE.md](PIPELINE.md): the script execution order.
 
 ## Testing
 
