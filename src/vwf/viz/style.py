@@ -1,6 +1,6 @@
 
 """
-Shared plotting style for thesis figures.
+Shared plotting style for PyVWF figures.
 
 Conventions:
 - Serif fonts, small sizes (print-ready)
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 
-def thesis_plot_style(
+def plot_style(
     *,
     font_family: str = "serif",
     base_fontsize: float = 7.0,
@@ -28,7 +28,7 @@ def thesis_plot_style(
     dpi: int = 600,
 ) -> dict:
     """
-    Apply thesis-wide matplotlib rcParams.
+    Apply PyVWF-wide matplotlib rcParams.
 
     Returns:
         dict with convenience constants:
@@ -78,7 +78,7 @@ def thesis_plot_style(
 
     cm = 1.0 / 2.54
 
-    # Thesis page dimensions (A4, KOMA-Script, BCOR=25mm, DIV=12)
+    # Page dimensions (A4, KOMA-Script, BCOR=25mm, DIV=12)
     # textwidth = 418.26 pt = 14.7 cm = 5.787 in
     FULL_WIDTH = 14.7 * cm   # \textwidth  – use for single-column figures
     HALF_WIDTH = 7.2 * cm    # ≈ 0.49\textwidth – use for side-by-side subfigures
@@ -97,10 +97,10 @@ def thesis_plot_style(
     }
 
 
-def savefig_thesis(
+def savefig(
     fig, path, *, close: bool = True, pdf_size_limit_mb: float = 5.0, **kwargs
 ):
-    """Save a figure in PDF format with thesis defaults, then close it.
+    """Save a figure in PDF format with publication defaults, then close it.
 
     Parameters
     ----------
