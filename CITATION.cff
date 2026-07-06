@@ -1,11 +1,20 @@
 cff-version: 1.2.0
-title: "PyVWF: A Bias-Corrected Wind Power Simulator"
+title: "PyVWF: An open Python framework for bias-corrected wind power simulation from reanalysis data"
 message: "If you use this software, please cite it using the metadata from this file."
 type: software
 authors:
   - given-names: Ellyess F.
     family-names: Benmoufok
+    orcid: "https://orcid.org/0009-0000-0337-5690"
     email: benmoufok.ellyess@gmail.com
+    affiliation: "Department of Earth Science and Engineering, Imperial College London"
+  - given-names: Simon C.
+    family-names: Warder
+    orcid: "https://orcid.org/0000-0003-0445-4280"
+    affiliation: "Department of Earth Science and Engineering, Imperial College London"
+  - given-names: Matthew D.
+    family-names: Piggott
+    orcid: "https://orcid.org/0000-0002-7526-6853"
     affiliation: "Department of Earth Science and Engineering, Imperial College London"
 abstract: >-
   PyVWF is an open, research-oriented Python framework that simulates
@@ -21,7 +30,7 @@ keywords:
   - capacity factor
   - renewable energy
   - reanalysis
-license: MIT
+license: BSD-3-Clause
 repository-code: "https://github.com/ellyess/PyVWF"
 version: 0.1.0
 preferred-citation:

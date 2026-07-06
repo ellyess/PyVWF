@@ -1,0 +1,24 @@
+{
+  "upload_type": "software",
+  "title": "PyVWF: An open Python framework for bias-corrected wind power simulation from reanalysis data",
+  "description": "An open, research-oriented Python framework that converts atmospheric reanalysis data (e.g. ERA5) into bias-corrected wind power generation. PyVWF re-implements the Virtual Wind Farm (VWF) methodology used by Renewables.ninja, exposing the full training workflow for observation-based bias-correction factors at turbine, regional, or national scale, with configurable spatial clustering and temporal aggregation.",
+  "license": "BSD-3-Clause",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Benmoufok, Ellyess F.",
+      "orcid": "0009-0000-0337-5690",
+      "affiliation": "Department of Earth Science and Engineering, Imperial College London"
+    },
+    {
+      "name": "Warder, Simon C.",
+      "orcid": "0000-0003-0445-4280",
+      "affiliation": "Department of Earth Science and Engineering, Imperial College London"
+    },
+    {
+      "name": "Piggott, Matthew D.",
+      "orcid": "0000-0002-7526-6853",
+      "affiliation": "Department of Earth Science and Engineering, Imperial College London"
+    }
+  ]
+}
