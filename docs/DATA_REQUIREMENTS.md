@@ -1,30 +1,40 @@
 # Data Requirements
 
-> Extracted from the project README. This reference lists the input data PyVWF
-> expects and how to obtain the reanalysis winds.
+This reference lists the input data PyVWF expects. For the full download and
+directory-layout guide, see the **Input data** section of the top-level
+[README](../README.md#input-data), which this page complements. Paths are
+defined centrally in [`src/vwf/config.py`](../src/vwf/config.py) (`PyVWFPaths`).
 
-PyVWF expects the following input data types.
+## Required inputs
 
-## Required Inputs
+| Data | Format | Description | Location |
+|---|---|---|---|
+| Reanalysis winds | NetCDF | ERA5 wind components (`u100`, `v100`, and `u10`/`v10` or `fsr`) | `input/era5/EU/*.nc` |
+| Turbine metadata | CSV | ID, location, capacity, hub height, rotor diameter, model | `input/turbine_level_data/<CC>/` |
+| Observed generation | CSV | Monthly generation per turbine, or national series for country-level | `input/turbine_level_data/<CC>/` or `input/country_level_data/observations/<cc>/` |
+| Power curves | CSV | Wind speed to power, one column per model | `input/power_curves.csv` |
+| Turbine models | CSV | Manufacturer, model, capacity, diameter, power density | `input/models.csv` |
 
-|Data|Format|Description|
-|---|---|---|
-|Reanalysis wind data|NetCDF|ERA5 wind components (e.g. u100, v100)|
-|Turbine metadata|CSV|Location, capacity, hub height, turbine model|
-|Observed generation|CSV|Time series of wind generation or capacity factor|
-|Power curves|CSV|Wind speed to power conversion|
+`<CC>` is the upper-case country code, `<cc>` the lower-case form.
 
-The files you should provide are:
+## ERA5 reanalysis winds
 
-- Observation data for all training years placed in `input/country-data/observation/`. Example files are in the repository.
-- Reanalysis data for all training years and test years in `data/era5/<country>/<test/train>/`
-- Turbine metadata which contains information such as the height, latitude, longitude, turbine ID, turbine model and capacity placed in `data/turb_info/`. An example is provided, plan to make this file easier to create.
-- Wind turbine power curves in a .csv file with model names in each column providing the power output with respect to wind speed. Due to proprietary data used in our curve file an example of the format is shown in `input/power_curves.csv`
+Download from ECMWF's Copernicus Climate Data Store:
+[ERA5 hourly single levels](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download).
+Required variables are either:
 
-### Download reanalysis wind speed data
+- 100m u- and v-components of wind plus 10m u- and v-components of wind (PyVWF
+  derives surface roughness from the shear, which is more accurate), or
+- 100m u- and v-components of wind plus forecast surface roughness (`fsr`).
 
-Download the necessary input ERA-5 data (Years in a period can be downloaded separately or together as they will be joined. Ensure training data is separate to validation):
+Place all NetCDF files in `input/era5/EU/`. They are loaded with a single `*.nc`
+glob and combined by coordinates, so filenames are free and all years share one
+folder. Years within a period can be downloaded separately or together; the
+training and test split is applied in code by time selection, not by directory.
 
-- ECMWF's [ERA-5 reanalysis](https://cds-beta.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download), the required variables are either:
-  - 100m u-component of wind, 100m v-component of wind, 10m u-component of wind and 10m v-component of wind (surface roughness is calculated instead and is more accurate).
-  - 100m u-component of wind, 100m v-component of wind and Forecast surface roughness. 
+## Turbine and power-curve data
+
+The repository ships example turbine data for DK, DE, and UK, and an example
+`power_curves.csv` showing the expected format. The origin and licensing of
+these datasets are being confirmed; do not assume redistribution rights for data
+obtained elsewhere.
