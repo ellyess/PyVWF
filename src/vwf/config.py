@@ -29,7 +29,6 @@ class PyVWFPaths:
     # Regional shapes
     COUNTRY_SHAPES = REGIONS / "country_shapes.geojson"
     OFFSHORE_SHAPES = REGIONS / "offshore_shapes.geojson"
-    EUROPE_SHAPE = REGIONS / "europe_shape.geojson"
 
     @classmethod
     def get_country_shapes(cls, offshore: bool = False) -> Path:
