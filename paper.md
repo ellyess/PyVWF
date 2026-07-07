@@ -34,34 +34,37 @@ Virtual Wind Farm (VWF) methodology that underpins the wind simulations on
 Given gridded reanalysis winds (e.g. ERA5 [@era5] or MERRA-2 [@merra2]), turbine
 metadata, smoothed manufacturer power curves, and observed generation, `PyVWF`
 extrapolates wind to hub height and interpolates to turbine locations, learns
-statistical bias corrections from observations, and converts wind to capacity
-factor. Unlike API-only or general-purpose reanalysis-to-power tools, it exposes
-the full **training** workflow for the bias-correction factors and lets
-researchers compute them at finer spatial and temporal resolution than the
-conventional national-scale factors, through configurable spatial clustering and
-temporal grouping. The package implements the granular bias-correction method of
-@benmoufok2024. Experimental gridded interpolation and machine-learning
-extensions are maintained on a separate development branch.
+per-cluster scale-and-offset corrections by comparing simulated and observed
+capacity factors, applies these corrections to the ERA5 wind speeds, and
+reconverts the corrected winds to capacity factor. Unlike API-only or
+general-purpose reanalysis-to-power tools, it exposes the full **training**
+workflow for the bias-correction factors and lets researchers compute them at
+finer spatial and temporal resolution than the conventional national-scale
+factors, through configurable spatial clustering and temporal grouping. The
+package implements the granular bias-correction method of @benmoufok2024.
+Experimental gridded interpolation and machine-learning extensions are
+maintained on a separate development branch.
 
 # Statement of need
 
-Continental-scale energy system models such as `PyPSA-Eur` [@pypsaeur] depend on
-wind power time series derived from reanalysis, but reanalysis-derived capacity
-factors can carry biases of up to ±50 % [@staffell2016]. These biases can propagate through non-linear power conversion and
-spatial aggregation and, when employed within energy system models, lead to misleading conclusions about generation mix,
-transmission investment, and system cost. The original VWF model corrects this
-bias but is closed and primarily accessible only through the Renewables.ninja
-API, while open tools such as `atlite` [@atlite]  omit the
-observation-based bias correction that gives VWF its accuracy. `PyVWF` fills this
-gap: it is a fully open, reproducible, research-grade implementation of
-bias-corrected wind power simulation, with the correction *training* pipeline
-exposed so that methods can be inspected, extended, and applied at arbitrary
-spatial and temporal granularity. Research extensions on a separate development
-branch interpolate corrections onto a regular grid and export them for use with
+Continental-scale energy system models such as `PyPSA-Eur` [@pypsaeur] depend
+on wind power time series derived from reanalysis, but reanalysis-derived
+capacity factors can carry biases of up to ±50 % [@staffell2016]. These biases can propagate through non-linear power
+conversion and spatial aggregation and, when employed within energy system
+models, lead to misleading conclusions about generation mix, transmission
+investment, and system cost. The original VWF model corrects this bias but is
+closed and primarily accessible only through the Renewables.ninja API, while
+open tools such as `atlite` [@atlite] omit the observation-based bias
+correction that gives VWF its accuracy. `PyVWF` fills this gap: it is a fully
+open, reproducible, research-grade implementation of bias-corrected wind power
+simulation, with the correction *training* pipeline exposed so that methods can
+be inspected, extended, and applied at arbitrary spatial and temporal
+granularity. Research extensions on a separate development branch interpolate
+corrections onto a regular grid and export them for use with
 `atlite`/`PyPSA-Eur` workflows, supporting resource assessment and sensitivity
-studies across scales. The framework targets
-energy systems researchers, climate scientists, and power system analysts who
-need transparent, reproducible, and calibrated wind resource simulations.
+studies across scales. The framework targets energy systems researchers,
+climate scientists, and power system analysts who need transparent,
+reproducible, and calibrated wind resource simulations.
 
 # Functionality
 
@@ -73,9 +76,10 @@ bias-correction parameters:
   ERA5 surface roughness (or roughness derived from 10 m/100 m wind shear), and
   bilinear interpolation to turbine coordinates.
 - **Bias-correction training.** Per-cluster, per-time-slice multiplicative
-  scalar and additive offset factors (`w_corrected = α·w + β`) learned from
-  observed capacity factors [@benmoufok2024], with user-specific spatial clustering and
-  temporal grouping (fixed, seasonal, bimonthly, monthly).
+  scalar and additive offset factors (`w_corrected = α·w + β`) learned by
+  comparing simulated and observed capacity factors [@benmoufok2024], with
+  user-specific spatial clustering and temporal grouping (fixed, seasonal,
+  bimonthly, monthly).
 - **Distributional diagnostics.** Capacity-factor histograms, empirical CDFs,
   and quantile-quantile plots via `vwf.viz` that complement conventional
   mean-error metrics.
@@ -86,9 +90,10 @@ bias-correction parameters:
   research extensions maintained on a separate development branch.
 
 The package ships with an automated `pytest` suite that runs on synthetic data
-(no large reanalysis downloads required) and continuous integration, and a `conda` environment for reproducibility. The granular bias-correction
-method has been applied in peer-reviewed studies of European and UK wind
-resources [@benmoufok2024; @wang2026].
+(no large reanalysis downloads required) and continuous integration, and a
+`conda` environment for reproducibility. The granular bias-correction method
+has been applied in peer-reviewed studies of European and UK wind resources
+[@benmoufok2024; @wang2026].
 
 # State of the field
 
@@ -102,8 +107,8 @@ ability to resolve those corrections below the national scale.
 
 AI-assisted tools were used to help with software refactoring, test scaffolding,
 and editing portions of this manuscript for clarity. All technical content,
-claims, methods, and citations were reviewed and verified by the author, who
-takes full responsibility for the final software and text.
+claims, methods, and citations were reviewed and verified by the authors, who
+take full responsibility for the final software and text.
 
 # Acknowledgements
 
