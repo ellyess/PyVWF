@@ -91,3 +91,6 @@ chapter_grid_interpolation.md
 # language not appropriate for the public-facing docs/ folder).
 docs/TRAINING_2015_2021_SUMMARY.md
 docs/TURBINE_GRID_EVALUATION_ANALYSIS.md
+
+# Python build artifacts
+build/

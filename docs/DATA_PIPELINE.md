@@ -91,6 +91,13 @@ Automatically detects zone-based files for NO and SE.
 Loads ENTSO-E capacity factors. `mode` is `'train'` or `'test'`. Raises
 `FileNotFoundError` with generation instructions if files are missing.
 
+### Observation sources
+
+The loaders below are reached through an `ObservationSource` adapter, resolved
+from the country code and `obs_level`. To support a new country, write one
+adapter instead of editing the pipeline. See
+[ADDING_AN_OBSERVATION_SOURCE.md](ADDING_AN_OBSERVATION_SOURCE.md).
+
 ### Turbine-level loaders
 
 **`load_turbine_metadata(country)`** -- Returns a DataFrame of turbine metadata

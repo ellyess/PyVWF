@@ -29,6 +29,8 @@ from vwf.clustering import (
     cluster_turbines
 )
 
+from vwf.sources import InMemoryCountrySource
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -206,10 +208,20 @@ class PyVWF:
         self.obs_data_train = None
         self.obs_data_test = None
 
+        # Observation sources built from the country-level data above. Left as
+        # None for turbine-level runs, where the source is resolved by country.
+        self.source_train = None
+        self.source_test = None
+
         self.country = country
         self.directory_path = directory_path
         self.correct = correct
         self.calc_z0 = calc_z0
+
+    def _build_country_sources(self) -> None:
+        """Wrap the loaded country-level frames in observation sources."""
+        self.source_train = InMemoryCountrySource(self.grid_points, self.obs_data_train)
+        self.source_test = InMemoryCountrySource(self.grid_points, self.obs_data_test)
 
     def load_country_data(
         self,
@@ -242,6 +254,7 @@ class PyVWF:
         self.grid_points = grid_points.copy()
         self.obs_data_train = obs_train.copy()
         self.obs_data_test = obs_test.copy()
+        self._build_country_sources()
 
         print("✓ Loaded country-level data:")
         print(f"  Grid points: {len(self.grid_points)} points")
@@ -319,6 +332,7 @@ class PyVWF:
         # Store observations
         self.obs_data_train = obs_train.copy()
         self.obs_data_test = obs_test.copy()
+        self._build_country_sources()
 
         print("\n✓ Loaded country-level data with year-specific grid points:")
         print(f"  Grid points: {len(self.grid_points)} unique points")
@@ -434,7 +448,8 @@ class PyVWF:
             dask_use_distributed: If True, use dask.distributed LocalCluster.
             dask_npartitions: Override Dask partition count (0 to auto).
         """
-        # NOTE: obs_level forwarded, plus external data if loaded
+        # obs_level selects the pipeline branch; source supplies the observations.
+        # A None source means "resolve from the country code" (turbine-level).
         gen_cf, turb_info_train, reanalysis, power_curves = train_set(
             self.country,
             self.calc_z0,
@@ -442,9 +457,8 @@ class PyVWF:
             add_nan=self.add_nan,
             interp_nan=self.interp_nan,
             fix_turb=self.fix_turb,
-            obs_level=self.obs_level,  # NEW
-            external_grid_points=self.grid_points,  # NEW
-            external_obs_data=self.obs_data_train,  # NEW
+            obs_level=self.obs_level,
+            source=self.source_train,
         )
 
         # Store training data for downstream access
@@ -675,16 +689,15 @@ class PyVWF:
 
     def simulate_cf(self, year_test, fix_turb_test=None):
         """Simulate capacity factor for a test year."""
-        # NOTE: obs_level forwarded, plus external data if loaded
+        # obs_level selects the pipeline branch; source supplies the observations.
         obs_cf, turb_info, reanalysis, power_curves = val_set(
             self.country,
             self.calc_z0,
             self.cluster_mode,
             year_test,
             fix_turb_test,
-            obs_level=self.obs_level,  # NEW
-            external_grid_points=self.grid_points,  # NEW
-            external_obs_data=self.obs_data_test,  # NEW
+            obs_level=self.obs_level,
+            source=self.source_test,
         )
 
         obs_cf.to_csv(

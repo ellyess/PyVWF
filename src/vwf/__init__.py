@@ -7,6 +7,8 @@ Core functionality (always available):
 - PyVWF: Main model class for wind simulation
 - train_set, val_set: Data preparation functions
 - Loaders: Functions for loading turbine and country-level data
+- ObservationSource: Pluggable adapters supplying observed generation. See
+  docs/ADDING_AN_OBSERVATION_SOURCE.md to add a new region.
 - Configuration: Path and bounding box configuration
 
 Optional functionality (requires additional dependencies):
@@ -29,6 +31,15 @@ from vwf.loaders import (
     load_turbine_metadata,
     load_turbine_observations,
     load_year_specific_grid_points,
+)
+from vwf.sources import (
+    EuropeanTurbineSource,
+    InMemoryCountrySource,
+    ObservationSource,
+    available_sources,
+    get_source,
+    register,
+    resolve,
 )
 from vwf.config import PyVWFPaths, BoundingBoxes
 
@@ -110,6 +121,14 @@ __all__ = [
     "load_turbine_metadata",
     "load_turbine_observations",
     "load_year_specific_grid_points",
+    # Observation sources
+    "ObservationSource",
+    "EuropeanTurbineSource",
+    "InMemoryCountrySource",
+    "available_sources",
+    "get_source",
+    "register",
+    "resolve",
     # Configuration
     "PyVWFPaths",
     "BoundingBoxes",
