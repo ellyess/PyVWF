@@ -3,8 +3,8 @@
 Core workflow: **bias-correction training** followed by **evaluation** of
 corrected against uncorrected capacity factors.
 
-After `pip install pyvwf`, the common one-shot case also has a console entry
-point:
+Once PyVWF is installed (conda env, or `pip install -e .` from a checkout), the
+common one-shot case also has a console entry point:
 
 | Console command | Wraps                                                |
 |-----------------|------------------------------------------------------|

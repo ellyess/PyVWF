@@ -79,10 +79,11 @@ python -c "import pandas, xarray, scipy; print('Environment OK')"
 
 #### Optional: install via pip
 
-PyVWF is also a regular pip package covering the bias-correction pipeline:
+Instead of Conda, you can install PyVWF into any Python ≥3.10 environment
+straight from the cloned repository (run from the repo root after step 1):
 
 ```bash
-pip install pyvwf            # pyvwf-train, the linear bias-correction pipeline
+pip install -e .            # installs pyvwf-train, the linear bias-correction pipeline
 ```
 
 After install, the `pyvwf-train` console command is available on your PATH:
@@ -223,7 +224,7 @@ confirming for your own setup:
 A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:
 
 ```bash
-# After `pip install pyvwf` the console script is on your PATH:
+# After installing (conda env, or `pip install -e .`) the console script is on your PATH:
 pyvwf-train --outdir outputs/demo_DK_2020 --country DK --year-test 2020 --calc-z0
 
 # Equivalent (from a repo checkout):

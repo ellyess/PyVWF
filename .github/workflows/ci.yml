@@ -16,10 +16,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -30,7 +30,9 @@ jobs:
           # Core scientific stack needed by the unit tests (kept light: the
           # tests use synthetic data and do not need every optional dependency).
           # matplotlib is needed by tests/test_viz.py (uses the Agg backend).
-          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib
+          # shapely + geopandas are hard requirements imported by vwf.clustering;
+          # omitting them makes the package emit "not installed" UserWarnings.
+          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib shapely geopandas
           pip install pytest pytest-cov ruff
           # Install PyVWF itself so `import vwf` resolves under the `pytest`
           # console script (which does not add the repo root to sys.path).
