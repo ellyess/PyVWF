@@ -34,12 +34,10 @@ dependencies = [
     # Geospatial
     "geopandas>=0.13.0",
     "shapely>=2.0.0",
-    "utm>=0.7.0",
+    "pyproj>=3.6.0",
 
     # Visualization
     "matplotlib>=3.7.0",
-    "seaborn>=0.12.0",
-    "plotly>=5.14.0",
 
     # Data formats
     "netCDF4>=1.6.0",

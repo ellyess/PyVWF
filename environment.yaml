@@ -16,12 +16,10 @@ dependencies:
   # Geospatial
   - geopandas>=0.13.0
   - shapely>=2.0.0
-  - utm=0.7.0
+  - pyproj>=3.6.0
 
   # Visualization
   - matplotlib=3.9.2
-  - seaborn=0.13.2
-  - plotly>=5.14.0
 
   # Data formats
   - netcdf4=1.7.1
@@ -41,9 +39,6 @@ dependencies:
   - pip:
       # Energy data APIs (not available on conda-forge)
       - entsoe-py>=0.6.0
-
-      # Interpolation
-      - pykrige>=1.7.0
 
       # Install local package in editable mode
       - -e .
