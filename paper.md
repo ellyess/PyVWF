@@ -53,12 +53,17 @@ capacity factors can carry biases of up to ±50 % [@staffell2016]. These biases 
 conversion and spatial aggregation and, when employed within energy system
 models, lead to misleading conclusions about generation mix, transmission
 investment, and system cost. The original VWF model corrects this bias but is
-closed and primarily accessible only through the Renewables.ninja API, while
-open tools such as `atlite` [@atlite] omit the observation-based bias
-correction that gives VWF its accuracy. `PyVWF` fills this gap: it is a fully
-open, reproducible, research-grade implementation of bias-corrected wind power
-simulation, with the correction *training* pipeline exposed so that methods can
-be inspected, extended, and applied at arbitrary spatial and temporal
+closed and primarily accessible only through the Renewables.ninja API. Open
+tools address only part of this: general-purpose converters such as `atlite`
+[@atlite] omit observation-based correction entirely, and validated global
+products such as ETHOS.RESKit [@reskit] apply a correction that is national in
+resolution, built on a single global wind-speed curve, and shipped as a fixed
+calibration rather than a retrainable pipeline. `PyVWF` fills that specific gap
+with a peer-reviewed method [@benmoufok2024] that extends the validated VWF
+approach [@staffell2016] to ERA5 and to sub-national, seasonal resolution: a
+transparent, reproducible research instrument for the correction step, with
+distributional (not only mean-error) diagnostics, letting researchers compute,
+inspect, and retrain corrections at arbitrary spatial and temporal
 granularity. Research extensions on a separate development branch interpolate
 corrections onto a regular grid and export them for use with
 `atlite`/`PyPSA-Eur` workflows, supporting resource assessment and sensitivity
@@ -97,11 +102,18 @@ has been applied in peer-reviewed studies of European and UK wind resources
 
 # State of the field
 
-`PyVWF` occupies the space between closed/API-only VWF (Renewables.ninja
-[@staffell2016; @pfenninger2016]) and open general-purpose reanalysis-to-power
-tools such as `atlite` [@atlite]. Its distinguishing contribution is an open,
-extensible training pipeline for observation-based bias corrections and the
-ability to resolve those corrections below the national scale.
+The open landscape spans general-purpose converters that apply no
+observation-based correction (`atlite` [@atlite]), the closed and largely
+dormant VWF code behind Renewables.ninja [@staffell2016; @pfenninger2016], and
+validated global products such as ETHOS.RESKit [@reskit], which pairs a
+measurement-trained wind-speed correction with a national capacity-factor
+calibration. RESKit is the stronger choice for a ready-made global assessment.
+`PyVWF`'s contribution is complementary and peer-reviewed: it implements the
+granular bias-correction method of @benmoufok2024, which extends the validated
+VWF approach of @staffell2016 to ERA5 and to sub-national and seasonal
+resolution, and exposes that correction's *training* step as an open,
+inspectable, retrainable pipeline, unlike the national, single-global-curve,
+fixed-product calibrations above.
 
 # AI disclosure
 
