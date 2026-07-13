@@ -19,7 +19,7 @@ dependencies:
   - pyproj>=3.6.0
 
   # Visualization
-  - matplotlib=3.9.2
+  - matplotlib=3.11.0
 
   # Data formats
   - netcdf4=1.7.1
