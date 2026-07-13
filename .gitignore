@@ -66,6 +66,8 @@ input/era5
 input/merra2
 /input/country-data/DK/shape
 *.nc
+# Bundled synthetic example NetCDF for examples/run_minimal.py (small; overrides *.nc).
+!examples/data/era5/era5_example.nc
 *.png
 # README references docs/img/*.png; keep those tracked even though *.png is ignored generally.
 !docs/img/*.png

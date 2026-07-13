@@ -32,7 +32,8 @@ jobs:
           # matplotlib is needed by tests/test_viz.py (uses the Agg backend).
           # shapely + geopandas are hard requirements imported by vwf.clustering;
           # omitting them makes the package emit "not installed" UserWarnings.
-          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib shapely geopandas
+          # netCDF4 is needed to read the bundled examples/ NetCDF in the example step.
+          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib shapely geopandas netCDF4
           pip install pytest pytest-cov ruff
           # Install PyVWF itself so `import vwf` resolves under the `pytest`
           # console script (which does not add the repo root to sys.path).
@@ -45,3 +46,6 @@ jobs:
 
       - name: Run tests
         run: pytest tests -q --cov=vwf --cov-report=term-missing
+
+      - name: Run minimal example (end-to-end on bundled synthetic data)
+        run: python examples/run_minimal.py

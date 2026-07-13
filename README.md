@@ -219,6 +219,20 @@ confirming for your own setup:
 
 ## Quickstart
 
+### Runnable example (no data download)
+
+To see the full workflow end-to-end **without downloading ERA5 or any turbine
+data**, run the bundled synthetic example (about a minute):
+
+```bash
+python examples/run_minimal.py
+```
+
+It preps a small bundled ERA5-shaped NetCDF, trains a per-cluster linear bias
+correction against synthetic observed capacity factors, and reports the error
+reduction. All bundled data is synthetic; see
+[`examples/data/README.md`](examples/data/README.md).
+
 ### PyVWF Training Example (Denmark)
 
 A simple, step-by-step quickstart demonstrating the complete PyVWF workflow:

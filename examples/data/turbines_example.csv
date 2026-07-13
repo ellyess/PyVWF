@@ -1,0 +1,7 @@
+ID,lat,lon,height,model,capacity,cluster
+t1,55.2,8.3,100.0,Synthetic.Onshore2000,2000.0,0
+t2,55.3,8.7,100.0,Synthetic.Onshore2000,2000.0,0
+t3,55.5,9.1,100.0,Synthetic.Onshore2000,2000.0,0
+t4,55.9,9.2,100.0,Synthetic.Onshore2000,2000.0,1
+t5,56.0,9.6,100.0,Synthetic.Onshore2000,2000.0,1
+t6,56.1,8.9,100.0,Synthetic.Onshore2000,2000.0,1
