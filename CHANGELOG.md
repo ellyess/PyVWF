@@ -36,6 +36,13 @@ changes the numbers the evaluation layer reports.
   fitted on, which `plot_correction_factor_map` needs to reproduce cluster IDs.
 - A `data` extra for the data-acquisition dependencies, and a `py.typed` marker
   so type information is exported to downstream users.
+- `PYVWF_INPUT` / `PYVWF_OUTPUT` environment variables, and
+  `PyVWFPaths.reference_file()`, which resolves the small static reference
+  tables: your own copy under the input root wins, falling back to synthetic
+  placeholders bundled in `vwf.resources` so an installed PyVWF runs anywhere.
+- An API reference built with Sphinx (`pip install -e ".[docs]"`), and a CI job
+  that builds it with warnings-as-errors.
+- A `CHANGELOG.md` and a standalone `CODE_OF_CONDUCT.md`.
 - Static type checking with mypy, and a `package` CI job that builds the sdist
   and wheel, validates the distribution metadata, and imports the installed
   wheel from a clean environment.
@@ -82,6 +89,15 @@ changes the numbers the evaluation layer reports.
 - Corrected several implicit-`Optional` annotations and initialised the
   country-level attributes on `PyVWF` that previously sprang into existence only
   when the right loader was called.
+- **PyVWF could not be used outside a repository checkout.**
+  `load_power_curves()` and `add_models()` read the literal relative paths
+  `input/power_curves.csv` and `input/models.csv`, and the region-shape loader
+  read `input/regions/*.geojson`, so an installed copy raised
+  `FileNotFoundError` unless the working directory happened to be a checkout.
+  The declared package data also matched no files, so the wheel shipped none.
+  Paths now resolve through `PyVWFPaths`, and the reference tables are bundled.
+  PyVWF warns loudly whenever it falls back to the synthetic placeholders, since
+  simulating with invented power curves yields plausible, meaningless numbers.
 
 ## [0.1.1] - 2026-07-07
 
