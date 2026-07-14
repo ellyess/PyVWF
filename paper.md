@@ -85,19 +85,32 @@ bias-correction parameters:
   comparing simulated and observed capacity factors [@benmoufok2024], with
   user-specific spatial clustering and temporal grouping (fixed, seasonal,
   bimonthly, monthly).
-- **Distributional diagnostics.** Capacity-factor histograms, empirical CDFs,
-  and quantile-quantile plots via `vwf.viz` that complement conventional
-  mean-error metrics.
+- **Pluggable observation sources.** Observed generation and site metadata are
+  supplied by `ObservationSource` adapters resolved through a registry, so a new
+  region is added by writing an adapter rather than by editing the pipeline.
+  Turbine-level adapters for Denmark, Germany, and the United Kingdom ship with
+  the package, alongside an in-memory adapter for caller-supplied national data.
+- **Diagnostics and model selection.** `vwf.viz` renders capacity-factor
+  histograms, empirical CDFs, and quantile-quantile plots that complement
+  conventional mean-error metrics; maps the learned scalar and offset across
+  clusters, so the correction is inspected rather than taken on trust; and plots
+  error against cluster count for each temporal resolution, which is how the two
+  hyperparameters of the method are chosen for a given fleet and observation
+  record.
 - **Research extensions (development branch).** Interpolation of point
   corrections onto a regular ERA5 grid (nearest neighbour, IDW, RBF, kriging)
   with export to NetCDF for `atlite`/`PyPSA-Eur`, and machine-learning
   prediction of corrections from terrain and environmental features. These are
   research extensions maintained on a separate development branch.
 
-The package ships with an automated `pytest` suite that runs on synthetic data
-(no large reanalysis downloads required) and continuous integration, and a
-`conda` environment for reproducibility. The granular bias-correction method
-has been applied in peer-reviewed studies of European and UK wind resources
+The package is typed, documented with a generated API reference, and covered by
+an automated `pytest` suite that runs on synthetic data, so the full workflow —
+including a worked end-to-end example — executes in under a minute without any
+reanalysis download. Continuous integration runs the tests across Python
+3.10–3.12, type-checks and lints the source, builds the documentation, and
+installs the built wheel into a clean environment; a pinned `conda` environment
+is provided for reproducibility. The granular bias-correction method has been
+applied in peer-reviewed studies of European and UK wind resources
 [@benmoufok2024; @wang2026].
 
 # State of the field
