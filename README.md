@@ -106,6 +106,21 @@ pip install -e ".[dev]"     # pytest, ruff, mypy
 | `dev`   | `pytest`, `ruff`, `mypy`         | running the test suite, linting, type checking                |
 | `docs`  | `sphinx`, `myst-parser`          | building the API reference in `docs/`                          |
 
+#### Pointing PyVWF at your input data
+
+PyVWF looks for input data under `input/` in the working directory, which is the
+layout of a repository checkout. If you installed PyVWF and work elsewhere, set
+`PYVWF_INPUT` to wherever your data lives:
+
+```bash
+export PYVWF_INPUT=/data/pyvwf-inputs   # holds power_curves.csv, models.csv, era5/, ...
+```
+
+The package bundles **synthetic placeholder** power curves and turbine models so
+that it imports and runs out of the box. They are invented, and PyVWF warns
+loudly whenever it falls back to them — supply a real power-curve library before
+drawing any conclusion from the numbers (see [`input/README.md`](input/README.md)).
+
 After install, the `pyvwf-train` console command is available on your PATH:
 
 | Command       | Wraps                                              |
@@ -440,7 +455,8 @@ pull request:
   marker, so type information is exported to downstream users).
 - **Test** — the suite plus the end-to-end example on Python 3.10–3.12,
   installed from `pyproject.toml` so the declared dependencies are exercised
-  exactly as a `pip install pyvwf` user would get them.
+  exactly as a `pip install pyvwf` user would get them. Coverage is gated, so
+  it cannot silently regress.
 - **Docs** — builds the API reference and guides with `-W`, so a broken
   docstring or an orphaned page fails rather than quietly degrading the site.
 - **Package** — builds the sdist and wheel, validates the distribution

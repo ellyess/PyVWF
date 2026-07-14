@@ -94,11 +94,40 @@ where = ["src"]
 version = {attr = "vwf.__version__"}
 
 [tool.setuptools.package-data]
-vwf = ["*.csv", "*.geojson", "py.typed"]
+# The previous glob ("*.csv") matched nothing: there are no data files directly
+# under src/vwf/. The synthetic reference tables live in vwf/resources/ and are
+# bundled so an installed PyVWF runs outside a repository checkout. The region
+# shapes (13 MB) are deliberately not shipped.
+vwf = ["py.typed"]
+"vwf.resources" = ["*.csv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["vwf"]
+omit = [
+    # Data-acquisition CLIs: they talk to the ENTSO-E API (needs a key) or parse
+    # raw registry spreadsheets that are not redistributable, so they cannot run
+    # in CI. Measuring them would only dilute the number the gate below defends.
+    # They are excluded from mypy and the API reference for the same reason.
+    "*/vwf/datasets/fetch_entsoe_capacity_factors.py",
+    "*/vwf/datasets/generate_country_level_training_data.py",
+    "*/vwf/datasets/process_dk_raw_data.py",
+    "*/vwf/datasets/combine_era5_files.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+# A ratchet, not a target: set just below where the suite currently sits, so
+# coverage cannot silently regress. Raise it as the remaining gaps are closed.
+fail_under = 63
+show_missing = true
 
 [tool.ruff]
 line-length = 100

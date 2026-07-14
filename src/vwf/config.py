@@ -4,16 +4,29 @@ This module provides a single source of truth for:
 - Data directory paths
 - Country bounding boxes for ERA5 subsetting
 - Regional shape files
+
+Paths are resolved relative to :attr:`PyVWFPaths.INPUT_ROOT`, which defaults to
+``input/`` in the working directory (the layout of a repository checkout) and
+can be pointed anywhere with the ``PYVWF_INPUT`` environment variable — so an
+installed copy of PyVWF works outside a checkout::
+
+    export PYVWF_INPUT=/data/pyvwf-inputs
 """
+from __future__ import annotations
+
+import os
+import warnings
+from importlib import resources
 from pathlib import Path
 
 
 class PyVWFPaths:
     """Central configuration for data directories and file paths."""
 
-    # Root directories
-    INPUT_ROOT = Path("input")
-    OUTPUT_ROOT = Path("output")
+    # Root directories. PYVWF_INPUT lets an installed copy point at input data
+    # living anywhere; the default matches a repository checkout.
+    INPUT_ROOT = Path(os.environ.get("PYVWF_INPUT", "input"))
+    OUTPUT_ROOT = Path(os.environ.get("PYVWF_OUTPUT", "output"))
 
     # Data directories
     COUNTRY_DATA = INPUT_ROOT / "country-data"
@@ -29,6 +42,54 @@ class PyVWFPaths:
     # Regional shapes
     COUNTRY_SHAPES = REGIONS / "country_shapes.geojson"
     OFFSHORE_SHAPES = REGIONS / "offshore_shapes.geojson"
+
+    @classmethod
+    def reference_file(cls, filename: str) -> Path:
+        """Locate a small static reference table (power curves, turbine models).
+
+        Resolution order:
+
+        1. ``INPUT_ROOT/<filename>`` — your own copy. Real power-curve libraries
+           are licensed and not redistributable, so a local file always wins.
+        2. The synthetic placeholder bundled in ``vwf.resources``, so an
+           installed PyVWF runs outside a repository checkout.
+
+        Falling back to (2) emits a ``UserWarning``: the bundled curves are
+        invented, and simulating with them produces numbers that look plausible
+        and mean nothing.
+
+        Args:
+            filename: File to locate, e.g. ``"power_curves.csv"``.
+
+        Returns:
+            Path to the resolved file.
+
+        Raises:
+            FileNotFoundError: If the file is neither in ``INPUT_ROOT`` nor
+                bundled with the package.
+        """
+        local = cls.INPUT_ROOT / filename
+        if local.is_file():
+            return local
+
+        packaged = Path(str(resources.files("vwf.resources") / filename))
+        if not packaged.is_file():
+            raise FileNotFoundError(
+                f"{filename} not found at {local} and not bundled with PyVWF. "
+                "Set PYVWF_INPUT (or PyVWFPaths.INPUT_ROOT) to the directory "
+                "holding your input data."
+            )
+
+        warnings.warn(
+            f"Using the SYNTHETIC placeholder {filename} bundled with PyVWF "
+            f"({packaged}) because none was found at {local}. These turbine "
+            "models and power curves are invented: results computed with them "
+            "are not physically meaningful. Supply a real power-curve library "
+            "and point PYVWF_INPUT at it before drawing conclusions.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return packaged
 
     @classmethod
     def get_country_shapes(cls, offshore: bool = False) -> Path:

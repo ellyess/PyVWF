@@ -223,10 +223,13 @@ def clean_obs_data(df, country, train=False):
 
 
 def load_power_curves():
-    """Load turbine power curves from the default CSV."""
-    file_loc = "input/power_curves.csv"
-    df = pd.read_csv(file_loc)
-    return df
+    """Load turbine power curves.
+
+    Reads ``power_curves.csv`` from the configured input root, falling back to
+    the synthetic placeholder bundled with the package (with a warning). See
+    :meth:`vwf.config.PyVWFPaths.reference_file`.
+    """
+    return pd.read_csv(PyVWFPaths.reference_file("power_curves.csv"))
 
 
 # ============================================================================
@@ -580,7 +583,7 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with a ``model`` column added.
     """
-    models = pd.read_csv("input/models.csv")
+    models = pd.read_csv(PyVWFPaths.reference_file("models.csv"))
     models["model"] = models["model"].astype("string")
     models["manufacturer"] = models["manufacturer"].astype("string").str.lower().fillna("")
     models = models.sort_values("p_density").reset_index(drop=True)

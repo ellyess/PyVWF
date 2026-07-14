@@ -1,0 +1,6 @@
+manufacturer,model,offshore,capacity,diameter,p_density
+Synthetic,Synthetic.Onshore850,no,850,52,400.24
+Synthetic,Synthetic.Onshore2000,no,2000,80,397.89
+Synthetic,Synthetic.Onshore3600,no,3600,112,365.41
+Synthetic,Synthetic.Offshore5000,yes,5000,126,401.0
+Synthetic,Synthetic.Offshore8000,yes,8000,164,378.71

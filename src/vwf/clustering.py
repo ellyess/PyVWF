@@ -10,8 +10,9 @@ from __future__ import annotations
 from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
-from pathlib import Path
 import warnings
+
+from vwf.config import PyVWFPaths
 
 # shapely powers the optional Voronoi/geometry helpers below; the core
 # KMeans-based cluster_turbines() does not need it, so guard the import to keep
@@ -45,8 +46,12 @@ def load_region_shapes():
     """
     global _COUNTRY_SHAPES, _OFFSHORE_SHAPES
 
+    # Resolved through PyVWFPaths rather than a literal relative path, so an
+    # installed PyVWF finds them via PYVWF_INPUT instead of only when the
+    # working directory happens to be a repository checkout. The shapes are too
+    # large to bundle, so a missing file stays a warning, not an error.
     if _COUNTRY_SHAPES is None:
-        country_path = Path("input/regions/country_shapes.geojson")
+        country_path = PyVWFPaths.COUNTRY_SHAPES
         if country_path.exists():
             _COUNTRY_SHAPES = gpd.read_file(country_path)
         else:
@@ -54,7 +59,7 @@ def load_region_shapes():
             _COUNTRY_SHAPES = gpd.GeoDataFrame()
 
     if _OFFSHORE_SHAPES is None:
-        offshore_path = Path("input/regions/offshore_shapes.geojson")
+        offshore_path = PyVWFPaths.OFFSHORE_SHAPES
         if offshore_path.exists():
             _OFFSHORE_SHAPES = gpd.read_file(offshore_path)
         else:
