@@ -8,12 +8,17 @@ Main Functions:
     val_set: Prepare validation data for testing
     cluster_train_set: Apply clustering and compute bias corrections
 
+Observation Sources (see vwf.sources):
+    Observed generation and site metadata are supplied by pluggable
+    ObservationSource adapters. prep_country dispatches to one, resolved from the
+    country code and obs_level unless an explicit source is passed.
+
 Data Loaders (re-exported from vwf.loaders):
     load_turbine_metadata: Load turbine metadata for DK, DE, UK
     load_turbine_observations: Load turbine-level generation data
 
 Supporting Functions:
-    prep_country: Preprocess observations for a country
+    prep_country: Load observations and metadata via an ObservationSource
     clean_obs_data: Filter and clean observation data
     add_models: Assign turbine models based on metadata
     interp_nans: Interpolate missing observation values
@@ -30,20 +35,21 @@ Examples:
         >>> bias_df, clus_info = cluster_train_set(gen_cf, 'season', 10, turb_info)
 
     Country-level workflow:
-        >>> # Load data externally and use with PyVWF
-        >>> model = PyVWF("", "NL", True, True, "all", [5], ["fixed"], obs_level="country")
+        >>> # Observations are fetched outside the library and wrapped in a source
+        >>> from vwf.sources import InMemoryCountrySource
+        >>> source = InMemoryCountrySource(data['grid_points'], data['train_obs'])
         >>> gen_cf, turb_info, reanalysis, power_curves = train_set(
         ...     country='NL',
         ...     calc_z0=True,
         ...     obs_level='country',
-        ...     external_grid_points=data['grid_points'],
-        ...     external_obs_data=data['train_obs']
+        ...     source=source,
         ... )
 """
+from typing import cast
+
 import numpy as np
 import pandas as pd
 import difflib
-from calendar import monthrange
 
 import vwf.wind as wind
 from vwf.datasets.era5 import prep_era5
@@ -56,11 +62,12 @@ import vwf.correction as correction
 # Import from new utility modules
 from vwf.config import PyVWFPaths
 from vwf.time_utils import add_time_resolution_columns
-from vwf.loaders import (
+from vwf.loaders import (  # noqa: F401  (re-exported for backward compatibility)
     load_turbine_metadata,
     load_turbine_observations,
 )
-from vwf.loaders.country_level_loaders import country_gen_to_cf
+from vwf.sources import InMemoryCountrySource, ObservationSource, resolve
+from vwf.sources.base import ObsLevel
 
 # Keep for backward compatibility with any scripts using these paths
 COUNTRY_DIR = PyVWFPaths.COUNTRY_DATA
@@ -71,13 +78,22 @@ COUNTRY_LEVEL_DIR = PyVWFPaths.COUNTRY_LEVEL_DATA
 # INTERNAL HELPERS
 # ============================================================================
 
-def _year_range(train: bool, year_test: int | None, default_train=(2015, 2018)) -> tuple[int, int]:
-    """Determine year range for train or test data."""
-    if train:
-        return int(default_train[0]), int(default_train[1])
-    if year_test is None:
-        raise ValueError("year_test must be provided when train=False")
-    return int(year_test), int(year_test)
+def _source_for(
+    source: ObservationSource | None,
+    external_grid_points: pd.DataFrame | None,
+    external_obs_data: pd.DataFrame | None,
+) -> ObservationSource | None:
+    """Pick the observation source for a pipeline call.
+
+    An explicit ``source`` wins. Otherwise a pair of externally supplied frames is
+    wrapped in an in-memory country source. ``None`` means "resolve from the
+    country code".
+    """
+    if source is not None:
+        return source
+    if external_grid_points is not None and external_obs_data is not None:
+        return InMemoryCountrySource(external_grid_points, external_obs_data)
+    return None
 
 
 def _default_power_curve(power_curves: pd.DataFrame) -> str:
@@ -99,61 +115,52 @@ def _default_power_curve(power_curves: pd.DataFrame) -> str:
 # DATA PREPROCESSING AND ORCHESTRATION
 # ============================================================================
 
-def prep_country(country, year_test=None, *, obs_level: str = "turbine"):
-    """Preprocess observational data for a country.
+def prep_country(
+    country,
+    year_test=None,
+    *,
+    obs_level: str = "turbine",
+    source: ObservationSource | None = None,
+):
+    """Load observations and site metadata for a country.
+
+    Dispatches to an :class:`~vwf.sources.base.ObservationSource`. When ``source``
+    is omitted it is resolved from ``country`` and ``obs_level``.
 
     Args:
         country: Country code.
-        year_test: Optional test year. If None, prepares training data.
+        year_test: Optional test year. If None, the source's default training
+            window is used.
         obs_level: ``"turbine"`` or ``"country"``.
+        source: Explicit observation source, bypassing registry resolution.
 
     Returns:
-        Tuple of observations and turbine metadata, depending on ``obs_level``.
+        Tuple of (observations, site metadata). The observation shape follows the
+        source's ``obs_level``; see :meth:`ObservationSource.load_observations`.
+
+    Raises:
+        NotImplementedError: If ``obs_level="country"`` and no source is supplied
+            or registered for the country.
+        ValueError: If ``obs_level="turbine"`` and the country has no source.
     """
     country = country.upper()
-    train = year_test is None
 
-    # Per-country training windows (fallback default)
-    default_train = {
-        "DK": (2015, 2019),
-        "DE": (2015, 2018),
-        "UK": (2015, 2018),
-    }.get(country, (2015, 2018))
+    if source is None:
+        # prep_country is public and takes obs_level as a plain string, so
+        # validate here rather than letting an unrecognised value fall through
+        # the registry as a confusing "no source for this country".
+        if obs_level not in ("turbine", "country"):
+            raise ValueError(
+                f"obs_level must be 'turbine' or 'country', got {obs_level!r}"
+            )
+        source = resolve(country, cast(ObsLevel, obs_level))
 
-    year_start, year_end = _year_range(train, year_test, default_train=default_train)
+    turb_info = source.load_metadata()
 
-    # ---- metadata ----
-    turb_raw = load_turbine_metadata(country)
+    if source.obs_level == "country":
+        return source.load_observations(), turb_info
 
-    turb_info = add_models(turb_raw)
-
-    obs_gen = load_turbine_observations(country, year_start, year_end).copy()
-    if not {"ID", "year"}.issubset(obs_gen.columns):
-        raise ValueError("Turbine observations must contain columns ['ID','year', ...months...]")
-
-    # Standardise month columns to obs_1..obs_12 (if not already)
-    month_cols = [c for c in obs_gen.columns if c not in ["ID", "year"]]
-    # If columns are "obs_1"... already, keep them; else rename to obs_{col}
-    if not any(str(c).startswith("obs_") for c in month_cols):
-        obs_gen.columns = [f"obs_{c}" if c not in ["ID", "year"] else c for c in obs_gen.columns]
-
-    # Merge capacity for CF conversion
-    obs_gen["ID"] = obs_gen["ID"].astype(str)
-    obs_gen["year"] = pd.to_numeric(obs_gen["year"], errors="coerce").astype("Int64")
-
-    obs_gen = obs_gen.merge(turb_info[["ID", "capacity"]], how="left", on="ID")
-    obs_gen = obs_gen.dropna(subset=["capacity", "year"]).reset_index(drop=True)
-
-    # Convert monthly output -> CF using hours in month and turbine capacity (kW)
-    for m in range(1, 13):
-        col = f"obs_{m}"
-        if col not in obs_gen.columns:
-            continue
-        days = obs_gen["year"].astype(int).map(lambda y: monthrange(int(y), int(m))[1]).astype(float)
-        obs_gen[col] = pd.to_numeric(obs_gen[col], errors="coerce") / (days * 24.0 * obs_gen["capacity"].astype(float))
-
-    obs_gen = obs_gen.drop(columns=["capacity"])
-    return obs_gen, turb_info
+    return source.load_observations(year_test, year_test), turb_info
 
 
 def sim_turbines_to_country_cf(sim_cf_long: pd.DataFrame, turb_info: pd.DataFrame) -> pd.DataFrame:
@@ -246,6 +253,7 @@ def train_set(
     fix_turb=None,
     *,
     obs_level: str = "turbine",
+    source: ObservationSource | None = None,
     external_grid_points: pd.DataFrame | None = None,
     external_obs_data: pd.DataFrame | None = None,
 ):
@@ -260,18 +268,17 @@ def train_set(
         interp_nan: Limit on simultaneous missing data points when interpolating.
         fix_turb: Turbine model name to fix to a single model.
         obs_level: Observation level ("turbine" or "country").
+        source: Observation source. Resolved from ``country`` when omitted.
         external_grid_points: Optional externally provided grid points (for country-level).
+            Superseded by ``source``; retained for backward compatibility.
         external_obs_data: Optional externally provided observations (for country-level).
+            Superseded by ``source``; retained for backward compatibility.
 
     Returns:
         Tuple of (gen_cf, turb_info, reanalysis, power_curves).
     """
-    # Use external data if provided (country-level workflow)
-    if external_grid_points is not None and external_obs_data is not None:
-        turb_info = external_grid_points.copy()
-        obs_data = external_obs_data.copy()
-    else:
-        obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level)
+    source = _source_for(source, external_grid_points, external_obs_data)
+    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level, source=source)
 
     if mode != "all":
         turb_info = turb_info[turb_info["type"] == mode].copy()
@@ -287,33 +294,28 @@ def train_set(
     # Country-level branch
     # -------------------------
     if obs_level == "country":
-        # Check if obs_data is already in the correct format (external data)
-        if external_obs_data is not None:
-            # External data is already formatted (from ENTSO-E API)
-            # Expected format: index=datetime, columns=['capacity_factor', 'generation_mw', 'capacity_mw']
-            if 'capacity_factor' not in obs_data.columns:
-                raise ValueError("external_obs_data must have 'capacity_factor' column")
+        # Country-level observations arrive as a DatetimeIndexed capacity-factor
+        # series (ENTSO-E derived, for example) from the observation source.
+        if 'capacity_factor' not in obs_data.columns:
+            raise ValueError("Country-level observations must have a 'capacity_factor' column")
 
-            # Convert to year/month format expected by downstream
-            obs_country = obs_data.copy()
-            if not isinstance(obs_country.index, pd.DatetimeIndex):
-                obs_country.index = pd.to_datetime(obs_country.index, utc=True)
+        # Convert to year/month format expected by downstream
+        obs_country = obs_data.copy()
+        if not isinstance(obs_country.index, pd.DatetimeIndex):
+            obs_country.index = pd.to_datetime(obs_country.index, utc=True)
 
-            # Convert timezone-aware to naive UTC (remove timezone info)
-            if obs_country.index.tz is not None:
-                obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
+        # Convert timezone-aware to naive UTC (remove timezone info)
+        if obs_country.index.tz is not None:
+            obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
 
-            # Aggregate to monthly means (matching simulation temporal resolution)
-            # Keep only capacity_factor for aggregation
-            obs_monthly = obs_country[['capacity_factor']].resample('ME').mean().reset_index()
-            obs_monthly.rename(columns={'index': 'time'}, inplace=True)
-            obs_monthly['year'] = obs_monthly['time'].dt.year.astype(int)
-            obs_monthly['month'] = obs_monthly['time'].dt.month.astype(int)
-            obs_country = obs_monthly.rename(columns={'capacity_factor': 'obs'})
-            obs_country = obs_country[['year', 'month', 'obs']]
-        else:
-            # Use legacy loader (converts generation kWh to CF)
-            obs_country = country_gen_to_cf(obs_data, turb_info, output_col="output_kwh")
+        # Aggregate to monthly means (matching simulation temporal resolution)
+        # Keep only capacity_factor for aggregation
+        obs_monthly = obs_country[['capacity_factor']].resample('ME').mean().reset_index()
+        obs_monthly.rename(columns={'index': 'time'}, inplace=True)
+        obs_monthly['year'] = obs_monthly['time'].dt.year.astype(int)
+        obs_monthly['month'] = obs_monthly['time'].dt.month.astype(int)
+        obs_country = obs_monthly.rename(columns={'capacity_factor': 'obs'})
+        obs_country = obs_country[['year', 'month', 'obs']]
 
         # -------------------------------------------------
         # Ensure a valid power-curve model exists
@@ -412,7 +414,7 @@ def train_set(
     return gen_cf, turb_info, reanalysis, power_curves
 
 
-def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None):
+def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None):
     """Prepare validation data for a country.
 
     Args:
@@ -422,18 +424,17 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         year_test: Test year.
         fix_turb: Optional turbine model override.
         obs_level: ``"turbine"`` or ``"country"``.
+        source: Observation source. Resolved from ``country`` when omitted.
         external_grid_points: Optional externally provided grid points (for country-level).
+            Superseded by ``source``; retained for backward compatibility.
         external_obs_data: Optional externally provided observations (for country-level).
+            Superseded by ``source``; retained for backward compatibility.
 
     Returns:
         Tuple of observations, turbine metadata, reanalysis, and power curves.
     """
-    # Use external data if provided (country-level workflow)
-    if external_grid_points is not None and external_obs_data is not None:
-        turb_info = external_grid_points.copy()
-        obs_data = external_obs_data.copy()
-    else:
-        obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level)
+    source = _source_for(source, external_grid_points, external_obs_data)
+    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level, source=source)
 
     if mode != "all":
         turb_info = turb_info[turb_info["type"] == mode].copy()
@@ -451,31 +452,23 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
     power_curves = load_power_curves()
 
     if obs_level == "country":
-        # Check if obs_data is already in the correct format (external data)
-        if external_obs_data is not None:
-            # External data already has capacity_factor
-            obs_country = obs_data.copy()
+        # Country-level observations arrive as a DatetimeIndexed capacity-factor
+        # series from the observation source, at its native resolution.
+        obs_country = obs_data.copy()
 
-            if not isinstance(obs_country.index, pd.DatetimeIndex):
-                obs_country.index = pd.to_datetime(obs_country.index, utc=True)
+        if not isinstance(obs_country.index, pd.DatetimeIndex):
+            obs_country.index = pd.to_datetime(obs_country.index, utc=True)
 
-            # Convert timezone-aware to naive UTC (remove timezone info)
-            if obs_country.index.tz is not None:
-                obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
+        # Convert timezone-aware to naive UTC (remove timezone info)
+        if obs_country.index.tz is not None:
+            obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
 
-            # Format for validation output
-            obs_country['year'] = obs_country.index.year
-            obs_country['month'] = obs_country.index.month
-            obs_country['time'] = obs_country.index
-            obs_country = obs_country.rename(columns={'capacity_factor': 'obs'})
-            obs_country = obs_country[['time', 'obs']].sort_values('time')
-        else:
-            # Use legacy loader
-            obs_country = country_gen_to_cf(obs_data, turb_info, output_col="output_kwh", capacity_unit="kW")
-
-            # build a time index similar to turbine val output
-            obs_country["time"] = pd.to_datetime(dict(year=obs_country["year"], month=obs_country["month"], day=1))
-            obs_country = obs_country.sort_values("time")[["time", "obs"]]
+        # Format for validation output
+        obs_country['year'] = obs_country.index.year
+        obs_country['month'] = obs_country.index.month
+        obs_country['time'] = obs_country.index
+        obs_country = obs_country.rename(columns={'capacity_factor': 'obs'})
+        obs_country = obs_country[['time', 'obs']].sort_values('time')
 
         if "model" not in turb_info.columns or turb_info["model"].isna().all():
             default_model = fix_turb if fix_turb is not None else _default_power_curve(power_curves)

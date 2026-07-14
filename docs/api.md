@@ -17,6 +17,26 @@ and simulates capacity factors for a test year.
    :member-order: bysource
 ```
 
+## Observation sources
+
+Observed generation and site metadata come from pluggable adapters, so
+supporting a new region means writing a source rather than editing the core
+pipeline. See {doc}`ADDING_AN_OBSERVATION_SOURCE`.
+
+```{eval-rst}
+.. automodule:: vwf.sources.base
+   :members:
+
+.. automodule:: vwf.sources.registry
+   :members: register, resolve, get_source, available_sources
+
+.. automodule:: vwf.sources.european
+   :members:
+
+.. automodule:: vwf.sources.in_memory
+   :members:
+```
+
 ## Data preparation
 
 Assembles the training and validation sets: observations, turbine metadata,
