@@ -26,7 +26,29 @@ TIME_RES_COLOURS = {
     "month": "#E69F00",    # orange
 }
 
+TIME_RES_LABELS = {
+    "fixed": "Fixed",
+    "season": "Seasonal",
+    "bimonth": "Bimonthly",
+    "month": "Monthly",
+}
+
+# Canonical plotting order: coarse -> fine temporal resolution.
+TIME_RES_ORDER = {"fixed": 0, "season": 1, "bimonth": 2, "month": 3}
+
+TIME_RES_LINESTYLES = {
+    "fixed": "-.",
+    "season": ":",
+    "bimonth": "--",
+    "month": "-",
+}
+
 EXISTING_NEW_COLOURS = {
     "Yes": OKABE_ITO[4],   # blue
     "No": OKABE_ITO[5],    # vermillion
+}
+
+TURBINE_TYPE_COLOURS = {
+    "onshore": OKABE_ITO[4],   # blue
+    "offshore": OKABE_ITO[5],  # vermillion
 }

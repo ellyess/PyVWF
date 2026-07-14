@@ -70,6 +70,10 @@ class Results:
         factors: Linear correction factor tables ``(scalar, offset)`` keyed by
             ``(n_clu, time_res)``.
         turb_info: Fleet metadata for the simulated year.
+        train_turb_info: Fleet metadata for the training period — the fleet
+            the correction factors were fitted on, which
+            :func:`vwf.viz.plot_correction_factor_map` needs to reproduce
+            the cluster IDs.
     """
 
     country: str
@@ -79,6 +83,7 @@ class Results:
     corrected: dict[tuple[int, str], pd.Series] = field(default_factory=dict)
     factors: dict[tuple[int, str], pd.DataFrame] = field(default_factory=dict)
     turb_info: pd.DataFrame | None = None
+    train_turb_info: pd.DataFrame | None = None
 
 
 def _aggregate_cf(
@@ -192,6 +197,11 @@ def load_results(
     turb_path = train_dir / f"{country}_{year}_turb_info.csv"
     turb_info = pd.read_csv(turb_path) if turb_path.is_file() else None
 
+    train_turb_path = train_dir / f"{country}_train_turb_info.csv"
+    train_turb_info = (
+        pd.read_csv(train_turb_path) if train_turb_path.is_file() else None
+    )
+
     obs_wide = pd.read_csv(obs_path)
     unc_wide = pd.read_csv(unc_path)
     obs = _aggregate_cf(obs_wide, turb_info, weight_by_capacity).rename("obs")
@@ -225,6 +235,7 @@ def load_results(
         corrected=corrected,
         factors=factors,
         turb_info=turb_info,
+        train_turb_info=train_turb_info,
     )
 
 

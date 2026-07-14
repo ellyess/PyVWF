@@ -263,10 +263,12 @@ Key options:
 - `--cluster-list`: List of cluster counts to evaluate
 - `--time-res-list`: fixed | season | bimonth | month
 
-## Visualising distributional fit
+## Visualising a run
 
-`vwf.viz` turns a run's outputs into two diagnostic figures showing how well a
-corrected simulation reproduces the observed capacity-factor distribution. The
+`vwf.viz` turns a run's outputs into diagnostic figures: how well the
+corrected simulation reproduces the observed capacity-factor distribution,
+what the correction learned spatially, and how error responds to the two
+hyperparameters (cluster count and temporal resolution). The
 `load_results()` helper reads any PyVWF run directory back into a `Results`
 object, so the plot functions are self-contained:
 
@@ -291,7 +293,84 @@ fig.savefig("cf_qq.png", dpi=150)
 
 The legend annotates each series with its mean and KS distance to observed.
 The tail inset (top right) zooms into `CF ≥ 0.7` so distributional differences
-between sims in the upper tail remain visible. A data-free reproduction is in
+between sims in the upper tail remain visible.
+
+### What did the correction learn?
+
+`plot_correction_factor_map()` colours each cluster's Voronoi cell by its
+learned scalar and offset, on a diverging scale centred at the neutral value
+(scalar = 1, offset = 0), so over- and under-correction read at a glance.
+Pass the *training* fleet so the deterministic clustering reproduces the
+cluster IDs the factors were fitted on:
+
+```python
+from vwf.viz import plot_correction_factor_map
+
+fig = plot_correction_factor_map(
+    res.factors[(1000, "bimonth")],   # one (n_clu, time_res) configuration
+    res.train_turb_info,              # the fleet the factors were fitted on
+    boundary="input/regions/dk.json", # clip cells to the country outline
+)
+fig.savefig("factor_map.png", dpi=150)
+```
+
+![Correction factor map](docs/img/viz_factor_map.png)
+
+`plot_factor_joint()` shows the same factors in factor space — the joint
+distribution of scalar vs offset with marginal histograms, with guides at the
+neutral values. Tight clustering around (1, 0) means the reanalysis needed
+little correction:
+
+```python
+from vwf.viz import plot_factor_joint
+
+fig = plot_factor_joint(res.factors[(1000, "bimonth")])
+fig.savefig("factor_joint.png", dpi=150)
+```
+
+![Factor joint distribution](docs/img/viz_factor_joint.png)
+
+### Per-turbine bias
+
+`plot_sim_vs_obs()` scatters each turbine's mean simulated CF against its
+mean observed CF; distance from the y=x diagonal is that turbine's bias, and
+the panel is annotated with fleet-level MBE/RMSE. It reads the wide CF files
+a run writes to disk:
+
+```python
+import pandas as pd
+from vwf.viz import plot_sim_vs_obs
+
+cf_dir = "outputs/DK/results/capacity-factor"
+fig = plot_sim_vs_obs(
+    pd.read_csv(f"{cf_dir}/DK_2020_unc_cf.csv"),
+    pd.read_csv(f"{cf_dir}/DK_2020_obs_cf.csv"),
+    turb_info=res.turb_info,          # optional: colour onshore/offshore
+)
+fig.savefig("sim_vs_obs.png", dpi=150)
+```
+
+![Per-turbine sim vs obs](docs/img/viz_sim_vs_obs.png)
+
+### Choosing `n_clu` and `time_res`
+
+`plot_error_vs_clusters()` takes the tidy metrics table written by
+`scripts/evaluate_all_pyvwf_runs.py` (`pyvwf_evaluation_metrics.csv`) and
+plots error against cluster count, one line per temporal resolution, with the
+uncorrected error as a reference:
+
+```python
+import pandas as pd
+from vwf.viz import plot_error_vs_clusters
+
+metrics = pd.read_csv("outputs/DK/pyvwf_evaluation_metrics.csv")
+fig = plot_error_vs_clusters(metrics[metrics["country"] == "DK"])
+fig.savefig("error_vs_clusters.png", dpi=150)
+```
+
+![Error vs clusters](docs/img/viz_error_vs_clusters.png)
+
+A data-free reproduction of all six figures is in
 [`examples/viz_demo.py`](examples/viz_demo.py).
 
 ## Going further
