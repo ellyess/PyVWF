@@ -3,6 +3,7 @@
 [![CI](https://github.com/ellyess/PyVWF/actions/workflows/ci.yml/badge.svg)](https://github.com/ellyess/PyVWF/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
+[![DOI](https://zenodo.org/badge/506216589.svg)](https://doi.org/10.5281/zenodo.21236619)
 
 PyVWF is a research-oriented Python framework for processing, bias-correcting, and simulating wind resources and wind power generation using reanalysis data (e.g. ERA5), turbine metadata, and observed generation data. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
 
@@ -499,8 +500,26 @@ For published work, we recommend citing the repository and documenting:
 
 ## Citation
 
-If you use PyVWF in academic work, please cite the repository using the
-metadata in [`CITATION.cff`](CITATION.cff).
+If you use PyVWF in academic work, please cite **both** the software and the
+method paper.
+
+**The software** — archived on Zenodo. This is the *concept* DOI: it always
+resolves to the latest release, so it stays correct as PyVWF is updated. To pin
+the exact version you ran, use the version-specific DOI from the
+[Zenodo record](https://doi.org/10.5281/zenodo.21236619).
+
+> Benmoufok, E. F., Warder, S. C., and Piggott, M. D. *PyVWF: An open Python
+> framework for bias-corrected wind power simulation from reanalysis data.*
+> Zenodo. [doi:10.5281/zenodo.21236619](https://doi.org/10.5281/zenodo.21236619)
+
+**The method** — the bias-correction approach PyVWF implements:
+
+> Benmoufok, E. F., Warder, S. C., Zhu, E., and Piggott, M. D. (2024).
+> *Improving wind power modelling through granular spatial and temporal bias
+> correction of reanalysis data.* Energy.
+> [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759)
+
+Machine-readable metadata for both is in [`CITATION.cff`](CITATION.cff).
 
 ## Contributing
 

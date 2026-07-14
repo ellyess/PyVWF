@@ -33,6 +33,14 @@ keywords:
 license: BSD-3-Clause
 repository-code: "https://github.com/ellyess/PyVWF"
 version: 0.2.0
+date-released: "2026-07-14"
+doi: 10.5281/zenodo.21236619
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21236619
+    description: >-
+      Concept DOI for PyVWF. Always resolves to the latest archived release;
+      cite this unless you need to pin a specific version.
 preferred-citation:
   type: article
   title: "Improving wind power modelling through granular spatial and temporal bias correction of reanalysis data"

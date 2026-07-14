@@ -46,11 +46,19 @@ api
 
 ## Citing PyVWF
 
-If you use PyVWF in academic work, please cite the method paper:
+Please cite both the software and the method paper.
+
+**The software** (concept DOI — always resolves to the latest release):
+
+> Benmoufok, E. F., Warder, S. C., and Piggott, M. D. *PyVWF: An open Python
+> framework for bias-corrected wind power simulation from reanalysis data.*
+> Zenodo. [doi:10.5281/zenodo.21236619](https://doi.org/10.5281/zenodo.21236619)
+
+**The method:**
 
 > Benmoufok, E. F., Warder, S. C., Zhu, E., and Piggott, M. D. (2024).
 > *Improving wind power modelling through granular spatial and temporal bias
 > correction of reanalysis data.* Energy.
 > [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759)
 
-Machine-readable metadata for the software itself lives in `CITATION.cff`.
+Machine-readable metadata for both lives in `CITATION.cff`.
