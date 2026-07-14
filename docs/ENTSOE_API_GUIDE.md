@@ -149,7 +149,7 @@ For spatial modeling, you'll need to match ENTSO-E units with other metadata sou
 
 ### Output Format
 
-```csv
+```text
 ID,capacity,type,name,country,zone
 NL001234567890123456,3000.0,onshore,WindPark Alpha,NL,
 NO_1_987654321,2500.0,offshore,Hywind Beta,NO,NO_1
@@ -180,7 +180,7 @@ python scripts/fetch_entsoe_capacity_factors.py \
 
 ### 1. Hourly Time Series (Default)
 
-```csv
+```text
 timestamp,generation_mw,capacity_mw,capacity_factor,country
 2020-01-01 00:00:00,1234.5,4500.0,0.274333,NL
 2020-01-01 01:00:00,1456.2,4500.0,0.323600,NL
@@ -189,7 +189,7 @@ timestamp,generation_mw,capacity_mw,capacity_factor,country
 
 ### 2. Daily Aggregated (`--resample D`)
 
-```csv
+```text
 timestamp,generation_mw,capacity_mw,capacity_factor,country
 2020-01-01,1345.2,4500.0,0.299,NL
 2020-01-02,2103.4,4500.0,0.467,NL

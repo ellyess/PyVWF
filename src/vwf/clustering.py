@@ -227,10 +227,13 @@ def create_sampling_points(
 
     Returns:
         DataFrame with columns:
+
         - lat: Latitude
         - lon: Longitude
         - weight: Capacity for turbines, 1.0 for grid/random points
+
         If add_metadata=True, also includes:
+
         - ID: Point identifier
         - height: Hub height (meters)
         - model: Turbine model name

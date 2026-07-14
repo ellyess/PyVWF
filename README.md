@@ -104,6 +104,7 @@ pip install -e ".[dev]"     # pytest, ruff, mypy
 | (none)  | core scientific + geospatial     | simulation, bias correction, evaluation, `vwf.viz`            |
 | `data`  | `entsoe-py`, `openpyxl`, `pyarrow` | `vwf.datasets` ENTSO-E download and raw fleet-registry parsing |
 | `dev`   | `pytest`, `ruff`, `mypy`         | running the test suite, linting, type checking                |
+| `docs`  | `sphinx`, `myst-parser`          | building the API reference in `docs/`                          |
 
 After install, the `pyvwf-train` console command is available on your PATH:
 
@@ -440,9 +441,19 @@ pull request:
 - **Test** — the suite plus the end-to-end example on Python 3.10–3.12,
   installed from `pyproject.toml` so the declared dependencies are exercised
   exactly as a `pip install pyvwf` user would get them.
+- **Docs** — builds the API reference and guides with `-W`, so a broken
+  docstring or an orphaned page fails rather than quietly degrading the site.
 - **Package** — builds the sdist and wheel, validates the distribution
   metadata with `twine`, then installs the wheel into a clean environment and
   imports it with no repository on `sys.path`.
+
+The documentation is generated from the docstrings with Sphinx:
+
+```bash
+pip install -e ".[docs]"
+sphinx-build -b html docs docs/_build/html -W
+open docs/_build/html/index.html
+```
 
 The version lives in exactly one place — `vwf.__version__` — from which
 `pyproject.toml` reads it dynamically; `tests/test_packaging.py` asserts it
