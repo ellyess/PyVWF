@@ -72,6 +72,9 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
     "pandas-stubs",
+    # tests/test_packaging.py parses pyproject.toml. tomllib entered the stdlib
+    # in 3.11, so 3.10 needs the backport.
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 docs = [

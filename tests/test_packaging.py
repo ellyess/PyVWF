@@ -11,12 +11,17 @@ a plain ``pip install pyvwf`` silently stops working.
 from __future__ import annotations
 
 import re
-import tomllib
+import sys
 from pathlib import Path
 
 import pytest
 
 import vwf
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # Python 3.10: tomllib is not in the standard library yet.
+    import tomli as tomllib
 
 
 ROOT = Path(__file__).resolve().parent.parent
