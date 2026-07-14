@@ -20,6 +20,14 @@ changes the numbers the evaluation layer reports.
 
 ### Added
 
+- **Pluggable observation sources (`vwf.sources`).** Observed generation and site
+  metadata now come from `ObservationSource` adapters resolved through a
+  registry, so supporting a new region means writing an adapter rather than
+  editing the core pipeline. Ships `EuropeanTurbineSource` (DK, DE, UK) and
+  `InMemoryCountrySource` for caller-supplied frames. `train_set` and `val_set`
+  take a `source=` argument; the existing `external_grid_points` /
+  `external_obs_data` arguments still work and are wrapped automatically. See
+  [docs/ADDING_AN_OBSERVATION_SOURCE.md](docs/ADDING_AN_OBSERVATION_SOURCE.md).
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:
@@ -89,6 +97,11 @@ changes the numbers the evaluation layer reports.
 - Corrected several implicit-`Optional` annotations and initialised the
   country-level attributes on `PyVWF` that previously sprang into existence only
   when the right loader was called.
+- **The country-level path could never run without externally supplied data.**
+  `prep_country` accepted an `obs_level` argument and never read it, so the
+  fallback branch always reached `country_gen_to_cf` with turbine-shaped columns
+  and raised a confusing `ValueError` about a missing `output_kwh` column. It now
+  raises `NotImplementedError` naming both ways to supply the data.
 - **PyVWF could not be used outside a repository checkout.**
   `load_power_curves()` and `add_models()` read the literal relative paths
   `input/power_curves.csv` and `input/models.csv`, and the region-shape loader
