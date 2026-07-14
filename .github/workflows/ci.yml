@@ -33,7 +33,9 @@ jobs:
           # shapely + geopandas are hard requirements imported by vwf.clustering;
           # omitting them makes the package emit "not installed" UserWarnings.
           # netCDF4 is needed to read the bundled examples/ NetCDF in the example step.
-          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib shapely geopandas netCDF4
+          # bottleneck backs xarray's .bfill(), which prep_era5 uses to fill the
+          # surface-roughness field; without it xarray raises ModuleNotFoundError.
+          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib shapely geopandas netCDF4 bottleneck
           pip install pytest pytest-cov ruff
           # Install PyVWF itself so `import vwf` resolves under the `pytest`
           # console script (which does not add the repo root to sys.path).
