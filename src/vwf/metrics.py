@@ -42,20 +42,27 @@ def prepare_monthly_data(df_sim, df_obs, train=False):
 
     Returns:
         Tuple of (df_sim_monthly, df_obs_monthly) ready for merging.
-    """
-    # OPTIMIZATION: Process observations once
-    if train:
-        df_obs = df_obs.pivot(
-            index=['year', 'month'],
-            columns='ID',
-            values='obs'
-        ).reset_index(drop=True)
 
-        df_obs['time'] = np.arange('2015-01', '2020-01', dtype='datetime64[M]')
-        df_obs['month'] = df_obs.time.dt.month
-        df_obs['year'] = df_obs.time.dt.year
-        df_obs_monthly = df_obs.drop(columns=['time']).groupby(['year', 'month']).mean().reset_index()
-        df_obs_monthly = df_obs_monthly.melt(id_vars=['year', 'month'], var_name='ID', value_name='cf')
+    Note:
+        Neither input is mutated; both are copied before the time columns are
+        derived.
+    """
+    df_sim = df_sim.copy()
+    df_obs = df_obs.copy()
+
+    if train:
+        # Training observations arrive long-format (ID, year, month, obs) and
+        # are already monthly. Keep their real calendar labels: this used to
+        # pivot the frame, discard the (year, month) index and overwrite it
+        # with a hard-coded 2015-01..2019-12 range, which crashed on any
+        # training window that wasn't 60 months long and — worse — silently
+        # relabelled a 60-month window starting in any other year, merging
+        # every observation against the wrong year's simulation.
+        df_obs_monthly = (
+            df_obs.groupby(['year', 'month', 'ID'], as_index=False)['obs']
+            .mean()
+            .rename(columns={'obs': 'cf'})
+        )
     else:
         df_obs['time'] = pd.to_datetime(df_obs['time'])
         df_obs['month'] = df_obs.time.dt.month
@@ -97,7 +104,9 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
     # OPTIMIZATION: Prepare data once
     df_sim_monthly, df_obs_monthly = prepare_monthly_data(df_sim, df_obs, train)
 
-    # OPTIMIZATION: Convert turb_info ID once
+    # Convert turb_info ID once, on a copy: callers pass the same fleet table
+    # into repeated evaluations and should not have it mutated underneath them.
+    turb_info = turb_info.copy()
     turb_info['ID'] = turb_info['ID'].astype(str)
 
     # Merge simulation and observations
