@@ -20,5 +20,22 @@
       "orcid": "0000-0002-7526-6853",
       "affiliation": "Department of Earth Science and Engineering, Imperial College London"
     }
+  ],
+  "keywords": [
+    "wind energy",
+    "virtual wind farm",
+    "bias correction",
+    "capacity factor",
+    "renewable energy",
+    "reanalysis",
+    "ERA5"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.1016/j.energy.2024.133759",
+      "relation": "isSupplementTo",
+      "resource_type": "publication-article",
+      "scheme": "doi"
+    }
   ]
 }

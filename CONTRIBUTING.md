@@ -75,5 +75,7 @@ and the diagnostic distribution / QQ plots from `vwf.viz`.
 
 ## Code of conduct
 
-Please be respectful and constructive in all interactions. By participating you
-agree to uphold a welcoming, harassment-free environment for everyone.
+By participating in this project you agree to uphold our
+[Code of Conduct](CODE_OF_CONDUCT.md): a welcoming, harassment-free environment
+for everyone, and honest representation of what the software actually does.
+Report unacceptable behaviour to benmoufok.ellyess@gmail.com.
