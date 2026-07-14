@@ -162,7 +162,7 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
             dk_data.pivot(index=["ID", "year"], columns="month", values="generation_kwh")
             .reset_index()
             .fillna(0)
-            .infer_objects(copy=False)
+            .infer_objects()
         )
 
         # Rename columns to match expected format (1, 2, 3, ..., 12)
@@ -185,7 +185,7 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
             de_data.pivot(index=["ID", "year"], columns="month", values="output")
             .reset_index()
             .fillna(0)
-            .infer_objects(copy=False)
+            .infer_objects()
         )
         return obs
 

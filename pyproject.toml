@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyvwf"
-version = "0.1.2"
 description = "Python Virtual Wind Farm (PyVWF) - Wind speed bias correction and capacity factor estimation"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     {name = "Ellyess Benmoufok", email = "benmoufok.ellyess@gmail.com"}
 ]
@@ -20,8 +21,16 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
 ]
+# Single source of truth: vwf.__version__ (see tool.setuptools.dynamic below).
+# tests/test_packaging.py asserts it stays in step with CITATION.cff.
+dynamic = ["version"]
 
+# Everything needed to simulate, bias-correct, evaluate and plot. Data
+# acquisition (ENTSO-E, raw Excel fleet registries) is deliberately NOT here —
+# it needs credentials and extra libraries most users never touch. See the
+# `data` extra.
 dependencies = [
     # Core scientific stack
     "pandas>=2.0.0",
@@ -41,23 +50,28 @@ dependencies = [
 
     # Data formats
     "netCDF4>=1.6.0",
-    "openpyxl>=3.1.0",
-    "pyarrow>=12.0.0",
 
-    # Performance
+    # Performance. bottleneck also backs xarray's .bfill(), which prep_era5
+    # uses to fill the surface-roughness field, so it is a hard requirement.
     "bottleneck>=1.3.0",
-
-    # Energy data APIs
-    "entsoe-py>=0.6.0",
 ]
 
 [project.optional-dependencies]
+# Data acquisition only: vwf.datasets.fetch_entsoe_capacity_factors (entsoe-py,
+# pyarrow for parquet output) and vwf.datasets.process_dk_raw_data (openpyxl for
+# the .xlsx fleet registry). Nothing in the simulation path imports these.
+data = [
+    "entsoe-py>=0.6.0",
+    "openpyxl>=3.1.0",
+    "pyarrow>=12.0.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "pandas-stubs",
 ]
 
 docs = [
@@ -65,14 +79,21 @@ docs = [
     "sphinx-rtd-theme>=1.2.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ellyess/PyVWF"
+Repository = "https://github.com/ellyess/PyVWF"
+
 [project.scripts]
 pyvwf-train = "vwf.cli.train:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.dynamic]
+version = {attr = "vwf.__version__"}
+
 [tool.setuptools.package-data]
-vwf = ["*.csv", "*.geojson"]
+vwf = ["*.csv", "*.geojson", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -94,3 +115,27 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E402"]  # sys.path manipulation before imports in a few tests
+
+[tool.mypy]
+# No python_version pin: numpy's bundled stubs use PEP 695 syntax that mypy
+# only parses when targeting 3.12+, so mypy runs under the CI lint job's
+# interpreter (3.12) rather than each matrix Python.
+files = ["src/vwf"]
+# The scientific stack ships few usable stubs (xarray, geopandas, sklearn,
+# netCDF4); without this every import is an error and the signal is lost.
+ignore_missing_imports = true
+# Bodies of unannotated functions are not type-checked. This makes mypy a
+# ratchet rather than a wall: annotating a function opts its body in, so
+# coverage grows module by module instead of demanding a big-bang rewrite of
+# the research code.
+check_untyped_defs = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+# Data-acquisition scripts: procedural, CLI-shaped, and exercised against live
+# APIs rather than the test suite. Not worth typing yet; revisit if they grow
+# into a supported surface.
+module = "vwf.datasets.*"
+ignore_errors = true

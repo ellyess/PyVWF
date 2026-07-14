@@ -1,8 +1,16 @@
 """Common utility functions for PyVWF."""
+from __future__ import annotations
+
+from typing import Literal
+
 import pandas as pd
 
 
-def ensure_numeric(df: pd.DataFrame, cols: list[str], errors: str = 'coerce') -> pd.DataFrame:
+def ensure_numeric(
+    df: pd.DataFrame,
+    cols: list[str],
+    errors: Literal["raise", "coerce"] = "coerce",
+) -> pd.DataFrame:
     """Coerce specified columns to numeric type.
 
     Args:
@@ -11,7 +19,6 @@ def ensure_numeric(df: pd.DataFrame, cols: list[str], errors: str = 'coerce') ->
         errors: How to handle conversion errors. Options:
             - 'coerce': Invalid values become NaN (default)
             - 'raise': Raise exception on invalid values
-            - 'ignore': Leave invalid values as-is
 
     Returns:
         DataFrame with specified columns converted to numeric.

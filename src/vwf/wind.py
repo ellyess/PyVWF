@@ -5,7 +5,10 @@ Performance optimizations:
 - Optional turbine aggregation for massive speedups
 - Vectorized operations where possible
 """
+from __future__ import annotations
+
 import warnings
+from typing import Any
 
 import xarray as xr
 import numpy as np
@@ -15,8 +18,11 @@ from scipy.interpolate import Akima1DInterpolator
 from vwf.time_utils import add_time_resolution_columns
 from vwf.utils import ensure_numeric
 
-# Global cache for power curve interpolators (cleared on module reload)
-_power_curve_cache = {}
+# Global cache for power curve interpolators (cleared on module reload).
+# Keyed by id() of the power-curve table; each entry holds the column tuple it
+# was built from (to detect a stale id() reuse), the speed grid, and the
+# per-model interpolators.
+_power_curve_cache: dict[int, dict[str, Any]] = {}
 
 
 class _CurveByModel(dict):

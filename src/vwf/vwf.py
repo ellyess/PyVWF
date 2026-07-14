@@ -201,10 +201,12 @@ class PyVWF:
         # NEW: store obs_level
         self.obs_level = obs_level
 
-        # NEW: country-level data (can be set via load_country_data() or from_config())
-        self.grid_points = None
-        self.obs_data_train = None
-        self.obs_data_test = None
+        # Country-level data: unset until load_country_data(),
+        # load_country_data_with_year_specific() or from_config() populates it.
+        self.grid_points: pd.DataFrame | None = None
+        self.obs_data_train: pd.DataFrame | None = None
+        self.obs_data_test: pd.DataFrame | None = None
+        self.grid_points_by_year: dict[int, pd.DataFrame] | None = None
 
         self.country = country
         self.directory_path = directory_path
@@ -258,7 +260,7 @@ class PyVWF:
         self,
         obs_train: pd.DataFrame,
         obs_test: pd.DataFrame,
-        grid_points_dir: Path = None,
+        grid_points_dir: Path | None = None,
     ):
         """Load year-specific grid points and observations for country-level workflow.
 

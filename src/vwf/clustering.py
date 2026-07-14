@@ -350,30 +350,32 @@ def create_sampling_points(
             # Calculate from resolution
             n_random = int((maxx - minx) * (maxy - miny) / (resolution ** 2))
 
-        points = []
+        # Distinct name from the DataFrame `points` bound in the other branches:
+        # this one accumulates dicts before being framed up below.
+        sampled: list[dict[str, float]] = []
         attempts = 0
         max_attempts = n_random * 100  # Prevent infinite loop
 
-        while len(points) < n_random and attempts < max_attempts:
+        while len(sampled) < n_random and attempts < max_attempts:
             lon = np.random.uniform(minx, maxx)
             lat = np.random.uniform(miny, maxy)
             point = Point(lon, lat)
 
             if country_bounds.contains(point):
-                points.append({
+                sampled.append({
                     'lat': lat,
                     'lon': lon,
                     'weight': 1.0
                 })
             attempts += 1
 
-        if len(points) < n_random:
+        if len(sampled) < n_random:
             warnings.warn(
-                f"Only found {len(points)} points after {max_attempts} attempts. "
+                f"Only found {len(sampled)} points after {max_attempts} attempts. "
                 f"Requested {n_random}. Try increasing resolution or checking bounds."
             )
 
-        points_df = pd.DataFrame(points)
+        points_df = pd.DataFrame(sampled)
 
         # Optionally add metadata for simulation
         if add_metadata:

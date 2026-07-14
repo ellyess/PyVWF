@@ -121,7 +121,7 @@ _COR_RE = re.compile(r"^(?P<country>[A-Z]+)_(?P<year>\d{4})_(?P<tr>[a-z]+)_(?P<n
 _FACT_RE = re.compile(r"^(?P<country>[A-Z]+)_factors_(?P<tr>[a-z]+)_(?P<n>\d+)\.csv$")
 
 
-def _align_to_obs_cadence(series: pd.Series, obs_index: pd.DatetimeIndex) -> pd.Series:
+def _align_to_obs_cadence(series: pd.Series, obs_index: pd.Index) -> pd.Series:
     """Aggregate ``series`` into the windows defined by ``obs_index``.
 
     For turbine-level PyVWF runs, observations are stored monthly while the

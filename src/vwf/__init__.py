@@ -29,24 +29,27 @@ from vwf.loaders import (
 from vwf.config import PyVWFPaths, BoundingBoxes
 
 # ============================================================================
-# OPTIONAL FUNCTIONALITY
+# VISUALISATION
 # ============================================================================
 
-# Visualisation (requires: matplotlib — already a core dependency)
-try:
-    from vwf.viz import (
-        Results,
-        load_results,
-        plot_cf_distribution,
-        plot_qq,
-    )
-    HAS_VIZ = True
-except ImportError:
-    HAS_VIZ = False
-    Results = None
-    load_results = None
-    plot_cf_distribution = None
-    plot_qq = None
+# matplotlib is a core dependency, so vwf.viz always imports. (It was once
+# guarded by a try/except that rebound these names to None on ImportError,
+# which quietly turned a missing dependency into an AttributeError deep in
+# user code instead of an honest ImportError here.)
+from vwf.viz import (
+    Results,
+    load_results,
+    plot_cf_distribution,
+    plot_correction_factor_map,
+    plot_error_vs_clusters,
+    plot_factor_joint,
+    plot_qq,
+    plot_sim_vs_obs,
+)
+
+#: Retained for backwards compatibility; always True now that the
+#: visualisation layer's dependencies are core.
+HAS_VIZ = True
 
 # ============================================================================
 # PUBLIC API
@@ -64,10 +67,14 @@ __all__ = [
     # Configuration
     "PyVWFPaths",
     "BoundingBoxes",
-    # Optional: Viz
+    # Visualisation
     "Results",
     "load_results",
     "plot_cf_distribution",
+    "plot_correction_factor_map",
+    "plot_error_vs_clusters",
+    "plot_factor_joint",
     "plot_qq",
+    "plot_sim_vs_obs",
     "HAS_VIZ",
 ]

@@ -3,6 +3,10 @@
 This module provides functions to load grid points and observations
 for country-level (ENTSO-E) workflows.
 """
+from __future__ import annotations
+
+from typing import cast
+
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -100,7 +104,7 @@ def country_gen_to_cf(
 def load_year_specific_grid_points(
     country: str,
     years: list[int],
-    base_dir: Path = None
+    base_dir: Path | None = None
 ) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """Load year-specific grid points that reflect capacity changes over time.
 
@@ -169,9 +173,11 @@ def load_year_specific_grid_points(
     # Create merged version (averaged across years for stability)
     grid_points_merged = grid_points_all.groupby('ID', as_index=False).first().drop(columns=['_year'], errors='ignore')
     
-    # Create year-specific dictionary
+    # Create year-specific dictionary. groupby keys are typed as the generic
+    # hashable label, so pin them back to int to match the declared return type
+    # (`_year` is populated from the loop over `years: list[int]` above).
     grid_points_by_year = {
-        year: gp.drop(columns=['_year'], errors='ignore') 
+        int(cast(int, year)): gp.drop(columns=['_year'], errors='ignore')
         for year, gp in grid_points_all.groupby('_year')
     }
 

@@ -77,6 +77,8 @@ input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 /tools
 # Build artefacts (catch both legacy root and src/ layout locations)
 **/pyvwf.egg-info/
+/dist/
+/build/
 /input/terrain
 # Real power-curve library (renewables.ninja / VWF / thewindpower.net): kept
 # local-only and never redistributed. The repo ships synthetic placeholders at

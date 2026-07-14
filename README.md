@@ -86,6 +86,21 @@ straight from the cloned repository (run from the repo root after step 1):
 pip install -e .            # installs pyvwf-train, the linear bias-correction pipeline
 ```
 
+The base install carries everything needed to simulate, bias-correct, evaluate
+and plot. Fetching *new* input data needs extra libraries, which are kept out of
+the base install because they are irrelevant to most users:
+
+```bash
+pip install -e ".[data]"    # ENTSO-E API client + Excel/Parquet readers
+pip install -e ".[dev]"     # pytest, ruff, mypy
+```
+
+| Extra   | Pulls in                        | Needed for                                                    |
+|---------|---------------------------------|---------------------------------------------------------------|
+| (none)  | core scientific + geospatial     | simulation, bias correction, evaluation, `vwf.viz`            |
+| `data`  | `entsoe-py`, `openpyxl`, `pyarrow` | `vwf.datasets` ENTSO-E download and raw fleet-registry parsing |
+| `dev`   | `pytest`, `ruff`, `mypy`         | running the test suite, linting, type checking                |
+
 After install, the `pyvwf-train` console command is available on your PATH:
 
 | Command       | Wraps                                              |
@@ -404,16 +419,30 @@ suggested reading order, or jump to a specific reference:
 PyVWF ships with a `pytest` suite that runs on **synthetic data** (no ERA5 or
 ENTSO-E access required), covering the wind log-law/interpolation, power-curve
 conversion, the linear bias-correction optimiser, temporal-resolution utilities,
-and the distributional visualisation layer.
+the visualisation layer, and the packaging invariants.
 
 ```bash
 pip install -e ".[dev]"
 pytest                     # run the suite
 ruff check src/vwf tests   # lint
+mypy                       # type check
 ```
 
-Continuous integration (`.github/workflows/ci.yml`) runs the suite and linter on
-Python 3.10–3.12 for every push and pull request.
+Continuous integration (`.github/workflows/ci.yml`) runs, for every push and
+pull request:
+
+- **Lint and type check** — `ruff` and `mypy` (the package ships a `py.typed`
+  marker, so type information is exported to downstream users).
+- **Test** — the suite plus the end-to-end example on Python 3.10–3.12,
+  installed from `pyproject.toml` so the declared dependencies are exercised
+  exactly as a `pip install pyvwf` user would get them.
+- **Package** — builds the sdist and wheel, validates the distribution
+  metadata with `twine`, then installs the wheel into a clean environment and
+  imports it with no repository on `sys.path`.
+
+The version lives in exactly one place — `vwf.__version__` — from which
+`pyproject.toml` reads it dynamically; `tests/test_packaging.py` asserts it
+follows semantic versioning and stays in step with `CITATION.cff`.
 
 ## Assumptions and limitations
 

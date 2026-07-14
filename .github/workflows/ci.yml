@@ -7,6 +7,33 @@ on:
   workflow_dispatch:
 
 jobs:
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          # mypy runs on a single Python rather than the test matrix: numpy's
+          # bundled stubs use PEP 695 syntax that mypy only parses when
+          # targeting 3.12+.
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package and dev tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check src/vwf tests
+
+      - name: Type check (mypy)
+        run: mypy
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -25,29 +52,50 @@ jobs:
           cache: pip
 
       - name: Install package and test dependencies
+        # Install from pyproject rather than a hand-curated pip list, so CI
+        # actually exercises the dependency metadata a `pip install pyvwf` user
+        # gets. A curated list silently papers over missing declared deps —
+        # that is how the missing `bottleneck` dependency reached main.
+        # The `data` extra is deliberately NOT installed: the test suite and the
+        # example must pass without the data-acquisition libraries.
         run: |
           python -m pip install --upgrade pip
-          # Core scientific stack needed by the unit tests (kept light: the
-          # tests use synthetic data and do not need every optional dependency).
-          # matplotlib is needed by tests/test_viz.py (uses the Agg backend).
-          # shapely + geopandas are hard requirements imported by vwf.clustering;
-          # omitting them makes the package emit "not installed" UserWarnings.
-          # netCDF4 is needed to read the bundled examples/ NetCDF in the example step.
-          # bottleneck backs xarray's .bfill(), which prep_era5 uses to fill the
-          # surface-roughness field; without it xarray raises ModuleNotFoundError.
-          pip install numpy pandas scipy xarray "dask[dataframe]" scikit-learn matplotlib shapely geopandas netCDF4 bottleneck
-          pip install pytest pytest-cov ruff
-          # Install PyVWF itself so `import vwf` resolves under the `pytest`
-          # console script (which does not add the repo root to sys.path).
-          # --no-deps keeps the run lightweight and verifies the package imports
-          # without installing every optional dependency.
-          pip install -e . --no-deps
-
-      - name: Lint (ruff)
-        run: ruff check src/vwf tests
+          pip install -e ".[dev]"
 
       - name: Run tests
         run: pytest tests -q --cov=vwf --cov-report=term-missing
 
       - name: Run minimal example (end-to-end on bundled synthetic data)
         run: python examples/run_minimal.py
+
+  package:
+    name: Package (build + clean install)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+
+      - name: Check distribution metadata
+        run: twine check dist/*
+
+      - name: Install the wheel into a clean environment
+        # No repo on sys.path: proves the *installed artefact* is self-contained
+        # and that the declared dependencies are sufficient to import and run it.
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/clean/bin/python -c "import vwf; print('pyvwf', vwf.__version__)"
+          /tmp/clean/bin/python -c "import vwf.wind, vwf.correction, vwf.metrics, vwf.viz"
+          /tmp/clean/bin/pyvwf-train --help
