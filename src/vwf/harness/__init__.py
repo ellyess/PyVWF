@@ -6,6 +6,13 @@ correction or simulation code paths.
 
 See ``docs/HARNESS_DESIGN.md`` for the design this implements.
 """
+from vwf.harness.corrections import (
+    AffineWindCorrection,
+    CorrectionModel,
+    available_corrections,
+    get_correction,
+    register_correction,
+)
 from vwf.harness.provenance import (
     build_manifest,
     curve_library_identity,
@@ -21,6 +28,11 @@ from vwf.harness.skill import (
 )
 
 __all__ = [
+    "AffineWindCorrection",
+    "CorrectionModel",
+    "available_corrections",
+    "get_correction",
+    "register_correction",
     "RegionSpec",
     "load_region",
     "season_of_month",
