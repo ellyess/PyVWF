@@ -125,3 +125,51 @@ def test_country_level_fit_is_a_delegation_wrapper(synthetic_dk):
     # correction must pull the simulation down.
     assert (factors["scalar"] < 1.0).all()
     assert factors["offset"].notna().all()
+
+
+def test_country_level_evaluate_saves_frames_and_metrics(synthetic_dk, tmp_path):
+    """The country-level driver evaluate path: reuses grid clusters, saves
+    corrected-CF frames, and scores the capacity-weighted country aggregate."""
+    from vwf.harness.driver import run_evaluate, run_train
+
+    grid_points = pd.DataFrame(
+        {
+            "ID": ["g0", "g1", "g2", "g3"],
+            "lon": [8.1, 8.3, 9.2, 9.4],
+            "lat": [55.2, 55.4, 55.6, 55.8],
+            "height": [100.0] * 4,
+            "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
+            "model": ["Synthetic.Onshore2000"] * 4,
+            "cluster": [0, 0, 1, 1],
+            "type": ["onshore"] * 4,
+        }
+    )
+    train_idx = pd.date_range("2015-01-01", "2015-12-31 23:00", freq="h", tz="UTC")
+    test_idx = pd.date_range("2016-01-01", "2016-12-31 23:00", freq="h", tz="UTC")
+    train_obs = pd.DataFrame({"capacity_factor": 0.2}, index=train_idx)
+    test_obs = pd.DataFrame({"capacity_factor": 0.2}, index=test_idx)
+
+    spec = make_spec(
+        source="in-memory-country",
+        obs_level="country",
+        obs_unit="country",
+        cluster_list=(2,),
+    )
+    out = synthetic_dk["root"] / "cl_validation"
+
+    train_src = InMemoryCountrySource(grid_points, train_obs)
+    test_src = InMemoryCountrySource(grid_points, test_obs)
+
+    train_dir = run_train(spec, out, source=train_src, run_name="t")
+    assert (train_dir / "factors_fixed_2.csv").is_file()
+
+    eval_dir = run_evaluate(spec, train_dir, out, source=test_src, run_name="e")
+    assert (eval_dir / "cor_cf_fixed_2.csv").is_file()
+    assert (eval_dir / "unc_cf.csv").is_file()
+
+    metrics = pd.read_csv(eval_dir / "metrics.csv")
+    assert set(metrics["variant"]) == {"uncorrected", "affine-wind"}
+    assert "n_months" in metrics.columns  # country metric shape
+    unc = metrics[metrics["variant"] == "uncorrected"].iloc[0]
+    cor = metrics[metrics["variant"] == "affine-wind"].iloc[0]
+    assert abs(cor["mbe"]) < abs(unc["mbe"])  # correction shrinks country bias

@@ -14,7 +14,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
+import numpy as np
 import pandas as pd
 
 import vwf.wind as wind
@@ -25,7 +27,7 @@ from vwf.harness.corrections import get_correction
 from vwf.harness.provenance import write_manifest_safe
 from vwf.harness.regions import RegionSpec
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
-from vwf.sources import ObservationSource, get_source
+from vwf.sources import EntsoeFileSource, ObservationSource, get_source
 
 #: The approved transfer pair set (Phase 0 sign-off): AU-NEM against Europe,
 #: in either direction. Everything else is out of scope on this branch.
@@ -45,13 +47,18 @@ def check_transfer_pair(source_code: str, target_code: str) -> None:
         )
 
 
-def resolve_source(spec: RegionSpec) -> ObservationSource:
-    """Resolve the region's observation source from the registry by name."""
+def resolve_source(
+    spec: RegionSpec, split: Literal["train", "test"] = "train"
+) -> ObservationSource:
+    """Resolve the region's observation source from the registry by name.
+
+    Country-level file-backed regions ("entsoe-country") read a different file
+    per split, so the source is built per split; turbine-level sources ignore
+    the split and are resolved by country from the registry.
+    """
     if spec.source == "entsoe-country":
-        raise NotImplementedError(
-            "Country-level file-backed loading (entsoe-country) is wired up "
-            "with the Europe re-runs in Phase 2. Pass an explicit source= "
-            "(e.g. InMemoryCountrySource) until then."
+        return EntsoeFileSource(
+            spec.code, split, spec.train_years, spec.test_years[0]
         )
     return get_source(spec.source, spec.code)
 
@@ -160,17 +167,19 @@ def run_evaluate(
 ) -> Path:
     """Evaluate a trained run against a held-out year.
 
-    Writes ``metrics.csv`` with one row per variant (uncorrected baseline
-    plus each factors file) and returns the evaluation run directory.
+    Writes ``metrics.csv`` with one row per variant (uncorrected baseline plus
+    each factors file), saves every corrected-CF frame (``cor_cf_*.csv``, plus
+    ``unc_cf.csv``) so runs can be diffed at frame level, and returns the
+    evaluation run directory. Handles both obs levels: turbine-level clusters
+    the test fleet against the training fleet; country-level reuses the grid
+    points' own cluster assignments and scores the capacity-weighted country
+    aggregate.
     """
-    if spec.obs_level != "turbine":
-        raise NotImplementedError(
-            "Country-level evaluation lands with the Europe re-runs (Phase 2)."
-        )
+    is_country = spec.obs_level == "country"
     year = int(year if year is not None else spec.test_years[0])
     train_run_dir = Path(train_run_dir)
 
-    source = source if source is not None else resolve_source(spec)
+    source = source if source is not None else resolve_source(spec, "test")
     obs_cf, turb_info, reanalysis, power_curves = val_set(
         spec.code,
         calc_z0,
@@ -189,23 +198,35 @@ def run_evaluate(
     rows = []
 
     def _skill_row(sim_cf: pd.DataFrame, variant: str, num_clu, time_res) -> dict:
-        tidy = _tidy_eval_frame(sim_cf, obs_cf, turb_info)
-        tidy = collapse_pseudo_replicates(tidy, spec)
-        metrics = skill_metrics(tidy)
+        if is_country:
+            metrics = _country_skill(sim_cf, obs_cf, turb_info)
+        else:
+            tidy = collapse_pseudo_replicates(
+                _tidy_eval_frame(sim_cf, obs_cf, turb_info), spec
+            )
+            metrics = skill_metrics(tidy)
         return {"variant": variant, "num_clu": num_clu, "time_res": time_res, **metrics}
 
     _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+    unc_cf.to_csv(run_dir / "unc_cf.csv", index=False)
     rows.append(_skill_row(unc_cf, "uncorrected", 1, "none"))
 
     for factors_path in sorted(train_run_dir.glob("factors_*.csv")):
         time_res, num_clu_str = factors_path.stem.split("_")[1:3]
         num_clu = int(num_clu_str)
         factors = pd.read_csv(factors_path)
-        train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
-        clus_info = cluster_turbines(num_clu, train_fleet, False, turb_info)
+        if is_country:
+            # Grid points carry their own cluster assignments from training;
+            # no re-clustering runs on the country-level path (mirrors
+            # PyVWF.simulate_cf).
+            clus_info = turb_info.copy()
+        else:
+            train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
+            clus_info = cluster_turbines(num_clu, train_fleet, False, turb_info)
         _, cor_cf = model.apply(
             reanalysis, clus_info, power_curves, factors, time_res, seasons=spec.seasons
         )
+        cor_cf.to_csv(run_dir / f"cor_cf_{time_res}_{num_clu}.csv", index=False)
         rows.append(_skill_row(cor_cf, spec.correction_model, num_clu, time_res))
 
     metrics_df = pd.DataFrame(rows)
@@ -220,6 +241,54 @@ def run_evaluate(
         },
     )
     return run_dir
+
+
+def _country_skill(
+    sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame
+) -> dict:
+    """Capacity-weighted country aggregate vs the observed country series.
+
+    Grid-level simulated CF is collapsed to one capacity-weighted country CF
+    per timestep (NaN-skipping, reweighting on the present grid points), then
+    both sides are compared as monthly means — matching the legacy
+    country-level metric.
+    """
+    grid_cols = [c for c in sim_cf.columns if c != "time"]
+    cap = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
+    valid = [c for c in grid_cols if str(c) in cap.index]
+    caps = cap[[str(c) for c in valid]].to_numpy(float)
+
+    sim = sim_cf.copy()
+    sim["time"] = pd.to_datetime(sim["time"])
+    vals = sim[valid].to_numpy(float)
+    present = ~np.isnan(vals)
+    wsum = np.where(present, caps, 0.0).sum(axis=1)
+    country = np.where(wsum > 0, np.where(present, vals * caps, 0.0).sum(axis=1) / wsum, np.nan)
+    sim_country = pd.DataFrame({"time": sim["time"], "cf_sim": country})
+    sim_country["ym"] = sim_country["time"].dt.to_period("M")
+    sim_m = sim_country.groupby("ym")["cf_sim"].mean()
+
+    obs = obs_country.copy()
+    obs["time"] = pd.to_datetime(obs["time"])
+    obs["ym"] = obs["time"].dt.to_period("M")
+    obs_m = obs.groupby("ym")["obs"].mean().rename("cf_obs")
+
+    merged = pd.concat([sim_m, obs_m], axis=1).dropna()
+    if merged.empty:
+        return {"mbe": float("nan"), "mae": float("nan"), "rmse": float("nan"),
+                "pearson_r": float("nan"), "n_months": 0}
+    diff = merged["cf_sim"] - merged["cf_obs"]
+    r = (
+        float(np.corrcoef(merged["cf_sim"], merged["cf_obs"])[0, 1])
+        if len(merged) > 1 else float("nan")
+    )
+    return {
+        "mbe": float(diff.mean()),
+        "mae": float(diff.abs().mean()),
+        "rmse": float(np.sqrt((diff**2).mean())),
+        "pearson_r": r,
+        "n_months": int(len(merged)),
+    }
 
 
 def collapse_factors(
