@@ -356,7 +356,9 @@ def test_custom_source_drives_the_country_level_pipeline(
         def load_observations(self, year_start=None, year_end=None) -> pd.DataFrame:
             return _country_observations()
 
-    monkeypatch.setattr(data, "prep_era5", lambda country, train, calc_z0: reanalysis)
+    monkeypatch.setattr(
+        data, "prep_era5", lambda country, train, calc_z0, **kwargs: reanalysis
+    )
     monkeypatch.setattr(data, "load_power_curves", lambda: power_curve)
 
     gen_cf, turb_info, _, _ = train_set("ZZ", True, obs_level="country")

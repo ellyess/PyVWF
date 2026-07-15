@@ -200,7 +200,7 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile,
     return offset
 
 
-def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_cluster, turb_info, reanalysis, powerCurveFile):
+def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_cluster, turb_info, reanalysis, powerCurveFile, seasons=None):
     """Optimize offsets for all clusters in country-level mode.
 
     For country-level data, all clusters share the same country-wide observation.
@@ -215,12 +215,14 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
         turb_info: Turbine/grid point metadata with cluster assignments
         reanalysis: xarray Dataset with wind data
         powerCurveFile: Power curve lookup table
+        seasons: Optional season-name → month-list mapping (validation
+            harness). Default None keeps the hardcoded NH season months.
 
     Returns:
         dict: Mapping of cluster ID to optimized offset value
     """
     # Parse time_slice to month list
-    months = parse_time_slice(time_slice)
+    months = parse_time_slice(time_slice, seasons)
 
     # Filter reanalysis to time period
     reanalysis_period = reanalysis.sel(

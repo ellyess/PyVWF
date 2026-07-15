@@ -256,6 +256,8 @@ def train_set(
     source: ObservationSource | None = None,
     external_grid_points: pd.DataFrame | None = None,
     external_obs_data: pd.DataFrame | None = None,
+    era5_dir=None,
+    bbox=None,
 ):
     """Prepare training inputs for PyVWF.
 
@@ -273,6 +275,10 @@ def train_set(
             Superseded by ``source``; retained for backward compatibility.
         external_obs_data: Optional externally provided observations (for country-level).
             Superseded by ``source``; retained for backward compatibility.
+        era5_dir: Optional ERA5 directory forwarded to prep_era5 (validation
+            harness). Default None keeps the legacy location.
+        bbox: Optional bounding box forwarded to prep_era5. Default None keeps
+            the legacy BoundingBoxes lookup.
 
     Returns:
         Tuple of (gen_cf, turb_info, reanalysis, power_curves).
@@ -287,7 +293,7 @@ def train_set(
         turb_info["model"] = fix_turb
 
     # prep era5 + curves once
-    reanalysis = prep_era5(country, True, calc_z0)
+    reanalysis = prep_era5(country, True, calc_z0, bbox=bbox, era5_dir=era5_dir)
     power_curves = load_power_curves()
 
     # -------------------------
@@ -414,7 +420,7 @@ def train_set(
     return gen_cf, turb_info, reanalysis, power_curves
 
 
-def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None):
+def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None, era5_dir=None, bbox=None):
     """Prepare validation data for a country.
 
     Args:
@@ -429,6 +435,10 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
             Superseded by ``source``; retained for backward compatibility.
         external_obs_data: Optional externally provided observations (for country-level).
             Superseded by ``source``; retained for backward compatibility.
+        era5_dir: Optional ERA5 directory forwarded to prep_era5 (validation
+            harness). Default None keeps the legacy location.
+        bbox: Optional bounding box forwarded to prep_era5. Default None keeps
+            the legacy BoundingBoxes lookup.
 
     Returns:
         Tuple of observations, turbine metadata, reanalysis, and power curves.
@@ -443,7 +453,7 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         turb_info["model"] = fix_turb
 
     # preping era5 for val
-    reanalysis = prep_era5(country, False, calc_z0)
+    reanalysis = prep_era5(country, False, calc_z0, bbox=bbox, era5_dir=era5_dir)
 
     # Filter to test year only
     if year_test is not None:
