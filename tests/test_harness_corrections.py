@@ -96,9 +96,9 @@ def test_affine_golden_regression_bit_for_bit(synthetic_dk):
     pd.testing.assert_frame_equal(cf, legacy_cf)
 
 
-def test_affine_fit_rejects_country_level():
+def test_affine_fit_rejects_unknown_obs_level():
     model = get_correction("affine-wind")
-    with pytest.raises(NotImplementedError, match="country-level"):
+    with pytest.raises(ValueError, match="obs_level"):
         model.fit(
             pd.DataFrame(),
             pd.DataFrame(),
@@ -106,7 +106,7 @@ def test_affine_fit_rejects_country_level():
             pd.DataFrame(),
             num_clusters=1,
             time_res="fixed",
-            obs_level="country",
+            obs_level="farm",  # obs_unit value, not a pipeline branch
         )
 
 

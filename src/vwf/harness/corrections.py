@@ -130,10 +130,12 @@ def _override_season_column(
 class AffineWindCorrection(CorrectionModel):
     """The validated baseline: ``cor_ws = scalar * unc_ws + offset``.
 
-    Pure delegation. fit = cluster_train_set → find_offset (sequential) →
-    format_bc_factors; apply = wind.simulate_wind. With ``seasons=None`` this
-    is the exact legacy turbine-level code path (pinned by the golden
-    regression test in tests/test_harness_corrections.py).
+    Pure delegation. Turbine-level fit = cluster_train_set → find_offset
+    (sequential) → format_bc_factors; country-level fit = cluster_train_set →
+    find_offsets_country_level (joint) → format_bc_factors; apply =
+    wind.simulate_wind. With ``seasons=None`` the turbine-level path is the
+    exact legacy code path (pinned by the golden regression test in
+    tests/test_harness_corrections.py).
     """
 
     name: ClassVar[str] = "affine-wind"
@@ -150,16 +152,52 @@ class AffineWindCorrection(CorrectionModel):
         seasons: Mapping[str, Sequence[int]] | None = None,
         obs_level: str = "turbine",
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        if obs_level != "turbine":
-            raise NotImplementedError(
-                "AffineWindCorrection.fit drives the turbine-level training "
-                "path; country-level training stays on PyVWF.train for now"
-            )
+        if obs_level not in ("turbine", "country"):
+            raise ValueError(f"obs_level must be 'turbine' or 'country', got {obs_level!r}")
 
         gen_cf = _override_season_column(gen_cf, seasons)
         train_bias_df, clus_info = cluster_train_set(
             gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level
         )
+
+        if obs_level == "country":
+            # Delegation mirror of PyVWF.train's country branch: one country
+            # observation per period, all cluster offsets optimised jointly
+            # (correction.find_offsets_country_level; identifiability is RQ4's
+            # question, not changed here).
+            unique_periods = train_bias_df[["year", time_res]].drop_duplicates()
+            offsets_rows: list[dict[str, Any]] = []
+            for _, period in unique_periods.iterrows():
+                period_data = train_bias_df[
+                    (train_bias_df["year"] == period["year"])
+                    & (train_bias_df[time_res] == period[time_res])
+                ]
+                offsets = correction.find_offsets_country_level(
+                    year=period["year"],
+                    time_slice=period[time_res],
+                    obs_country_cf=period_data["obs"].iloc[0],
+                    scalars_by_cluster=dict(
+                        zip(period_data["cluster"], period_data["scalar"])
+                    ),
+                    turb_info=clus_info,
+                    reanalysis=reanalysis,
+                    powerCurveFile=power_curves,
+                    seasons=seasons,
+                )
+                offsets_rows.extend(
+                    {
+                        "year": period["year"],
+                        time_res: period[time_res],
+                        "cluster": cluster_id,
+                        "offset": offset,
+                    }
+                    for cluster_id, offset in offsets.items()
+                )
+            train_bias_df = train_bias_df.drop(columns=["offset"], errors="ignore")
+            train_bias_df = train_bias_df.merge(
+                pd.DataFrame(offsets_rows), on=["year", time_res, "cluster"], how="left"
+            )
+            return format_bc_factors(train_bias_df, time_res), clus_info
 
         # Sequential offset fit, mirroring PyVWF.train(dask_n_workers=0):
         # optimise rows with usable observations, zero-fill obs == 0, keep
