@@ -1,0 +1,29 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "IT"
+name = "Italy"
+
+[observations]
+source = "entsoe-country"
+obs_level = "country"
+obs_unit = "country"
+train_years = [2015, 2021]
+test_years = [2023]
+
+[era5]
+path = "era5/EU"
+bbox = [6.6, 18.5, 36.6, 47.1]
+file_tag = "EU"
+
+[correction]
+model = "affine-wind"
+cluster_list = [5]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

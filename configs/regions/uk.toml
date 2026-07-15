@@ -1,0 +1,34 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "UK"
+name = "United Kingdom"
+
+[observations]
+source = "european-turbine"
+obs_level = "turbine"
+obs_unit = "farm"
+train_years = [2015, 2018]
+test_years = [2019]
+# ROC station generation is equally pre-split across turbine rows:
+# 360 independent stations behind 6,604 rows. Distribution comparisons
+# must collapse to stations (vwf.harness.skill.collapse_pseudo_replicates).
+pseudo_replicated_rows = true
+station_id_regex = '^(.+)-\d+$'
+
+[era5]
+path = "era5/EU"
+bbox = [-11.0, 3.0, 49.0, 61.0]
+file_tag = "EU"
+
+[correction]
+model = "affine-wind"
+cluster_list = [10]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

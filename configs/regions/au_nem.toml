@@ -1,0 +1,32 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "AU-NEM"
+name = "Australia (National Electricity Market)"
+
+[observations]
+source = "aemo-nem"
+obs_level = "turbine"
+obs_unit = "farm"
+train_years = [2018, 2022]
+test_years = [2023]
+# SCADA records curtailed output: AU corrections absorb curtailment more
+# than European monthly generation data does (standing caveat, design §2).
+# AEST timestamps convert to UTC at ingest; monthly bins are UTC.
+
+[era5]
+path = "era5/AU"
+bbox = [129.0, 154.0, -44.0, -10.0]
+file_tag = "AU"
+
+[correction]
+model = "affine-wind"
+cluster_list = [5]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [12, 1, 2]
+autumn = [3, 4, 5]
+winter = [6, 7, 8]
+spring = [9, 10, 11]
