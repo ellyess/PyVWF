@@ -1,4 +1,6 @@
 """ERA5 reanalysis import and preprocessing utilities."""
+from pathlib import Path
+
 import xarray as xr
 import numpy as np
 
@@ -39,11 +41,27 @@ def unify_time_coordinate(ds):
     return ds
 
 
+def _normalise_longitudes(ds: xr.Dataset) -> xr.Dataset:
+    """Bring a 0..360 longitude coordinate onto the [-180, 180] convention.
+
+    The whole pipeline (bounding boxes, region configs, turbine metadata)
+    speaks [-180, 180]. ERA5 files arrive in either convention depending on
+    the download route; a 0..360 file sliced with a [-180, 180] bbox returns
+    an empty or wrong subset SILENTLY, so the convention is normalised here,
+    unconditionally, before any slicing. No-op for data already in
+    [-180, 180].
+    """
+    if "lon" in ds.coords and float(ds.lon.max()) > 180.0:
+        ds = ds.assign_coords(lon=((ds.lon + 180.0) % 360.0) - 180.0).sortby("lon")
+    return ds
+
+
 def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.Dataset:
     """Slice a dataset to a lon/lat bounding box.
 
     Args:
-        ds: Input dataset with ``lon`` and ``lat`` coordinates.
+        ds: Input dataset with ``lon`` and ``lat`` coordinates, longitudes in
+            [-180, 180] (see ``_normalise_longitudes``).
         bbox: Tuple of ``(lon_min, lon_max, lat_min, lat_max)``.
 
     Returns:
@@ -51,16 +69,12 @@ def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.D
     """
     lon_min, lon_max, lat_min, lat_max = bbox
 
-    # Ensure lon is in [-180, 180] if your data is 0..360 (optional; only if needed)
-    # if ds.lon.max() > 180:
-    #     ds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")
-
     lat_desc = bool(ds.lat[0] > ds.lat[-1])
     lat_slice = slice(lat_max, lat_min) if lat_desc else slice(lat_min, lat_max)
 
     return ds.sel(lon=slice(lon_min, lon_max), lat=lat_slice)
 
-def prep_era5(country, train=False, calc_z0=True, bbox=None):
+def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None):
     """Preprocess ERA5 reanalysis data.
 
     Args:
@@ -69,13 +83,17 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None):
         calc_z0: If True, compute surface roughness length from 10m/100m winds.
         bbox: Optional ``(lon_min, lon_max, lat_min, lat_max)`` tuple. If None,
             uses ``BoundingBoxes.get(country)`` when available.
+        era5_dir: Optional directory holding the ERA5 ``*.nc`` files (the
+            validation harness passes the region config's path). Default None
+            keeps the legacy ``PyVWFPaths.ERA5_DATA`` location.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.
     """
     print(f"prepping ERA5 data for {country}, train={train}, calc_z0={calc_z0}")
 
-    path = str(PyVWFPaths.ERA5_DATA / "*.nc")
+    data_dir = Path(era5_dir) if era5_dir is not None else PyVWFPaths.ERA5_DATA
+    path = str(data_dir / "*.nc")
     ds = xr.open_mfdataset(path, combine="by_coords", parallel=False)
     ds = unify_time_coordinate(ds)
 
@@ -83,6 +101,9 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None):
     for old, new in [("longitude", "lon"), ("latitude", "lat")]:
         if old in ds.coords:
             ds = ds.rename({old: new})
+
+    # 0..360 downloads sliced with [-180, 180] boxes fail silently: normalise.
+    ds = _normalise_longitudes(ds)
 
     # Apply bbox slice early (big memory/time win before .load())
     if bbox is None:
