@@ -290,6 +290,39 @@ def test_simulate_cf_outputs_are_physical(trained_model):
     assert ((values >= 0.0) & (values <= 1.0)).all(), "corrected CF outside [0, 1]"
 
 
+def test_legacy_runs_write_a_provenance_manifest(trained_model):
+    """PyVWF.train and simulate_cf self-describe their curve library
+    (design §6): the manifest records synthetic-vs-external and the run
+    parameters, so legacy outputs are attributable too."""
+    import json
+
+    model, _ = trained_model
+    manifest_path = f"{model.directory_path}/run_manifest.json"
+    manifest = json.loads(open(manifest_path).read())
+    assert manifest["run_mode"] == "legacy-train"
+    assert manifest["country"] == "DK"
+    assert manifest["curve_library"]["library"] == "synthetic-bundled"
+
+    model.simulate_cf(YEAR_TEST)
+    manifest = json.loads(open(manifest_path).read())
+    assert manifest["run_mode"] == "legacy-simulate"
+    assert manifest["year_test"] == YEAR_TEST
+
+
+def test_manifest_failure_never_aborts_a_run(trained_model, monkeypatch, capsys):
+    """The never-abort condition (design §6): a manifest-write failure logs a
+    warning and the run completes."""
+    import vwf.harness.provenance as provenance
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("disk full (simulated)")
+
+    monkeypatch.setattr(provenance, "write_manifest_safe", boom)
+    model, _ = trained_model
+    model.simulate_cf(YEAR_TEST)  # must not raise
+    assert "could not write run manifest" in capsys.readouterr().out
+
+
 def test_simulate_cf_is_idempotent(trained_model):
     """Re-running must reuse the existing outputs rather than recompute or
     corrupt them — the guard that lets a long sweep be resumed."""
