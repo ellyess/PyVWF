@@ -23,6 +23,9 @@ extensions = [
     "sphinx.ext.napoleon",      # Google-style docstrings
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
+    # MathJax is Sphinx's default HTML math renderer; listed explicitly so the
+    # dollar-math in index.md keeps rendering if the defaults ever change.
+    "sphinx.ext.mathjax",
     "myst_parser",              # the narrative guides are Markdown
 ]
 
@@ -63,7 +66,9 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
-myst_enable_extensions = ["colon_fence", "deflist"]
+# dollarmath: index.md writes math as $...$ / $$...$$, which GitHub also
+# renders natively, so the same source works on both surfaces.
+myst_enable_extensions = ["colon_fence", "deflist", "dollarmath"]
 # The guides link to each other as .md; let MyST resolve those to pages.
 myst_heading_anchors = 3
 suppress_warnings = ["myst.xref_missing"]
