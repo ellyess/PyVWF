@@ -248,7 +248,7 @@ def interpolate_wind(reanalysis, turb_info):
     return sim_ws
 
 
-def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False):
+def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False, seasons=None):
     """Simulate wind speeds and capacity factors for turbines (OPTIMIZED).
 
     Performance improvements:
@@ -262,6 +262,10 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False)
         powerCurveFile: Power curve table.
         *args: Optional (bc_factors, time_res) for correction.
         aggregate: If True, aggregate turbines to grid cells first (huge speedup).
+        seasons: Optional season-name → month-list mapping forwarded to
+            correct_wind_speed, for regions whose seasons differ from the
+            Northern-Hemisphere defaults. Default None keeps the hardcoded
+            NH season assignment.
 
     Returns:
         Tuple of (wind speed DataFrame, capacity factor DataFrame).
@@ -285,7 +289,7 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False)
     if len(args) >= 1:
         bc_factors = args[0]
         time_res = args[1]
-        sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
+        sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info, seasons=seasons)
 
     # Pre-compute power curves once (not repeatedly)
     x, curve_by_model = _get_power_curve_cache(powerCurveFile)
@@ -304,7 +308,7 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False)
     return sim_ws.to_pandas().reset_index(), sim_cf.to_pandas().reset_index()
 
 
-def correct_wind_speed(ds, time_res, bc_factors, turb_info):
+def correct_wind_speed(ds, time_res, bc_factors, turb_info, seasons=None):
     """Apply bias correction factors to wind speeds.
 
     Args:
@@ -312,6 +316,9 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
         time_res: Temporal resolution key used in corrections.
         bc_factors: Bias correction factors DataFrame.
         turb_info: Turbine metadata with cluster assignments.
+        seasons: Optional season-name → month-list mapping, for regions
+            whose seasons differ from the Northern-Hemisphere defaults.
+            Default None keeps the hardcoded NH season assignment.
 
     Returns:
         DataArray of corrected wind speeds.
@@ -328,7 +335,7 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info):
     df["year"] = pd.DatetimeIndex(df["time"]).year
     df["month"] = pd.DatetimeIndex(df["time"]).month
 
-    df = add_time_resolution_columns(df)
+    df = add_time_resolution_columns(df, seasons)
 
     df = df.merge(bc_factors, on=["cluster", time_res], how="left").set_index(["time", "turbine"])
 

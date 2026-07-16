@@ -132,7 +132,8 @@ def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3)):
 
 def find_offset(row, turb_info, reanalysis, powerCurveFile,
                 max_iter=100, tolerance=0.002, initial_step=10.0,
-                bounds=(-10, 10), use_scipy_fallback=True, verbose=False):
+                bounds=(-10, 10), use_scipy_fallback=True, verbose=False,
+                seasons=None):
     """Optimize the additive offset correction factor.
 
     Uses a hybrid approach: fast iterative method with scipy fallback for robustness.
@@ -148,12 +149,15 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile,
         bounds (tuple): Offset bounds for scipy method (default: (-10, 10)).
         use_scipy_fallback (bool): Use scipy if fast method fails (default: True).
         verbose (bool): Print warnings for failed optimizations (default: False).
+        seasons: Optional season-name → month-list mapping, for regions
+            whose seasons differ from the Northern-Hemisphere defaults.
+            Default None keeps the hardcoded NH season months.
 
     Returns:
         float: Best-fit offset value (or np.nan if all methods fail).
     """
     # Parse time slice to months
-    months = parse_time_slice(row['time_slice'])
+    months = parse_time_slice(row['time_slice'], seasons)
 
     # Pre-filter reanalysis data once
     reanalysis_filtered = reanalysis.sel(
@@ -197,7 +201,7 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile,
     return offset
 
 
-def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_cluster, turb_info, reanalysis, powerCurveFile):
+def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_cluster, turb_info, reanalysis, powerCurveFile, seasons=None):
     """Optimize offsets for all clusters in country-level mode.
 
     For country-level data, all clusters share the same country-wide observation.
@@ -212,12 +216,15 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
         turb_info: Turbine/grid point metadata with cluster assignments
         reanalysis: xarray Dataset with wind data
         powerCurveFile: Power curve lookup table
+        seasons: Optional season-name → month-list mapping, for regions
+            whose seasons differ from the Northern-Hemisphere defaults.
+            Default None keeps the hardcoded NH season months.
 
     Returns:
         dict: Mapping of cluster ID to optimized offset value
     """
     # Parse time_slice to month list
-    months = parse_time_slice(time_slice)
+    months = parse_time_slice(time_slice, seasons)
 
     # Filter reanalysis to time period
     reanalysis_period = reanalysis.sel(
