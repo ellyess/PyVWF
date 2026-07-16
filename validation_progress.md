@@ -901,3 +901,48 @@ user review.
 Assemble + lock curve CSV → user review → add_models wiring (per-turbine
 capacity × OEM rotor diameter → p_density match into the real library) →
 pillar A run with the approved data-as-judge gate.
+
+---
+
+## 2026-07-16 — Curve CSV assembled and LOCKED for review (checkpoint 18)
+
+**Status:** Both research agents returned; configs/au_turbine_models.csv
+assembled (uncommitted until user signs). Pillar A remains HELD.
+
+### Tier summary (the numbers the write-up rests on)
+| tier | farms | MW | % of fleet capacity |
+|---|---|---|---|
+| manufacturer-confirmed (incl. 1 propagated) | 20 | 6,293 | 44.1% |
+| secondary-source (51 full + 15 manufacturer-only) | 66 | 6,757 | 47.4% |
+| default-fallback | 18 | 1,210 | 8.5% |
+
+### p_density cross-check (the Collector/Ryan-Corner error detector)
+71/104 farms have computable p_density (GI per-turbine MW × source rotor):
+ALL within the physical band — 191–538 W/m², median 304. One flag, caught
+and resolved: WAMBOWF1's GI "Unit Capacity" is the whole farm (registered
+as one 252 MW unit group, the only such farm); unit_mw_eff derived as
+capacity/OEM-count (42 × 6.0), documented in the flags column.
+
+### Review-worthy discrepancies (in the note column)
+- GULLRWF2: GI says 31 × 3.57 MW; Wikipedia says Gullen Range is
+  17 × GW82-1.5 + 56 × GW100-2.5 — GI's unit data looks wrong for this
+  farm; mixed fleet, no single p_density.
+- CROOKWF2: GI 28 × 3.43 vs Wikipedia Crookwell 2 = 46 units/92 MW —
+  conflicting; kept FALLBACK rather than forced.
+- PORTWF/YAMBUKWF: Vestas-vs-Senvion source conflict (farm infobox vs
+  state list) — kept FALLBACK rather than guessing.
+- Upstream catches (already in the CSV): Collector V117-4.2 not V150;
+  Ryan Corner V136-4.2 not V150; Port Augusta REP stays secondary
+  (Vestas PR is anonymised — not to be promoted without a real OEM
+  source, per ruling).
+
+### Largest fallbacks (stated limitation if unresolved)
+Berrybank 2 DUIDs (290 MW), Mortlake South (157), Portland complex
+(182 across PORTWF/YAMBUKWF), Flyers Creek (145), Hawkesdale (97),
+Crookwell 2+3 (154). Fallback = 8.5% of capacity.
+
+### Next checkpoint
+User signs the CSV → commit → add_models wiring (manufacturer +
+p_density into the real library; manufacturer-only rows match within
+manufacturer by nearest unit capacity; fallback rows get per-farm
+default marked model_source) → PILLAR A.
