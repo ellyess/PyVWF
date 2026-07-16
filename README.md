@@ -427,9 +427,12 @@ See [PIPELINE.md](PIPELINE.md) for the full script execution order.
 
 ## Detailed usage and reference
 
-Reference material that used to live inline has moved into `docs/` to keep this
-page focused. Start with the [documentation index](docs/README.md) for a
-suggested reading order, or jump to a specific reference:
+The full documentation, including the guides below and an API reference
+generated from the docstrings, is hosted at
+[pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/). The same content lives
+in `docs/` as plain Markdown, so everything is also readable directly on
+GitHub. Start with the [documentation index](docs/README.md) for a suggested
+reading order, or jump to a specific reference:
 
 - [Data requirements](docs/DATA_REQUIREMENTS.md): input data formats and how to download ERA5 winds.
 - [Output structure](docs/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
