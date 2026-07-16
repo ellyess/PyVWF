@@ -57,29 +57,24 @@ def aest_to_utc(timestamps: pd.Series) -> pd.Series:
     return ts.dt.tz_localize(AEST).dt.tz_convert("UTC").dt.tz_localize(None)
 
 
-def scada_to_monthly_cf(
-    scada: pd.DataFrame,
-    metadata: pd.DataFrame,
-    year_start: int,
-    year_end: int,
-    *,
-    min_coverage: float = DEFAULT_MIN_COVERAGE,
-) -> pd.DataFrame:
-    """Aggregate 5-minute SCADA MW to monthly capacity factors in UTC bins.
+def scada_partial_aggregate(scada: pd.DataFrame) -> pd.DataFrame:
+    """Reduce raw 5-minute SCADA to per-(ID, UTC year, month) partials.
+
+    The pure aggregation half of :func:`scada_to_monthly_cf`: AEST→UTC
+    conversion, then energy and interval counts per month. Partials from
+    separate chunks (e.g. AEMO's monthly archive files, which are cut on
+    MARKET-time month boundaries and therefore straddle UTC months) can be
+    summed with :func:`combine_partials` before finalisation — the whole
+    point of the split, since concatenating finalised monthly CFs from
+    market-month chunks would get the straddled edge hours wrong.
 
     Args:
         scada: Long frame with columns ``timestamp`` (naive AEST), ``ID``
             (DUID), and ``mw`` (dispatch-interval average output in MW).
-        metadata: Farm metadata with ``ID``, ``capacity`` (kW, per the
-            ObservationSource contract) and optionally ``commissioning_date``.
-        year_start: First UTC year to include (inclusive).
-        year_end: Last UTC year to include (inclusive).
-        min_coverage: Minimum fraction of a month's SCADA intervals that must
-            be present; months below it are NaN rather than biased low.
 
     Returns:
-        Wide frame with ``ID``, ``year``, ``obs_1``..``obs_12``. Months before
-        (or containing) a farm's commissioning date are NaN.
+        Frame with ``ID``, ``year``, ``month``, ``energy_mwh``,
+        ``n_intervals``.
     """
     required = {"timestamp", "ID", "mw"}
     if not required.issubset(scada.columns):
@@ -91,16 +86,53 @@ def scada_to_monthly_cf(
     scada["timestamp"] = aest_to_utc(scada["timestamp"])
     scada["year"] = scada["timestamp"].dt.year
     scada["month"] = scada["timestamp"].dt.month
-    scada = scada[(scada["year"] >= int(year_start)) & (scada["year"] <= int(year_end))]
 
     interval_hours = SCADA_INTERVAL_MINUTES / 60.0
     scada["energy_mwh"] = pd.to_numeric(scada["mw"], errors="coerce") * interval_hours
 
-    monthly = (
+    return (
         scada.groupby(["ID", "year", "month"])
         .agg(energy_mwh=("energy_mwh", "sum"), n_intervals=("energy_mwh", "count"))
         .reset_index()
     )
+
+
+def combine_partials(partials: list[pd.DataFrame]) -> pd.DataFrame:
+    """Sum per-month partials from several chunks into one table."""
+    if not partials:
+        raise ValueError("no partials to combine")
+    stacked = pd.concat(partials, ignore_index=True)
+    return (
+        stacked.groupby(["ID", "year", "month"], as_index=False)[
+            ["energy_mwh", "n_intervals"]
+        ].sum()
+    )
+
+
+def finalise_monthly_cf(
+    partials: pd.DataFrame,
+    metadata: pd.DataFrame,
+    year_start: int,
+    year_end: int,
+    *,
+    min_coverage: float = DEFAULT_MIN_COVERAGE,
+) -> pd.DataFrame:
+    """Turn per-month energy partials into the wide monthly-CF contract.
+
+    The judgement half of :func:`scada_to_monthly_cf`: capacity conversion,
+    coverage floor, commissioning mask, wide pivot. Kept separate so
+    precomputed partials (fast path) run through exactly this audited code
+    with the CURRENT metadata at load time.
+    """
+    monthly = partials.copy()
+    monthly["ID"] = monthly["ID"].astype(str)
+    # Fixed dtypes so precomputed partials (CSV round-trip) and the in-memory
+    # path produce byte-identical frames.
+    monthly["year"] = monthly["year"].astype("int64")
+    monthly["month"] = monthly["month"].astype("int64")
+    monthly = monthly[
+        (monthly["year"] >= int(year_start)) & (monthly["year"] <= int(year_end))
+    ]
 
     meta = metadata.copy()
     meta["ID"] = meta["ID"].astype(str)
@@ -141,6 +173,45 @@ def scada_to_monthly_cf(
     return wide
 
 
+def scada_to_monthly_cf(
+    scada: pd.DataFrame,
+    metadata: pd.DataFrame,
+    year_start: int,
+    year_end: int,
+    *,
+    min_coverage: float = DEFAULT_MIN_COVERAGE,
+) -> pd.DataFrame:
+    """Aggregate 5-minute SCADA MW to monthly capacity factors in UTC bins.
+
+    Composition of :func:`scada_partial_aggregate` and
+    :func:`finalise_monthly_cf`; see those for the semantics. Note the
+    partials are computed over the whole input and the year filter is applied
+    at finalisation — identical result, since UTC binning precedes filtering
+    either way.
+
+    Args:
+        scada: Long frame with columns ``timestamp`` (naive AEST), ``ID``
+            (DUID), and ``mw`` (dispatch-interval average output in MW).
+        metadata: Farm metadata with ``ID``, ``capacity`` (kW, per the
+            ObservationSource contract) and optionally ``commissioning_date``.
+        year_start: First UTC year to include (inclusive).
+        year_end: Last UTC year to include (inclusive).
+        min_coverage: Minimum fraction of a month's SCADA intervals that must
+            be present; months below it are NaN rather than biased low.
+
+    Returns:
+        Wide frame with ``ID``, ``year``, ``obs_1``..``obs_12``. Months before
+        (or containing) a farm's commissioning date are NaN.
+    """
+    return finalise_monthly_cf(
+        scada_partial_aggregate(scada),
+        metadata,
+        year_start,
+        year_end,
+        min_coverage=min_coverage,
+    )
+
+
 @register
 class AEMONemSource(ObservationSource):
     """Per-farm (DUID) monthly capacity factors for the Australian NEM.
@@ -154,8 +225,15 @@ class AEMONemSource(ObservationSource):
         compilation plus the AEMO registration lists.
     ``au_nem_scada.csv``
         Long SCADA: ``timestamp`` (naive AEST market time), ``ID``, ``mw``.
-
-    Phase 2 wires the actual data acquisition; this adapter only transforms.
+    ``au_nem_scada_monthly_partials.csv`` (optional fast path)
+        Per-(ID, UTC year, month) ``energy_mwh`` + ``n_intervals`` partials,
+        as written by ``scripts/process_aemo_au.py`` via
+        :func:`scada_partial_aggregate`/:func:`combine_partials`. Preferred
+        when present: four years of 5-minute SCADA is ~45M rows, while the
+        partials are a few thousand — and finalisation (capacity, coverage
+        floor, commissioning mask) still runs through
+        :func:`finalise_monthly_cf` with the current metadata at load time,
+        so the fast path cannot drift from the audited transform.
     """
 
     name: ClassVar[str] = "aemo-nem"
@@ -205,12 +283,20 @@ class AEMONemSource(ObservationSource):
         if year_start is None or year_end is None:
             year_start, year_end = self.default_train_years
 
+        partials_path = self._data_dir() / "au_nem_scada_monthly_partials.csv"
+        if partials_path.is_file():
+            partials = pd.read_csv(partials_path)
+            return finalise_monthly_cf(
+                partials, self.load_metadata(), int(year_start), int(year_end)
+            )
+
         path = self._data_dir() / "au_nem_scada.csv"
         if not path.is_file():
             raise FileNotFoundError(
-                f"AEMO SCADA not found at {path}. This adapter reads "
-                "pre-downloaded files; see the class docstring for the schema "
-                "(data acquisition is a Phase 2 step)."
+                f"AEMO SCADA not found at {path} (and no precomputed partials at "
+                f"{partials_path.name}). This adapter reads pre-downloaded files; "
+                "see the class docstring for the schema (data acquisition is a "
+                "Phase 2 step)."
             )
         scada = pd.read_csv(path)
         return scada_to_monthly_cf(
