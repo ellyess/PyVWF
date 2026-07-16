@@ -7,7 +7,7 @@ This module provides a single source of truth for:
 
 Paths are resolved relative to :attr:`PyVWFPaths.INPUT_ROOT`, which defaults to
 ``input/`` in the working directory (the layout of a repository checkout) and
-can be pointed anywhere with the ``PYVWF_INPUT`` environment variable — so an
+can be pointed anywhere with the ``PYVWF_INPUT`` environment variable, so an
 installed copy of PyVWF works outside a checkout::
 
     export PYVWF_INPUT=/data/pyvwf-inputs
@@ -49,7 +49,7 @@ class PyVWFPaths:
 
         Resolution order:
 
-        1. ``INPUT_ROOT/<filename>`` — your own copy. Manufacturer-specific
+        1. ``INPUT_ROOT/<filename>``: your own copy. Manufacturer-specific
            curve libraries are licensed and not redistributable, so a local
            file always wins.
         2. The open curve library bundled in ``vwf.resources``, so an

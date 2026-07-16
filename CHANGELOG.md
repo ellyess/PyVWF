@@ -77,14 +77,14 @@ changes the numbers the evaluation layer reports.
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:
-  - `plot_correction_factor_map` — per-cluster Voronoi choropleth of the learned
+  - `plot_correction_factor_map`: per-cluster Voronoi choropleth of the learned
     scalar and offset, on a diverging scale centred at the neutral value.
-  - `plot_factor_joint` — the scalar-vs-offset joint distribution with marginal
+  - `plot_factor_joint`: the scalar-vs-offset joint distribution with marginal
     histograms.
-  - `plot_error_vs_clusters` — error against cluster count, one line per temporal
+  - `plot_error_vs_clusters`: error against cluster count, one line per temporal
     resolution, with the uncorrected error as a reference. The model-selection
     plot for choosing `n_clu` and `time_res`.
-  - `plot_sim_vs_obs` — per-turbine mean simulated vs observed capacity factor
+  - `plot_sim_vs_obs`: per-turbine mean simulated vs observed capacity factor
     against the `y = x` diagonal, annotated with fleet-level MBE and RMSE.
 - `Results.train_turb_info`: the training fleet the correction factors were
   fitted on, which `plot_correction_factor_map` needs to reproduce cluster IDs.

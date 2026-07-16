@@ -55,7 +55,7 @@ def prepare_monthly_data(df_sim, df_obs, train=False):
         # are already monthly. Keep their real calendar labels: this used to
         # pivot the frame, discard the (year, month) index and overwrite it
         # with a hard-coded 2015-01..2019-12 range, which crashed on any
-        # training window that wasn't 60 months long and — worse — silently
+        # training window that wasn't 60 months long and, worse, silently
         # relabelled a 60-month window starting in any other year, merging
         # every observation against the wrong year's simulation.
         df_obs_monthly = (

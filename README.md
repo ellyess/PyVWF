@@ -53,7 +53,7 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - ERA5-based wind speed processing
 - Hub-height extrapolation with configurable methods
 - Statistical bias correction of wind speeds
-- Power curve–based generation modelling
+- Power curve-based generation modelling
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
 - **Automated test suite** (`pytest`) and continuous integration
@@ -361,7 +361,7 @@ fig.savefig("factor_map.png", dpi=150)
 
 ![Correction factor map](docs/img/viz_factor_map.png)
 
-`plot_factor_joint()` shows the same factors in factor space — the joint
+`plot_factor_joint()` shows the same factors in factor space: the joint
 distribution of scalar vs offset with marginal histograms, with guides at the
 neutral values. Tight clustering around (1, 0) means the reanalysis needed
 little correction:
@@ -464,15 +464,15 @@ mypy                       # type check
 Continuous integration (`.github/workflows/ci.yml`) runs, for every push and
 pull request:
 
-- **Lint and type check** — `ruff` and `mypy` (the package ships a `py.typed`
+- **Lint and type check**: `ruff` and `mypy` (the package ships a `py.typed`
   marker, so type information is exported to downstream users).
-- **Test** — the suite plus the end-to-end example on Python 3.10–3.12,
+- **Test**: the suite plus the end-to-end example on Python 3.10–3.12,
   installed from `pyproject.toml` so the declared dependencies are exercised
   exactly as a `pip install pyvwf` user would get them. Coverage is gated, so
   it cannot silently regress.
-- **Docs** — builds the API reference and guides with `-W`, so a broken
+- **Docs**: builds the API reference and guides with `-W`, so a broken
   docstring or an orphaned page fails rather than quietly degrading the site.
-- **Package** — builds the sdist and wheel, validates the distribution
+- **Package**: builds the sdist and wheel, validates the distribution
   metadata with `twine`, then installs the wheel into a clean environment and
   imports it with no repository on `sys.path`.
 
@@ -484,7 +484,7 @@ sphinx-build -b html docs docs/_build/html -W
 open docs/_build/html/index.html
 ```
 
-The version lives in exactly one place — `vwf.__version__` — from which
+The version lives in exactly one place, `vwf.__version__`, from which
 `pyproject.toml` reads it dynamically; `tests/test_packaging.py` asserts it
 follows semantic versioning and stays in step with `CITATION.cff`.
 
@@ -515,7 +515,7 @@ For published work, we recommend citing the repository and documenting:
 If you use PyVWF in academic work, please cite **both** the software and the
 method paper.
 
-**The software** — archived on Zenodo. This is the *concept* DOI: it always
+**The software**: archived on Zenodo. This is the *concept* DOI: it always
 resolves to the latest release, so it stays correct as PyVWF is updated. To pin
 the exact version you ran, use the version-specific DOI from the
 [Zenodo record](https://doi.org/10.5281/zenodo.21236619).
@@ -524,7 +524,7 @@ the exact version you ran, use the version-specific DOI from the
 > framework for bias-corrected wind power simulation from reanalysis data.*
 > Zenodo. [doi:10.5281/zenodo.21236619](https://doi.org/10.5281/zenodo.21236619)
 
-**The method** — the bias-correction approach PyVWF implements:
+**The method**, the bias-correction approach PyVWF implements:
 
 > Benmoufok, E. F., Warder, S. C., Zhu, E., and Piggott, M. D. (2024).
 > *Improving wind power modelling through granular spatial and temporal bias
