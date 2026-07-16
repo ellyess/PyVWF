@@ -139,17 +139,80 @@ def test_join_and_metadata_contract():
     assert (md["height_source"] == "default-uniform").all()
 
 
-def test_join_reports_unmatched_and_applies_aliases():
-    fleet = wind_fleet_from_gen_info(gen_info_frame())
-    farms = farms_from_gwpt(gwpt_frame())
-    farms.loc[farms["gwpt_name"] == "Ararat wind farm", "gwpt_name"] = "Mt Ararat energy park"
-    matched, unmatched_fleet, _ = join_fleet_to_gwpt(fleet, farms)
-    assert len(matched) == 1 and unmatched_fleet["ID"].tolist() == ["ARWF1"]
+def test_duid_aliases_project_phase_and_below_threshold():
+    """The phase-aware alias resolver: project targets aggregate phases (any
+    status), phase targets take per-phase coordinates, BT: targets read the
+    Below Threshold sheet, multi-target DUIDs get a weighted centroid."""
+    from vwf.datasets.aemo_au import resolve_duid_aliases
 
-    matched2, unmatched2, _ = join_fleet_to_gwpt(
-        fleet, farms, aliases={"Ararat Wind Farm": "Mt Ararat energy park"}
+    unmatched = pd.DataFrame(
+        {
+            "ID": ["AAWF1", "BBWF1", "CCWF1", "DDWF1"],
+            "site_name": ["Alpha WF", "Beta Stage 1", "Gamma", "Delta"],
+            "region": ["VIC1"] * 4,
+            "capacity_mw": [100.0, 50.0, 12.0, 30.0],
+            "fcud": [pd.NaT] * 4,
+        }
     )
-    assert len(matched2) == 2 and len(unmatched2) == 0
+    gwpt_data = pd.DataFrame(
+        {
+            "Country/Area": ["Australia"] * 4,
+            "Status": ["mothballed", "operating", "operating", "operating"],
+            "Project Name": ["Alpha wind farm", "Beta wind farm", "Beta wind farm",
+                             "Epsilon wind farm"],
+            "Phase Name": ["--", "1", "2", "--"],
+            "Capacity (MW)": [100.0, 50.0, 48.0, 20.0],
+            "Latitude": [-37.0, -36.0, -36.5, -38.0],
+            "Longitude": [143.0, 144.0, 144.5, 145.0],
+            "Start year": [2020, 2018, 2019, 2015],
+        }
+    )
+    gwpt_below = pd.DataFrame(
+        {
+            "Country/Area": ["Australia"],
+            "Project Name": ["Gamma wind farm"],
+            "Capacity (MW)": [12.0],
+            "Latitude": [-37.5],
+            "Longitude": [143.5],
+            "Start year": [2012],
+        }
+    )
+    alias_map = {
+        "AAWF1": "Alpha wind farm",                    # any-status project
+        "BBWF1": "Beta wind farm|1",                   # single phase
+        "CCWF1": "BT:Gamma wind farm",                 # below threshold
+        "DDWF1": "Alpha wind farm;Epsilon wind farm",  # multi-target centroid
+    }
+    matched, still = resolve_duid_aliases(unmatched, alias_map, gwpt_data, gwpt_below)
+    assert len(matched) == 4 and len(still) == 0
+    assert (matched["match_source"] == "alias").all()
+
+    by_id = matched.set_index("ID")
+    assert by_id.loc["AAWF1", "lat"] == pytest.approx(-37.0)  # mothballed OK: human-approved
+    assert by_id.loc["BBWF1", "lat"] == pytest.approx(-36.0)  # phase 1, not the centroid
+    assert by_id.loc["CCWF1", "lat"] == pytest.approx(-37.5)  # BT sheet
+    # Capacity-weighted centroid over 100 MW @ -37 and 20 MW @ -38:
+    assert by_id.loc["DDWF1", "lat"] == pytest.approx((100 * -37.0 + 20 * -38.0) / 120)
+    # GI capacity stays authoritative; target capacity is context.
+    assert by_id.loc["DDWF1", "capacity_mw"] == pytest.approx(30.0)
+    assert by_id.loc["DDWF1", "gwpt_capacity_mw"] == pytest.approx(120.0)
+
+
+def test_duid_alias_typo_fails_loudly():
+    from vwf.datasets.aemo_au import resolve_duid_aliases
+
+    unmatched = pd.DataFrame(
+        {"ID": ["AAWF1"], "site_name": ["Alpha"], "region": ["VIC1"],
+         "capacity_mw": [100.0], "fcud": [pd.NaT]}
+    )
+    gwpt_data = pd.DataFrame(
+        {"Country/Area": ["Australia"], "Status": ["operating"],
+         "Project Name": ["Alpha wind farm"], "Phase Name": ["--"],
+         "Capacity (MW)": [100.0], "Latitude": [-37.0], "Longitude": [143.0],
+         "Start year": [2020]}
+    )
+    with pytest.raises(ValueError, match="matched no GWPT row"):
+        resolve_duid_aliases(unmatched, {"AAWF1": "Alpah wind farm"}, gwpt_data)
 
 
 # ---------------------------------------------------------------------------

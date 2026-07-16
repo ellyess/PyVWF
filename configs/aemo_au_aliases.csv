@@ -1,0 +1,42 @@
+duid,targets,evidence
+MUWAWF2,Murra Warra 2 wind farm,reject-realias: separate GWPT project 209 vs GI 208.7; review §0
+BANGOWF1,Bango wind farm,A2: 159+84.8=243.8 vs 244
+BANGOWF2,Bango wind farm,A2
+LKBONNY1,Lake Bonney wind farm,A3: 80.5+159+39=278.5 vs 278
+LKBONNY2,Lake Bonney wind farm,A3
+LKBONNY3,Lake Bonney wind farm,A3
+GSWF1A,Goyder South wind farm,A4: 209+203.5=412.5 vs 413
+GSWF1B1,Goyder South wind farm,A4
+MCINTYR1,MacIntyre precinct wind farm,A5: 923.4 vs 923
+GULLRWF2,Gullen Range wind farm,A6: stage 2 of matched project
+PAREPW1,Port Augusta Renewable Energy Park wind farm,A7: 201 vs 210
+KEPWF1,Kennedy Energy Park wind farm,A8: 43.2 vs 43
+KABANWF1,Kaban Green Power Hub wind farm,A9: 156.8 vs 157
+SNOWTWN1,Snowtown I wind farm,A10: 98.7 vs 99
+SNOWNTH1,Snowtown II wind farm,A11: 144+126=270 vs 270
+SNOWSTH1,Snowtown II wind farm,A11
+MERCER01,Mount Mercer wind farm,A12: Mt/Mount
+MTGELWF1,Mount Gellibrand wind farm,A13: Mt/Mount
+MTMILLAR,Mount Millar wind farm,A14: Mt/Mount
+GPWFEST1,Golden Plains wind farm (Australia)|East,A15: 756.4 vs 756; GWPT status lag
+GPWFEST2,Golden Plains wind farm (Australia)|East,A15
+GPWFEST3,Golden Plains wind farm (Australia)|East,A15
+WAMBOWF1,Wambo Wind Farm Project|1,A16: 252 exact; GWPT status lag
+CROOKWF2,Crookwell II wind farm,A17: 96+57.6=153.6 vs 149; GWPT unsplit
+CROOKWF3,Crookwell II wind farm,A17: shared coords flagged
+ELAINWF1,Lal Lal wind farm|Elaine,B1: 83.6 vs 84
+YENDWF1,Lal Lal wind farm|Yendon,B2: 144.4 vs 144
+PORTWF,Portland (PWEP) Wind Energy Project|Cape Bridgewater wind farm;Portland (PWEP) Wind Energy Project|Cape Nelson South wind farm;Portland (PWEP) Wind Energy Project|Cape Sir William Grant/Cape Nelson North,B3: three capes 149 vs 151.7
+YAMBUKWF,Portland (PWEP) Wind Energy Project|Yambuk wind farm,B4: 30 exact
+CODRNGTON,Portland (PWEP) Wind Energy Project|Codrington wind farm,B5: 18.2 vs 18
+WOOLNTH1,Studland Bay wind farm;Bluff Point wind farm,B6: 75+64=139 vs 138; one DUID two projects
+MOORAWF1,Moorabool North wind farm;Moorabool South wind farm,B7: 150+171=321 vs 312
+HALLWF1,Hallett wind farm|1,B8: Brown Hill; coords Wikipedia-confirmed
+HALLWF2,Hallett wind farm|2,B9: Hallett Hill
+NBHWF1,Hallett wind farm|4,B10: North Brown Hill; coords confirmed (1.9km N of Brown Hill); GWPT capacity 53 is WRONG (real 132.3) - unused under GI-capacity rule
+BLUFF1,Hallett wind farm|5,B11: The Bluff; coords confirmed; not Tasmanian Bluff Point
+CHPSTWF1,BT:Chepstowe wind farm,C1
+DIAPURWF1,BT:Diapur 2 wind farm,C2
+MAROOWF1,BT:Maroona wind farm,C3
+TIMWEST,BT:Timboon West wind farm,C4
+HEPWIND1,BT:Hepburn wind farm,C5: community farm at Leonards Hill

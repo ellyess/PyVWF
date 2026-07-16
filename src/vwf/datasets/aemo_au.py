@@ -172,33 +172,24 @@ def farms_from_gwpt(gwpt: pd.DataFrame) -> pd.DataFrame:
 def join_fleet_to_gwpt(
     fleet: pd.DataFrame,
     gwpt_farms: pd.DataFrame,
-    aliases: dict[str, str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Join DUIDs to GWPT coordinates by normalised name.
 
     Args:
         fleet: Output of :func:`wind_fleet_from_gen_info`.
         gwpt_farms: Output of :func:`farms_from_gwpt`.
-        aliases: Optional manual overrides, Generation-Information site name
-            → GWPT project name (raw names; normalised internally).
 
     Returns:
         ``(matched, unmatched_fleet, unmatched_gwpt)``. ``matched`` carries
         both capacities so gross mismatches (wrong-farm joins) are visible in
-        the report; no automatic fuzzy matching — misses go to the report for
-        a manual alias.
+        the report; no automatic fuzzy matching — misses go to the report,
+        and human-approved DUID aliases (:func:`resolve_duid_aliases`) handle
+        the tail.
     """
     fleet = fleet.copy()
     gwpt_farms = gwpt_farms.copy()
     fleet["_key"] = fleet["site_name"].map(normalise_farm_name)
     gwpt_farms["_key"] = gwpt_farms["gwpt_name"].map(normalise_farm_name)
-
-    if aliases:
-        alias_keys = {
-            normalise_farm_name(gi): normalise_farm_name(gw)
-            for gi, gw in aliases.items()
-        }
-        fleet["_key"] = fleet["_key"].map(lambda k: alias_keys.get(k, k))
 
     dup = gwpt_farms[gwpt_farms["_key"].duplicated(keep=False)]
     if len(dup):
@@ -212,7 +203,100 @@ def join_fleet_to_gwpt(
     unmatched_gwpt = gwpt_farms[~gwpt_farms["_key"].isin(fleet["_key"])].drop(
         columns="_key"
     )
-    return matched.drop(columns="_key"), unmatched_fleet, unmatched_gwpt
+    matched = matched.drop(columns="_key")
+    matched["match_source"] = "name"
+    return matched, unmatched_fleet, unmatched_gwpt
+
+
+def resolve_duid_aliases(
+    unmatched_fleet: pd.DataFrame,
+    alias_map: dict[str, str],
+    gwpt_data: pd.DataFrame,
+    gwpt_below: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Resolve human-approved DUID aliases to GWPT rows (phase-aware).
+
+    Aliases are keyed by DUID (site names are not unique across stages) and
+    map to one or more semicolon-separated targets:
+
+    - ``"Project Name"`` — all phases of a GWPT Data project, ANY status
+      (the alias itself is the human approval, so GWPT status lag — e.g.
+      Golden Plains East listed "mothballed" — does not block);
+    - ``"Project Name|Phase"`` — one phase row (per-phase coordinates);
+    - ``"BT:Project Name"`` — a Below-Threshold sheet row.
+
+    One DUID with several targets (Woolnorth = Studland Bay + Bluff Point)
+    gets the capacity-weighted centroid of the target rows. GI capacity
+    remains authoritative throughout; target capacity is context only.
+
+    Returns:
+        ``(alias_matched, still_unmatched)`` where ``alias_matched`` has the
+        same shape as the name-join output plus ``match_source="alias"``.
+
+    Raises:
+        ValueError: If an alias target matches no GWPT/Below-Threshold row —
+            a typo in a human-approved alias must fail loudly, not silently
+            drop a farm.
+    """
+    au = gwpt_data[
+        gwpt_data["Country/Area"].astype(str).str.contains("Australia", na=False)
+    ].copy()
+    au_below = None
+    if gwpt_below is not None:
+        au_below = gwpt_below[
+            gwpt_below["Country/Area"].astype(str).str.contains("Australia", na=False)
+        ].copy()
+
+    def target_rows(token: str) -> pd.DataFrame:
+        token = token.strip()
+        if token.startswith("BT:"):
+            if au_below is None:
+                raise ValueError(f"alias target {token!r} needs the Below Threshold sheet")
+            sel = au_below[au_below["Project Name"].astype(str) == token[3:]]
+        else:
+            name, _, phase = token.partition("|")
+            sel = au[au["Project Name"].astype(str) == name]
+            if phase:
+                sel = sel[sel["Phase Name"].astype(str).str.strip() == phase.strip()]
+        if sel.empty:
+            raise ValueError(f"alias target {token!r} matched no GWPT row")
+        return sel
+
+    rows, resolved_ids = [], []
+    for duid, targets in alias_map.items():
+        fleet_row = unmatched_fleet[unmatched_fleet["ID"] == duid]
+        if fleet_row.empty:
+            continue  # already matched by name, or not in this fleet subset
+        fleet_row = fleet_row.iloc[0]
+
+        sel = pd.concat([target_rows(t) for t in str(targets).split(";")])
+        cap = pd.to_numeric(sel["Capacity (MW)"], errors="coerce").fillna(0.0)
+        lat = pd.to_numeric(sel["Latitude"], errors="coerce")
+        lon = pd.to_numeric(sel["Longitude"], errors="coerce")
+        # Capacity-weighted centroid; uniform weights if capacities are absent.
+        weights = cap if cap.sum() > 0 else pd.Series(1.0, index=cap.index)
+        start = pd.to_numeric(sel.get("Start year"), errors="coerce").min()
+
+        rows.append(
+            {
+                "ID": duid,
+                "site_name": fleet_row["site_name"],
+                "region": fleet_row["region"],
+                "capacity_mw": fleet_row["capacity_mw"],
+                "fcud": fleet_row["fcud"],
+                "gwpt_name": str(targets),
+                "gwpt_capacity_mw": float(cap.sum()),
+                "lat": float((lat * weights).sum() / weights.sum()),
+                "lon": float((lon * weights).sum() / weights.sum()),
+                "start_year": start,
+                "match_source": "alias",
+            }
+        )
+        resolved_ids.append(duid)
+
+    alias_matched = pd.DataFrame(rows)
+    still_unmatched = unmatched_fleet[~unmatched_fleet["ID"].isin(resolved_ids)]
+    return alias_matched, still_unmatched
 
 
 def build_au_metadata(

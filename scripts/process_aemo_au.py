@@ -37,6 +37,7 @@ from vwf.datasets.aemo_au import (
     farms_from_gwpt,
     join_fleet_to_gwpt,
     parse_mms_table,
+    resolve_duid_aliases,
     wind_fleet_from_gen_info,
 )
 from vwf.sources.aemo import combine_partials, scada_partial_aggregate
@@ -60,9 +61,9 @@ def main() -> None:
     ap.add_argument("--model", default="Synthetic.Onshore2000",
                     help="Uniform power-curve model key (must be a column of "
                     "your power_curves.csv; pick a real-library key for real runs)")
-    ap.add_argument("--aliases", default=None,
-                    help="Optional CSV with columns gen_info_name,gwpt_name for "
-                    "manual join overrides")
+    ap.add_argument("--aliases", default="configs/aemo_au_aliases.csv",
+                    help="CSV with columns duid,targets: human-approved phase-aware "
+                    "alias overrides ('' to disable)")
     args = ap.parse_args()
 
     raw = Path(args.raw)
@@ -72,14 +73,31 @@ def main() -> None:
     # --- fleet metadata -----------------------------------------------------
     gen_info = pd.read_excel(args.gen_info, sheet_name="Generator Information", header=3)
     gwpt = pd.read_excel(args.gwpt, sheet_name="Data")
-    aliases = None
-    if args.aliases:
-        alias_df = pd.read_csv(args.aliases)
-        aliases = dict(zip(alias_df["gen_info_name"], alias_df["gwpt_name"]))
+    gwpt_below = pd.read_excel(args.gwpt, sheet_name="Below Threshold")
 
     fleet = wind_fleet_from_gen_info(gen_info)
     farms = farms_from_gwpt(gwpt)
-    matched, unmatched_fleet, unmatched_gwpt = join_fleet_to_gwpt(fleet, farms, aliases)
+    matched, unmatched_fleet, unmatched_gwpt = join_fleet_to_gwpt(fleet, farms)
+
+    if args.aliases:
+        alias_df = pd.read_csv(args.aliases)
+        alias_map = dict(zip(alias_df["duid"].astype(str), alias_df["targets"]))
+
+        # Aliases OVERRIDE name matches: a human-approved re-alias (e.g. the
+        # MUWAWF2 reject, which name-matched the WRONG project) must win over
+        # the automatic join, not merely fill its gaps.
+        overridden = matched["ID"].isin(alias_map)
+        if overridden.any():
+            back_to_pool = fleet[fleet["ID"].isin(matched.loc[overridden, "ID"])]
+            matched = matched[~overridden]
+            unmatched_fleet = pd.concat([unmatched_fleet, back_to_pool], ignore_index=True)
+
+        alias_matched, unmatched_fleet = resolve_duid_aliases(
+            unmatched_fleet, alias_map, gwpt, gwpt_below
+        )
+        if len(alias_matched):
+            matched = pd.concat([matched, alias_matched], ignore_index=True)
+
     metadata = build_au_metadata(matched, height=args.height, model=args.model)
     metadata.to_csv(out / "au_nem_md.csv", index=False)
 
