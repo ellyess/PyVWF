@@ -623,3 +623,47 @@ scratch purges, or accept regenerating them from the findings doc?
 ### Next checkpoint
 User CDS confirmation → acquisition (AEMO after CDS clears), then pillars
 C and A on real data.
+
+---
+
+## 2026-07-16 — CDS confirmed; acquisition scripts ready for user review (checkpoint 13)
+
+**Status:** Pillar B + window trim committed (e94febe); D1 runners committed
+under scripts/ (120f5aa) closing the scratch-purge gap. ERA5-AU request
+script and AEMO fetch script WRITTEN and shown, NOT committed, NOT run —
+user executes both downloads. Nothing acquired.
+
+### CORRECTION (flagged to user): 48 months, not 36
+2020–2022 train + 2023 test = 4 years = 48 monthly archives, not the 36 I
+wrote at checkpoint 12 (and the user echoed). Revised AEMO estimate at
+14.6–22 MB/month: **~0.9 GB zipped** (previously stated 600–750 MB for
+"36"). ERA5-AU likewise 48 monthly CDS requests.
+
+### Decisions recorded
+- CDS confirmed user-side; skip the tiny test request. Known caveat: a
+  pre-migration token may throw an auth error on the first request → user
+  regenerates token; not a blocker (hint baked into the script's error path).
+- User executes BOTH downloads (CDS submission through their credentials is
+  theirs, like every push/merge). Sequence: ERA5 submitted first (slow
+  queue), AEMO pulled in parallel after.
+- Partition-invariance framing adopted: pillar A's JJA gate is THE critical
+  check, not one of four — to stay front and centre at pillar A.
+
+### Artifacts awaiting user review (uncommitted)
+- scripts/fetch_era5_au.py — reanalysis-era5-single-levels, hourly, 100m+10m
+  u/v, area N-10/W129/S-44/E154, 0.25°, month-by-month (48 requests; a
+  monolithic multi-year request would exceed the per-request cap),
+  netcdf/unarchived, resumable (.part + skip-existing), --dry-run verified
+  (48 planned, correct paths input/era5/AU/era5_au_YYYY_MM.nc — the layout
+  au_nem.toml expects; roughness derives from 10m/100m shear at load, no
+  preprocessing step).
+- scripts/fetch_aemo_au.sh — 48× DISPATCH_UNIT_SCADA + 48× DUDETAILSUMMARY
+  from nemweb.com.au MMSDM archives into $PYVWF_INPUT/aemo_raw/, curl -C -
+  resumable; Generation Information workbook fetched manually (quarterly
+  URL). bash -n clean.
+
+### Next checkpoint
+User reviews + runs both scripts; meanwhile (no data needed) build the
+SCADA→AEMONemSource-layout processing step (aemo_raw → au_nem_md.csv +
+au_nem_scada.csv) against synthetic fixtures, so ingest is ready the moment
+data lands. Then pillar C, then pillar A (hard gate).
