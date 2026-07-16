@@ -36,6 +36,12 @@
       "relation": "isSupplementTo",
       "resource_type": "publication-article",
       "scheme": "doi"
+    },
+    {
+      "identifier": "10.11578/dc.20210112.1",
+      "relation": "references",
+      "resource_type": "dataset",
+      "scheme": "doi"
     }
   ]
 }
