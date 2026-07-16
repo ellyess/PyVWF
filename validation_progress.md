@@ -996,3 +996,54 @@ real open curves". Parked until AU completes.
 ### Next checkpoint
 User rules on the dual-library pillar A → add_models wiring (real primary;
 open via p_density-class) → PILLAR A.
+
+---
+
+## 2026-07-16 — PILLAR A: GATE PASS ON BOTH LIBRARIES, no divergence (checkpoint 20)
+
+**Status:** Dual-library pillar A run per rulings (real first as the gate,
+open second as robustness). Infrastructure committed (fde882c): curve
+assignment (real via add_models; open via p_density-class), daily ERA5-AU
+pre-combine (~8-16 GB hourly → 29 MB/yr, mean-of-speed order preserved,
+prep_era5 additive tweak pinned by must-distinguish test).
+
+### The gate (capacity-weighted normalized-cycle RMSE vs observed, fleet,
+76 farms with full 2023 obs; corrections trained 2020-2022, SH seasons,
+5 clusters)
+| library | uncorrected | corrected-season | verdict |
+|---|---|---|---|
+| REAL (headline) | 0.0724 | 0.0645 (−10.9%) | **PASS** |
+| OPEN (robustness rider) | 0.0672 | 0.0614 (−8.7%) | **PASS** |
+JJA |error|: real 0.0506→0.0443 (improved); open 0.0401→0.0400 (neutral).
+NO DIVERGENCE — same verdict, same direction, comparable magnitude, and
+the same per-region pattern; hard-stop not triggered.
+
+### Per-region honesty (both libraries agree on the pattern)
+- SA1 (24 farms): the big winner — 0.1107→0.0972 (real), 0.1059→0.0942
+  (open). SA drives the fleet pass; consistent with checkpoint 16's
+  finding that ERA5's seasonal bias is largest in the southern NEM.
+- NSW1 (17): slightly WORSE cycle tracking (0.0886→0.0927 real).
+- VIC1 (28): slightly worse (0.0669→0.0704 real).
+- QLD1 (3 farms): worse (0.114→0.125) — small n.
+- TAS1 (4 farms): improved on real, worsened on open — the one
+  library-divergent region; n=4 and the flattest observed cycle, treated
+  as small-n noise, stated not hidden. Gate-level divergence did NOT occur.
+Write-up must say: fleet-level pass driven primarily by SA; NSW/VIC
+marginally negative on this metric; QLD/TAS too small to weigh.
+
+### Fitted seasonal factors (real, per cluster) — physically coherent
+Two clusters scaled DOWN (over-blown ERA5 regions: scalars 0.78-0.90,
+strongest reduction in winter), three scaled up; seasonal variation
+present in all (e.g. cluster 1 winter 0.849 vs summer 0.985).
+
+### Standing caveats attached to any headline
+- Curtailment confound (SCADA = curtailed output): stated; a
+  hemisphere-wide systematic seasonal mismatch is not a curtailment
+  signature, but the residual contribution is unquantified.
+- Open-stack results = p_density-class proxy matching, NOT per-OEM curves
+  (caveat travels with every open result).
+- 2023 = one held-out year; 76/104 farms had full-year obs.
+
+### Next checkpoint
+Findings write-up (docs/findings/pillar_a_au.md) + the remaining demo
+deliverables (D3 notebook, D4 NetCDF, D5 transfer + synthesis).
