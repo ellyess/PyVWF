@@ -1124,3 +1124,38 @@ ask about absolute skill — likely warrants an amendment. USER TO RULE.
 ### Next checkpoint
 User framing ruling on the native-skill finding + transfer table →
 findings-doc amendment (if ruled) → D5 synthesis doc → D2 close-out.
+
+---
+
+## 2026-07-16 — BRANCH COMPLETE: amendment + synthesis committed (checkpoint 23, final)
+
+**Status:** pillar_a_au.md amended per the signed steers (diagnosis-led
+headline — "corrected" nowhere implies "improved"; absolute-skill table IN
+FULL beside the pre-specified gate, with the pre-specification statement
+and the bias-structure/DK-contrast explanation; practical-guidance close:
+corrected for seasonal profiles, uncorrected for absolute farm-level CF in
+this region). d2_synthesis.md written, organised around the central
+result: correction value tracks the STRUCTURE of the reanalysis bias;
+transfer is the same fact from the other direction (gracefully useless /
+bounded-harmful); one sentence of future work (shape-only variant, named
+not evaluated); checkpoint-8 open-questions triage done once, in writing.
+
+### The branch's honest ledger
+- Europe re-validated bit-for-bit against the legacy method (D1, four
+  regions, 0.000e+00, preconditions first).
+- Australia validated with a sharper finding than planned: ERA5's NEM bias
+  is near-zero on level and over-amplified in SA's seasonal shape; the
+  correction compresses the shape (pre-specified gate PASS, both curve
+  libraries) and cannot improve the level (absolute RMSE +16%, reported
+  in full) — the method behaving correctly given the diagnosed structure.
+- Transfer answered negatively-but-gracefully: corrections are regional
+  bias fingerprints, not portable parameters.
+- Open questions triaged once at the boundary, as mandated at checkpoint 8.
+- Real curves and raw market/reanalysis data never entered committed
+  state or CI. All commits sole-authored by the user. Nothing pushed —
+  remote actions remain the user's.
+
+### Named next task (SEPARATE scope, user to bring):
+JOSS open-curve upgrade on main — replace the synthetic placeholders with
+the open library; seasons seam + longitude normalisation as correctness
+candidates to port — before submission. Not a continuation of this branch.
