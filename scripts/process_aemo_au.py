@@ -34,9 +34,11 @@ import pandas as pd
 
 from vwf.datasets.aemo_au import (
     build_au_metadata,
+    capacity_mask_months,
     farms_from_gwpt,
     join_fleet_to_gwpt,
     parse_mms_table,
+    registered_capacity_history,
     resolve_duid_aliases,
     wind_fleet_from_gen_info,
 )
@@ -117,11 +119,29 @@ def main() -> None:
         partials.append(scada_partial_aggregate(table))
         print(f"[{i}/{len(archives)}] {archive.name}: {len(table)} wind rows")
 
+    combined = None
     if partials:
         combined = combine_partials(partials)
         combined.to_csv(out / "au_nem_scada_monthly_partials.csv", index=False)
         print(f"partials: {len(combined)} (DUID, month) rows -> "
               f"{out / 'au_nem_scada_monthly_partials.csv'}")
+
+    # --- registered-capacity mask (MASK option, D2 sign-off) -----------------
+    cap_archives = sorted(raw.glob("dudetail_cap/PUBLIC_DVD_DUDETAIL_*.zip"))
+    if cap_archives and combined is not None:
+        hist = registered_capacity_history(
+            pd.concat([read_zipped_mms(a) for a in cap_archives])
+        )
+        hist = hist[hist["DUID"].isin(wind_duids)]
+        mask = capacity_mask_months(hist, combined)
+        mask.to_csv(out / "au_nem_capacity_mask.csv", index=False)
+        no_hist = sorted(wind_duids - set(hist["DUID"]))
+        print(f"capacity mask: {len(mask)} farm-months masked "
+              f"({dict(mask['reason'].value_counts())}); "
+              f"DUIDs without capacity history (static nameplate kept): {len(no_hist)}")
+    elif combined is not None:
+        print("No DUDETAIL archives found — capacity mask SKIPPED; observed CFs "
+              "carry staged-commissioning bias.", file=sys.stderr)
 
     # --- join report ----------------------------------------------------------
     matched = matched.assign(

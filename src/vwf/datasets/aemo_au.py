@@ -299,6 +299,90 @@ def resolve_duid_aliases(
     return alias_matched, still_unmatched
 
 
+def registered_capacity_history(dudetail: pd.DataFrame) -> pd.DataFrame:
+    """Effective-dated registered capacity per DUID from DUDETAIL rows.
+
+    The monthly archives repeat full-history rows; duplicates collapse and
+    the highest VERSIONNO wins per (DUID, EFFECTIVEDATE).
+
+    Args:
+        dudetail: Concatenated DUDETAIL tables with at least ``DUID``,
+            ``EFFECTIVEDATE``, ``VERSIONNO``, ``REGISTEREDCAPACITY``.
+
+    Returns:
+        Frame with ``DUID``, ``EFFECTIVEDATE`` (datetime), and
+        ``REGISTEREDCAPACITY`` (float), sorted by DUID then date.
+    """
+    hist = dudetail[["DUID", "EFFECTIVEDATE", "VERSIONNO", "REGISTEREDCAPACITY"]].copy()
+    hist = hist.drop_duplicates()
+    hist["EFFECTIVEDATE"] = pd.to_datetime(hist["EFFECTIVEDATE"])
+    hist["VERSIONNO"] = pd.to_numeric(hist["VERSIONNO"], errors="coerce")
+    hist["REGISTEREDCAPACITY"] = pd.to_numeric(hist["REGISTEREDCAPACITY"], errors="coerce")
+    hist = (
+        hist.sort_values("VERSIONNO")
+        .groupby(["DUID", "EFFECTIVEDATE"], as_index=False)
+        .last()
+        .drop(columns="VERSIONNO")
+    )
+    return hist.sort_values(["DUID", "EFFECTIVEDATE"]).reset_index(drop=True)
+
+
+def capacity_mask_months(
+    hist: pd.DataFrame,
+    scada_months: pd.DataFrame,
+    *,
+    tolerance: float = 0.02,
+) -> pd.DataFrame:
+    """Months whose registered capacity is unreliable as a CF denominator.
+
+    A month is masked (MASK option, D2 sign-off — clean denominators over
+    data retention; the measured cost is ~1% of farm-months) when:
+
+    - the registered capacity changes WITHIN the month (ambiguous
+      denominator),
+    - the month's capacity is below ``(1 - tolerance) ×`` the final
+      registered capacity (farm not fully built — a ramping farm injects a
+      spurious sub-annual signal into exactly the seasonal cycle pillar A
+      judges), or
+    - the month predates the DUID's first registration (trial generation).
+
+    Args:
+        hist: Output of :func:`registered_capacity_history`.
+        scada_months: Frame with ``ID``, ``year``, ``month`` — the months
+            that actually carry SCADA (e.g. the partials table).
+
+    Returns:
+        Frame with ``ID``, ``year``, ``month``, ``reason``.
+    """
+    rows = []
+    months = scada_months[["ID", "year", "month"]].drop_duplicates()
+    for duid, group in months.groupby("ID"):
+        dh = hist[hist["DUID"] == str(duid)]
+        if dh.empty:
+            # No registration history at all: nothing to judge against; the
+            # caller keeps static nameplate (capacity_history="absent").
+            continue
+        final_cap = dh["REGISTEREDCAPACITY"].iloc[-1]
+        for _, r in group.iterrows():
+            start = pd.Timestamp(int(r["year"]), int(r["month"]), 1)
+            end = start + pd.offsets.MonthEnd(1)
+            at_start = dh[dh["EFFECTIVEDATE"] <= start]["REGISTEREDCAPACITY"]
+            at_end = dh[dh["EFFECTIVEDATE"] <= end]["REGISTEREDCAPACITY"]
+            if at_start.empty:
+                reason = "pre-registration"
+            elif at_start.iloc[-1] != at_end.iloc[-1]:
+                reason = "mid-month-change"
+            elif at_end.iloc[-1] < (1.0 - tolerance) * final_cap:
+                reason = "below-final-build"
+            else:
+                continue
+            rows.append(
+                {"ID": str(duid), "year": int(r["year"]), "month": int(r["month"]),
+                 "reason": reason}
+            )
+    return pd.DataFrame(rows, columns=["ID", "year", "month", "reason"])
+
+
 def build_au_metadata(
     matched: pd.DataFrame,
     *,

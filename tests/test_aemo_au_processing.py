@@ -284,6 +284,63 @@ def test_fast_path_equals_raw_scada_path(tmp_path, monkeypatch):
     assert doubled.iloc[0]["obs_6"] == pytest.approx(0.50, abs=0.01)
 
 
+def test_capacity_history_and_mask_reasons():
+    """DUDETAIL history dedup + the three mask reasons, each triggered."""
+    from vwf.datasets.aemo_au import capacity_mask_months, registered_capacity_history
+
+    dudetail = pd.DataFrame(
+        {
+            "DUID": ["F1"] * 3 + ["F1"],  # duplicate row + a version bump
+            "EFFECTIVEDATE": ["2021-01-01", "2021-01-01", "2021-03-15", "2021-03-15"],
+            "VERSIONNO": [1, 1, 1, 2],
+            "REGISTEREDCAPACITY": [50.0, 50.0, 99.0, 100.0],
+        }
+    )
+    hist = registered_capacity_history(dudetail)
+    assert len(hist) == 2  # dedup + version collapse
+    assert hist["REGISTEREDCAPACITY"].tolist() == [50.0, 100.0]  # v2 wins
+
+    scada_months = pd.DataFrame(
+        {
+            "ID": ["F1"] * 4,
+            "year": [2020, 2021, 2021, 2021],
+            "month": [12, 2, 3, 6],
+        }
+    )
+    mask = capacity_mask_months(hist, scada_months)
+    by_key = {(r["year"], r["month"]): r["reason"] for _, r in mask.iterrows()}
+    assert by_key[(2020, 12)] == "pre-registration"
+    assert by_key[(2021, 2)] == "below-final-build"   # at 50 of final 100
+    assert by_key[(2021, 3)] == "mid-month-change"    # 50 -> 100 on 15 March
+    assert (2021, 6) not in by_key                    # fully built: kept
+
+
+def test_capacity_mask_flows_through_source(tmp_path, monkeypatch):
+    """Must-distinguish: with the mask file present the masked month is NaN;
+    without it the same month has a value."""
+    scada = five_min("2021-01-01", "2022-01-01", "F1", 25.0)
+    metadata = pd.DataFrame(
+        {"ID": ["F1"], "lon": [149.0], "lat": [-35.0], "height": [100.0],
+         "capacity": [100_000.0], "model": ["M"], "type": ["onshore"]}
+    )
+    data_dir = tmp_path / "AU_NEM"
+    data_dir.mkdir()
+    metadata.to_csv(data_dir / "au_nem_md.csv", index=False)
+    scada.to_csv(data_dir / "au_nem_scada.csv", index=False)
+    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
+
+    unmasked = AEMONemSource().load_observations(2021, 2021)
+    assert unmasked.iloc[0]["obs_6"] == pytest.approx(0.25, abs=0.005)
+
+    pd.DataFrame({"ID": ["F1"], "year": [2021], "month": [6],
+                  "reason": ["below-final-build"]}).to_csv(
+        data_dir / "au_nem_capacity_mask.csv", index=False)
+    masked = AEMONemSource().load_observations(2021, 2021)
+    assert np.isnan(masked.iloc[0]["obs_6"])
+    # ...and only that month: July untouched.
+    assert masked.iloc[0]["obs_7"] == pytest.approx(unmasked.iloc[0]["obs_7"])
+
+
 def test_partials_compose_with_full_transform():
     """finalise(combine(partials)) == scada_to_monthly_cf on the same data."""
     from vwf.sources.aemo import finalise_monthly_cf

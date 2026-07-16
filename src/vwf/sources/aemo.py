@@ -116,6 +116,7 @@ def finalise_monthly_cf(
     year_end: int,
     *,
     min_coverage: float = DEFAULT_MIN_COVERAGE,
+    capacity_mask: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Turn per-month energy partials into the wide monthly-CF contract.
 
@@ -123,6 +124,15 @@ def finalise_monthly_cf(
     coverage floor, commissioning mask, wide pivot. Kept separate so
     precomputed partials (fast path) run through exactly this audited code
     with the CURRENT metadata at load time.
+
+    Args:
+        capacity_mask: Optional frame of (``ID``, ``year``, ``month``) rows
+            whose CF must be NaN because the farm's REGISTERED capacity that
+            month is unreliable as a denominator (mid-month change, below
+            final build, or pre-registration) — built from AEMO DUDETAIL by
+            ``vwf.datasets.aemo_au.capacity_mask_months``. A ramping farm
+            otherwise injects a spurious sub-annual signal into exactly the
+            seasonal cycle pillar A judges.
     """
     monthly = partials.copy()
     monthly["ID"] = monthly["ID"].astype(str)
@@ -163,6 +173,22 @@ def finalise_monthly_cf(
         monthly.loc[
             commissioned.notna() & (month_start < commissioned), "cf"
         ] = float("nan")
+
+    # Registered-capacity mask (see docstring): explicit month list wins over
+    # everything computed above.
+    if capacity_mask is not None and len(capacity_mask):
+        mask_keys = set(
+            zip(
+                capacity_mask["ID"].astype(str),
+                capacity_mask["year"].astype(int),
+                capacity_mask["month"].astype(int),
+            )
+        )
+        in_mask = [
+            (i, y, m) in mask_keys
+            for i, y, m in zip(monthly["ID"], monthly["year"], monthly["month"])
+        ]
+        monthly.loc[in_mask, "cf"] = float("nan")
 
     wide = (
         monthly.pivot(index=["ID", "year"], columns="month", values="cf")
@@ -283,11 +309,19 @@ class AEMONemSource(ObservationSource):
         if year_start is None or year_end is None:
             year_start, year_end = self.default_train_years
 
+        # Registered-capacity mask, if the processing step produced one.
+        mask_path = self._data_dir() / "au_nem_capacity_mask.csv"
+        capacity_mask = pd.read_csv(mask_path) if mask_path.is_file() else None
+
         partials_path = self._data_dir() / "au_nem_scada_monthly_partials.csv"
         if partials_path.is_file():
             partials = pd.read_csv(partials_path)
             return finalise_monthly_cf(
-                partials, self.load_metadata(), int(year_start), int(year_end)
+                partials,
+                self.load_metadata(),
+                int(year_start),
+                int(year_end),
+                capacity_mask=capacity_mask,
             )
 
         path = self._data_dir() / "au_nem_scada.csv"
@@ -299,6 +333,10 @@ class AEMONemSource(ObservationSource):
                 "Phase 2 step)."
             )
         scada = pd.read_csv(path)
-        return scada_to_monthly_cf(
-            scada, self.load_metadata(), int(year_start), int(year_end)
+        return finalise_monthly_cf(
+            scada_partial_aggregate(scada),
+            self.load_metadata(),
+            int(year_start),
+            int(year_end),
+            capacity_mask=capacity_mask,
         )
