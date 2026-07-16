@@ -788,3 +788,62 @@ marked model_source="default-fallback" — never a blanket uniform curve.
 User rules on: alias lines (esp. B10/B11 Hallett capacity conflicts, D
 Yawong), curve-pass approval, DUDETAIL re-fetch. Then: phase-aware alias
 implementation + capacity mask (gate) + curve table → pillar C → pillar A.
+
+---
+
+## 2026-07-16 — Aliases live (104/105); sensitivity verdict; observed cycles flip the story (checkpoint 16)
+
+**Status:** Rulings executed. Fetch script amended+committed (704e278,
+user re-runs for DUDETAIL). Phase-aware aliases implemented and committed
+(337a637); full processing run done: 104/105 DUIDs (14.26 GW), monthly
+partials from all 48 archives (3,510 DUID-months, 2m10s). Curve
+sensitivity answered. Observed seasonal cycles computed from real SCADA.
+
+### B10/B11 — INCLUDED on coordinates (user condition met)
+Wikipedia independently confirms Hallett 4 = North Brown Hill (132 MW —
+GI's 132.3 ✓, GWPT's 53 is wrong) and Hallett 5 = The Bluff (52.5 exact).
+Geometry: phase 4 is 1.9 km north of Brown Hill; phase 5 in the Porcupine
+Range 8 km from Hallett town. Distinct, right region. Capacity
+discrepancy NOTED not resolved (GWPT capacity unused). Bonus: Wikipedia
+carries turbine models (45× Suzlon S88 2.1 MW at Brown Hill) — and GEM
+wiki 403s scripted fetches, so the curve pass will lean on Wikipedia.
+
+### Curve sensitivity (5 farms × 5 curves, ERA5-AU 2020, sim-side)
+- Among REAL curves: normalized cycles near-identical (r ≥ 0.9989, JJA
+  share spread ≤ 0.02, peak month never moves). VERDICT: curve choice is
+  a LEVEL effect → the model pass is defensibility/level accuracy, not
+  pillar-A pass/fail. Effort calibrated accordingly.
+- The SYNTHETIC curve is an outlier: amplitude inflated +0.15–0.46,
+  r down to 0.974 — the uniform-synthetic rejection was load-bearing.
+
+### Aliases implemented (337a637)
+resolve_duid_aliases: DUID-keyed (site names not unique), targets =
+project (any status; alias IS the approval) | project|phase | BT:row;
+multi-target → capacity-weighted centroid; typos fail loudly. Semantics
+fix found in testing: aliases must OVERRIDE name matches — MUWAWF2 had
+name-matched the WRONG project and the resolver initially skipped it;
+now re-sited to Murra Warra 2 (verified in output). Coverage 61%→99%.
+
+### Observed seasonal cycles (real SCADA, pre-2020 farms only, n=58)
+Fleet is predominantly WINTER-peaking: NSW peak Aug (JJA 1.09), SA peak
+Jun (1.11), VIC peak Jul (1.14), QLD JJA 1.21 (n=1), TAS flat (n=2);
+37/48 farms peak Jun–Sep, 10 peak DJF. BUT the sim-side preview (ERA5
+through curves) had VIC/SA/TAS below-average JJA with Sep peaks — i.e.
+**ERA5's seasonal cycle disagrees with the observed one in the southern
+NEM**. That gap is exactly a seasonal reanalysis bias — the thing the
+seasonal correction exists to fix and what pillar A measures. Caveats:
+sim preview = 1 year/5 farms/nearest-cell; obs = no capacity-history mask
+yet (pre-2020 subset mitigates).
+
+### Pillar A gate, re-specified (proposal)
+Not "cycle peaks in JJA" (hardcoded expectation; wrong for TAS and for
+DJF-peaking farms). Instead, data-as-judge: (1) corrected seasonal cycle
+must track the OBSERVED cycle better than uncorrected (per region,
+capacity-weighted RMSE of normalized cycles); (2) the improvement must
+hold specifically in the winter-labelled months; (3) pillar B's label pin
+already guarantees "winter"=JJA in the factors. Hard gate = (1).
+
+### Next checkpoint
+User: run amended fetch (DUDETAIL), rule on pillar-A re-spec, calibrate
+curve-pass effort given the sensitivity verdict. Me: curve pass at agreed
+effort → locked CSV review → mask numbers → pillar C → pillar A.
