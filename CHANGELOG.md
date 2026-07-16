@@ -11,6 +11,30 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-16
+
+### Added
+
+- **Optional `seasons` mapping through the four season-handling sites**
+  (`parse_time_slice`, `add_time_resolution_columns`, `correct_wind_speed` via
+  `simulate_wind`, `find_offset`, and `find_offsets_country_level`). Named
+  season slices previously resolved through a hardcoded Northern-Hemisphere
+  month mapping, so a Southern-Hemisphere user got silently inverted seasonal
+  corrections. The default (`seasons=None`) preserves the legacy NH behaviour
+  byte-for-byte, pinned by a frame-equality test.
+- **Read the Docs hosting.** `.readthedocs.yaml` builds the existing Sphinx
+  site (same `docs` extra, warnings as errors) at pyvwf.readthedocs.io.
+
+### Fixed
+
+- **ERA5 longitudes are normalised to [-180, 180] on load.** A 0..360 ERA5
+  file sliced with a [-180, 180] bounding box previously returned an empty or
+  wrong subset silently. Normalisation is a pinned no-op for data already in
+  range, so EU downloads are unaffected.
+- The README no longer claims the repository ships turbine data with
+  licensing "being confirmed": it ships none (the directory is gitignored),
+  and the provenance story lives in `input/README.md`.
+
 ### Changed
 
 - **The bundled power curves are now real.** The synthetic placeholder curves
@@ -26,6 +50,12 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
   power, not machine identity, and the fallback warning says so. The default
   sampling-point model is now the library's 2.6 MW market-average composite,
   and the bundled example data is regenerated against the new curves.
+- **Public API docstrings brought to reference quality.** Nine below-bar
+  docstrings (one-line stubs and undocumented parameters, including
+  `PyVWF.simulate_cf` and the sources registry) rewritten with behaviour,
+  typed Args, Returns, and usage notes; the generated API reference renders
+  them.
+- `paper.md` describes the bundled open curve library and its provenance.
 
 ## [0.2.0] - 2026-07-14
 
