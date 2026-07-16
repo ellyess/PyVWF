@@ -114,8 +114,13 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None):
 
     ds = ds.load()  # now load only the sliced subset
 
-    # Wind speed at 100m
-    ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2)
+    # Wind speed at 100m. Pre-combined files may already carry wnd100m
+    # (computed from HOURLY components before any daily averaging — mean
+    # speed, not speed of mean components); recomputing from daily-mean u/v
+    # would be wrong, and raw files carry components, so compute only when
+    # absent.
+    if "wnd100m" not in ds.data_vars:
+        ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2)
 
     if calc_z0:
         ds = ds.drop_vars("fsr", errors="ignore")

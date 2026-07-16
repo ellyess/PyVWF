@@ -50,6 +50,30 @@ def test_slice_bbox_after_normalisation_finds_negative_lons():
     assert list(sliced.lon.values) == [-10.0, -8.0, -6.0]
 
 
+def test_prep_era5_respects_precomputed_wnd100m(tmp_path):
+    """Pre-combined files carry wnd100m computed from HOURLY speeds; prep
+    must NOT overwrite it from (daily-mean) components — mean-of-speed and
+    speed-of-mean differ, and the fixture distinguishes them."""
+    times = pd.date_range("2019-01-01", periods=2, freq="D")
+    lats, lons = np.array([50.0, 52.0]), np.array([5.0, 7.0])
+    shape = (2, 2, 2)
+    era5_dir = tmp_path / "combined"
+    era5_dir.mkdir()
+    # Planted: wnd100m = 10 everywhere, while components imply hypot(3,4)=5.
+    xr.Dataset(
+        {
+            "wnd100m": (("time", "lat", "lon"), np.full(shape, 10.0)),
+            "roughness": (("time", "lat", "lon"), np.full(shape, 0.05)),
+            "u100": (("time", "lat", "lon"), np.full(shape, 3.0)),
+            "v100": (("time", "lat", "lon"), np.full(shape, 4.0)),
+        },
+        coords={"time": times, "lat": lats, "lon": lons},
+    ).to_netcdf(era5_dir / "combined.nc")
+
+    ds = prep_era5("ZZ", calc_z0=True, bbox=(4.0, 8.0, 49.0, 53.0), era5_dir=era5_dir)
+    assert ds["wnd100m"].to_numpy() == pytest.approx(10.0)  # kept, not recomputed to 5
+
+
 def test_prep_era5_reads_from_era5_dir_and_normalises(tmp_path):
     """prep_era5 with era5_dir= reads a 0..360 file and returns [-180, 180]."""
     times = pd.date_range("2019-01-01", periods=48, freq="h")
