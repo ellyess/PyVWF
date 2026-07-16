@@ -184,7 +184,7 @@ def sim_turbines_to_country_cf(sim_cf_long: pd.DataFrame, turb_info: pd.DataFram
         raise ValueError("No valid rows to aggregate in sim_turbines_to_country_cf.")
 
     sim_country = (
-        df.groupby(["year", "month"], as_index=False)
+        df.groupby(["year", "month"], as_index=False)[["sim", "capacity"]]
             .apply(lambda g: pd.Series({"sim": (g["sim"] * g["capacity"]).sum() / g["capacity"].sum()}))
             .reset_index(drop=True)
     )
@@ -586,12 +586,13 @@ def interp_nans(df, limit):
     """
     df = df.sort_values(["ID", "year", "month"]).copy()
 
-    def _interp(g):
-        g = g.copy()
-        g["obs"] = g["obs"].interpolate(method="linear", limit=limit, limit_direction="both")
-        return g
-
-    return df.groupby("ID", group_keys=False).apply(_interp).reset_index(drop=True)
+    # A per-group series transform rather than a frame-level groupby.apply: the
+    # old _interp returned each group INCLUDING the grouping column, which
+    # pandas 3 excludes from apply, silently dropping ID from the result.
+    df["obs"] = df.groupby("ID")["obs"].transform(
+        lambda s: s.interpolate(method="linear", limit=limit, limit_direction="both")
+    )
+    return df.reset_index(drop=True)
 
 
 def add_models(df: pd.DataFrame) -> pd.DataFrame:

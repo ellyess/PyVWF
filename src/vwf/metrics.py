@@ -139,7 +139,7 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
     # Route to specific error calculation based on type
     if type == 'monthly-error':  # country-monthly
         # Group and aggregate with vectorized weighted average
-        grouped = merged.groupby(['month', 'In training?'])
+        grouped = merged.groupby(['month', 'In training?'])[['cf_obs', 'cf_sim', 'capacity']]
         averaged = grouped.apply(
             lambda g: pd.Series({
                 'cf_obs': agg_weighted(g, 'cf_obs'),
@@ -151,7 +151,7 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
         averaged['diff'] = averaged['cf_sim'] - averaged['cf_obs']
 
         # Total aggregation
-        grouped_total = merged.groupby(['month'])
+        grouped_total = merged.groupby(['month'])[['cf_obs', 'cf_sim', 'capacity']]
         averaged_total = grouped_total.apply(
             lambda g: pd.Series({
                 'cf_obs': agg_weighted(g, 'cf_obs'),
@@ -176,7 +176,7 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
         }).reset_index()
 
         # Group by region and training status
-        grouped = averaged.groupby(['region', 'In training?'])
+        grouped = averaged.groupby(['region', 'In training?'])[['cf_obs', 'cf_sim', 'capacity']]
         averaged_type = grouped.apply(
             lambda g: pd.Series({
                 'cf_obs': agg_weighted(g, 'cf_obs'),
@@ -189,7 +189,7 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
         averaged_type = averaged_type.reset_index().set_index('region')
 
         # Total by region
-        grouped_total = averaged.groupby('region')
+        grouped_total = averaged.groupby('region')[['cf_obs', 'cf_sim', 'capacity']]
         averaged_total = grouped_total.apply(
             lambda g: pd.Series({
                 'cf_obs': agg_weighted(g, 'cf_obs'),
@@ -210,7 +210,7 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
 
     elif type == 'cluster-error':  # cluster-yearly
         averaged = merged.groupby('ID').mean().reset_index()
-        grouped = averaged.groupby('cluster')
+        grouped = averaged.groupby('cluster')[['cf_obs', 'cf_sim', 'capacity']]
         averaged = grouped.apply(
             lambda g: pd.Series({
                 'cf_obs': agg_weighted(g, 'cf_obs'),
@@ -222,7 +222,7 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
         return averaged['diff'], averaged['ID']
 
     elif type == 'temporal-focus':  # country-monthly
-        grouped = merged.groupby('month')
+        grouped = merged.groupby('month')[['cf_obs', 'cf_sim', 'capacity']]
         averaged = grouped.apply(
             lambda g: pd.Series({
                 'cf_obs': agg_weighted(g, 'cf_obs'),
