@@ -21,8 +21,9 @@ your observations support.
 - **New here?** The [project README](https://github.com/ellyess/PyVWF#readme)
   covers installation and a Denmark quickstart.
 - **Want to see it run?** `python examples/run_minimal.py` executes the whole
-  workflow end-to-end on bundled synthetic data in under a minute — no ERA5
-  download and no private turbine data.
+  workflow end-to-end in under a minute on bundled data (synthetic weather and
+  observations, open-library power curves) — no ERA5 download and no private
+  turbine data.
 - **Looking for a function?** Go to the {doc}`api`.
 
 ```{toctree}

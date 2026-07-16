@@ -6,11 +6,11 @@ and "works when installed".
 user working anywhere other than a repository checkout got a FileNotFoundError
 before they could simulate anything. They now resolve through
 ``PyVWFPaths.reference_file``, which prefers the user's own tables and falls
-back to the synthetic ones bundled with the package.
+back to the open curve library bundled with the package.
 
-The fallback must *warn*. The bundled power curves are invented; simulating with
-them yields capacity factors that look entirely plausible and mean nothing,
-which is the worst failure mode research software can have.
+The fallback must *warn*. The bundled curves are real, but a fleet is matched
+to them by specific power rather than machine identity; the user has to know
+their turbines are being represented by class proxies.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def no_input_root(tmp_path, monkeypatch):
 
 def test_reference_file_prefers_the_users_own_table(tmp_path, monkeypatch):
     """A local (possibly licensed, non-redistributable) power-curve library must
-    win over the bundled synthetic placeholder."""
+    win over the bundled open library."""
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
     local = tmp_path / "power_curves.csv"
     local.write_text("data$speed,MyTurbine.5000\n0,0\n10,0.8\n")
@@ -51,7 +51,7 @@ def test_reference_file_prefers_the_users_own_table(tmp_path, monkeypatch):
 
 
 def test_reference_file_falls_back_to_the_bundled_table(no_input_root):
-    with pytest.warns(UserWarning, match="SYNTHETIC"):
+    with pytest.warns(UserWarning, match="BUNDLED"):
         resolved = PyVWFPaths.reference_file("power_curves.csv")
 
     assert resolved.is_file()
@@ -61,14 +61,15 @@ def test_reference_file_falls_back_to_the_bundled_table(no_input_root):
 
 
 def test_reference_file_fallback_warning_names_the_risk(no_input_root):
-    """The warning has to say the numbers are meaningless, not merely that a
-    default was used."""
+    """The warning has to say what the bundled curves are and are not (class
+    proxies, not the user's actual machines), not merely that a default was
+    used."""
     with pytest.warns(UserWarning) as record:
         PyVWFPaths.reference_file("models.csv")
 
     message = str(record[0].message)
-    assert "SYNTHETIC" in message
-    assert "not physically meaningful" in message
+    assert "BUNDLED" in message
+    assert "not by actual machine identity" in message
     assert "PYVWF_INPUT" in message
 
 
@@ -84,11 +85,13 @@ def test_reference_file_raises_for_an_unknown_table(no_input_root):
 def test_load_power_curves_works_outside_a_checkout(no_input_root):
     """Regression: this raised FileNotFoundError for every pip-installed user
     whose working directory was not a repository checkout."""
-    with pytest.warns(UserWarning, match="SYNTHETIC"):
+    with pytest.warns(UserWarning, match="BUNDLED"):
         curves = load_power_curves()
 
     assert "data$speed" in curves.columns
-    assert any(c.startswith("Synthetic.") for c in curves.columns)
+    # The bundled open library carries the market-average composite that the
+    # sampling-point default relies on.
+    assert "2019COE_Market_Average_2.6MW_121" in curves.columns
     assert len(curves) > 1
 
 
@@ -104,7 +107,7 @@ def test_add_models_works_outside_a_checkout(no_input_root):
             "lat": [55.5, 56.0],
         }
     )
-    with pytest.warns(UserWarning, match="SYNTHETIC"):
+    with pytest.warns(UserWarning, match="BUNDLED"):
         out = add_models(fleet)
 
     assert out["model"].notna().all()

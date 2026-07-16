@@ -140,7 +140,7 @@ def cluster_turbines(num_clu, turb_info_train, train=False, *args):
 def add_turbine_metadata(
     sampling_points: pd.DataFrame,
     default_height: float = 100.0,
-    default_model: str = "Synthetic.Onshore3600",
+    default_model: str = "2019COE_Market_Average_2.6MW_121",
     default_capacity: float = 3.0,
     default_type: str = "onshore",
 ) -> pd.DataFrame:
@@ -154,8 +154,8 @@ def add_turbine_metadata(
         sampling_points: DataFrame with lat, lon columns.
         default_height: Hub height in meters (default: 100m for modern turbines).
         default_model: Turbine model name for power curve selection.
-            Common options: "Synthetic.Onshore2000", "Synthetic.Onshore3600", "Synthetic.Offshore5000", etc.
-            Must match a column in your power curve file.
+            The default is the bundled open library's market-average onshore
+            composite. Must match a column in your power curve file.
         default_capacity: Capacity in MW (default: 3.0 MW).
         default_type: Turbine type, either "onshore" or "offshore" (default: "onshore").
 
@@ -168,7 +168,7 @@ def add_turbine_metadata(
         >>> grid_points = add_turbine_metadata(
         ...     grid_points,
         ...     default_height=100.0,
-        ...     default_model="Synthetic.Onshore3600",
+        ...     default_model="2019COE_Market_Average_2.6MW_121",
         ...     default_capacity=3.0
         ... )
         >>> # Now ready for simulate_wind()
@@ -203,7 +203,7 @@ def create_sampling_points(
     n_random: int | None = None,
     add_metadata: bool = False,
     default_height: float = 100.0,
-    default_model: str = "Synthetic.Onshore3600",
+    default_model: str = "2019COE_Market_Average_2.6MW_121",
     default_capacity: float = 3.0,
 ) -> pd.DataFrame:
     """Create spatial sampling points for simulation.
@@ -227,7 +227,8 @@ def create_sampling_points(
         add_metadata: If True, add turbine metadata (ID, height, model, capacity)
             needed for simulation. Useful for grid/random methods.
         default_height: Hub height in meters if add_metadata=True (default: 100m).
-        default_model: Turbine model name if add_metadata=True (default: "Synthetic.Onshore3600").
+        default_model: Turbine model name if add_metadata=True (default: the
+            bundled open library's market-average onshore composite).
         default_capacity: Capacity in MW if add_metadata=True (default: 3.0).
 
     Returns:
@@ -266,7 +267,7 @@ def create_sampling_points(
         ...     resolution=0.25,
         ...     add_metadata=True,
         ...     default_height=100.0,
-        ...     default_model="Synthetic.Onshore3600",
+        ...     default_model="2019COE_Market_Average_2.6MW_121",
         ...     default_capacity=3.0
         ... )
         >>> print(grid_points.columns)

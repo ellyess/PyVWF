@@ -117,10 +117,13 @@ layout of a repository checkout. If you installed PyVWF and work elsewhere, set
 export PYVWF_INPUT=/data/pyvwf-inputs   # holds power_curves.csv, models.csv, era5/, ...
 ```
 
-The package bundles **synthetic placeholder** power curves and turbine models so
-that it imports and runs out of the box. They are invented, and PyVWF warns
-loudly whenever it falls back to them — supply a real power-curve library before
-drawing any conclusion from the numbers (see [`input/README.md`](input/README.md)).
+The package bundles an **open turbine curve library** (69 real machines plus 7
+composites from NatLabRockies/turbine-models, BSD-3-Clause, VWF-smoothed) so
+that it imports and runs on real curve physics out of the box. Fleets are
+matched to these curves by specific power rather than machine identity, and
+PyVWF warns whenever it falls back to the bundled files; for
+manufacturer-specific production runs, supply your own curve library (see
+[`input/README.md`](input/README.md)).
 
 After install, the `pyvwf-train` console command is available on your PATH:
 
@@ -222,10 +225,11 @@ rights for data you obtain elsewhere.
 ### 3. Power curves and turbine models
 
 - `input/power_curves.csv`: wind speed in the first column, then one column per
-  turbine model giving power output. The shipped file contains **synthetic
-  placeholder** curves; real curve libraries are typically proprietary and are
-  not redistributed here. See [`input/README.md`](input/README.md) for the
-  provenance details and pointers to real curves.
+  turbine model giving capacity factor. The shipped file is the **open turbine
+  curve library** (BSD-3-Clause, per-column provenance in
+  `input/power_curves_provenance.csv`); manufacturer-specific libraries are
+  typically proprietary and are not redistributed here. See
+  [`input/README.md`](input/README.md) for provenance details and pointers.
 - `input/models.csv`: turbine model reference (manufacturer, model, offshore
   flag, capacity, rotor diameter, power density).
 
@@ -270,7 +274,8 @@ python examples/run_minimal.py
 
 It preps a small bundled ERA5-shaped NetCDF, trains a per-cluster linear bias
 correction against synthetic observed capacity factors, and reports the error
-reduction. All bundled data is synthetic; see
+reduction. The weather and observations are synthetic; the power curves come
+from the bundled open library. See
 [`examples/data/README.md`](examples/data/README.md).
 
 ### PyVWF Training Example (Denmark)

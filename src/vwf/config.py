@@ -81,11 +81,12 @@ class PyVWFPaths:
             )
 
         warnings.warn(
-            f"Using the SYNTHETIC placeholder {filename} bundled with PyVWF "
-            f"({packaged}) because none was found at {local}. These turbine "
-            "models and power curves are invented: results computed with them "
-            "are not physically meaningful. Supply a real power-curve library "
-            "and point PYVWF_INPUT at it before drawing conclusions.",
+            f"Using the BUNDLED open-library {filename} shipped with PyVWF "
+            f"({packaged}) because none was found at {local}. These are real, "
+            "redistributable curves (NatLabRockies/turbine-models, VWF-"
+            "smoothed), but your fleet is matched to them by specific power, "
+            "not by actual machine identity. For production results, supply "
+            "your own power-curve library and point PYVWF_INPUT at it.",
             UserWarning,
             stacklevel=2,
         )

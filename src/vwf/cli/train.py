@@ -72,7 +72,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--fix-turb",
         type=str,
         default=None,
-        help='Optional fixed turbine model/id, e.g. "Synthetic.Onshore2000".',
+        help='Optional fixed turbine model/id, e.g. "2019COE_Market_Average_2.6MW_121".',
     )
     p.add_argument(
         "--train-plots",
