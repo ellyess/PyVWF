@@ -82,6 +82,12 @@ the outlier had also been distorting the NSW clustering. VIC remains mildly
 negative. QLD's apparent degradation traces to that n=1 cluster; excluding
 it, the picture is unchanged where it matters and better where it isn't.
 
+A methodological lesson worth keeping: geographic outliers in k-means
+clustering distort *neighbouring* clusters, not just their own — the
+exclusion improved NSW, a region the outlier was never clustered with. The
+fleet-with-exclusion gate (−18.3%) is reported here as robustness analysis;
+the headline claim stays with the conservative all-farms number (−10.9%).
+
 ## Curtailment in South Australia
 
 The corrected model **tracks observable SA generation better than the
