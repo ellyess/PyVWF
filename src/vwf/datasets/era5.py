@@ -39,21 +39,32 @@ def unify_time_coordinate(ds):
     return ds
 
 
+def _normalise_longitudes(ds: xr.Dataset) -> xr.Dataset:
+    """Bring a 0..360 longitude coordinate onto the [-180, 180] convention.
+
+    The whole pipeline (bounding boxes, turbine metadata) speaks [-180, 180].
+    ERA5 files arrive in either convention depending on the download route; a
+    0..360 file sliced with a [-180, 180] bbox returns an empty or wrong
+    subset SILENTLY, so the convention is normalised here, unconditionally,
+    before any slicing. No-op for data already in [-180, 180].
+    """
+    if "lon" in ds.coords and float(ds.lon.max()) > 180.0:
+        ds = ds.assign_coords(lon=((ds.lon + 180.0) % 360.0) - 180.0).sortby("lon")
+    return ds
+
+
 def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.Dataset:
     """Slice a dataset to a lon/lat bounding box.
 
     Args:
-        ds: Input dataset with ``lon`` and ``lat`` coordinates.
+        ds: Input dataset with ``lon`` and ``lat`` coordinates, longitudes in
+            [-180, 180] (see ``_normalise_longitudes``).
         bbox: Tuple of ``(lon_min, lon_max, lat_min, lat_max)``.
 
     Returns:
         Dataset spatially subset to the bounding box.
     """
     lon_min, lon_max, lat_min, lat_max = bbox
-
-    # Ensure lon is in [-180, 180] if your data is 0..360 (optional; only if needed)
-    # if ds.lon.max() > 180:
-    #     ds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")
 
     lat_desc = bool(ds.lat[0] > ds.lat[-1])
     lat_slice = slice(lat_max, lat_min) if lat_desc else slice(lat_min, lat_max)
@@ -83,6 +94,9 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None):
     for old, new in [("longitude", "lon"), ("latitude", "lat")]:
         if old in ds.coords:
             ds = ds.rename({old: new})
+
+    # 0..360 downloads sliced with [-180, 180] boxes fail silently: normalise.
+    ds = _normalise_longitudes(ds)
 
     # Apply bbox slice early (big memory/time win before .load())
     if bbox is None:
