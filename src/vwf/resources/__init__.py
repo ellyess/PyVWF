@@ -1,7 +1,7 @@
 """Static reference tables bundled with PyVWF.
 
 These are the **open turbine curve library** (see ``input/README.md``): 69 real
-machines plus 7 normalized composites from the NatLabRockies/turbine-models
+machines plus 7 normalized composites from the NREL/turbine-models
 archive (BSD-3-Clause, DOI 10.11578/dc.20210112.1), Gaussian-smoothed to
 capacity-factor curves with the published VWF method. Per-column sources and
 licenses are recorded in ``power_curves_provenance.csv``. They exist so that a

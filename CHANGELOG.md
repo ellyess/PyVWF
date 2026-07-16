@@ -39,7 +39,7 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 - **The bundled power curves are now real.** The synthetic placeholder curves
   and turbine models are replaced by the open turbine curve library: 69 real
-  machines plus 7 normalized composites from NatLabRockies/turbine-models
+  machines plus 7 normalized composites from NREL/turbine-models
   (BSD-3-Clause, DOI 10.11578/dc.20210112.1), Gaussian-smoothed to
   capacity-factor curves with the published VWF method. Per-column sources and
   licenses ship in `power_curves_provenance.csv`, and `tests/test_curve_library.py`

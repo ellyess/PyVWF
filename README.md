@@ -118,7 +118,7 @@ export PYVWF_INPUT=/data/pyvwf-inputs   # holds power_curves.csv, models.csv, er
 ```
 
 The package bundles an **open turbine curve library** (69 real machines plus 7
-composites from NatLabRockies/turbine-models, BSD-3-Clause, VWF-smoothed) so
+composites from NREL/turbine-models, BSD-3-Clause, VWF-smoothed) so
 that it imports and runs on real curve physics out of the box. Fleets are
 matched to these curves by specific power rather than machine identity, and
 PyVWF warns whenever it falls back to the bundled files; for

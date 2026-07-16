@@ -112,12 +112,12 @@ an automated `pytest` suite that runs on synthetic weather and observations
 the worked example exercise the bundled open power-curve library), so the full
 workflow executes in under a minute without any reanalysis download. The
 bundled library comprises 69 real machines and 7 normalized composites from
-the NatLabRockies/turbine-models archive [@turbinemodels] (BSD-3-Clause),
-smoothed to capacity-factor curves by an independent reproduction of the
-published VWF smoothing method [@staffell2016]; it is not derived from any
-proprietary curve file, which is what makes redistribution clean. Fleets are
-matched to these curves by specific power rather than machine identity, and
-the package warns when the
+the NREL/turbine-models archive [@turbinemodels] (BSD-3-Clause; now hosted as
+NatLabRockies/turbine-models), smoothed to capacity-factor curves by an
+independent reproduction of the published VWF smoothing method
+[@staffell2016]; it is not derived from any proprietary curve file, which is
+what makes redistribution clean. Fleets are matched to these curves by
+specific power rather than machine identity, and the package warns when the
 bundled library is in use; manufacturer-specific curve libraries remain
 user-supplied. Continuous integration runs the tests across Python
 3.10–3.12, type-checks and lints the source, builds the documentation, and

@@ -4,7 +4,8 @@
 
 The `power_curves.csv` and `models.csv` shipped in this repository are the
 **open turbine curve library**: 69 real machines plus 7 normalized composites
-from the [NatLabRockies/turbine-models](https://github.com/NatLabRockies/turbine-models)
+from the [NREL/turbine-models](https://github.com/NREL/turbine-models)
+(now hosted as NatLabRockies/turbine-models)
 archive (BSD-3-Clause, [DOI 10.11578/dc.20210112.1](https://doi.org/10.11578/dc.20210112.1)),
 Gaussian-smoothed to capacity-factor curves with the published VWF method
 (Staffell and Pfenninger, 2016). Per-column sources, licenses, and the smoothing
