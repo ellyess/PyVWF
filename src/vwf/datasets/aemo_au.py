@@ -1,0 +1,256 @@
+"""Transforms for building the AU-NEM inputs from raw AEMO + GWPT data.
+
+Pure frame-to-frame logic for ``scripts/process_aemo_au.py``: parsing AEMO
+MMS archive CSVs, extracting the operating wind fleet from the Generation
+Information workbook, joining coordinates from the Global Wind Power Tracker
+(the user's public-source turbine compilation), and emitting the
+``AEMONemSource`` metadata contract.
+
+Everything here takes and returns DataFrames so it is testable without the
+raw files or the xlsx reader; file I/O lives in the script.
+
+Known limitations, stated up front (also in the join report the script
+writes):
+
+- GWPT carries no hub height or turbine model, so ``height`` and ``model``
+  are uniform defaults recorded in ``height_source``/``model_source``
+  columns. A vintage-aware assignment is a named follow-up (RQ7 territory).
+- Capacity is the Generation Information nameplate, static over the window.
+  Farms with STAGED commissioning inside 2020-2023 (e.g. multi-stage sites)
+  have their early months biased low relative to the evolving registered
+  capacity; the commissioning mask removes pre-FCUD months but not partial
+  staging. DUDETAILSUMMARY-based capacity histories are the named follow-up
+  before pillar A gates.
+"""
+from __future__ import annotations
+
+import re
+
+import pandas as pd
+
+#: The NEM regions; the Generation Information workbook also lists WEM (WA)
+#: projects in other files, but its Region column for this sheet is NEM-only.
+NEM_REGIONS = ("NSW1", "QLD1", "SA1", "TAS1", "VIC1")
+
+
+def parse_mms_table(lines) -> pd.DataFrame:
+    """Parse one AEMO MMS C/I/D/F CSV into a DataFrame.
+
+    MMS files carry a comment (``C``) header line, one ``I`` line naming the
+    columns, ``D`` data rows, and a trailing ``C`` footer. The first four
+    fields of the I/D rows are row-type bookkeeping and are dropped.
+
+    Args:
+        lines: An iterable of text lines (an open file object works).
+
+    Returns:
+        DataFrame with the I-row's column names (bookkeeping fields dropped).
+
+    Raises:
+        ValueError: If no I row is found, or the file holds more than one
+            table (the DVD archive files hold exactly one).
+    """
+    frame = pd.read_csv(lines, header=None, skiprows=1, dtype=str, engine="c")
+    kinds = frame.iloc[:, 0]
+
+    header_rows = frame[kinds == "I"]
+    if len(header_rows) == 0:
+        raise ValueError("no 'I' header row found: not an MMS table file?")
+    if len(header_rows) > 1:
+        raise ValueError(
+            f"{len(header_rows)} 'I' rows found; multi-table MMS files are not "
+            "supported (the monthly DVD archives hold one table per file)"
+        )
+
+    columns = header_rows.iloc[0, 4:].dropna().tolist()
+    data = frame[kinds == "D"].iloc[:, 4 : 4 + len(columns)]
+    data.columns = columns
+    return data.reset_index(drop=True)
+
+
+def normalise_farm_name(name: str) -> str:
+    """Reduce a wind-farm name to a join key.
+
+    Lowercase, parentheticals removed, generic suffixes (wind farm / wf /
+    project / stage-N) stripped, everything non-alphanumeric collapsed. Kept
+    deliberately conservative: a missed match lands in the unmatched report
+    for a manual alias, which is recoverable; a wrong merge is not.
+    """
+    s = str(name).lower()
+    s = re.sub(r"\(.*?\)", " ", s)
+    s = re.sub(r"\b(wind\s*farms?|wind\s*project|wf)\b", " ", s)
+    s = re.sub(r"\bstage\s*\d+\b", " ", s)
+    # AEMO workbook annotation ("Key Connection Information"), never part of
+    # a farm's actual name.
+    s = re.sub(r"\bkci\b", " ", s)
+    s = re.sub(r"[^a-z0-9]+", "", s)
+    return s
+
+
+def wind_fleet_from_gen_info(gen_info: pd.DataFrame) -> pd.DataFrame:
+    """Extract the operating wind fleet, one row per DUID.
+
+    Args:
+        gen_info: The "Generator Information" sheet (header row resolved by
+            the caller). Uses ``Technology Type``, ``DUID``,
+            ``Commitment Status``, ``Site Name``, ``Region``,
+            ``Agg Nameplate Capacity (MW AC)``, ``Full Commercial Use Date``.
+
+    Returns:
+        Frame with ``ID``, ``site_name``, ``region``, ``capacity_mw``
+        (summed over unit groups — 'Agg Nameplate' is per unit-group row,
+        e.g. Boco Rock 9x1.60 + 58x1.70), and ``fcud``.
+    """
+    wind = gen_info[
+        gen_info["Technology Type"].astype(str).str.strip().str.lower().eq("wind")
+        & gen_info["DUID"].notna()
+        & (gen_info["DUID"].astype(str).str.strip() != "")
+        & gen_info["Commitment Status"]
+        .astype(str)
+        .str.contains("In Service|In Commissioning", case=False, na=False)
+    ].copy()
+
+    wind["DUID"] = wind["DUID"].astype(str).str.strip()
+    wind["capacity_mw"] = pd.to_numeric(
+        wind["Agg Nameplate Capacity (MW AC)"], errors="coerce"
+    )
+    wind["fcud"] = pd.to_datetime(wind["Full Commercial Use Date"], errors="coerce")
+
+    fleet = (
+        wind.groupby("DUID")
+        .agg(
+            site_name=("Site Name", "first"),
+            region=("Region", "first"),
+            capacity_mw=("capacity_mw", "sum"),
+            fcud=("fcud", "min"),
+        )
+        .reset_index()
+        .rename(columns={"DUID": "ID"})
+    )
+    return fleet[fleet["region"].isin(NEM_REGIONS)].reset_index(drop=True)
+
+
+def farms_from_gwpt(gwpt: pd.DataFrame) -> pd.DataFrame:
+    """Collapse GWPT AU operating rows to one row per project.
+
+    Multi-phase projects become a capacity-weighted centroid with summed
+    capacity and the earliest start year.
+
+    Args:
+        gwpt: The GWPT "Data" sheet. Uses ``Country/Area``, ``Status``,
+            ``Project Name``, ``Capacity (MW)``, ``Latitude``, ``Longitude``,
+            ``Start year``.
+    """
+    au = gwpt[
+        gwpt["Country/Area"].astype(str).str.contains("Australia", case=False, na=False)
+        & gwpt["Status"].astype(str).str.strip().str.lower().eq("operating")
+    ].copy()
+
+    au["capacity_mw"] = pd.to_numeric(au["Capacity (MW)"], errors="coerce")
+    au["lat"] = pd.to_numeric(au["Latitude"], errors="coerce")
+    au["lon"] = pd.to_numeric(au["Longitude"], errors="coerce")
+    au = au.dropna(subset=["capacity_mw", "lat", "lon"])
+    au["_wlat"] = au["lat"] * au["capacity_mw"]
+    au["_wlon"] = au["lon"] * au["capacity_mw"]
+
+    farms = (
+        au.groupby("Project Name")
+        .agg(
+            gwpt_capacity_mw=("capacity_mw", "sum"),
+            _wlat=("_wlat", "sum"),
+            _wlon=("_wlon", "sum"),
+            start_year=("Start year", "min"),
+        )
+        .reset_index()
+        .rename(columns={"Project Name": "gwpt_name"})
+    )
+    farms["lat"] = farms["_wlat"] / farms["gwpt_capacity_mw"]
+    farms["lon"] = farms["_wlon"] / farms["gwpt_capacity_mw"]
+    return farms.drop(columns=["_wlat", "_wlon"])
+
+
+def join_fleet_to_gwpt(
+    fleet: pd.DataFrame,
+    gwpt_farms: pd.DataFrame,
+    aliases: dict[str, str] | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Join DUIDs to GWPT coordinates by normalised name.
+
+    Args:
+        fleet: Output of :func:`wind_fleet_from_gen_info`.
+        gwpt_farms: Output of :func:`farms_from_gwpt`.
+        aliases: Optional manual overrides, Generation-Information site name
+            → GWPT project name (raw names; normalised internally).
+
+    Returns:
+        ``(matched, unmatched_fleet, unmatched_gwpt)``. ``matched`` carries
+        both capacities so gross mismatches (wrong-farm joins) are visible in
+        the report; no automatic fuzzy matching — misses go to the report for
+        a manual alias.
+    """
+    fleet = fleet.copy()
+    gwpt_farms = gwpt_farms.copy()
+    fleet["_key"] = fleet["site_name"].map(normalise_farm_name)
+    gwpt_farms["_key"] = gwpt_farms["gwpt_name"].map(normalise_farm_name)
+
+    if aliases:
+        alias_keys = {
+            normalise_farm_name(gi): normalise_farm_name(gw)
+            for gi, gw in aliases.items()
+        }
+        fleet["_key"] = fleet["_key"].map(lambda k: alias_keys.get(k, k))
+
+    dup = gwpt_farms[gwpt_farms["_key"].duplicated(keep=False)]
+    if len(dup):
+        raise ValueError(
+            "GWPT project names collide after normalisation; disambiguate "
+            f"before joining: {sorted(dup['gwpt_name'])}"
+        )
+
+    matched = fleet.merge(gwpt_farms, on="_key", how="inner")
+    unmatched_fleet = fleet[~fleet["_key"].isin(gwpt_farms["_key"])].drop(columns="_key")
+    unmatched_gwpt = gwpt_farms[~gwpt_farms["_key"].isin(fleet["_key"])].drop(
+        columns="_key"
+    )
+    return matched.drop(columns="_key"), unmatched_fleet, unmatched_gwpt
+
+
+def build_au_metadata(
+    matched: pd.DataFrame,
+    *,
+    height: float,
+    model: str,
+) -> pd.DataFrame:
+    """Emit the AEMONemSource metadata contract from the joined fleet.
+
+    Capacity comes from the Generation Information nameplate (MW → kW, the
+    source contract unit — matching the SCADA registration basis, not GWPT).
+    Commissioning is FCUD where present, else 1 January of the GWPT start
+    year. ``height``/``model`` are uniform defaults; their ``*_source``
+    columns say so, loudly, so no downstream step can mistake them for data.
+    """
+    out = pd.DataFrame(
+        {
+            "ID": matched["ID"].astype(str),
+            "site_name": matched["site_name"],
+            "region": matched["region"],
+            "lon": matched["lon"].astype(float),
+            "lat": matched["lat"].astype(float),
+            "height": float(height),
+            "capacity": matched["capacity_mw"].astype(float) * 1000.0,
+            "model": model,
+            "type": "onshore",
+            "gwpt_capacity_mw": matched["gwpt_capacity_mw"].astype(float),
+            "start_year": matched["start_year"],
+            "height_source": "default-uniform",
+            "model_source": "default-uniform",
+        }
+    )
+
+    fcud = pd.to_datetime(matched["fcud"], errors="coerce")
+    fallback = pd.to_datetime(
+        matched["start_year"].astype("Int64").astype(str) + "-01-01",
+        errors="coerce",
+    )
+    out["commissioning_date"] = fcud.fillna(fallback)
+    return out
