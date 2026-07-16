@@ -946,3 +946,53 @@ User signs the CSV → commit → add_models wiring (manufacturer +
 p_density into the real library; manufacturer-only rows match within
 manufacturer by nearest unit capacity; fallback rows get per-farm
 default marked model_source) → PILLAR A.
+
+---
+
+## 2026-07-16 — AU CSV signed+committed; open-library coverage assessed (checkpoint 19)
+
+**Status:** au_turbine_models.csv approved and committed (f19e5fd). User
+sourced a redistributable open curve library (NatLabRockies/turbine-models
+BSD-3, VWF-Gaussian-smoothed, schema-matched; 69 real machines + 7
+composites). Coverage assessed; recommendation below. PILLAR A HELD.
+
+### Open-library AU coverage (capacity-weighted, fleet 14,260 MW)
+| metric | REAL library | OPEN library |
+|---|---|---|
+| manufacturer match | 91.5% capacity (86 farms) | 52.1% (48 farms) — but see caveat |
+| p_density within ±10% | 76.3% | 55.7% |
+| p_density within ±20% | 77.9% | 71.3% |
+| p_density within ±30% | 78.7% | 75.6% |
+| (p_density computable) | 81.2% | 81.2% |
+
+**Caveat that changes the matching strategy:** the open library's only
+Vestas machines are V27/V29/V47/V82 (225 kW–1.65 MW) — its "manufacturer
+matches" for V112–V162 farms are vintage mismatches (e.g. Dundonnell
+V150-4.2, p_density ~237, would match V82 at 312 within-manufacturer,
+while the library's Market-Average-2.4MW composite sits at 227).
+Manufacturer-first matching is actively harmful on the open library; the
+right strategy there is p_density-class matching into its 20 MW-scale
+onshore references/composites (150–350 W/m²), with the IEC Class 1/2/3
+normalized composites as the generic fallback for the ~19% of capacity
+without a farm p_density.
+
+### Recommendation (pending user ruling)
+- REAL library stays PRIMARY: method-consistent manufacturer+p_density
+  add_models matching at 91.5% capacity coverage.
+- OPEN library is VIABLE as the parallel open stack via p_density-class
+  matching (71% capacity within ±20%): run pillar A on BOTH. Given the
+  level-not-shape sensitivity verdict, the seasonal gate should be robust
+  across libraries — if both pass, the demo is validated on real curves
+  AND reproducible on a fully-open stack. Present real as primary, open
+  as the no-proprietary-dependency reproduction, with the class-proxy
+  caveat stated.
+
+### Follow-up flagged, NOT actioned (post-AU, per ruling)
+The open library is a candidate replacement for the SYNTHETIC placeholder
+curves in the JOSS package (real physics, redistributable, schema-matched)
+— would upgrade the public repo from "runs on invented curves" to "runs on
+real open curves". Parked until AU completes.
+
+### Next checkpoint
+User rules on the dual-library pillar A → add_models wiring (real primary;
+open via p_density-class) → PILLAR A.
