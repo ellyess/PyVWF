@@ -32,7 +32,7 @@ class _CurveByModel(dict):
     the default model's curve instead of raising ``KeyError``, after emitting a
     warning that names both the missing model and the fallback used. This keeps a
     run going when a configured or requested model is absent from the table (for
-    example against the shipped synthetic curves) without ever *silently*
+    example a proprietary model name against the shipped open library) without ever *silently*
     substituting: the warning makes the fallback explicit, so a real run cannot
     quietly use the wrong curve.
 

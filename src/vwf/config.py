@@ -49,14 +49,15 @@ class PyVWFPaths:
 
         Resolution order:
 
-        1. ``INPUT_ROOT/<filename>`` — your own copy. Real power-curve libraries
-           are licensed and not redistributable, so a local file always wins.
-        2. The synthetic placeholder bundled in ``vwf.resources``, so an
+        1. ``INPUT_ROOT/<filename>`` — your own copy. Manufacturer-specific
+           curve libraries are licensed and not redistributable, so a local
+           file always wins.
+        2. The open curve library bundled in ``vwf.resources``, so an
            installed PyVWF runs outside a repository checkout.
 
         Falling back to (2) emits a ``UserWarning``: the bundled curves are
-        invented, and simulating with them produces numbers that look plausible
-        and mean nothing.
+        real, but a fleet is matched to them by specific power rather than
+        machine identity, and the user has to know that.
 
         Args:
             filename: File to locate, e.g. ``"power_curves.csv"``.
