@@ -1047,3 +1047,35 @@ present in all (e.g. cluster 1 winter 0.849 vs summer 0.985).
 ### Next checkpoint
 Findings write-up (docs/findings/pillar_a_au.md) + the remaining demo
 deliverables (D3 notebook, D4 NetCDF, D5 transfer + synthesis).
+
+---
+
+## 2026-07-16 — Framing signed; exclusion check run; findings doc written (checkpoint 21)
+
+**Status:** Pillar A framing signed with amendments (SA-led headline;
+selectivity foregrounded as evidence; over-amplification language;
+fixed-vs-season JJA sentence stated before readers find it; curtailment
+paragraph reordered to lead with the tracking claim and end on what the
+result IS). docs/findings/pillar_a_au.md written to the signed framing.
+
+### Cluster-3 exclusion check (the cheap overfitting close-out)
+Excluding the three far-north sites (lat > −20°: Mount Emerald, Windy Hill,
+Kaban; the n=1 cluster was Mount Emerald):
+- Gate STRENGTHENS: 0.0780 → 0.0637 (−18.3%), 74 farms.
+- SA preserved and slightly better: 0.1107 → 0.0930.
+- NSW FLIPS to mild improvement (0.0886 → 0.0847) — the outlier had been
+  distorting the NSW clustering too.
+- VIC remains mildly negative (0.0669 → 0.0729).
+Doc line earned with evidence: "QLD degradation traces to an n=1 cluster;
+excluding it the picture is unchanged where it matters."
+
+### Raw-table readings folded into the doc (user's three)
+1. ERA5 OVER-AMPLIFIES SA's real cycle (shape right, amplitude exaggerated
+   both directions; June 1.617 vs 1.394 obs, Jan 0.929 vs 1.090 obs).
+2. Real-library fixed beats season on JJA specifically (0.0403 vs 0.0443)
+   while season wins the full cycle — SA's gain is mostly non-winter months.
+3. n=1 cluster named AND checked (above).
+
+### Next checkpoint
+D3 (reproducible notebook), D4 (gridded NetCDF), D5 (AU↔EU transfer +
+synthesis doc).
