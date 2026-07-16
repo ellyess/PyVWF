@@ -17,7 +17,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-7526-6853"
     affiliation: "Department of Earth Science and Engineering, Imperial College London"
 abstract: >-
-  PyVWF is an open, research-oriented Python framework that simulates
+  PyVWF is an open-source Python framework that simulates
   bias-corrected wind power generation from reanalysis data (e.g. ERA5). It
   re-implements the Virtual Wind Farm (VWF) methodology used by
   Renewables.ninja, exposing the full training and application workflow for

@@ -26,7 +26,7 @@ bibliography: paper.bib
 
 # Summary
 
-`PyVWF` (the Python Virtual Wind Farm) is an open, research-oriented framework
+`PyVWF` (the Python Virtual Wind Farm) is an open-source Python framework
 that converts atmospheric reanalysis data into bias-corrected wind power
 generation. It re-implements, in a modular and extensible Python codebase, the
 Virtual Wind Farm (VWF) methodology that underpins the wind simulations on

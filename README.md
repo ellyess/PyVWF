@@ -5,7 +5,7 @@
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21236619-blue)](https://doi.org/10.5281/zenodo.21236619)
 
-PyVWF is a research-oriented Python framework for processing, bias-correcting, and simulating wind resources and wind power generation using reanalysis data (e.g. ERA5), turbine metadata, and observed generation data. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
+PyVWF is an open-source Python framework for processing, bias-correcting, and simulating wind resources and wind power generation using reanalysis data (e.g. ERA5), turbine metadata, and observed generation data. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
 
 `PyVWF` is a Python rewrite of the [VWF model](https://github.com/renewables-ninja/vwf/tree/master) developed by Iain Staffell. The wind energy simulations on [Renewables.ninja](https://www.renewables.ninja/) are based on the VWF model.
 
@@ -45,6 +45,19 @@ PyVWF supports the following workflow:
 3. **Apply bias correction** using observed generation data
 4. **Convert wind speeds to power / capacity factor** via turbine power curves
 5. **Validate simulated output** against observations
+
+```mermaid
+flowchart TD
+    A[ERA5 reanalysis winds] --> B[Hub-height extrapolation via log wind profile]
+    B --> C[Interpolation to turbine locations]
+    C --> D["Bias correction on wind speed: w_corrected = α·w + β"]
+    O[Observed generation] -. learns α, β per cluster and time slice .-> D
+    D --> E[Power curve conversion]
+    E --> F[Capacity factors]
+```
+
+The correction is applied to the **wind speed**, before the power-curve
+conversion, so the non-linear speed-to-power step operates on corrected winds.
 
 The framework is intended for **daily to monthly** analysis at **turbine, regional, or national scale**.
 
