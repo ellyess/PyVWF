@@ -1079,3 +1079,48 @@ excluding it the picture is unchanged where it matters."
 ### Next checkpoint
 D3 (reproducible notebook), D4 (gridded NetCDF), D5 (AU↔EU transfer +
 synthesis doc).
+
+---
+
+## 2026-07-16 — D3/D4 committed; D5 transfers run; NEW native-skill finding (checkpoint 22)
+
+**Status:** D3 committed (8da53a6: notebook + 156 KB attributed derived
+data; pre-commit checks passed — zero baked outputs, no local paths,
+stranger-proof cell 1, aggregation irreversibility confirmed). D4 committed
+(0106889: exporter regenerated from noc3 factors per ruling — max corrected
+wind 57.7→36.0 m/s; EXTRAPOLATION_CAVEAT + FACTORS_PROVENANCE attributes).
+D5 transfer runs complete; synthesis doc HELD for framing ruling.
+
+### Transfer results (real curves; §7 semantics: capacity-weighted
+collapse, uniform application, season-NAME matching)
+| run | RMSE | MBE | vs uncorrected |
+|---|---|---|---|
+| DK uncorrected | 0.160 | +0.121 | — |
+| DK native corrected (10, season) | 0.099 | +0.041 | −38% RMSE |
+| DK ← AU transfer (season) | 0.166 | +0.129 | +4% (no benefit) |
+| AU uncorrected | 0.104 | −0.024 | — |
+| AU native corrected (5, season) | 0.120 | −0.041 | **+16% (worse)** |
+| AU ← DK transfer (season) | 0.137 | −0.093 | +32% (harmful) |
+- AU→DK: the capacity-weighted collapse of AU's OPPOSING clusters lands
+  near identity (scalars 0.98–1.10) — cancellation; transfer applies a
+  weak wrong-direction nudge. Graceful, useless.
+- DK→AU: collapsed DK factors (scalars 0.72–0.84, DK's pull-down) push
+  AU's already-slightly-negative bias further negative. Harmful, bounded,
+  sign-consistent — degradation is graceful, not catastrophic.
+
+### NEW FINDING (needs user framing before synthesis): AU native
+correction improves SHAPE but worsens absolute farm-level skill
+The pillar A gate (normalized-cycle RMSE, fleet) passes — but the standard
+skill table shows AU native corrected RMSE 0.120 vs uncorrected 0.104
+(MBE −0.024→−0.041). ERA5 is nearly LEVEL-unbiased in AU (MBE −0.024 vs
+DK's +0.121), so per-cluster level adjustments add farm-level noise while
+compressing the fleet seasonal cycle. In DK (large level bias) the same
+correction wins everything. Generalisation result: the affine correction's
+value tracks the bias structure — big level bias → big win (DK); small
+level bias + seasonal-shape error (AU) → shape improves, absolute skill
+does not. pillar_a_au.md currently reports the gate only; an expert would
+ask about absolute skill — likely warrants an amendment. USER TO RULE.
+
+### Next checkpoint
+User framing ruling on the native-skill finding + transfer table →
+findings-doc amendment (if ruled) → D5 synthesis doc → D2 close-out.
