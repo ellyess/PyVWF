@@ -455,6 +455,20 @@ class PyVWF:
     ):
         """Derive bias correction factors at desired spatiotemporal resolutions.
 
+        Builds the training set through the configured observation source,
+        then fits, for every combination in ``cluster_list`` x
+        ``time_res_list``, a per-cluster linear wind-speed correction: the
+        scalar from the observed/simulated capacity-factor ratio and the
+        offset by numerical optimisation. One
+        ``<country>_factors_<time_res>_<n>.csv`` per combination is written
+        to ``training/correction-factors/`` under the run directory, and the
+        training fleet to ``training/simulated-turbines/``. Combinations
+        whose factor file already exists are skipped, so training can be
+        resumed or extended by widening the resolution lists.
+
+        The offset fits are the expensive part; the ``dask_*`` arguments
+        control how they are parallelised.
+
         Args:
             check: Unused compatibility flag.
             dask_n_workers: Number of worker processes for distributed offsets.
@@ -462,6 +476,10 @@ class PyVWF:
             dask_use_processes: Use processes instead of threads.
             dask_use_distributed: If True, use dask.distributed LocalCluster.
             dask_npartitions: Override Dask partition count (0 to auto).
+
+        Returns:
+            self, with the paired training frame stored as ``gen_cf``, ready
+            for :meth:`simulate_cf`.
         """
         # obs_level selects the pipeline branch; source supplies the observations.
         # A None source means "resolve from the country code" (turbine-level).
@@ -703,7 +721,35 @@ class PyVWF:
         return self
 
     def simulate_cf(self, year_test, fix_turb_test=None):
-        """Simulate capacity factor for a test year."""
+        """Simulate capacity factors for a held-out test year.
+
+        Builds the test-year validation set (observations, fleet metadata,
+        reanalysis, power curves) through the configured observation source,
+        simulates the uncorrected capacity factor, and, when the model was
+        constructed with ``correct=True``, applies every trained
+        ``(cluster, time_res)`` correction in turn. Each series is written
+        under the run directory: observed and uncorrected CF to
+        ``results/capacity-factor/``, the simulated fleet to
+        ``training/simulated-turbines/``, and one
+        ``<country>_<year>_<time_res>_<n>_cor_cf.csv`` per correction.
+        Outputs that already exist on disk are not recomputed, so an
+        interrupted simulation can be re-run cheaply.
+
+        Call :meth:`train` first when ``correct=True``: the correction
+        factors are read back from ``training/correction-factors/``.
+
+        Args:
+            year_test: Year to simulate. Keep it out of the training window
+                if the result is meant to measure generalisation.
+            fix_turb_test: Optional turbine model name. When given, every
+                turbine is simulated with this single power curve instead of
+                its metadata-assigned model (the test-side counterpart of the
+                constructor's ``fix_turb``).
+
+        Returns:
+            self, with ``turb_info`` and ``year_test`` set for downstream
+            evaluation (e.g. :func:`vwf.viz.load_results`).
+        """
         # obs_level selects the pipeline branch; source supplies the observations.
         obs_cf, turb_info, reanalysis, power_curves = val_set(
             self.country,

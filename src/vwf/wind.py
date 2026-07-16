@@ -419,7 +419,27 @@ def fast_simulate_cf(arrays, scalar, offset):
 
 
 def train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar=1, offset=0):
-    """Simulate a mean capacity factor from pre-interpolated wind speeds."""
+    """Simulate a mean capacity factor from pre-interpolated wind speeds.
+
+    The fast inner step of the offset optimisation: applies the affine
+    correction ``ws * scalar + offset``, converts to capacity factor through
+    each turbine's power curve, and reduces to one capacity-weighted mean.
+    Unlike :func:`train_simulate_wind` it skips hub-height extrapolation and
+    spatial interpolation, so an optimiser can call it repeatedly on wind
+    speeds prepared once.
+
+    Args:
+        unc_ws: Uncorrected hub-height wind speeds as an xarray DataArray
+            with a ``turbine`` dimension carrying ``model`` and ``capacity``
+            coordinates (the shape produced by :func:`interpolate_wind`).
+        powerCurveFile: Power curve table (``data$speed`` plus one column per
+            model).
+        scalar: Multiplicative wind-speed correction.
+        offset: Additive wind-speed correction, in m/s.
+
+    Returns:
+        The capacity-weighted mean capacity factor, as a scalar.
+    """
     cor_ws = (unc_ws * scalar) + offset
     x, curve_by_model = _get_power_curve_cache(powerCurveFile)
 
