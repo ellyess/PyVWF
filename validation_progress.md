@@ -847,3 +847,57 @@ already guarantees "winter"=JJA in the factors. Hard gate = (1).
 User: run amended fetch (DUDETAIL), rule on pillar-A re-spec, calibrate
 curve-pass effort given the sensitivity verdict. Me: curve pass at agreed
 effort → locked CSV review → mask numbers → pillar C → pillar A.
+
+---
+
+## 2026-07-16 — Mask committed; ERA5 integrity 48/48; PILLAR C PASS (checkpoint 17)
+
+**Status:** Registered-capacity mask committed (c16ee23): 42/3,455
+farm-months (1.2%) masked (28 pre-registration, 13 below-final-build, 1
+mid-month change). Overlap check: ZERO SCADA-bearing DUIDs lack DUDETAIL
+histories (the "~20" was a counting artifact) — no un-maskable ramp-up
+residual exists. ERA5-AU complete and integrity-checked. Pillar C run and
+PASSED. Curve pass in flight (two research agents); pillar A HELD for
+curve-CSV sign-off per ruling.
+
+### ERA5-AU integrity pre-flight — 48/48 PASS
+Every monthly file: opens, carries u100/v100/u10/v10, exact hourly
+timestep count for its month (no CDS truncation), covers the au_nem bbox,
+physical values (grid-mean 100m wind 5.62–8.53 m/s across months, >99.9%
+finite, p99.9 < 60 m/s).
+
+### PILLAR C — PASS, with an honest re-scope
+Discovery: the planned 0–360 bit-identity check is PROVABLY VACUOUS for
+Australia — AU longitudes (129–154°E, positive, <180°) are numerically
+identical in both conventions; the wrap cannot corrupt AU data even in
+principle. The transform that CAN corrupt an AU slice is LATITUDE
+ORDERING (_slice_bbox has a descending-lat branch; CDS routes differ).
+Pillar C as run:
+- C1 normalisation no-op on real data: PASS (object identity).
+- C2 slice correctness: grid 137×101 covers bbox; lon ascending; all 104
+  farms STRICTLY inside the sliced grid (interpolation, never
+  extrapolation): PASS.
+- C3 0–360 re-encoded copy (labelled invariance proof, vacuous by
+  construction): bit-identical, max|Δ|=0.0 on grid and on wind
+  interpolated to all 104 farms.
+- C4 lat-flipped copy (the NON-vacuous equivalence): bit-identical,
+  max|Δ|=0.0 on grid and all 104 farm wind speeds. PASS.
+Verdict: pillar A's AU inputs are trustworthy. (Scope: equivalence copies
+over the full 2023 year; C1/C2 over the full period.)
+
+### Curve pass, first half returned (top-20 manufacturer confirmations)
+16/17 top-capacity farms MANUFACTURER-CONFIRMED from OEM/developer
+domains (Nordex N163/5.X at MacIntyre, Goldwind GW140/GW155, GE 3.6-137 +
+3.8-130 at Coopers Gap, Vestas V162 EnVentus at Rye Park/Golden Plains,
+Senvion 3.7M144 at Murra Warra 1, GE Cypress 5.5-158 at MW2/Goyder...).
+Port Augusta REP is the one secondary-source row (developer confirms 50 ×
+4.2 MW but not the OEM; the matching Vestas PR is anonymised). Two
+database-error catches by going to OEM sources: Collector is V117-4.2
+(not V150), Ryan Corner V136-4.2 (not V150). Wikipedia fleet sweep still
+running; au_turbine_models.csv assembles when it lands, then LOCKS for
+user review.
+
+### Next checkpoint
+Assemble + lock curve CSV → user review → add_models wiring (per-turbine
+capacity × OEM rotor diameter → p_density match into the real library) →
+pillar A run with the approved data-as-judge gate.
