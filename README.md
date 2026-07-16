@@ -212,16 +212,20 @@ the metadata and observation files named exactly as listed in the layout above
 read these fixed filenames). Metadata provides turbine ID, location, capacity,
 rotor diameter, and hub height; observations provide monthly generation.
 
-The repository ships example turbine data for DK, DE, and UK. The origin and
-licensing of these datasets, and whether they may be redistributed, are being
-confirmed and will be documented here. Do not assume redistribution rights for
-data you obtain elsewhere.
+The repository does not ship turbine metadata or observed generation: such
+datasets are typically proprietary, so you supply your own in the layout above
+(`input/turbine_level_data/` is gitignored for this reason). To see the
+workflow run without any of these files, use the bundled synthetic example
+described in the [Quickstart](#quickstart). Do not assume redistribution
+rights for data you obtain elsewhere.
 
 ### 3. Power curves and turbine models
 
 - `input/power_curves.csv`: wind speed in the first column, then one column per
-  turbine model giving power output. The shipped file demonstrates the expected
-  format; production curves may be proprietary.
+  turbine model giving power output. The shipped file contains **synthetic
+  placeholder** curves; real curve libraries are typically proprietary and are
+  not redistributed here. See [`input/README.md`](input/README.md) for the
+  provenance details and pointers to real curves.
 - `input/models.csv`: turbine model reference (manufacturer, model, offshore
   flag, capacity, rotor diameter, power density).
 
