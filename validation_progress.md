@@ -667,3 +667,124 @@ User reviews + runs both scripts; meanwhile (no data needed) build the
 SCADA→AEMONemSource-layout processing step (aemo_raw → au_nem_md.csv +
 au_nem_scada.csv) against synthetic fixtures, so ingest is ready the moment
 data lands. Then pillar C, then pillar A (hard gate).
+
+---
+
+## 2026-07-16 — AU ingest processing built; fleet join smoked on real workbooks (checkpoint 14)
+
+**Status:** Downloads running user-side (AEMO 43/48 at last check; ERA5
+queueing, 2/48 landed). Processing batch built, all-green, diff shown,
+awaiting commit approval. Generation Information workbook received and
+copied to input/aemo_raw/.
+
+### Design decisions in the batch
+- **Partial/finalise split** of scada_to_monthly_cf (behaviour-preserving,
+  existing tests untouched and green): AEMO archives are cut on MARKET-time
+  month boundaries and straddle UTC months (first 10 AEST hours of each
+  market month belong to the previous UTC month), so archives reduce to
+  per-(DUID, UTC month) energy partials that are SUMMED across archives
+  before finalisation. Chunk-boundary test proves the straddle is real on
+  the fixture (must-distinguish, not vacuous).
+- **Fast path**: AEMONemSource prefers au_nem_scada_monthly_partials.csv
+  (~5k rows) over raw SCADA (~45M rows/1.7 GB for 48 months). No-drift
+  guarantee: finalisation (capacity, coverage floor, commissioning mask)
+  still runs through the same audited finalise_monthly_cf at load time;
+  test pins fast == slow frame-identically AND that corrupting the partials
+  changes the answer (the fast path is really being read).
+- vwf/datasets/aemo_au.py: MMS C/I/D/F parser (validated against a real
+  downloaded archive), Gen-Info wind-fleet extraction (capacity SUMS across
+  unit-group rows — Boco Rock 9x1.60+58x1.70; "In Service/In Commissioning"
+  status values; NEM-region filter), GWPT capacity-weighted phase centroids,
+  conservative name join with manual alias overrides (no fuzzy matching: a
+  wrong merge is unrecoverable, a miss is an alias entry).
+- cdsapi added to the data extra.
+
+### Real-workbook join smoke (metadata only, output in scratch)
+64/105 DUIDs matched exactly; 41 unmatched (systematic naming divergences:
+"Bango 973 Wind Farm" vs GWPT "Bango wind farm", trailing "- VIC" tags,
+stage numbers); 10 matches capacity-suspicious (some will be staged
+capacity, some may be wrong joins). ~2/3 of the fleet flows through with
+zero manual work; the tail needs an alias file + user review of the report.
+NOTE: Bango 973/999 are two DUIDs under one GWPT project — many-to-one
+joins need explicit handling in the alias review, not a looser normaliser.
+
+### Known limitations recorded in code + report (decisions pending)
+- Hub height: uniform default (100 m), height_source="default-uniform" —
+  GWPT has no heights. Vintage-aware assignment = named follow-up (RQ7).
+- Power-curve model: uniform default, user picks a real-library key for
+  real runs. Per-farm models unavailable without turbine-model data.
+- Static nameplate capacity: staged commissioning inside the window (e.g.
+  Coopers Gap) biases early months; DUDETAILSUMMARY capacity histories are
+  the named follow-up BEFORE pillar A gates.
+
+### Next checkpoint
+Commit approval for the processing batch (+ the two fetch scripts +
+pyproject); alias-file draft for the 41 unmatched DUIDs; full processing
+run once the last SCADA archives land.
+
+---
+
+## 2026-07-16 — Curve/alias/commissioning evidence pack (checkpoint 15)
+
+**Status:** Processing batch committed (ca0beba, 50c3de8, 0d069fe). AEMO
+downloads complete (48/48 SCADA + DUDETAILSUMMARY); ERA5 landing. Alias
+evidence pack written for per-line user approval; curve-matching gap
+quantified; commissioning-gate correction made. Awaiting user rulings.
+
+### Decisions recorded (from batch review)
+- Uniform-curve default REJECTED for AU: it is a different method than the
+  D1-validated add_models path (manufacturer → nearest power density) and
+  would make the correction absorb curve-mismatch error, muddying pillar A.
+  Real matching where data exists; per-farm default fallback only.
+- Alias work reprioritised as coverage-raising (headline-fleet fraction),
+  per-line user approval, suspicious-10 reviewed before the 41 misses.
+- Many-to-one ruling: GI capacity + GWPT coordinates only.
+- DUDETAILSUMMARY commissioning/capacity handling escalated to a GATE
+  before pillar A (staged commissioning could inject a fake seasonal
+  signal into the exact JJA cycle pillar A judges).
+
+### Field coverage (verified against both workbooks)
+Per matched farm: capacity 105/105 (GI, authoritative); per-turbine rated
+capacity 127/127 unit-group rows (GI Unit Capacity × Unit Count);
+coordinates 64/105 matched (GWPT); start year (GWPT). NOT present in
+either source: rotor diameter 0, turbine model/manufacturer 0 (GI
+"Technology Detail" is just "Onshore"; GWPT has no turbine-spec columns),
+hub height 0. FCUD only 6/105 → commissioning dates are almost entirely
+the Jan-1-of-start-year fallback; 28/64 matched farms commissioned INSIDE
+the window — staged commissioning is half the fleet, not a corner case.
+
+### CORRECTION: DUDETAILSUMMARY has NO capacity column
+Checkpoint 11 claimed REGISTEREDCAPACITY lives in DUDETAILSUMMARY — wrong.
+It lives in the sibling DUDETAIL table (PUBLIC_DVD_DUDETAIL_*.zip, ~48×0.1
+MB, not yet downloaded). fetch_aemo_au.sh amended (third file type,
+resumable re-run picks up only the new files). The capacity-history gate
+builds on DUDETAIL once fetched.
+
+### Fleet join evidence (input/turbine_level_data/AU_NEM/alias_review.md)
+- Suspicious 10 → group sums resolve 9 as exact stage-shares (Dundonnell
+  336.0/336, Hornsdale 316.8/316, ...). ONE real wrong match caught:
+  MUWAWF2 was inheriting Murra Warra 1's coordinates; GWPT has a separate
+  Murra Warra 2 project 3 km away. The capacity check did exactly its job.
+- 41 misses drafted: 17 project-level aliases with near-exact capacity
+  sums; 11 phase-level targets (Lal Lal Elaine/Yendon, Portland's capes
+  incl. Yambuk/Codrington, Hallett stages with distinct coords, Woolnorth
+  spanning two GWPT projects, Moorabool North+South centroid); 5 from the
+  Below-Threshold sheet; 1 unresolved (Yawong, 7.2 MW).
+- If approved: 97/105 DUIDs (~92%), from 61%. Requires a phase-aware alias
+  extension (aliases target project|phase or BT rows; one-to-many =
+  capacity-weighted centroid) — implementation after per-line approval.
+
+### Curve-matching proposal (pending approval)
+Close the model gap via a public-source pass: GWPT carries a Wiki URL per
+project (GEM wiki pages typically state turbine make/model, e.g. "Vestas
+V112-3.3"); Wikipedia's AU wind-farm lists as cross-check. Produce
+au_turbine_models.csv (farm, manufacturer, model, rotor diameter from the
+designation, count, provenance URL) for user review; diameter + GI
+per-turbine capacity → the SAME add_models manufacturer/p_density path as
+DK/DE/UK. Farms the pass cannot resolve get a per-farm fallback curve
+marked model_source="default-fallback" — never a blanket uniform curve.
+
+### Next checkpoint
+User rules on: alias lines (esp. B10/B11 Hallett capacity conflicts, D
+Yawong), curve-pass approval, DUDETAIL re-fetch. Then: phase-aware alias
+implementation + capacity mask (gate) + curve table → pillar C → pillar A.
