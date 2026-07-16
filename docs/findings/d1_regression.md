@@ -87,12 +87,14 @@ Harness skill on the held-out year, real curves:
 
 ## Reproduction
 
-The committed pieces are `scripts/d1_regression.py` (the frame comparator) and
-the wiring it exercised (`EntsoeFileSource`, country-level `run_evaluate`,
-corrected-CF saving). The run orchestration (main worktree + staging dir) is
-environment-specific and lives outside the repo; the staging dir is
-`PYVWF_INPUT` pointed at a directory with the real curve files copied to the
-working names.
+The committed pieces are the two runners (`scripts/d1_run_legacy.py` for the
+reference from a main worktree, `scripts/d1_run_harness.py` for the branch),
+`scripts/d1_regression.py` (the frame comparator), and the wiring they
+exercise (`EntsoeFileSource`, country-level `run_evaluate`, corrected-CF
+saving). Only the environment is external: a git worktree of `main` and a
+staging dir — `PYVWF_INPUT` pointed at a directory with the real curve files
+copied to the working names and the data directories symlinked. Each runner's
+docstring carries its invocation.
 
 ## Conclusion
 
