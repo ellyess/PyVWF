@@ -107,6 +107,17 @@ vwf = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Both filters silence UPSTREAM noise, not PyVWF code, so real warnings from
+# this package stay visible. Drop each when the upstream fix ships.
+filterwarnings = [
+    # netCDF4's compiled module was built against an older numpy C-API than
+    # the numpy pip resolves; the struct-size notice is benign by design and
+    # currently unavoidable on a fresh install (fires on every CI Python).
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+    # xarray's netCDF4 backend assigns .shape, deprecated by numpy 2.5; only
+    # environments resolving numpy >= 2.5 see it (CI's 3.12 job).
+    "ignore:Setting the shape on a NumPy array has been deprecated:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["vwf"]
