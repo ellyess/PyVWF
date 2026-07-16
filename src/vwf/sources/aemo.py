@@ -37,7 +37,9 @@ SCADA_INTERVAL_MINUTES = 5
 DEFAULT_MIN_COVERAGE = 0.9
 
 #: Training window used when no explicit year range is requested.
-DEFAULT_TRAIN_YEARS: tuple[int, int] = (2018, 2022)
+#: Trimmed to 2020-2022 at D2 sign-off: the four validation pillars need a
+#: couple of full held-out years, not six, and it cuts the SCADA download.
+DEFAULT_TRAIN_YEARS: tuple[int, int] = (2020, 2022)
 
 
 def aest_to_utc(timestamps: pd.Series) -> pd.Series:

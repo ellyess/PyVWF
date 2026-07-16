@@ -9,7 +9,7 @@ name = "Australia (National Electricity Market)"
 source = "aemo-nem"
 obs_level = "turbine"
 obs_unit = "farm"
-train_years = [2018, 2022]
+train_years = [2020, 2022]
 test_years = [2023]
 # SCADA records curtailed output: AU corrections absorb curtailment more
 # than European monthly generation data does (standing caveat, design §2).
