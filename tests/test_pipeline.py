@@ -83,8 +83,9 @@ def _write_era5(era5_dir, seed=11):
 def _write_fleet(dk_dir):
     """Six onshore turbines in two spatial groups, in the DK loader's schema.
 
-    Manufacturer/capacity/diameter are chosen so `add_models` resolves them to
-    the bundled synthetic power curve `Synthetic.Onshore2000` (p_density ~398).
+    Manufacturer/capacity/diameter give a p_density of ~398, so `add_models`
+    resolves them to the nearest bundled open-library curve
+    (`NREL_Reference_5MW_126`, p_density ~401).
     """
     dk_dir.mkdir(parents=True, exist_ok=True)
 

@@ -8,9 +8,9 @@ It demonstrates the full core workflow:
   capacity factors -> corrected simulation -> error reduction.
 
 All bundled data under ``examples/data/`` is synthetic (see
-``examples/data/README.md``); the shipped power curves are synthetic
-placeholders too (see ``input/README.md``). Regenerate the data with
-``python examples/data/generate_example_data.py``.
+``examples/data/README.md``); the power curves come from the open curve
+library shipped with the package (see ``input/README.md``). Regenerate the
+data with ``python examples/data/generate_example_data.py``.
 
 Run from the repository root:
 

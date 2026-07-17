@@ -75,7 +75,7 @@ def _make_turbines() -> pd.DataFrame:
             "lat": [55.2, 55.3, 55.5, 55.9, 56.0, 56.1],
             "lon": [8.3, 8.7, 9.1, 9.2, 9.6, 8.9],
             "height": [100.0] * 6,
-            "model": ["Synthetic.Onshore2000"] * 6,
+            "model": ["2019COE_Market_Average_2.6MW_121"] * 6,
             "capacity": [2000.0, 2000.0, 2000.0, 2000.0, 2000.0, 2000.0],
             "cluster": [0, 0, 0, 1, 1, 1],
         }

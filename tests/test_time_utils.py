@@ -51,7 +51,7 @@ def test_add_time_resolution_columns_all_months_assigned():
 
 
 # ---------------------------------------------------------------------------
-# Explicit season definitions (validation harness). Default None must stay
+# Explicit season definitions. Default None must stay
 # bit-identical to the legacy NH behaviour; explicit SH definitions must
 # actually change the answer (must-distinguish).
 # ---------------------------------------------------------------------------

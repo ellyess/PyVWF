@@ -3,9 +3,9 @@
 [![CI](https://github.com/ellyess/PyVWF/actions/workflows/ci.yml/badge.svg)](https://github.com/ellyess/PyVWF/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
-[![DOI](https://zenodo.org/badge/506216589.svg)](https://doi.org/10.5281/zenodo.21236619)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21236619-blue)](https://doi.org/10.5281/zenodo.21236619)
 
-PyVWF is a research-oriented Python framework for processing, bias-correcting, and simulating wind resources and wind power generation using reanalysis data (e.g. ERA5), turbine metadata, and observed generation data. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
+PyVWF is an open-source Python framework for processing, bias-correcting, and simulating wind resources and wind power generation using reanalysis data (e.g. ERA5), turbine metadata, and observed generation data. The novelty of this model comes from the bias correction process used to improve the simulations from ERA-5. The simulated wind time-series can be both corrected and uncorrected.
 
 `PyVWF` is a Python rewrite of the [VWF model](https://github.com/renewables-ninja/vwf/tree/master) developed by Iain Staffell. The wind energy simulations on [Renewables.ninja](https://www.renewables.ninja/) are based on the VWF model.
 
@@ -46,6 +46,19 @@ PyVWF supports the following workflow:
 4. **Convert wind speeds to power / capacity factor** via turbine power curves
 5. **Validate simulated output** against observations
 
+```mermaid
+flowchart TD
+    A[ERA5 reanalysis winds] --> B[Hub-height extrapolation via log wind profile]
+    B --> C[Interpolation to turbine locations]
+    C --> D["Bias correction on wind speed: w_corrected = α·w + β"]
+    O[Observed generation] -. learns α, β per cluster and time slice .-> D
+    D --> E[Power curve conversion]
+    E --> F[Capacity factors]
+```
+
+The correction is applied to the **wind speed**, before the power-curve
+conversion, so the non-linear speed-to-power step operates on corrected winds.
+
 The framework is intended for **daily to monthly** analysis at **turbine, regional, or national scale**.
 
 ## Key features
@@ -53,7 +66,7 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - ERA5-based wind speed processing
 - Hub-height extrapolation with configurable methods
 - Statistical bias correction of wind speeds
-- Power curve–based generation modelling
+- Power curve-based generation modelling
 - Modular, research-friendly Python codebase
 - Version-pinned environment for reproducibility
 - **Automated test suite** (`pytest`) and continuous integration
@@ -117,10 +130,13 @@ layout of a repository checkout. If you installed PyVWF and work elsewhere, set
 export PYVWF_INPUT=/data/pyvwf-inputs   # holds power_curves.csv, models.csv, era5/, ...
 ```
 
-The package bundles **synthetic placeholder** power curves and turbine models so
-that it imports and runs out of the box. They are invented, and PyVWF warns
-loudly whenever it falls back to them — supply a real power-curve library before
-drawing any conclusion from the numbers (see [`input/README.md`](input/README.md)).
+The package bundles an **open turbine curve library** (69 real machines plus 7
+composites from NREL/turbine-models, BSD-3-Clause, VWF-smoothed) so
+that it imports and runs on real curve physics out of the box. Fleets are
+matched to these curves by specific power rather than machine identity, and
+PyVWF warns whenever it falls back to the bundled files; for
+manufacturer-specific production runs, supply your own curve library (see
+[`input/README.md`](input/README.md)).
 
 After install, the `pyvwf-train` console command is available on your PATH:
 
@@ -212,16 +228,21 @@ the metadata and observation files named exactly as listed in the layout above
 read these fixed filenames). Metadata provides turbine ID, location, capacity,
 rotor diameter, and hub height; observations provide monthly generation.
 
-The repository ships example turbine data for DK, DE, and UK. The origin and
-licensing of these datasets, and whether they may be redistributed, are being
-confirmed and will be documented here. Do not assume redistribution rights for
-data you obtain elsewhere.
+The repository does not ship turbine metadata or observed generation: such
+datasets are typically proprietary, so you supply your own in the layout above
+(`input/turbine_level_data/` is gitignored for this reason). To see the
+workflow run without any of these files, use the bundled synthetic example
+described in the [Quickstart](#quickstart). Do not assume redistribution
+rights for data you obtain elsewhere.
 
 ### 3. Power curves and turbine models
 
 - `input/power_curves.csv`: wind speed in the first column, then one column per
-  turbine model giving power output. The shipped file demonstrates the expected
-  format; production curves may be proprietary.
+  turbine model giving capacity factor. The shipped file is the **open turbine
+  curve library** (BSD-3-Clause, per-column provenance in
+  `input/power_curves_provenance.csv`); manufacturer-specific libraries are
+  typically proprietary and are not redistributed here. See
+  [`input/README.md`](input/README.md) for provenance details and pointers.
 - `input/models.csv`: turbine model reference (manufacturer, model, offshore
   flag, capacity, rotor diameter, power density).
 
@@ -266,7 +287,8 @@ python examples/run_minimal.py
 
 It preps a small bundled ERA5-shaped NetCDF, trains a per-cluster linear bias
 correction against synthetic observed capacity factors, and reports the error
-reduction. All bundled data is synthetic; see
+reduction. The weather and observations are synthetic; the power curves come
+from the bundled open library. See
 [`examples/data/README.md`](examples/data/README.md).
 
 ### PyVWF Training Example (Denmark)
@@ -352,7 +374,7 @@ fig.savefig("factor_map.png", dpi=150)
 
 ![Correction factor map](docs/img/viz_factor_map.png)
 
-`plot_factor_joint()` shows the same factors in factor space — the joint
+`plot_factor_joint()` shows the same factors in factor space: the joint
 distribution of scalar vs offset with marginal histograms, with guides at the
 neutral values. Tight clustering around (1, 0) means the reanalysis needed
 little correction:
@@ -427,9 +449,12 @@ See [PIPELINE.md](PIPELINE.md) for the full script execution order.
 
 ## Detailed usage and reference
 
-Reference material that used to live inline has moved into `docs/` to keep this
-page focused. Start with the [documentation index](docs/README.md) for a
-suggested reading order, or jump to a specific reference:
+The full documentation, including the guides below and an API reference
+generated from the docstrings, is hosted at
+[pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/). The same content lives
+in `docs/` as plain Markdown, so everything is also readable directly on
+GitHub. Start with the [documentation index](docs/README.md) for a suggested
+reading order, or jump to a specific reference:
 
 - [Data requirements](docs/DATA_REQUIREMENTS.md): input data formats and how to download ERA5 winds.
 - [Output structure](docs/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
@@ -452,15 +477,15 @@ mypy                       # type check
 Continuous integration (`.github/workflows/ci.yml`) runs, for every push and
 pull request:
 
-- **Lint and type check** — `ruff` and `mypy` (the package ships a `py.typed`
+- **Lint and type check**: `ruff` and `mypy` (the package ships a `py.typed`
   marker, so type information is exported to downstream users).
-- **Test** — the suite plus the end-to-end example on Python 3.10–3.12,
+- **Test**: the suite plus the end-to-end example on Python 3.10–3.12,
   installed from `pyproject.toml` so the declared dependencies are exercised
   exactly as a `pip install pyvwf` user would get them. Coverage is gated, so
   it cannot silently regress.
-- **Docs** — builds the API reference and guides with `-W`, so a broken
+- **Docs**: builds the API reference and guides with `-W`, so a broken
   docstring or an orphaned page fails rather than quietly degrading the site.
-- **Package** — builds the sdist and wheel, validates the distribution
+- **Package**: builds the sdist and wheel, validates the distribution
   metadata with `twine`, then installs the wheel into a clean environment and
   imports it with no repository on `sys.path`.
 
@@ -472,7 +497,7 @@ sphinx-build -b html docs docs/_build/html -W
 open docs/_build/html/index.html
 ```
 
-The version lives in exactly one place — `vwf.__version__` — from which
+The version lives in exactly one place, `vwf.__version__`, from which
 `pyproject.toml` reads it dynamically; `tests/test_packaging.py` asserts it
 follows semantic versioning and stays in step with `CITATION.cff`.
 
@@ -503,7 +528,7 @@ For published work, we recommend citing the repository and documenting:
 If you use PyVWF in academic work, please cite **both** the software and the
 method paper.
 
-**The software** — archived on Zenodo. This is the *concept* DOI: it always
+**The software**: archived on Zenodo. This is the *concept* DOI: it always
 resolves to the latest release, so it stays correct as PyVWF is updated. To pin
 the exact version you ran, use the version-specific DOI from the
 [Zenodo record](https://doi.org/10.5281/zenodo.21236619).
@@ -512,7 +537,7 @@ the exact version you ran, use the version-specific DOI from the
 > framework for bias-corrected wind power simulation from reanalysis data.*
 > Zenodo. [doi:10.5281/zenodo.21236619](https://doi.org/10.5281/zenodo.21236619)
 
-**The method** — the bias-correction approach PyVWF implements:
+**The method**, the bias-correction approach PyVWF implements:
 
 > Benmoufok, E. F., Warder, S. C., Zhu, E., and Piggott, M. D. (2024).
 > *Improving wind power modelling through granular spatial and temporal bias

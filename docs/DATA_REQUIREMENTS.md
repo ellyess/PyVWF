@@ -34,7 +34,10 @@ training and test split is applied in code by time selection, not by directory.
 
 ## Turbine and power-curve data
 
-The repository ships example turbine data for DK, DE, and UK, and an example
-`power_curves.csv` showing the expected format. The origin and licensing of
-these datasets are being confirmed; do not assume redistribution rights for data
-obtained elsewhere.
+The repository ships no turbine metadata or observations; these datasets are
+typically proprietary, so you supply your own in the layout above. The shipped
+`power_curves.csv` and `models.csv` are the open turbine curve library
+(NREL/turbine-models, BSD-3-Clause, DOI 10.11578/dc.20210112.1,
+VWF-smoothed), redistributable and documented per column in
+`power_curves_provenance.csv`; see `input/README.md` for provenance details.
+Do not assume redistribution rights for data obtained elsewhere.

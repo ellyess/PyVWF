@@ -15,7 +15,7 @@ Optional functionality (requires additional dependencies):
 - Visualisation: Distributional diagnostics via ``vwf.viz`` (requires matplotlib).
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # ============================================================================
 # CORE FUNCTIONALITY (Always available)

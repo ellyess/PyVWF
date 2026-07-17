@@ -7,7 +7,7 @@ This module provides a single source of truth for:
 
 Paths are resolved relative to :attr:`PyVWFPaths.INPUT_ROOT`, which defaults to
 ``input/`` in the working directory (the layout of a repository checkout) and
-can be pointed anywhere with the ``PYVWF_INPUT`` environment variable — so an
+can be pointed anywhere with the ``PYVWF_INPUT`` environment variable, so an
 installed copy of PyVWF works outside a checkout::
 
     export PYVWF_INPUT=/data/pyvwf-inputs
@@ -49,14 +49,15 @@ class PyVWFPaths:
 
         Resolution order:
 
-        1. ``INPUT_ROOT/<filename>`` — your own copy. Real power-curve libraries
-           are licensed and not redistributable, so a local file always wins.
-        2. The synthetic placeholder bundled in ``vwf.resources``, so an
+        1. ``INPUT_ROOT/<filename>``: your own copy. Manufacturer-specific
+           curve libraries are licensed and not redistributable, so a local
+           file always wins.
+        2. The open curve library bundled in ``vwf.resources``, so an
            installed PyVWF runs outside a repository checkout.
 
         Falling back to (2) emits a ``UserWarning``: the bundled curves are
-        invented, and simulating with them produces numbers that look plausible
-        and mean nothing.
+        real, but a fleet is matched to them by specific power rather than
+        machine identity, and the user has to know that.
 
         Args:
             filename: File to locate, e.g. ``"power_curves.csv"``.
@@ -81,11 +82,12 @@ class PyVWFPaths:
             )
 
         warnings.warn(
-            f"Using the SYNTHETIC placeholder {filename} bundled with PyVWF "
-            f"({packaged}) because none was found at {local}. These turbine "
-            "models and power curves are invented: results computed with them "
-            "are not physically meaningful. Supply a real power-curve library "
-            "and point PYVWF_INPUT at it before drawing conclusions.",
+            f"Using the BUNDLED open-library {filename} shipped with PyVWF "
+            f"({packaged}) because none was found at {local}. These are real, "
+            "redistributable curves (NREL/turbine-models, VWF-"
+            "smoothed), but your fleet is matched to them by specific power, "
+            "not by actual machine identity. For production results, supply "
+            "your own power-curve library and point PYVWF_INPUT at it.",
             UserWarning,
             stacklevel=2,
         )

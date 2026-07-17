@@ -29,9 +29,9 @@ def parse_time_slice(time_slice, seasons=None):
 
     Args:
         time_slice: String like 'winter', '1/6', '1/1', or numeric month.
-        seasons: Optional mapping of season name to month list (e.g. a
-            region's explicit season definitions from the validation
-            harness). When given, season names resolve through it INSTEAD of
+        seasons: Optional mapping of season name to month list (e.g.
+            explicit Southern-Hemisphere season definitions). When given,
+            season names resolve through it INSTEAD of
             the hardcoded Northern-Hemisphere mapping; all other slices
             ('1/6', '1/1', numeric months) are hemisphere-neutral and resolve
             as before. Default None preserves the legacy behaviour exactly.
@@ -108,7 +108,7 @@ def add_time_resolution_columns(df: pd.DataFrame, seasons=None) -> pd.DataFrame:
     for month, (bimonth, season) in month_to_resolution.items():
         df.loc[df["month"] == month, ["bimonth", "season"]] = [bimonth, season]
 
-    # Explicit season definitions (validation harness) override the NH map.
+    # Explicit season definitions override the NH map.
     if seasons is not None:
         month_to_season = {
             month: name for name, months in seasons.items() for month in months

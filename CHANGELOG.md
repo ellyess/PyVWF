@@ -11,6 +11,52 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-16
+
+### Added
+
+- **Optional `seasons` mapping through the four season-handling sites**
+  (`parse_time_slice`, `add_time_resolution_columns`, `correct_wind_speed` via
+  `simulate_wind`, `find_offset`, and `find_offsets_country_level`). Named
+  season slices previously resolved through a hardcoded Northern-Hemisphere
+  month mapping, so a Southern-Hemisphere user got silently inverted seasonal
+  corrections. The default (`seasons=None`) preserves the legacy NH behaviour
+  byte-for-byte, pinned by a frame-equality test.
+- **Read the Docs hosting.** `.readthedocs.yaml` builds the existing Sphinx
+  site (same `docs` extra, warnings as errors) at pyvwf.readthedocs.io.
+
+### Fixed
+
+- **ERA5 longitudes are normalised to [-180, 180] on load.** A 0..360 ERA5
+  file sliced with a [-180, 180] bounding box previously returned an empty or
+  wrong subset silently. Normalisation is a pinned no-op for data already in
+  range, so EU downloads are unaffected.
+- The README no longer claims the repository ships turbine data with
+  licensing "being confirmed": it ships none (the directory is gitignored),
+  and the provenance story lives in `input/README.md`.
+
+### Changed
+
+- **The bundled power curves are now real.** The synthetic placeholder curves
+  and turbine models are replaced by the open turbine curve library: 69 real
+  machines plus 7 normalized composites from NREL/turbine-models
+  (BSD-3-Clause, DOI 10.11578/dc.20210112.1), Gaussian-smoothed to
+  capacity-factor curves with the published VWF method. Per-column sources and
+  licenses ship in `power_curves_provenance.csv`, and `tests/test_curve_library.py`
+  pins the library's invariants. Capacity-weighted coverage through
+  `add_models` for the Danish and German fleets: 99.5% and 94.5% of capacity
+  assigned a curve within 20% of the turbine's true specific power (previously
+  90.7% and 79.9% on the synthetic placeholders). Matching is by specific
+  power, not machine identity, and the fallback warning says so. The default
+  sampling-point model is now the library's 2.6 MW market-average composite,
+  and the bundled example data is regenerated against the new curves.
+- **Public API docstrings brought to reference quality.** Nine below-bar
+  docstrings (one-line stubs and undocumented parameters, including
+  `PyVWF.simulate_cf` and the sources registry) rewritten with behaviour,
+  typed Args, Returns, and usage notes; the generated API reference renders
+  them.
+- `paper.md` describes the bundled open curve library and its provenance.
+
 ## [0.2.0] - 2026-07-14
 
 Version 0.1.2 was bumped in the source but never tagged or released; its
@@ -31,14 +77,14 @@ changes the numbers the evaluation layer reports.
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:
-  - `plot_correction_factor_map` — per-cluster Voronoi choropleth of the learned
+  - `plot_correction_factor_map`: per-cluster Voronoi choropleth of the learned
     scalar and offset, on a diverging scale centred at the neutral value.
-  - `plot_factor_joint` — the scalar-vs-offset joint distribution with marginal
+  - `plot_factor_joint`: the scalar-vs-offset joint distribution with marginal
     histograms.
-  - `plot_error_vs_clusters` — error against cluster count, one line per temporal
+  - `plot_error_vs_clusters`: error against cluster count, one line per temporal
     resolution, with the uncorrected error as a reference. The model-selection
     plot for choosing `n_clu` and `time_res`.
-  - `plot_sim_vs_obs` — per-turbine mean simulated vs observed capacity factor
+  - `plot_sim_vs_obs`: per-turbine mean simulated vs observed capacity factor
     against the `y = x` diagonal, annotated with fleet-level MBE and RMSE.
 - `Results.train_turb_info`: the training fleet the correction factors were
   fitted on, which `plot_correction_factor_map` needs to reproduce cluster IDs.

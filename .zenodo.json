@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
   "title": "PyVWF: An open Python framework for bias-corrected wind power simulation from reanalysis data",
-  "description": "An open, research-oriented Python framework that converts atmospheric reanalysis data (e.g. ERA5) into bias-corrected wind power generation. PyVWF re-implements the Virtual Wind Farm (VWF) methodology used by Renewables.ninja, exposing the full training workflow for observation-based bias-correction factors at turbine, regional, or national scale, with configurable spatial clustering and temporal aggregation.",
+  "description": "An open-source Python framework that converts atmospheric reanalysis data (e.g. ERA5) into bias-corrected wind power generation. PyVWF re-implements the Virtual Wind Farm (VWF) methodology used by Renewables.ninja, exposing the full training workflow for observation-based bias-correction factors at turbine, regional, or national scale, with configurable spatial clustering and temporal aggregation.",
   "license": "BSD-3-Clause",
   "access_right": "open",
   "creators": [
@@ -35,6 +35,12 @@
       "identifier": "10.1016/j.energy.2024.133759",
       "relation": "isSupplementTo",
       "resource_type": "publication-article",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.11578/dc.20210112.1",
+      "relation": "references",
+      "resource_type": "dataset",
       "scheme": "doi"
     }
   ]

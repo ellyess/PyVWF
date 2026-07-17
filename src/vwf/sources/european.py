@@ -27,7 +27,20 @@ _FALLBACK_TRAIN_YEARS: tuple[int, int] = (2015, 2018)
 
 @register
 class EuropeanTurbineSource(ObservationSource):
-    """Per-turbine metadata and monthly generation for DK, DE, and UK."""
+    """Per-turbine metadata and monthly generation for DK, DE, and UK.
+
+    Reads the fixed-name files under ``input/turbine_level_data/<CC>/``
+    through :mod:`vwf.loaders.turbine_loaders` and adapts them to the
+    :class:`~vwf.sources.base.ObservationSource` contract. Resolved
+    automatically by :func:`vwf.sources.registry.resolve` for its three
+    country codes.
+
+    Args:
+        country: One of ``"DK"``, ``"DE"``, or ``"UK"`` (case-insensitive).
+
+    Raises:
+        ValueError: If ``country`` is not one of the supported codes.
+    """
 
     name: ClassVar[str] = "european-turbine"
     obs_level: ClassVar[ObsLevel] = "turbine"
@@ -48,7 +61,18 @@ class EuropeanTurbineSource(ObservationSource):
         return DEFAULT_TRAIN_YEARS.get(self.country, _FALLBACK_TRAIN_YEARS)
 
     def load_metadata(self) -> pd.DataFrame:
-        """Load turbine metadata and assign a power-curve model to each turbine."""
+        """Load turbine metadata and assign a power-curve model to each turbine.
+
+        The raw country file is cleaned by the country loader, then
+        :func:`vwf.data.add_models` matches every turbine to a curve in the
+        model catalog by manufacturer and specific power. The result is
+        loaded once per instance and cached; callers get a copy.
+
+        Returns:
+            One row per turbine with ``ID``, ``type``, ``capacity``,
+            ``diameter``, ``height``, ``lon``, ``lat``, ``p_density``, and
+            the assigned ``model``.
+        """
         if self._metadata is None:
             # Imported lazily: vwf.data imports this package at module scope, so a
             # top-level import here would close the cycle.

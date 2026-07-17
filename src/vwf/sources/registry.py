@@ -16,6 +16,14 @@ _REGISTRY: dict[str, type[ObservationSource]] = {}
 def register(cls: type[ObservationSource]) -> type[ObservationSource]:
     """Class decorator adding an adapter to the registry.
 
+    Args:
+        cls: The :class:`~vwf.sources.base.ObservationSource` subclass to
+            register, keyed by its ``name`` class attribute.
+
+    Returns:
+        ``cls`` itself, unchanged, so the decorator form
+        ``@register`` above a class definition works.
+
     Raises:
         TypeError: If ``cls`` is not an ObservationSource subclass.
         ValueError: If ``name`` or ``obs_level`` is missing, or ``name`` is taken.
@@ -54,6 +62,15 @@ def get_source(name: str, *args: Any, **kwargs: Any) -> ObservationSource:
     data frames themselves for :class:`InMemoryCountrySource`), which is why they
     are untyped here.
 
+    Args:
+        name: Registry key of the adapter, e.g. ``"european-turbine"`` (see
+            :func:`available_sources`).
+        *args: Positional arguments for the adapter's constructor.
+        **kwargs: Keyword arguments for the adapter's constructor.
+
+    Returns:
+        The constructed adapter instance.
+
     Raises:
         KeyError: If no adapter is registered under ``name``.
     """
@@ -68,6 +85,14 @@ def get_source(name: str, *args: Any, **kwargs: Any) -> ObservationSource:
 
 def resolve(country: str, obs_level: ObsLevel) -> ObservationSource:
     """Find the adapter that serves ``country`` at ``obs_level``.
+
+    Args:
+        country: Country code, case-insensitive (e.g. ``"dk"``).
+        obs_level: ``"turbine"`` or ``"country"``; an adapter is only
+            considered if its own ``obs_level`` matches.
+
+    Returns:
+        A ready-to-use adapter instance, constructed with the country code.
 
     Raises:
         NotImplementedError: If ``obs_level`` is ``"country"`` and no adapter

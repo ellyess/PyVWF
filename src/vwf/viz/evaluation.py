@@ -2,16 +2,16 @@
 
 Two figures for judging a run:
 
-:func:`plot_error_vs_clusters` answers the model-selection question — *how
+:func:`plot_error_vs_clusters` answers the model-selection question: *how
 many clusters, and at what temporal resolution?* Error metrics are drawn
 against cluster count (log x) with one line per temporal resolution, plus an
 optional horizontal reference at the uncorrected error so the payoff of the
-correction is visible at a glance. It takes a tidy metrics DataFrame — the
+correction is visible at a glance. It takes a tidy metrics DataFrame, the
 schema produced by ``scripts/evaluate_all_pyvwf_runs.py``
 (``pyvwf_evaluation_metrics.csv``). Filtering to one country/run is the
 caller's job; if several are mixed, lines will zig-zag.
 
-:func:`plot_sim_vs_obs` answers the fit question — *where does the
+:func:`plot_sim_vs_obs` answers the fit question: *where does the
 simulation sit against observation, turbine by turbine?* Each turbine's mean
 simulated CF is scattered against its mean observed CF; distance from the
 y=x diagonal is that turbine's bias, annotated with fleet-level MBE/RMSE.
@@ -176,7 +176,7 @@ def plot_sim_vs_obs(
     the fleet-level MBE and RMSE of the per-turbine means.
 
     Args:
-        sim_cf: Simulated CF — a wide DataFrame in the on-disk schema
+        sim_cf: Simulated CF, a wide DataFrame in the on-disk schema
             (optional ``time`` column, one column per turbine ID, e.g. read
             from ``<run>/results/capacity-factor/*_unc_cf.csv``), or an
             already-reduced per-turbine Series of means.

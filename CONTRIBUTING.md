@@ -1,6 +1,6 @@
 # Contributing to PyVWF
 
-Thank you for your interest in PyVWF! Contributions of all kinds are welcome —
+Thank you for your interest in PyVWF! Contributions of all kinds are welcome:
 bug reports, documentation, new bias-correction methods, validation case
 studies, and performance improvements.
 

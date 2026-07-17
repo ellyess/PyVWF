@@ -7,7 +7,7 @@ quantile plot against the y=x diagonal.
 
 The :func:`load_results` helper reads the on-disk schema produced by
 :meth:`vwf.vwf.PyVWF.simulate_cf` into a single :class:`Results` object so
-the plot functions are self-contained — no path-juggling at the call site.
+the plot functions are self-contained: no path-juggling at the call site.
 
 Free functions; pass anything dict-shaped (``{label: series}``) and they
 will plot it. Returns ``matplotlib.figure.Figure`` so the caller decides
@@ -70,7 +70,7 @@ class Results:
         factors: Linear correction factor tables ``(scalar, offset)`` keyed by
             ``(n_clu, time_res)``.
         turb_info: Fleet metadata for the simulated year.
-        train_turb_info: Fleet metadata for the training period — the fleet
+        train_turb_info: Fleet metadata for the training period: the fleet
             the correction factors were fitted on, which
             :func:`vwf.viz.plot_correction_factor_map` needs to reproduce
             the cluster IDs.

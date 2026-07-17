@@ -26,13 +26,13 @@ bibliography: paper.bib
 
 # Summary
 
-`PyVWF` (the Python Virtual Wind Farm) is an open, research-oriented framework
+`PyVWF` (the Python Virtual Wind Farm) is an open-source Python framework
 that converts atmospheric reanalysis data into bias-corrected wind power
 generation. It re-implements, in a modular and extensible Python codebase, the
 Virtual Wind Farm (VWF) methodology that underpins the wind simulations on
 [Renewables.ninja](https://www.renewables.ninja) [@staffell2016; @pfenninger2016].
 Given gridded reanalysis winds (e.g. ERA5 [@era5] or MERRA-2 [@merra2]), turbine
-metadata, smoothed manufacturer power curves, and observed generation, `PyVWF`
+metadata, smoothed power curves, and observed generation, `PyVWF`
 extrapolates wind to hub height and interpolates to turbine locations, learns
 per-cluster scale-and-offset corrections by comparing simulated and observed
 capacity factors, applies these corrections to the ERA5 wind speeds, and
@@ -41,7 +41,10 @@ general-purpose reanalysis-to-power tools, it exposes the full **training**
 workflow for the bias-correction factors and lets researchers compute them at
 finer spatial and temporal resolution than the conventional national-scale
 factors, through configurable spatial clustering and temporal grouping. The
-package implements the granular bias-correction method of @benmoufok2024.
+package implements the granular bias-correction method of @benmoufok2024. A
+redistributable open power-curve library [@turbinemodels] ships with the
+package (see *Functionality*), so the workflow runs out of the box; users
+supply their own curve library for manufacturer-specific production work.
 Experimental gridded interpolation and machine-learning extensions are
 maintained on a separate development branch.
 
@@ -104,9 +107,19 @@ bias-correction parameters:
   research extensions maintained on a separate development branch.
 
 The package is typed, documented with a generated API reference, and covered by
-an automated `pytest` suite that runs on synthetic data, so the full workflow —
-including a worked end-to-end example — executes in under a minute without any
-reanalysis download. Continuous integration runs the tests across Python
+an automated `pytest` suite that runs on synthetic weather and observations
+(the unit tests use minimal fixture curves; the end-to-end workflow tests and
+the worked example exercise the bundled open power-curve library), so the full
+workflow executes in under a minute without any reanalysis download. The
+bundled library comprises 69 real machines and 7 normalized composites from
+the NREL/turbine-models archive [@turbinemodels] (BSD-3-Clause; now hosted as
+NatLabRockies/turbine-models), smoothed to capacity-factor curves by an
+independent reproduction of the published VWF smoothing method
+[@staffell2016]; it is not derived from any proprietary curve file, which is
+what makes redistribution clean. Fleets are matched to these curves by
+specific power rather than machine identity, and the package warns when the
+bundled library is in use; manufacturer-specific curve libraries remain
+user-supplied. Continuous integration runs the tests across Python
 3.10–3.12, type-checks and lints the source, builds the documentation, and
 installs the built wheel into a clean environment; a pinned `conda` environment
 is provided for reproducibility. The granular bias-correction method has been

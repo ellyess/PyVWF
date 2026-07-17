@@ -184,7 +184,7 @@ def sim_turbines_to_country_cf(sim_cf_long: pd.DataFrame, turb_info: pd.DataFram
         raise ValueError("No valid rows to aggregate in sim_turbines_to_country_cf.")
 
     sim_country = (
-        df.groupby(["year", "month"], as_index=False)
+        df.groupby(["year", "month"], as_index=False)[["sim", "capacity"]]
             .apply(lambda g: pd.Series({"sim": (g["sim"] * g["capacity"]).sum() / g["capacity"].sum()}))
             .reset_index(drop=True)
     )
@@ -233,8 +233,12 @@ def load_power_curves():
     """Load turbine power curves.
 
     Reads ``power_curves.csv`` from the configured input root, falling back to
-    the synthetic placeholder bundled with the package (with a warning). See
+    the open curve library bundled with the package (with a warning). See
     :meth:`vwf.config.PyVWFPaths.reference_file`.
+
+    Returns:
+        DataFrame with wind speed in the ``data$speed`` column and one
+        capacity-factor column per turbine model, on a 0 to 40 m/s grid.
     """
     return pd.read_csv(PyVWFPaths.reference_file("power_curves.csv"))
 
@@ -504,10 +508,33 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
 
 
 def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = "turbine"):
-    """Apply temporal resolution and compute correction factors.
+    """Aggregate the training pairs to one resolution and fit its corrections.
 
-    For ``obs_level="country"``, corrections are computed per cluster using
-    country-wide observations.
+    One call handles one ``(num_clu, time_res)`` combination: the paired
+    observed/simulated capacity factors are averaged within each time slice,
+    turbines are clustered spatially, and a scalar (plus, for turbine-level
+    data, an offset placeholder refined later) is computed per
+    ``(cluster, time slice)``.
+
+    For ``obs_level="country"`` the cluster assignments already present in
+    ``turb_info`` are reused and grid points contribute equally (no capacity
+    weighting), since all clusters share the same country-wide observation.
+
+    Args:
+        gen_cf: Paired training frame with ``year``, the ``time_res`` column,
+            ``obs``, ``sim``, and ``ID``.
+        time_res: Temporal resolution key: ``"fixed"``, ``"season"``,
+            ``"bimonth"``, or ``"month"``.
+        num_clu: Number of spatial clusters to fit (ignored for
+            country-level, where assignments come with ``turb_info``).
+        turb_info: Fleet or grid-point metadata; must carry ``cluster`` for
+            country-level data.
+        obs_level: ``"turbine"`` or ``"country"``; selects the branch above.
+
+    Returns:
+        Tuple of ``(train_bias_df, clus_info)``: the per-(cluster, slice)
+        correction table with ``scalar`` and ``offset`` columns, and the
+        metadata with cluster assignments used to produce it.
     """
     if obs_level == "country":
         # For country-level: gen_cf has columns [year, time_res, obs, sim, ID]
@@ -569,12 +596,13 @@ def interp_nans(df, limit):
     """
     df = df.sort_values(["ID", "year", "month"]).copy()
 
-    def _interp(g):
-        g = g.copy()
-        g["obs"] = g["obs"].interpolate(method="linear", limit=limit, limit_direction="both")
-        return g
-
-    return df.groupby("ID", group_keys=False).apply(_interp).reset_index(drop=True)
+    # A per-group series transform rather than a frame-level groupby.apply: the
+    # old _interp returned each group INCLUDING the grouping column, which
+    # pandas 3 excludes from apply, silently dropping ID from the result.
+    df["obs"] = df.groupby("ID")["obs"].transform(
+        lambda s: s.interpolate(method="linear", limit=limit, limit_direction="both")
+    )
+    return df.reset_index(drop=True)
 
 
 def add_models(df: pd.DataFrame) -> pd.DataFrame:

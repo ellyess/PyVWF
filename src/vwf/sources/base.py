@@ -54,9 +54,9 @@ class ObservationSource(ABC):
 
         This is the constructor contract :func:`vwf.sources.registry.resolve`
         relies on, declared here so it is type-checked rather than assumed.
-        Sources that must be built explicitly by the caller — those with an
+        Sources that must be built explicitly by the caller (those with an
         empty ``countries``, such as
-        :class:`~vwf.sources.in_memory.InMemoryCountrySource` — override it with
+        :class:`~vwf.sources.in_memory.InMemoryCountrySource`) override it with
         whatever signature they need.
         """
         self.country = country.upper()

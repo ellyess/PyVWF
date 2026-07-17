@@ -44,12 +44,11 @@ def unify_time_coordinate(ds):
 def _normalise_longitudes(ds: xr.Dataset) -> xr.Dataset:
     """Bring a 0..360 longitude coordinate onto the [-180, 180] convention.
 
-    The whole pipeline (bounding boxes, region configs, turbine metadata)
-    speaks [-180, 180]. ERA5 files arrive in either convention depending on
-    the download route; a 0..360 file sliced with a [-180, 180] bbox returns
-    an empty or wrong subset SILENTLY, so the convention is normalised here,
-    unconditionally, before any slicing. No-op for data already in
-    [-180, 180].
+    The whole pipeline (bounding boxes, turbine metadata) speaks [-180, 180].
+    ERA5 files arrive in either convention depending on the download route; a
+    0..360 file sliced with a [-180, 180] bbox returns an empty or wrong
+    subset SILENTLY, so the convention is normalised here, unconditionally,
+    before any slicing. No-op for data already in [-180, 180].
     """
     if "lon" in ds.coords and float(ds.lon.max()) > 180.0:
         ds = ds.assign_coords(lon=((ds.lon + 180.0) % 360.0) - 180.0).sortby("lon")

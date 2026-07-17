@@ -32,7 +32,7 @@ class _CurveByModel(dict):
     the default model's curve instead of raising ``KeyError``, after emitting a
     warning that names both the missing model and the fallback used. This keeps a
     run going when a configured or requested model is absent from the table (for
-    example against the shipped synthetic curves) without ever *silently*
+    example a proprietary model name against the shipped open library) without ever *silently*
     substituting: the warning makes the fallback explicit, so a real run cannot
     quietly use the wrong curve.
 
@@ -263,8 +263,9 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False,
         *args: Optional (bc_factors, time_res) for correction.
         aggregate: If True, aggregate turbines to grid cells first (huge speedup).
         seasons: Optional season-name → month-list mapping forwarded to
-            correct_wind_speed (validation harness). Default None keeps the
-            hardcoded NH season assignment.
+            correct_wind_speed, for regions whose seasons differ from the
+            Northern-Hemisphere defaults. Default None keeps the hardcoded
+            NH season assignment.
 
     Returns:
         Tuple of (wind speed DataFrame, capacity factor DataFrame).
@@ -315,8 +316,9 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info, seasons=None):
         time_res: Temporal resolution key used in corrections.
         bc_factors: Bias correction factors DataFrame.
         turb_info: Turbine metadata with cluster assignments.
-        seasons: Optional season-name → month-list mapping (validation
-            harness). Default None keeps the hardcoded NH season assignment.
+        seasons: Optional season-name → month-list mapping, for regions
+            whose seasons differ from the Northern-Hemisphere defaults.
+            Default None keeps the hardcoded NH season assignment.
 
     Returns:
         DataArray of corrected wind speeds.
@@ -417,7 +419,27 @@ def fast_simulate_cf(arrays, scalar, offset):
 
 
 def train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar=1, offset=0):
-    """Simulate a mean capacity factor from pre-interpolated wind speeds."""
+    """Simulate a mean capacity factor from pre-interpolated wind speeds.
+
+    The fast inner step of the offset optimisation: applies the affine
+    correction ``ws * scalar + offset``, converts to capacity factor through
+    each turbine's power curve, and reduces to one capacity-weighted mean.
+    Unlike :func:`train_simulate_wind` it skips hub-height extrapolation and
+    spatial interpolation, so an optimiser can call it repeatedly on wind
+    speeds prepared once.
+
+    Args:
+        unc_ws: Uncorrected hub-height wind speeds as an xarray DataArray
+            with a ``turbine`` dimension carrying ``model`` and ``capacity``
+            coordinates (the shape produced by :func:`interpolate_wind`).
+        powerCurveFile: Power curve table (``data$speed`` plus one column per
+            model).
+        scalar: Multiplicative wind-speed correction.
+        offset: Additive wind-speed correction, in m/s.
+
+    Returns:
+        The capacity-weighted mean capacity factor, as a scalar.
+    """
     cor_ws = (unc_ws * scalar) + offset
     x, curve_by_model = _get_power_curve_cache(powerCurveFile)
 

@@ -3,7 +3,7 @@
 Two figures that answer the core interpretability question for the method:
 *what did the bias correction learn?*
 
-:func:`plot_correction_factor_map` shows it spatially — each cluster's
+:func:`plot_correction_factor_map` shows it spatially: each cluster's
 Voronoi cell coloured by its learned ``scalar`` (multiplicative) and
 ``offset`` (additive) correction, on a diverging scale centred at the
 neutral value (1 for scalar, 0 for offset) so over- and under-correction
@@ -13,7 +13,7 @@ deterministic KMeans configuration as training (``random_state=42``), so
 passing the *training* turbine set reproduces the cluster IDs the factors
 were fitted on.
 
-:func:`plot_factor_joint` shows it in factor space — the joint distribution
+:func:`plot_factor_joint` shows it in factor space: the joint distribution
 of scalar vs offset across clusters, with marginal histograms and guides at
 the neutral values. Tight clustering around (1, 0) means the reanalysis
 needed little correction; spread or systematic displacement reveals the
@@ -154,7 +154,7 @@ def plot_correction_factor_map(
             :func:`vwf.viz.load_results` (``Results.factors``). Must contain
             ``cluster``, ``scalar`` and ``offset`` columns; the cluster count
             is inferred from it.
-        turb_info: Turbine metadata with ``lat``/``lon`` — the same
+        turb_info: Turbine metadata with ``lat``/``lon``, the same
             *training* fleet the factors were fitted on
             (``Results.train_turb_info``), so cluster IDs reproduce. Passing
             a different fleet silently draws the factors over the wrong
@@ -178,7 +178,7 @@ def plot_correction_factor_map(
         ValueError: If the factors table is malformed, ``period`` doesn't
             exist, or ``turb_info`` has fewer turbines than clusters.
     """
-    import geopandas as gpd  # noqa: F401 — hard requirement for the geometry path
+    import geopandas as gpd  # noqa: F401 (hard requirement for the geometry path)
 
     from vwf.clustering import cluster_with_geometries
 

@@ -49,7 +49,7 @@ def test_lists_and_flags_parse():
             "--calc-z0",
             "--cluster-list", "10", "100",
             "--time-res-list", "fixed", "month",
-            "--fix-turb", "Synthetic.Onshore2000",
+            "--fix-turb", "2019COE_Market_Average_2.6MW_121",
         ]
     )
 
@@ -58,7 +58,7 @@ def test_lists_and_flags_parse():
     assert args.calc_z0 is True
     assert args.cluster_list == [10, 100]
     assert args.time_res_list == ["fixed", "month"]
-    assert args.fix_turb == "Synthetic.Onshore2000"
+    assert args.fix_turb == "2019COE_Market_Average_2.6MW_121"
 
 
 def test_main_passes_arguments_through_to_the_model(tmp_path, monkeypatch):
