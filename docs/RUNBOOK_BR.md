@@ -66,15 +66,22 @@ python scripts/combine_era5_br_daily.py       # reduce to yearly daily files
 The box spans the whole country and crosses the equator, so the monthly files
 are large and the daily pre-combine is not optional.
 
-## 3. Power curves (user-executed — licensed, not committed)
+## 3. Power curves (bundled open library, or your own)
 
-The bundled `input/power_curves.csv` / `models.csv` are SYNTHETIC placeholders;
-runs against them are not physically meaningful (the loader warns, loudly).
-Supply a real curve library as `input/power_curves.real.csv` (git-ignored) and
-set the region's `correction.model` / metadata `model` to real curve keys before
-drawing any conclusion. ONS carries no hub height or turbine model, so both are
-uniform defaults recorded in the `*_source` columns (vintage-aware assignment is
-the same named follow-up as AU/US).
+The bundled `input/power_curves.csv` / `models.csv` are now a REAL open curve
+library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
+VWF-smoothed), so runs against them are physically meaningful. `process_ons_br.py`
+assigns every complex a UNIFORM representative curve — the default
+`2019COE_Market_Average_2.6MW_121` (the most recent market-average utility curve),
+recorded in `br_md.csv`'s `model_source` column. Override with `--model <key>`
+(any column of `power_curves.csv`) for a different representative.
+
+The caveat is identity, not realism: the fleet is matched by specific power, not
+by actual machine. ONS carries no hub height or turbine model, so both height and
+model are uniform defaults recorded in the `*_source` columns (vintage-aware
+per-complex assignment is the same named follow-up as AU/US). For identity-matched
+curves, supply your own library as `input/power_curves.real.csv` (git-ignored) and
+pass its key.
 
 ## 4. Run the validation harness
 

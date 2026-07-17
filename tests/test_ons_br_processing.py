@@ -115,7 +115,7 @@ def test_curtailment_mask_threshold():
 
 def test_build_metadata_contract_and_provenance():
     comp = wind_complexes_from_fc(fc_hours("CJU_A", "2023-03-01", "2023-03-02", 0.4))
-    md = build_br_metadata(comp, height=100.0, model="Synthetic.Onshore2000")
+    md = build_br_metadata(comp, height=100.0, model="2019COE_Market_Average_2.6MW_121")
     required = {"ID", "lon", "lat", "height", "capacity", "model", "type",
                 "commissioning_date", "height_source"}
     assert required <= set(md.columns)

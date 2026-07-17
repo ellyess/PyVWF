@@ -59,7 +59,7 @@ LATS = np.array([-36.0, -35.0, -34.0])
 LONS = np.array([148.0, 149.0, 150.0])
 Z0 = 0.05
 CAPACITY_KW = 100_000.0  # 100 MW per farm
-MODEL = "Synthetic.Onshore2000"
+MODEL = "2019COE_Market_Average_2.6MW_121"
 
 FARMS = pd.DataFrame(
     {

@@ -168,7 +168,7 @@ def test_hub_heights_capacity_weighted_and_sentinel():
 def test_build_metadata_contract_and_height_provenance():
     cap = wind_capacity_from_eia860(eia860_generators(), eia860_plants())
     hh = plant_hub_heights_from_uswtdb(uswtdb_frame())
-    md = build_us_metadata(cap, hh, default_height=100.0, model="Synthetic.Onshore2000")
+    md = build_us_metadata(cap, hh, default_height=100.0, model="2019COE_Market_Average_2.6MW_121")
 
     required = {"ID", "lon", "lat", "height", "capacity", "model", "type",
                 "commissioning_date", "height_source"}

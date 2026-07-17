@@ -139,7 +139,7 @@ def test_country_level_evaluate_saves_frames_and_metrics(synthetic_dk, tmp_path)
             "lat": [55.2, 55.4, 55.6, 55.8],
             "height": [100.0] * 4,
             "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
-            "model": ["Synthetic.Onshore2000"] * 4,
+            "model": ["2019COE_Market_Average_2.6MW_121"] * 4,
             "cluster": [0, 0, 1, 1],
             "type": ["onshore"] * 4,
         }

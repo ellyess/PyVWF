@@ -64,15 +64,23 @@ multi-year hourly load will not fit in memory — the daily pre-combine is not
 optional here. Point `--in-dir/--out-dir` (or the region's `era5_path`) at
 wherever the harness should read.
 
-## 3. Power curves (user-executed — licensed, not committed)
+## 3. Power curves (bundled open library, or your own)
 
-The bundled `input/power_curves.csv` / `models.csv` are SYNTHETIC placeholders;
-runs against them are not physically meaningful (the loader warns, loudly).
-Supply a real curve library as `input/power_curves.real.csv` (git-ignored) and
-set the region's `correction.model` / metadata `model` to real curve keys
-before drawing any conclusion. The USWTDB manufacturer/model string is carried
-in `us_md.csv`'s `uswtdb_model` column for the future vintage-aware assignment,
-but is never itself used as the curve key.
+The bundled `input/power_curves.csv` / `models.csv` are now a REAL open curve
+library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
+VWF-smoothed), so runs against them are physically meaningful. `process_eia_us.py`
+assigns every plant a UNIFORM representative curve — the default
+`2019COE_Market_Average_2.6MW_121` (the most recent market-average utility curve),
+recorded in `us_md.csv`'s `model_source` column. Override with `--model <key>`
+(any column of `power_curves.csv`, e.g. `NREL_Reference_5MW_126`) for a different
+representative.
+
+The caveat is identity, not realism: the fleet is matched to the library by
+specific power, not by actual machine, so this is a fleet-representative curve,
+not each plant's true one. For identity-matched curves, supply your own library
+as `input/power_curves.real.csv` (git-ignored) and pass its key. The USWTDB
+manufacturer/model string is carried in `us_md.csv`'s `uswtdb_model` column for
+the future vintage-aware per-plant assignment, but is never itself the curve key.
 
 ## 4. Run the validation harness
 

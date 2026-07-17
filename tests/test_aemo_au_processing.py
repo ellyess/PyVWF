@@ -126,7 +126,7 @@ def test_join_and_metadata_contract():
     matched, unmatched_fleet, unmatched_gwpt = join_fleet_to_gwpt(fleet, farms)
     assert len(matched) == 2 and len(unmatched_fleet) == 0 and len(unmatched_gwpt) == 0
 
-    md = build_au_metadata(matched, height=100.0, model="Synthetic.Onshore2000")
+    md = build_au_metadata(matched, height=100.0, model="2019COE_Market_Average_2.6MW_121")
     required = {"ID", "lon", "lat", "height", "capacity", "model", "type",
                 "commissioning_date"}
     assert required <= set(md.columns)

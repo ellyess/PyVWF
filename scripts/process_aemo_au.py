@@ -60,9 +60,11 @@ def main() -> None:
     ap.add_argument("--out", default="input/turbine_level_data/AU_NEM")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub height default, m (no per-farm data yet)")
-    ap.add_argument("--model", default="Synthetic.Onshore2000",
-                    help="Uniform power-curve model key (must be a column of "
-                    "your power_curves.csv; pick a real-library key for real runs)")
+    ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",
+                    help="Uniform power-curve key (must be a column of "
+                    "power_curves.csv). Defaults to the bundled open library's "
+                    "most recent market-average utility curve; override with a "
+                    "specific reference or your own licensed key.")
     ap.add_argument("--aliases", default="configs/aemo_au_aliases.csv",
                     help="CSV with columns duid,targets: human-approved phase-aware "
                     "alias overrides ('' to disable)")
