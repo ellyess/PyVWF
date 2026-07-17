@@ -21,7 +21,8 @@ limitations to know before using them for results:
   loading), not by actual machine identity. For the Danish and German fleets
   this places 94 to 99% of capacity within 20% of the turbine's true specific
   power.
-- The 7 `*_Normalized_*` composite profiles are dimensionless: they appear in
+- The 7 normalized composite profiles (flagged `is_normalized_composite` in
+  the provenance file) are dimensionless: they appear in
   the curve file (useful as generic defaults) but deliberately not in
   `models.csv`, so the matcher never mistakes them for real machines.
 

@@ -87,6 +87,10 @@ input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 # input/models.csv instead. See input/README.md.
 input/power_curves.real.csv
 input/models.real.csv
+# Turbine metadata and observed generation are typically proprietary and are
+# never committed (README "Input data"). Redundant with the blanket /input
+# rule below, but kept explicit so the intent survives if that rule changes.
+input/turbine_level_data/
 /input
 /output
 /out
