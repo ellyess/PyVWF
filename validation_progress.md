@@ -1236,3 +1236,78 @@ Phase 2 for the US: real EIA-923/860 + USWTDB acquisition via
 `scripts/process_eia_us.py`, an ERA5-US subset, and the first US validation
 run — or, if sequencing favours breadth, a second region adapter (Brazil /
 Canada / NZ per the doc's §5) on the same template.
+
+---
+
+## 2026-07-17 — US Phase 2: real EIA/USWTDB acquisition + the transforms proven on live data (checkpoint 25)
+
+**Status:** The credential-free half of US Phase 2 is DONE and verified against
+the real 2021 federal files; the two credential-gated halves (ERA5 via the
+user's CDS key, the run itself with a real curve library) are scripted and
+documented but are the user's to execute — no CDS credentials or real
+power-curve library exist in this environment. Full suite green (262 passed;
++1 new real-quirk regression test). Sole-authored; NO raw or derived data
+committed (`/input` is git-ignored — the acquisition is reproducible from the
+scripts, not the repo).
+
+### What was done
+- **Real public data acquired and processed** (EIA-923 2021 `Final_Revision`,
+  EIA-860 2021, USWTDB V9 — all US-gov public domain). Ran
+  `scripts/process_eia_us.py` end-to-end on the live files; the Phase 1
+  transforms needed two real-world fixes the synthetic fixtures could not have
+  caught (see below), then produced a physically correct fleet.
+- **Two robustness fixes to `vwf/datasets/eia_us.py`**, each pinned by a test:
+  1. **Multi-line headers.** The real EIA-923 workbook wraps headers across two
+     lines, so pandas reads `Reported\nFuel Type Code`, `Respondent\nFrequency`,
+     `Netgen\nJanuary`. `wind_generation_from_eia923` now collapses any
+     whitespace run in the header before reading the contract.
+  2. **Plant-code dtype drift.** A sheet with any blank `Plant Code` cell reads
+     the column as float (`1.0`), one without reads it as int (`1`); the two
+     then stringify differently and the join silently finds nothing (first real
+     run: 0 plants matched). New `_plant_id` helper routes every plant code
+     through `to_numeric → Int64 → str`, applied on all three sides (EIA-923,
+     EIA-860 generators + plants, USWTDB `eia_id`).
+- **ERA5-US acquisition scripts** written mirroring the AU pair:
+  `scripts/fetch_era5_us.py` (CONUS box N50/W-125/S24/E-66, 2019-2022,
+  dry-run verified) and `scripts/combine_era5_us_daily.py` (the daily
+  pre-combine — non-optional for a box ~7x AU).
+- **`docs/RUNBOOK_US.md`**: the full reproduction path (download → process →
+  ERA5 → curves → `validate_region.py`), with the real sanity anchors baked in
+  and the credential-gated steps flagged as user-executed.
+
+### What the real 2021 data showed (sanity anchors, now in the runbook)
+- 1,279 EIA-923 wind plants; **1,278 join to coordinates** (only the `99999`
+  placeholder and a few unlinked codes drop — listed in the join report).
+- **Fleet ≈ 133 GW** nameplate — matches the real 2021 US wind fleet.
+- **USWTDB gives real hub heights for 1,168 / 1,278 plants** (mean ≈ 82 m); the
+  rest fall back to the uniform default, flagged per-plant. This is the concrete
+  metadata gain over AU (which had no hub-height data at all).
+- Fleet capacity-weighted **mean CF ≈ 0.34** — the published 2021 US number;
+  p5-p95 monthly CF 0.12-0.56; 0 impossible (>1) values, 1 negative
+  (parasitic) month across the fleet. The transform is not just wired, it is
+  physically right on live data.
+
+### What surprised us
+- **61% of US wind plants (777 / 1,279) report ANNUALLY, not monthly.** Their
+  twelve monthly cells are EIA-imputed, so the annual-respondent screen (Phase
+  1) removes them and the monthly-CF **training fleet is ≈ 499 plants**, not
+  1,279. Still ~5x DK or AU — ample for the 10-cluster config — but the screen
+  is doing heavy lifting, and it matters: training the seasonal cycle on the
+  imputed 777 would fit a synthetic profile. This is the single most important
+  US data-hygiene fact and now leads the runbook.
+
+### Blocked in this environment (user-executed, fully scripted)
+- **ERA5-US**: no CDS credentials here (`~/.cdsapirc` absent). `fetch_era5_us.py`
+  is the deliverable; the user runs it with their key.
+- **The validation run**: needs ERA5 *and* a real power-curve library (only the
+  synthetic placeholders are present, which the loader warns are meaningless).
+  `validate_region.py train --region configs/regions/us.toml` is the command;
+  the runbook states the prerequisites.
+
+### Next checkpoint
+Either (a) the user supplies ERA5-US + real curves and we run the first US
+train/evaluate and write a findings doc (the US analogue of pillar A), or
+(b) breadth — a second region adapter (Brazil / Canada / NZ, §5) on the same
+template, now hardened by the two real-world fixes above. Also carried: the
+shared `pyvwf.qc` curtailment module (§6), which US (ERCOT/SPP) makes newly
+concrete.

@@ -60,6 +60,26 @@ def test_wind_generation_filters_and_melts():
     assert (long[long["ID"] == "300"]["respondent_frequency"] == "A").all()
 
 
+def test_wind_generation_tolerates_multiline_headers():
+    """The real EIA-923 workbook wraps headers across two lines, so pandas
+    reads 'Reported\\nFuel Type Code', 'Respondent\\nFrequency',
+    'Netgen\\nJanuary'. The reshape must handle them exactly as the single-line
+    fixtures (Phase 2 caught this on the real 2021 file)."""
+    frame = eia923_frame()
+    frame = frame.rename(
+        columns={
+            "Reported Fuel Type Code": "Reported\nFuel Type Code",
+            "Respondent Frequency": "Respondent\nFrequency",
+            **{f"Netgen_{m}": f"Netgen\n{m}" for m in MONTHS},
+        }
+    )
+    long = wind_generation_from_eia923(frame)
+    assert set(long["ID"]) == {"100", "300"}
+    jan = long[(long["ID"] == "100") & (long["month"] == 1)].iloc[0]
+    assert jan["net_gen_mwh"] == pytest.approx(1000.0)
+    assert (long[long["ID"] == "300"]["respondent_frequency"] == "A").all()
+
+
 def test_wind_generation_sums_multiple_wind_rows():
     """A plant with two wind rows (e.g. two prime-mover groupings) sums."""
     frame = eia923_frame()

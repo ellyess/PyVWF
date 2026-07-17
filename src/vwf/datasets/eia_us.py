@@ -61,6 +61,19 @@ USWTDB_MISSING = -9999.0
 _MONTH_NAME = {i: calendar.month_name[i] for i in range(1, 13)}
 
 
+def _plant_id(series: pd.Series) -> pd.Series:
+    """Canonicalise an EIA plant code to an integer string.
+
+    Plant codes are integers, but pandas reads a sheet's ``Plant Code`` as
+    ``float`` when any cell is blank (so ``1`` becomes ``1.0``) and as ``int``
+    when none is — the same code then stringifies to ``"1.0"`` on one sheet and
+    ``"1"`` on another, and the join silently finds nothing. Route every plant
+    code through here so ``1``, ``1.0`` and ``"1"`` all become ``"1"``; codes
+    that are not numeric become ``<NA>`` and drop out of any inner join.
+    """
+    return pd.to_numeric(series, errors="coerce").astype("Int64").astype(str)
+
+
 def _to_number(series: pd.Series) -> pd.Series:
     """Coerce an EIA numeric column to float.
 
@@ -102,6 +115,15 @@ def wind_generation_from_eia923(page1: pd.DataFrame) -> pd.DataFrame:
             annual and monthly respondent flags (which must not happen and
             would make the imputation screen ambiguous).
     """
+    # The real EIA-923 workbook spells multi-word headers across two lines, so
+    # the raw columns arrive as "Reported\nFuel Type Code", "Respondent\n
+    # Frequency", "Netgen\nJanuary". Collapse any whitespace run to a single
+    # space so the contract below reads the same on the real file and on the
+    # single-line synthetic fixtures.
+    page1 = page1.rename(
+        columns={c: " ".join(str(c).split()) for c in page1.columns}
+    )
+
     required = {"Plant Id", "Reported Fuel Type Code", "YEAR"}
     missing = required - set(page1.columns)
     if missing:
@@ -115,7 +137,7 @@ def wind_generation_from_eia923(page1: pd.DataFrame) -> pd.DataFrame:
         page1["Reported Fuel Type Code"].astype(str).str.strip().str.upper()
         == WIND_FUEL_CODE
     ].copy()
-    wind["ID"] = wind["Plant Id"].astype(str).str.strip()
+    wind["ID"] = _plant_id(wind["Plant Id"])
     wind["year"] = pd.to_numeric(wind["YEAR"], errors="coerce").astype("Int64")
 
     freq_col = "Respondent Frequency"
@@ -211,7 +233,7 @@ def wind_capacity_from_eia860(
         raise ValueError(f"EIA-860 plants missing columns {sorted(pmiss)}")
 
     gen = generators.copy()
-    gen["ID"] = gen["Plant Code"].astype(str).str.strip()
+    gen["ID"] = _plant_id(gen["Plant Code"])
     wind = gen[gen["Prime Mover"].astype(str).str.strip().str.upper() == "WT"].copy()
     wind["capacity_mw"] = _to_number(wind["Nameplate Capacity (MW)"])
 
@@ -234,7 +256,7 @@ def wind_capacity_from_eia860(
     )
 
     pl = plants.copy()
-    pl["ID"] = pl["Plant Code"].astype(str).str.strip()
+    pl["ID"] = _plant_id(pl["Plant Code"])
     pl["lat"] = _to_number(pl["Latitude"])
     pl["lon"] = _to_number(pl["Longitude"])
     name_col = "Plant Name" if "Plant Name" in pl.columns else None
@@ -273,9 +295,7 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
 
     df = uswtdb.copy()
     df = df[df["eia_id"].notna()].copy()
-    df["ID"] = (
-        pd.to_numeric(df["eia_id"], errors="coerce").astype("Int64").astype(str)
-    )
+    df["ID"] = _plant_id(df["eia_id"])
     df = df[df["ID"] != "<NA>"]
 
     for col in ("t_cap", "t_hh", "t_rd"):
