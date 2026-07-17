@@ -31,8 +31,9 @@ that converts atmospheric reanalysis data into bias-corrected wind power
 generation. It re-implements, in a modular and extensible Python codebase, the
 Virtual Wind Farm (VWF) methodology that underpins the wind simulations on
 [Renewables.ninja](https://www.renewables.ninja) [@staffell2016; @pfenninger2016].
-Given gridded reanalysis winds (e.g. ERA5 [@era5] or MERRA-2 [@merra2]), turbine
-metadata, smoothed power curves, and observed generation, `PyVWF`
+Given gridded reanalysis winds (ERA5 [@era5]; the original VWF used
+MERRA-2 [@merra2]), turbine metadata, smoothed power curves, and observed
+generation, `PyVWF`
 extrapolates wind to hub height and interpolates to turbine locations, learns
 per-cluster scale-and-offset corrections by comparing simulated and observed
 capacity factors, applies these corrections to the ERA5 wind speeds, and
@@ -76,55 +77,32 @@ reproducible, and calibrated wind resource simulations.
 
 # Functionality
 
-`PyVWF` supports a turbine-, regional-, or national-scale workflow. Throughout,
-a *cluster* is a group of nearby turbines or grid points that share one set of
-bias-correction parameters:
+`PyVWF` supports a turbine-, regional-, or national-scale workflow, in which a
+*cluster* is a group of nearby turbines or grid points sharing one set of
+bias-correction parameters. Wind is extrapolated to hub height via a log wind
+profile using ERA5 surface roughness (or roughness derived from 10 m/100 m wind
+shear) and bilinearly interpolated to turbine locations. Per-cluster,
+per-time-slice scale-and-offset factors (`w_corrected = α·w + β`) are then
+learned by comparing simulated and observed capacity factors [@benmoufok2024],
+with user-configurable spatial clustering and temporal grouping (fixed,
+seasonal, bimonthly, monthly). Observed generation and site metadata are
+supplied through `ObservationSource` adapters resolved via a registry, so a new
+region is added by writing an adapter rather than editing the pipeline.
+Turbine-level adapters (code, not data) for Denmark, Germany, and the United
+Kingdom ship with the package; the observation datasets themselves are
+user-supplied. The `vwf.viz` module provides distributional diagnostics —
+capacity-factor histograms, empirical CDFs, and quantile-quantile plots —
+alongside maps of the learned factors and error-versus-cluster-count curves for
+hyperparameter selection, so the correction is inspected rather than taken on
+trust.
 
-- **Wind processing.** Hub-height extrapolation via a log wind profile using
-  ERA5 surface roughness (or roughness derived from 10 m/100 m wind shear), and
-  bilinear interpolation to turbine coordinates.
-- **Bias-correction training.** Per-cluster, per-time-slice multiplicative
-  scalar and additive offset factors (`w_corrected = α·w + β`) learned by
-  comparing simulated and observed capacity factors [@benmoufok2024], with
-  user-specific spatial clustering and temporal grouping (fixed, seasonal,
-  bimonthly, monthly).
-- **Pluggable observation sources.** Observed generation and site metadata are
-  supplied by `ObservationSource` adapters resolved through a registry, so a new
-  region is added by writing an adapter rather than by editing the pipeline.
-  Turbine-level adapters for Denmark, Germany, and the United Kingdom ship with
-  the package, alongside an in-memory adapter for caller-supplied national data.
-- **Diagnostics and model selection.** `vwf.viz` renders capacity-factor
-  histograms, empirical CDFs, and quantile-quantile plots that complement
-  conventional mean-error metrics; maps the learned scalar and offset across
-  clusters, so the correction is inspected rather than taken on trust; and plots
-  error against cluster count for each temporal resolution, which is how the two
-  hyperparameters of the method are chosen for a given fleet and observation
-  record.
-- **Research extensions (development branch).** Interpolation of point
-  corrections onto a regular ERA5 grid (nearest neighbour, IDW, RBF, kriging)
-  with export to NetCDF for `atlite`/`PyPSA-Eur`, and machine-learning
-  prediction of corrections from terrain and environmental features. These are
-  research extensions maintained on a separate development branch.
-
-The package is typed, documented with a generated API reference, and covered by
-an automated `pytest` suite that runs on synthetic weather and observations
-(the unit tests use minimal fixture curves; the end-to-end workflow tests and
-the worked example exercise the bundled open power-curve library), so the full
-workflow executes in under a minute without any reanalysis download. The
-bundled library comprises 69 real machines and 7 normalized composites from
-the NREL/turbine-models archive [@turbinemodels] (BSD-3-Clause; now hosted as
-NatLabRockies/turbine-models), smoothed to capacity-factor curves by an
-independent reproduction of the published VWF smoothing method
-[@staffell2016]; it is not derived from any proprietary curve file, which is
-what makes redistribution clean. Fleets are matched to these curves by
-specific power rather than machine identity, and the package warns when the
-bundled library is in use; manufacturer-specific curve libraries remain
-user-supplied. Continuous integration runs the tests across Python
-3.10–3.12, type-checks and lints the source, builds the documentation, and
-installs the built wheel into a clean environment; a pinned `conda` environment
-is provided for reproducibility. The granular bias-correction method has been
-applied in peer-reviewed studies of European and UK wind resources
-[@benmoufok2024; @wang2026].
+A redistributable open power-curve library of 69 real machines and 7 composites
+from the NREL/turbine-models archive [@turbinemodels] (BSD-3-Clause), smoothed
+by an independent reproduction of the VWF method [@staffell2016], ships with the
+package, so an automated `pytest` suite runs the full workflow on synthetic data
+in under a minute with no reanalysis download. The granular bias-correction
+method has been applied in peer-reviewed studies of European and UK wind
+resources [@benmoufok2024; @wang2026].
 
 # State of the field
 
