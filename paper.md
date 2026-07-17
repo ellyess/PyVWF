@@ -56,13 +56,14 @@ on wind power time series derived from reanalysis, but reanalysis-derived
 capacity factors can carry biases of up to ±50 % [@staffell2016]. These biases can propagate through non-linear power
 conversion and spatial aggregation and, when employed within energy system
 models, lead to misleading conclusions about generation mix, transmission
-investment, and system cost. The original VWF model corrects this bias but is
-closed and primarily accessible only through the Renewables.ninja API. Existing
-open tools cover only part of the problem. General-purpose converters such as
-`atlite` [@atlite] omit observation-based correction entirely, while validated
-global products such as ETHOS.RESKit [@reskit] ship a fixed national-resolution
-calibration built on a single global wind-speed curve, not a retrainable
-pipeline. `PyVWF` fills this gap. It implements a peer-reviewed method
+investment, and system cost. The original VWF model corrects this bias, but
+its correction is accessible only through the closed Renewables.ninja API and
+cannot be inspected or retrained. Existing *open* tools cover only part of the
+problem: general-purpose converters such as `atlite` [@atlite] omit
+observation-based correction entirely, while validated global products such as
+ETHOS.RESKit [@reskit] ship a fixed national-resolution calibration built on a
+single global wind-speed curve, not a retrainable pipeline. `PyVWF` fills this
+gap. It implements a peer-reviewed method
 [@benmoufok2024] that extends the validated VWF approach [@staffell2016] to
 ERA5 and to sub-national, seasonal resolution, and it reports distributional
 diagnostics in addition to mean error. Corrections can be computed at whatever
