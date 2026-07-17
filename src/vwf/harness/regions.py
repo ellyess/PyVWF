@@ -28,7 +28,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on 3.10
 VALID_TIME_SLICES = ("fixed", "season", "bimonth", "month")
 
 VALID_OBS_LEVELS = ("turbine", "country")
-VALID_OBS_UNITS = ("turbine", "farm", "plant", "country")
+VALID_OBS_UNITS = ("turbine", "farm", "plant", "complex", "country")
 
 
 @dataclass(frozen=True)

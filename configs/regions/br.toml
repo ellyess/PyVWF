@@ -1,0 +1,39 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists. Brazil is (mostly) Southern Hemisphere, so
+# these must NOT inherit the legacy NH mapping — and the dominant signal in the
+# Nordeste wind fleet is not thermal at all but the TRADE-WIND maximum in the
+# austral winter/spring (roughly Jun-Nov). The astronomical SH seasons below
+# are a defensible partition; the trade-wind cycle is the physics to read the
+# result against (a candidate custom slicing is noted in the runbook).
+
+[region]
+code = "BR"
+name = "Brazil (ONS interconnected system)"
+
+[observations]
+source = "ons-br"
+obs_level = "turbine"
+obs_unit = "complex"
+train_years = [2021, 2023]
+test_years = [2024]
+# ONS reports wind per conjunto (complex), one hourly CF series per id_ons.
+# Brasilia civil time (UTC-3, no DST) -> UTC at ingest; monthly bins are UTC.
+# The Nordeste is heavily constrained off: where the ONS constrained-off series
+# exists (2021+), curtailed months are masked so the correction is not fitted
+# to absorb curtailment as reanalysis bias. Pre-2021 CF carries it unscreened.
+
+[era5]
+path = "era5/BR"
+bbox = [-74.0, -34.0, -34.0, 6.0]
+file_tag = "BR"
+
+[correction]
+model = "affine-wind"
+cluster_list = [8]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [12, 1, 2]
+autumn = [3, 4, 5]
+winter = [6, 7, 8]
+spring = [9, 10, 11]

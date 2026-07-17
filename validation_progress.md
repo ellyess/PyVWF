@@ -1311,3 +1311,76 @@ train/evaluate and write a findings doc (the US analogue of pillar A), or
 template, now hardened by the two real-world fixes above. Also carried: the
 shared `pyvwf.qc` curtailment module (§6), which US (ERCOT/SPP) makes newly
 concrete.
+
+---
+
+## 2026-07-17 — Second region: Brazil (ONS) adapter, Phase 1 + real-data proof (checkpoint 26)
+
+**Status:** Second region opened per the user's choice — **Brazil (ONS)**, the
+doc's #2 pick and the curtailment/science-paper region. Delivered the Phase 1
+adapter AND proved it on the real ONS files in one pass (the US Phase 2 lesson:
+check real schemas up front). Credential-gated halves (ERA5 via CDS key, the run
+with real curves) are scripted + documented as user-executed. Full suite green
+(278 passed). Sole-authored; no raw or derived data committed.
+
+### What was done
+- **Schema probe first** (ONS CKAN + ANEEL SIGA, all open). Found the ONS
+  `FATOR_CAPACIDADE` file is **self-contained at the conjunto (complex) level**:
+  per hour it carries `val_fatorcapacidade` (CF), `val_capacidadeinstalada`
+  (time-varying installed capacity), collector-substation coordinates, name,
+  subsystem, state — so one file gives the observation AND the metadata. The
+  constrained-off `RESTRICAO_COFF_EOLICA` file carries delivered
+  (`val_geracao`) and constrained-off (`val_geracaolimitada`) energy — enough
+  to *separate curtailment from resource* by accounting.
+- **`vwf/datasets/ons_br.py`** (pure): `wind_rows` (accent/case-tolerant
+  `Eólica` filter), `wind_complexes_from_fc` (metadata from FC: max installed
+  capacity, collector coords), `monthly_cf_from_fc` (Brasília UTC-3 → UTC bins,
+  coverage floor, hourly-CF → monthly mean), `constrained_off_account`
+  (delivered/curtailed/fraction per complex-month), `curtailment_mask_months`
+  (fraction > threshold → mask), `build_br_metadata`, and optional
+  `commissioning_from_siga` (via CEG).
+- **`vwf/sources/ons_br.py`**: `ONSBrazilSource` (`obs_unit="complex"`;
+  countries BR/BRA) + `fc_to_monthly_cf` applying the curtailment mask at load.
+- **Wiring**: registered; BR bbox (whole country, crosses the equator);
+  `configs/regions/br.toml` (SH seasons stated, with the trade-wind note);
+  harness `VALID_OBS_UNITS` gains `"complex"`; `scripts/process_ons_br.py`;
+  `scripts/fetch_era5_br.py` + `combine_era5_br_daily.py`; `docs/RUNBOOK_BR.md`.
+- **16 synthetic-fixture tests** (must-distinguish: UTC-vs-Brasília binning,
+  curtailment separation + mask flow-through, coverage floor, commissioning via
+  CEG). Region pins updated (15 configs; `br` obs_unit == complex).
+
+### Proven on real data (one month, June 2023)
+- 152 wind complexes with coordinates, ≈ 26 GW — matches the real ONS fleet.
+- June fleet-mean CF ≈ 0.42 (p5-p95 0.18-0.69) — the Nordeste austral-winter
+  trade-wind maximum; 0 impossible values. The transform is physically right on
+  live data with NO fixes needed (the up-front schema probe paid off — unlike
+  US, which needed two).
+- **Curtailment is severe and real**: mean curtailed fraction ≈ 0.11, and **~90%
+  of the fleet (142/157 complexes) was constrained off > 5% in June 2023 alone.**
+  This is the doc's central Brazil claim confirmed with numbers — the mask is
+  not a nicety, it is load-bearing, and the constrained-off series makes
+  curtailment *quantifiable* rather than merely a caveat.
+
+### What surprised us
+- The scale of Nordeste curtailment (90% of complexes > 5% in a single month)
+  is larger than the "heavy curtailment" caveat conveyed — it dominates the raw
+  CF and would badly mislead an unscreened correction. The energy-accounting
+  separation (delivered vs constrained-off) is therefore not optional polish; it
+  is the thing that makes a Brazil correction trustworthy.
+
+### Blocked in this environment (user-executed, fully scripted)
+- ERA5-BR (no CDS key here) — `fetch_era5_br.py` is the deliverable.
+- The run (needs ERA5 + a real curve library) — `validate_region.py train
+  --region configs/regions/br.toml`; prerequisites in the runbook.
+
+### Named next tasks (carried)
+- The standout Brazil science task: wire the **verified hub-height wind speed**
+  (reportedly in the constrained-off `_detail` variant) for *direct* wind-speed
+  validation — closing the loop between wind-speed-space correction and
+  generation truth (research doc §1). Probed schema did not expose it in the
+  usina-level file; a Phase-2 investigation.
+- The shared **`pyvwf.qc`** curtailment module (§6) now has two concrete
+  consumers (US ERCOT/SPP, BR Nordeste) and a working reference implementation
+  in `ons_br.constrained_off_account` to generalise from.
+- Both US and BR are ready for the user to run (ERA5 + curves) — the natural
+  next checkpoint is the first real US and BR train/evaluate + a findings doc.

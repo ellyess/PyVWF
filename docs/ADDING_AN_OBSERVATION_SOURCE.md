@@ -91,6 +91,7 @@ model.train(check=False)
 | `european-turbine` | turbine | DK, DE, UK | Reads the per-turbine CSVs under `input/turbine_level_data/`. Converts monthly kWh to capacity factor. |
 | `aemo-nem` | turbine | AU-NEM, AU | Per-farm (DUID) monthly CF from 5-minute AEMO SCADA, AEST→UTC binned. The unit is the farm (`obs_unit = "farm"`). |
 | `eia-us` | turbine | US, USA | Per-plant monthly CF from EIA-923 net generation, with EIA-860 capacity/coordinates and USWTDB hub heights. The unit is the plant (`obs_unit = "plant"`). |
+| `ons-br` | turbine | BR, BRA | Per-complex monthly CF from the ONS `FATOR_CAPACIDADE` hourly series (which carries coordinates + installed capacity itself); optional ONS constrained-off curtailment mask. The unit is the complex (`obs_unit = "complex"`). |
 | `in-memory-country` | country | none | Wraps caller-supplied grid points and an observed capacity-factor series. Backs `PyVWF.load_country_data()`. |
 
 ## Country-level data supplied by the caller

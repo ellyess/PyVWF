@@ -170,6 +170,10 @@ class BoundingBoxes:
         # excluded — a separate, antimeridian-crossing box would be needed for
         # AK, and the EIA-923 wind fleet is overwhelmingly CONUS.
         "US": (-125.0, -66.0, 24.0, 50.0),
+        # Brazil: whole country (crosses the equator). The wind fleet is
+        # concentrated in the Nordeste (~ -18..-2 lat) and the far south (Rio
+        # Grande do Sul), both inside this box.
+        "BR": (-74.0, -34.0, -34.0, 6.0),
     }
 
     @classmethod

@@ -19,6 +19,7 @@ from vwf.sources.eia_us import EIAUSSource
 from vwf.sources.entsoe_files import EntsoeFileSource
 from vwf.sources.european import EuropeanTurbineSource
 from vwf.sources.in_memory import InMemoryCountrySource
+from vwf.sources.ons_br import ONSBrazilSource
 
 __all__ = [
     "ObservationSource",
@@ -32,4 +33,5 @@ __all__ = [
     "EntsoeFileSource",
     "EuropeanTurbineSource",
     "InMemoryCountrySource",
+    "ONSBrazilSource",
 ]
