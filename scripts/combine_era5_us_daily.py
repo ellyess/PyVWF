@@ -32,7 +32,10 @@ def combine_year(in_dir: Path, out_dir: Path, year: int) -> Path:
         raise FileNotFoundError(f"{year}: expected 12 monthly files, found {len(files)}")
     days = []
     for f in files:
-        ds = xr.open_dataset(f)
+        # Recent CDS ERA5 files carry an object-dtype ``expver`` variable
+        # (ERA5/ERA5T mixing for near-real-time months); decoding it trips
+        # xarray in some environments. It is unused here, so drop at open.
+        ds = xr.open_dataset(f, drop_variables=["expver"])
         tname = "valid_time" if "valid_time" in ds.coords else "time"
         if tname != "time":
             ds = ds.rename({tname: "time"})
