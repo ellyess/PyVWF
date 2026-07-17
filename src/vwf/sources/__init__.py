@@ -15,6 +15,7 @@ from vwf.sources.registry import (
 
 # Imported for their registration side effect.
 from vwf.sources.aemo import AEMONemSource
+from vwf.sources.eia_us import EIAUSSource
 from vwf.sources.entsoe_files import EntsoeFileSource
 from vwf.sources.european import EuropeanTurbineSource
 from vwf.sources.in_memory import InMemoryCountrySource
@@ -27,6 +28,7 @@ __all__ = [
     "register",
     "resolve",
     "AEMONemSource",
+    "EIAUSSource",
     "EntsoeFileSource",
     "EuropeanTurbineSource",
     "InMemoryCountrySource",

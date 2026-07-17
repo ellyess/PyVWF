@@ -1,0 +1,35 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; the US is Northern Hemisphere, so these
+# coincide with the legacy NH mapping — but they are stated, not inherited, so
+# the harness never depends on vwf.time_utils for this region.
+
+[region]
+code = "US"
+name = "United States (contiguous, EIA-923)"
+
+[observations]
+source = "eia-us"
+obs_level = "turbine"
+obs_unit = "plant"
+train_years = [2019, 2021]
+test_years = [2022]
+# EIA-923 Netgen is NET of station use (parasitic load), and ERCOT/SPP
+# curtailment contaminates observed CF where it occurs: US corrections absorb
+# both more than European monthly generation data does. Annual respondents are
+# imputed and dropped at ingest. Bins are US calendar months.
+
+[era5]
+path = "era5/US"
+bbox = [-125.0, -66.0, 24.0, 50.0]
+file_tag = "US"
+
+[correction]
+model = "affine-wind"
+cluster_list = [10]
+time_slices = ["fixed", "season"]
+
+[seasons]
+winter = [12, 1, 2]
+spring = [3, 4, 5]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]

@@ -1159,3 +1159,80 @@ not evaluated); checkpoint-8 open-questions triage done once, in writing.
 JOSS open-curve upgrade on main — replace the synthetic placeholders with
 the open library; seasons seam + longitude normalisation as correctness
 candidates to port — before submission. Not a continuation of this branch.
+
+---
+
+## 2026-07-17 — Region expansion opens: USA (EIA) adapter, Phase 1 (checkpoint 24)
+
+**Status:** New scope on the branch — extending PyVWF beyond Europe + AU per
+the data-landscape research. Region chosen: **USA (EIA-923)**, the doc's #1
+recommendation (public-domain licensing, USWTDB metadata, monthly plant CF
+matching the Danish training pattern, a literature benchmark to beat). Scope
+this checkpoint: the Phase 1 adapter — contract + pure transforms exercised
+against synthetic fixtures, exactly as the AU branch began. No real EIA/USWTDB
+data or real curves entered committed state or CI. Full suite green
+(261 passed). Sole-authored.
+
+### What was done
+- `src/vwf/datasets/eia_us.py` (pure, frame-to-frame, no file I/O):
+  - `wind_generation_from_eia923` — filter Page 1 to wind by fuel code `WND`,
+    melt the twelve `Netgen_<Month>` columns to long (plant, year, month),
+    carry the respondent-frequency flag, tolerate thousands separators and the
+    `.` withheld-value marker, sum multiple wind rows per plant-year, and
+    reject a plant-year that mixes annual/monthly flags.
+  - `wind_capacity_from_eia860` — sum WT nameplate (MW) to plant capacity,
+    attach EIA-860 coordinates + name, earliest operating month → commissioning.
+  - `plant_hub_heights_from_uswtdb` — capacity-weighted hub height + rotor,
+    modal-by-capacity manufacturer/model, `-9999` sentinel → NaN, drop turbines
+    with no `eia_id`.
+  - `build_us_metadata` — the source contract, MW→kW, per-plant `height_source`
+    provenance (uswtdb-capacity-weighted vs default-uniform), plants without
+    coordinates dropped.
+- `src/vwf/sources/eia_us.py`: `EIAUSSource` (`name="eia-us"`, obs_level
+  "turbine" mechanically, obs_unit **plant**, countries `US`/`USA`) reading
+  `input/turbine_level_data/US/{us_md,us_eia923_netgen}.csv`, plus
+  `netgen_to_monthly_cf` (CF arithmetic through current metadata at load time;
+  annual-respondent screen; commissioning mask; wide pivot).
+- Wiring: registered in `sources/__init__.py`; US CONUS bbox in `config.py`;
+  `configs/regions/us.toml` (NH seasons stated explicitly, not inherited);
+  `scripts/process_eia_us.py` (raw federal → the two on-disk tables + join
+  report). Harness `VALID_OBS_UNITS` gains `"plant"`.
+- Tests: `tests/test_eia_us_processing.py` (8) + `tests/test_harness_eia_us.py`
+  (9), the AU must-distinguish style (fixtures that FAIL if the screen/parse
+  is wrong, not just pass when it's right). Region-count + granularity pins
+  updated (14 shipped configs; `us` obs_unit == plant).
+
+### What was learned / decided
+- **The plant is the unit.** EIA-923 reports net generation once per plant per
+  prime-mover/fuel per month, so the US "turbine-level" branch is really
+  plant-level — the exact shape of the AU farm/DUID decision. `obs_unit` is a
+  new value `"plant"`; the mechanical `obs_level` stays `"turbine"`.
+- **Two hygiene screens are structural, not optional.** (1) EIA-923 `Netgen`
+  is NET of station use — documented per-region so α/β do not silently absorb
+  station-use losses inconsistently across countries. (2) Annual respondents
+  have EIA-*imputed* monthly cells; training the seasonal cycle on them would
+  fit a synthetic profile, so they are dropped at ingest by default. Both are
+  the US analogue of the AU curtailment/coverage caveats.
+- **US data improves on AU metadata.** USWTDB gives a real capacity-weighted
+  hub height per plant where the AU branch had none; the fallback to a uniform
+  default is per-plant and flagged in `height_source`. The vintage-aware
+  power-curve assignment remains the same named follow-up as AU (the USWTDB
+  model string is carried in `uswtdb_model` but is never the curve key).
+
+### What surprised us
+- Net generation can be genuinely negative in a calm month (parasitic load >
+  output). Kept, not clipped — same non-clipping choice as AU — so the
+  correction sees the real signal; a test pins it.
+
+### Caveats carried forward (Phase 2 territory)
+- Static EIA-860 nameplate → staged build-outs bias early months low; no clean
+  monthly capacity-history analogue to the AU DUDETAIL mask yet.
+- Curtailment (ERCOT/SPP) contaminates observed CF and is NOT yet screened —
+  the shared `pyvwf.qc` module (§6 of the research doc) is the right home,
+  generalised from the AU heuristics rather than re-implemented here.
+
+### Next checkpoint
+Phase 2 for the US: real EIA-923/860 + USWTDB acquisition via
+`scripts/process_eia_us.py`, an ERA5-US subset, and the first US validation
+run — or, if sequencing favours breadth, a second region adapter (Brazil /
+Canada / NZ per the doc's §5) on the same template.
