@@ -126,9 +126,9 @@ def shipped(name: str) -> RegionSpec:
 
 def test_all_shipped_configs_load():
     paths = sorted(CONFIG_DIR.glob("*.toml"))
-    assert len(paths) == 15
+    assert len(paths) == 16
     specs = [load_region(p) for p in paths]
-    assert len({s.code for s in specs}) == 15
+    assert len({s.code for s in specs}) == 16
 
 
 def test_shipped_granularity_classification():
@@ -147,6 +147,9 @@ def test_shipped_granularity_classification():
     br = shipped("br")
     assert br.obs_unit == "complex"  # ONS reports wind per conjunto (complex)
     assert br.obs_level == "turbine"
+    nz = shipped("nz")
+    assert nz.obs_unit == "farm"  # EMI reports metered injection per plant
+    assert nz.obs_level == "turbine"
     for name in ("nl", "fr", "be", "no", "se", "es", "it", "pt", "ie"):
         spec = shipped(name)
         assert spec.obs_level == "country"
