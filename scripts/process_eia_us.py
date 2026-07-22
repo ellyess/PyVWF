@@ -31,6 +31,7 @@ from pathlib import Path
 import pandas as pd
 
 from vwf.datasets.eia_us import (
+    assign_curves_from_library,
     bin_hub_heights,
     build_us_metadata,
     filter_to_bbox,
@@ -55,6 +56,11 @@ def main() -> None:
                     help="0-based header row of the EIA-860 sheets")
     ap.add_argument("--uswtdb", default=None, help="USWTDB CSV (hub heights, models)")
     ap.add_argument("--out", default="input/turbine_level_data/US")
+    ap.add_argument("--curve-assignment", choices=["match", "uniform"], default="match",
+                    help="'match' assigns each plant a real library curve by "
+                    "specific power via vwf.data.add_models (as the AU-NEM and "
+                    "European fleets do), falling back to --model where USWTDB "
+                    "has no rotor diameter. 'uniform' gives every plant --model.")
     ap.add_argument("--height-bin", type=float, default=10.0,
                     help="Round hub heights to this many metres (0 disables). "
                     "interpolate_wind builds one height level per UNIQUE hub "
@@ -110,6 +116,9 @@ def main() -> None:
         capacity, hub_heights, default_height=args.default_height, model=args.model
     )
 
+    if args.curve_assignment == "match":
+        metadata = assign_curves_from_library(metadata, fallback_model=args.model)
+
     n_heights_raw = metadata["height"].nunique()
     metadata = bin_hub_heights(metadata, args.height_bin)
 
@@ -141,6 +150,11 @@ def main() -> None:
         f"- plants with metadata but no generation in-window: {len(meta_no_gen)}",
         f"- hub height from USWTDB (capacity-weighted): {from_uswtdb} / {len(metadata)}; "
         f"the rest use the {args.default_height} m uniform default",
+        f"- power curves: {metadata['model'].nunique()} distinct "
+        f"({int((metadata['model_source'] == 'add_models').sum())} matched to the "
+        f"library by specific power, "
+        f"{int((metadata['model_source'] == 'default-uniform').sum())} on the "
+        f"{args.model} uniform fallback)",
         (
             f"- hub heights binned to {args.height_bin} m: {n_heights_raw} distinct "
             f"values -> {metadata['height'].nunique()}. interpolate_wind builds one "

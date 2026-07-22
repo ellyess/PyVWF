@@ -9,7 +9,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from vwf.config import PyVWFPaths
 from vwf.datasets.eia_us import (
+    assign_curves_from_library,
     bin_hub_heights,
     build_us_metadata,
     filter_to_bbox,
@@ -216,6 +218,53 @@ def test_filter_to_bbox_drops_out_of_domain_plants():
     # Hawaii/Alaska gone; the exactly-on-corner plant is kept (inclusive edges).
     assert set(kept["ID"]) == {"conus", "edge"}
     assert kept.index.tolist() == [0, 1]  # index reset, not left with holes
+
+
+def test_curve_matching_refuses_a_micro_turbine_for_a_utility_machine():
+    """The scale guard, not specific power alone, must decide.
+
+    Must-distinguish: this plant's 4 MW machines sit at ~226 W/m2 — the exact
+    specific power of a 1 kW micro turbine. Matching on specific power alone
+    (plain add_models) picks the micro turbine; the real fleet run did exactly
+    that for 28% of plants. A correct match is a MW-class curve.
+    """
+    md = pd.DataFrame(
+        {
+            "ID": ["big"],
+            "capacity": [8000.0],   # plant total kW = 2 x 4 MW
+            "n_turbines": [2],
+            "diameter": [150.0],
+            "height": [100.0],
+            "lon": [-100.0],
+            "lat": [40.0],
+            "type": ["onshore"],
+            "uswtdb_model": ["GE Wind 4.0-150"],
+            "model": ["placeholder"],
+            "model_source": ["default-uniform"],
+        }
+    )
+    out = assign_curves_from_library(md, fallback_model="FALLBACK")
+    catalog = pd.read_csv(PyVWFPaths.reference_file("models.csv"))
+    picked = catalog[catalog["model"] == out.loc[0, "model"]]
+    assert len(picked) == 1, f"assigned {out.loc[0, 'model']!r}, not a library curve"
+    rated = float(picked.iloc[0]["capacity"])
+    # 4000 kW per turbine, band (0.5, 2.0) -> 2000..8000 kW
+    assert 2000.0 <= rated <= 8000.0, f"assigned a {rated} kW curve to a 4 MW machine"
+    assert out.loc[0, "model_source"] == "matched-scale-and-specific-power"
+
+
+def test_curve_matching_falls_back_without_a_diameter():
+    md = pd.DataFrame(
+        {
+            "ID": ["nodia"], "capacity": [8000.0], "n_turbines": [2],
+            "diameter": [float("nan")], "height": [100.0], "lon": [-100.0],
+            "lat": [40.0], "type": ["onshore"], "uswtdb_model": [""],
+            "model": ["placeholder"], "model_source": ["default-uniform"],
+        }
+    )
+    out = assign_curves_from_library(md, fallback_model="FALLBACK")
+    assert out.loc[0, "model"] == "FALLBACK"
+    assert out.loc[0, "model_source"] == "default-uniform"
 
 
 def test_bin_hub_heights_collapses_distinct_values():
