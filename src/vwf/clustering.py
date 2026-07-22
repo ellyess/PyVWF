@@ -106,7 +106,9 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore"):
     warnings.warn(f"Country/offshore shape not found for {country_code} (mode={cluster_mode})")
     return None
 
-def cluster_turbines(num_clu, turb_info_train, train=False, *args, random_state=42):
+def cluster_turbines(
+    num_clu, turb_info_train, train=False, *args, random_state=42, weight_col=None
+):
     """Cluster turbines by spatial coordinates.
 
     Args:
@@ -117,6 +119,15 @@ def cluster_turbines(num_clu, turb_info_train, train=False, *args, random_state=
         random_state: KMeans seed. Exposed so the partition's seed-stability is
             testable; the result must not depend on it (see
             ``tests/test_clustering.py``).
+        weight_col: Column to weight the fit by, typically ``"capacity"``, or
+            None for an unweighted fit. Unweighted, a 5 MW site pulls a centroid
+            as hard as a 500 MW one even though skill is scored capacity-
+            weighted. Weighting moves cluster boundaries toward where the
+            capacity is. OFF by default: it is a modelling choice about whether
+            clusters represent METEOROLOGY (unweighted — bias is a property of
+            location) or where the ENERGY is, and the two are not the same.
+            Falls back to unweighted if the column is missing or carries no
+            usable positive weights.
 
     Returns:
         Turbine metadata with an added ``cluster`` column.
@@ -137,8 +148,21 @@ def cluster_turbines(num_clu, turb_info_train, train=False, *args, random_state=
             max_iter = 300,
             random_state = random_state
         )
-    kmeans.fit(turb_info_train[['lat','lon']])
-        
+    sample_weight = None
+    if weight_col is not None and weight_col in turb_info_train.columns:
+        w = pd.to_numeric(turb_info_train[weight_col], errors="coerce").to_numpy(float)
+        # A partial or non-positive weight vector would silently distort the
+        # partition, so only use weights when every row has a usable one.
+        if np.all(np.isfinite(w)) and np.all(w > 0):
+            sample_weight = w
+        else:
+            warnings.warn(
+                f"cluster_turbines: {weight_col!r} has missing or non-positive "
+                "values; falling back to an unweighted fit"
+            )
+
+    kmeans.fit(turb_info_train[['lat','lon']], sample_weight=sample_weight)
+
     if train:
         turb_info_train['cluster'] = kmeans.predict(turb_info_train[['lat','lon']])
         return turb_info_train

@@ -147,6 +147,31 @@ are only 332 distinct locations. DE saturates at 579. Requesting k above the
 distinct-location count silently wastes compute and produces a fake plateau
 that reads like convergence. **Bound k by unique coordinates, not row count.**
 
+### Capacity-weighted clustering: no evidence it helps (NEGATIVE RESULT)
+
+Unweighted, a 5 MW site pulls a centroid as hard as a 500 MW one, though skill
+is scored capacity-weighted — so weighting the KMeans fit by capacity looked
+like an obvious improvement. It is not. A/B at FIXED k, same library, same
+seed, so weighting is the only variable:
+
+| region | k | unweighted | weighted | delta |
+| --- | --- | --- | --- | --- |
+| US | 100 | 0.0730 | **0.0722** | -1.1% |
+| UK | 100 | 0.0755 | **0.0737** | -2.4% |
+| DE | 100 | 0.0403 | 0.0403 | 0.0% |
+| DK | 100 | **0.0567** | 0.0574 | +1.2% |
+| BR | 60 | **0.0763** | 0.0778 | +2.0% |
+
+Two better, two worse, one unchanged, all within 3%; the season slice agrees.
+With one seed and one held-out year per region, 1-3% is not separable from
+year-to-year noise. **`weight_col` therefore defaults to None (unweighted).**
+
+The choice is a modelling one, not an optimisation: unweighted says clusters
+represent METEOROLOGY (reanalysis bias is a property of location, and a small
+site samples the same wind field as a large one); weighted says they should
+track where the ENERGY is. The data does not favour either, so the default
+stays with the interpretation that matches what a correction factor is for.
+
 ### DK is the only genuine interior optimum
 
 DK peaks at k=500 (MAE 0.0511) and degrades by k=1000 (0.0671, r 0.848 ->
