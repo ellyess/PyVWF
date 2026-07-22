@@ -129,11 +129,58 @@ Three things, none of which the shipped configs reflect:
    refinement on top of it.
 2. **k=10 is well below the optimum everywhere.** Every region improves
    materially from k=10 to k=100.
-3. **More is NOT always better.** DK peaks near k=100 and *degrades* by k=500
-   (MAE 0.0562 -> 0.0683, r 0.832 -> 0.773) while MBE collapses to -0.002: it
-   fits the mean and adds noise, the classic overfitting signature. DE and UK
-   are still improving at k=500; the US at k=200. **The optimum is
-   region-specific and must be swept, not assumed.**
+3. **Skill is NOT monotonic in k, and not smooth either.** Extending DK to
+   k=700 and k=1000 (season slice, held-out 2020):
+
+   | k | 10 | 100 | 500 | **700** | 1000 |
+   | --- | --- | --- | --- | --- | --- |
+   | MAE | 0.0623 | 0.0562 | 0.0683 | **0.0516** | 0.0684 |
+   | r | 0.809 | 0.832 | 0.773 | **0.843** | 0.775 |
+   | MBE | +0.023 | +0.019 | -0.003 | +0.018 | -0.006 |
+
+   k=700 is the best DK result of any run, so this is **not** overfitting past
+   an optimum (that degrades monotonically). An earlier draft of this document
+   claimed DK "peaks near k=100 and overfits past it"; that was wrong and is
+   retracted. The good and bad runs split cleanly: the bad ones (500, 1000)
+   are exactly those where MBE collapses to ~0 while MAE, RMSE and r all
+   worsen.
+
+   Ruled out as causes: **overfitting** (k=700 beats k=100); **evaluate-time
+   re-clustering mismatch** (the KMeans refit in `run_evaluate` reproduces the
+   training partition with 100% identical labels at every k); **cross-k state
+   leakage in the driver loop** (DK k=500 run alone is BIT-IDENTICAL to k=500
+   run as the last of [10, 100, 500] — so multi-k sweeps are trustworthy); and
+   **degenerate factors** (no identity fallbacks at any k; scalar p50 is
+   0.72-0.74 across k=100/500/700/1000).
+
+   **Cause found: `init="random"` in `cluster_turbines`.** Holding k=500 fixed
+   and varying only the KMeans seed:
+
+   | seed | 0 | 1 | 7 | 42 |
+   | --- | --- | --- | --- | --- |
+   | MAE (`init="random"`, current) | 0.0514 | 0.0842 | 0.0628 | 0.0683 |
+   | MAE (`init="k-means++"`) | 0.0513 | 0.0511 | 0.0507 | 0.0509 |
+
+   With random init, MAE at ONE k spans 0.0514-0.0842 (range 0.0328) — larger
+   than the entire k=10..1000 spread at fixed seed (0.0516-0.0684). **The
+   k-curve was noise.** k=700's apparent win was partition luck; seed 0 reaches
+   the same score at k=500.
+
+   `k-means++` collapses the spread to 0.0006, a ~55x reduction, and is also
+   BETTER than the luckiest random draw (0.0507 vs 0.0514). It is sklearn's
+   default precisely because random init falls into bad local optima, and
+   `n_init=10` selects among those by INERTIA, which is not held-out skill.
+
+   **Consequences.** Any single-run-per-k sweep measures partition lottery, not
+   k, so "optimal k" cannot be read off one run per k under the current init.
+   What survives unaffected: **k=1 is worse than uncorrected** (US 0.0889 vs
+   0.0796; BR 0.1148 vs 0.1102) — at k=1 there is no partition to be lucky
+   about, so that result carries no seed variance — and the direction that
+   larger k beats k=1 by a wide margin.
+
+   Switching to `k-means++` is a one-argument change that makes k-sweeps
+   meaningful, but it moves results for EVERY region including DK/DE/UK, so it
+   is a deliberate decision, not a silent fix. NOT APPLIED.
 
 The practical ceiling is the *training* fleet, not the metadata fleet: Brazil's
 is 125 complexes (not 193), so k=150 raises
