@@ -128,6 +128,11 @@ def main() -> None:
     unmapped: set[str] = set()
     for path in raw_paths:
         gen = pd.read_csv(path, low_memory=False)
+        # Header casing drifts across years (2019 files say Trading_date).
+        gen = gen.rename(columns={
+            c: "Trading_Date" for c in gen.columns
+            if c.lower() == "trading_date"
+        })
         fuel = gen["Fuel_Code"].astype(str).str.strip().str.lower()
         wind = gen[fuel.isin(WIND_FUELS)].copy()
         if wind.empty:
