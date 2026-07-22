@@ -178,9 +178,33 @@ Three things, none of which the shipped configs reflect:
    about, so that result carries no seed variance — and the direction that
    larger k beats k=1 by a wide margin.
 
-   Switching to `k-means++` is a one-argument change that makes k-sweeps
-   meaningful, but it moves results for EVERY region including DK/DE/UK, so it
-   is a deliberate decision, not a silent fix. NOT APPLIED.
+   **APPLIED** (`init="k-means++"`, plus `tests/test_clustering.py` pinning
+   seed-stability; three of its four tests fail on the old init). Measured
+   init-only effect at the shipped k, with the curve library held fixed:
+
+   | region | random init | k-means++ | delta | points/cluster |
+   | --- | --- | --- | --- | --- |
+   | DE k=10 | 0.0479 | 0.0479 | 0.0000 | ~1000 |
+   | DK k=10 | 0.0623 | 0.0622 | -0.0001 | ~370 |
+   | UK k=10 | 0.0888 | 0.0885 | -0.0003 | ~600 |
+   | US k=10 | 0.0741 | 0.0737 | -0.0004 | ~36 |
+   | BR k=8 | 0.0901 | 0.0843 | **-0.0058** | ~16 |
+   | DK k=500 | 0.0514-0.0842 | 0.0507-0.0513 | **64% -> 1% spread** | ~7 |
+
+   The effect scales with how hard the partition is, measured as points per
+   cluster: negligible where clusters are large and unambiguous (Europe at
+   k=10), modest for Brazil's small fleet, dominant at high k. **Prior European
+   results at k=10 are therefore unaffected** — DE is identical to four
+   decimals — so nothing published needs revising. The change matters for
+   SWEEPS, where it is the difference between measuring k and measuring luck.
+
+   *Comparison hygiene.* An earlier draft of this comparison was contaminated:
+   the European sweeps ran against the bundled open library while US/BR ran
+   against open+licensed, because the library is selected by the `PYVWF_INPUT`
+   environment variable and is not recorded in the run manifest. The tell was
+   that *uncorrected* baselines moved, which a clustering change cannot cause.
+   The table above holds the library fixed. Recording the resolved curve-library
+   path in the run manifest would make this class of error self-detecting.
 
 The practical ceiling is the *training* fleet, not the metadata fleet: Brazil's
 is 125 complexes (not 193), so k=150 raises
