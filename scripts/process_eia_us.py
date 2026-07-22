@@ -32,6 +32,7 @@ import pandas as pd
 
 from vwf.datasets.eia_us import (
     build_us_metadata,
+    filter_to_bbox,
     plant_hub_heights_from_uswtdb,
     wind_capacity_from_eia860,
     wind_generation_from_eia923,
@@ -53,6 +54,12 @@ def main() -> None:
                     help="0-based header row of the EIA-860 sheets")
     ap.add_argument("--uswtdb", default=None, help="USWTDB CSV (hub heights, models)")
     ap.add_argument("--out", default="input/turbine_level_data/US")
+    ap.add_argument("--bbox", type=float, nargs=4, default=None,
+                    metavar=("LON_MIN", "LON_MAX", "LAT_MIN", "LAT_MAX"),
+                    help="Drop plants outside this box (use the region's "
+                    "[era5] bbox, e.g. -125 -66 24 50 for CONUS). EIA covers "
+                    "all states, so without this Alaska/Hawaii plants are "
+                    "silently snapped to the nearest in-domain grid cell.")
     ap.add_argument("--default-height", type=float, default=100.0,
                     help="Uniform hub-height fallback, m, for plants USWTDB "
                     "does not cover")
@@ -95,6 +102,16 @@ def main() -> None:
     metadata = build_us_metadata(
         capacity, hub_heights, default_height=args.default_height, model=args.model
     )
+
+    # Keep the fleet inside the reanalysis domain (see filter_to_bbox).
+    n_before = len(metadata)
+    dropped_out_of_domain = pd.DataFrame(columns=metadata.columns)
+    if args.bbox:
+        dropped_out_of_domain = metadata[
+            ~metadata["ID"].isin(filter_to_bbox(metadata, tuple(args.bbox))["ID"])
+        ]
+        metadata = filter_to_bbox(metadata, tuple(args.bbox))
+
     metadata.to_csv(out / "us_md.csv", index=False)
 
     # --- report -------------------------------------------------------------
@@ -114,6 +131,18 @@ def main() -> None:
         f"- plants with metadata but no generation in-window: {len(meta_no_gen)}",
         f"- hub height from USWTDB (capacity-weighted): {from_uswtdb} / {len(metadata)}; "
         f"the rest use the {args.default_height} m uniform default",
+        (
+            f"- OUT-OF-DOMAIN plants dropped by --bbox {list(args.bbox)}: "
+            f"{len(dropped_out_of_domain)} of {n_before} "
+            f"({dropped_out_of_domain['capacity'].sum() / 1e6:.2f} GW). EIA covers "
+            "all states; the region's ERA5 box does not. Without this screen they "
+            "are snapped to the nearest in-domain grid cell and simulated with "
+            "the wrong wind."
+            if args.bbox
+            else "- NO --bbox screen applied: any plant outside the region's ERA5 "
+            "box is snapped to the nearest in-domain grid cell (wrong wind). "
+            "Pass --bbox with the region's [era5] bbox."
+        ),
         "",
         "Height source is per-plant (height_source column). Model is a UNIFORM "
         f"default ({args.model}); the USWTDB manufacturer/model string travels in "

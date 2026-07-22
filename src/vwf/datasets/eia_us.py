@@ -344,6 +344,35 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def filter_to_bbox(
+    metadata: pd.DataFrame, bbox: tuple[float, float, float, float]
+) -> pd.DataFrame:
+    """Drop plants outside the reanalysis domain.
+
+    EIA-923/860 cover every US state, but a region's ERA5 box does not: the
+    ``us.toml`` box is CONUS, so Alaska, Hawaii and Puerto Rico plants fall
+    outside it. This matters because
+    :func:`vwf.wind.aggregate_turbines_to_grid` assigns each turbine its
+    nearest grid cell with an UNBOUNDED ``argmin`` — a Hawaii plant is snapped
+    to the westernmost CONUS cell ~2000 km away and silently simulated with
+    Californian wind. Screening here keeps the fleet and the domain consistent
+    instead of relying on that fallback.
+
+    Args:
+        metadata: Plant metadata carrying ``lon``/``lat``.
+        bbox: ``(lon_min, lon_max, lat_min, lat_max)``, the region's ERA5 box.
+
+    Returns:
+        Metadata restricted to plants inside the box (inclusive edges).
+    """
+    lon_min, lon_max, lat_min, lat_max = bbox
+    inside = (
+        metadata["lon"].between(lon_min, lon_max)
+        & metadata["lat"].between(lat_min, lat_max)
+    )
+    return metadata[inside].reset_index(drop=True)
+
+
 def build_us_metadata(
     capacity: pd.DataFrame,
     hub_heights: pd.DataFrame | None,

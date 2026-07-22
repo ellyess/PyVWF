@@ -30,8 +30,16 @@ python scripts/process_eia_us.py \
     --eia860-plants     input/eia_raw/eia860_2021/2___Plant_Y2021.xlsx \
     --eia860-generators input/eia_raw/eia860_2021/3_1_Generator_Y2021.xlsx \
     --uswtdb            input/eia_raw/uswtdb/uswtdb_V9_0_*.csv \
+    --bbox -125 -66 24 50 \
     --out input/turbine_level_data/US
 ```
+
+`--bbox` must match the region's `[era5] bbox`. EIA covers every state but the
+CONUS box does not, so without it the Alaska/Hawaii plants (15 plants, 0.29 GW;
+6 of them monthly reporters) survive into the fleet and are snapped by
+`aggregate_turbines_to_grid`'s unbounded nearest-cell `argmin` to the closest
+in-domain cell — Hawaii simulated with Californian wind, silently. The join
+report records how many were dropped.
 
 Writes `us_md.csv`, `us_eia923_netgen.csv`, and `join_report.md`. Pass every
 year of EIA-923 you intend to train/test on (`--eia923` takes several

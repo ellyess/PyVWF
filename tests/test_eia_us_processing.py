@@ -11,6 +11,7 @@ import pytest
 
 from vwf.datasets.eia_us import (
     build_us_metadata,
+    filter_to_bbox,
     plant_hub_heights_from_uswtdb,
     wind_capacity_from_eia860,
     wind_generation_from_eia923,
@@ -190,3 +191,34 @@ def test_build_metadata_drops_plants_without_coordinates():
     md = build_us_metadata(cap, None, default_height=100.0, model="M")
     assert set(md["ID"]) == {"100"}
     assert (md["height_source"] == "default-uniform").all()  # no USWTDB passed
+
+
+CONUS = (-125.0, -66.0, 24.0, 50.0)
+
+
+def test_filter_to_bbox_drops_out_of_domain_plants():
+    """Hawaii and Alaska must not survive a CONUS box.
+
+    Must-distinguish: an in-domain plant, a Hawaii plant (outside on BOTH lon
+    and lat) and an Alaska plant (outside on lon only) — so a filter that
+    tested just one axis, or did nothing, would fail here.
+    """
+    md = pd.DataFrame(
+        {
+            "ID": ["conus", "hawaii", "alaska", "edge"],
+            "lon": [-101.0, -157.9, -149.9, -125.0],
+            "lat": [35.0, 21.6, 61.2, 24.0],
+            "capacity": [100.0, 200.0, 300.0, 400.0],
+        }
+    )
+    kept = filter_to_bbox(md, CONUS)
+    # Hawaii/Alaska gone; the exactly-on-corner plant is kept (inclusive edges).
+    assert set(kept["ID"]) == {"conus", "edge"}
+    assert kept.index.tolist() == [0, 1]  # index reset, not left with holes
+
+
+def test_filter_to_bbox_is_a_noop_when_all_inside():
+    md = pd.DataFrame(
+        {"ID": ["a", "b"], "lon": [-100.0, -80.0], "lat": [30.0, 40.0]}
+    )
+    assert filter_to_bbox(md, CONUS)["ID"].tolist() == ["a", "b"]
