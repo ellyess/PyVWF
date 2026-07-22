@@ -23,7 +23,10 @@ test_years = [2024]
 # to absorb curtailment as reanalysis bias. Pre-2021 CF carries it unscreened.
 
 [era5]
-path = "era5/BR"
+# The daily pre-combine (scripts/combine_era5_br_daily.py) is mandatory for a
+# box this size: a 4-year hourly whole-Brazil load will not fit in memory.
+# Point at the combined daily files, not the raw monthly ones.
+path = "era5/BR_daily"
 bbox = [-74.0, -34.0, -34.0, 6.0]
 file_tag = "BR"
 
