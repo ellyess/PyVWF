@@ -33,11 +33,12 @@ bbox = [166.0, 179.0, -48.0, -36.0]
 file_tag = "NZ"
 
 [correction]
-# ~20 farms -> the unique-coordinate ceiling caps k around the fleet size;
-# k above it produces a fake plateau (docs/findings/us_br_first_run.md).
-# 5 is the shipped default; sweep [1, 5, 10, 15] before trusting any k.
+# 13 farms but only ~11 unique coordinates (Tararua III shares the I/II ridge,
+# KD2 shares KD1) -> the unique-coordinate ceiling caps k there; k above it
+# produces a fake plateau (docs/findings/us_br_first_run.md). The sweep below
+# stays under the ceiling so every k is a real partition.
 model = "affine-wind"
-cluster_list = [5]
+cluster_list = [1, 5, 10]
 time_slices = ["fixed", "season"]
 
 [seasons]
