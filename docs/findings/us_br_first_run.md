@@ -172,6 +172,40 @@ site samples the same wind field as a large one); weighted says they should
 track where the ENERGY is. The data does not favour either, so the default
 stays with the interpretation that matches what a correction factor is for.
 
+### Geographic vs degree-space distance: also within noise (NEGATIVE RESULT)
+
+Clustering raw degrees is geometrically wrong — a degree of longitude is 111 km
+at the equator and 71 km at 50N — so `geographic=True` clusters on unit-sphere
+Cartesian coordinates, where Euclidean distance is monotone in great-circle
+distance. A/B at fixed k, same library and seed:
+
+| region | k | degree-space | geographic | delta |
+| --- | --- | --- | --- | --- |
+| BR | 60 | 0.0763 | **0.0752** | -1.4% |
+| DE | 100 | 0.0403 | **0.0402** | -0.2% |
+| UK | 100 | 0.0755 | 0.0754 | -0.1% |
+| US | 100 | **0.0730** | 0.0737 | +1.0% |
+| DK | 100 | **0.0567** | 0.0576 | +1.6% |
+
+Mixed, all within 2%. A prediction made BEFORE running — that the US would
+move most, having the widest latitude span (cos(lat) 0.91-0.64) — was WRONG:
+the US got slightly worse while DK, with the narrowest latitude band and the
+least distortion to correct, moved most. **The effect does not track the
+distortion magnitude**, which is itself evidence that these differences are
+noise rather than signal.
+
+`geographic` therefore also defaults to False. The correctness argument stands
+on its own — degree-space distance IS the wrong metric — but it should not be
+sold as a skill improvement, and flipping the default would move every region's
+results for no measured gain.
+
+**Both of the two "obvious improvements" (capacity weighting, geographic
+distance) landed inside the noise floor.** With one seed and one held-out year
+per region, effects below ~3% are not measurable. Establishing that floor — a
+second held-out year, or seed-repeats now that the partition is deterministic —
+is a prerequisite for any further clustering experiment, otherwise each one
+produces another uninterpretable 1-3% swing.
+
 ### DK is the only genuine interior optimum
 
 DK peaks at k=500 (MAE 0.0511) and degrades by k=1000 (0.0671, r 0.848 ->
