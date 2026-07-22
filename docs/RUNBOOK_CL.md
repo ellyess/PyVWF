@@ -22,7 +22,39 @@ not the CSV schemas. Everything below is the user-executed acquisition path.
 | Coordinates | Infotécnica (reported) or Global Wind Power Tracker (CC-BY-4.0, on disk) | Verify Infotécnica coordinates against GWPT for a few parks before trusting either |
 | Hub heights | Not in CEN data | Chilean SEA environmental filings per project, or GOWIRES (Zenodo, CC-BY-4.0, ~32% global coverage) |
 
+## 1a. Endpoint map (verified July 2026 from the public OpenAPI specs)
+
+**The per-plant data is in the SIP service, not Operation.** Operation's
+`/reportes/v3/generation` returns aggregate GWh by classification only. The
+service specs are public at
+`https://portal.api.coordinador.cl/api_docs/services/<n>.json` (3 = Operaciones,
+4 = sip). Base URL `https://sip.api.coordinador.cl`; auth is `user_key` as a
+**query parameter**.
+
+| Endpoint | Gives |
+| --- | --- |
+| `/generacion-real/v3/findByDate` | Per-plant real generation. Params `startDate`, `endDate`, **`idCentral`**, `tipoTecnologia`, `page`, `pageSize`. Paged response (`content`, `totalElements`, `totalPages`) |
+| `/centrales/v4/findByDate` | Plant registry: `id_central`, `central`, `propietario`, `tipo_tecnologia`, `cant_und_gen`, `pot_max_bruta`, `capac_max`, `fecha_ent_oper`, `region`/`provincia`/`comuna` |
+| `/capacidad-instalada/v4/findByDate` | Installed-capacity history (then-current CF denominator) |
+| `/api/v2/recursos/infotecnica/centrales/` | Infotécnica registry (alternative plant list) |
+
+**The registry carries no latitude/longitude** — only region/province/commune.
+Coordinates must be joined from the Global Wind Power Tracker (CC-BY-4.0,
+already on disk at `input/Global-Wind-Power-Tracker-February-2026.xlsx`).
+
 ## 2. Verification checklist before writing the adapter
+
+Run the probe — it answers 1-3 in one go and writes nothing:
+
+```bash
+export CEN_API_KEY=<your SIP user_key>
+python scripts/fetch_cen_cl.py --probe
+```
+
+It prints the registry field list, the wind-plant count, whether coordinates
+are present, and the row count for one plant across 2015/2018/2020/2022/2024/
+2025 — the earliest year with rows is the per-plant history depth, which is
+the open question that decides whether Chile is a full tier-1 region.
 
 1. One bulk year-block file opened: confirm per-central hourly MWh (or MW),
    column names, encoding, and how wind plants are identified (technology
