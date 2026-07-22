@@ -109,27 +109,44 @@ the regions with reporting gaps.
 Explicit Southern-Hemisphere `season` slicing beats `fixed`, which retroactively
 justifies stating the seasons rather than inheriting the NH default.
 
-## Result 3 — cluster count: 8-10 is too low
+## Result 3 — cluster count matters, and the optimum is region-specific
 
-From the existing DK run (`output/runs/turbine_dk_research`, onshore, bimonth):
+All five regions, held-out MAE, best slice, measured through the FIXED scalar:
 
-| k | 1 | 3 | 10 | 20 | 50 | 100 | 200 | 500 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| MAE | 0.0717 | 0.0731 | 0.0703 | 0.0692 | 0.0671 | 0.0636 | 0.0624 | **0.0607** |
+| region (test year) | uncorrected | k=1 | k~10 | k~100 | k~200-500 |
+| --- | --- | --- | --- | --- | --- |
+| US (2022) | 0.0796 | 0.0889 | 0.0741 | 0.0729 (k=50) | **0.0712** (k=200) |
+| BR (2024) | 0.1102 | 0.1148 | 0.0901 (k=8) | **0.0708** (k=120) | - (fleet caps at 125) |
+| DK (2020) | 0.1255 | - | 0.0623 | **0.0562** | 0.0683 (k=500) |
+| DE (2019) | 0.0655 | - | 0.0479 | 0.0446 | **0.0414** (k=500) |
+| UK (2019) | 0.1112 | - | 0.0877 | 0.0762 | **0.0696** (k=500) |
 
-Flat from k=1-10, then improving steadily to -15% at k=500 and still falling.
-Bias is nearly constant (+0.047 -> +0.040) while MAE drops, so extra clusters
-resolve *local* structure rather than the overall level. Brazil agrees (k=8 ->
-50 -> 120 improves monotonically). **The shipped `cluster_list = [10]` / `[8]`
-sit in the flat zone.**
+Three things, none of which the shipped configs reflect:
+
+1. **k=1 is WORSE than not correcting**, in both regions where it was tested
+   (US 0.0889 vs 0.0796; BR 0.1148 vs 0.1102). A single global scalar/offset is
+   actively harmful. Spatial resolution is what makes the method work, not a
+   refinement on top of it.
+2. **k=10 is well below the optimum everywhere.** Every region improves
+   materially from k=10 to k=100.
+3. **More is NOT always better.** DK peaks near k=100 and *degrades* by k=500
+   (MAE 0.0562 -> 0.0683, r 0.832 -> 0.773) while MBE collapses to -0.002: it
+   fits the mean and adds noise, the classic overfitting signature. DE and UK
+   are still improving at k=500; the US at k=200. **The optimum is
+   region-specific and must be swept, not assumed.**
 
 The practical ceiling is the *training* fleet, not the metadata fleet: Brazil's
 is 125 complexes (not 193), so k=150 raises
 `ValueError: n_samples=125 should be >= n_clusters=150`.
 
-Note: the pre-fix US k-sweep (k=1/100/300, MAE 0.153 -> 0.143 -> 0.110) was
-measured through the broken scalar and should not be cited; it was re-run after
-the fix.
+Two caveats on this table. The pre-fix US sweep (k=1/100/300, MAE 0.153 ->
+0.143 -> 0.110) was measured through the broken scalar and must not be cited.
+And the harness DK curve *disagrees in shape* with the legacy DK run
+(`output/runs/turbine_dk_research`, onshore/bimonth: 0.0703 -> 0.0636 -> 0.0607
+at k=10/100/500, improving monotonically) where the harness degrades at k=500.
+The runs differ in mode (all vs onshore) and slicing (fixed/season vs bimonth),
+so they are not like-for-like — but the disagreement should be resolved before
+any k recommendation is published for DK.
 
 ## What was ruled out for the US, before the bug was found
 
@@ -223,12 +240,20 @@ Both bite only at scale, which is why smaller regions never surfaced them.
 
 ## Named follow-ups
 
-1. **Re-check DK/DE/UK against the `d1_regression` gate.** The scalar fix touches
-   shared code. Their reporting is believed near-complete (dilution ~1), so
-   results should be unchanged — but that is an assumption, not a measurement,
-   and it must be confirmed before any prior result is cited.
-2. **Raise `cluster_list`.** 8-10 is in the flat zone; both regions improved to
-   the largest k tested. Sweep against the training-fleet ceiling.
+1. ~~Re-check DK/DE/UK against the scalar fix.~~ **RESOLVED — no effect,
+   provably.** Their reporting fraction is *exactly* 1.000 (DK 5588 plants, DE
+   10477, UK 6345; zero missing observations). With no NaNs the `present` mask
+   is all-True, so the fixed and unfixed `weighted_avg` execute identical
+   arithmetic: the bug cannot have touched them. This also explains why the
+   method "always worked" on those three, and why only the US (43.1% reporting)
+   broke. All three were re-run end-to-end and the correction improves every
+   one (DK -55% MAE, DE -37%, UK -37%).
+2. **Sweep `cluster_list` per region and pick the optimum.** 8-10 is below the
+   optimum everywhere, k=1 is actively harmful, and DK shows the optimum is
+   interior (peaks ~100, degrades by 500). No universal value exists; each
+   region needs its own sweep against the training-fleet ceiling.
+3. **Resolve the DK harness-vs-legacy disagreement at high k** (see Result 3)
+   before publishing a DK k recommendation.
 3. **Screen US curtailment** into the shared `pyvwf.qc` module, with
    `ons_br.constrained_off_account` as the working reference. Needed to
    interpret the +0.039 / -0.024 regional bias split.
