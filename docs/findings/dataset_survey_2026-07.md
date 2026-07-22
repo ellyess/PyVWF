@@ -22,7 +22,7 @@ temperate-maritime plants.
 | **Chile** | Coordinador (CEN), bulk yearly per-central hourly + REST API (`portal.api.coordinador.cl`, registration) | per plant, hourly | 2000→ (wind ~2009→) | Infotécnica + Energía Abierta (capacity, commissioning); no heights | **Atacama coastal desert (BW), Mediterranean (Csb), maritime south (Cfb)** — 3 regimes in one system | ~4.5–5 GW, ~70 parks | Cloudflare blocks plain scraping; use API/bulk. |
 | ~~**Turkey**~~ | ~~EPİAŞ/EXIST Transparency~~ | **DEMOTED — see below** | | | | | Per-plant access not reachable on a Data Consultation subscription (verified 2026-07-22). |
 | **Canada (ON+AB)** | IESO Generator Output & Capability (per-generator hourly, 2010→, verified to CSV header) + AESO metered volumes (per-asset hourly, **2001–2025**, verified) | per generator/asset, hourly | 2001/2010→ | **Canadian Wind Turbine Database (NRCan): per-turbine coords, model, hub height, rotor, commissioning** — only candidate with native heights | Cold continental (Dfb/Dfa), icing, Chinook | ON ~5.5 GW + AB ~6 GW | Best data quality + metadata; least climate novelty (overlaps US Midwest). |
-| **Argentina** | CAMMESA renewables base (Excel, open) | per plant, **monthly** verified **since 2011** (hourly claimed in GRV database, unverified) | 2011→ | Capacity per plant; coords from GWPT; no heights | **Patagonian cold-steppe westerlies (BSk/BWk)** + Pampas (Cfa) | ~4.3 GW, ~60 parks | Monthly per-plant = exactly PyVWF's native training resolution. Ramping fleet → commissioning mask needed (AU DUDETAIL pattern). |
+| **Argentina** ✅ | CAMMESA renewables base — one open ~2 MB ZIP, no credentials (`?wpdmdl=37500`) | per plant, **monthly — CONFIRMED live 2026-07-23**: 75 wind centrales, 186 month columns | **2011-01 → 2026-06** | Capacity per plant; coords from GWPT; no heights | **Patagonian cold-steppe westerlies (BSk/BWk)** + Pampas (Cfa) | ~4.3 GW, ~60 parks | Monthly per-plant = exactly PyVWF's native training resolution. Ramping fleet → commissioning mask needed (AU DUDETAIL pattern). |
 | **Uruguay** | ADME_Data: per-plant **10-min raw SCADA incl. on-site wind speed**, free CLI, no registration | per plant, 10-min | mid-2010s→ (depth unverified) | No coords/heights from ADME; MIEM registry + GWPT | Humid subtropical Cfa, ~30–40% penetration | ~1.5 GW, ~45 parks | Wind-speed channels are a rare bonus for bias-correction diagnostics; raw/unvalidated SCADA. |
 | ~~**Peru**~~ | COES portal — **DEMOTED**: the open endpoint is per-COMPANY (62 firms), not per-plant | ~~per plant, 30-min~~ | wind 2014→ (portal depth not pinned) | Fichas técnicas (capacity, turbine count); no coords/heights | **Hyper-arid coastal desert (BWh/BWn), steady Humboldt coastal jet** — most distinctive single regime | ~1.1 GW, ~10 plants | Tiny fleet → low effort. |
 | **Australia WEM** | AEMO facility SCADA, open CSV 2006–Oct 2023 (verified directory) + post-reform 5-min via OpenElectricity API | per facility, 30-min/5-min | 2006→ | Same style as NEM | Mediterranean SW Australia (Csa/Csb), sea breeze | ~17 farms | Reuses existing AEMO tooling; note Oct-2023 regime break. |
@@ -55,7 +55,24 @@ verifying before committing adapter work.
   granularity is not available on this route; the daily IEOD Excel archive
   would have to be tested separately before Peru can be called tier-1.
 
-**Scoreboard after verification: 1 confirmed, 2 demoted.** Chile was better
+- **Argentina: CONFIRMED, and the cheapest tier-1 region found.** One ~2 MB
+  ZIP, no credentials, no API, no rate limit:
+  `cammesaweb.cammesa.com/erenovables/?wpdmdl=37500`. Sheet
+  "Tabla Resumen x Central" (header on **row 4**, not row 0) carries
+  **186 monthly columns, 2011-01 → 2026-06**, GWh per central. Wind
+  (`FUENTE DE ENERGÍA == "EOLICO"`): **75 distinct centrales**, 5 reporting
+  in 2011 rising to 73 in 2026; 14,322 plant-months extracted. Monthly GWh
+  per plant is *exactly* PyVWF's native training resolution — no reshaping,
+  no timezone, no DST. Fleet is Buenos Aires (30) plus **Patagonia: Chubut
+  (23) and Santa Cruz (5)** — the cold-steppe westerlies nothing else in the
+  set covers. Script: `scripts/fetch_cammesa_ar.py`.
+  Two caveats: REGIÓN/PROVINCIA are **merged Excel cells** (blank on
+  continuation rows — forward-fill or plants inherit the wrong province),
+  and CAMMESA carries **no coordinates, capacity, or hub heights**. GWPT has
+  79 operating AR farms (4.97 GW) against CAMMESA's 75, but crude name
+  matching lands only 7/75, so the join needs curation like the NZ table.
+
+**Scoreboard after verification: 2 confirmed, 2 demoted.** Chile was better
 than surveyed; Turkey and Peru both failed at exactly the point the survey
 had marked "verified live". Treat every remaining unverified tier-1 entry
 (Uruguay's history depth, Argentina's hourly claim, Canada beyond the CSV
@@ -111,7 +128,11 @@ CFs (simulated).
 ## Recommended order of attack
 
 1. **New Zealand (EMI)** — tier-1, trivially open, complex terrain + SH
-   westerlies; one afternoon of hand metadata.
+   westerlies; one afternoon of hand metadata. **DONE** (adapter shipped).
+1b. **Argentina (CAMMESA)** — CONFIRMED: cheapest acquisition of all (one
+   ZIP), monthly per-plant 2011→ matching the native training resolution,
+   and Patagonian cold-steppe westerlies. Blocked only on the GWPT
+   coordinate join.
 2. **Chile (CEN)** — three new regimes in one adapter, hourly since ~2009;
    register on the API portal first.
 3. **Turkey (EPİAŞ)** — DEMOTED 2026-07-22: per-plant access is not reachable
