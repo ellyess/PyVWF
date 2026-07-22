@@ -1,6 +1,10 @@
 # Chile (Coordinador Eléctrico Nacional) — data acquisition runbook
 
-**Status: acquisition guide only — no adapter exists yet.** Chile is the #2
+**Status: API verified end to end (2026-07-22); adapter not yet written.**
+The open question is closed: **per-plant hourly wind generation runs back to
+at least 2010** (5 plants in 2010 → 65 in 2025, 24 h/day, complete
+`potencia_maxima` on every plant). Chile is a full tier-1 region.
+Verification is reproducible with `python scripts/fetch_cen_cl.py --probe`. Chile is the #2
 candidate region after New Zealand in the July-2026 dataset survey
 (`docs/findings/dataset_survey_2026-07.md`): per-plant hourly generation with
 history to 2000 (wind from ~2009), and one system spanning three climates
@@ -21,6 +25,21 @@ not the CSV schemas. Everything below is the user-executed acquisition path.
 | Plant registry (capacity, commissioning) | CEN Infotécnica + CNE Energía Abierta (http://energiaabierta.cl, explicitly open data) | Installed-capacity datasets with commissioning dates — the registered-capacity history the harness wants |
 | Coordinates | Infotécnica (reported) or Global Wind Power Tracker (CC-BY-4.0, on disk) | Verify Infotécnica coordinates against GWPT for a few parks before trusting either |
 | Hub heights | Not in CEN data | Chilean SEA environmental filings per project, or GOWIRES (Zenodo, CC-BY-4.0, ~32% global coverage) |
+
+## 1b. Gotchas that cost time (all verified against the live API)
+
+| Trap | Reality |
+| --- | --- |
+| Host | `sipub.api.coordinador.cl`. The SIP OpenAPI document has **no `servers` block**, and `sip.api.coordinador.cl` does not resolve. Found by DNS. |
+| Which subscription | **Información Pública (SIP)**, not Operación. Operación exposes aggregate GWh only. |
+| `page` / `limit` | Return **HTTP 502 "Internal server error"** on both `/centrales/v4` and `/generacion-real/v3`. Send `pageSize` alone and size it above the day's row count; the endpoint cannot be paged. |
+| Response envelope | `data` (SIP) or `results`+`count` (Infotécnica resources) — **not** the `content` the schema advertises. |
+| `tipoTecnologia` | Must be **`Eólica`, accented**. `Eolica` returns an empty list rather than an error — reads exactly like "no data exists". |
+| Filtering wind in code | Match the label exactly. A substring test on `"lica"` also matches **`Hidráulica`** (this produced a 4x row overcount during verification). |
+| `/centrales/v4/findByDate` | Caps at **10 records** for any window and its wind entry is a `[NO_MOSTRAR]` test record with `"Sin información"` coordinates. Not a fleet source. |
+| Coordinates | **Absent from the whole API** — `/centrales` advertises `coordenada_este`/`norte`/`zona_huso` but they are unpopulated, and Infotécnica (1,373 plants) has none. Join the Global Wind Power Tracker. |
+| Metadata | Comes free on every generation row: `id_central`, `central`, `propietario`, `potencia_maxima` (populated for 62/62 plants), `tipo_tecnologia`. |
+| Timestamps | `fecha_hora` is Chilean civil time (`America/Santiago`, **observes DST**) and `hora` is 1-24 with `hora N` starting at `(N-1):00`. Confirm the DST-day row counts (23/25 h) before binning to UTC — the NZ trading-period lesson. |
 
 ## 1a. Endpoint map (verified July 2026 from the public OpenAPI specs)
 

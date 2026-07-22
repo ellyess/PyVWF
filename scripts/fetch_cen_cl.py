@@ -4,26 +4,31 @@
 USER-EXECUTED. Reads your API key from the environment so it never appears in
 a command line, a settings file, or this repository:
 
-    export CEN_API_KEY=<your SIP user_key>
-    python scripts/fetch_cen_cl.py --probe          # decisive first check
-    python scripts/fetch_cen_cl.py --plants         # write the wind plant list
-    python scripts/fetch_cen_cl.py --years 2019 2024
+    export CEN_API_KEY=<your Información Pública (SIP) user_key>
+    python scripts/fetch_cen_cl.py --probe          # verification, writes nothing
+    python scripts/fetch_cen_cl.py --years 2015 2024
 
-Why a probe first (docs/RUNBOOK_CL.md): the July-2026 survey verified that
-per-plant hourly generation exists, but not its history depth, field names, or
-timezone convention. `--probe` answers all three in one run and prints what it
-finds, so the adapter is written against observed data rather than assumption.
+Verified against the live API on 2026-07-22 (docs/RUNBOOK_CL.md records the
+full endpoint map). The facts that cost time to discover, so they are pinned
+here rather than rediscovered:
 
-The SIP service (NOT the Operation service) carries the per-plant data:
-    /centrales/v4/findByDate            plant registry (id_central, capacity,
-                                        fecha_ent_oper, region/provincia/comuna)
-    /generacion-real/v3/findByDate      per-plant generation, filterable by
-                                        idCentral and tipoTecnologia, paginated
-    /capacidad-instalada/v4/findByDate  installed-capacity history
-
-Note the registry carries NO latitude/longitude — only region/province/commune.
-Coordinates must come from the Global Wind Power Tracker (CC-BY-4.0, already in
-input/); that join is the next step after this probe passes.
+- **Host is `sipub.api.coordinador.cl`.** The SIP OpenAPI document declares no
+  `servers` block, so the host is not discoverable from the spec;
+  `sip.api.coordinador.cl` does not resolve.
+- **The service is SIP, not Operation.** Operation's `/reportes/v3/generation`
+  returns aggregate GWh only.
+- **`page`/`limit` on `/centrales/v4/findByDate` return HTTP 502.** Send
+  `startDate`/`endDate` alone. That endpoint is near-useless anyway: it caps
+  at 10 records whatever the window.
+- **Responses wrap results in `data`** (the Infotécnica resources use
+  `results` with `count`/`next`), not the `content` the schema suggests.
+- **`tipoTecnologia` must be `Eólica`, accented.** `Eolica` silently returns
+  an empty list rather than erroring — a trap that reads like "no data".
+- **Plant metadata rides along with the generation rows** (`id_central`,
+  `central`, `propietario`, `potencia_maxima`, `tipo_tecnologia`), so the
+  fleet is derived from the generation stream. Neither `/centrales/v4` nor
+  the Infotécnica registry exposes usable coordinates, so **lon/lat must be
+  joined from the Global Wind Power Tracker** (CC-BY-4.0, already on disk).
 
 Raw responses land in <input-root>/cen_raw/ (input/ is git-ignored).
 """
@@ -35,16 +40,18 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import Counter
 from pathlib import Path
 
-BASE = "https://sip.api.coordinador.cl"
-CENTRALES = "/centrales/v4/findByDate"
-GEN_REAL = "/generacion-real/v3/findByDate"
-CAPACIDAD = "/capacidad-instalada/v4/findByDate"
+#: Resolved by DNS, not from the spec (see module docstring).
+BASE = os.environ.get("CEN_API_BASE", "https://sipub.api.coordinador.cl")
 
-#: Values of tipo_tecnologia that denote wind in the CEN registry. Matched
-#: case- and accent-insensitively because the field is free text.
-WIND_TERMS = ("eolica", "eólica", "wind")
+GEN_REAL = "/generacion-real/v3/findByDate"
+CENTRALES = "/centrales/v4/findByDate"
+INFOTECNICA = "/api/v2/recursos/infotecnica/centrales/"
+
+#: MUST carry the accent: the unaccented spelling returns an empty list.
+WIND = "Eólica"
 
 
 def api_key() -> str:
@@ -59,7 +66,7 @@ def api_key() -> str:
     return key
 
 
-def get(path: str, params: dict, *, timeout: int = 120) -> dict:
+def get(path: str, params: dict, *, timeout: int = 300) -> dict:
     """One GET against the SIP API. The key is added here, once."""
     query = dict(params)
     query["user_key"] = api_key()
@@ -71,142 +78,139 @@ def get(path: str, params: dict, *, timeout: int = 120) -> dict:
     except urllib.error.HTTPError as exc:
         body = exc.read()[:300].decode("utf-8", errors="replace")
         # Never echo the URL: it carries the key.
-        sys.exit(f"HTTP {exc.code} on {path}: {body}")
+        sys.exit(
+            f"HTTP {exc.code} on {path}: {body}\n"
+            "(502 on /centrales usually means page/limit were sent — omit them.)"
+        )
     except urllib.error.URLError as exc:
         sys.exit(f"network error on {path}: {exc.reason}")
 
 
 def rows(payload) -> list:
-    """SIP wraps results in 'content' (paged) or 'data'; tolerate both."""
+    """SIP wraps results in 'data'; Infotécnica resources use 'results'."""
     if isinstance(payload, list):
         return payload
-    for key in ("content", "data", "items"):
+    for key in ("data", "results", "content", "items"):
         if isinstance(payload.get(key), list):
             return payload[key]
     return []
 
 
-def is_wind(record: dict) -> bool:
-    blob = " ".join(
-        str(record.get(k, "")) for k in ("tipo_tecnologia", "tipo_central",
-                                         "tipo_conv_energia")
-    ).lower()
-    return any(term in blob for term in WIND_TERMS)
+def wind_rows(records: list) -> list:
+    """Wind rows only.
+
+    Matched on the exact technology label, case-insensitively. A substring
+    test on 'lica' is WRONG: it also matches 'Hidráulica'.
+    """
+    return [r for r in records
+            if str(r.get("tipo_tecnologia", "")).strip().lower() == WIND.lower()]
+
+
+def fetch_day(date: str, *, page_size: int = 20000) -> list:
+    """Every wind generation row for one date.
+
+    A `page` parameter makes this endpoint return HTTP 502 (as `page`/`limit`
+    do on /centrales), so paging is not available: the whole day is requested
+    in one call with a `pageSize` far above the fleet's daily row count
+    (~65 plants x 24 h). If the response ever reports more than one page, that
+    silently truncates, so it raises instead.
+    """
+    payload = get(GEN_REAL, {
+        "startDate": date, "endDate": date,
+        "tipoTecnologia": WIND, "pageSize": page_size,
+    })
+    total_pages = payload.get("totalPages") or 1
+    if total_pages > 1:
+        raise RuntimeError(
+            f"{date}: response reports {total_pages} pages but this endpoint "
+            "502s on `page` — raise page_size rather than truncating."
+        )
+    return rows(payload)
 
 
 def probe() -> None:
     print("=" * 70)
-    print("CEN SIP probe — plant registry")
+    print(f"CEN SIP probe  (host {BASE})")
     print("=" * 70)
-    reg = rows(get(CENTRALES, {"page": 0, "limit": 2000}))
-    print(f"registry records: {len(reg)}")
-    if not reg:
-        sys.exit("registry returned nothing — check the key is for the SIP plan.")
-    print(f"registry fields: {sorted(reg[0].keys())}")
 
-    wind = [r for r in reg if is_wind(r)]
-    print(f"\nwind plants: {len(wind)}")
-    for r in wind[:5]:
-        print(f"  id_central={r.get('id_central')} "
-              f"{str(r.get('central'))[:38]:38s} "
-              f"cap={r.get('capac_max') or r.get('pot_max_bruta')} "
-              f"oper={r.get('fecha_ent_oper')} "
-              f"{r.get('region')}")
-    has_coords = any(k.lower() in ("lat", "latitud", "latitude")
-                     for k in reg[0])
-    print(f"\ncoordinates present in registry: {has_coords}"
-          f"{'' if has_coords else '  -> must join GWPT for lon/lat'}")
+    day = fetch_day("2024-06-01")
+    if not day:
+        sys.exit("no wind rows for 2024-06-01 — is the key for the SIP plan?")
+    plants = {r["id_central"] for r in day}
+    print(f"2024-06-01: {len(day)} wind rows, {len(plants)} plants, "
+          f"{len({r.get('hora') for r in day})} hours")
+    print(f"generation fields: {sorted(day[0].keys())}")
+    print("\nsample row:")
+    print(" ", json.dumps(day[0], ensure_ascii=False)[:300])
 
-    if not wind:
-        sys.exit("no wind plants matched — inspect tipo_tecnologia values above.")
+    print("\n" + "-" * 70)
+    print("history depth (one day per year)")
+    print("-" * 70)
+    for year in (2010, 2013, 2015, 2017, 2019, 2021, 2023, 2025):
+        d = fetch_day(f"{year}-06-01")
+        n = len({r["id_central"] for r in d}) if d else 0
+        print(f"  {year}: {len(d):5d} rows  {n:3d} plants")
+        time.sleep(0.4)
+
+    print("\n" + "-" * 70)
+    print("capacity and technology labels")
+    print("-" * 70)
+    caps = {r["central"]: r.get("potencia_maxima") for r in day}
+    print(f"plants carrying potencia_maxima: "
+          f"{sum(1 for v in caps.values() if v not in (None, '', '-'))}/{len(caps)}")
+    print("subtipo_tecnologia:",
+          Counter(r.get("subtipo_tecnologia") for r in day).most_common(5))
+    print("\nlargest plants by potencia_maxima:")
+    ranked = sorted(caps.items(),
+                    key=lambda kv: float(kv[1] or 0), reverse=True)[:8]
+    for name, cap in ranked:
+        print(f"  {name[:44]:44s} {cap} MW")
 
     print("\n" + "=" * 70)
-    print("CEN SIP probe — per-plant generation history depth")
+    print("Coordinates are NOT in the API: join the Global Wind Power Tracker.")
+    print("fecha_hora is Chilean civil time (America/Santiago observes DST) and")
+    print("hora is 1-24 where hora N starts at (N-1):00 — confirm before the")
+    print("adapter bins to UTC. See docs/RUNBOOK_CL.md.")
     print("=" * 70)
-    target = wind[0]
-    tid = target.get("id_central")
-    print(f"probing id_central={tid} ({target.get('central')})\n")
-    for year in (2015, 2018, 2020, 2022, 2024, 2025):
-        payload = get(GEN_REAL, {
-            "startDate": f"{year}-06-01", "endDate": f"{year}-06-02",
-            "idCentral": tid, "pageSize": 5,
-        })
-        got = rows(payload)
-        total = payload.get("totalElements") if isinstance(payload, dict) else None
-        print(f"  {year}: {len(got):3d} rows returned"
-              f"{f', totalElements={total}' if total is not None else ''}")
-        if got and year == 2024:
-            print(f"\n  generation fields: {sorted(got[0].keys())}")
-            print("  sample row:")
-            print("   ", json.dumps(got[0], ensure_ascii=False)[:400])
-        time.sleep(0.5)  # be polite to the gateway
-
-    print("\n" + "=" * 70)
-    print("Read the earliest year with rows > 0 as the per-plant history depth.")
-    print("Check the timestamp field above for timezone convention (America/")
-    print("Santiago has DST) before writing the adapter — see docs/RUNBOOK_CL.md.")
-    print("=" * 70)
-
-
-def write_plants(out_dir: Path) -> None:
-    reg = rows(get(CENTRALES, {"page": 0, "limit": 2000}))
-    wind = [r for r in reg if is_wind(r)]
-    out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / "cen_centrales_eolicas.json"
-    path.write_text(json.dumps(wind, ensure_ascii=False, indent=1))
-    print(f"{len(wind)} wind plants -> {path}")
 
 
 def fetch_generation(out_dir: Path, y0: int, y1: int) -> None:
-    reg = rows(get(CENTRALES, {"page": 0, "limit": 2000}))
-    wind = [r for r in reg if is_wind(r)]
+    """One JSON file per month of wind generation, resumable."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    print(f"{len(wind)} wind plants; fetching {y0}-{y1} month by month")
+    import calendar
     for year in range(y0, y1 + 1):
         for month in range(1, 13):
             dest = out_dir / f"cen_gen_{year}_{month:02d}.json"
             if dest.is_file():
                 continue
-            last = 28 if month == 2 else (30 if month in (4, 6, 9, 11) else 31)
-            collected, page = [], 0
-            while True:
-                payload = get(GEN_REAL, {
-                    "startDate": f"{year}-{month:02d}-01",
-                    "endDate": f"{year}-{month:02d}-{last}",
-                    "tipoTecnologia": "Eolica",
-                    "page": page, "pageSize": 5000,
-                })
-                batch = rows(payload)
-                collected.extend(batch)
-                total_pages = payload.get("totalPages", 1) if isinstance(payload, dict) else 1
-                page += 1
-                if page >= (total_pages or 1) or not batch:
-                    break
+            last = calendar.monthrange(year, month)[1]
+            collected = []
+            for day in range(1, last + 1):
+                collected.extend(fetch_day(f"{year}-{month:02d}-{day:02d}"))
             if collected:
                 dest.write_text(json.dumps(collected, ensure_ascii=False))
-                print(f"  {year}-{month:02d}: {len(collected)} rows")
+                n = len({r["id_central"] for r in collected})
+                print(f"  {year}-{month:02d}: {len(collected)} rows, {n} plants",
+                      flush=True)
             else:
-                print(f"  {year}-{month:02d}: empty (before fleet history?)")
+                print(f"  {year}-{month:02d}: empty (before fleet history?)",
+                      flush=True)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--probe", action="store_true",
-                    help="Registry + history-depth check; writes nothing")
-    ap.add_argument("--plants", action="store_true",
-                    help="Write the wind plant registry to cen_raw/")
+                    help="Verification run; writes nothing")
     ap.add_argument("--years", type=int, nargs=2, metavar=("START", "END"),
-                    help="Fetch per-plant generation for this inclusive window")
+                    help="Fetch per-plant wind generation for this window")
     args = ap.parse_args()
 
     out_dir = Path(os.environ.get("PYVWF_INPUT", "input")) / "cen_raw"
     if args.probe:
         probe()
-    if args.plants:
-        write_plants(out_dir)
     if args.years:
         fetch_generation(out_dir, *args.years)
-    if not (args.probe or args.plants or args.years):
+    if not (args.probe or args.years):
         ap.print_help()
 
 
