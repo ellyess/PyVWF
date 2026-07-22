@@ -106,8 +106,38 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore"):
     warnings.warn(f"Country/offshore shape not found for {country_code} (mode={cluster_mode})")
     return None
 
+def _cluster_coords(frame, geographic: bool):
+    """Coordinates to cluster on: raw degrees, or unit-sphere Cartesian.
+
+    Clustering raw ``(lat, lon)`` degrees treats one degree of longitude as one
+    degree of latitude, which they are not: a degree of longitude is 111 km at
+    the equator but 71 km at 50N, so clusters come out stretched east-west by
+    a factor that varies across the domain (CONUS spans cos(lat) 0.91 to 0.64;
+    Brazil crosses the equator).
+
+    Projecting onto the unit sphere makes Euclidean distance the CHORD length,
+    which is a monotone function of great-circle distance — so nearest-centroid
+    assignment becomes geographically correct. It needs no reference latitude,
+    so it stays valid over wide domains where a single cos(lat0) scaling would
+    not.
+    """
+    lat = np.radians(pd.to_numeric(frame["lat"], errors="coerce").to_numpy(float))
+    lon = np.radians(pd.to_numeric(frame["lon"], errors="coerce").to_numpy(float))
+    if not geographic:
+        return frame[["lat", "lon"]]
+    return np.column_stack(
+        [np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)]
+    )
+
+
 def cluster_turbines(
-    num_clu, turb_info_train, train=False, *args, random_state=42, weight_col=None
+    num_clu,
+    turb_info_train,
+    train=False,
+    *args,
+    random_state=42,
+    weight_col=None,
+    geographic=False,
 ):
     """Cluster turbines by spatial coordinates.
 
@@ -128,6 +158,10 @@ def cluster_turbines(
             location) or where the ENERGY is, and the two are not the same.
             Falls back to unweighted if the column is missing or carries no
             usable positive weights.
+        geographic: If True, cluster on unit-sphere Cartesian coordinates so
+            distance is geographic rather than degree-space (see
+            :func:`_cluster_coords`). Default False preserves the legacy
+            degree-space behaviour.
 
     Returns:
         Turbine metadata with an added ``cluster`` column.
@@ -161,14 +195,16 @@ def cluster_turbines(
                 "values; falling back to an unweighted fit"
             )
 
-    kmeans.fit(turb_info_train[['lat','lon']], sample_weight=sample_weight)
+    kmeans.fit(_cluster_coords(turb_info_train, geographic), sample_weight=sample_weight)
 
     if train:
-        turb_info_train['cluster'] = kmeans.predict(turb_info_train[['lat','lon']])
+        turb_info_train['cluster'] = kmeans.predict(
+            _cluster_coords(turb_info_train, geographic)
+        )
         return turb_info_train
     else:
         turb_info = args[0]
-        turb_info['cluster'] = kmeans.predict(turb_info[['lat','lon']])
+        turb_info['cluster'] = kmeans.predict(_cluster_coords(turb_info, geographic))
         return turb_info
 
 

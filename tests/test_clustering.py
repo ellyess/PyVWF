@@ -129,6 +129,74 @@ def test_missing_weight_column_is_not_an_error():
     assert "cluster" in out.columns
 
 
+def _square_km_grid(lat0=50.0, half_km=60.0, n=7):
+    """Points on a grid that is SQUARE in kilometres, centred at lat0.
+
+    At 50N a degree of longitude is ~71 km against ~111 km for latitude, so a
+    square in kilometres spans MORE degrees of longitude than of latitude
+    (1.677 vs 1.085). In degree space it therefore looks like a wide rectangle,
+    and k-means splits it across longitude — an artefact of the units, since
+    the region is square on the ground.
+    """
+    km_per_deg_lat = 110.574
+    km_per_deg_lon = 111.320 * np.cos(np.radians(lat0))
+    offs = np.linspace(-half_km, half_km, n)
+    lats, lons = [], []
+    for dy in offs:
+        for dx in offs:
+            lats.append(lat0 + dy / km_per_deg_lat)
+            lons.append(dx / km_per_deg_lon)
+    return pd.DataFrame({
+        "ID": [str(i) for i in range(len(lats))],
+        "lat": lats,
+        "lon": lons,
+    })
+
+
+def _split_axis(df, labels):
+    """Whether a 2-cluster split separates points by latitude or longitude."""
+    a, b = (df[labels == c] for c in np.unique(labels))
+    return "lat" if abs(a["lat"].mean() - b["lat"].mean()) > abs(
+        a["lon"].mean() - b["lon"].mean()
+    ) else "lon"
+
+
+def test_degree_space_splits_a_square_along_the_wrong_axis():
+    """Must-distinguish: the units, not the geography, decide the split.
+
+    The fixture is square on the ground. At 50N degree space stretches it in
+    longitude (1.677 deg vs 1.085 deg), so k=2 cuts it across LONGITUDE — a
+    pure artefact. Clustering on the sphere removes the stretch, and the two
+    partitions must differ, which a no-op transform could not produce.
+    """
+    df = _square_km_grid(lat0=50.0)
+    degrees = cluster_turbines(2, df.copy(), True)["cluster"].to_numpy()
+    geographic = cluster_turbines(2, df.copy(), True, geographic=True)["cluster"].to_numpy()
+
+    assert _split_axis(df, degrees) == "lon", (
+        "fixture is not exercising the degree-space distortion"
+    )
+    assert _split_axis(df, geographic) == "lat", (
+        "geographic fit still split along the degree-stretched axis"
+    )
+    assert not np.array_equal(
+        pd.factorize(degrees)[0], pd.factorize(geographic)[0]
+    ), "geographic projection did not change the partition"
+
+
+def test_the_two_conventions_agree_where_there_is_no_distortion():
+    """Sanity: at the equator a degree of lon ~= a degree of lat.
+
+    With no stretch to correct, both conventions must choose the same split
+    axis. Disagreeing here would mean the transform is wrong rather than
+    merely different.
+    """
+    df = _square_km_grid(lat0=0.0)
+    degrees = cluster_turbines(2, df.copy(), True)["cluster"].to_numpy()
+    geographic = cluster_turbines(2, df.copy(), True, geographic=True)["cluster"].to_numpy()
+    assert _split_axis(df, degrees) == _split_axis(df, geographic)
+
+
 @pytest.mark.parametrize("k", [10, 40])
 def test_predict_path_is_stable_across_seeds(k):
     """The evaluate-time path (fit on train fleet, predict on another) too.
