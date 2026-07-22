@@ -49,6 +49,55 @@ def test_scalar_all_nan_group_returns_nan():
     assert np.isnan(out["scalar"].iloc[0])
 
 
+def test_scalar_ignores_capacity_of_non_reporting_plants():
+    """A plant that reported nothing must not dilute the observed mean.
+
+    ``sim`` exists for every plant but ``obs`` does not, so the weighted mean
+    of ``obs`` must divide by the capacity that ACTUALLY REPORTED, not by the
+    whole fleet's capacity. Dividing by the whole fleet scales ``obs`` down by
+    the reporting fraction while leaving ``sim`` untouched, so the scalar comes
+    out as ``true_scalar * reporting_fraction``.
+
+    Here two of four equal plants report, obs 0.4 against sim 0.5, so the
+    scalar is 0.8. Diluting by the whole fleet gives 0.8 * 0.5 = 0.4.
+
+    Observed on the real US fleet: only 43% of capacity reports monthly, so the
+    fitted scalar was 0.47 where the correct value is 1.09 - the correction
+    pushed wind DOWN 53% when it should have nudged it UP 9%.
+    """
+    df = pd.DataFrame({
+        "fixed": ["1/1"] * 4,
+        "cluster": [0] * 4,
+        "year": [2020] * 4,
+        "obs": [0.4, 0.4, np.nan, np.nan],   # half the fleet reports
+        "sim": [0.5, 0.5, 0.5, 0.5],         # sim is never missing
+        "capacity": [1.0, 1.0, 1.0, 1.0],
+    })
+    out = calculate_scalar(df, "fixed")
+    assert out["scalar"].iloc[0] == pytest.approx(0.8)
+
+
+def test_scalar_reporting_weights_stay_capacity_weighted():
+    """Must-distinguish: the fix has to weight by capacity, not count rows.
+
+    The two reporting plants carry very different capacities, and the silent
+    plant carries most of the fleet. A fix that simply counted reporting rows
+    (or dropped weighting) would return 0.4/0.5 = 0.8; the capacity-weighted
+    answer over the reporting plants is (0.6*3 + 0.2*1)/4 = 0.5, scalar 1.0.
+    The uncorrected dilution bug returns 0.02/0.5 = 0.04.
+    """
+    df = pd.DataFrame({
+        "fixed": ["1/1"] * 3,
+        "cluster": [0] * 3,
+        "year": [2020] * 3,
+        "obs": [0.6, 0.2, np.nan],
+        "sim": [0.5, 0.5, 0.5],
+        "capacity": [3.0, 1.0, 96.0],  # the silent plant dominates the fleet
+    })
+    out = calculate_scalar(df, "fixed")
+    assert out["scalar"].iloc[0] == pytest.approx(1.0)
+
+
 @pytest.fixture
 def offset_setup(make_reanalysis, power_curve):
     ds = make_reanalysis(n_hours=72, mean_speed=8.0, seed=5)
