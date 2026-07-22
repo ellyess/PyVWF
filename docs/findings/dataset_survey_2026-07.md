@@ -24,7 +24,7 @@ temperate-maritime plants.
 | **Canada (ON+AB)** | IESO Generator Output & Capability (per-generator hourly, 2010→, verified to CSV header) + AESO metered volumes (per-asset hourly, **2001–2025**, verified) | per generator/asset, hourly | 2001/2010→ | **Canadian Wind Turbine Database (NRCan): per-turbine coords, model, hub height, rotor, commissioning** — only candidate with native heights | Cold continental (Dfb/Dfa), icing, Chinook | ON ~5.5 GW + AB ~6 GW | Best data quality + metadata; least climate novelty (overlaps US Midwest). |
 | **Argentina** | CAMMESA renewables base (Excel, open) | per plant, **monthly** verified **since 2011** (hourly claimed in GRV database, unverified) | 2011→ | Capacity per plant; coords from GWPT; no heights | **Patagonian cold-steppe westerlies (BSk/BWk)** + Pampas (Cfa) | ~4.3 GW, ~60 parks | Monthly per-plant = exactly PyVWF's native training resolution. Ramping fleet → commissioning mask needed (AU DUDETAIL pattern). |
 | **Uruguay** | ADME_Data: per-plant **10-min raw SCADA incl. on-site wind speed**, free CLI, no registration | per plant, 10-min | mid-2010s→ (depth unverified) | No coords/heights from ADME; MIEM registry + GWPT | Humid subtropical Cfa, ~30–40% penetration | ~1.5 GW, ~45 parks | Wind-speed channels are a rare bonus for bias-correction diagnostics; raw/unvalidated SCADA. |
-| **Peru** | COES portal, per-plant 30-min via open JSON endpoint (verified live) + daily IEOD Excels | per plant, 30-min | wind 2014→ (portal depth not pinned) | Fichas técnicas (capacity, turbine count); no coords/heights | **Hyper-arid coastal desert (BWh/BWn), steady Humboldt coastal jet** — most distinctive single regime | ~1.1 GW, ~10 plants | Tiny fleet → low effort. |
+| ~~**Peru**~~ | COES portal — **DEMOTED**: the open endpoint is per-COMPANY (62 firms), not per-plant | ~~per plant, 30-min~~ | wind 2014→ (portal depth not pinned) | Fichas técnicas (capacity, turbine count); no coords/heights | **Hyper-arid coastal desert (BWh/BWn), steady Humboldt coastal jet** — most distinctive single regime | ~1.1 GW, ~10 plants | Tiny fleet → low effort. |
 | **Australia WEM** | AEMO facility SCADA, open CSV 2006–Oct 2023 (verified directory) + post-reform 5-min via OpenElectricity API | per facility, 30-min/5-min | 2006→ | Same style as NEM | Mediterranean SW Australia (Csa/Csb), sea breeze | ~17 farms | Reuses existing AEMO tooling; note Oct-2023 regime break. |
 
 ## Verification outcomes (survey claims tested against live APIs)
@@ -47,10 +47,25 @@ verifying before committing adapter work.
   plausible 24 rows and reads exactly like success. Recovery path in
   `docs/RUNBOOK_TR.md`.
 
+- **Peru: DEMOTED to company level.** The open COES endpoint
+  (`portalinformacion/generacion`, no auth) does answer 200 with
+  half-hourly `H1`..`H48` columns, as surveyed — but the rows are keyed by
+  **`Emprnomb` (62 generating companies)**, `Central`/`CodCentral` are
+  unpopulated, and the nested `ListaCentral` comes back **empty**. Per-plant
+  granularity is not available on this route; the daily IEOD Excel archive
+  would have to be tested separately before Peru can be called tier-1.
+
+**Scoreboard after verification: 1 confirmed, 2 demoted.** Chile was better
+than surveyed; Turkey and Peru both failed at exactly the point the survey
+had marked "verified live". Treat every remaining unverified tier-1 entry
+(Uruguay's history depth, Argentina's hourly claim, Canada beyond the CSV
+headers actually inspected) as a candidate, not a fact.
+
 The general lesson, consistent with the branch's evidence discipline: **a
 200 response with plausibly-shaped data is not verification.** Only a test
 that could have failed — a different id, a different year, a different
-region — distinguishes real per-plant data from an ignored parameter.
+region — distinguishes real per-plant data from an ignored parameter, or a
+company aggregate wearing per-plant column names.
 
 ## Tier 2 — zone/country aggregates (usable via the country-level path)
 
