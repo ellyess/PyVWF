@@ -1,6 +1,36 @@
 # Turkey (EPİAŞ/EXIST Transparency) — data acquisition runbook
 
-**Status: acquisition guide only — no adapter exists yet.** Turkey is the #3
+**Status (2026-07-22): NOT confirmed tier-1. The survey's "per-plant hourly
+via free API" claim does not hold on a Data Consultation subscription.**
+Authentication works and the 2,584-plant list downloads, but no reachable
+endpoint returns per-plant generation:
+
+| Endpoint | Result |
+| --- | --- |
+| `/generation/data/injection-quantity-powerplant-list` | **200 (GET)** — 2,584 plants with `id`, `eic`, `name`, `shortName` |
+| `/generation/data/injection-quantity` (UEVM) | 200, but returns the **national fuel-mix series** and **silently ignores `powerPlantId`** |
+| `/generation/data/realtime-generation` | 200 without a plant filter (national mix); **400** when `powerPlantId` is in the body |
+| `/renewables/data/licensed-realtime-generation` | **403 — not covered by this subscription.** This is the endpoint most likely to hold per-plant licensed wind output |
+| `/generation/data/realtime-generation-bulk` | 400 (body shape unresolved) |
+
+**How the false positive was caught, and why it matters.** The UEVM endpoint
+answers `200` with a plausible 24 rows for any `powerPlantId`, including
+invented ones — it reads exactly like per-plant hourly data. The
+must-distinguish test in `scripts/fetch_epias_tr.py --probe` requests two
+different wind plants and compares the numbers: they are byte-identical, so
+the filter is ignored. Without that comparison this would have been recorded
+as "Turkey verified, 2016→ history", which is false. The probe now prints the
+verdict every run so the mistake cannot be re-made.
+
+**What would unblock it:** subscribe to the business unit covering
+`renewables-service` (licensed real-time generation) on the EPİAŞ platform —
+a user action — then re-run `--probe`. If that 403 becomes a 200 with
+per-plant-varying numbers, Turkey returns to tier-1 candidacy with its TÜREB
+hub-height advantage intact.
+
+---
+
+**Original acquisition guide below (adapter not written).** Turkey is the #3
 candidate region in the July-2026 dataset survey
 (`docs/findings/dataset_survey_2026-07.md`) and the only candidate with BOTH
 per-plant hourly generation and a national turbine register (TÜREB) carrying

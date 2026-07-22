@@ -63,9 +63,10 @@ BASE = "https://seffaflik.epias.com.tr/electricity-service/v1"
 
 #: Candidate paths tried by the probe, in order. Transparency 2.0 renamed
 #: several of these between releases; the probe reports which answered.
+#: CONFIRMED working (GET, 2026-07-22): the UEVM power-plant list.
 PLANT_LIST_PATHS = (
-    "/generation/data/powerplant-list",
     "/generation/data/injection-quantity-powerplant-list",
+    "/generation/data/powerplant-list",
     "/generation/data/uevm-powerplant-list",
 )
 GENERATION_PATHS = (
@@ -151,10 +152,17 @@ def get_tgt() -> str:
     return tgt
 
 
-def post(path: str, payload: dict, tgt: str, *, timeout: int = 180):
-    """POST a JSON body to a Transparency endpoint. Returns (status, parsed)."""
+def call(path: str, payload: dict, tgt: str, *, method: str = "POST",
+         timeout: int = 180):
+    """Call a Transparency endpoint. Returns (status, parsed).
+
+    Method matters and is not guessable from the path: the *-list endpoints
+    answer to GET and return 404 to POST, while the data endpoints take a
+    POST body. A 404 here usually means the wrong verb, not a wrong path.
+    """
+    data = json.dumps(payload).encode() if method == "POST" else None
     req = urllib.request.Request(
-        f"{BASE}{path}", data=json.dumps(payload).encode(), method="POST",
+        f"{BASE}{path}", data=data, method=method,
         headers={"Content-Type": "application/json", "Accept": "application/json",
                  "TGT": tgt, "User-Agent": "pyvwf-fetch"},
     )
@@ -165,6 +173,15 @@ def post(path: str, payload: dict, tgt: str, *, timeout: int = 180):
         return exc.code, exc.read()[:200].decode("utf-8", errors="replace")
     except urllib.error.URLError as exc:
         return "ERR", str(exc.reason)[:120]
+
+
+def try_both(path: str, payload: dict, tgt: str):
+    """Try GET then POST; return (status, parsed, method) for the first hit."""
+    for method in ("GET", "POST"):
+        status, parsed = call(path, payload, tgt, method=method)
+        if status == 200 and items(parsed):
+            return status, parsed, method
+    return status, parsed, None
 
 
 def items(payload) -> list:
@@ -197,13 +214,14 @@ def probe() -> None:
     tgt = get_tgt()
     print("authentication: OK (ticket acquired)\n")
 
-    plants, used_path = [], None
+    plants, used_path, list_method = [], None, None
     for path in PLANT_LIST_PATHS:
-        status, payload = post(path, day_window("2024-06-01"), tgt)
+        status, payload, method = try_both(
+            path, {"period": "2024-06-01T00:00:00+03:00"}, tgt)
         found = items(payload) if status == 200 else []
-        print(f"  {path:52s} {status} {len(found) if found else ''}")
+        print(f"  {path:52s} {status} {method or ''} {len(found) if found else ''}")
         if found:
-            plants, used_path = found, path
+            plants, used_path, list_method = found, path, method
             break
     if not plants:
         sys.exit(
@@ -212,50 +230,68 @@ def probe() -> None:
             "or use the eptr2 wrapper, then pin the working path in this script."
         )
 
-    print(f"\nplant list via {used_path}: {len(plants)} plants")
+    print(f"\nplant list via {list_method} {used_path}: {len(plants)} plants")
     print(f"fields: {sorted(plants[0].keys())}")
 
     def is_wind(rec: dict) -> bool:
-        blob = json.dumps(rec, ensure_ascii=False).lower()
-        return "rüzgar" in blob or "ruzgar" in blob or "wind" in blob
+        """Wind plants are named ...RÜZGAR... in the Turkish register.
+
+        Matched on the plant NAME only. Testing the whole JSON blob would
+        also catch an owner company with 'Rüzgar' in its title — the same
+        overcount trap that 'lica' vs 'Hidraulica' produced for Chile.
+        """
+        name = str(rec.get("name", "")).lower()
+        return "rüzgar" in name or "ruzgar" in name or "res" in name.split()
 
     wind = [p for p in plants if is_wind(p)]
-    print(f"wind plants detected: {len(wind)}")
+    print(f"wind plants detected: {len(wind)} of {len(plants)}")
     for p in wind[:5]:
         print("   ", json.dumps(p, ensure_ascii=False)[:150])
     sample = (wind or plants)[0]
     pid = sample.get("id") or sample.get("powerPlantId") or sample.get("plantId")
-    print(f"\nprobing plant id={pid} ({sample.get('name', '?')})")
+    print(f"\nprobing plant id={pid} ({str(sample.get('name', '?')).strip()})")
 
-    gen_path = None
-    for path in GENERATION_PATHS:
-        payload = dict(day_window("2024-06-01"))
-        payload["powerPlantId"] = pid
-        status, resp = post(path, payload, tgt)
-        found = items(resp) if status == 200 else []
-        print(f"  {path:52s} {status} {len(found) if found else ''}")
-        if found:
-            gen_path = path
-            print(f"\n  generation fields: {sorted(found[0].keys())}")
-            print("  sample:", json.dumps(found[0], ensure_ascii=False)[:220])
-            break
-    if not gen_path:
-        sys.exit("\nNo generation endpoint answered for that plant id.")
+    other = next((p for p in wind
+                  if (p.get("id") or p.get("powerPlantId")) != pid), None)
+    other_id = other.get("id") if other else None
 
     print("\n" + "-" * 70)
-    print("history depth (one day per year) — THE decisive question")
+    print("MUST-DISTINGUISH: does powerPlantId actually filter?")
     print("-" * 70)
-    for year in (2016, 2017, 2018, 2019, 2020, 2022, 2024):
-        payload = dict(day_window(f"{year}-06-01"))
-        payload["powerPlantId"] = pid
-        status, resp = post(gen_path, payload, tgt)
-        found = items(resp) if status == 200 else []
-        print(f"  {year}: {len(found):3d} rows  {'' if status == 200 else status}")
+    print("A 200 with 24 rows is NOT evidence of per-plant data. These endpoints")
+    print("return the NATIONAL fuel-mix series and ignore an unknown parameter")
+    print("silently, so the only proof is that two different plant ids give")
+    print("different numbers. A check that cannot fail is not a check.\n")
 
-    print("\n" + "=" * 70)
-    print("The earliest year with rows is the per-plant history depth.")
-    print("Record it in docs/findings/dataset_survey_2026-07.md, then pair the")
-    print("plant list with the TÜREB register for turbine models -> hub heights.")
+    for path in GENERATION_PATHS:
+        sigs, keys = {}, []
+        for label, plant in (("plant A", pid), ("plant B", other_id)):
+            if plant is None:
+                continue
+            payload = dict(day_window("2024-06-01"))
+            payload["powerPlantId"] = plant
+            status, resp, method = try_both(path, payload, tgt)
+            found = items(resp) if status == 200 else []
+            if found:
+                keys = [k for k in found[0] if k not in ("date", "hour")]
+                sigs[label] = json.dumps(
+                    {k: v for k, v in found[0].items() if isinstance(v, (int, float))},
+                    sort_keys=True)
+            print(f"  {path:46s} {label} {status} rows={len(found)}")
+        if keys:
+            print(f"    payload keys: {keys[:8]}")
+        if len(sigs) > 1 and len(set(sigs.values())) == 1:
+            print("    VERDICT: identical across plant ids -> powerPlantId IGNORED;")
+            print("             this is national data, NOT per-plant.\n")
+        elif len(sigs) > 1:
+            print("    VERDICT: responses differ -> genuinely per-plant.\n")
+
+    print("=" * 70)
+    print("Status (2026-07-22): authentication and the 2,584-plant list work,")
+    print("but NO per-plant generation endpoint is reachable on this")
+    print("subscription. injection-quantity and realtime-generation both return")
+    print("the national mix; renewables/licensed-realtime-generation returns 403")
+    print("(not subscribed). Turkey is NOT confirmed tier-1 — see RUNBOOK_TR.md.")
     print("=" * 70)
 
 
