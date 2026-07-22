@@ -106,7 +106,7 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore"):
     warnings.warn(f"Country/offshore shape not found for {country_code} (mode={cluster_mode})")
     return None
 
-def cluster_turbines(num_clu, turb_info_train, train=False, *args):
+def cluster_turbines(num_clu, turb_info_train, train=False, *args, random_state=42):
     """Cluster turbines by spatial coordinates.
 
     Args:
@@ -114,17 +114,28 @@ def cluster_turbines(num_clu, turb_info_train, train=False, *args):
         turb_info_train: Training turbine metadata with ``lat`` and ``lon``.
         train: If True, assign clusters to ``turb_info_train`` and return it.
         *args: Optional turbine metadata to cluster using the fitted model.
+        random_state: KMeans seed. Exposed so the partition's seed-stability is
+            testable; the result must not depend on it (see
+            ``tests/test_clustering.py``).
 
     Returns:
         Turbine metadata with an added ``cluster`` column.
     """
-    # fitting clusters to training data
+    # Fit clusters to the training data.
+    #
+    # init="k-means++", not "random". Random initialisation settles into a
+    # different local optimum per seed, and n_init=10 picks among those by
+    # INERTIA, which does not track held-out skill. On the real DK fleet at a
+    # fixed k=500, varying only the seed moved held-out MAE across
+    # 0.0514-0.0842 — a wider range than the whole k=10..1000 curve, so the
+    # k-sweep was measuring initialisation luck. k-means++ collapses that
+    # spread to 0.0507-0.0513 and beats the luckiest random draw.
     kmeans = KMeans(
-            init="random",
+            init="k-means++",
             n_clusters = num_clu,
             n_init = 10,
             max_iter = 300,
-            random_state = 42
+            random_state = random_state
         )
     kmeans.fit(turb_info_train[['lat','lon']])
         
@@ -464,7 +475,7 @@ def cluster_with_geometries(
         # Standard KMeans clustering
         kmeans = KMeans(
             n_clusters=num_clusters,
-            init="random",
+            init="k-means++",
             n_init=10,
             max_iter=300,
             random_state=42
