@@ -66,24 +66,49 @@ def api_key() -> str:
     return key
 
 
+#: Seconds to pause between calls. The gateway returns HTTP 429 under a
+#: sustained day-by-day pull (measured: ~59 consecutive calls was enough to
+#: trip it), so the bulk fetch paces itself rather than sprinting and failing.
+THROTTLE_S = float(os.environ.get("CEN_THROTTLE_S", "1.5"))
+
+#: Backoff schedule for 429s, in seconds. Generous on purpose: a bulk fetch is
+#: unattended, and losing a month to an impatient retry costs more than waiting.
+BACKOFF_S = (30, 60, 120, 300, 600)
+
+
 def get(path: str, params: dict, *, timeout: int = 300) -> dict:
-    """One GET against the SIP API. The key is added here, once."""
+    """One GET against the SIP API, with rate-limit backoff.
+
+    The key is added here, once. On HTTP 429 the call sleeps and retries on
+    the BACKOFF_S schedule; other errors are fatal, since they mean the
+    request shape is wrong rather than the pace.
+    """
     query = dict(params)
     query["user_key"] = api_key()
     url = f"{BASE}{path}?{urllib.parse.urlencode(query)}"
-    req = urllib.request.Request(url, headers={"User-Agent": "pyvwf-fetch"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
-    except urllib.error.HTTPError as exc:
-        body = exc.read()[:300].decode("utf-8", errors="replace")
-        # Never echo the URL: it carries the key.
-        sys.exit(
-            f"HTTP {exc.code} on {path}: {body}\n"
-            "(502 on /centrales usually means page/limit were sent — omit them.)"
-        )
-    except urllib.error.URLError as exc:
-        sys.exit(f"network error on {path}: {exc.reason}")
+
+    for attempt, wait in enumerate((*BACKOFF_S, None)):
+        req = urllib.request.Request(url, headers={"User-Agent": "pyvwf-fetch"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8", errors="replace"))
+        except urllib.error.HTTPError as exc:
+            body = exc.read()[:300].decode("utf-8", errors="replace")
+            if exc.code == 429 and wait is not None:
+                print(f"    rate limited; sleeping {wait}s "
+                      f"(attempt {attempt + 1}/{len(BACKOFF_S)})", flush=True)
+                time.sleep(wait)
+                continue
+            # Never echo the URL: it carries the key.
+            sys.exit(
+                f"HTTP {exc.code} on {path}: {body}\n"
+                "(502 here usually means page/limit were sent — omit them; "
+                "429 means the backoff schedule was exhausted, so re-run: "
+                "completed months are skipped.)"
+            )
+        except urllib.error.URLError as exc:
+            sys.exit(f"network error on {path}: {exc.reason}")
+    raise AssertionError("unreachable")
 
 
 def rows(payload) -> list:
@@ -187,6 +212,7 @@ def fetch_generation(out_dir: Path, y0: int, y1: int) -> None:
             collected = []
             for day in range(1, last + 1):
                 collected.extend(fetch_day(f"{year}-{month:02d}-{day:02d}"))
+                time.sleep(THROTTLE_S)
             if collected:
                 dest.write_text(json.dumps(collected, ensure_ascii=False))
                 n = len({r["id_central"] for r in collected})
