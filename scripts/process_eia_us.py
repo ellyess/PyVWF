@@ -151,10 +151,10 @@ def main() -> None:
         f"- hub height from USWTDB (capacity-weighted): {from_uswtdb} / {len(metadata)}; "
         f"the rest use the {args.default_height} m uniform default",
         f"- power curves: {metadata['model'].nunique()} distinct "
-        f"({int((metadata['model_source'] == 'add_models').sum())} matched to the "
-        f"library by specific power, "
-        f"{int((metadata['model_source'] == 'default-uniform').sum())} on the "
-        f"{args.model} uniform fallback)",
+        f"({int(metadata['model_source'].str.startswith('matched').sum())} matched "
+        "to a library curve on scale then specific power, "
+        f"{int(metadata['model_source'].str.startswith('default-uniform').sum())} "
+        f"on the {args.model} uniform fallback)",
         (
             f"- hub heights binned to {args.height_bin} m: {n_heights_raw} distinct "
             f"values -> {metadata['height'].nunique()}. interpolate_wind builds one "
