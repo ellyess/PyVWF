@@ -109,17 +109,55 @@ the regions with reporting gaps.
 Explicit Southern-Hemisphere `season` slicing beats `fixed`, which retroactively
 justifies stating the seasons rather than inheriting the NH default.
 
-## Result 3 — cluster count matters, and the optimum is region-specific
+## Result 3 — cluster count matters a lot, and 10 is far too low
 
-All five regions, held-out MAE, best slice, measured through the FIXED scalar:
+Measured through the FIXED scalar AND `k-means++` init, with the curve library
+pinned to open+licensed for all five regions. Held-out MAE, best slice.
 
-| region (test year) | uncorrected | k=1 | k~10 | k~100 | k~200-500 |
-| --- | --- | --- | --- | --- | --- |
-| US (2022) | 0.0796 | 0.0889 | 0.0741 | 0.0729 (k=50) | **0.0712** (k=200) |
-| BR (2024) | 0.1102 | 0.1148 | 0.0901 (k=8) | **0.0708** (k=120) | - (fleet caps at 125) |
-| DK (2020) | 0.1255 | - | 0.0623 | **0.0562** | 0.0683 (k=500) |
-| DE (2019) | 0.0655 | - | 0.0479 | 0.0446 | **0.0414** (k=500) |
-| UK (2019) | 0.1112 | - | 0.0877 | 0.0762 | **0.0696** (k=500) |
+| region (test year) | uncorrected | k=1 | k=10 | k=100 | k=500+ | best |
+| --- | --- | --- | --- | --- | --- | --- |
+| US (2022) | 0.0796 | 0.0889 | 0.0737 | 0.0730 | 0.0675 (300) | **0.0624** (700) |
+| BR (2024) | 0.1102 | 0.1201 | 0.0843 (8) | - | - | **0.0708** (120) |
+| DK (2020) | 0.1118 | 0.0634 | 0.0608 | 0.0552 | **0.0511** (500) | 0.0671 (1000) |
+| DE (2019) | 0.0594 | 0.0468 | 0.0436 | 0.0396 | 0.0366 (500) | **0.0364** (1000) |
+| UK (2019) | 0.1066 | 0.1009 | 0.0875 | 0.0755 | **0.0679** (500) | 0.0679 (1000) |
+
+Improvement over uncorrected at best k: US -22%, BR -36%, DK -54%, DE -39%,
+UK -36%. **Every region is far better at high k than at the shipped k=10**, and
+the curves are now SMOOTH and monotonic — the zigzag that made the pre-fix
+sweeps uninterpretable was entirely initialisation noise.
+
+**k=1 is worse than uncorrected in the US and Brazil** (0.0889 vs 0.0796;
+0.1201 vs 0.1102) though not in Europe. k=1 has no partition, hence no seed
+variance, so that result was never affected by the init bug.
+
+### The ceiling on k is UNIQUE COORDINATES, not fleet size
+
+| region | training rows | unique (lat, lon) | clusters at k=1000 |
+| --- | --- | --- | --- |
+| DK | 3707 | **3706** | 1000 (genuine) |
+| DE | 4288 | **579** | 579 (saturated) |
+| UK | 5621 | **332** | 332 (saturated) |
+| US | 1091 | 1071 | 700 at k=700 (genuine) |
+| BR | 125 | 119 | 119 at k=120 (saturated) |
+
+UK k=500 and k=1000 return BIT-IDENTICAL metrics because both collapse to the
+same 332 clusters: UK turbine records are grouped at farm coordinates, so there
+are only 332 distinct locations. DE saturates at 579. Requesting k above the
+distinct-location count silently wastes compute and produces a fake plateau
+that reads like convergence. **Bound k by unique coordinates, not row count.**
+
+### DK is the only genuine interior optimum
+
+DK peaks at k=500 (MAE 0.0511) and degrades by k=1000 (0.0671, r 0.848 ->
+0.782, MBE collapsing to +0.001). It is also the only region whose coordinates
+are genuinely per-turbine (3706 distinct positions for 3707 rows), so k=1000
+means ~3.7 turbines per cluster. The others saturate before reaching that
+sparsity. So the overfitting boundary is real but only reachable where the data
+is truly per-turbine.
+
+No universal k exists. US and Brazil were still improving at their ceilings;
+DK has an optimum well below its; DE and UK plateau at saturation.
 
 Three things, none of which the shipped configs reflect:
 
