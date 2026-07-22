@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 from vwf.datasets.eia_us import (
+    bin_hub_heights,
     build_us_metadata,
     filter_to_bbox,
     plant_hub_heights_from_uswtdb,
@@ -215,6 +216,26 @@ def test_filter_to_bbox_drops_out_of_domain_plants():
     # Hawaii/Alaska gone; the exactly-on-corner plant is kept (inclusive edges).
     assert set(kept["ID"]) == {"conus", "edge"}
     assert kept.index.tolist() == [0, 1]  # index reset, not left with holes
+
+
+def test_bin_hub_heights_collapses_distinct_values():
+    """Binning must actually reduce the level count interpolate_wind builds.
+
+    Must-distinguish: heights that are distinct but within one bin have to
+    collapse to a single value, and a value exactly on a bin edge must not
+    drift — a no-op or an off-by-one bin would fail.
+    """
+    md = pd.DataFrame({"height": [78.0, 82.0, 84.9, 100.0, 104.0, 24.0]})
+    binned = bin_hub_heights(md, 10.0)
+    assert binned["height"].tolist() == [80.0, 80.0, 80.0, 100.0, 100.0, 20.0]
+    # 6 distinct raw heights collapse to 3 levels
+    assert binned["height"].nunique() == 3 < md["height"].nunique()
+
+
+def test_bin_hub_heights_disabled_is_a_noop():
+    md = pd.DataFrame({"height": [78.0, 82.3]})
+    for off in (0, None):
+        assert bin_hub_heights(md, off)["height"].tolist() == [78.0, 82.3]
 
 
 def test_filter_to_bbox_is_a_noop_when_all_inside():

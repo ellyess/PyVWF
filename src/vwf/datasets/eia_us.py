@@ -373,6 +373,34 @@ def filter_to_bbox(
     return metadata[inside].reset_index(drop=True)
 
 
+def bin_hub_heights(metadata: pd.DataFrame, bin_m: float) -> pd.DataFrame:
+    """Round hub heights onto a fixed grid, to bound the simulation's memory.
+
+    :func:`vwf.wind.interpolate_wind` builds a wind field with ONE HEIGHT LEVEL
+    PER UNIQUE HUB HEIGHT (``time x lat x lon x height``) before interpolating
+    to turbine points. USWTDB capacity-weighted heights are continuous, so the
+    real US fleet carries 233 distinct values — a ~51 GB array that is killed
+    on any normal machine. Rounding to 10 m leaves 12 levels (~2.6 GB).
+
+    This is the project's own established granularity:
+    :func:`vwf.wind.aggregate_turbines_to_grid` already bins heights to 10 m
+    (``height_bin``). Log-law wind speed varies by well under 1% across a +/-5 m
+    hub-height shift, so this is a memory bound, not a modelling change.
+
+    Args:
+        metadata: Plant metadata carrying ``height`` (m).
+        bin_m: Bin width in metres. Non-positive disables binning.
+
+    Returns:
+        Metadata with ``height`` snapped to the nearest multiple of ``bin_m``.
+    """
+    if bin_m is None or bin_m <= 0:
+        return metadata
+    out = metadata.copy()
+    out["height"] = (out["height"] / bin_m).round() * bin_m
+    return out
+
+
 def build_us_metadata(
     capacity: pd.DataFrame,
     hub_heights: pd.DataFrame | None,

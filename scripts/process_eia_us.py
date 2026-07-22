@@ -31,6 +31,7 @@ from pathlib import Path
 import pandas as pd
 
 from vwf.datasets.eia_us import (
+    bin_hub_heights,
     build_us_metadata,
     filter_to_bbox,
     plant_hub_heights_from_uswtdb,
@@ -54,6 +55,12 @@ def main() -> None:
                     help="0-based header row of the EIA-860 sheets")
     ap.add_argument("--uswtdb", default=None, help="USWTDB CSV (hub heights, models)")
     ap.add_argument("--out", default="input/turbine_level_data/US")
+    ap.add_argument("--height-bin", type=float, default=10.0,
+                    help="Round hub heights to this many metres (0 disables). "
+                    "interpolate_wind builds one height level per UNIQUE hub "
+                    "height, so the 233 raw USWTDB values need ~51 GB; 10 m "
+                    "leaves 12 levels (~2.6 GB) and matches the 10 m binning "
+                    "aggregate_turbines_to_grid already applies.")
     ap.add_argument("--bbox", type=float, nargs=4, default=None,
                     metavar=("LON_MIN", "LON_MAX", "LAT_MIN", "LAT_MAX"),
                     help="Drop plants outside this box (use the region's "
@@ -103,6 +110,9 @@ def main() -> None:
         capacity, hub_heights, default_height=args.default_height, model=args.model
     )
 
+    n_heights_raw = metadata["height"].nunique()
+    metadata = bin_hub_heights(metadata, args.height_bin)
+
     # Keep the fleet inside the reanalysis domain (see filter_to_bbox).
     n_before = len(metadata)
     dropped_out_of_domain = pd.DataFrame(columns=metadata.columns)
@@ -131,6 +141,17 @@ def main() -> None:
         f"- plants with metadata but no generation in-window: {len(meta_no_gen)}",
         f"- hub height from USWTDB (capacity-weighted): {from_uswtdb} / {len(metadata)}; "
         f"the rest use the {args.default_height} m uniform default",
+        (
+            f"- hub heights binned to {args.height_bin} m: {n_heights_raw} distinct "
+            f"values -> {metadata['height'].nunique()}. interpolate_wind builds one "
+            "height level per unique height, so the raw values need ~51 GB; this is "
+            "a memory bound (same granularity aggregate_turbines_to_grid uses), not "
+            "a modelling change."
+            if args.height_bin and args.height_bin > 0
+            else f"- hub heights NOT binned: {n_heights_raw} distinct values. "
+            "interpolate_wind will build that many height levels and will likely "
+            "be OOM-killed on a large fleet."
+        ),
         (
             f"- OUT-OF-DOMAIN plants dropped by --bbox {list(args.bbox)}: "
             f"{len(dropped_out_of_domain)} of {n_before} "
