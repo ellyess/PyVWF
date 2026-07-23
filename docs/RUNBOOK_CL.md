@@ -1,10 +1,12 @@
 # Chile (Coordinador Eléctrico Nacional) — data acquisition runbook
 
-**Status: API verified end to end (2026-07-22); adapter not yet written.**
-The open question is closed: **per-plant hourly wind generation runs back to
-at least 2010** (5 plants in 2010 → 65 in 2025, 24 h/day, complete
-`potencia_maxima` on every plant). Chile is a full tier-1 region.
-Verification is reproducible with `python scripts/fetch_cen_cl.py --probe`. Chile is the #2
+**Status: API verified end to end, 2021-2024 data downloaded (2026-07-23);
+adapter not yet written.** The open question is closed: **per-plant hourly
+wind generation runs back to at least 2010** (5 plants in 2010 → 65 in 2025,
+24 h/day, complete `potencia_maxima` on every plant). Chile is a full tier-1
+region. Verification is reproducible with `python scripts/fetch_cen_cl.py
+--probe`. The 2021-2024 pull is in `input/cen_raw/` (48 monthly JSON files,
+1.93M rows, zero negative generation, plant count 52→64 over the window). Chile is the #2
 candidate region after New Zealand in the July-2026 dataset survey
 (`docs/findings/dataset_survey_2026-07.md`): per-plant hourly generation with
 history to 2000 (wind from ~2009), and one system spanning three climates
@@ -39,7 +41,7 @@ not the CSV schemas. Everything below is the user-executed acquisition path.
 | `/centrales/v4/findByDate` | Caps at **10 records** for any window and its wind entry is a `[NO_MOSTRAR]` test record with `"Sin información"` coordinates. Not a fleet source. |
 | Coordinates | **Absent from the whole API** — `/centrales` advertises `coordenada_este`/`norte`/`zona_huso` but they are unpopulated, and Infotécnica (1,373 plants) has none. Join the Global Wind Power Tracker. |
 | Metadata | Comes free on every generation row: `id_central`, `central`, `propietario`, `potencia_maxima` (populated for 62/62 plants), `tipo_tecnologia`. |
-| Timestamps | `fecha_hora` is Chilean civil time (`America/Santiago`, **observes DST**) and `hora` is 1-24 with `hora N` starting at `(N-1):00`. Confirm the DST-day row counts (23/25 h) before binning to UTC — the NZ trading-period lesson. |
+| Timestamps | **Fixed offset, NO DST** (verified 2026-07-23 on the real data). `fecha_hora` runs a clean 24 hours every day including Chile's 2024 spring-forward (7 Sep 2024 has 24 rows, not 23), so CEN publishes in fixed Chilean standard time, not civil `America/Santiago`. `hora` is 1-24 with `hora N` at `(N-1):00`. This is *simpler* than the NZ/BR cases — a single fixed shift to UTC, no DST branch. Offset is almost certainly **UTC-4** (continental standard); it only matters at month boundaries for a monthly mean, but confirm UTC-4 vs -3 against one known reference before the adapter bins. |
 
 ## 1a. Endpoint map (verified July 2026 from the public OpenAPI specs)
 
