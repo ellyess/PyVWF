@@ -1,22 +1,42 @@
 # Chile (Coordinador Eléctrico Nacional) — data acquisition runbook
 
-**Status: API verified end to end, 2021-2024 data downloaded (2026-07-23);
-adapter not yet written.** The open question is closed: **per-plant hourly
-wind generation runs back to at least 2010** (5 plants in 2010 → 65 in 2025,
-24 h/day, complete `potencia_maxima` on every plant). Chile is a full tier-1
-region. Verification is reproducible with `python scripts/fetch_cen_cl.py
---probe`. The 2021-2024 pull is in `input/cen_raw/` (48 monthly JSON files,
-1.93M rows, zero negative generation, plant count 52→64 over the window). Chile is the #2
-candidate region after New Zealand in the July-2026 dataset survey
-(`docs/findings/dataset_survey_2026-07.md`): per-plant hourly generation with
-history to 2000 (wind from ~2009), and one system spanning three climates
-absent from the current validation set — Atacama coastal desert (BW),
-Mediterranean central Chile (Csb), maritime temperate south (Cfb). ~70 wind
-parks, ~4.5-5 GW.
+**Status: adapter BUILT and tested against the real data (2026-07-23); only
+the ERA5 download and the train/evaluate remain.** Per-plant hourly wind runs
+back to at least 2010 (5 plants → 65 in 2025); the 2021-2024 pull is in
+`input/cen_raw/` (48 files, 1.93M rows). The `cen-cl` adapter, its transforms
+(`vwf/datasets/cen_cl.py`), the processing + GWPT join
+(`scripts/process_cen_cl.py`), and 13 tests are committed. Chile spans three
+climates absent from the current set — Atacama coastal desert (BW),
+Mediterranean central Chile (Csb), maritime south (Cfb) — 60 plants, ~6.5 GW.
 
-The adapter (`cen-cl`) should be written only after the first real files are
-in hand — the survey verified the datasets exist and their granularity, but
-not the CSV schemas. Everything below is the user-executed acquisition path.
+## Build the region inputs (done; re-run to refresh)
+
+```bash
+python scripts/process_cen_cl.py     # -> input/turbine_level_data/CL/
+```
+
+Produces `cl_obs.csv` (monthly CF, commissioning prefix stripped),
+`cl_md.csv` (metadata with GWPT coordinates), `join_report.md`, and
+`cl_coord_residual.csv`. The coordinate join: 54 plants auto-matched to GWPT
+by name confirmed on capacity, 6 hand-curated in
+`configs/cl_coord_overrides.csv` (Horizonte N/S, Kallpa, San Pedro II, El
+Maiten, El Nogal — with per-row confidence notes), and **4 tiny PMGD plants
+excluded** (Raki, Huajache, Las Peñas, Lebu III; 5-9 MW each, ~30 MW total,
+absent from GWPT — the `EXCLUDE` list in the script, add coordinates to
+reinstate). A plant reaching training with no coordinate is a hard error.
+
+**Two caveats that shape any Chile result:**
+- **Curtailment.** `gen_real_mw` is *delivered* energy, and Chile's northern
+  grid curtails wind heavily; the fleet-mean delivered CF is ~0.24, suppressed
+  below the resource. This is the Brazil-Nordeste contaminant — the affine
+  correction will partly absorb curtailment as reanalysis bias. A CEN
+  wind-curtailment ("vertimiento") series would let it be screened; not wired.
+- **Static nameplate.** `potencia_maxima` is full from day one, so
+  pre-commissioning months read CF~0; `strip_commissioning_prefix` removes the
+  leading run per plant (108 months, 25 plants). Later low months are kept as
+  real delivered CF.
+
+Everything below is the original user-executed acquisition path (already done).
 
 ## 1. What to get
 

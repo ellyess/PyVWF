@@ -1,0 +1,45 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists. Chile is Southern Hemisphere, so these must
+# NOT inherit the legacy NH mapping. The fleet spans three climates in one
+# system: hyper-arid coastal Atacama (BW) in the north, Mediterranean central
+# Chile (Csb), and maritime temperate south (Cfb). The astronomical SH seasons
+# below are a defensible partition; read any seasonal result against which
+# climate zone the cluster sits in.
+
+[region]
+code = "CL"
+name = "Chile (Coordinador / SEN)"
+
+[observations]
+source = "cen-cl"
+obs_level = "turbine"
+obs_unit = "plant"
+train_years = [2021, 2023]
+test_years = [2024]
+# CEN generacion-real is hourly gen_real_mw per central; CF against
+# potencia_maxima (static per plant over this window). Timestamps are fixed
+# Chilean standard time (UTC-4, NO DST) -> UTC at ingest; monthly bins are UTC.
+# Coordinates are absent from the CEN API and joined from the Global Wind Power
+# Tracker in scripts/process_cen_cl.py. The northern grid is solar-curtailment
+# heavy; wind curtailment ("vertimiento eólico") is not screened here (standing
+# caveat) — verify whether CEN exposes a wind-curtailment series before any
+# curtailment-sensitive claim.
+
+[era5]
+# Fleet-bounded box: 63 of 64 operating farms sit between -42.3 and -22.5;
+# the lone Magallanes plant (-52.94) is on an isolated system outside the SEN
+# and is excluded (scripts/fetch_era5_cl.py records the bbox rationale).
+path = "era5/CL"
+bbox = [-75.0, -68.0, -44.0, -21.0]
+file_tag = "CL"
+
+[correction]
+model = "affine-wind"
+cluster_list = [10]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [12, 1, 2]
+autumn = [3, 4, 5]
+winter = [6, 7, 8]
+spring = [9, 10, 11]
