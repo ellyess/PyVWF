@@ -28,6 +28,7 @@ from vwf.datasets.uk_roc import (
     divergence_report,
     pseudo_replicate_metadata,
     pseudo_replicate_observations,
+    read_ofgem_confidential_certificates,
     repd_wind_metadata,
     roc_issuance_to_station_monthly,
 )
@@ -85,26 +86,44 @@ def cmd_metadata(args) -> None:
 
 
 def cmd_observations(args) -> None:
-    roc = _read_any(Path(args.roc))
-    cols = {c.lower(): c for c in roc.columns}
+    if not args.ofgem_confidential and not args.roc:
+        sys.exit("provide --roc (public RER export) or --ofgem-confidential "
+                 "(the licensed certificate-warehouse CSVs).")
+    if args.ofgem_confidential:
+        import glob
+        paths = sorted(p for g in args.ofgem_confidential for p in glob.glob(g))
+        if not paths:
+            sys.exit(f"no files matched {args.ofgem_confidential}")
+        print("=" * 70)
+        print("⚠  CONFIDENTIAL Ofgem certificate warehouse — differently licensed.")
+        print("   Output is CONFIDENTIAL; input/ is git-ignored. Do NOT commit or")
+        print("   redistribute the derived observations. (Open path: --roc, from")
+        print("   the public RER export.)")
+        print("=" * 70)
+        station_monthly = read_ofgem_confidential_certificates(paths)
+        out_name = "ukobs_confidential.csv"
+    else:
+        roc = _read_any(Path(args.roc))
+        cols = {c.lower(): c for c in roc.columns}
 
-    def pick(*cands, required=True):
-        for c in cands:
-            if c.lower() in cols:
-                return cols[c.lower()]
-        if required:
-            sys.exit(f"ROC export is missing a column like {cands}; found "
-                     f"{list(roc.columns)}. Pass --station-col/--period-col/"
-                     "--certs-col to name them explicitly.")
-        return None
+        def pick(*cands, required=True):
+            for c in cands:
+                if c.lower() in cols:
+                    return cols[c.lower()]
+            if required:
+                sys.exit(f"ROC export is missing a column like {cands}; found "
+                         f"{list(roc.columns)}. Pass --station-col/--period-col/"
+                         "--certs-col to name them explicitly.")
+            return None
 
-    station = args.station_col or pick("AccreditationNumber", "Accreditation Number",
-                                       "Generating Station", "Station")
-    period = args.period_col or pick("OutputPeriod", "Output Period", "Period", "Month")
-    certs = args.certs_col or pick("Certificates", "ROCs", "No. of Certificates",
-                                   "Number of Certificates")
-    station_monthly = roc_issuance_to_station_monthly(
-        roc, station_col=station, period_col=period, certs_col=certs)
+        station = args.station_col or pick("AccreditationNumber", "Accreditation Number",
+                                           "Generating Station", "Station")
+        period = args.period_col or pick("OutputPeriod", "Output Period", "Period", "Month")
+        certs = args.certs_col or pick("Certificates", "ROCs", "No. of Certificates",
+                                       "Number of Certificates")
+        station_monthly = roc_issuance_to_station_monthly(
+            roc, station_col=station, period_col=period, certs_col=certs)
+        out_name = "ukobs_open.csv"
 
     tc_path = Path(args.turbine_counts) if args.turbine_counts else UK_DIR / "uk_md.csv"
     if not tc_path.is_file():
@@ -117,13 +136,12 @@ def cmd_observations(args) -> None:
     obs = pseudo_replicate_observations(station_monthly, counts)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    obs.to_csv(out / "ukobs_open.csv", index=False)
+    obs.to_csv(out / out_name, index=False)
     n_st = station_monthly["ID"].nunique()
-    matched = station_monthly["ID"].isin(counts.index).sum()
     print(f"ROC stations: {n_st} | matched to turbine counts: "
           f"{station_monthly[station_monthly['ID'].isin(counts.index)]['ID'].nunique()}")
-    print(f"observations: {len(obs)} turbine rows -> {out/'ukobs_open.csv'}")
-    print("(saved as ukobs_open.csv, not overwriting the committed ukobs.csv)")
+    print(f"observations: {len(obs)} turbine rows -> {out/out_name}")
+    print(f"(saved as {out_name}, not overwriting the committed ukobs.csv)")
 
 
 def main() -> None:
@@ -139,7 +157,10 @@ def main() -> None:
     m.set_defaults(func=cmd_metadata)
 
     o = sub.add_parser("observations", help="Ofgem ROC export -> ukobs")
-    o.add_argument("--roc", required=True, help="Ofgem RER per-station issuance export")
+    o.add_argument("--roc", help="Public Ofgem RER per-station issuance export")
+    o.add_argument("--ofgem-confidential", nargs="+", metavar="GLOB",
+                   help="CONFIDENTIAL Ofgem certificate-warehouse CSV(s) "
+                   "(differently licensed; reproduces the committed ukobs exactly)")
     o.add_argument("--turbine-counts", default=None,
                    help="station->turbine-count source (default: curated uk_md.csv)")
     o.add_argument("--out-dir", default=str(UK_DIR))

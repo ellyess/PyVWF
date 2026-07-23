@@ -89,6 +89,63 @@ def osgb_to_wgs84(easting: pd.Series, northing: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({"lon": lon, "lat": lat}, index=easting.index)
 
 
+# --------------------------------------------- CONFIDENTIAL Ofgem export path
+#: Column map for the Ofgem "CertificatesExternalPublicDataWarehouse" report
+#: export (the confidential per-station certificate warehouse). The SSRS report
+#: names columns ``textbox<n>``; a blank title line means the header sits on
+#: row index 2. Mapped by those stable textbox ids, not by position.
+_OFGEM_COLS = {
+    "textbox4": "station", "textbox13": "name", "textbox5": "scheme",
+    "textbox15": "technology", "textbox18": "period", "textbox21": "certs",
+    "textbox37": "mwh_per_cert", "textbox33": "status",
+}
+
+
+def read_ofgem_confidential_certificates(
+    paths: Sequence[str], *, scheme: str = "RO",
+) -> pd.DataFrame:
+    """Station-monthly MWh from the CONFIDENTIAL Ofgem certificate warehouse.
+
+    ⚠ CONFIDENTIAL / DIFFERENTLY LICENSED. These per-station certificate
+    exports are not the open REPD/RER path — they carry their own licence and
+    must never be committed or redistributed. This reader only transforms
+    files the user already holds locally.
+
+    Unlike the open RER route (:func:`roc_issuance_to_station_monthly`, which
+    applies a banding lookup), this export carries the exact MWh-per-certificate
+    factor per row (``textbox37``), so energy is recovered directly and every
+    grandfathered vintage is handled exactly: ``MWh = certificates x factor``.
+    Only ``scheme`` certificates are kept (RO by default — REGO would
+    double-count the same generation), and **revoked** certificates are dropped.
+
+    Args:
+        paths: One or more Ofgem warehouse CSV exports (per RO year).
+        scheme: Certificate scheme to keep (``"RO"``; the committed ukobs is
+            RO-derived).
+
+    Returns:
+        Long frame ``ID`` (station), ``year``, ``month``, ``mwh``.
+    """
+    frames = []
+    for p in paths:
+        df = pd.read_csv(p, header=2, dtype=str, low_memory=False)
+        df = df.rename(columns=_OFGEM_COLS)
+        keep = [c for c in _OFGEM_COLS.values() if c in df.columns]
+        frames.append(df[keep])
+    cat = pd.concat(frames, ignore_index=True)
+    cat = cat[cat["scheme"].astype(str).str.strip() == scheme]
+    cat = cat[cat["status"].astype(str).str.strip().str.lower() != "revoked"]
+    cat["ID"] = cat["station"].astype(str).str.strip()
+    ts = pd.to_datetime(cat["period"], format="%b-%Y", errors="coerce")
+    cat = cat[ts.notna()].copy()
+    cat["year"], cat["month"] = ts.dt.year, ts.dt.month
+    certs = pd.to_numeric(cat["certs"], errors="coerce").fillna(0.0)
+    factor = pd.to_numeric(cat["mwh_per_cert"], errors="coerce").fillna(0.0)
+    cat["mwh"] = certs * factor
+    return (cat.groupby(["ID", "year", "month"])["mwh"].sum()
+            .reset_index())
+
+
 # --------------------------------------------------------------- observations
 def roc_issuance_to_station_monthly(
     roc: pd.DataFrame,

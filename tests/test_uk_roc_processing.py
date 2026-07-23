@@ -13,6 +13,7 @@ from vwf.datasets.uk_roc import (
     osgb_to_wgs84,
     pseudo_replicate_metadata,
     pseudo_replicate_observations,
+    read_ofgem_confidential_certificates,
     repd_wind_metadata,
     roc_issuance_to_station_monthly,
 )
@@ -118,6 +119,28 @@ def test_repd_metadata_keeps_wind_and_fills_defaults():
     assert b["height_source"] == "default-uniform"
     assert (md["model"] == "M").all()
     assert -6 < a["lon"] < 2 and 50 < a["lat"] < 62         # reprojected
+
+
+def test_ofgem_confidential_reader_uses_factor_filters_scheme_and_revoked(tmp_path):
+    """The confidential warehouse export (header on row 2 after a blank line,
+    textbox columns, per-row MWh factor) -> station-monthly MWh; RO only,
+    revoked dropped. Synthetic fixture — no real confidential data in the repo."""
+    csv = (
+        "title,x,x,x,x\n"                                    # row 0 (title block)
+        ",,,,\n"                                             # row 1 blank -> skipped
+        "textbox4,textbox5,textbox15,textbox18,textbox21,textbox37,textbox33\n"
+        "R00116SQSC,RO,On-shore Wind,Jan-2015,1385,1.111111,Redeemed\n"   # 1385*1.111=1539 MWh
+        "R00116SQSC,RO,On-shore Wind,Jan-2015,154,1.111111,Redeemed\n"    # +154*1.111=171 -> 1710
+        "R00116SQSC,RO,On-shore Wind,Jan-2015,900,1.111111,Revoked\n"     # dropped (revoked)
+        "G00426FWWA,REGO,Off-shore Wind,Jan-2015,5000,1.0,Redeemed\n"     # dropped (REGO)
+    )
+    p = tmp_path / "certs.csv"
+    p.write_text(csv)
+    sm = read_ofgem_confidential_certificates([str(p)])
+    assert set(sm["ID"]) == {"R00116SQSC"}           # REGO excluded
+    row = sm.iloc[0]
+    assert row["year"] == 2015 and row["month"] == 1
+    assert row["mwh"] == pytest.approx((1385 + 154) * 1.111111)  # revoked not counted
 
 
 def test_pseudo_replicate_metadata_expands_turbines():
