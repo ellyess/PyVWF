@@ -1,6 +1,6 @@
 """WindStats (ES/SE/FI) transforms: metadata, output->CF, twp->coords match.
 
-All fixtures are synthetic — the real WindStats data is CONFIDENTIAL and never
+All fixtures are synthetic: the real WindStats data is CONFIDENTIAL and never
 enters the repo. These pin the reshaping and the coordinate-join guards.
 """
 import numpy as np
@@ -106,5 +106,5 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "ES").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = WindStatsSource("ES-WS")
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_ES"):
+    with pytest.raises(FileNotFoundError, match="runbooks/ES"):
         src.load_metadata()

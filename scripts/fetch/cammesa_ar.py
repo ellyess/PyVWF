@@ -21,7 +21,7 @@ Verified against the live file on 2026-07-23 (the 2026-06 edition):
   continuation rows and must be forward-filled or plants inherit the wrong
   province.
 
-Monthly GWh per plant is *exactly* PyVWF's native training resolution — no
+Monthly GWh per plant is *exactly* PyVWF's native training resolution: no
 half-hourly reshaping, no timezone conversion, no DST edge cases. What is
 missing is coordinates, capacity, and hub heights: CAMMESA carries none, so
 those come from the Global Wind Power Tracker (CC-BY-4.0, already on disk).

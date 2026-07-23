@@ -262,7 +262,7 @@ python vwf/datasets/generate_country_level_training_data.py
 ```
 
 This fetches national generation from the ENTSO-E Transparency Platform (an API
-key is required; see [docs/ENTSOE_API_GUIDE.md](docs/ENTSOE_API_GUIDE.md)) and
+key is required; see [docs/guides/ENTSOE_API_GUIDE.md](docs/guides/ENTSOE_API_GUIDE.md)) and
 writes grid points and train/test observation splits under
 `input/observations/country/`.
 
@@ -462,8 +462,8 @@ in `docs/` as plain Markdown, so everything is also readable directly on
 GitHub. Start with the [documentation index](docs/README.md) for a suggested
 reading order, or jump to a specific reference:
 
-- [Data requirements](docs/DATA_REQUIREMENTS.md): input data formats and how to download ERA5 winds.
-- [Output structure](docs/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
+- [Data requirements](docs/guides/DATA_REQUIREMENTS.md): input data formats and how to download ERA5 winds.
+- [Output structure](docs/guides/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
 - [PIPELINE.md](PIPELINE.md): the script execution order.
 
 ## Testing

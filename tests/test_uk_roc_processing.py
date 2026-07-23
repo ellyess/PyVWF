@@ -58,7 +58,7 @@ def test_roc_to_mwh_uses_banding():
 
 
 def test_roc_technology_from_accreditation_code():
-    # SP = offshore Scotland; RQ = onshore England — decoded from the id.
+    # SP = offshore Scotland; RQ = onshore England, both decoded from the id.
     roc = pd.DataFrame({
         "AccreditationNumber": ["R00001SPSC", "R00002RQEN"],
         "OutputPeriod": ["2016-06-01", "2016-06-01"],
@@ -73,7 +73,7 @@ def test_roc_technology_from_accreditation_code():
 
 # ----------------------------------------------- pseudo-replication (obs)
 def test_pseudo_replicate_equal_split_reproduces_committed_arithmetic():
-    """A 3-turbine station's monthly MWh is split into 3 identical kWh rows —
+    """A 3-turbine station's monthly MWh is split into 3 identical kWh rows,
     the exact committed convention (R00116SQSC-1 Jan 2015 = 569666.67 kWh)."""
     sm = pd.DataFrame({"ID": ["R00116SQSC"], "year": [2015], "month": [1],
                        "mwh": [1709.0]})
@@ -124,7 +124,7 @@ def test_repd_metadata_keeps_wind_and_fills_defaults():
 def test_ofgem_confidential_reader_uses_factor_filters_scheme_and_revoked(tmp_path):
     """The confidential warehouse export (header on row 2 after a blank line,
     textbox columns, per-row MWh factor) -> station-monthly MWh; RO only,
-    revoked dropped. Synthetic fixture — no real confidential data in the repo."""
+    revoked dropped. Synthetic fixture: no real confidential data in the repo."""
     csv = (
         "title,x,x,x,x\n"                                    # row 0 (title block)
         ",,,,\n"                                             # row 1 blank -> skipped

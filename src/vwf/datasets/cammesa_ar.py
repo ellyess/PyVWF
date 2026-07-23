@@ -10,12 +10,12 @@ CAMMESA workbook; file I/O lives in the scripts.
 
 The unit of observation is the **plant** (``obs_unit = "plant"``): CAMMESA's
 renewables database reports generated energy per *central* (one row per plant,
-one column per month), already at the monthly resolution PyVWF trains on — so
+one column per month), already at the monthly resolution PyVWF trains on, so
 there is NO sub-hourly reshaping, timezone conversion, or DST handling at all,
 the simplest ingest of any region.
 
 The one thing CAMMESA does NOT carry is capacity: every sheet is energy (GWh).
-So unlike every other adapter, the CF *denominator* is external — coordinates
+So unlike every other adapter, the CF *denominator* is external: coordinates
 and installed capacity both come from the Global Wind Power Tracker join in the
 processing step. That makes the join load-bearing twice over, and gives a
 built-in sanity check: a plant whose GWPT capacity is wrong shows an
@@ -38,7 +38,7 @@ COMMISSIONING_CF = 0.02
 #: A plant whose MEDIAN monthly CF exceeds this has almost certainly been given
 #: too small a capacity by the GWPT join (real Argentine wind farms top out
 #: around 0.5-0.6 monthly CF). Such plants are flagged for re-curation rather
-#: than trusted — a capacity that is too low inflates CF above what any wind
+#: than trusted: a capacity that is too low inflates CF above what any wind
 #: resource delivers.
 CAP_SUSPECT_CF = 0.65
 
@@ -96,7 +96,7 @@ def capacity_suspect_ids(
     """Plant IDs whose median monthly CF exceeds ``threshold``.
 
     A too-low capacity from the join inflates every month's CF, so an
-    implausibly high median is the signature of a bad capacity match — the
+    implausibly high median is the signature of a bad capacity match: the
     Argentina analogue of the Chile ``build_cl_metadata`` loud-failure guard,
     but for the denominator rather than the location.
     """
@@ -114,7 +114,7 @@ def strip_commissioning_prefix(
     against the static GWPT nameplate that reads as CF~0. This strips the
     leading run of sub-``threshold`` months per plant; later low months are
     kept (a real low-wind or partial-availability month, not a fleet-entry
-    artefact). Note this does NOT fix the *partial-build* ramp — a farm at
+    artefact). Note this does NOT fix the *partial-build* ramp: a farm at
     half its turbines for a year reads at half CF against the full nameplate;
     a below-plateau mask is the named follow-up (cf. the NZ capacity history).
 
@@ -149,7 +149,7 @@ def build_ar_metadata(
 
     Both coordinates and capacity come from ``join`` (built in the processing
     step); CAMMESA carries neither. ``height``/``model`` are uniform defaults
-    recorded in ``*_source`` columns (no hub height or turbine model — the same
+    recorded in ``*_source`` columns (no hub height or turbine model: the same
     follow-up as AU/BR/US/CL).
 
     A plant that survives to here with no coordinate OR no capacity is a hard
@@ -189,7 +189,7 @@ def build_ar_metadata(
             f"{len(bad)} Argentina wind plants lack a coordinate or capacity "
             f"after the GWPT join and are not excluded: "
             f"{bad['site_name'].tolist()[:10]}. Add them to the override table "
-            "(ID,lon,lat,capacity_mw) or the exclude list — never leave a plant "
+            "(ID,lon,lat,capacity_mw) or the exclude list; never leave a plant "
             "without a location (mis-located) or capacity (no CF denominator)."
         )
     md = md[md["lon"].notna() & md["lat"].notna()

@@ -5,7 +5,7 @@ exercised against synthetic fixtures; fetching real AEMO data is a Phase 2
 step. The transformations encode two decisions made at design review:
 
 - **Timezone**: AEMO SCADA timestamps are market time (AEST, UTC+10, no
-  DST). They are converted to UTC at ingest and monthly bins are UTC —
+  DST). They are converted to UTC at ingest and monthly bins are UTC,
   the same convention as the ERA5/simulation side everywhere else. Recorded
   in every manifest as ``time_convention = "utc-monthly-bins"``.
 - **Granularity**: one row per DUID, which is a wind *farm*
@@ -64,7 +64,7 @@ def scada_partial_aggregate(scada: pd.DataFrame) -> pd.DataFrame:
     conversion, then energy and interval counts per month. Partials from
     separate chunks (e.g. AEMO's monthly archive files, which are cut on
     MARKET-time month boundaries and therefore straddle UTC months) can be
-    summed with :func:`combine_partials` before finalisation — the whole
+    summed with :func:`combine_partials` before finalisation: the whole
     point of the split, since concatenating finalised monthly CFs from
     market-month chunks would get the straddled edge hours wrong.
 
@@ -129,7 +129,7 @@ def finalise_monthly_cf(
         capacity_mask: Optional frame of (``ID``, ``year``, ``month``) rows
             whose CF must be NaN because the farm's REGISTERED capacity that
             month is unreliable as a denominator (mid-month change, below
-            final build, or pre-registration) — built from AEMO DUDETAIL by
+            final build, or pre-registration), built from AEMO DUDETAIL by
             ``vwf.datasets.aemo_au.capacity_mask_months``. A ramping farm
             otherwise injects a spurious sub-annual signal into exactly the
             seasonal cycle pillar A judges.
@@ -162,7 +162,7 @@ def finalise_monthly_cf(
     )
 
     # Commissioning mask: any month that STARTS before the commissioning date
-    # is NaN — the first fully post-commissioning month is the first valid one.
+    # is NaN; the first fully post-commissioning month is the first valid one.
     if "commissioning_date" in meta.columns:
         commissioning = meta.set_index("ID")["commissioning_date"].dropna()
         commissioning = pd.to_datetime(commissioning)
@@ -212,7 +212,7 @@ def scada_to_monthly_cf(
     Composition of :func:`scada_partial_aggregate` and
     :func:`finalise_monthly_cf`; see those for the semantics. Note the
     partials are computed over the whole input and the year filter is applied
-    at finalisation — identical result, since UTC binning precedes filtering
+    at finalisation: identical result, since UTC binning precedes filtering
     either way.
 
     Args:
@@ -256,7 +256,7 @@ class AEMONemSource(ObservationSource):
         as written by ``scripts/process/aemo_au.py`` via
         :func:`scada_partial_aggregate`/:func:`combine_partials`. Preferred
         when present: four years of 5-minute SCADA is ~45M rows, while the
-        partials are a few thousand — and finalisation (capacity, coverage
+        partials are a few thousand. Finalisation (capacity, coverage
         floor, commissioning mask) still runs through
         :func:`finalise_monthly_cf` with the current metadata at load time,
         so the fast path cannot drift from the audited transform.

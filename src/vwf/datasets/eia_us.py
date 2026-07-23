@@ -11,7 +11,7 @@ raw federal files or an xlsx reader; file I/O lives in the script.
 
 The unit of observation is the **plant** (``obs_unit = "plant"``): EIA-923
 reports *net* generation once per plant per prime-mover/fuel per month, so the
-plant is the site we simulate — exactly parallel to the AU adapter treating the
+plant is the site we simulate, exactly parallel to the AU adapter treating the
 *farm* (DUID) as the unit while the mechanical ``obs_level`` stays "turbine".
 
 Two data-hygiene decisions are encoded here and documented loudly in the join
@@ -40,7 +40,7 @@ Known limitations, stated up front (also in the join report):
   in stages inside the training window have their early months biased low
   relative to the evolving in-service capacity; the commissioning mask removes
   pre-operating months but not partial staging (the AU DUDETAIL-style capacity
-  history has no clean EIA-860 analogue at monthly resolution — a named
+  history has no clean EIA-860 analogue at monthly resolution: a named
   follow-up).
 """
 from __future__ import annotations
@@ -72,7 +72,7 @@ def _plant_id(series: pd.Series) -> pd.Series:
 
     Plant codes are integers, but pandas reads a sheet's ``Plant Code`` as
     ``float`` when any cell is blank (so ``1`` becomes ``1.0``) and as ``int``
-    when none is — the same code then stringifies to ``"1.0"`` on one sheet and
+    when none is. The same code then stringifies to ``"1.0"`` on one sheet and
     ``"1"`` on another, and the join silently finds nothing. Route every plant
     code through here so ``1``, ``1.0`` and ``"1"`` all become ``"1"``; codes
     that are not numeric become ``<NA>`` and drop out of any inner join.
@@ -99,7 +99,7 @@ def _to_number(series: pd.Series) -> pd.Series:
 def wind_generation_from_eia923(page1: pd.DataFrame) -> pd.DataFrame:
     """Reshape EIA-923 Page 1 into long per-(plant, year, month) net generation.
 
-    Selects wind rows by fuel code (``Reported Fuel Type Code == 'WND'`` — the
+    Selects wind rows by fuel code (``Reported Fuel Type Code == 'WND'``, the
     unambiguous selector; the prime mover ``WT`` agrees but the fuel code is
     the schedule's own wind key), melts the twelve ``Netgen_<Month>`` columns,
     and sums to one value per (plant, year, month) in case a plant carries more
@@ -113,7 +113,7 @@ def wind_generation_from_eia923(page1: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         Long frame with ``ID`` (plant code, str), ``year``, ``month``,
-        ``net_gen_mwh`` (float, may be negative — net of station use), and
+        ``net_gen_mwh`` (float, may be negative: net of station use), and
         ``respondent_frequency`` (single flag per plant-year, upper-cased).
 
     Raises:
@@ -282,7 +282,7 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
     turbines that carry a valid value; the model is the manufacturer/model with
     the largest installed capacity at the plant (the modal fleet by MW). Rows
     with a missing ``eia_id`` (turbines not yet linked to an EIA plant) are
-    dropped — they cannot be joined to generation.
+    dropped: they cannot be joined to generation.
 
     Args:
         uswtdb: USWTDB rows. Uses ``eia_id``, ``t_cap`` (turbine capacity, kW),
@@ -359,7 +359,7 @@ def filter_to_bbox(
     ``us.toml`` box is CONUS, so Alaska, Hawaii and Puerto Rico plants fall
     outside it. This matters because
     :func:`vwf.wind.aggregate_turbines_to_grid` assigns each turbine its
-    nearest grid cell with an UNBOUNDED ``argmin`` — a Hawaii plant is snapped
+    nearest grid cell with an UNBOUNDED ``argmin``: a Hawaii plant is snapped
     to the westernmost CONUS cell ~2000 km away and silently simulated with
     Californian wind. Screening here keeps the fleet and the domain consistent
     instead of relying on that fallback.
@@ -473,7 +473,7 @@ def bin_hub_heights(metadata: pd.DataFrame, bin_m: float) -> pd.DataFrame:
     :func:`vwf.wind.interpolate_wind` builds a wind field with ONE HEIGHT LEVEL
     PER UNIQUE HUB HEIGHT (``time x lat x lon x height``) before interpolating
     to turbine points. USWTDB capacity-weighted heights are continuous, so the
-    real US fleet carries 233 distinct values — a ~51 GB array that is killed
+    real US fleet carries 233 distinct values: a ~51 GB array that is killed
     on any normal machine. Rounding to 10 m leaves 12 levels (~2.6 GB).
 
     This is the project's own established granularity:

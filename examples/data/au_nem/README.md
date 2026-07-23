@@ -2,7 +2,7 @@
 
 Small DERIVED datasets so `examples/notebooks/au_nem_validation.ipynb` runs
 without re-downloading the raw AEMO archives. Raw 5-minute SCADA is not
-redistributed — these are monthly aggregates and metadata.
+redistributed; these are monthly aggregates and metadata.
 
 | file | content | built by |
 |---|---|---|
@@ -20,7 +20,7 @@ redistributed — these are monthly aggregates and metadata.
 - Turbine identities: `configs/curation/au_turbine_models.csv` (public sources,
   per-row provenance).
 
-NOT bundled (size): the ERA5-AU subset — fetch with
+NOT bundled (size): the ERA5-AU subset. Fetch it with
 `scripts/fetch/era5.py --region au_nem` (~6–12 GB hourly download via your CDS account;
 queue time is the bottleneck), then reduce to ~29 MB/year daily files with
 `scripts/era5/combine.py --region au_nem`. The open curve library is the separately

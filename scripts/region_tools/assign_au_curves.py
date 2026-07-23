@@ -3,7 +3,7 @@
 
 Two strategies, per the D2 rulings:
 
-REAL library (PRIMARY — the gate):
+REAL library (PRIMARY, the gate):
     The method-consistent, D1-validated path: farms with a sourced rotor
     diameter go through the SAME vwf.data.add_models logic as every other
     region (fuzzy manufacturer + nearest p_density, global p_density
@@ -11,7 +11,7 @@ REAL library (PRIMARY — the gate):
     within manufacturer by nearest per-turbine RATED CAPACITY; fallback
     farms take the capacity-nearest model across the catalog, marked.
 
-OPEN library (SECOND — robustness rider):
+OPEN library (SECOND, robustness rider):
     Manufacturer-first matching is ACTIVELY HARMFUL here (its only Vestas
     machines are V27–V82; a V150 farm would pair with a V82 curve), so
     farms with a p_density match into the MW-scale onshore

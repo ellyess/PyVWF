@@ -1,4 +1,4 @@
-"""Tests for path resolution — the difference between "works in my checkout"
+"""Tests for path resolution: the difference between "works in my checkout"
 and "works when installed".
 
 `load_power_curves` and `add_models` used to read the literal relative paths
@@ -121,7 +121,7 @@ def test_add_models_works_outside_a_checkout(no_input_root):
 
 def test_repo_checkout_still_uses_its_own_input_dir():
     """In a checkout (the default INPUT_ROOT), the repo's own tables are used and
-    nothing warns — the existing workflow is untouched."""
+    nothing warns; the existing workflow is untouched."""
     if not Path("input/reference/power_curves.csv").is_file():
         pytest.skip("not running from a repository checkout")
 

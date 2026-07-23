@@ -3,7 +3,7 @@
 Importing this package registers the built-in adapters. To add a new region,
 subclass :class:`ObservationSource`, decorate it with :func:`register`, and
 import the module so the decorator runs. See
-``docs/ADDING_AN_OBSERVATION_SOURCE.md``.
+``docs/guides/ADDING_AN_OBSERVATION_SOURCE.md``.
 """
 from vwf.sources.base import ObservationSource, ObsLevel
 from vwf.sources.registry import (

@@ -2,7 +2,7 @@
 
 A region is one TOML file (``configs/regions/*.toml``) declaring where its
 observations come from, which years train and test, where its ERA5 subset
-lives, and — critically — its season definitions as explicit month lists.
+lives, and (critically) its season definitions as explicit month lists.
 Seasons are explicit so that Southern-Hemisphere regions cannot silently
 inherit the Northern-Hemisphere mapping hardcoded in :mod:`vwf.time_utils`
 (the legacy entry points keep that mapping; the harness never uses it).

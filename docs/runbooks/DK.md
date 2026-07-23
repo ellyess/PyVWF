@@ -1,6 +1,6 @@
-# Denmark (Danish Energy Agency) region — acquisition and processing runbook
+# Denmark (Danish Energy Agency) region: acquisition and processing runbook
 
-Denmark is the programme's **reference region** — the level-dominated case
+Denmark is the programme's **reference region**: the level-dominated case
 where the affine correction wins on every metric (D1/D2), and the lineage of
 the Staffell & Pfenninger (2016) validation. Unlike the other regions it keeps
 the shared `european-turbine` adapter (DK/DE/UK); this runbook only scripts the
@@ -13,23 +13,23 @@ vindkraftanlæg"), published by the Danish Energy Agency (Energistyrelsen) from
 its energy-sector data page,
 <https://ens.dk/en/analyses-and-statistics/overview-energy-sector>. It is the
 national register of every grid-connected Danish turbine > 6 kW, with location,
-technical specifications, and monthly output — the most complete open
+technical specifications, and monthly output, the most complete open
 per-turbine wind dataset anywhere, which is why Denmark anchors the validation.
 
 Two workbooks:
 
 | File | ens.dk media | Content |
 | --- | --- | --- |
-| `anlaeg.xlsx` | `/media/4945/download` | Master data register — one row per turbine (GSRN id, connection date, capacity kW, rotor diameter, hub height, UTM X/Y, manufacturer/model), split into "existing" and "decommissioned" sheets. Header on row 9. |
-| `maanedsdata_2002_2020.xlsx` | `/media/4948/download` | Monthly production to grid — one sheet per year (`Månedsprod_<year>`, 2002-2020), kWh per turbine per month. Header on row 7. |
+| `anlaeg.xlsx` | `/media/4945/download` | Master data register: one row per turbine (GSRN id, connection date, capacity kW, rotor diameter, hub height, UTM X/Y, manufacturer/model), split into "existing" and "decommissioned" sheets. Header on row 9. |
+| `maanedsdata_2002_2020.xlsx` | `/media/4948/download` | Monthly production to grid: one sheet per year (`Månedsprod_<year>`, 2002-2020), kWh per turbine per month. Header on row 7. |
 
 **Vintage.** The pinned media ids are the register snapshot taken ultimo
-January 2022 — the exact files the committed Denmark results were built on, so
+January 2022, the exact files the committed Denmark results were built on, so
 the fetch reproduces them bit-for-bit (verified: byte-identical). ens.dk serves
 the monthly file under the stale name `maanedsdata_2002_2017.xlsx`, but the
 workbook carries all 19 years through 2020; the fetch saves it under the
 `_2020` name the processor expects. The 2002-2020 production history is fixed;
-the *master data register* refreshes monthly under a new media id — pass
+the *master data register* refreshes monthly under a new media id; pass
 `--anlaeg-url <current link>` to `fetch/dk.py` for a newer snapshot (only adds
 post-2022 turbines; does not change the 2002-2020 production).
 
@@ -62,7 +62,7 @@ python scripts/analysis/validate_region.py evaluate --region configs/regions/dk.
 
 Denmark trains on 2015-2019 and tests on 2020 (`dk.toml`). It is
 level-dominated (uncorrected MBE +0.121), and the affine correction wins on
-every metric — the anchor the other regions are read against
+every metric, the anchor the other regions are read against
 (`docs/findings/d1_regression.md`, `d2_synthesis.md`). ERA5 for DK comes from
 the shared European box (`era5/EU`), already on disk; there is no DK-specific
 ERA5 fetch.
@@ -71,7 +71,7 @@ ERA5 fetch.
 
 - **UTM → lon/lat.** The register gives ETRS89 / UTM 32N X/Y; the processor
   converts them. Turbines with missing coordinates or capacity are dropped.
-- **Coordinates are per-turbine and exact** — Denmark needs no GWPT join, the
+- **Coordinates are per-turbine and exact**: Denmark needs no GWPT join, the
   reason it is the cleanest region in the set.
 - **Licence.** Danish Energy Agency open public data; free to use with
   attribution.

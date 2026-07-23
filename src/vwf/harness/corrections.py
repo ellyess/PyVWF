@@ -3,7 +3,7 @@
 Alternative correction formulations (Phase 3) register here and are compared
 against the affine baseline through one interface. The baseline,
 :class:`AffineWindCorrection`, is a thin delegate to the validated legacy
-code (:mod:`vwf.correction`, :mod:`vwf.data`, :mod:`vwf.wind`) — it adds no
+code (:mod:`vwf.correction`, :mod:`vwf.data`, :mod:`vwf.wind`): it adds no
 maths of its own, and a golden regression test pins its output to the legacy
 pipeline's bit for bit.
 

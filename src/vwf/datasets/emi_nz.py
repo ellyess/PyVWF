@@ -23,7 +23,7 @@ Two NZ-specific facts shape the design:
   spring-forward day has 46 and the fall-back day has 50. Mapping ``(trading
   date, TP)`` to UTC therefore goes through the ``Pacific/Auckland`` zone: the
   UTC instant of local midnight plus ``(TP - 1) x 30`` minutes. That is exact
-  on DST days by construction — no period is skipped or double-counted —
+  on DST days by construction (no period is skipped or double-counted),
   and the monthly bins downstream are UTC, matching the ERA5/simulation
   convention everywhere else (``time_convention = "utc-monthly-bins"``).
 - **The register is effective-dated.** The EMI dispatched-plant register
@@ -91,7 +91,7 @@ def trading_period_start_utc(
 
     TP ``n`` is the ``n``-th half hour of the local day counted in elapsed
     time from local midnight, which is exactly ``midnight_utc + (n-1) x 30
-    min`` — valid across DST transitions because elapsed UTC time is what the
+    min``, valid across DST transitions because elapsed UTC time is what the
     trading-period sequence counts.
     """
     tp = pd.to_numeric(trading_periods, errors="raise").astype(int)
@@ -246,7 +246,7 @@ def monthly_cf(
 
     Args:
         half_hourly: Output of :func:`half_hourly_from_generation_md`,
-            aggregated to one row per (ID, timestamp) — sum multiple units
+            aggregated to one row per (ID, timestamp); sum multiple units
             of one farm before calling.
         capacity_history: Output of :func:`capacity_history_from_register`.
         year_start: First UTC year to include (inclusive).
@@ -302,8 +302,8 @@ def below_final_build_mask(
     arithmetically, but months with turbines still being erected can be
     erratic (partial availability, commissioning tests). This lists every
     ``(ID, year, month)`` whose month-start registered capacity is under
-    ``threshold`` of the farm's maximum over the history — the AU
-    registered-capacity mask pattern — for the source layer to NaN.
+    ``threshold`` of the farm's maximum over the history (the AU
+    registered-capacity mask pattern) for the source layer to NaN.
 
     Returns:
         Frame with ``ID``, ``year``, ``month``.

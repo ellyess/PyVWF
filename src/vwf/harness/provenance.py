@@ -1,8 +1,8 @@
 """Run provenance: make every harness output self-describing.
 
 Every run directory gets a ``run_manifest.json`` recording the package
-version, git state, region config, observation granularity caveats, and —
-the reason this module exists — the identity of the curve library that
+version, git state, region config, observation granularity caveats, and
+(the reason this module exists) the identity of the curve library that
 produced the numbers. RQ6 results are only reportable from a manifest whose
 ``curve_library.library`` is ``"external"``.
 
@@ -60,8 +60,8 @@ def curve_library_identity() -> dict[str, Any]:
     ``"external"``. This is intentional and fail-safe in the underclaiming
     direction: nothing that differs from the audited bundled tables can
     masquerade as them, at the cost of occasionally labelling a still-
-    synthetic file as external. Contents are never copied into the manifest —
-    only hashes and counts — so licensed curve libraries stay out of every
+    synthetic file as external. Contents are never copied into the manifest,
+    only hashes and counts, so licensed curve libraries stay out of every
     output artifact.
     """
     with warnings.catch_warnings():

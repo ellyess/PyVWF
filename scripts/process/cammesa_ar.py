@@ -4,7 +4,7 @@
 Reads (all local): the per-plant monthly wind energy CSV written by
 `scripts/fetch/cammesa_ar.py` (input/raw/cammesa/ar_wind_monthly.csv:
 ID, region, provincia, year, month, gwh), and the Global Wind Power Tracker
-workbook (coordinates AND capacity — CAMMESA carries neither).
+workbook (coordinates AND capacity; CAMMESA carries neither).
 
 Writes (under <out>, default input/observations/turbine/AR/):
     ar_obs.csv        monthly CF wide frame (commissioning prefix stripped)
@@ -53,13 +53,13 @@ EXCLUDE: tuple[str, ...] = (
     "AG Cementos Avellaneda-Olav.",           # cement-works self-gen, Olavarría
     "EL TORDILLO",                            # YPF oil-field self-gen, Chubut
     "EOLICO EL JUME",                         # small, Santiago del Estero
-    "L.BLANC 4 ENARS",                        # Loma Blanca IV / ENARSA, Trelew — no confident GWPT cap
+    "L.BLANC 4 ENARS",                        # Loma Blanca IV / ENARSA, Trelew, no confident GWPT cap
     "P.E. LA ELBITA",                         # Buenos Aires, absent from GWPT match
-    "P.EOLICO CASA YPF LUZ",                  # Cañadón León (YPF Luz), Santa Cruz — reinstate if verifiable
+    "P.EOLICO CASA YPF LUZ",                  # Cañadón León (YPF Luz), Santa Cruz, reinstate if verifiable
     "P.EOLICO VIENTOS LA RINCONADA",          # Buenos Aires, no confident match
     "P.EOLICO VIENTOS OLAVARRIA",             # Olavarría self-gen, ambiguous vs Ternium
     "Parque eólico autogeneración ALUAR",     # ALUAR smelter self-gen, Puerto Madryn
-    "Parques Eólicos del Fin del Mundo SA",   # Tierra del Fuego — SOUTH of the ERA5 box
+    "Parques Eólicos del Fin del Mundo SA",   # Tierra del Fuego, SOUTH of the ERA5 box
 )
 
 _DROP = {"PARQUE", "EOLICO", "EOLICA", "PE", "WIND", "FARM", "DEL", "DE",
@@ -122,7 +122,7 @@ def main() -> None:
 
     mp = Path(args.monthly)
     if not mp.is_file():
-        sys.exit(f"{mp} not found — run scripts/fetch/cammesa_ar.py first.")
+        sys.exit(f"{mp} not found; run scripts/fetch/cammesa_ar.py first.")
     gwh = pd.read_csv(mp)
     gwh["ID"] = gwh["ID"].astype(str)
     fleet = (gwh.groupby("ID").agg(site_name=("ID", "first"),

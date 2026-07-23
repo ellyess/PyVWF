@@ -250,7 +250,7 @@ def test_chunked_partials_equal_one_shot_across_utc_boundary():
 
 def test_fast_path_equals_raw_scada_path(tmp_path, monkeypatch):
     """AEMONemSource with precomputed partials returns exactly what the raw
-    SCADA path returns — the no-drift guarantee for the fast path."""
+    SCADA path returns: the no-drift guarantee for the fast path."""
     scada = five_min("2021-01-01", "2022-01-01", "F1", 25.0)
     metadata = pd.DataFrame(
         {

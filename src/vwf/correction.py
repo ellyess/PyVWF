@@ -35,7 +35,7 @@ def calculate_scalar(gen_cf, time_res):
         ``sim`` exists for every turbine but ``obs`` does not. Dividing by the
         group's whole capacity would count plants that reported nothing in the
         denominator while the numerator skipped them, scaling ``obs`` down by
-        the reporting fraction and leaving ``sim`` untouched — so the scalar
+        the reporting fraction and leaving ``sim`` untouched, so the scalar
         came out as ``true_scalar * reporting_fraction``. On the real US fleet
         only 43% of capacity reports monthly, which turned a correct scalar of
         1.09 into 0.47 and made the correction worse than no correction at all,

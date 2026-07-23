@@ -2,8 +2,8 @@
 
 The unit of observation is the **plant** (``obs_unit = "plant"``): CEN's SIP
 service reports generation per *central* (``id_central``), and the processing
-step reduces the hourly ``generacion-real`` series to monthly capacity factors
-— the same design as the AU (farm), US (plant), BR (complex), and NZ (farm)
+step reduces the hourly ``generacion-real`` series to monthly capacity factors:
+the same design as the AU (farm), US (plant), BR (complex), and NZ (farm)
 adapters, where the mechanical ``obs_level`` stays "turbine".
 
 Decisions baked into the finalisation, documented in the region config:
@@ -11,7 +11,7 @@ Decisions baked into the finalisation, documented in the region config:
 - **UTC bins from fixed Chilean standard time.** CEN publishes hourly data in
   a fixed UTC-4 offset with NO daylight saving (verified on the 2024
   spring-forward day); the processing step shifts to UTC before binning,
-  matching the ERA5/simulation convention — ``time_convention =
+  matching the ERA5/simulation convention: ``time_convention =
   "utc-monthly-bins"``.
 - **Wind filtered on the accented label.** ``tipo_tecnologia == "Eólica"``;
   the unaccented spelling silently returns nothing.
@@ -48,8 +48,8 @@ class CENChileSource(ObservationSource):
         (m), ``capacity`` (kW), ``model``, ``type``, plus provenance/context
         (``height_source``, ``model_source``, ``site_name``, ``propietario``).
     ``cl_obs.csv``
-        Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12`` —
-        monthly mean CF in UTC bins against ``potencia_maxima``,
+        Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12``.
+        Monthly mean CF in UTC bins against ``potencia_maxima``,
         coverage-screened, as written by the processing step.
     """
 
@@ -79,7 +79,7 @@ class CENChileSource(ObservationSource):
             raise FileNotFoundError(
                 f"CEN-CL plant metadata not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step — docs/RUNBOOK_CL.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/CL.md)."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -105,7 +105,7 @@ class CENChileSource(ObservationSource):
             raise FileNotFoundError(
                 f"CEN-CL observations not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step — docs/RUNBOOK_CL.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/CL.md)."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

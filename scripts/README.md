@@ -5,9 +5,9 @@ See [PIPELINE.md](../PIPELINE.md) for execution order. All data-download
 scripts are **user-executed** (they use your credentials / CDS key); none of
 the raw or derived data is committed (`input/` is git-ignored).
 
-The per-region flow is always the same three steps — **fetch observations →
-fetch ERA5 → process** — then train/evaluate with the harness. Each region has
-a runbook in `docs/RUNBOOK_<CC>.md`.
+The per-region flow is always the same three steps (**fetch observations →
+fetch ERA5 → process**), then train/evaluate with the harness. Each region has
+a runbook in `docs/runbooks/<CC>.md`.
 
 ## Layout
 
@@ -20,15 +20,15 @@ scripts/
     cen_cl.py       CL  observations (Coordinador SIP API; CEN_API_KEY env)
     dk.py           DK  observations (Danish Energy Agency register .xlsx)
     emi_nz.py       NZ  observations (EA EMI Generation_MD)
-    epias_tr.py     TR  observations (EPİAŞ; input/.epias_credentials) — demoted, see runbook
-    uk.py           UK  metadata (REPD, auto) + Ofgem ROC export steps (manual) — see runbook
+    epias_tr.py     TR  observations (EPİAŞ; input/.epias_credentials); demoted, see runbook
+    uk.py           UK  metadata (REPD, auto) + Ofgem ROC export steps (manual); see runbook
   era5/
     combine.py      reduce monthly ERA5 to yearly DAILY files: --region <cc>
-                    (only the big boxes — US, BR, AU — need this)
+                    (only the big boxes, US, BR, AU, need this)
   process/          raw inputs -> the adapter's input CSVs (input/observations/turbine/<CC>/)
     aemo_au.py  cammesa_ar.py  cen_cl.py  de.py  dk.py  eia_us.py  emi_nz.py  ons_br.py  uk.py
     windstats.py --country ES   Spain (WindStats gen + GWPT coords, mixed licence)
-    (de.py + windstats.py handle CONFIDENTIAL WindStats data — RUNBOOK_DE/ES.md)
+    (de.py + windstats.py handle CONFIDENTIAL WindStats data; docs/runbooks/DE.md and ES.md)
   analysis/         train, evaluate, and one-off studies
     validate_region.py             train / evaluate / transfer a region (the main driver)
     train_all_bias_corrections.py  batch trainer across configurations

@@ -14,7 +14,7 @@ Great Britain:
 The two observed-source components (both described in the co-authored UK
 methodology) and their reproducibility:
 
-- **Observations — Ofgem Renewables Obligation certificates.** Accredited wind
+- **Observations: Ofgem Renewables Obligation certificates.** Accredited wind
   stations receive monthly ROCs; energy is recovered as ``MWh = ROCs / band``,
   where the band is grandfathered by accreditation vintage (:data:`ROC_BANDING`
   below, from Ofgem's RO Guidance for Generators, Appendix 4). The per-station,
@@ -22,9 +22,9 @@ methodology) and their reproducibility:
   Register export (gated; the login-free historical bulk file is
   technology-aggregate only), so :func:`roc_issuance_to_station_monthly` takes
   a user-supplied export and is documented, not auto-fetched.
-- **Metadata — reconstructed from open data.** The UK Renewable Energy Planning
+- **Metadata: reconstructed from open data.** The UK Renewable Energy Planning
   Database (REPD, OGL, gov.uk) gives per-site location (OSGB, reprojected
-  here), installed capacity, turbine count, and a partial tip height — but NOT
+  here), installed capacity, turbine count, and a partial tip height, but NOT
   turbine model, rotor diameter, or (mostly) hub height. So the open
   reconstruction (:func:`repd_wind_metadata`) is a location/capacity table with
   uniform-default specs, the same approach the AU/BR/CL/AR adapters take;
@@ -107,7 +107,7 @@ def read_ofgem_confidential_certificates(
     """Station-monthly MWh from the CONFIDENTIAL Ofgem certificate warehouse.
 
     ⚠ CONFIDENTIAL / DIFFERENTLY LICENSED. These per-station certificate
-    exports are not the open REPD/RER path — they carry their own licence and
+    exports are not the open REPD/RER path: they carry their own licence and
     must never be committed or redistributed. This reader only transforms
     files the user already holds locally.
 
@@ -115,7 +115,7 @@ def read_ofgem_confidential_certificates(
     applies a banding lookup), this export carries the exact MWh-per-certificate
     factor per row (``textbox37``), so energy is recovered directly and every
     grandfathered vintage is handled exactly: ``MWh = certificates x factor``.
-    Only ``scheme`` certificates are kept (RO by default — REGO would
+    Only ``scheme`` certificates are kept (RO by default, since REGO would
     double-count the same generation), and **revoked** certificates are dropped.
 
     Args:
@@ -159,7 +159,7 @@ def roc_issuance_to_station_monthly(
     """Convert a per-station ROC issuance export to station-monthly MWh.
 
     Args:
-        roc: Ofgem RER issuance export — one row (or several) per station and
+        roc: Ofgem RER issuance export: one row (or several) per station and
             output period, with a certificate count. Column names vary between
             exports, so they are passed explicitly.
         station_col: Column holding the station accreditation number
@@ -251,8 +251,8 @@ def repd_wind_metadata(
 ) -> pd.DataFrame:
     """Per-station open metadata from the Renewable Energy Planning Database.
 
-    Produces the fields REPD actually carries — reprojected lon/lat, installed
-    capacity, turbine count, per-turbine capacity, and a partial tip height —
+    Produces the fields REPD actually carries (reprojected lon/lat, installed
+    capacity, turbine count, per-turbine capacity, and a partial tip height),
     filling the gaps REPD does NOT carry (turbine model, rotor diameter, most
     hub heights) with uniform defaults, exactly as the AU/BR/CL/AR adapters do
     for metadata-poor regions. Coordinates come from OSGB X/Y reprojected to
@@ -317,7 +317,7 @@ def divergence_report(open_md: pd.DataFrame, curated_md: pd.DataFrame) -> dict:
     """Summarise how the open (REPD) reconstruction differs from the curated table.
 
     Both are per-turbine frames with ``ID``, ``capacity``, ``height``, ``lon``,
-    ``lat``. Returns coverage and distributional differences — not a row match
+    ``lat``. Returns coverage and distributional differences, not a row match
     (the keys differ: curated uses ROC accreditation numbers, open uses REPD
     Ref IDs), so this is a fleet-level comparison.
     """

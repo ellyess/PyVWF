@@ -1,4 +1,4 @@
-"""Region-config loading and validation (docs/HARNESS_DESIGN.md §1)."""
+"""Region-config loading and validation (docs/design/HARNESS_DESIGN.md §1)."""
 from pathlib import Path
 
 import pytest
@@ -163,7 +163,7 @@ def test_shipped_granularity_classification():
 
 
 def test_hemisphere_pin_au_winter_is_jja():
-    """AU winter is JJA and UK winter is DJF — the whole point of explicit seasons."""
+    """AU winter is JJA and UK winter is DJF: the whole point of explicit seasons."""
     au = shipped("au_nem")
     uk = shipped("uk")
     assert sorted(au.seasons["winter"]) == [6, 7, 8]

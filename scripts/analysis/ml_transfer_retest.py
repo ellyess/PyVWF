@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "ml_retest"
 
 # ---------------------------------------------------------------- dataset ----
-RUNS = {  # region -> (train dir, k)  — canonical post-fix runs, commit 8a032d6
+RUNS = {  # region -> (train dir, k); canonical post-fix runs, commit 8a032d6
     "DK": ("output/validation/DK/train-sweep3", 100),
     "DE": ("output/validation/DE/train-sweep3", 100),
     "UK": ("output/validation/UK/train-sweep3", 100),

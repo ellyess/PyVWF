@@ -1,6 +1,6 @@
-# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
 # Seasons are EXPLICIT month lists. Brazil is (mostly) Southern Hemisphere, so
-# these must NOT inherit the legacy NH mapping — and the dominant signal in the
+# these must NOT inherit the legacy NH mapping. The dominant signal in the
 # Nordeste wind fleet is not thermal at all but the TRADE-WIND maximum in the
 # austral winter/spring (roughly Jun-Nov). The astronomical SH seasons below
 # are a defensible partition; the trade-wind cycle is the physics to read the

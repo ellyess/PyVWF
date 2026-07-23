@@ -55,7 +55,7 @@ input/
   era5/                          reanalysis, per region
   observations/{turbine,country}/  processed capacity factors the adapters read
   reference/                     static shared lookups: power_curves.csv, models.csv, shapes/, terrain/, gwpt/
-  combined/                      alternate run root — same data via symlink + the merged (open+licensed) curve library
+  combined/                      alternate run root: same data via symlink + the merged (open+licensed) curve library
 ```
 
 Point `PYVWF_INPUT` at `input/combined` to run with the fuller curve library.

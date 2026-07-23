@@ -1,8 +1,8 @@
-# US + Brazil — first real train/evaluate, and a scalar-dilution bug
+# US + Brazil: first real train/evaluate, and a scalar-dilution bug
 
 **Question.** Both new regions are staged against real data (EIA-923/860 +
 USWTDB; ONS + ANEEL) and real ERA5. Does the `affine-wind` correction improve
-held-out skill, as it does for DK/DE/UK — and how many spatial clusters does it
+held-out skill, as it does for DK/DE/UK, and how many spatial clusters does it
 need?
 
 **Verdict: PASS, after fixing a bug this run exposed.** Brazil worked
@@ -12,7 +12,7 @@ out *worse than no correction at all*, which traced to a real defect in
 that reported, so any region with sparse reporting got a systematically
 under-scaled correction. Fixed; the US correction now beats uncorrected on MAE,
 RMSE and correlation. DK/DE/UK were never affected because their monthly
-reporting is near-complete — which is why three regions of prior work never
+reporting is near-complete, which is why three regions of prior work never
 exposed it.
 
 ## Method
@@ -39,7 +39,7 @@ computed:
 
 The numerator skips NaN observations; the denominator summed **every** unit's
 capacity, including plants that reported nothing. `sim` is never NaN, so only
-`obs` was scaled down — by exactly the reporting fraction:
+`obs` was scaled down, by exactly the reporting fraction:
 
 > **`scalar_computed = scalar_true x (fraction of capacity reporting)`**
 
@@ -67,11 +67,11 @@ Fix: mask to rows that have a value, in numerator and denominator both. The
 `min_count=1` semantics are preserved so an all-missing group still returns NaN.
 
 **Why the test suite missed it.** `test_correction.py` covered an all-present
-group and an all-missing group, but never a *partly* reporting one — the only
+group and an all-missing group, but never a *partly* reporting one, the only
 configuration where the two denominators differ. Two tests added; the second
 uses lopsided capacities so a naive "count reporting rows" fix still fails.
 
-## Result 1 — the US, before and after the fix
+## Result 1: the US, before and after the fix
 
 Held-out 2022, 520 units, 6078 samples, k=10.
 
@@ -87,7 +87,7 @@ near-uniform 0.31-0.66 across all clusters to 0.88-1.58, straddling 1.0 with
 genuine cluster-to-cluster spread, and offsets shrink to small values of both
 signs. The flat ~0.5 scalars were the bug's signature.
 
-## Result 2 — Brazil: unaffected by the fix, and it already worked
+## Result 2: Brazil, unaffected by the fix, and it already worked
 
 Held-out 2024, 151 units, 389 samples.
 
@@ -102,14 +102,14 @@ Held-out 2024, 151 units, 389 samples.
 
 Brazil's factors are identical to three decimal places before and after the fix
 (1.0385, 0.7981 unchanged), because its training fleet is already filtered to
-complete-reporting complexes — dilution factor ~1. That makes Brazil a useful
+complete-reporting complexes (dilution factor ~1). That makes Brazil a useful
 control: the fix is not a free knob that moves everything, it corrects exactly
 the regions with reporting gaps.
 
 Explicit Southern-Hemisphere `season` slicing beats `fixed`, which retroactively
 justifies stating the seasons rather than inheriting the NH default.
 
-## Result 3 — cluster count matters a lot, and 10 is far too low
+## Result 3: cluster count matters a lot, and 10 is far too low
 
 Measured through the FIXED scalar AND `k-means++` init, with the curve library
 pinned to open+licensed for all five regions. Held-out MAE, best slice.
@@ -124,7 +124,7 @@ pinned to open+licensed for all five regions. Held-out MAE, best slice.
 
 Improvement over uncorrected at best k: US -22%, BR -36%, DK -54%, DE -39%,
 UK -36%. **Every region is far better at high k than at the shipped k=10**, and
-the curves are now SMOOTH and monotonic — the zigzag that made the pre-fix
+the curves are now SMOOTH and monotonic: the zigzag that made the pre-fix
 sweeps uninterpretable was entirely initialisation noise.
 
 **k=1 is worse than uncorrected in the US and Brazil** (0.0889 vs 0.0796;
@@ -150,7 +150,7 @@ that reads like convergence. **Bound k by unique coordinates, not row count.**
 ### Capacity-weighted clustering: no evidence it helps (NEGATIVE RESULT)
 
 Unweighted, a 5 MW site pulls a centroid as hard as a 500 MW one, though skill
-is scored capacity-weighted — so weighting the KMeans fit by capacity looked
+is scored capacity-weighted, so weighting the KMeans fit by capacity looked
 like an obvious improvement. It is not. A/B at FIXED k, same library, same
 seed, so weighting is the only variable:
 
@@ -174,8 +174,8 @@ stays with the interpretation that matches what a correction factor is for.
 
 ### Geographic vs degree-space distance: also within noise (NEGATIVE RESULT)
 
-Clustering raw degrees is geometrically wrong — a degree of longitude is 111 km
-at the equator and 71 km at 50N — so `geographic=True` clusters on unit-sphere
+Clustering raw degrees is geometrically wrong (a degree of longitude is 111 km
+at the equator and 71 km at 50N), so `geographic=True` clusters on unit-sphere
 Cartesian coordinates, where Euclidean distance is monotone in great-circle
 distance. A/B at fixed k, same library and seed:
 
@@ -187,22 +187,22 @@ distance. A/B at fixed k, same library and seed:
 | US | 100 | **0.0730** | 0.0737 | +1.0% |
 | DK | 100 | **0.0567** | 0.0576 | +1.6% |
 
-Mixed, all within 2%. A prediction made BEFORE running — that the US would
-move most, having the widest latitude span (cos(lat) 0.91-0.64) — was WRONG:
+Mixed, all within 2%. A prediction made BEFORE running, that the US would
+move most, having the widest latitude span (cos(lat) 0.91-0.64), was WRONG:
 the US got slightly worse while DK, with the narrowest latitude band and the
 least distortion to correct, moved most. **The effect does not track the
 distortion magnitude**, which is itself evidence that these differences are
 noise rather than signal.
 
 `geographic` therefore also defaults to False. The correctness argument stands
-on its own — degree-space distance IS the wrong metric — but it should not be
+on its own (degree-space distance IS the wrong metric), but it should not be
 sold as a skill improvement, and flipping the default would move every region's
 results for no measured gain.
 
 **Both of the two "obvious improvements" (capacity weighting, geographic
 distance) landed inside the noise floor.** With one seed and one held-out year
-per region, effects below ~3% are not measurable. Establishing that floor — a
-second held-out year, or seed-repeats now that the partition is deterministic —
+per region, effects below ~3% are not measurable. Establishing that floor (a
+second held-out year, or seed-repeats now that the partition is deterministic)
 is a prerequisite for any further clustering experiment, otherwise each one
 produces another uninterpretable 1-3% swing.
 
@@ -246,7 +246,7 @@ Three things, none of which the shipped configs reflect:
    re-clustering mismatch** (the KMeans refit in `run_evaluate` reproduces the
    training partition with 100% identical labels at every k); **cross-k state
    leakage in the driver loop** (DK k=500 run alone is BIT-IDENTICAL to k=500
-   run as the last of [10, 100, 500] — so multi-k sweeps are trustworthy); and
+   run as the last of [10, 100, 500], so multi-k sweeps are trustworthy); and
    **degenerate factors** (no identity fallbacks at any k; scalar p50 is
    0.72-0.74 across k=100/500/700/1000).
 
@@ -258,7 +258,7 @@ Three things, none of which the shipped configs reflect:
    | MAE (`init="random"`, current) | 0.0514 | 0.0842 | 0.0628 | 0.0683 |
    | MAE (`init="k-means++"`) | 0.0513 | 0.0511 | 0.0507 | 0.0509 |
 
-   With random init, MAE at ONE k spans 0.0514-0.0842 (range 0.0328) — larger
+   With random init, MAE at ONE k spans 0.0514-0.0842 (range 0.0328), larger
    than the entire k=10..1000 spread at fixed seed (0.0516-0.0684). **The
    k-curve was noise.** k=700's apparent win was partition luck; seed 0 reaches
    the same score at k=500.
@@ -271,8 +271,8 @@ Three things, none of which the shipped configs reflect:
    **Consequences.** Any single-run-per-k sweep measures partition lottery, not
    k, so "optimal k" cannot be read off one run per k under the current init.
    What survives unaffected: **k=1 is worse than uncorrected** (US 0.0889 vs
-   0.0796; BR 0.1148 vs 0.1102) — at k=1 there is no partition to be lucky
-   about, so that result carries no seed variance — and the direction that
+   0.0796; BR 0.1148 vs 0.1102), since at k=1 there is no partition to be lucky
+   about and that result carries no seed variance; and the direction that
    larger k beats k=1 by a wide margin.
 
    **APPLIED** (`init="k-means++"`, plus `tests/test_clustering.py` pinning
@@ -291,8 +291,8 @@ Three things, none of which the shipped configs reflect:
    The effect scales with how hard the partition is, measured as points per
    cluster: negligible where clusters are large and unambiguous (Europe at
    k=10), modest for Brazil's small fleet, dominant at high k. **Prior European
-   results at k=10 are therefore unaffected** — DE is identical to four
-   decimals — so nothing published needs revising. The change matters for
+   results at k=10 are therefore unaffected** (DE is identical to four
+   decimals), so nothing published needs revising. The change matters for
    SWEEPS, where it is the difference between measuring k and measuring luck.
 
    *Comparison hygiene.* An earlier draft of this comparison was contaminated:
@@ -313,7 +313,7 @@ And the harness DK curve *disagrees in shape* with the legacy DK run
 (`output/runs/turbine_dk_research`, onshore/bimonth: 0.0703 -> 0.0636 -> 0.0607
 at k=10/100/500, improving monotonically) where the harness degrades at k=500.
 The runs differ in mode (all vs onshore) and slicing (fixed/season vs bimonth),
-so they are not like-for-like — but the disagreement should be resolved before
+so they are not like-for-like, but the disagreement should be resolved before
 any k recommendation is published for DK.
 
 ## What was ruled out for the US, before the bug was found
@@ -323,8 +323,8 @@ Recorded because the negative results stand on their own.
 1. **Power-curve mis-assignment.** The uniform curve
    (`2019COE_Market_Average_2.6MW_121`, 226 W/m2) sat near the fleet's 25th
    percentile, not its median (281 W/m2). Fixed by matching per plant (below).
-   Uncorrected sim CF moved 0.333 -> 0.304 against observed 0.351 — the gap
-   *widened* — and cluster factors barely moved. Not the cause.
+   Uncorrected sim CF moved 0.333 -> 0.304 against observed 0.351, so the gap
+   *widened*, and cluster factors barely moved. Not the cause.
 2. **Anomalous fitted factors.** US k=1 gave scalar 0.5614 / offset 1.6160;
    UK's *working* k=1 gives 0.5637 / 1.6621. The near-identity was a
    coincidence of two different reporting fractions and briefly sent the
@@ -333,14 +333,14 @@ Recorded because the negative results stand on their own.
    UK and Brazil.
 4. **Non-stationarity.** Uncorrected MBE per year is stable and small
    (2019 +0.0053, 2020 +0.0033, 2021 +0.0107, 2022 +0.0219).
-5. **Unscreened ERCOT/SPP curtailment.** Real, but not the cause — see below.
+5. **Unscreened ERCOT/SPP curtailment.** Real, but not the cause (see below).
 
 ## The curtailment confound (real, and still open)
 
 The US is the only region with unscreened curtailment (Brazil masks 2610
-complex-months). Splitting the 2022 held-out set by balancing area — ERCOT (TX)
+complex-months). Splitting the 2022 held-out set by balancing area (ERCOT (TX)
 212 plants / 39.3 GW, SPP-ish (KS/OK/NE/SD/ND/NM) 235 / 34.9 GW, other 837 /
-67.4 GW:
+67.4 GW):
 
 | subset | n | uncorrected MBE | uncorrected MAE |
 | --- | --- | --- | --- |
@@ -349,7 +349,7 @@ complex-months). Splitting the 2022 held-out set by balancing area — ERCOT (TX
 | all | 6095 | +0.0039 | 0.0837 |
 
 **The near-zero fleet-wide uncorrected bias is an aggregation artifact.** Bias
-is *positive* inside the curtailed regions (+0.039 — the direction that
+is *positive* inside the curtailed regions (+0.039, the direction that
 suppressed observed output produces) and *negative* outside (-0.024), nearly
 cancelling. ERA5 is **not** unbiased for the US; it is regionally biased in
 opposite directions and the aggregate hides it. Any claim of the form "ERA5
@@ -372,7 +372,7 @@ differently). Absolute values should come from `metrics.csv`; only the
 AU-NEM and Europe match per site. Diameter is now carried through.
 
 **The obvious implementation is wrong.** `vwf.data.add_models` matches on
-specific power alone — safe against a utility-only catalogue (AU-NEM's licensed
+specific power alone: safe against a utility-only catalogue (AU-NEM's licensed
 library) but not against the **bundled open library**, which carries distributed
 machines down to 1 kW. A 1.5 kW Pika sits near 212 W/m2, indistinguishable from
 a modern utility turbine. On the real fleet, plain `add_models` gave **28% of
@@ -400,15 +400,15 @@ Both bite only at scale, which is why smaller regions never surfaced them.
   (`--bbox`); the guard belongs in `aggregate_turbines_to_grid` for every region.
 - **One height level per unique hub height.** `interpolate_wind` builds
   `time x lat x lon x height` with a level per *distinct* hub height. USWTDB's
-  continuous heights gave the US 237 of them — a ~51 GB array, and the first US
+  continuous heights gave the US 237 of them: a ~51 GB array, and the first US
   train run was SIGKILLed (exit 137). Binning to 10 m (the granularity
   `aggregate_turbines_to_grid` already uses) leaves 12 levels, ~2.6 GB, 79 s.
   Brazil survived only because ONS has no hub-height data. The underlying
-  scaling — O(grid x unique_heights) for an O(turbines) result — is unfixed.
+  scaling, O(grid x unique_heights) for an O(turbines) result, is unfixed.
 
 ## Named follow-ups
 
-1. ~~Re-check DK/DE/UK against the scalar fix.~~ **RESOLVED — no effect,
+1. ~~Re-check DK/DE/UK against the scalar fix.~~ **RESOLVED: no effect,
    provably.** Their reporting fraction is *exactly* 1.000 (DK 5588 plants, DE
    10477, UK 6345; zero missing observations). With no NaNs the `present` mask
    is all-True, so the fixed and unfixed `weighted_avg` execute identical
@@ -428,5 +428,5 @@ Both bite only at scale, which is why smaller regions never surfaced them.
 4. **Move the domain guard into `aggregate_turbines_to_grid`**, so no region can
    silently simulate a site outside its reanalysis box.
 5. **Fix `interpolate_wind` scaling** (interpolate to points, then apply the log
-   law) — but the log law is nonlinear in z0, so reordering shifts results for
+   law). The log law is nonlinear in z0, so reordering shifts results for
    every existing region and needs a deliberate decision.

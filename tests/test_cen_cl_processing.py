@@ -1,7 +1,7 @@
 """Chile (CEN) processing: wind filter, fixed-offset UTC binning, CF, masks.
 
 All fixtures are synthetic; real CEN acquisition is user-executed. The
-timestamps are Chilean-standard-labelled on purpose — the fixed UTC-4 shift
+timestamps are Chilean-standard-labelled on purpose: the fixed UTC-4 shift
 (no DST) is part of the contract under test, not an implementation detail.
 """
 import numpy as np
@@ -57,7 +57,7 @@ def test_monthly_cf_is_gen_over_capacity():
 
 def test_monthly_bins_are_utc_not_local():
     """Fixed UTC-4: 21:00 Chilean-standard on 30 Jun is 01:00 UTC on 1 Jul, so
-    it must land in JULY. Local binning would put it in June — distinguishable
+    it must land in JULY. Local binning would put it in June, distinguishable
     on this single-hour fixture (mirrors the AU/BR/NZ market-time tests)."""
     gen = gen_hours(1, "2024-06-30 21:00", "2024-06-30 22:00", 100, cap=100.0)
     wide = monthly_cf_from_generation(gen, 2024, 2024, min_coverage=0.0)
@@ -167,7 +167,7 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "CL").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = CENChileSource("CL")
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_CL"):
+    with pytest.raises(FileNotFoundError, match="runbooks/CL"):
         src.load_metadata()
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_CL"):
+    with pytest.raises(FileNotFoundError, match="runbooks/CL"):
         src.load_observations(2021, 2023)

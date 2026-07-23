@@ -30,12 +30,36 @@ your observations support.
 :maxdepth: 1
 :caption: Guides
 
-DATA_REQUIREMENTS
-DATA_PIPELINE
-TRAINING_GUIDE
-OUTPUT_STRUCTURE
-ENTSOE_API_GUIDE
-ADDING_AN_OBSERVATION_SOURCE
+guides/DATA_REQUIREMENTS
+guides/DATA_SOURCES
+guides/DATA_PIPELINE
+guides/TRAINING_GUIDE
+guides/OUTPUT_STRUCTURE
+guides/ENTSOE_API_GUIDE
+guides/ADDING_AN_OBSERVATION_SOURCE
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Region runbooks
+
+runbooks/DK
+runbooks/UK
+runbooks/DE
+runbooks/ES
+runbooks/US
+runbooks/BR
+runbooks/NZ
+runbooks/CL
+runbooks/AR
+runbooks/TR
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Design
+
+design/HARNESS_DESIGN
 ```
 
 ```{toctree}

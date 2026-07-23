@@ -1,6 +1,6 @@
 """End-to-end tests for the PyVWF orchestration on a synthetic fleet.
 
-These drive the real, unmocked pipeline — the same code path a user gets from
+These drive the real, unmocked pipeline: the same code path a user gets from
 ``pyvwf-train``:
 
     ERA5-shaped winds -> hub-height extrapolation -> power curve -> per-cluster
@@ -9,7 +9,7 @@ These drive the real, unmocked pipeline — the same code path a user gets from
 
 Nothing is stubbed: `PyVWF.train` and `PyVWF.simulate_cf` read from disk,
 cluster the fleet, run the numerical offset fit, and write their real outputs.
-The only thing synthetic is the *data* — a small fleet with a deliberately
+The only thing synthetic is the *data*: a small fleet with a deliberately
 planted bias (the reanalysis blows harder than the turbines actually generate),
 so we know which way a correct correction must move.
 
@@ -139,7 +139,7 @@ def synthetic_dk(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# train_set / cluster_train_set — the data-preparation layer
+# train_set / cluster_train_set: the data-preparation layer
 # ---------------------------------------------------------------------------
 
 def test_train_set_pairs_observations_with_simulations(synthetic_dk):
@@ -203,7 +203,7 @@ def test_cluster_train_set_respects_temporal_resolution(synthetic_dk):
 
 
 # ---------------------------------------------------------------------------
-# PyVWF.train + simulate_cf — the full orchestration
+# PyVWF.train + simulate_cf: the full orchestration
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -326,7 +326,7 @@ def test_manifest_failure_never_aborts_a_run(trained_model, monkeypatch, capsys)
 
 def test_simulate_cf_is_idempotent(trained_model):
     """Re-running must reuse the existing outputs rather than recompute or
-    corrupt them — the guard that lets a long sweep be resumed."""
+    corrupt them: the guard that lets a long sweep be resumed."""
     model, _ = trained_model
     model.simulate_cf(YEAR_TEST)
 

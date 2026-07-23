@@ -6,7 +6,7 @@ logic lives here so it is importable and tested.
 Transfer semantics are normative (design §7): collapse the source region's
 factors to ONE capacity-weighted (scalar, offset) per time-slice, apply
 uniformly to the target, and match seasonal slices by season NAME under the
-TARGET's season definitions. Nothing else — no spatial matching schemes on
+TARGET's season definitions. Nothing else: no spatial matching schemes on
 this branch. The driver also enforces the approved pair set: transfer runs
 must have AU-NEM on exactly one side.
 """
@@ -250,7 +250,7 @@ def _country_skill(
 
     Grid-level simulated CF is collapsed to one capacity-weighted country CF
     per timestep (NaN-skipping, reweighting on the present grid points), then
-    both sides are compared as monthly means — matching the legacy
+    both sides are compared as monthly means, matching the legacy
     country-level metric.
     """
     grid_cols = [c for c in sim_cf.columns if c != "time"]

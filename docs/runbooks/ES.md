@@ -1,13 +1,13 @@
-# Spain (WindStats) region — processing runbook
+# Spain (WindStats) region: processing runbook
 
 **⚠ MIXED LICENCE.** Generation is **CONFIDENTIAL / commercial WindStats**;
 coordinates are **open GWPT** (CC-BY-4.0). Neither the data nor the derived
 observation/metadata tables may be committed or redistributed. `input/` is
 git-ignored; the script below only reshapes files you already hold.
 
-**Data caveat — read first.** The WindStats Spain extract is **1998-2000
+**Data caveat, read first.** The WindStats Spain extract is **1998-2000
 only** (an old ~600 kW fleet). This is a *historical, three-year* region, not a
-contemporary of the 2015-2019 reference set — useful as a legacy check, not a
+contemporary of the 2015-2019 reference set: useful as a legacy check, not a
 modern benchmark. It also needs ERA5 for 1998-2000 (not the repo's 2015+
 `era5/EU`). The region code is **`ES-WS`** so it does not collide with the
 country-level ENTSO-E `ES`.
@@ -28,7 +28,7 @@ GWPT project name** (fuzzy match). On the current extract: **1,158 of 1,450
 turbines geolocate (80%)**; the 291 turbines whose farm has no GWPT match are
 dropped and reported. Canary-Islands turbines (lat < 30) fall outside the
 mainland ERA5 box and are excluded. WindStats manufacturer strings are kept as
-provenance (`windstats_manufacturer`) but are not curve keys — the curve key is
+provenance (`windstats_manufacturer`) but are not curve keys: the curve key is
 the uniform default (as BR/CL/AR do), matched by specific power downstream via
 `diameter`.
 

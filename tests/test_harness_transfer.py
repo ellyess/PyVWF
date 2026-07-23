@@ -30,7 +30,7 @@ SH_SEASONS = {
 
 
 # ---------------------------------------------------------------------------
-# §7.1 — capacity-weighted collapse
+# §7.1: capacity-weighted collapse
 # ---------------------------------------------------------------------------
 
 def test_collapse_is_capacity_weighted_not_unweighted():
@@ -48,7 +48,7 @@ def test_collapse_is_capacity_weighted_not_unweighted():
     assert len(collapsed) == 1
     row = collapsed.iloc[0]
     assert row["cluster"] == 0
-    # Weighted: 0.8*0.9 + 1.2*0.1 = 0.84. Unweighted would be 1.0 — the
+    # Weighted: 0.8*0.9 + 1.2*0.1 = 0.84. Unweighted would be 1.0, so the
     # fixture makes the two modes distinguishable.
     assert row["scalar"] == pytest.approx(0.84)
     assert row["scalar"] != pytest.approx((0.8 + 1.2) / 2)
@@ -97,12 +97,12 @@ def test_transfer_pairs_outside_the_approved_set_fail(source, target):
 
 
 # ---------------------------------------------------------------------------
-# §7.3 — the mirrored-hemisphere fixture (normative)
+# §7.3: the mirrored-hemisphere fixture (normative)
 # ---------------------------------------------------------------------------
 
 def test_mirrored_hemisphere_transfer_matches_by_season_name():
     """Source (NH) learned: winter winds are over-blown 2x (scalar 0.5).
-    Target (SH) has the same physics — ITS winter (JJA) is over-blown 2x.
+    Target (SH) has the same physics: ITS winter (JJA) is over-blown 2x.
     Name matching corrects JJA; month matching corrects DJF. They must
     differ, and only name matching recovers the planted truth."""
     times = pd.date_range("2019-01-01", "2019-12-31", freq="D")

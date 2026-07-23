@@ -122,28 +122,28 @@ def get_training_sets():
         'add_nan': 0.5,
     }
 
-    # Scenario 3: Fixed turbine in training — GE.1.5se (medium power density)
+    # Scenario 3: Fixed turbine in training, GE.1.5se (medium power density)
     configs['sensitivity_fix_train_ge15se'] = {
         **_sens_base,
         'name': 'Sensitivity: Fixed GE.1.5se in Training (DK onshore)',
         'fix_turb': 'GE.1.5se',
     }
 
-    # Scenario 4: Fixed turbine in training — Vestas.V66.2000 (highest power density)
+    # Scenario 4: Fixed turbine in training, Vestas.V66.2000 (highest power density)
     configs['sensitivity_fix_train_vestas_v66'] = {
         **_sens_base,
         'name': 'Sensitivity: Fixed Vestas.V66.2000 in Training (DK onshore)',
         'fix_turb': 'Vestas.V66.2000',
     }
 
-    # Scenario 5: Fixed turbine in validation — GE.1.5se (medium power density)
+    # Scenario 5: Fixed turbine in validation, GE.1.5se (medium power density)
     configs['sensitivity_fix_test_ge15se'] = {
         **_sens_base,
         'name': 'Sensitivity: Fixed GE.1.5se in Validation (DK onshore)',
         'fix_turb_test': 'GE.1.5se',
     }
 
-    # Scenario 6: Fixed turbine in validation — Vestas.V66.2000 (highest power density)
+    # Scenario 6: Fixed turbine in validation, Vestas.V66.2000 (highest power density)
     configs['sensitivity_fix_test_vestas_v66'] = {
         **_sens_base,
         'name': 'Sensitivity: Fixed Vestas.V66.2000 in Validation (DK onshore)',

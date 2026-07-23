@@ -1,18 +1,18 @@
 """Per-turbine observation source for the CONFIDENTIAL WindStats regions.
 
 ⚠ CONFIDENTIAL / COMMERCIAL (WindStats) generation, with open (GWPT)
-coordinates for Spain — a MIXED-LICENCE region. Nothing derived may be
+coordinates for Spain: a MIXED-LICENCE region. Nothing derived may be
 committed or redistributed; the adapter reads pre-processed files under
 ``input/observations/turbine/<CC>/`` that the user builds locally with
 ``scripts/process/windstats.py`` from data they hold.
 
 Currently serves **Spain (ES)**. Sweden (SE) and Finland (FI) share the
 WindStats format but need a thewindpower.net coordinate table (GWPT
-under-covers their fleets); they register here once that is supplied — add the
+under-covers their fleets); they register here once that is supplied: add the
 code to ``countries`` and ship their ``<cc>_md.csv``/``<cc>_obs.csv``.
 
-Data-window caveat: the WindStats extracts are historical — ES generation is
-1998-2000, SE 1998-2013, FI 2005-2012 — so these are old-fleet regions, not
+Data-window caveat: the WindStats extracts are historical. ES generation is
+1998-2000, SE 1998-2013, FI 2005-2012, so these are old-fleet regions, not
 contemporaries of the 2015-2019 reference set. Training them needs ERA5 for the
 matching years.
 """
@@ -86,8 +86,8 @@ class WindStatsSource(ObservationSource):
         if not path.is_file():
             raise FileNotFoundError(
                 f"WindStats metadata not found at {path}. Built from CONFIDENTIAL "
-                "WindStats data by scripts/process/windstats.py — see "
-                "docs/RUNBOOK_ES.md. (Data is git-ignored and commercial.)"
+                "WindStats data by scripts/process/windstats.py; see "
+                "docs/runbooks/ES.md. (Data is git-ignored and commercial.)"
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -110,8 +110,8 @@ class WindStatsSource(ObservationSource):
         if not path.is_file():
             raise FileNotFoundError(
                 f"WindStats observations not found at {path}. Built from "
-                "CONFIDENTIAL WindStats data by scripts/process/windstats.py — "
-                "see docs/RUNBOOK_ES.md."
+                "CONFIDENTIAL WindStats data by scripts/process/windstats.py; "
+                "see docs/runbooks/ES.md."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

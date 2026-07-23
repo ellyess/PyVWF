@@ -3,8 +3,8 @@
 
 USER-EXECUTED. Turkey is the only surveyed candidate with BOTH per-plant
 hourly generation and a national turbine register (TÜREB) carrying turbine
-models, so hub heights become derivable per plant — see
-docs/RUNBOOK_TR.md and docs/findings/dataset_survey_2026-07.md.
+models, so hub heights become derivable per plant; see
+docs/runbooks/TR.md and docs/findings/dataset_survey_2026-07.md.
 
 WHERE TO PUT YOUR CREDENTIALS
 -----------------------------
@@ -46,7 +46,7 @@ if you would rather not maintain raw paths; this script stays dependency-free
 so it runs in the project environment as-is.
 
 Turkey abolished daylight saving in 2016 and sits at a permanent UTC+3, so the
-timestamp handling is a fixed offset — simpler than the NZ trading periods or
+timestamp handling is a fixed offset, simpler than the NZ trading periods or
 Chile's DST. Verify the API's own timestamp labels before trusting that.
 """
 import argparse
@@ -237,7 +237,7 @@ def probe() -> None:
         """Wind plants are named ...RÜZGAR... in the Turkish register.
 
         Matched on the plant NAME only. Testing the whole JSON blob would
-        also catch an owner company with 'Rüzgar' in its title — the same
+        also catch an owner company with 'Rüzgar' in its title, the same
         overcount trap that 'lica' vs 'Hidraulica' produced for Chile.
         """
         name = str(rec.get("name", "")).lower()
@@ -291,7 +291,7 @@ def probe() -> None:
     print("but NO per-plant generation endpoint is reachable on this")
     print("subscription. injection-quantity and realtime-generation both return")
     print("the national mix; renewables/licensed-realtime-generation returns 403")
-    print("(not subscribed). Turkey is NOT confirmed tier-1 — see RUNBOOK_TR.md.")
+    print("(not subscribed). Turkey is NOT confirmed tier-1; see docs/runbooks/TR.md.")
     print("=" * 70)
 
 

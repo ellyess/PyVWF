@@ -112,13 +112,13 @@ def test_affine_fit_rejects_unknown_obs_level():
 
 # ---------------------------------------------------------------------------
 # Season injection: the seam that lets SH regions reuse the validated apply
-# path. Must-distinguish fixtures — the SH and default results are asserted
+# path. Must-distinguish fixtures: the SH and default results are asserted
 # to DIFFER, not merely to be individually plausible.
 # ---------------------------------------------------------------------------
 
 def _july_wind_and_factors():
     """Constant 10 m/s winds in July, with a factors table whose winter and
-    summer scalars differ by 4x — so hemisphere mix-ups are unmissable."""
+    summer scalars differ by 4x, so hemisphere mix-ups are unmissable."""
     times = pd.date_range("2019-07-01", periods=3, freq="D")
     ws = xr.DataArray(
         np.full((3, 2), 10.0),

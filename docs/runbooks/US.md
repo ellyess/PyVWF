@@ -1,4 +1,4 @@
-# US (EIA) region — data acquisition and validation runbook
+# US (EIA) region: data acquisition and validation runbook
 
 End-to-end reproduction for the US region (`configs/regions/us.toml`,
 source `eia-us`). All inputs are public-domain US government data or your own
@@ -38,27 +38,27 @@ python scripts/process/eia_us.py \
 CONUS box does not, so without it the Alaska/Hawaii plants (15 plants, 0.29 GW;
 6 of them monthly reporters) survive into the fleet and are snapped by
 `aggregate_turbines_to_grid`'s unbounded nearest-cell `argmin` to the closest
-in-domain cell — Hawaii simulated with Californian wind, silently. The join
+in-domain cell: Hawaii simulated with Californian wind, silently. The join
 report records how many were dropped.
 
 Writes `us_md.csv`, `us_eia923_netgen.csv`, and `join_report.md`. Pass every
 year of EIA-923 you intend to train/test on (`--eia923` takes several
 workbooks); one EIA-860 vintage supplies the static nameplate + coordinates.
 
-**What the real 2021 file produces** (sanity anchors — verified on the
+**What the real 2021 file produces** (sanity anchors, verified on the
 `Final_Revision` workbook + USWTDB V9):
 
 - 1,279 wind plants in EIA-923; 1,278 join to EIA-860 coordinates (a handful,
-  e.g. the `99999` placeholder code, do not — listed in the join report).
+  e.g. the `99999` placeholder code, do not; listed in the join report).
 - Fleet nameplate ≈ 133 GW; per-plant hub height from USWTDB for 1,168 / 1,278
   plants (mean ≈ 82 m), the rest on the 100 m uniform default (`height_source`
   records which, per plant).
 - **777 of the 1,279 plants are annual (`A`) respondents**, whose monthly cells
   are EIA-imputed, not measured. The source drops them by default, leaving
   ≈ 499 monthly-reporting plants as the training fleet (still ~5x DK or AU).
-- Fleet capacity-weighted mean CF ≈ 0.34 — the published 2021 US wind number.
+- Fleet capacity-weighted mean CF ≈ 0.34, the published 2021 US wind number.
 
-## 2. ERA5 (user-executed — needs your CDS key)
+## 2. ERA5 (user-executed, needs your CDS key)
 
 ```bash
 pip install cdsapi          # not a PyVWF dependency; ~/.cdsapirc holds your key
@@ -68,7 +68,7 @@ python scripts/era5/combine.py --region us       # reduce to yearly daily files
 ```
 
 The CONUS box is ~7x the AU-NEM box, so the monthly files are large and a
-multi-year hourly load will not fit in memory — the daily pre-combine is not
+multi-year hourly load will not fit in memory; the daily pre-combine is not
 optional here. Point `--in-dir/--out-dir` (or the region's `era5_path`) at
 wherever the harness should read.
 
@@ -77,7 +77,7 @@ wherever the harness should read.
 The bundled `input/reference/power_curves.csv` / `models.csv` are now a REAL open curve
 library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
 VWF-smoothed), so runs against them are physically meaningful. `process_eia_us.py`
-assigns every plant a UNIFORM representative curve — the default
+assigns every plant a UNIFORM representative curve, the default
 `2019COE_Market_Average_2.6MW_121` (the most recent market-average utility curve),
 recorded in `us_md.csv`'s `model_source` column. Override with `--model <key>`
 (any column of `power_curves.csv`, e.g. `NREL_Reference_5MW_126`) for a different
@@ -110,6 +110,6 @@ this branch (the driver's approved-pair guard is AU↔Europe only).
   does not.
 - **Curtailment is not yet screened.** ERCOT/SPP curtailment contaminates
   observed CF where it occurs. The shared `pyvwf.qc` module (research doc §6),
-  generalised from the AU heuristics, is the right home — not yet applied.
+  generalised from the AU heuristics, is the right home; not yet applied.
 - **Static nameplate.** Staged build-outs bias a plant's early months low; the
   commissioning mask removes pre-operating months but not partial staging.

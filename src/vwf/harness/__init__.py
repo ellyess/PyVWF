@@ -4,7 +4,7 @@ Additive layer over the PyVWF core: declarative region configs, run
 provenance, and standard skill metrics. Nothing in here changes the validated
 correction or simulation code paths.
 
-See ``docs/HARNESS_DESIGN.md`` for the design this implements.
+See ``docs/design/HARNESS_DESIGN.md`` for the design this implements.
 """
 from vwf.harness.corrections import (
     AffineWindCorrection,

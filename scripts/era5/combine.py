@@ -4,13 +4,13 @@
 Only the large boxes need this: a multi-year hourly load of a continent-sized
 box (US, BR, and the NEM) is tens of GB in memory, but the pipeline only
 consumes daily-mean wind speeds, so this reduces each year to a small daily
-file. Small boxes (NZ, CL, AR) skip it — their config ``[era5] path`` points
+file. Small boxes (NZ, CL, AR) skip it: their config ``[era5] path`` points
 straight at the raw ``era5/<tag>`` dir.
 
 One script for every region: the input tag and the year span come from the
 region TOML (this replaced three near-identical ``combine_era5_<code>_daily``
 scripts). It reads ``era5/<file_tag>/era5_<code>_<YYYY>_<MM>.nc`` and writes
-``era5/<file_tag>_daily/era5_<code>_daily_<YYYY>.nc`` — the ``_daily`` dir the
+``era5/<file_tag>_daily/era5_<code>_daily_<YYYY>.nc``, the ``_daily`` dir the
 US/BR configs point ``[era5] path`` at.
 
     python scripts/era5/combine.py --region br            # all years, from config
@@ -40,7 +40,7 @@ CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
 def region_spec(code: str):
     path = CONFIG_DIR / f"{code.lower()}.toml"
     if not path.is_file():
-        sys.exit(f"no region config at {path} — is {code!r} a shipped region?")
+        sys.exit(f"no region config at {path}; is {code!r} a shipped region?")
     return load_region(path)
 
 

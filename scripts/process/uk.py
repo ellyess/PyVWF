@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Build the UK (european-turbine) inputs from REPD and Ofgem ROC data.
 
-Two sub-commands, matching the two source components (docs/RUNBOOK_UK.md):
+Two sub-commands, matching the two source components (docs/runbooks/UK.md):
 
     python scripts/process/uk.py metadata          # REPD -> open uk_md + divergence
     python scripts/process/uk.py observations --roc <ofgem export>   # ROCs -> ukobs
@@ -10,7 +10,7 @@ Two sub-commands, matching the two source components (docs/RUNBOOK_UK.md):
 Energy Planning Database (location, capacity, turbine count; uniform-default
 model + hub height where REPD carries none), and writes a divergence report
 against the committed curated `uk_md.csv`. It does NOT overwrite the curated
-file — the open table ships alongside as `uk_md_open.csv` for comparison.
+file; the open table ships alongside as `uk_md_open.csv` for comparison.
 
 `observations` converts a per-station Ofgem ROC issuance export to the
 pseudo-replicated `ukobs.csv` format: ROCs -> MWh (grandfathered banding) ->
@@ -95,7 +95,7 @@ def cmd_observations(args) -> None:
         if not paths:
             sys.exit(f"no files matched {args.ofgem_confidential}")
         print("=" * 70)
-        print("⚠  CONFIDENTIAL Ofgem certificate warehouse — differently licensed.")
+        print("⚠  CONFIDENTIAL Ofgem certificate warehouse: differently licensed.")
         print("   Output is CONFIDENTIAL; input/ is git-ignored. Do NOT commit or")
         print("   redistribute the derived observations. (Open path: --roc, from")
         print("   the public RER export.)")
@@ -127,7 +127,7 @@ def cmd_observations(args) -> None:
 
     tc_path = Path(args.turbine_counts) if args.turbine_counts else UK_DIR / "uk_md.csv"
     if not tc_path.is_file():
-        sys.exit(f"{tc_path} not found — need a station->turbine-count source "
+        sys.exit(f"{tc_path} not found; need a station->turbine-count source "
                  "(the curated uk_md.csv, or --turbine-counts).")
     md = pd.read_csv(tc_path)
     md["station"] = md["ID"].astype(str).str.replace(r"-\d+$", "", regex=True)

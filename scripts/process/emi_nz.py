@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Build the EMINewZealandSource inputs from the EMI downloads.
 
-Reads (all local, downloaded by scripts/fetch/emi_nz.py — user-executed):
+Reads (all local, downloaded by scripts/fetch/emi_nz.py, user-executed):
     input/raw/emi/<YYYYMM>_Generation_MD.csv   half-hourly kWh per plant
     input/raw/emi/DispatchedGenerationPlant.csv  (register; report-only here)
 and the curated farm tables committed in configs/:
@@ -16,7 +16,7 @@ Writes (under <out>, default input/observations/turbine/NZ/):
     join_report.md     coverage/matching report
 
 Wind rows are selected by Fuel_Code in {"Wind", "WIN"} (the coding style
-changed with Kaiwera Downs 2) and keyed on Gen_Code, case-normalised —
+changed with Kaiwera Downs 2) and keyed on Gen_Code, case-normalised;
 Site_Code is NOT stable across years (Te Apiti was TAP, later WDV) and
 capitalisation varies (Harapaki, KaiweraDowns). An unmapped wind Gen_Code is
 a hard error: it means a new farm entered the fleet and the curated table
@@ -25,7 +25,7 @@ needs a row (or an explicit exclusion below).
 Power-curve keys are assigned per farm by scale-then-specific-power matching
 against the active curve library (the same guarded matcher the US fleet
 uses), with the true manufacturer/model string carried in ``turbine_model``
-for provenance — never as the curve key.
+for provenance, never as the curve key.
 
     python scripts/process/emi_nz.py
     python scripts/process/emi_nz.py --years 2019 2024   # inclusive window
@@ -41,7 +41,7 @@ from vwf.datasets.eia_us import assign_curves_from_library
 from vwf.datasets.emi_nz import half_hourly_from_generation_md, monthly_cf
 
 #: Register-listed wind Gen_Codes that never carry wind rows in Generation_MD,
-#: or embedded farms outside the dispatched dataset. Documented exclusions —
+#: or embedded farms outside the dispatched dataset. Documented exclusions;
 #: an unmapped Gen_Code NOT in this set is an error.
 KNOWN_ABSENT = {
     # Mahinerangi is metered inside the Waipori hydro scheme; its output never
@@ -117,7 +117,7 @@ def main() -> None:
 
     raw_paths = sorted(glob.glob(str(Path(args.raw) / "*_Generation_MD.csv")))
     if not raw_paths:
-        sys.exit(f"no *_Generation_MD.csv under {args.raw} — run "
+        sys.exit(f"no *_Generation_MD.csv under {args.raw}; run "
                  "scripts/fetch/emi_nz.py first (user-executed).")
 
     farms, stages, windows = load_curated(Path(args.configs))
@@ -203,7 +203,7 @@ def main() -> None:
         "Hub heights are per-farm from the curated table; height_source marks "
         "the unverified ones (tararua_3, mill_creek, kaiwera_downs_2).",
         "Te Rere Hau is degraded late-window (turbines stopped/derated): its "
-        "observed CF understates the resource — standing caveat.",
+        "observed CF understates the resource (standing caveat).",
         "Mahinerangi is excluded: metered inside the Waipori hydro scheme, "
         "never appears as wind in Generation_MD.",
         "",

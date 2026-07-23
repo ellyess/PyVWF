@@ -1,4 +1,4 @@
-# D2 synthesis — what generalises, what doesn't, and what a global method needs
+# D2 synthesis: what generalises, what doesn't, and what a global method needs
 
 Closing document for the Australia/NEM validation (D1–D5 on the
 `multi-region-validation` branch). Full decision history: the validation
@@ -19,18 +19,18 @@ The branch's finding, assembled from both hemispheres:
 The affine-in-wind correction earns its keep **where the reanalysis bias is
 level-dominated** (DK: it wins on every metric) and **compresses the
 seasonal shape where the bias is shape-dominated** (AU: the pre-specified
-cycle gate passes on both curve libraries) — but it cannot improve absolute
+cycle gate passes on both curve libraries). It cannot improve absolute
 skill where there is no level bias to remove, and its level machinery then
 adds farm-level noise (AU: +16% RMSE, reported in full in
 `pillar_a_au.md`). This is one result seen from two sides, not a success
 and a failure: the method improves the component of the bias that exists.
 For anyone applying correction to a new region, the actionable version is:
 **diagnose the bias structure first** (level vs shape decomposition of
-uncorrected-vs-observed — cheap, needs only monthly aggregates), and expect
+uncorrected-vs-observed; cheap, needs only monthly aggregates), and expect
 level-dominated regions to gain broadly, shape-dominated regions to gain on
 seasonal profiles only. One line of future work follows and is deliberately
 not pursued here: a shape-only correction variant (unit mean scalar per
-cluster) is the obvious formulation for level-unbiased regions — named,
+cluster) is the obvious formulation for level-unbiased regions. It is named,
 not proposed or evaluated, because iterating the method on this evaluation
 data would be post-hoc tuning of the kind the phase boundary closed.
 
@@ -48,15 +48,15 @@ winter months):
 - **DK → AU is bounded-harmful** (+32% RMSE; MBE −0.024 → −0.093). DK's
   pull-down factors (collapsed scalars 0.72–0.84) are the right medicine for
   DK's over-blown reanalysis and the wrong medicine for near-unbiased AU.
-- Degradation is graceful in both directions — bounded, sign-consistent, no
-  pathologies — a publishable negative result: correction factors encode a
+- Degradation is graceful in both directions (bounded, sign-consistent, no
+  pathologies), a publishable negative result: correction factors encode a
   region's specific reanalysis-bias fingerprint, not portable physics.
 
 ## What generalises (validated on this branch)
 
 - **The pipeline.** D1: the harness reproduces the legacy method bit-for-bit
-  (max abs diff 0.000e+00) on DK/DE/NL/FR — turbine-level, postcode-located,
-  and country-level joint-offset paths — against real curves and data, with
+  (max abs diff 0.000e+00) on DK/DE/NL/FR (turbine-level, postcode-located,
+  and country-level joint-offset paths) against real curves and data, with
   both methodology preconditions (PYVWF_INPUT honoured on both sides; main
   deterministic against itself) established first.
 - **Region-as-config.** Australia needed one observation adapter and one
@@ -69,7 +69,7 @@ winter months):
   registered-capacity masks (42/3,455 farm-months) keeping CF denominators
   clean. Verified fast path == slow path frame-identically.
 - **The evidence discipline.** Pre-specified gates; must-distinguish tests
-  (a check that cannot fail is not a check — see the pillar C re-scope,
+  (a check that cannot fail is not a check; see the pillar C re-scope,
   where the planned 0–360 wrap test was provably vacuous for AU and the
   lat-flip equivalence replaced it); conservative headline numbers with
   robustness analyses alongside (all-farms −10.9% as the claim, far-north
@@ -95,10 +95,10 @@ winter months):
 
 ## What a genuinely global method needs
 
-1. **A bias-structure diagnosis step** ahead of correction choice — level vs
+1. **A bias-structure diagnosis step** ahead of correction choice: level vs
    shape decomposition per region, from monthly aggregates.
-2. **Curtailment-aware observations** in high-penetration markets: SA — the
-   region carrying the AU finding — is the NEM's most curtailed, curtailment
+2. **Curtailment-aware observations** in high-penetration markets. SA (the
+   region carrying the AU finding) is the NEM's most curtailed, curtailment
    is seasonal, and resource bias vs curtailment-driven seasonality cannot
    be separated without semi-dispatch data. The tracking claim survives;
    attribution does not.
@@ -115,7 +115,7 @@ winter months):
 ## Open-questions triage (the once-only triage mandated at checkpoint 8)
 
 **Answered by this branch:** RQ1 in its practical form (where affine holds:
-level-dominated regions; its limit: shape-dominated ones — the central
+level-dominated regions; its limit: shape-dominated ones, the central
 result); RQ2's seasonal half (seasonal factors beat fixed on cycle tracking
 in AU; roughly tie in DK); the hemisphere/season design question (explicit
 month lists, adopted); the ERA5 longitude/lat-ordering hazards (closed with
@@ -128,15 +128,15 @@ ever run); Yawong (excluded, stated limitation); US/Brazil regions
 (deferred off-branch).
 
 **Open, with what unblocks each:** RQ4 country-level joint-offset
-identifiability (needs the synthetic-ground-truth experiment; untouched —
-D1 validated only reproduction); RQ2's directional half; RQ3 systematic
+identifiability (needs the synthetic-ground-truth experiment; untouched,
+since D1 validated only reproduction); RQ2's directional half; RQ3 systematic
 pooling curves (the DK-vs-DE postcode diagnostic from checkpoint 3 remains
 the cheap first probe); RQ6 formal synthetic-vs-real attribution (the
 dual-library run covers the demo-relevant content; the formal two-way
 comparison was not run); RQ7 hub-height/vintage covariates (blocked on
 height data; AU all-default heights make it impossible there today);
 curtailment separation in SA (needs semi-dispatch-cap data); the JOSS
-synthetic→open curve replacement (parked post-AU, checkpoint 19 — the
+synthetic→open curve replacement (parked post-AU, checkpoint 19, and the
 strongest candidate for immediate follow-up).
 
 ## Deliverables shipped

@@ -39,7 +39,7 @@ def cf_series(rng):
 
     A Weibull wind field passed through a synthetic power curve, plus a
     reanalysis-like over-dispersed copy and a mean-matching linear correction.
-    No external dependencies — used to exercise the plot functions.
+    No external dependencies. Used to exercise the plot functions.
     """
     n = 4000
 

@@ -32,7 +32,7 @@ def test_normalise_is_noop_for_minus180_180():
     original = _marked_dataset([-10.0, 0.0, 10.0])
     ds = _normalise_longitudes(original)
     # Frame-equality pin AND object identity: data already in [-180, 180]
-    # passes through untouched — not even a copy.
+    # passes through untouched, not even a copy.
     xr.testing.assert_identical(ds, original)
     assert ds is original
 
@@ -52,7 +52,7 @@ def test_slice_bbox_after_normalisation_finds_negative_lons():
 
 def test_prep_era5_respects_precomputed_wnd100m(tmp_path):
     """Pre-combined files carry wnd100m computed from HOURLY speeds; prep
-    must NOT overwrite it from (daily-mean) components — mean-of-speed and
+    must NOT overwrite it from (daily-mean) components: mean-of-speed and
     speed-of-mean differ, and the fixture distinguishes them."""
     times = pd.date_range("2019-01-01", periods=2, freq="D")
     lats, lons = np.array([50.0, 52.0]), np.array([5.0, 7.0])

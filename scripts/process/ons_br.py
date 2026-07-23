@@ -2,12 +2,12 @@
 """Build the ONSBrazilSource inputs from the ONS + ANEEL open data.
 
 Reads (all local, downloaded by the user; all open government data):
-    one or more ONS FATOR_CAPACIDADE CSVs (semicolon-delimited, UTF-8) —
+    one or more ONS FATOR_CAPACIDADE CSVs (semicolon-delimited, UTF-8):
         the hourly capacity-factor series; carries coordinates and installed
         capacity itself, so it is the metadata source too
-    (optional) ONS RESTRICAO_COFF_EOLICA CSVs — the constrained-off series,
+    (optional) ONS RESTRICAO_COFF_EOLICA CSVs: the constrained-off series,
         used to build the curtailment mask (2021+)
-    (optional) the ANEEL SIGA CSV (semicolon, latin-1) — commissioning dates
+    (optional) the ANEEL SIGA CSV (semicolon, latin-1): commissioning dates
         per plant, joined to ONS complexes through CEG
 
 Writes (under <out>, default input/observations/turbine/BR/):

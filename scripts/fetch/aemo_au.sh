@@ -4,7 +4,7 @@
 # USER-EXECUTED: downloads go through your connection, you run this yourself.
 # 48 months x 3 files: DISPATCH_UNIT_SCADA (~15-22 MB/month, per-DUID 5-min
 # SCADAVALUE), DUDETAILSUMMARY (~0.2 MB/month, effective-dated region and
-# dispatch type), and DUDETAIL (~0.1 MB/month — the table that actually
+# dispatch type), and DUDETAIL (~0.1 MB/month, the table that actually
 # carries effective-dated REGISTEREDCAPACITY, needed for the staged-
 # commissioning capacity mask; DUDETAILSUMMARY does NOT have capacity).
 # Total ~0.9 GB zipped. Resumable: existing complete files are skipped

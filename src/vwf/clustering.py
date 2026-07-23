@@ -116,7 +116,7 @@ def _cluster_coords(frame, geographic: bool):
     Brazil crosses the equator).
 
     Projecting onto the unit sphere makes Euclidean distance the CHORD length,
-    which is a monotone function of great-circle distance — so nearest-centroid
+    which is a monotone function of great-circle distance, so nearest-centroid
     assignment becomes geographically correct. It needs no reference latitude,
     so it stays valid over wide domains where a single cos(lat0) scaling would
     not.
@@ -154,7 +154,7 @@ def cluster_turbines(
             as hard as a 500 MW one even though skill is scored capacity-
             weighted. Weighting moves cluster boundaries toward where the
             capacity is. OFF by default: it is a modelling choice about whether
-            clusters represent METEOROLOGY (unweighted — bias is a property of
+            clusters represent METEOROLOGY (unweighted: bias is a property of
             location) or where the ENERGY is, and the two are not the same.
             Falls back to unweighted if the column is missing or carries no
             usable positive weights.
@@ -172,7 +172,7 @@ def cluster_turbines(
     # different local optimum per seed, and n_init=10 picks among those by
     # INERTIA, which does not track held-out skill. On the real DK fleet at a
     # fixed k=500, varying only the seed moved held-out MAE across
-    # 0.0514-0.0842 — a wider range than the whole k=10..1000 curve, so the
+    # 0.0514-0.0842, a wider range than the whole k=10..1000 curve, so the
     # k-sweep was measuring initialisation luck. k-means++ collapses that
     # spread to 0.0507-0.0513 and beats the luckiest random draw.
     kmeans = KMeans(

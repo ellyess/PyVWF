@@ -24,8 +24,8 @@ region config and the join report:
   installed capacity (``val_capacidadeinstalada``), the collector-substation
   coordinates, the name, and the subsystem/state. So the observation *and* the
   simulation metadata come from one file; ANEEL SIGA is optional enrichment
-  (commissioning date, turbine models via CEG), not on the critical path — and
-  the ONS ``ceg`` field is frequently ``-`` at conjunto level, which is exactly
+  (commissioning date, turbine models via CEG), not on the critical path. The
+  ONS ``ceg`` field is also frequently ``-`` at conjunto level, which is exactly
   the plant-vs-complex mapping problem SIGA would otherwise force.
 - **The CF denominator already tracks the build-out.** ONS computes
   ``val_fatorcapacidade`` against the *then-current* installed capacity, so a
@@ -36,7 +36,7 @@ region config and the join report:
 
 Curtailment is the headline scientific reason for this region (research doc
 §1): the constrained-off series lets us *separate curtailment from resource
-bias* by energy accounting — ``val_geracao`` is delivered, ``val_geracaolimitada``
+bias* by energy accounting: ``val_geracao`` is delivered, ``val_geracaolimitada``
 is constrained off, so the resource that the wind actually offered is their sum.
 Pre-2021 has no constrained-off series, so its CF carries unscreened curtailment
 (a documented caveat, and the Nordeste is where it bites hardest).
@@ -131,7 +131,7 @@ def monthly_cf_from_fc(
     """Aggregate the hourly ONS capacity factor to monthly means in UTC bins.
 
     The ONS ``val_fatorcapacidade`` is already a dimensionless CF per hour and
-    complex, so the monthly value is simply its mean over the month — no
+    complex, so the monthly value is simply its mean over the month, with no
     capacity arithmetic (that is baked into the ONS figure, against the
     then-current installed capacity). Months with less than ``min_coverage`` of
     their expected hourly samples are NaN rather than biased by a gap.
@@ -223,7 +223,7 @@ def curtailment_mask_months(
     A month is masked when its curtailed fraction exceeds ``threshold``: the ONS
     capacity factor there reflects constrained-off delivery, not the wind
     resource, and would pull the correction toward absorbing curtailment as if
-    it were reanalysis bias — the exact contaminant the research doc flags for
+    it were reanalysis bias: the exact contaminant the research doc flags for
     the Nordeste. This is the Brazil analogue of the AU registered-capacity
     mask: an explicit ``(ID, year, month)`` list the source sets to NaN.
 
@@ -249,7 +249,7 @@ def build_br_metadata(
 
     Capacity comes from the ONS installed capacity (MW → kW, the source
     contract unit). ``height``/``model`` are uniform defaults recorded in
-    ``*_source`` columns (ONS carries no hub height or turbine model — the
+    ``*_source`` columns (ONS carries no hub height or turbine model; the
     vintage-aware assignment is the same named follow-up as AU/US). Commissioning
     is joined from ``commissioning`` (e.g. earliest SIGA operating date per
     complex) when provided, else left NaT.

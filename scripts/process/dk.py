@@ -15,7 +15,7 @@ The pure transforms live in ``vwf.datasets.process_dk_raw_data`` (the header
 rows, the UTM->lon/lat conversion, the per-year sheet reshaping); this is the
 thin CLI over them, matching the other ``scripts/process/<region>.py`` entry
 points. Unlike the other regions Denmark keeps its shared ``european-turbine``
-adapter (DK/DE/UK) — this only produces its input files.
+adapter (DK/DE/UK); this only produces its input files.
 """
 import argparse
 import sys
@@ -46,13 +46,13 @@ def main() -> None:
     if not args.observations_only:
         src = args.in_dir / ANLAEG
         if not src.is_file():
-            sys.exit(f"{src} not found — run scripts/fetch/dk.py first.")
+            sys.exit(f"{src} not found; run scripts/fetch/dk.py first.")
         process_dk_metadata(src, args.out_dir / "dk_md.csv", verbose=True)
 
     if not args.metadata_only:
         src = args.in_dir / MAANEDSDATA
         if not src.is_file():
-            sys.exit(f"{src} not found — run scripts/fetch/dk.py first.")
+            sys.exit(f"{src} not found; run scripts/fetch/dk.py first.")
         process_dk_monthly_observations(
             src, args.out_dir / "dk_obs_2002_2020.csv", verbose=True)
 

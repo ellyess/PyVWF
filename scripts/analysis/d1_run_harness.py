@@ -11,7 +11,7 @@ directory, then diff with scripts/analysis/d1_regression.py.
         --test-year 2020 --clusters 1 10 --time-res fixed season \\
         --bbox 7.5 13.5 54.0 58.2 --out <run-dir>
 
-Builds a RegionSpec in-memory (NH seasons — D1 is European regions only),
+Builds a RegionSpec in-memory (NH seasons; D1 is European regions only),
 runs driver.run_train + run_evaluate, and flattens factors_<slice>_<n>.csv
 and cor_cf_<slice>_<n>.csv (+ unc_cf, harness_metrics) into --out.
 """

@@ -12,11 +12,11 @@ What it fetches (the canonical "Stamdataregister for vindkraftanlæg" /
 Master data register of wind turbines, from ens.dk's energy-sector data page
 https://ens.dk/en/analyses-and-statistics/overview-energy-sector):
 
-    anlaeg.xlsx                 master data register — one row per turbine
+    anlaeg.xlsx                 master data register: one row per turbine
         (GSRN id, connection date, capacity kW, rotor diameter, hub height,
          X/Y coordinates, manufacturer/model), split across an
          "existing"/"decommissioned" sheet pair. Header on row 9.
-    maanedsdata_2002_2020.xlsx  monthly production to grid — one sheet per
+    maanedsdata_2002_2020.xlsx  monthly production to grid: one sheet per
         year (``Månedsprod_<year>``, 2002-2020), kWh per turbine per month.
         Header on row 7. (ens.dk serves this under the stale filename
         ``maanedsdata_2002_2017.xlsx``, but the workbook carries all 19 years
@@ -27,7 +27,7 @@ Then reduce them to the adapter's CSVs:
     python scripts/process/dk.py          # -> dk_md.csv, dk_obs_2002_2020.csv
 
 VINTAGE. These are stable ens.dk media URLs pointing at the register snapshot
-taken ultimo January 2022 — the exact files the Denmark validation was built
+taken ultimo January 2022: the exact files the Denmark validation was built
 on, so this reproduces committed results bit-for-bit. The *monthly production*
 history (2002-2020) is a fixed historical dataset. The *master data register*
 is refreshed monthly under a NEW media id each time; to pull a newer master
@@ -100,7 +100,7 @@ def main() -> None:
         try:
             download(url, path)
             print(f"    {path.stat().st_size / 1e6:.1f} MB", flush=True)
-        except Exception as exc:  # noqa: BLE001 — report and continue
+        except Exception as exc:  # noqa: BLE001 (report and continue)
             failures.append((url, str(exc)))
             print(f"    FAILED: {exc}", flush=True)
 

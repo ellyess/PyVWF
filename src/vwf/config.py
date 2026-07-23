@@ -173,7 +173,7 @@ class BoundingBoxes:
         "PT": (-9.5, -6.2, 37.0, 42.2),   # Portugal
         "IE": (-10.5, -5.4, 51.4, 55.4),  # Ireland
         # Multi-region expansion: contiguous US (CONUS). Alaska and Hawaii are
-        # excluded — a separate, antimeridian-crossing box would be needed for
+        # excluded: a separate, antimeridian-crossing box would be needed for
         # AK, and the EIA-923 wind fleet is overwhelmingly CONUS.
         "US": (-125.0, -66.0, 24.0, 50.0),
         # Brazil: whole country (crosses the equator). The wind fleet is

@@ -33,7 +33,7 @@ def test_normalise_is_noop_for_minus180_180():
     original = _marked_dataset([-10.0, 0.0, 10.0])
     ds = _normalise_longitudes(original)
     # Frame-equality pin AND object identity: data already in [-180, 180]
-    # passes through untouched — not even a copy.
+    # passes through untouched, not even a copy.
     xr.testing.assert_identical(ds, original)
     assert ds is original
 

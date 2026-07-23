@@ -1,6 +1,6 @@
 """Packaging invariants: one version, semantically formatted, no drift.
 
-``vwf.__version__`` is the single source of truth — ``pyproject.toml`` reads it
+``vwf.__version__`` is the single source of truth; ``pyproject.toml`` reads it
 dynamically. ``CITATION.cff`` cannot, so it is the one place a stale version can
 hide; these tests fail loudly when it drifts.
 
@@ -46,7 +46,7 @@ def test_version_is_semver():
 
 
 def test_pyproject_reads_version_from_package(pyproject):
-    """The version must not be duplicated into pyproject — it must be derived."""
+    """The version must not be duplicated into pyproject; it must be derived."""
     project = pyproject["project"]
     assert "version" not in project, (
         "pyproject.toml hard-codes a version; it should stay dynamic so "

@@ -17,11 +17,12 @@ Once you can run the quickstart, work through these in order:
 
 | # | Document | What it covers |
 |---|----------|----------------|
-| 1 | [Data requirements](DATA_REQUIREMENTS.md) | The input files PyVWF expects and how to obtain the ERA5 winds. |
-| 2 | [Data pipeline](DATA_PIPELINE.md) | How turbine-level and country-level data flow through the model. |
-| 3 | [Training guide](TRAINING_GUIDE.md) | Configuring and running bias-correction training across countries and resolutions. |
-| 4 | [Output structure](OUTPUT_STRUCTURE.md) | The layout of a run directory and the files each run produces. |
-| 5 | [ENTSO-E API guide](ENTSOE_API_GUIDE.md) | Fetching national generation data for the country-level workflow. |
+| 1 | [Data requirements](guides/DATA_REQUIREMENTS.md) | The input files PyVWF expects and how to obtain the ERA5 winds. |
+| 1a | [Data sources](guides/DATA_SOURCES.md) | Every observation/ERA5/coordinate source per region, with URLs, licences, and the fetch/process scripts. |
+| 2 | [Data pipeline](guides/DATA_PIPELINE.md) | How turbine-level and country-level data flow through the model. |
+| 3 | [Training guide](guides/TRAINING_GUIDE.md) | Configuring and running bias-correction training across countries and resolutions. |
+| 4 | [Output structure](guides/OUTPUT_STRUCTURE.md) | The layout of a run directory and the files each run produces. |
+| 5 | [ENTSO-E API guide](guides/ENTSOE_API_GUIDE.md) | Fetching national generation data for the country-level workflow. |
 
 For the end-to-end script execution order, see
 [PIPELINE.md](../PIPELINE.md) at the repository root.
@@ -29,7 +30,7 @@ For the end-to-end script execution order, see
 ## Reference by task
 
 - **I want to run PyVWF on turbine data.** Read the [README quickstart](../README.md#quickstart),
-  then [Data requirements](DATA_REQUIREMENTS.md) and [Training guide](TRAINING_GUIDE.md).
-- **I want national (country-level) corrections.** Read [Data pipeline](DATA_PIPELINE.md)
-  and [ENTSO-E API guide](ENTSOE_API_GUIDE.md), then [Training guide](TRAINING_GUIDE.md).
-- **I want to understand a run's outputs.** Read [Output structure](OUTPUT_STRUCTURE.md).
+  then [Data requirements](guides/DATA_REQUIREMENTS.md) and [Training guide](guides/TRAINING_GUIDE.md).
+- **I want national (country-level) corrections.** Read [Data pipeline](guides/DATA_PIPELINE.md)
+  and [ENTSO-E API guide](guides/ENTSOE_API_GUIDE.md), then [Training guide](guides/TRAINING_GUIDE.md).
+- **I want to understand a run's outputs.** Read [Output structure](guides/OUTPUT_STRUCTURE.md).

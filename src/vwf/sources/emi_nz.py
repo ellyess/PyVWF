@@ -3,7 +3,7 @@
 The unit of observation is the **farm** (``obs_unit = "farm"``): EMI's
 ``Generation_MD`` dataset reports metered half-hourly grid injection per
 generating plant, and the processing step aggregates a farm's units onto one
-series — the same design as the AU (farm/DUID), US (plant), and BR (complex)
+series, the same design as the AU (farm/DUID), US (plant), and BR (complex)
 adapters, where the mechanical ``obs_level`` stays "turbine".
 
 Decisions baked into the finalisation, documented in the region config:
@@ -11,7 +11,7 @@ Decisions baked into the finalisation, documented in the region config:
 - **UTC bins from NZ trading periods.** EMI trading periods are New Zealand
   civil time with DST (46/48/50 periods per day); the processing step maps
   them to UTC through ``Pacific/Auckland`` before anything is binned, matching
-  the ERA5/simulation convention — ``time_convention = "utc-monthly-bins"``.
+  the ERA5/simulation convention: ``time_convention = "utc-monthly-bins"``.
 - **Then-current capacity denominator.** Monthly CF is computed against the
   farm's effective-dated registered capacity from the EMI plant register (the
   ONS-style denominator), so staged builds (Turitea, Harapaki) are not biased
@@ -21,7 +21,7 @@ Decisions baked into the finalisation, documented in the region config:
   hub heights; the curated farm table (``configs/curation/nz_wind_farms.csv``, with
   per-farm provenance) supplies coordinates, capacity, turbine model, and hub
   height. The fleet is ~20 farms, which is what makes hand-compilation viable
-  — and makes NZ one of the few regions outside Europe with per-farm hub
+  and makes NZ one of the few regions outside Europe with per-farm hub
   heights.
 """
 from __future__ import annotations
@@ -82,8 +82,8 @@ class EMINewZealandSource(ObservationSource):
         Joined from the curated farm table (``configs/curation/nz_wind_farms.csv``)
         and the EMI plant register.
     ``nz_obs.csv``
-        Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12``
-        — monthly mean CF in UTC bins against then-current registered
+        Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12``.
+        Monthly mean CF in UTC bins against then-current registered
         capacity, coverage-screened, as written by the processing step from
         the half-hourly ``Generation_MD`` melt.
     ``nz_build_mask.csv`` (optional)
@@ -118,7 +118,7 @@ class EMINewZealandSource(ObservationSource):
             raise FileNotFoundError(
                 f"EMI-NZ farm metadata not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step — docs/RUNBOOK_NZ.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/NZ.md)."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -144,7 +144,7 @@ class EMINewZealandSource(ObservationSource):
             raise FileNotFoundError(
                 f"EMI-NZ observations not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step — docs/RUNBOOK_NZ.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/NZ.md)."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

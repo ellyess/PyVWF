@@ -2,13 +2,13 @@
 """Fetch the open UK wind-farm data (REPD) and guide the Ofgem ROC export.
 
 USER-EXECUTED. The UK region has two observed-source components, with very
-different reproducibility (see docs/RUNBOOK_UK.md for the full story):
+different reproducibility (see docs/runbooks/UK.md for the full story):
 
-  METADATA — auto-downloadable. The Renewable Energy Planning Database (REPD,
+  METADATA: auto-downloadable. The Renewable Energy Planning Database (REPD,
   Open Government Licence) from gov.uk gives per-site location, capacity, and
   turbine count for every operational UK wind farm. This script downloads it.
 
-  OBSERVATIONS — NOT auto-downloadable. Per-station monthly ROC issuance lives
+  OBSERVATIONS: NOT auto-downloadable. Per-station monthly ROC issuance lives
   only in Ofgem's Renewable Electricity Register (rer.ofgem.gov.uk), behind a
   gated, form-driven export (the login-free historical bulk file is
   technology-aggregate only, no per-station data). This script CANNOT fetch it;
@@ -35,9 +35,9 @@ REPD_PUBLICATION = (
     "renewable-energy-planning-database-quarterly-extract"
 )
 ROC_STEPS = """\
-Ofgem ROC issuance (per-station monthly) — MANUAL, then process:
+Ofgem ROC issuance (per-station monthly), MANUAL, then process:
   1. Go to the Renewable Electricity Register public reports:
-     https://rer.ofgem.gov.uk/  (View Public Reports — no login), or email
+     https://rer.ofgem.gov.uk/  (View Public Reports, no login), or email
      renewable.enquiry@ofgem.gov.uk for the current public-report access link.
   2. Export the "Certificates / ROCs issued" report for the Renewables
      Obligation scheme, filtered to wind, for your output-period window.
@@ -64,7 +64,7 @@ def find_repd_csv() -> str:
         r"REPD_publication_[^\"'\s]+\.csv", html)
     if not urls:
         sys.exit("could not find a REPD CSV link on the publication page; the "
-                 f"page layout may have changed — check {REPD_PUBLICATION}")
+                 f"page layout may have changed; check {REPD_PUBLICATION}")
     return sorted(set(urls))[-1]
 
 

@@ -11,19 +11,19 @@ CEN JSON; file I/O lives in the script.
 The unit of observation is the **plant** (``obs_unit = "plant"``): CEN's SIP
 service reports generation per *central* (``id_central``), and the generation
 rows carry the plant name, owner, technology, and ``potencia_maxima`` (the
-plant's maximum power, MW) — so the fleet and its capacities come from the
+plant's maximum power, MW), so the fleet and its capacities come from the
 generation stream itself, exactly as Brazil's ONS ``FATOR_CAPACIDADE`` is
 self-contained. What CEN does NOT expose anywhere is coordinates (the
 ``/centrales`` and Infotécnica registries advertise UTM fields but leave them
 blank), so lon/lat must be joined from the Global Wind Power Tracker.
 
 Two facts about the CEN series shape the design, verified against the real
-2021-2024 data (docs/RUNBOOK_CL.md):
+2021-2024 data (docs/runbooks/CL.md):
 
 - **Fixed offset, no DST.** ``fecha_hora`` runs a clean 24 hours every day,
   including Chile's 2024 spring-forward (7 Sep 2024 has 24 rows, not 23), so
   CEN publishes in fixed Chilean standard time, not civil ``America/Santiago``.
-  The conversion to UTC is therefore a single fixed shift with no DST branch —
+  The conversion to UTC is therefore a single fixed shift with no DST branch,
   simpler than the AEMO/EMI cases. The offset value (UTC-4 continental
   standard) is immaterial to a monthly mean, which spans ~720 hours; it only
   moves a few edge hours across month boundaries, and it is applied only to
@@ -68,8 +68,8 @@ def wind_rows(gen: pd.DataFrame) -> pd.DataFrame:
     """Select the wind rows of a CEN generation frame, accent/case tolerant.
 
     Matched on the exact technology label lower-cased. A substring test on
-    ``"lica"`` would also catch ``"Hidráulica"`` — the overcount trap the Chile
-    verification hit — so this is an equality test, not ``contains``.
+    ``"lica"`` would also catch ``"Hidráulica"`` (the overcount trap the Chile
+    verification hit), so this is an equality test, not ``contains``.
     """
     tipo = gen["tipo_tecnologia"].astype(str).str.strip().str.lower()
     return gen[tipo == WIND].copy()
@@ -168,7 +168,7 @@ def strip_commissioning_prefix(
 
     ``potencia_maxima`` is the full nameplate from the first row, but CEN
     reports pre-commissioning months as ~0 MW, so those months have monthly CF
-    near zero and are NOT resource signal — the static-nameplate ramp trap the
+    near zero and are NOT resource signal: the static-nameplate ramp trap the
     AU and US adapters guard against. This strips the leading run of months
     with CF below ``threshold`` (per plant, up to its first operational month);
     later sub-threshold months are KEPT, since after commissioning a near-zero
@@ -178,7 +178,7 @@ def strip_commissioning_prefix(
     This does NOT touch curtailment in operational months. The CEN
     ``gen_real_mw`` is *delivered* energy, and Chile's northern grid curtails
     wind heavily ("vertimiento"), so the observed CF understates the resource
-    where curtailment bites — the same standing caveat as Brazil's Nordeste.
+    where curtailment bites: the same standing caveat as Brazil's Nordeste.
     Screening that needs a CEN wind-curtailment series (not wired here).
 
     Args:
@@ -219,7 +219,7 @@ def build_cl_metadata(
     curated frame of ``ID``, ``lon``, ``lat`` built from the Global Wind Power
     Tracker in the processing step). ``height``/``model`` are uniform defaults
     recorded in ``*_source`` columns (CEN carries no hub height or turbine
-    model — the same vintage-aware follow-up as AU/BR/US).
+    model: the same vintage-aware follow-up as AU/BR/US).
 
     A plant that survives to here with no coordinate is a hard error, not a
     silent drop: without lon/lat it would be simulated at the wrong location or
@@ -251,7 +251,7 @@ def build_cl_metadata(
             f"{len(missing)} Chile wind plants have no coordinate after the "
             f"GWPT join and are not in the exclude list: "
             f"{missing['site_name'].tolist()[:10]}. Add them to the coordinate "
-            "override table or the exclude list — never leave a plant "
+            "override table or the exclude list; never leave a plant "
             "coordinate-less, it would be mis-located silently."
         )
     md = md[md["lon"].notna() & md["lat"].notna()].copy()

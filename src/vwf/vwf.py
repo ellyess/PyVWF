@@ -224,7 +224,7 @@ class PyVWF:
         """Best-effort provenance manifest for legacy runs (never aborts).
 
         Records which curve library produced this run's outputs (design §6).
-        Every failure path — including the harness import itself — degrades
+        Every failure path (including the harness import itself) degrades
         to a warning: provenance is diagnostic, not load-bearing.
         """
         try:

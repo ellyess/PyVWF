@@ -2,7 +2,7 @@
 """Fetch the EMI (NZ Electricity Authority) open data for the NZ region.
 
 USER-EXECUTED. Downloads are yours to run, like every other download on this
-project. No registration or credentials are needed — EMI datasets are plain
+project. No registration or credentials are needed: EMI datasets are plain
 public CSV downloads (each URL 302-redirects to an open Azure blob):
 
     python scripts/fetch/emi_nz.py             # 2019-2024 + plant register
@@ -32,7 +32,7 @@ where <input-root> is $PYVWF_INPUT if set, else ./input.
 
 Downloads are resumable: existing files are skipped, partial downloads land
 in a .part file and are renamed only on success. EMI notes Generation_MD will
-eventually be superseded by a richer dataset — if a fetch 404s across the
+eventually be superseded by a richer dataset; if a fetch 404s across the
 board, check the dataset page.
 """
 import argparse
@@ -74,7 +74,7 @@ def latest_register_name() -> str:
     if not names:
         raise RuntimeError(
             f"no *_DispatchedGenerationPlant.csv links found at {REGISTER_DIR}; "
-            "the dataset may have moved — check the EMI page."
+            "the dataset may have moved; check the EMI page."
         )
     return names[-1]
 
@@ -113,7 +113,7 @@ def main() -> None:
         print(f"[{i}/{len(todo)}] {path.name}", flush=True)
         try:
             download(url, path)
-        except Exception as exc:  # noqa: BLE001 — report and continue
+        except Exception as exc:  # noqa: BLE001; report and continue
             failures.append((url, str(exc)))
             print(f"    FAILED: {exc}", flush=True)
 

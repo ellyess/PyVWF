@@ -109,7 +109,7 @@ def main() -> None:
     wind_duids = set(metadata["ID"])
     archives = sorted(raw.glob("scada/PUBLIC_DVD_DISPATCH_UNIT_SCADA_*.zip"))
     if not archives:
-        print(f"No SCADA archives under {raw}/scada — metadata written, "
+        print(f"No SCADA archives under {raw}/scada: metadata written, "
               "partials skipped.", file=sys.stderr)
     partials = []
     for i, archive in enumerate(archives, 1):
@@ -142,7 +142,7 @@ def main() -> None:
               f"({dict(mask['reason'].value_counts())}); "
               f"DUIDs without capacity history (static nameplate kept): {len(no_hist)}")
     elif combined is not None:
-        print("No DUDETAIL archives found — capacity mask SKIPPED; observed CFs "
+        print("No DUDETAIL archives found: capacity mask SKIPPED; observed CFs "
               "carry staged-commissioning bias.", file=sys.stderr)
 
     # --- join report ----------------------------------------------------------

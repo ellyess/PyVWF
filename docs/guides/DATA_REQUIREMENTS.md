@@ -2,8 +2,8 @@
 
 This reference lists the input data PyVWF expects. For the full download and
 directory-layout guide, see the **Input data** section of the top-level
-[README](../README.md#input-data), which this page complements. Paths are
-defined centrally in [`src/vwf/config.py`](../src/vwf/config.py) (`PyVWFPaths`).
+[README](../../README.md#input-data), which this page complements. Paths are
+defined centrally in [`src/vwf/config.py`](../../src/vwf/config.py) (`PyVWFPaths`).
 
 ## Required inputs
 

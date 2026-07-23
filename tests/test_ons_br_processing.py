@@ -1,7 +1,7 @@
 """Brazil (ONS) processing: FC reshape, complex metadata, curtailment account.
 
 All fixtures are synthetic; real ONS/ANEEL acquisition is Phase 2. The FC
-timestamps are Brasília-labelled on purpose — the UTC conversion is part of the
+timestamps are Brasília-labelled on purpose: the UTC conversion is part of the
 contract under test, not an implementation detail.
 """
 import numpy as np
@@ -63,7 +63,7 @@ def test_monthly_cf_is_mean_of_hourly():
 
 def test_monthly_bins_are_utc_not_brasilia():
     """A single hour at 23:00 Brasília on 30 June is 01 July 02:00 UTC and must
-    land in JULY. Binning in local time would put it in June — distinguishable
+    land in JULY. Binning in local time would put it in June, distinguishable
     on this fixture (mirrors the AU market-time test)."""
     fc = fc_hours("CJU_A", "2023-06-30 23:00", "2023-07-01 00:00", 1.0)
     wide = monthly_cf_from_fc(fc, 2023, 2023, min_coverage=0.0)

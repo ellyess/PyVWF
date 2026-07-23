@@ -8,7 +8,7 @@ a command line, a settings file, or this repository:
     python scripts/fetch/cen_cl.py --probe          # verification, writes nothing
     python scripts/fetch/cen_cl.py --years 2015 2024
 
-Verified against the live API on 2026-07-22 (docs/RUNBOOK_CL.md records the
+Verified against the live API on 2026-07-22 (docs/runbooks/CL.md records the
 full endpoint map). The facts that cost time to discover, so they are pinned
 here rather than rediscovered:
 
@@ -23,7 +23,7 @@ here rather than rediscovered:
 - **Responses wrap results in `data`** (the Infotécnica resources use
   `results` with `count`/`next`), not the `content` the schema suggests.
 - **`tipoTecnologia` must be `Eólica`, accented.** `Eolica` silently returns
-  an empty list rather than erroring — a trap that reads like "no data".
+  an empty list rather than erroring: a trap that reads like "no data".
 - **Plant metadata rides along with the generation rows** (`id_central`,
   `central`, `propietario`, `potencia_maxima`, `tipo_tecnologia`), so the
   fleet is derived from the generation stream. Neither `/centrales/v4` nor
@@ -102,7 +102,7 @@ def get(path: str, params: dict, *, timeout: int = 300) -> dict:
             # Never echo the URL: it carries the key.
             sys.exit(
                 f"HTTP {exc.code} on {path}: {body}\n"
-                "(502 here usually means page/limit were sent — omit them; "
+                "(502 here usually means page/limit were sent; omit them; "
                 "429 means the backoff schedule was exhausted, so re-run: "
                 "completed months are skipped.)"
             )
@@ -148,7 +148,7 @@ def fetch_day(date: str, *, page_size: int = 20000) -> list:
     if total_pages > 1:
         raise RuntimeError(
             f"{date}: response reports {total_pages} pages but this endpoint "
-            "502s on `page` — raise page_size rather than truncating."
+            "502s on `page`; raise page_size rather than truncating."
         )
     return rows(payload)
 
@@ -160,7 +160,7 @@ def probe() -> None:
 
     day = fetch_day("2024-06-01")
     if not day:
-        sys.exit("no wind rows for 2024-06-01 — is the key for the SIP plan?")
+        sys.exit("no wind rows for 2024-06-01: is the key for the SIP plan?")
     plants = {r["id_central"] for r in day}
     print(f"2024-06-01: {len(day)} wind rows, {len(plants)} plants, "
           f"{len({r.get('hora') for r in day})} hours")
@@ -194,8 +194,8 @@ def probe() -> None:
     print("\n" + "=" * 70)
     print("Coordinates are NOT in the API: join the Global Wind Power Tracker.")
     print("fecha_hora is Chilean civil time (America/Santiago observes DST) and")
-    print("hora is 1-24 where hora N starts at (N-1):00 — confirm before the")
-    print("adapter bins to UTC. See docs/RUNBOOK_CL.md.")
+    print("hora is 1-24 where hora N starts at (N-1):00; confirm before the")
+    print("adapter bins to UTC. See docs/runbooks/CL.md.")
     print("=" * 70)
 
 

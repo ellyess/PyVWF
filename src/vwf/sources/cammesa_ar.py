@@ -2,7 +2,7 @@
 
 The unit of observation is the **plant** (``obs_unit = "plant"``): CAMMESA
 reports generated energy per *central*, one row per plant per month, already
-at the monthly resolution PyVWF trains on — the processing step only converts
+at the monthly resolution PyVWF trains on; the processing step only converts
 energy (GWh) to capacity factor against a GWPT-joined capacity. There is no
 sub-hourly reshaping, timezone, or DST handling, so this is the simplest of
 the adapters; the complexity all lives in the coordinate/capacity join.
@@ -47,8 +47,8 @@ class CAMMESAArgentinaSource(ObservationSource):
         (``height_source``, ``model_source``, ``site_name``, ``region``,
         ``provincia``).
     ``ar_obs.csv``
-        Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12`` —
-        monthly CF (GWh against GWPT capacity), commissioning prefix stripped.
+        Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12``.
+        Monthly CF (GWh against GWPT capacity), commissioning prefix stripped.
     """
 
     name: ClassVar[str] = "cammesa-ar"
@@ -77,7 +77,7 @@ class CAMMESAArgentinaSource(ObservationSource):
             raise FileNotFoundError(
                 f"CAMMESA-AR plant metadata not found at {path}. This adapter "
                 "reads pre-processed files; see the class docstring for the "
-                "schema (data acquisition is user-executed — docs/RUNBOOK_AR.md)."
+                "schema (data acquisition is user-executed: docs/runbooks/AR.md)."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -103,7 +103,7 @@ class CAMMESAArgentinaSource(ObservationSource):
             raise FileNotFoundError(
                 f"CAMMESA-AR observations not found at {path}. This adapter "
                 "reads pre-processed files; see the class docstring for the "
-                "schema (data acquisition is user-executed — docs/RUNBOOK_AR.md)."
+                "schema (data acquisition is user-executed: docs/runbooks/AR.md)."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

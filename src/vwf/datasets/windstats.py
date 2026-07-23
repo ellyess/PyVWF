@@ -9,7 +9,7 @@ joined from the open Global Wind Power Tracker (CC-BY-4.0), so Spain is a
 
 WindStats gives, per country, a metadata table, a monthly-generation table, and
 a `geolocate.<country>.csv` that maps the WindStats id/name (`ws`) to a
-thewindpower.net farm name (`twp`) — but NOT coordinates. Coordinates come from
+thewindpower.net farm name (`twp`), but NOT coordinates. Coordinates come from
 matching `twp` to a coordinate source:
 
 - **Spain**: GWPT covers the Spanish fleet well, so `twp` is fuzzy-matched to
@@ -94,7 +94,7 @@ def windstats_monthly_cf(
     capacity are dropped.
 
     Args:
-        data: WindStats generation — ``ID``, ``Year``, ``Month``, ``Output``.
+        data: WindStats generation: ``ID``, ``Year``, ``Month``, ``Output``.
         capacity: ``ID`` -> ``capacity`` (kW).
         year_start, year_end: Inclusive year bounds.
 
@@ -139,7 +139,7 @@ def match_twp_to_coords(
 
     Returns:
         ``ws``, ``lon``, ``lat``, ``matched_name`` for the matched rows only
-        (unmatched ``ws`` are absent — the processor reports them).
+        (unmatched ``ws`` are absent; the processor reports them).
     """
     c = coords.copy()
     c["_n"] = c[coord_name_col].map(_norm)
@@ -192,7 +192,7 @@ def build_windstats_metadata(
         raise ValueError(
             f"{len(bad)} WindStats turbines ({bad['link'].nunique()} farms) have "
             "no coordinate after the twp->coords match and are not excluded. "
-            "Add their farms to the coordinate table or the exclude list — never "
+            "Add their farms to the coordinate table or the exclude list; never "
             "leave a turbine coordinateless (it would be mis-located)."
         )
     md = md[md["lon"].notna() & md["lat"].notna()

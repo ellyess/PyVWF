@@ -73,7 +73,7 @@ changes the numbers the evaluation layer reports.
   `InMemoryCountrySource` for caller-supplied frames. `train_set` and `val_set`
   take a `source=` argument; the existing `external_grid_points` /
   `external_obs_data` arguments still work and are wrapped automatically. See
-  [docs/ADDING_AN_OBSERVATION_SOURCE.md](docs/ADDING_AN_OBSERVATION_SOURCE.md).
+  [docs/guides/ADDING_AN_OBSERVATION_SOURCE.md](docs/guides/ADDING_AN_OBSERVATION_SOURCE.md).
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:

@@ -3,7 +3,7 @@
 `cluster_turbines` feeds every downstream correction factor, so if its
 partition depends on the KMeans seed then held-out skill does too. Measured on
 the real DK fleet at a FIXED k=500, varying only the seed moved MAE across
-0.0514-0.0842 — a wider range than the entire k=10..1000 curve. The k-sweeps
+0.0514-0.0842, a wider range than the entire k=10..1000 curve. The k-sweeps
 were measuring which local optimum KMeans fell into, not k.
 
 These tests pin the property that matters: same data, same k, same partition.
@@ -19,7 +19,7 @@ SEEDS = (0, 1, 7, 42)
 
 
 def _blobs(n_blobs=40, per_blob=5, spread=0.02, seed=0):
-    """Tight, well-separated blobs — the partition is unambiguous.
+    """Tight, well-separated blobs: the partition is unambiguous.
 
     Any competent initialisation recovers exactly these blobs, so a seed
     dependence here is initialisation luck, not genuine ambiguity in the data.
@@ -88,7 +88,7 @@ def _capacity_gradient(n=21):
 
 
 def _lowest_lat_of_top_cluster(df, labels):
-    """Latitude at which the highest cluster begins — i.e. the split point."""
+    """Latitude at which the highest cluster begins, i.e. the split point."""
     top = labels[np.argmax(df["lat"].to_numpy())]
     return df["lat"].to_numpy()[labels == top].min()
 
@@ -135,7 +135,7 @@ def _square_km_grid(lat0=50.0, half_km=60.0, n=7):
     At 50N a degree of longitude is ~71 km against ~111 km for latitude, so a
     square in kilometres spans MORE degrees of longitude than of latitude
     (1.677 vs 1.085). In degree space it therefore looks like a wide rectangle,
-    and k-means splits it across longitude — an artefact of the units, since
+    and k-means splits it across longitude, an artefact of the units, since
     the region is square on the ground.
     """
     km_per_deg_lat = 110.574
@@ -165,7 +165,7 @@ def test_degree_space_splits_a_square_along_the_wrong_axis():
     """Must-distinguish: the units, not the geography, decide the split.
 
     The fixture is square on the ground. At 50N degree space stretches it in
-    longitude (1.677 deg vs 1.085 deg), so k=2 cuts it across LONGITUDE — a
+    longitude (1.677 deg vs 1.085 deg), so k=2 cuts it across LONGITUDE: a
     pure artefact. Clustering on the sphere removes the stretch, and the two
     partitions must differ, which a no-op transform could not produce.
     """
@@ -206,7 +206,7 @@ def test_predict_path_is_stable_across_seeds(k):
     seed-dependent, factors attach to the wrong turbines.
 
     The fixture uses ``n_blobs == k`` deliberately. Asking for FEWER clusters
-    than there are blobs is genuinely ambiguous — which blobs share a cluster
+    than there are blobs is genuinely ambiguous: which blobs share a cluster
     is arbitrary, so seeds may legitimately disagree and a stability assertion
     would be testing the data, not the initialisation.
     """

@@ -13,13 +13,13 @@ raw WindStats layout directly:
                             German postcode), Manufacturer, kW, Rotor..m.,
                             Tower..m., plus quarterly snapshot columns.
     geolocate.germany.csv   postcode -> lon/lat (this is why DE needs no
-                            external coordinate source — the postcode in the
+                            external coordinate source: the postcode in the
                             id geolocates it).
     DE_data.csv             monthly generation: ID, Year, Month, Output (kWh),
                             Downtime.
 
 So "processing" Germany is validating those three files and staging them into
-input/observations/turbine/DE/ (the format the adapter already consumes) — this
+input/observations/turbine/DE/ (the format the adapter already consumes); this
 script makes that reproducible and checks the schema, rather than a silent
 manual copy.
 
@@ -51,7 +51,7 @@ def main() -> None:
     args = ap.parse_args()
 
     print("=" * 70)
-    print("⚠  CONFIDENTIAL WindStats (Germany) — commercial, not redistributable.")
+    print("⚠  CONFIDENTIAL WindStats (Germany): commercial, not redistributable.")
     print("=" * 70)
     src = Path(args.src)
     problems = []

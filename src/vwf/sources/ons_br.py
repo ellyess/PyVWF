@@ -3,7 +3,7 @@
 The unit of observation is the **complex** (``obs_unit = "complex"``): ONS
 publishes wind at the *conjunto de usinas* level, one hourly capacity-factor
 series per ``id_ons``. That is the natural ONS unit and the one its capacity
-factor is defined against — the same design as the AU (farm) and US (plant)
+factor is defined against, the same design as the AU (farm) and US (plant)
 adapters, where the mechanical ``obs_level`` stays "turbine".
 
 Decisions baked into the finalisation, documented in the region config:
@@ -11,7 +11,7 @@ Decisions baked into the finalisation, documented in the region config:
 - **UTC bins from Brasília time.** ONS ``din_instante`` is Brasília civil time,
   fixed UTC-3 over the usable window (no DST since 2019; the Nordeste fleet
   never observed it). It is converted to UTC before binning, matching the
-  ERA5/simulation convention — recorded as ``time_convention =
+  ERA5/simulation convention, recorded as ``time_convention =
   "utc-monthly-bins"``. For a monthly-mean target the shift only moves a few
   edge hours, but the convention is kept consistent across regions.
 - **Curtailment screening is a first-class option.** The Nordeste is heavily
@@ -20,7 +20,7 @@ Decisions baked into the finalisation, documented in the region config:
   constrained-off series is available (2021+), a curtailment mask (built by
   ``vwf.datasets.ons_br.curtailment_mask_months``) sets the affected months to
   NaN so the correction is not fitted to absorb curtailment as reanalysis bias.
-  Pre-2021 has no such series and its CF carries unscreened curtailment — a
+  Pre-2021 has no such series and its CF carries unscreened curtailment: a
   standing caveat.
 """
 from __future__ import annotations
@@ -53,7 +53,7 @@ def fc_to_monthly_cf(
     Thin finalisation over :func:`vwf.datasets.ons_br.monthly_cf_from_fc`: the
     pure monthly aggregation, then the curtailment screen. Kept here (source
     layer) rather than in the pure transform so the datasets module stays policy
-    free — the same split as the AU adapter's capacity mask.
+    free: the same split as the AU adapter's capacity mask.
 
     Args:
         fc: Hourly wind FC frame (``id_ons``, ``nom_tipousina``,

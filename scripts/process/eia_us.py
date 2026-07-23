@@ -3,7 +3,7 @@
 
 Reads (all local, downloaded by the user; all public-domain US government):
     one or more EIA-923 workbooks (xlsx; "Page 1 Generation and Fuel Data"
-        sheet — the schedule preamble sits above the header, so --eia923-header
+        sheet; the schedule preamble sits above the header, so --eia923-header
         selects the header row, 0-based)
     the EIA-860 plant table   (2___Plant_Y<year>.xlsx, "Plant" sheet)
     the EIA-860 generator table (3_1_Generator_Y<year>.xlsx, "Operable" sheet)
@@ -16,7 +16,7 @@ Writes (under <out>, default input/observations/turbine/US/):
 
 Finalisation (CF arithmetic, annual-respondent screen, commissioning mask)
 happens inside EIAUSSource at load time, through the same audited code path
-the tests pin — this script only assembles the two on-disk tables.
+the tests pin; this script only assembles the two on-disk tables.
 
     python scripts/process/eia_us.py \\
         --eia923 input/raw/eia/EIA923_2019.xlsx input/raw/eia/EIA923_2020.xlsx \\

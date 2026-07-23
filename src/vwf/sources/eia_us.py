@@ -2,7 +2,7 @@
 
 The unit of observation is the **plant** (``obs_unit = "plant"``): EIA-923
 reports monthly *net* generation once per plant, so the plant is the site we
-simulate — the same design as the AU adapter, where the mechanical
+simulate, the same design as the AU adapter, where the mechanical
 ``obs_level`` is "turbine" but the real unit is the farm (DUID).
 
 Two decisions are baked into the CF finalisation, both documented in the
@@ -10,7 +10,7 @@ region config and the class docstring:
 
 - **UTC / calendar-month bins.** EIA-923 generation is already a monthly
   total on the US calendar month. There is no sub-monthly timestamp to
-  convert, so the bins are simply the reported calendar months — recorded as
+  convert, so the bins are simply the reported calendar months, recorded as
   ``time_convention = "calendar-month"`` (distinct from the AU
   ``utc-monthly-bins``, which had to convert 5-minute AEST SCADA). This is
   exact for monthly training; it means the US months are local calendar
@@ -22,7 +22,7 @@ region config and the class docstring:
   and combined (``AM``) respondents are kept.
 
 Standing caveat (config comment): EIA-923 ``Netgen`` is *net* of station use,
-and curtailment in ERCOT/SPP contaminates observed CF where it occurs — US
+and curtailment in ERCOT/SPP contaminates observed CF where it occurs, so US
 corrections absorb both more than European monthly *generation* data does.
 Curtailment screening is a shared follow-up (``pyvwf.qc``), not yet applied
 here.
@@ -61,7 +61,7 @@ def netgen_to_monthly_cf(
     from ``metadata`` (kW, the source contract unit) at load time so the CF
     always uses the current nameplate. Net generation may be negative in a calm
     month (parasitic load exceeds output); it is kept as-is (a small negative
-    CF), not clipped, so the correction sees the real signal — the same
+    CF), not clipped, so the correction sees the real signal: the same
     non-clipping choice the AU adapter makes.
 
     Args:
@@ -72,7 +72,7 @@ def netgen_to_monthly_cf(
         year_start: First year to include (inclusive).
         year_end: Last year to include (inclusive).
         drop_annual_respondents: When True (default), plant-years whose
-            respondent frequency is annual have every month set to NaN — their
+            respondent frequency is annual have every month set to NaN: their
             monthly split is imputed, not observed.
 
     Returns:
@@ -108,7 +108,7 @@ def netgen_to_monthly_cf(
     )
 
     # Commissioning mask: any month that STARTS before the commissioning date
-    # is NaN — the first fully post-commissioning month is the first valid one.
+    # is NaN; the first fully post-commissioning month is the first valid one.
     if "commissioning_date" in meta.columns:
         commissioning = pd.to_datetime(
             meta.set_index("ID")["commissioning_date"], errors="coerce"

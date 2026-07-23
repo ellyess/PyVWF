@@ -1,4 +1,4 @@
-# Brazil (ONS) region — data acquisition and validation runbook
+# Brazil (ONS) region: data acquisition and validation runbook
 
 End-to-end reproduction for the Brazil region (`configs/regions/br.toml`,
 source `ons-br`). All inputs are open government data (ONS + ANEEL) or your own
@@ -13,9 +13,9 @@ power-curve library).
 ## 1. Observations + metadata (credential-free)
 
 ONS publishes wind per *conjunto de usinas* (complex), one hourly capacity-factor
-series per `id_ons`. The `FATOR_CAPACIDADE` file is self-contained — it carries
+series per `id_ons`. The `FATOR_CAPACIDADE` file is self-contained: it carries
 the CF, the time-varying installed capacity, and the collector-substation
-coordinates — so it supplies both the observations and the metadata. ANEEL SIGA
+coordinates, so it supplies both the observations and the metadata. ANEEL SIGA
 is optional (commissioning dates via CEG).
 
 | File | Source | Notes |
@@ -43,18 +43,18 @@ python scripts/process/ons_br.py \
 
 Writes `br_md.csv`, `br_fc.csv`, `br_curtailment_mask.csv`, and `join_report.md`.
 
-**What the real June-2023 file produces** (sanity anchors — verified on the
+**What the real June-2023 file produces** (sanity anchors, verified on the
 `FATOR_CAPACIDADE-2_2023_06.csv` + `RESTRICAO_COFF_EOLICA_2023_06.csv`):
 
 - 152 wind complexes with coordinates; fleet ≈ 26 GW installed.
-- June CF ≈ 0.42 fleet-mean (p5-p95 0.18-0.69) — the Nordeste austral-winter
+- June CF ≈ 0.42 fleet-mean (p5-p95 0.18-0.69), the Nordeste austral-winter
   trade-wind maximum; no impossible values.
 - **Curtailment is severe**: mean curtailed fraction ≈ 0.11, and ~90% of the
   fleet (142/157 complexes) was constrained off > 5% in that month alone. This
-  is exactly why the curtailment mask exists — without it the correction is
+  is exactly why the curtailment mask exists: without it the correction is
   fitted to absorb curtailment as if it were reanalysis bias.
 
-## 2. ERA5 (user-executed — needs your CDS key)
+## 2. ERA5 (user-executed, needs your CDS key)
 
 ```bash
 pip install cdsapi          # not a PyVWF dependency; ~/.cdsapirc holds your key
@@ -71,7 +71,7 @@ are large and the daily pre-combine is not optional.
 The bundled `input/reference/power_curves.csv` / `models.csv` are now a REAL open curve
 library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
 VWF-smoothed), so runs against them are physically meaningful. `process_ons_br.py`
-assigns every complex a UNIFORM representative curve — the default
+assigns every complex a UNIFORM representative curve, the default
 `2019COE_Market_Average_2.6MW_121` (the most recent market-average utility curve),
 recorded in `br_md.csv`'s `model_source` column. Override with `--model <key>`
 (any column of `power_curves.csv`) for a different representative.
@@ -102,7 +102,7 @@ approved-pair guard is AU↔Europe only).
   removes the worst months; pre-2021 CF carries curtailment unscreened. The
   Nordeste is where it bites hardest. This is also the region's scientific draw:
   the constrained-off series lets you *quantify* curtailment (delivered vs
-  constrained-off energy) rather than merely caveat it — the natural US/AU
+  constrained-off energy) rather than merely caveat it; the natural US/AU
   follow-up is folding this into a shared `pyvwf.qc` module.
 - **Complex, not plant.** Corrections are derived at the ONS conjunto level; a
   complex's coordinate is its collector substation, and its capacity is the ONS
@@ -111,7 +111,7 @@ approved-pair guard is AU↔Europe only).
   commissioning is best-effort.
 - **Southern Hemisphere + tropical.** Seasons are stated explicitly (SH) in the
   config, never inherited from the NH default. In the Nordeste the meaningful
-  cycle is the trade-wind maximum (~Jun-Nov), not a thermal season — read the
+  cycle is the trade-wind maximum (~Jun-Nov), not a thermal season; read the
   seasonal-slice result against that, and consider a custom slicing.
 - **A verified hub-height wind speed** is reportedly available in a `_detail`
   variant of the constrained-off dataset; this adapter uses the usina-level

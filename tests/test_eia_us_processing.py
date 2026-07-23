@@ -1,9 +1,9 @@
 """EIA-US raw-data processing: EIA-923 reshape, EIA-860 capacity, USWTDB join.
 
 All fixtures are synthetic; real EIA/USWTDB acquisition is Phase 2. The
-fixtures carry the schedule's real quirks on purpose — thousands separators,
+fixtures carry the schedule's real quirks on purpose (thousands separators,
 the ``.`` missing marker, the ``-9999`` USWTDB sentinel, and the wind-vs-other
-fuel filter — because handling those is part of the contract under test.
+fuel filter) because handling those is part of the contract under test.
 """
 import numpy as np
 import pandas as pd
@@ -203,7 +203,7 @@ def test_filter_to_bbox_drops_out_of_domain_plants():
     """Hawaii and Alaska must not survive a CONUS box.
 
     Must-distinguish: an in-domain plant, a Hawaii plant (outside on BOTH lon
-    and lat) and an Alaska plant (outside on lon only) — so a filter that
+    and lat) and an Alaska plant (outside on lon only), so a filter that
     tested just one axis, or did nothing, would fail here.
     """
     md = pd.DataFrame(
@@ -223,7 +223,7 @@ def test_filter_to_bbox_drops_out_of_domain_plants():
 def test_curve_matching_refuses_a_micro_turbine_for_a_utility_machine():
     """The scale guard, not specific power alone, must decide.
 
-    Must-distinguish: this plant's 4 MW machines sit at ~226 W/m2 — the exact
+    Must-distinguish: this plant's 4 MW machines sit at ~226 W/m2, the exact
     specific power of a 1 kW micro turbine. Matching on specific power alone
     (plain add_models) picks the micro turbine; the real fleet run did exactly
     that for 28% of plants. A correct match is a MW-class curve.
@@ -272,7 +272,7 @@ def test_bin_hub_heights_collapses_distinct_values():
 
     Must-distinguish: heights that are distinct but within one bin have to
     collapse to a single value, and a value exactly on a bin edge must not
-    drift — a no-op or an off-by-one bin would fail.
+    drift; a no-op or an off-by-one bin would fail.
     """
     md = pd.DataFrame({"height": [78.0, 82.0, 84.9, 100.0, 104.0, 24.0]})
     binned = bin_hub_heights(md, 10.0)

@@ -98,7 +98,7 @@ def wind_fleet_from_gen_info(gen_info: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         Frame with ``ID``, ``site_name``, ``region``, ``capacity_mw``
-        (summed over unit groups — 'Agg Nameplate' is per unit-group row,
+        (summed over unit groups; 'Agg Nameplate' is per unit-group row,
         e.g. Boco Rock 9x1.60 + 58x1.70), and ``fcud``.
     """
     wind = gen_info[
@@ -182,7 +182,7 @@ def join_fleet_to_gwpt(
     Returns:
         ``(matched, unmatched_fleet, unmatched_gwpt)``. ``matched`` carries
         both capacities so gross mismatches (wrong-farm joins) are visible in
-        the report; no automatic fuzzy matching — misses go to the report,
+        the report; no automatic fuzzy matching, so misses go to the report,
         and human-approved DUID aliases (:func:`resolve_duid_aliases`) handle
         the tail.
     """
@@ -219,11 +219,11 @@ def resolve_duid_aliases(
     Aliases are keyed by DUID (site names are not unique across stages) and
     map to one or more semicolon-separated targets:
 
-    - ``"Project Name"`` — all phases of a GWPT Data project, ANY status
-      (the alias itself is the human approval, so GWPT status lag — e.g.
-      Golden Plains East listed "mothballed" — does not block);
-    - ``"Project Name|Phase"`` — one phase row (per-phase coordinates);
-    - ``"BT:Project Name"`` — a Below-Threshold sheet row.
+    - ``"Project Name"``: all phases of a GWPT Data project, ANY status
+      (the alias itself is the human approval, so GWPT status lag, e.g.
+      Golden Plains East listed "mothballed", does not block);
+    - ``"Project Name|Phase"``: one phase row (per-phase coordinates);
+    - ``"BT:Project Name"``: a Below-Threshold sheet row.
 
     One DUID with several targets (Woolnorth = Studland Bay + Bluff Point)
     gets the capacity-weighted centroid of the target rows. GI capacity
@@ -234,8 +234,8 @@ def resolve_duid_aliases(
         same shape as the name-join output plus ``match_source="alias"``.
 
     Raises:
-        ValueError: If an alias target matches no GWPT/Below-Threshold row —
-            a typo in a human-approved alias must fail loudly, not silently
+        ValueError: If an alias target matches no GWPT/Below-Threshold row.
+            A typo in a human-approved alias must fail loudly, not silently
             drop a farm.
     """
     au = gwpt_data[
@@ -335,20 +335,20 @@ def capacity_mask_months(
 ) -> pd.DataFrame:
     """Months whose registered capacity is unreliable as a CF denominator.
 
-    A month is masked (MASK option, D2 sign-off — clean denominators over
+    A month is masked (MASK option, D2 sign-off: clean denominators over
     data retention; the measured cost is ~1% of farm-months) when:
 
     - the registered capacity changes WITHIN the month (ambiguous
       denominator),
     - the month's capacity is below ``(1 - tolerance) ×`` the final
-      registered capacity (farm not fully built — a ramping farm injects a
+      registered capacity (farm not fully built: a ramping farm injects a
       spurious sub-annual signal into exactly the seasonal cycle pillar A
       judges), or
     - the month predates the DUID's first registration (trial generation).
 
     Args:
         hist: Output of :func:`registered_capacity_history`.
-        scada_months: Frame with ``ID``, ``year``, ``month`` — the months
+        scada_months: Frame with ``ID``, ``year``, ``month``: the months
             that actually carry SCADA (e.g. the partials table).
 
     Returns:
@@ -392,7 +392,7 @@ def build_au_metadata(
     """Emit the AEMONemSource metadata contract from the joined fleet.
 
     Capacity comes from the Generation Information nameplate (MW → kW, the
-    source contract unit — matching the SCADA registration basis, not GWPT).
+    source contract unit, matching the SCADA registration basis, not GWPT).
     Commissioning is FCUD where present, else 1 January of the GWPT start
     year. ``height``/``model`` are uniform defaults; their ``*_source``
     columns say so, loudly, so no downstream step can mistake them for data.

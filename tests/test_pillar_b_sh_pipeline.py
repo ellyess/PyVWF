@@ -3,7 +3,7 @@
 D2's pre-flight (validation design, docs + progress log): there is no legacy
 AU path to bit-diff against, so confidence in the SH/AU numbers is
 constructed. This test plants a KNOWN seasonal bias in a synthetic AU-shaped
-dataset — reanalysis over-blows by 30% during JJA (austral winter) — and runs
+dataset (reanalysis over-blows by 30% during JJA, austral winter) and runs
 the complete real stack: AEMO-format 5-minute SCADA files on disk →
 AEMONemSource (AEST→UTC binning) → harness run_train with an SH-season config
 → run_evaluate on a held-out year.
@@ -14,14 +14,14 @@ What it can and cannot prove, stated honestly:
   NH and SH mappings group the same four month-sets ({12,1,2}, {3,4,5},
   {6,7,8}, {9,10,11}); only the NAMES differ. So the fit maths cannot be
   hemisphere-wrong. The real SH risks are (a) the labels on the factors
-  table — AU's downward correction must sit under "winter" meaning JJA — and
+  table (AU's downward correction must sit under "winter" meaning JJA), and
   (b) fit-time/apply-time label consistency: factors trained under SH labels
   but applied through the NH map merge onto the wrong months.
 - Test 1 pins (a): the planted JJA bias is recovered UNDER THE RIGHT NAME.
 - Test 2 pins the end-to-end value: corrected beats uncorrected on held-out.
 - Test 3 pins (b), must-distinguish: applying the SH-trained factors through
   the NH mapping (the exact bug the seasons seam eliminated) must be WORSE
-  THAN NO CORRECTION AT ALL — it leaves JJA biased and breaks the previously
+  THAN NO CORRECTION AT ALL: it leaves JJA biased and breaks the previously
   unbiased DJF.
 """
 from __future__ import annotations
@@ -224,7 +224,7 @@ def test_correction_beats_uncorrected_on_held_out_year(trained):
 
 def test_nh_label_application_is_worse_than_no_correction(trained, au_paths):
     """(b) Fit/apply label consistency, must-distinguish: SH-trained factors
-    applied through the NH map leave JJA biased AND break unbiased DJF —
+    applied through the NH map leave JJA biased AND break unbiased DJF,
     strictly worse than not correcting at all. This is the bug mode the
     seasons seam exists to eliminate, demonstrated on the full pipeline's
     real fitted factors."""

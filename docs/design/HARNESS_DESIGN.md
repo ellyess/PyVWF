@@ -1,6 +1,6 @@
-# Multi-Region Validation Harness — Phase 1 Design
+# Multi-Region Validation Harness: Phase 1 Design
 
-Status: **AMENDED DRAFT (rev 2) — awaiting confirmation. No implementation exists yet.**
+Status: **AMENDED DRAFT (rev 2), awaiting confirmation. No implementation exists yet.**
 Branch: `multi-region-validation`. Scope per Phase 0 sign-off (2026-07-15):
 Europe re-runs (DK/DE/UK + 9 ENTSO-E countries) + Australia (NEM).
 US/Brazil deferred. Transfer restricted to AU↔Europe. RQ1–RQ4 committed,
@@ -15,7 +15,7 @@ conditions on legacy manifest writing recorded (§6).
 ## Goals
 
 1. Adding a region or a correction variant is a config change plus (for a new
-   observation family) one adapter — never a rewrite.
+   observation family) one adapter, never a rewrite.
 2. Four concerns separated and independently testable: observed-CF ingestion,
    ERA5 extraction, correction training, skill computation.
 3. The affine baseline is wrapped, not modified: alternative correction
@@ -23,8 +23,8 @@ conditions on legacy manifest writing recorded (§6).
    validated core in `vwf/correction.py` / `vwf/wind.py` is untouched.
 4. Every run's output is self-describing about which curve library produced it
    (the Phase 1 blocker for RQ6).
-5. The two silent-corruption hazards found in Phase 0 — Northern-Hemisphere
-   seasons and the ERA5 longitude convention — are closed by construction,
+5. The two silent-corruption hazards found in Phase 0 (Northern-Hemisphere
+   seasons and the ERA5 longitude convention) are closed by construction,
    not by convention.
 
 ## Non-goals (unchanged code)
@@ -58,7 +58,7 @@ user-supplied and partly gitignored).
 ## 1. Region configs (`configs/regions/*.toml`)
 
 TOML because the project already ships `tomli` for Python 3.10 and stdlib
-`tomllib` on 3.11+ — no new dependency. One file per region:
+`tomllib` on 3.11+: no new dependency. One file per region:
 
 ```toml
 [region]
@@ -82,14 +82,14 @@ model = "affine-wind"      # CorrectionModel registry name (baseline)
 cluster_list = [5]
 time_slices = ["fixed", "season"]
 
-[seasons]                  # explicit month groups — no hemisphere heuristics
+[seasons]                  # explicit month groups, no hemisphere heuristics
 summer = [12, 1, 2]
 autumn = [3, 4, 5]
 winter = [6, 7, 8]
 spring = [9, 10, 11]
 ```
 
-Design decision — **seasons are explicit month lists per region**, not a
+Design decision: **seasons are explicit month lists per region**, not a
 hemisphere flag. Rationale: (a) the Phase 0 finding was that NH months are
 hardcoded in two places; a flag would fix AU but leave the mapping implicit
 and unauditable; (b) explicit months also serve regions where meteorological
@@ -99,7 +99,7 @@ reproduce bit-for-bit.
 
 **`[seasons]` is mandatory in every region config**, even when `"season"` is
 not among the region's `time_slices`. Rationale: season definitions are used
-beyond seasonal correction training — transfer matches slices by season name
+beyond seasonal correction training: transfer matches slices by season name
 against the *target's* definitions (§7.3), and the RQ1/RQ2 diagnostics group
 residuals by season regardless of which slices were trained. A config without
 season definitions would make those operations silently fall back to
@@ -121,14 +121,14 @@ Existing seam, unchanged contract (`ObservationSource.load_metadata` /
 ### Observation granularity: `obs_unit`
 
 `obs_level` stays exactly what the pipeline needs mechanically ("turbine" |
-"country" — which training branch runs). A new declarative field, `obs_unit`,
+"country", which training branch runs). A new declarative field, `obs_unit`,
 records the *true independent measurement unit* in the config and in every
 manifest, so outputs self-describe at their real granularity:
 
 | Region | `obs_level` (pipeline) | `obs_unit` (truth) | Verified basis |
 |---|---|---|---|
 | DK | turbine | `turbine` | per-GSRN monthly metering, distinct values per turbine |
-| DE | turbine | `turbine` | 11,433 unit IDs; outputs within a station prefix are all distinct (per-unit metering). **Caveat: locations are postcode-centroid only** — recorded as `location_resolution = "postcode"` |
+| DE | turbine | `turbine` | 11,433 unit IDs; outputs within a station prefix are all distinct (per-unit metering). **Caveat: locations are postcode-centroid only**, recorded as `location_resolution = "postcode"` |
 | UK | turbine | `farm` | 360 ROC stations expanded to 6,604 turbine rows; monthly values are identical across all rows of a station (farm generation equally pre-split). Recorded as `pseudo_replicated_rows = true` |
 | AU-NEM | turbine | `farm` | one row per DUID (wind farm) |
 | NL/FR/BE/NO/SE/ES/IT/PT/IE | country | `country` | ENTSO-E national CF |
@@ -138,7 +138,7 @@ was checked against the raw files. UK is farm-level data in turbine-shaped
 rows: every multi-turbine station in 2015 has identical monthly values across
 its rows, and per-row CF is plausible (median 0.275) only under the
 equal-split interpretation. DE is genuinely unit-metered (not farm
-aggregates), but with postcode-level geolocation — so DE is classified
+aggregates), but with postcode-level geolocation, so DE is classified
 `obs_unit = "turbine"` with `location_resolution = "postcode"` rather than
 forced into "farm".
 
@@ -149,7 +149,7 @@ Regions with `pseudo_replicated_rows = true` must also declare
 row ID yields the independent-station ID. Semantics:
 
 - Consulted **only** when `pseudo_replicated_rows = true`; other regions
-  never have IDs rewritten (DK/DE are untouched by construction — verified:
+  never have IDs rewritten (DK/DE are untouched by construction; verified:
   zero DK or DE IDs even match the UK pattern).
 - IDs that do not match map to themselves (single-unit stations without a
   suffix survive unchanged).
@@ -157,11 +157,11 @@ row ID yields the independent-station ID. Semantics:
   match, producing exactly the 360 stations found independently on the
   observation side. Greedy `(.+)` strips only the *final* `-N`, so
   multi-hyphen IDs like `E_ABRTW-1-1` collapse to the phase-level station
-  `E_ABRTW-1` — which is the level at which observations are actually
+  `E_ABRTW-1`, which is the level at which observations are actually
   replicated (phase counts agree with the 360).
 - **Identity guard** (implemented in `collapse_pseudo_replicates`): the
   collapse refuses to run if any (station, time) group carries divergent
-  `cf_obs` values — divergent rows are not replicates of one measurement,
+  `cf_obs` values. Divergent rows are not replicates of one measurement,
   and averaging them would fabricate an observation. A wrong regex therefore
   fails loudly at evaluation time instead of silently mis-pooling.
 
@@ -177,7 +177,7 @@ Consequences the harness must respect:
 
 **Monthly bins are UTC, pipeline-wide.** AEMO SCADA timestamps (market time,
 AEST = UTC+10, no DST) are converted to UTC during ingest, then binned to
-calendar months in UTC — the same convention the ERA5/simulation side already
+calendar months in UTC, the same convention the ERA5/simulation side already
 uses everywhere. Rationale: sim-vs-obs bins must share edges within a region,
 and one global convention beats per-region bin logic; the cost is that AU
 monthly CFs will differ slightly from AEMO's market-time monthly publications
@@ -281,7 +281,7 @@ directory:
 ```
 
 `library` is determined by SHA-256 equality with the bundled synthetic files in
-`vwf/resources/` — anything else is `"external"`. A locally *edited* synthetic
+`vwf/resources/`; anything else is `"external"`. A locally *edited* synthetic
 file therefore also labels as `"external"`; this is intentional and fail-safe
 in the underclaiming direction (nothing unverified can masquerade as the
 bundled synthetic library), and the code will carry a comment saying so.
@@ -297,7 +297,7 @@ two binding conditions:
    else.
 2. A manifest-write failure must **never abort a run**: the writer is wrapped
    so any exception logs a warning and the run continues. This holds for the
-   harness driver too — provenance is diagnostic, not load-bearing.
+   harness driver too: provenance is diagnostic, not load-bearing.
 
 ## 7. Driver
 
@@ -354,14 +354,14 @@ analogues) on this branch.
    path on the existing synthetic fixture.
 6. `AEMONemSource` unit tests on synthetic SCADA fixtures (commissioning mask,
    kWh/CF arithmetic, capacity-change month masking, and AEST→UTC monthly
-   binning per the §2 convention — fixtures carry AEST-labelled timestamps).
+   binning per the §2 convention; fixtures carry AEST-labelled timestamps).
 7. Transfer driver: pair-set enforcement.
 8. **Mirrored-hemisphere transfer fixture** (normative for §7.3): two
    synthetic regions identical except for season definitions (NH months vs
    SH months), with season-dependent planted biases. The test computes the
    transferred output under (a) season-name matching and (b) month matching,
    asserts the two *differ*, and asserts the name-matched result is the
-   correct one. It must distinguish the two modes — a fixture on which both
+   correct one. It must distinguish the two modes: a fixture on which both
    modes agree (e.g. season-independent factors) would pass vacuously and is
    explicitly not acceptable.
 9. Transfer collapse arithmetic: capacity-weighted collapse of a synthetic
@@ -375,7 +375,7 @@ analogues) on this branch.
   Phase 1 against synthetic fixtures, so ingest problems stay contained.
 - **Dual config systems** (legacy dicts + TOML) until/unless legacy paths are
   migrated. Accepted for now; precedence is documented above.
-- **ERA5 AU acquisition** needs CDS credentials and multi-GB downloads — user
+- **ERA5 AU acquisition** needs CDS credentials and multi-GB downloads; user
   executes or approves in Phase 2.
 - Monthly observation contract limits distribution comparison to monthly CFs
   for training parity; the EMD/Q-Q comparison for AU can additionally be run
@@ -386,7 +386,7 @@ analogues) on this branch.
 1. Package name: `vwf.harness`. ✔
 2. `configs/regions/` at repo root. ✔
 3. Seasons as explicit month lists per region config. ✔
-4. Legacy `PyVWF.train`/`simulate_cf` write the manifest — own commit,
+4. Legacy `PyVWF.train`/`simulate_cf` write the manifest: own commit,
    never-abort semantics (§6). ✔
 5. Driver is a script; console entry point may be promoted later if the
    harness stabilises. ✔

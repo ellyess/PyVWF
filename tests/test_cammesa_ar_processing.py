@@ -49,8 +49,8 @@ def test_plant_without_capacity_is_dropped():
 # --------------------------------------------------------- capacity guard
 def test_capacity_suspect_flags_too_small_denominator():
     """A too-small capacity inflates CF above what wind delivers. A plant
-    whose median CF is implausibly high is flagged; a normal one is not —
-    a check that distinguishes the two, not one that always passes."""
+    whose median CF is implausibly high is flagged; a normal one is not: a
+    check that distinguishes the two, not one that always passes."""
     oc = {f"obs_{m}": [0.40, 1.10] for m in range(1, 13)}  # P good, Q inflated
     wide = pd.DataFrame({"ID": ["P", "Q"], "year": [2024, 2024], **oc})
     assert capacity_suspect_ids(wide) == ["Q"]
@@ -126,7 +126,7 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "AR").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = CAMMESAArgentinaSource("AR")
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_AR"):
+    with pytest.raises(FileNotFoundError, match="runbooks/AR"):
         src.load_metadata()
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_AR"):
+    with pytest.raises(FileNotFoundError, match="runbooks/AR"):
         src.load_observations(2021, 2023)

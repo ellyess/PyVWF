@@ -11,7 +11,7 @@ Everything downstream (interpolation, power curves, clustering, the correction
 maths) is source agnostic. Adding a new country therefore means writing one
 adapter, registering it, and nothing else.
 
-See ``docs/ADDING_AN_OBSERVATION_SOURCE.md`` for a worked example.
+See ``docs/guides/ADDING_AN_OBSERVATION_SOURCE.md`` for a worked example.
 """
 from __future__ import annotations
 

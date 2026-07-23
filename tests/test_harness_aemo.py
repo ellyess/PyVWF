@@ -1,7 +1,7 @@
 """AEMO NEM source: AEST→UTC binning, CF arithmetic, masks (design §2).
 
 All fixtures are synthetic; real AEMO acquisition is Phase 2. The fixtures
-carry AEST-labelled timestamps on purpose — the UTC conversion is part of
+carry AEST-labelled timestamps on purpose: the UTC conversion is part of
 the contract under test, not an implementation detail.
 """
 from calendar import monthrange
@@ -55,7 +55,7 @@ def test_constant_half_power_gives_cf_half():
 def test_monthly_bins_are_utc_not_market_time():
     """The decided convention (design §2): generation at 00:00–09:55 AEST on
     1 July is 30 June UTC and must land in JUNE's bin. Month matching in
-    market time would put it in July — the two conventions are
+    market time would put it in July, so the two conventions are
     distinguishable on this fixture."""
     scada = five_minute_scada(
         "FARM1", "2019-07-01 00:00", "2019-07-01 10:00", mw=100.0

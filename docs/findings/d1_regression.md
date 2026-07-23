@@ -1,4 +1,4 @@
-# D1 — Regression validation of the refactored correction path
+# D1: Regression validation of the refactored correction path
 
 **Question.** The harness refactored the correction path (the `CorrectionModel`
 delegate, the `seasons` seam, ERA5 longitude normalisation, file-backed
@@ -6,9 +6,9 @@ country loading). Does it still reproduce known-good results on regions where
 the answer is already known, run against the real curve library and real data?
 
 **Verdict: PASS.** On all four regions the harness reproduces the legacy
-`main` pipeline **bit-for-bit** — correction factors and corrected capacity-factor
-frames identical to machine precision (max abs diff `0.000e+00`). There were
-no discrepancies to explain.
+`main` pipeline **bit-for-bit**: correction factors and corrected capacity-factor
+frames identical to machine precision (max abs diff `0.000e+00`). No
+discrepancies to explain.
 
 ## Method
 
@@ -70,10 +70,10 @@ Harness skill on the held-out year, real curves:
 | FR | affine (5, fixed) | −0.007 | 0.012 | 0.019 |
 
 - **NL reproduces a documented failure (R2 anchor).**
-  `docs/TURBINE_GRID_EVALUATION_ANALYSIS.md` records the NL 2023 static-grid run
+  `docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md` records the NL 2023 static-grid run
   as pathological: the uncorrected simulation over-predicts and the correction
   overshoots into large under-prediction (fleet grew +155% between training and
-  test). The harness reproduces exactly that shape — uncorrected MBE +0.188,
+  test). The harness reproduces exactly that shape: uncorrected MBE +0.188,
   corrected MBE −0.136. The magnitude differs from the doc's MAE 0.114 because
   this run trains on 2015–2019 where the doc used 2015–2021; the direction and
   pathology match. Reproducing a known-bad result is as good a regression check
@@ -83,7 +83,7 @@ Harness skill on the held-out year, real curves:
   `PyVWF(1;fixed)` baseline. This run does not use that configuration, so it is
   not a direct check; at the configs run here the DK correction reduces MAE by
   ~47% (0.124→0.066 at 10/season), the same order of magnitude. Kept loose on
-  purpose — the paper's preprocessing and fleet may differ.
+  purpose: the paper's preprocessing and fleet may differ.
 
 ## Reproduction
 
@@ -92,9 +92,9 @@ reference from a main worktree, `scripts/analysis/d1_run_harness.py` for the bra
 `scripts/analysis/d1_regression.py` (the frame comparator), and the wiring they
 exercise (`EntsoeFileSource`, country-level `run_evaluate`, corrected-CF
 saving). Only the environment is external: a git worktree of `main` and a
-staging dir — `PYVWF_INPUT` pointed at a directory with the real curve files
-copied to the working names and the data directories symlinked. Each runner's
-docstring carries its invocation.
+staging dir, with `PYVWF_INPUT` pointed at a directory holding the real curve
+files copied to the working names and the data directories symlinked. Each
+runner's docstring carries its invocation.
 
 ## Conclusion
 

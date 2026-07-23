@@ -1,7 +1,7 @@
-# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
 # Seasons are EXPLICIT month lists. Argentina is Southern Hemisphere, so these
 # must NOT inherit the legacy NH mapping. The fleet's scientific draw is
-# Patagonia — Chubut and Santa Cruz sit in the cold-steppe westerlies (BSk/BWk)
+# Patagonia: Chubut and Santa Cruz sit in the cold-steppe westerlies (BSk/BWk)
 # at capacity factors near 50%, a regime nothing else in the validation set
 # covers; the Buenos Aires / Pampas cluster (Cfa) is the other half.
 
@@ -15,7 +15,7 @@ obs_level = "turbine"
 obs_unit = "plant"
 train_years = [2021, 2023]
 test_years = [2024]
-# CAMMESA reports monthly GWh per central (native monthly — no timezone/DST).
+# CAMMESA reports monthly GWh per central (native monthly, no timezone/DST).
 # CF is GWh against a GWPT-joined capacity (CAMMESA carries no capacity), so
 # the coordinate/capacity join is load-bearing twice. Fleet ramped 2011-2019;
 # over 2021-2024 it is mostly stable (~56 -> ~68 plants), with commissioning

@@ -14,7 +14,7 @@ Writes (under <out>, default input/observations/turbine/CL/):
 Coordinate join. CEN carries no lon/lat, so plants are matched to GWPT
 operating Chilean farms by normalised name, confirmed by capacity. CEN splits
 a few GWPT farms into co-located phases (Malleco Norte/Sur, Renaico I/II,
-Cabo Leones II/III, Horizonte Norte/Sur) — a GWPT name that is a substring of
+Cabo Leones II/III, Horizonte Norte/Sur). A GWPT name that is a substring of
 the CEN name, with capacities within tolerance, is accepted and both phases
 inherit the parent coordinate (correct at 0.25 deg ERA5 resolution). Anything
 not confidently matched is written to cl_coord_residual.csv for hand curation
@@ -67,7 +67,7 @@ def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
     paths = sorted(glob.glob(str(raw_dir / "cen_gen_*.json")))
     paths = [p for p in paths if y0 <= int(Path(p).stem.split("_")[-2]) <= y1]
     if not paths:
-        sys.exit(f"no cen_gen_*.json under {raw_dir} for {y0}-{y1} — run "
+        sys.exit(f"no cen_gen_*.json under {raw_dir} for {y0}-{y1}; run "
                  "scripts/fetch/cen_cl.py --years first.")
     return pd.concat([pd.DataFrame(json.load(open(p))) for p in paths],
                      ignore_index=True)

@@ -84,7 +84,7 @@ def test_add_time_resolution_columns_explicit_seasons():
 
 
 def test_explicit_nh_seasons_match_default_exactly():
-    """Passing the NH mapping explicitly is a no-op relative to the default —
+    """Passing the NH mapping explicitly is a no-op relative to the default:
     the guarantee that lets Europe configs carry explicit months without
     changing legacy results."""
     nh_explicit = {

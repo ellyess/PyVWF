@@ -70,7 +70,7 @@ def collapse_pseudo_replicates(df: pd.DataFrame, spec: RegionSpec) -> pd.DataFra
     # Identity guard: the collapse assumes every row of a (station, time)
     # group carries the SAME observation (equal-split pseudo-replicates, the
     # verified UK structure). Divergent obs within a group means the rows are
-    # NOT replicates of one measurement — averaging them away here would
+    # NOT replicates of one measurement; averaging them away here would
     # silently fabricate an observation, so refuse instead.
     obs_group = df.groupby(["ID", *time_cols])["cf_obs"]
     spread = obs_group.max() - obs_group.min()

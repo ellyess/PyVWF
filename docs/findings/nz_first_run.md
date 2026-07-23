@@ -1,11 +1,11 @@
-# New Zealand — first run (the first new-climate region since the survey)
+# New Zealand: first run (the first new-climate region since the survey)
 
 Trained 2019–2023, evaluated on held-out **2024**, EMI per-farm monthly CF,
 external combined curve library, k-means++ defaults. Region config
 `configs/regions/nz.toml`, source `emi-nz`. Run:
 `output/validation/NZ/{train-k147, evaluate-2024-k147}`.
 
-## Headline: the affine correction wins on every metric — NZ behaves like Denmark, not Australia
+## Headline: the affine correction wins on every metric; NZ behaves like Denmark, not Australia
 
 | variant | MBE | MAE | RMSE | Pearson r |
 |---|---|---|---|---|
@@ -35,7 +35,7 @@ the fourth region to land clearly in the "correction earns its keep" camp
   with the sign confirmed on real data.
 - **The bias is spatially structured, not uniform.** k=1 barely helps (MAE
   0.143→0.128); the jump is k=1→k=4 (0.128→0.081). A single fleet-wide factor
-  leaves most of the error on the table — different farms need different
+  leaves most of the error on the table: different farms need different
   corrections, and clustering is what captures it. Consistent with the
   us_br finding that `cluster_list=[1]` leaves 20–50% of achievable reduction
   unclaimed.
@@ -43,11 +43,11 @@ the fourth region to land clearly in the "correction earns its keep" camp
   timing. That is exactly what an affine-in-wind correction can fix and is the
   signature of a resource-magnitude bias rather than a phase error.
 - **Fixed ≈ season here.** Seasonal slicing does not beat fixed (k=7: 0.0777
-  vs 0.0789) — NZ's year-round westerly regime has modest seasonal amplitude,
+  vs 0.0789): NZ's year-round westerly regime has modest seasonal amplitude,
   so there is little seasonal shape for the correction to exploit, unlike the
   trade-wind or monsoon regions.
 
-## The k ceiling was lower than estimated — recorded so it is not re-tripped
+## The k ceiling was lower than estimated (recorded so it is not re-tripped)
 
 The config first shipped `cluster_list=[1,5,10]` on the estimate of ~11 unique
 coordinates. **k=10 crashed**: k-means requires `n_clusters ≤ n_samples`, and
@@ -56,7 +56,7 @@ post-window commissions (Harapaki 2023-11, Kaiwera Downs 2 2026) = 11 with
 training obs; three more drop inside `train_set` (sparse coverage / sim-obs
 merge) → 8. The sweep is now `[1,4,7]`, safely under that ceiling; k near 8
 would be one-farm-per-cluster (the fake plateau). The **test** year evaluates
-all 12 farms present in 2024 — the training ceiling does not limit evaluation.
+all 12 farms present in 2024; the training ceiling does not limit evaluation.
 
 Provenance note: the first (aborted) `[1,5,10]` train wrote k=1 and k=5 before
 failing at k=10; reusing the run-name left a stale `k=5` in the metrics. The
@@ -73,7 +73,7 @@ directory, so its factors are exactly `[1,4,7]`.
 - **Hub heights are hand-compiled**, three unverified (Tararua III, Mill
   Creek, Kaiwera Downs 2); `height_source` flags them in the farm table.
 - **No curtailment screen.** NZ's hydro-dominated system curtails little wind
-  over this window, but metered injection is net of it — a standing caveat,
+  over this window, but metered injection is net of it, a standing caveat,
   unlike BR.
 - **Single seed, single test year.** The handoff's noise-floor concern applies:
   a second test year would make the fixed-vs-season near-tie conclusive rather

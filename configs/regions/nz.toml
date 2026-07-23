@@ -1,9 +1,9 @@
-# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
 # Seasons are EXPLICIT month lists. New Zealand is Southern Hemisphere, so
 # these must NOT inherit the legacy NH mapping. The dominant regime is the
 # year-round westerly circulation ("Roaring Forties") funnelled by the two
-# islands' terrain (Cook Strait, Manawatu Gorge) — seasonal amplitude is
-# modest by European standards, and the astronomical SH seasons below are a
+# islands' terrain (Cook Strait, Manawatu Gorge). Seasonal amplitude is modest
+# by European standards, and the astronomical SH seasons below are a
 # defensible partition.
 
 [region]
@@ -27,7 +27,7 @@ test_years = [2024]
 
 [era5]
 # Both main islands; the fleet spans Te Uku (-37.9) to Kaiwera Downs (-46.5).
-# Box stays west of the antimeridian — no longitude wrap.
+# Box stays west of the antimeridian: no longitude wrap.
 path = "era5/NZ"
 bbox = [166.0, 179.0, -48.0, -36.0]
 file_tag = "NZ"

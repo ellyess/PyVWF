@@ -1,6 +1,6 @@
-# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
 # Seasons are EXPLICIT month lists; the US is Northern Hemisphere, so these
-# coincide with the legacy NH mapping — but they are stated, not inherited, so
+# coincide with the legacy NH mapping, but they are stated, not inherited, so
 # the harness never depends on vwf.time_utils for this region.
 
 [region]

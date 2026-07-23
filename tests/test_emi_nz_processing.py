@@ -1,7 +1,7 @@
 """New Zealand (EMI) processing: trading-period mapping, monthly CF, masks.
 
 All fixtures are synthetic; real EMI acquisition is user-executed (Phase 2).
-The trading-period timestamps are NZ-civil-time-labelled on purpose — the
+The trading-period timestamps are NZ-civil-time-labelled on purpose: the
 DST-aware UTC conversion is part of the contract under test, not an
 implementation detail. NZ DST anchors used (from the zone database, not
 hardcoded in the code under test): 2023-04-02 fall-back (50 periods),
@@ -47,7 +47,7 @@ def test_expected_trading_periods_dst_days():
 
 def test_trading_periods_are_contiguous_across_fall_back():
     """TP50 of the fall-back day must end exactly where the next day's TP1
-    starts — sequential elapsed-time mapping, no gap and no double-count. A
+    starts: sequential elapsed-time mapping, no gap and no double-count. A
     local-clock mapping (midnight + (n-1)*30min of wall time) would fail here."""
     end_of_long_day = trading_period_start_utc(
         pd.Series(["2023-04-02"]), pd.Series([50])
@@ -86,7 +86,7 @@ def test_melt_produces_one_row_per_period():
 
 def test_melt_rejects_generation_beyond_day_length():
     """A value in TP47 on the 46-period spring-forward day means the TP-time
-    mapping assumption is broken — must raise, not silently mis-place it."""
+    mapping assumption is broken; it must raise, not silently mis-place it."""
     gen = gen_md_day("wf_a", "2023-09-24", 500.0, n_periods=47)
     with pytest.raises(ValueError, match="beyond the day's length"):
         half_hourly_from_generation_md(gen, id_col="Gen_Code")
@@ -136,7 +136,7 @@ def test_capacity_history_steps_at_second_unit():
 
 def test_monthly_cf_uses_then_current_capacity():
     """Half-build months must divide by the then-current 50 MW, not the final
-    100 MW — a static-nameplate denominator would halve the CF and fail here."""
+    100 MW: a static-nameplate denominator would halve the CF and fail here."""
     times = pd.date_range("2020-03-01", "2020-04-01", freq="30min",
                           inclusive="left")
     # CF 0.4 against 50 MW: kwh = 50_000 kW * 0.5 h * 0.4
@@ -148,7 +148,7 @@ def test_monthly_cf_uses_then_current_capacity():
 
 def test_monthly_bins_are_utc_not_nz_local():
     """Energy in TP1-24 of trading date 1 July (local) is 30 June 12:00-24:00
-    UTC and must land in JUNE. Local binning would put it in July —
+    UTC and must land in JUNE. Local binning would put it in July,
     distinguishable on this fixture (mirrors the AU/BR market-time tests)."""
     gen = gen_md_day("wf_a", "2023-07-01", 1000.0)
     hh = half_hourly_from_generation_md(gen, id_col="Gen_Code")
@@ -255,7 +255,7 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "NZ").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = EMINewZealandSource("NZ")
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_NZ"):
+    with pytest.raises(FileNotFoundError, match="runbooks/NZ"):
         src.load_metadata()
-    with pytest.raises(FileNotFoundError, match="RUNBOOK_NZ"):
+    with pytest.raises(FileNotFoundError, match="runbooks/NZ"):
         src.load_observations(2020, 2020)

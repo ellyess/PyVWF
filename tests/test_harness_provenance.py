@@ -1,4 +1,4 @@
-"""Run-manifest provenance (docs/HARNESS_DESIGN.md §6)."""
+"""Run-manifest provenance (docs/design/HARNESS_DESIGN.md §6)."""
 import json
 import shutil
 from importlib import resources
@@ -42,7 +42,7 @@ def test_bundled_tables_label_synthetic(empty_input_root):
 
 def test_edited_synthetic_labels_external(empty_input_root):
     # Copy the bundled synthetic table into INPUT_ROOT and change one byte.
-    # Design §6: an edited synthetic file labels "external" ON PURPOSE —
+    # Design §6: an edited synthetic file labels "external" ON PURPOSE,
     # fail-safe in the underclaiming direction.
     local = empty_input_root / "reference" / "power_curves.csv"
     local.parent.mkdir(exist_ok=True)
