@@ -26,7 +26,8 @@ scripts/
     combine.py      reduce monthly ERA5 to yearly DAILY files: --region <cc>
                     (only the big boxes — US, BR, AU — need this)
   process/          raw inputs -> the adapter's input CSVs (input/turbine_level_data/<CC>/)
-    aemo_au.py  cammesa_ar.py  cen_cl.py  dk.py  eia_us.py  emi_nz.py  ons_br.py  uk.py
+    aemo_au.py  cammesa_ar.py  cen_cl.py  de.py  dk.py  eia_us.py  emi_nz.py  ons_br.py  uk.py
+    (de.py stages CONFIDENTIAL WindStats data — see docs/RUNBOOK_DE.md)
   analysis/         train, evaluate, and one-off studies
     validate_region.py             train / evaluate / transfer a region (the main driver)
     train_all_bias_corrections.py  batch trainer across configurations
