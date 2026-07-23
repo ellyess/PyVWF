@@ -126,9 +126,9 @@ def shipped(name: str) -> RegionSpec:
 
 def test_all_shipped_configs_load():
     paths = sorted(CONFIG_DIR.glob("*.toml"))
-    assert len(paths) == 17
+    assert len(paths) == 18
     specs = [load_region(p) for p in paths]
-    assert len({s.code for s in specs}) == 17
+    assert len({s.code for s in specs}) == 18
 
 
 def test_shipped_granularity_classification():
@@ -153,6 +153,9 @@ def test_shipped_granularity_classification():
     cl = shipped("cl")
     assert cl.obs_unit == "plant"  # CEN reports per central (plant)
     assert cl.obs_level == "turbine"
+    ar = shipped("ar")
+    assert ar.obs_unit == "plant"  # CAMMESA reports per central (plant)
+    assert ar.obs_level == "turbine"
     for name in ("nl", "fr", "be", "no", "se", "es", "it", "pt", "ie"):
         spec = shipped(name)
         assert spec.obs_level == "country"

@@ -1,0 +1,42 @@
+# Region config for the multi-region validation harness (docs/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists. Argentina is Southern Hemisphere, so these
+# must NOT inherit the legacy NH mapping. The fleet's scientific draw is
+# Patagonia — Chubut and Santa Cruz sit in the cold-steppe westerlies (BSk/BWk)
+# at capacity factors near 50%, a regime nothing else in the validation set
+# covers; the Buenos Aires / Pampas cluster (Cfa) is the other half.
+
+[region]
+code = "AR"
+name = "Argentina (CAMMESA / MEM)"
+
+[observations]
+source = "cammesa-ar"
+obs_level = "turbine"
+obs_unit = "plant"
+train_years = [2021, 2023]
+test_years = [2024]
+# CAMMESA reports monthly GWh per central (native monthly — no timezone/DST).
+# CF is GWh against a GWPT-joined capacity (CAMMESA carries no capacity), so
+# the coordinate/capacity join is load-bearing twice. Fleet ramped 2011-2019;
+# over 2021-2024 it is mostly stable (~56 -> ~68 plants), with commissioning
+# prefixes stripped. A partial-build farm reads low against the static
+# nameplate (named follow-up, not screened). No curtailment screen (standing
+# caveat, though AR curtails far less wind than CL/BR).
+
+[era5]
+# Fleet-bounded box (scripts/fetch_era5_ar.py): GWPT AR operating farms span
+# lat -47.3..-28.7, lon -69.8..-57.7; box adds ~1.5 deg margin.
+path = "era5/AR"
+bbox = [-71.0, -56.0, -49.0, -27.0]
+file_tag = "AR"
+
+[correction]
+model = "affine-wind"
+cluster_list = [10]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [12, 1, 2]
+autumn = [3, 4, 5]
+winter = [6, 7, 8]
+spring = [9, 10, 11]

@@ -1,0 +1,3 @@
+ID,lon,lat,capacity_mw,note
+MANANTIALES BEHR (YPF),-67.789,-45.675,99.0,GWPT located the farm but at a 50MW phase; YPF Luz Manantiales Behr is 99MW (30x3.3MW) Chubut; median CF ~0.60 (windy Comodoro Rivadavia)
+P.EOLICO MATACO 3 PICOS,-62.243,-38.305,200.0,El Mataco + Tres Picos complex near Bahia Blanca; GWPT splits into Mataco(36)+Tres Picos(100)+San Jorge(103); combined ~200MW gives median CF 0.52

@@ -15,6 +15,7 @@ from vwf.sources.registry import (
 
 # Imported for their registration side effect.
 from vwf.sources.aemo import AEMONemSource
+from vwf.sources.cammesa_ar import CAMMESAArgentinaSource
 from vwf.sources.cen_cl import CENChileSource
 from vwf.sources.eia_us import EIAUSSource
 from vwf.sources.emi_nz import EMINewZealandSource
@@ -31,6 +32,7 @@ __all__ = [
     "register",
     "resolve",
     "AEMONemSource",
+    "CAMMESAArgentinaSource",
     "CENChileSource",
     "EIAUSSource",
     "EMINewZealandSource",

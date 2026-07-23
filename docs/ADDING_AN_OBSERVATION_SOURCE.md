@@ -94,6 +94,7 @@ model.train(check=False)
 | `ons-br` | turbine | BR, BRA | Per-complex monthly CF from the ONS `FATOR_CAPACIDADE` hourly series (which carries coordinates + installed capacity itself); optional ONS constrained-off curtailment mask. The unit is the complex (`obs_unit = "complex"`). |
 | `emi-nz` | turbine | NZ, NZL | Per-farm monthly CF from EMI `Generation_MD` half-hourly kWh, NZ trading periods (DST-aware) converted to UTC bins; curated farm table (`configs/nz_wind_farms.csv`) supplies coordinates, capacities, and per-farm hub heights; commissioning-ramp months masked. The unit is the farm (`obs_unit = "farm"`). |
 | `cen-cl` | turbine | CL, CHL | Per-plant monthly CF from CEN SIP `generacion-real` hourly `gen_real_mw` against `potencia_maxima`; fixed UTC-4 (no DST) converted to UTC bins; wind fleet from the generation stream; coordinates joined from GWPT (`configs/cl_coord_overrides.csv` for the residual); leading commissioning months stripped. The unit is the plant (`obs_unit = "plant"`). |
+| `cammesa-ar` | turbine | AR, ARG | Per-plant monthly CF from CAMMESA monthly GWh (native monthly — no time conversion); coordinates AND capacity joined from GWPT (`configs/ar_coord_overrides.csv`), since CAMMESA carries no capacity; a median-CF guard flags bad-capacity matches; leading commissioning months stripped. The unit is the plant (`obs_unit = "plant"`). |
 | `in-memory-country` | country | none | Wraps caller-supplied grid points and an observed capacity-factor series. Backs `PyVWF.load_country_data()`. |
 
 ## Country-level data supplied by the caller
