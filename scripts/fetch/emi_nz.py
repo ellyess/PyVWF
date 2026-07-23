@@ -26,8 +26,8 @@ What it fetches (verified July 2026):
   name ``DispatchedGenerationPlant.csv``.
 
 Output layout (consumed by scripts/process/emi_nz.py):
-    <input-root>/emi_raw/<YYYYMM>_Generation_MD.csv
-    <input-root>/emi_raw/DispatchedGenerationPlant.csv
+    <input-root>/raw/emi/<YYYYMM>_Generation_MD.csv
+    <input-root>/raw/emi/DispatchedGenerationPlant.csv
 where <input-root> is $PYVWF_INPUT if set, else ./input.
 
 Downloads are resumable: existing files are skipped, partial downloads land
@@ -50,7 +50,7 @@ YEARS = (2019, 2020, 2021, 2022, 2023, 2024)
 
 def output_dir() -> Path:
     root = Path(os.environ.get("PYVWF_INPUT", "input"))
-    return root / "emi_raw"
+    return root / "raw/emi"
 
 
 def download(url: str, dest: Path) -> None:

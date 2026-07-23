@@ -5,7 +5,7 @@ USER-EXECUTED (though credential-free): downloads the two public Excel files
 that back the Denmark region, so the manual ens.dk download becomes
 reproducible like every other source.
 
-    python scripts/fetch/dk.py            # both files -> input/turbine_level_data/DK/
+    python scripts/fetch/dk.py            # both files -> input/observations/turbine/DK/
     python scripts/fetch/dk.py --dry-run  # show the plan, download nothing
 
 What it fetches (the canonical "Stamdataregister for vindkraftanlæg" /
@@ -54,7 +54,7 @@ MAANEDSDATA_URL = "https://ens.dk/media/4948/download"   # -> maanedsdata (2002-
 
 def output_dir() -> Path:
     root = Path(os.environ.get("PYVWF_INPUT", "input"))
-    return root / "turbine_level_data" / "DK"
+    return root / "observations/turbine" / "DK"
 
 
 def download(url: str, dest: Path) -> None:

@@ -8,8 +8,8 @@ from vwf.sources.entsoe_files import EntsoeFileSource
 
 @pytest.fixture
 def country_layout(tmp_path):
-    """Minimal country_level_data layout for a fictional region 'ZZ'."""
-    base = tmp_path / "country_level_data"
+    """Minimal observations/country layout for a fictional region 'ZZ'."""
+    base = tmp_path / "observations/country"
     (base / "grid_points" / "zz").mkdir(parents=True)
     (base / "observations" / "zz").mkdir(parents=True)
 

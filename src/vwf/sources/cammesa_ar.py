@@ -37,7 +37,7 @@ DEFAULT_TRAIN_YEARS: tuple[int, int] = (2021, 2023)
 class CAMMESAArgentinaSource(ObservationSource):
     """Per-plant monthly capacity factors for Argentina.
 
-    Reads pre-processed files from ``input/turbine_level_data/AR/`` (built by
+    Reads pre-processed files from ``input/observations/turbine/AR/`` (built by
     ``scripts/process/cammesa_ar.py`` from the CAMMESA download + the GWPT
     join):
 

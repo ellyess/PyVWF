@@ -40,7 +40,7 @@ DEFAULT_TRAIN_YEARS: tuple[int, int] = (2021, 2023)
 class CENChileSource(ObservationSource):
     """Per-plant monthly capacity factors for Chile.
 
-    Reads pre-processed files from ``input/turbine_level_data/CL/`` (built by
+    Reads pre-processed files from ``input/observations/turbine/CL/`` (built by
     ``scripts/process/cen_cl.py`` from the CEN downloads + the GWPT join):
 
     ``cl_md.csv``

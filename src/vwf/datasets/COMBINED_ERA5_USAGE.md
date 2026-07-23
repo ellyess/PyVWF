@@ -195,7 +195,7 @@ python combine_era5_files.py --all-years --add-roughness
 ```bash
 python combine_era5_files.py --all-years --add-roughness \
     --roughness-source terrain \
-    --terrain-file input/terrain/terrain_europe_full.nc
+    --terrain-file input/reference/terrain/terrain_europe_full.nc
 ```
 
 ### Specific years only:

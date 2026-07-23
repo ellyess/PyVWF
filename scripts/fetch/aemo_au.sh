@@ -21,7 +21,7 @@
 set -euo pipefail
 
 BASE="https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM"
-OUT="${AEMO_OUT:-${PYVWF_INPUT:-input}/aemo_raw}"
+OUT="${AEMO_OUT:-${PYVWF_INPUT:-input}/raw/aemo}"
 mkdir -p "$OUT/scada" "$OUT/dudetail" "$OUT/dudetail_cap"
 
 for year in 2020 2021 2022 2023; do

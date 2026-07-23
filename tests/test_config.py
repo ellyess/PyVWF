@@ -39,7 +39,8 @@ def test_reference_file_prefers_the_users_own_table(tmp_path, monkeypatch):
     """A local (possibly licensed, non-redistributable) power-curve library must
     win over the bundled open library."""
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
-    local = tmp_path / "power_curves.csv"
+    local = tmp_path / "reference" / "power_curves.csv"
+    local.parent.mkdir()
     local.write_text("data$speed,MyTurbine.5000\n0,0\n10,0.8\n")
 
     with warnings.catch_warnings():
@@ -121,7 +122,7 @@ def test_add_models_works_outside_a_checkout(no_input_root):
 def test_repo_checkout_still_uses_its_own_input_dir():
     """In a checkout (the default INPUT_ROOT), the repo's own tables are used and
     nothing warns — the existing workflow is untouched."""
-    if not Path("input/power_curves.csv").is_file():
+    if not Path("input/reference/power_curves.csv").is_file():
         pytest.skip("not running from a repository checkout")
 
     with warnings.catch_warnings():
@@ -143,7 +144,7 @@ def test_pyvwf_input_env_var_redirects_the_root(tmp_path, monkeypatch):
     try:
         assert reloaded.PyVWFPaths.INPUT_ROOT == tmp_path
         assert reloaded.PyVWFPaths.ERA5_DATA == tmp_path / "era5" / "EU"
-        assert reloaded.PyVWFPaths.TURBINE_DATA == tmp_path / "turbine_level_data"
+        assert reloaded.PyVWFPaths.TURBINE_DATA == tmp_path / "observations" / "turbine"
     finally:
         # Restore the module for every other test in the session.
         monkeypatch.delenv("PYVWF_INPUT")

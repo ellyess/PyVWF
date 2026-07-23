@@ -50,7 +50,7 @@ Ofgem ROC issuance (per-station monthly) — MANUAL, then process:
 
 
 def output_dir() -> Path:
-    return Path(os.environ.get("PYVWF_INPUT", "input")) / "repd_raw"
+    return Path(os.environ.get("PYVWF_INPUT", "input")) / "raw/repd"
 
 
 def find_repd_csv() -> str:

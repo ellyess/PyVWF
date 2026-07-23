@@ -167,42 +167,48 @@ turbine-model reference files.
 | Data | Format | Used by | Location |
 |---|---|---|---|
 | ERA5 reanalysis winds | NetCDF | both | `input/era5/EU/*.nc` |
-| Power curves | CSV | both | `input/power_curves.csv` |
-| Turbine model specs | CSV | both | `input/models.csv` |
-| Turbine metadata | CSV | turbine-level | `input/turbine_level_data/<CC>/` |
-| Turbine observed generation | CSV | turbine-level | `input/turbine_level_data/<CC>/` |
-| Country grid points | CSV | country-level | `input/country_level_data/grid_points/<cc>/` |
-| Country observations | CSV | country-level | `input/country_level_data/observations/<cc>/` |
+| Power curves | CSV | both | `input/reference/power_curves.csv` |
+| Turbine model specs | CSV | both | `input/reference/models.csv` |
+| Turbine metadata | CSV | turbine-level | `input/observations/turbine/<CC>/` |
+| Turbine observed generation | CSV | turbine-level | `input/observations/turbine/<CC>/` |
+| Country grid points | CSV | country-level | `input/observations/country/grid_points/<cc>/` |
+| Country observations | CSV | country-level | `input/observations/country/observations/<cc>/` |
 
 `<CC>` is the upper-case country code (`DK`), `<cc>` the lower-case form (`nl`).
 
 ### Directory layout
 
 ```
-input/
+input/                            # organised by pipeline stage
+├── raw/                          # upstream downloads (provenance), one dir per source
+│   └── <source>/                 # aemo, cammesa, cen, eia, emi, ons, repd
 ├── era5/
 │   └── EU/                       # all ERA5 NetCDF files go here (any filenames)
 │       ├── era5_combined_2015_EU.nc
 │       └── ...
-├── power_curves.csv              # wind speed -> power, one column per model
-├── models.csv                    # manufacturer, model, capacity, diameter, ...
-├── turbine_level_data/           # turbine-level workflow (DK, DE, UK)
-│   ├── DK/
-│   │   ├── dk_md.csv             # turbine metadata
-│   │   └── dk_obs_2002_2020.csv  # observed monthly generation
-│   ├── DE/
-│   │   ├── DE_md.csv
-│   │   ├── DE_data.csv
-│   │   └── geolocate.germany.csv
-│   └── UK/
-│       ├── uk_md.csv
-│       └── ukobs.csv
-├── country_level_data/           # country-level workflow (generated, see below)
-│   ├── grid_points/<cc>/<cc>_grid_points_<YYYY>.csv
-│   └── observations/<cc>/<cc>_train_<Y1>_<Y2>.csv
-└── regions/                      # region shapes for onshore/offshore clustering
-    ├── country_shapes.geojson
-    └── offshore_shapes.geojson
+├── observations/                 # processed capacity factors the adapters read
+│   ├── turbine/                  # turbine-level workflow (DK, DE, UK, …)
+│   │   ├── DK/
+│   │   │   ├── dk_md.csv         # turbine metadata
+│   │   │   └── dk_obs_2002_2020.csv  # observed monthly generation
+│   │   ├── DE/
+│   │   │   ├── DE_md.csv
+│   │   │   ├── DE_data.csv
+│   │   │   └── geolocate.germany.csv
+│   │   └── UK/
+│   │       ├── uk_md.csv
+│   │       └── ukobs.csv
+│   └── country/                  # country-level workflow (generated, see below)
+│       ├── grid_points/<cc>/<cc>_grid_points_<YYYY>.csv
+│       └── observations/<cc>/<cc>_train_<Y1>_<Y2>.csv
+└── reference/                    # static shared lookups
+    ├── power_curves.csv          # wind speed -> power, one column per model
+    ├── models.csv                # manufacturer, model, capacity, diameter, ...
+    ├── gwpt/                      # Global Wind Power Tracker workbook
+    ├── terrain/                  # land-cover / elevation rasters
+    └── shapes/                    # region shapes for onshore/offshore clustering
+        ├── country_shapes.geojson
+        └── offshore_shapes.geojson
 ```
 
 ### 1. ERA5 reanalysis winds
@@ -222,7 +228,7 @@ not by directory, so all years live in the same folder.
 
 ### 2. Turbine metadata and observed generation (turbine-level)
 
-Each supported country has a folder under `input/turbine_level_data/<CC>/` with
+Each supported country has a folder under `input/observations/turbine/<CC>/` with
 the metadata and observation files named exactly as listed in the layout above
 (the loaders in [`src/vwf/loaders/turbine_loaders.py`](src/vwf/loaders/turbine_loaders.py)
 read these fixed filenames). Metadata provides turbine ID, location, capacity,
@@ -230,20 +236,20 @@ rotor diameter, and hub height; observations provide monthly generation.
 
 The repository does not ship turbine metadata or observed generation: such
 datasets are typically proprietary, so you supply your own in the layout above
-(`input/turbine_level_data/` is gitignored for this reason). To see the
+(`input/observations/turbine/` is gitignored for this reason). To see the
 workflow run without any of these files, use the bundled synthetic example
 described in the [Quickstart](#quickstart). Do not assume redistribution
 rights for data you obtain elsewhere.
 
 ### 3. Power curves and turbine models
 
-- `input/power_curves.csv`: wind speed in the first column, then one column per
+- `input/reference/power_curves.csv`: wind speed in the first column, then one column per
   turbine model giving capacity factor. The shipped file is the **open turbine
   curve library** (BSD-3-Clause, per-column provenance in
-  `input/power_curves_provenance.csv`); manufacturer-specific libraries are
+  `input/reference/power_curves_provenance.csv`); manufacturer-specific libraries are
   typically proprietary and are not redistributed here. See
   [`input/README.md`](input/README.md) for provenance details and pointers.
-- `input/models.csv`: turbine model reference (manufacturer, model, offshore
+- `input/reference/models.csv`: turbine model reference (manufacturer, model, offshore
   flag, capacity, rotor diameter, power density).
 
 ### 4. Country-level data (optional)
@@ -258,7 +264,7 @@ python vwf/datasets/generate_country_level_training_data.py
 This fetches national generation from the ENTSO-E Transparency Platform (an API
 key is required; see [docs/ENTSOE_API_GUIDE.md](docs/ENTSOE_API_GUIDE.md)) and
 writes grid points and train/test observation splits under
-`input/country_level_data/`.
+`input/observations/country/`.
 
 ### Paths flagged for confirmation
 
@@ -367,7 +373,7 @@ from vwf.viz import plot_correction_factor_map
 fig = plot_correction_factor_map(
     res.factors[(1000, "bimonth")],   # one (n_clu, time_res) configuration
     res.train_turb_info,              # the fleet the factors were fitted on
-    boundary="input/regions/dk.json", # clip cells to the country outline
+    boundary="input/reference/shapes/dk.json", # clip cells to the country outline
 )
 fig.savefig("factor_map.png", dpi=150)
 ```

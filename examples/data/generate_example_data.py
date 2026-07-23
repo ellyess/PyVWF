@@ -93,7 +93,7 @@ def _make_observations(turbines: pd.DataFrame) -> pd.DataFrame:
 
     PyVWFPaths.ERA5_DATA = ERA5_DIR
     ds = prep_era5("example", train=False, calc_z0=True, bbox=None)
-    power_curves = pd.read_csv("input/power_curves.csv")
+    power_curves = pd.read_csv("input/reference/power_curves.csv")
 
     rows = []
     for cluster, cl in turbines.groupby("cluster"):

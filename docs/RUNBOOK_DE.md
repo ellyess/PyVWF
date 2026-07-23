@@ -14,7 +14,7 @@ python scripts/process/de.py --src "<path to the WindStats folder>"
 python scripts/process/de.py --src "<...>" --check-only   # validate only
 ```
 
-The three files it stages into `input/turbine_level_data/DE/`:
+The three files it stages into `input/observations/turbine/DE/`:
 
 | File | Content |
 | --- | --- |

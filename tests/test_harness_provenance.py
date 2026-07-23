@@ -44,7 +44,8 @@ def test_edited_synthetic_labels_external(empty_input_root):
     # Copy the bundled synthetic table into INPUT_ROOT and change one byte.
     # Design §6: an edited synthetic file labels "external" ON PURPOSE —
     # fail-safe in the underclaiming direction.
-    local = empty_input_root / "power_curves.csv"
+    local = empty_input_root / "reference" / "power_curves.csv"
+    local.parent.mkdir(exist_ok=True)
     shutil.copy(bundled("power_curves.csv"), local)
     with open(local, "a", encoding="utf-8") as fh:
         fh.write("\n")
@@ -56,8 +57,10 @@ def test_edited_synthetic_labels_external(empty_input_root):
 def test_identical_local_copy_labels_synthetic(empty_input_root):
     # A byte-identical local copy IS the bundled library; only difference
     # triggers "external".
-    shutil.copy(bundled("power_curves.csv"), empty_input_root / "power_curves.csv")
-    shutil.copy(bundled("models.csv"), empty_input_root / "models.csv")
+    ref = empty_input_root / "reference"
+    ref.mkdir(exist_ok=True)
+    shutil.copy(bundled("power_curves.csv"), ref / "power_curves.csv")
+    shutil.copy(bundled("models.csv"), ref / "models.csv")
     assert curve_library_identity()["library"] == "synthetic-bundled"
 
 

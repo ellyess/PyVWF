@@ -1,10 +1,10 @@
-"""File-backed country-level observation source over the country_level_data layout.
+"""File-backed country-level observation source over the observations/country layout.
 
 This is the "entsoe-country" adapter the validation harness resolves for the
 nine ENTSO-E regions. It reads the on-disk convention produced by
 ``vwf.datasets.generate_country_level_training_data``:
 
-    country_level_data/
+    observations/country/
       grid_points/<c>/<c>_grid_points.csv        # static sites, with cluster
       observations/<c>/<c>_train_<start>_<end>.csv
       observations/<c>/<c>_test_<year>.csv

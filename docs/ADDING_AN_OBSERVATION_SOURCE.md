@@ -20,7 +20,7 @@ The sites to simulate. Required columns:
 | `lon`, `lat` | Location in degrees. |
 | `height` | Hub height in metres, strictly greater than 1. |
 | `capacity` | Rated capacity in kW. |
-| `model` | Power curve key, matching a column of `input/power_curves.csv`. |
+| `model` | Power curve key, matching a column of `input/reference/power_curves.csv`. |
 | `type` | `onshore` or `offshore`. Used when `cluster_mode` filters the fleet. |
 
 Country-level sources must also supply `cluster`, the cluster assignment for each
@@ -88,7 +88,7 @@ model.train(check=False)
 
 | Name | Level | Countries | Notes |
 | --- | --- | --- | --- |
-| `european-turbine` | turbine | DK, DE, UK | Reads the per-turbine CSVs under `input/turbine_level_data/`. Converts monthly kWh to capacity factor. DK acquisition is fully scripted (`scripts/fetch/dk.py` + `scripts/process/dk.py`, Danish Energy Agency register — `docs/RUNBOOK_DK.md`). UK is partly scripted (`scripts/fetch/uk.py` + `scripts/process/uk.py`: REPD metadata is open+auto, ROC observations from the open RER export or the CONFIDENTIAL Ofgem certificate warehouse — `docs/RUNBOOK_UK.md`). DE is staged from CONFIDENTIAL WindStats data via `scripts/process/de.py` (`docs/RUNBOOK_DE.md`). |
+| `european-turbine` | turbine | DK, DE, UK | Reads the per-turbine CSVs under `input/observations/turbine/`. Converts monthly kWh to capacity factor. DK acquisition is fully scripted (`scripts/fetch/dk.py` + `scripts/process/dk.py`, Danish Energy Agency register — `docs/RUNBOOK_DK.md`). UK is partly scripted (`scripts/fetch/uk.py` + `scripts/process/uk.py`: REPD metadata is open+auto, ROC observations from the open RER export or the CONFIDENTIAL Ofgem certificate warehouse — `docs/RUNBOOK_UK.md`). DE is staged from CONFIDENTIAL WindStats data via `scripts/process/de.py` (`docs/RUNBOOK_DE.md`). |
 | `aemo-nem` | turbine | AU-NEM, AU | Per-farm (DUID) monthly CF from 5-minute AEMO SCADA, AEST→UTC binned. The unit is the farm (`obs_unit = "farm"`). |
 | `eia-us` | turbine | US, USA | Per-plant monthly CF from EIA-923 net generation, with EIA-860 capacity/coordinates and USWTDB hub heights. The unit is the plant (`obs_unit = "plant"`). |
 | `ons-br` | turbine | BR, BRA | Per-complex monthly CF from the ONS `FATOR_CAPACIDADE` hourly series (which carries coordinates + installed capacity itself); optional ONS constrained-off curtailment mask. The unit is the complex (`obs_unit = "complex"`). |

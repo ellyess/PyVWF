@@ -24,14 +24,14 @@ Then build the two on-disk tables the `eia-us` source reads:
 
 ```bash
 python scripts/process/eia_us.py \
-    --eia923 input/eia_raw/f923_2019/EIA923_Schedules_2_3_4_5_M_12_2019_*.xlsx \
-             input/eia_raw/f923_2020/EIA923_Schedules_2_3_4_5_M_12_2020_*.xlsx \
-             input/eia_raw/f923_2021/EIA923_Schedules_2_3_4_5_M_12_2021_*.xlsx \
-    --eia860-plants     input/eia_raw/eia860_2021/2___Plant_Y2021.xlsx \
-    --eia860-generators input/eia_raw/eia860_2021/3_1_Generator_Y2021.xlsx \
-    --uswtdb            input/eia_raw/uswtdb/uswtdb_V9_0_*.csv \
+    --eia923 input/raw/eia/f923_2019/EIA923_Schedules_2_3_4_5_M_12_2019_*.xlsx \
+             input/raw/eia/f923_2020/EIA923_Schedules_2_3_4_5_M_12_2020_*.xlsx \
+             input/raw/eia/f923_2021/EIA923_Schedules_2_3_4_5_M_12_2021_*.xlsx \
+    --eia860-plants     input/raw/eia/eia860_2021/2___Plant_Y2021.xlsx \
+    --eia860-generators input/raw/eia/eia860_2021/3_1_Generator_Y2021.xlsx \
+    --uswtdb            input/raw/eia/uswtdb/uswtdb_V9_0_*.csv \
     --bbox -125 -66 24 50 \
-    --out input/turbine_level_data/US
+    --out input/observations/turbine/US
 ```
 
 `--bbox` must match the region's `[era5] bbox`. EIA covers every state but the
@@ -74,7 +74,7 @@ wherever the harness should read.
 
 ## 3. Power curves (bundled open library, or your own)
 
-The bundled `input/power_curves.csv` / `models.csv` are now a REAL open curve
+The bundled `input/reference/power_curves.csv` / `models.csv` are now a REAL open curve
 library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
 VWF-smoothed), so runs against them are physically meaningful. `process_eia_us.py`
 assigns every plant a UNIFORM representative curve — the default
@@ -86,7 +86,7 @@ representative.
 The caveat is identity, not realism: the fleet is matched to the library by
 specific power, not by actual machine, so this is a fleet-representative curve,
 not each plant's true one. For identity-matched curves, supply your own library
-as `input/power_curves.real.csv` (git-ignored) and pass its key. The USWTDB
+as `input/reference/power_curves.real.csv` (git-ignored) and pass its key. The USWTDB
 manufacturer/model string is carried in `us_md.csv`'s `uswtdb_model` column for
 the future vintage-aware per-plant assignment, but is never itself the curve key.
 

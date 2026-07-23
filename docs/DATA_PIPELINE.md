@@ -16,12 +16,12 @@ and workflow orchestration scripts in `scripts/`.
 
 ## 2. Directory Structure
 
-### input/country_level_data/
+### input/observations/country/
 
 ENTSO-E grid points and observed capacity factors for country-level workflows.
 
 ```
-input/country_level_data/
+input/observations/country/
 ├── grid_points/
 │   ├── nl/
 │   │   ├── nl_grid_points.csv
@@ -45,12 +45,12 @@ Grid point CSVs contain: `ID`, `lat`, `lon`, `height`, `model`, `capacity`, `clu
 Bidding-zone countries (NO, SE) add a `zone` column. Observation CSVs are
 datetime-indexed with: `capacity_factor`, `generation_mw`, `capacity_mw`.
 
-### input/turbine_level_data/
+### input/observations/turbine/
 
 Individual turbine metadata and generation observations.
 
 ```
-input/turbine_level_data/
+input/observations/turbine/
 ├── DE/
 │   ├── DE_md.csv                  # 10,889 turbines
 │   ├── DE_data.csv                # Long-format monthly generation
@@ -69,8 +69,8 @@ All loader functions are in `src/vwf/data.py`. Three path constants are used int
 
 ```python
 COUNTRY_DIR       = Path("input/country-data")        # Legacy country aggregates
-TURBINE_DIR       = Path("input/turbine_level_data")   # Turbine-level data
-COUNTRY_LEVEL_DIR = Path("input/country_level_data")   # Country-level grid workflows
+TURBINE_DIR       = Path("input/observations/turbine")   # Turbine-level data
+COUNTRY_LEVEL_DIR = Path("input/observations/country")   # Country-level grid workflows
 ```
 
 ### Country-level loaders
@@ -160,7 +160,7 @@ Orchestration scripts in `scripts/` drive end-to-end runs.
 ### scripts/run_all_country_level.py
 
 Trains and evaluates PyVWF across country-level configurations. Reads data from
-`input/country_level_data/` via `PyVWF.from_config()`. Requires the generation
+`input/observations/country/` via `PyVWF.from_config()`. Requires the generation
 script to have been run first.
 
 ```bash
@@ -175,7 +175,7 @@ python scripts/run_all_country_level.py --countries NL --dry-run
 
 Trains PyVWF across turbine-level configurations (DE, DK, UK; onshore/offshore).
 Uses `PyVWF()` with `obs_level="turbine"`. No generation step is needed -- the
-processed CSVs in `input/turbine_level_data/` are used directly.
+processed CSVs in `input/observations/turbine/` are used directly.
 
 ```bash
 python scripts/run_all_turbine_level.py --configs DK-onshore UK-onshore DE-onshore

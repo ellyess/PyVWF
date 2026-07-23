@@ -144,7 +144,7 @@ def au_world(tmp_path_factory):
         ignore_index=True,
     )
 
-    data_dir = root / "turbine_level_data" / "AU_NEM"
+    data_dir = root / "observations/turbine" / "AU_NEM"
     data_dir.mkdir(parents=True)
     FARMS.to_csv(data_dir / "au_nem_md.csv", index=False)
     scada.to_csv(data_dir / "au_nem_scada.csv", index=False)
@@ -156,7 +156,7 @@ def au_world(tmp_path_factory):
 def au_paths(au_world, monkeypatch):
     root = au_world["root"]
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", root)
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", root / "turbine_level_data")
+    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", root / "observations/turbine")
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", root / "era5")
     return au_world
 
@@ -187,7 +187,7 @@ def trained(au_world, tmp_path_factory):
     # module-scoped, so patch paths manually rather than via the fixture.
     old = (PyVWFPaths.INPUT_ROOT, PyVWFPaths.TURBINE_DATA, PyVWFPaths.ERA5_DATA)
     PyVWFPaths.INPUT_ROOT = root
-    PyVWFPaths.TURBINE_DATA = root / "turbine_level_data"
+    PyVWFPaths.TURBINE_DATA = root / "observations/turbine"
     PyVWFPaths.ERA5_DATA = root / "era5"
     try:
         out = tmp_path_factory.mktemp("runs")

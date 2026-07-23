@@ -3,7 +3,7 @@
 **Status: adapter BUILT and tested against the real data (2026-07-23); only
 the ERA5 download and the train/evaluate remain.** Per-plant hourly wind runs
 back to at least 2010 (5 plants → 65 in 2025); the 2021-2024 pull is in
-`input/cen_raw/` (48 files, 1.93M rows). The `cen-cl` adapter, its transforms
+`input/raw/cen/` (48 files, 1.93M rows). The `cen-cl` adapter, its transforms
 (`vwf/datasets/cen_cl.py`), the processing + GWPT join
 (`scripts/process/cen_cl.py`), and 13 tests are committed. Chile spans three
 climates absent from the current set — Atacama coastal desert (BW),
@@ -12,7 +12,7 @@ Mediterranean central Chile (Csb), maritime south (Cfb) — 60 plants, ~6.5 GW.
 ## Build the region inputs (done; re-run to refresh)
 
 ```bash
-python scripts/process/cen_cl.py     # -> input/turbine_level_data/CL/
+python scripts/process/cen_cl.py     # -> input/observations/turbine/CL/
 ```
 
 Produces `cl_obs.csv` (monthly CF, commissioning prefix stripped),
@@ -81,7 +81,7 @@ service specs are public at
 
 **The registry carries no latitude/longitude** — only region/province/commune.
 Coordinates must be joined from the Global Wind Power Tracker (CC-BY-4.0,
-already on disk at `input/Global-Wind-Power-Tracker-February-2026.xlsx`).
+already on disk at `input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx`).
 
 ## 2. Verification checklist before writing the adapter
 

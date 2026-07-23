@@ -19,7 +19,7 @@ python scripts/process/windstats.py --country ES --src "<WindStats folder>"
 ```
 
 Reads `ES_md.csv`, `ES_data.csv`, `geolocate.spain.csv` from `--src` and the
-Global Wind Power Tracker, and writes to `input/turbine_level_data/ES/`:
+Global Wind Power Tracker, and writes to `input/observations/turbine/ES/`:
 `es_md.csv`, `es_obs.csv`, `es_join_report.md`.
 
 The pipeline: WindStats per-turbine monthly `Output` (kWh) → CF against

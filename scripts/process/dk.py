@@ -33,9 +33,9 @@ MAANEDSDATA = "maanedsdata_2002_2020.xlsx"
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--in-dir", type=Path, default=Path("input/turbine_level_data/DK"),
+    ap.add_argument("--in-dir", type=Path, default=Path("input/observations/turbine/DK"),
                     help="Directory holding the raw ens.dk .xlsx files")
-    ap.add_argument("--out-dir", type=Path, default=Path("input/turbine_level_data/DK"),
+    ap.add_argument("--out-dir", type=Path, default=Path("input/observations/turbine/DK"),
                     help="Directory for the processed CSVs")
     ap.add_argument("--metadata-only", action="store_true")
     ap.add_argument("--observations-only", action="store_true")

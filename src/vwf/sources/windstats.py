@@ -3,7 +3,7 @@
 ⚠ CONFIDENTIAL / COMMERCIAL (WindStats) generation, with open (GWPT)
 coordinates for Spain — a MIXED-LICENCE region. Nothing derived may be
 committed or redistributed; the adapter reads pre-processed files under
-``input/turbine_level_data/<CC>/`` that the user builds locally with
+``input/observations/turbine/<CC>/`` that the user builds locally with
 ``scripts/process/windstats.py`` from data they hold.
 
 Currently serves **Spain (ES)**. Sweden (SE) and Finland (FI) share the
@@ -46,7 +46,7 @@ def _base_country(code: str) -> str:
 class WindStatsSource(ObservationSource):
     """Per-turbine monthly capacity factors for the WindStats regions.
 
-    Reads pre-processed files from ``input/turbine_level_data/<CC>/`` (built by
+    Reads pre-processed files from ``input/observations/turbine/<CC>/`` (built by
     ``scripts/process/windstats.py`` from the confidential WindStats extract +
     the coordinate join):
 

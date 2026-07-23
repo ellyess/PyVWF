@@ -2,11 +2,11 @@
 """Build the CAMMESAArgentinaSource inputs from the monthly GWh + a GWPT join.
 
 Reads (all local): the per-plant monthly wind energy CSV written by
-`scripts/fetch/cammesa_ar.py` (input/cammesa_raw/ar_wind_monthly.csv:
+`scripts/fetch/cammesa_ar.py` (input/raw/cammesa/ar_wind_monthly.csv:
 ID, region, provincia, year, month, gwh), and the Global Wind Power Tracker
 workbook (coordinates AND capacity — CAMMESA carries neither).
 
-Writes (under <out>, default input/turbine_level_data/AR/):
+Writes (under <out>, default input/observations/turbine/AR/):
     ar_obs.csv        monthly CF wide frame (commissioning prefix stripped)
     ar_md.csv         CAMMESAArgentinaSource metadata (coords+capacity joined)
     join_report.md    match evidence: every plant, GWPT match, capacity, CF
@@ -110,12 +110,12 @@ def join_coords_caps(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFra
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--monthly", default="input/cammesa_raw/ar_wind_monthly.csv")
-    ap.add_argument("--gwpt", default="input/Global-Wind-Power-Tracker-February-2026.xlsx")
+    ap.add_argument("--monthly", default="input/raw/cammesa/ar_wind_monthly.csv")
+    ap.add_argument("--gwpt", default="input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--overrides", default="configs/curation/ar_coord_overrides.csv")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
-    ap.add_argument("--out", default="input/turbine_level_data/AR")
+    ap.add_argument("--out", default="input/observations/turbine/AR")
     ap.add_argument("--height", type=float, default=100.0)
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121")
     args = ap.parse_args()

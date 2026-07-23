@@ -19,7 +19,7 @@ regime nothing else in the validation set covers. 65 plants, ~5.5 GW.
 
 ```bash
 python scripts/fetch/cammesa_ar.py     # downloads the ZIP, writes ar_wind_monthly.csv
-python scripts/process/cammesa_ar.py   # -> input/turbine_level_data/AR/
+python scripts/process/cammesa_ar.py   # -> input/observations/turbine/AR/
 ```
 
 `fetch` pulls `Energía Renovables - Base de Datos` and extracts the wind rows
@@ -54,7 +54,7 @@ Outcome on the real data: **66 auto-matched, 2 capacity-fixed, 10 excluded**
   their coordinates and capacity can be verified. Each override/exclude is a
   documented judgment call; **review before publishing.**
 
-Read `input/turbine_level_data/AR/join_report.md` and
+Read `input/observations/turbine/AR/join_report.md` and
 `ar_join_residual.csv` after processing.
 
 ## 3. ERA5 + run

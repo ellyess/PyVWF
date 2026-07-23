@@ -2,10 +2,10 @@
 """Build the CENChileSource inputs from the CEN downloads + a GWPT coord join.
 
 Reads (all local): the per-month CEN wind generation JSON written by
-`scripts/fetch/cen_cl.py --years` under input/cen_raw/, and the Global Wind
+`scripts/fetch/cen_cl.py --years` under input/raw/cen/, and the Global Wind
 Power Tracker workbook (coordinates; CEN exposes none).
 
-Writes (under <out>, default input/turbine_level_data/CL/):
+Writes (under <out>, default input/observations/turbine/CL/):
     cl_obs.csv        monthly CF wide frame (UTC bins, coverage-screened)
     cl_md.csv         CENChileSource metadata contract (needs coords joined)
     join_report.md    match evidence: every plant, its GWPT match, both caps
@@ -121,12 +121,12 @@ def match(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFrame):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", default="input/cen_raw")
-    ap.add_argument("--gwpt", default="input/Global-Wind-Power-Tracker-February-2026.xlsx")
+    ap.add_argument("--raw", default="input/raw/cen")
+    ap.add_argument("--gwpt", default="input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--overrides", default="configs/curation/cl_coord_overrides.csv")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
-    ap.add_argument("--out", default="input/turbine_level_data/CL")
+    ap.add_argument("--out", default="input/observations/turbine/CL")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub-height default, m (CEN has no hub height)")
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",

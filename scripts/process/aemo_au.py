@@ -8,7 +8,7 @@ Reads (all local, downloaded by the user):
     the Global Wind Power Tracker workbook (the user's public-source
         turbine compilation; coordinates)
 
-Writes (under <out>, default input/turbine_level_data/AU_NEM/):
+Writes (under <out>, default input/observations/turbine/AU_NEM/):
     au_nem_md.csv                          AEMONemSource metadata contract
     au_nem_scada_monthly_partials.csv      per-(DUID, UTC month) energy sums
     join_report.md                         match/unmatch/capacity-check report
@@ -21,8 +21,8 @@ across archives before any month is finalised. Finalisation itself
 time, through the same audited code path the tests pin.
 
     python scripts/process/aemo_au.py \\
-        --gen-info "input/aemo_raw/NEM Generation Information Apr 2026.xlsx" \\
-        --gwpt input/Global-Wind-Power-Tracker-February-2026.xlsx
+        --gen-info "input/raw/aemo/NEM Generation Information Apr 2026.xlsx" \\
+        --gwpt input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx
 """
 import argparse
 import io
@@ -54,10 +54,10 @@ def read_zipped_mms(path: Path) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", default="input/aemo_raw", help="Raw archive dir")
+    ap.add_argument("--raw", default="input/raw/aemo", help="Raw archive dir")
     ap.add_argument("--gen-info", required=True, help="Generation Information xlsx")
     ap.add_argument("--gwpt", required=True, help="Global Wind Power Tracker xlsx")
-    ap.add_argument("--out", default="input/turbine_level_data/AU_NEM")
+    ap.add_argument("--out", default="input/observations/turbine/AU_NEM")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub height default, m (no per-farm data yet)")
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",

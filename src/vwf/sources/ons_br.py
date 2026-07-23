@@ -91,7 +91,7 @@ def fc_to_monthly_cf(
 class ONSBrazilSource(ObservationSource):
     """Per-complex monthly capacity factors for Brazil.
 
-    Reads pre-downloaded files from ``input/turbine_level_data/BR/``:
+    Reads pre-downloaded files from ``input/observations/turbine/BR/``:
 
     ``br_md.csv``
         Complex metadata: ``ID`` (``id_ons``), ``lon``, ``lat``, ``height``

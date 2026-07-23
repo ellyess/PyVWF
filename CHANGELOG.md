@@ -150,8 +150,8 @@ changes the numbers the evaluation layer reports.
   raises `NotImplementedError` naming both ways to supply the data.
 - **PyVWF could not be used outside a repository checkout.**
   `load_power_curves()` and `add_models()` read the literal relative paths
-  `input/power_curves.csv` and `input/models.csv`, and the region-shape loader
-  read `input/regions/*.geojson`, so an installed copy raised
+  `input/reference/power_curves.csv` and `input/reference/models.csv`, and the region-shape loader
+  read `input/reference/shapes/*.geojson`, so an installed copy raised
   `FileNotFoundError` unless the working directory happened to be a checkout.
   The declared package data also matched no files, so the wheel shipped none.
   Paths now resolve through `PyVWFPaths`, and the reference tables are bundled.

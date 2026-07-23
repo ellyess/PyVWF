@@ -2,14 +2,14 @@
 """Build the EMINewZealandSource inputs from the EMI downloads.
 
 Reads (all local, downloaded by scripts/fetch/emi_nz.py — user-executed):
-    input/emi_raw/<YYYYMM>_Generation_MD.csv   half-hourly kWh per plant
-    input/emi_raw/DispatchedGenerationPlant.csv  (register; report-only here)
+    input/raw/emi/<YYYYMM>_Generation_MD.csv   half-hourly kWh per plant
+    input/raw/emi/DispatchedGenerationPlant.csv  (register; report-only here)
 and the curated farm tables committed in configs/:
     configs/curation/nz_wind_farms.csv       per-farm metadata with provenance
     configs/curation/nz_capacity_stages.csv  stable capacity plateaus for staged builds
     configs/curation/nz_mask_windows.csv     commissioning-ramp months to mask
 
-Writes (under <out>, default input/turbine_level_data/NZ/):
+Writes (under <out>, default input/observations/turbine/NZ/):
     nz_md.csv          EMINewZealandSource metadata contract
     nz_obs.csv         monthly CF wide frame (UTC bins, coverage-screened)
     nz_build_mask.csv  (ID, year, month) commissioning months to NaN
@@ -103,13 +103,13 @@ def mask_from_windows(windows: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", default="input/emi_raw",
+    ap.add_argument("--raw", default="input/raw/emi",
                     help="Directory of <YYYYMM>_Generation_MD.csv files")
     ap.add_argument("--configs", default="configs/curation",
                     help="Directory holding the curated nz_*.csv tables")
     ap.add_argument("--years", type=int, nargs=2, default=[2019, 2024],
                     metavar=("START", "END"), help="Inclusive UTC year window")
-    ap.add_argument("--out", default="input/turbine_level_data/NZ")
+    ap.add_argument("--out", default="input/observations/turbine/NZ")
     ap.add_argument("--fallback-model", default="2019COE_Market_Average_2.6MW_121",
                     help="Uniform curve key for farms the matcher cannot place "
                     "(must be a column of power_curves.csv)")

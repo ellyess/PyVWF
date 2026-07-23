@@ -11,7 +11,7 @@ library. dask_n_workers=0 keeps the offset fit sequential and deterministic.
         --clusters 1 10 --time-res fixed season --out <ref-dir>
 
 Turbine-level (DK, DE): PyVWF.train(dask_n_workers=0) + simulate_cf.
-Country-level (NL, FR): load_country_data from the country_level_data files
+Country-level (NL, FR): load_country_data from the observations/country files
 (pass --cl-data).
 
 Writes factors_<slice>_<n>.csv and cor_cf_<slice>_<n>.csv (+ unc_cf, obs_cf)
@@ -36,7 +36,7 @@ def main():
     ap.add_argument("--clusters", type=int, nargs="+", required=True)
     ap.add_argument("--time-res", nargs="+", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--cl-data", default=None, help="country_level_data dir")
+    ap.add_argument("--cl-data", default=None, help="observations/country dir")
     args = ap.parse_args()
 
     from vwf.vwf import PyVWF

@@ -29,7 +29,7 @@ _FALLBACK_TRAIN_YEARS: tuple[int, int] = (2015, 2018)
 class EuropeanTurbineSource(ObservationSource):
     """Per-turbine metadata and monthly generation for DK, DE, and UK.
 
-    Reads the fixed-name files under ``input/turbine_level_data/<CC>/``
+    Reads the fixed-name files under ``input/observations/turbine/<CC>/``
     through :mod:`vwf.loaders.turbine_loaders` and adapts them to the
     :class:`~vwf.sources.base.ObservationSource` contract. Resolved
     automatically by :func:`vwf.sources.registry.resolve` for its three

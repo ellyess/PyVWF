@@ -9,7 +9,7 @@ for Spain (mixed licence). Nothing it writes may be committed or redistributed;
 
 Reads ``<CC>_md.csv``, ``<CC>_data.csv``, ``geolocate.<country>.csv`` from
 ``--src`` and the Global Wind Power Tracker, and writes to
-``input/turbine_level_data/<CC>/``:
+``input/observations/turbine/<CC>/``:
     <cc>_md.csv     per-turbine metadata with coordinates
     <cc>_obs.csv    monthly CF, wide
     <cc>_join_report.md   coordinate match rate + excluded farms
@@ -42,7 +42,7 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--country", required=True, choices=["ES", "SE", "FI"])
     ap.add_argument("--src", required=True, help="CONFIDENTIAL WindStats folder")
-    ap.add_argument("--gwpt", default="input/Global-Wind-Power-Tracker-February-2026.xlsx")
+    ap.add_argument("--gwpt", default="input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--years", type=int, nargs=2, default=None, metavar=("START", "END"))
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--height", type=float, default=80.0)
@@ -76,7 +76,7 @@ def main() -> None:
     obs = windstats_monthly_cf(data, smd[["ID", "capacity"]], y0, y1)
     obs = obs[obs["ID"].isin(set(fmd["ID"]))].reset_index(drop=True)
 
-    out = Path(args.out_dir) if args.out_dir else Path("input/turbine_level_data") / cc
+    out = Path(args.out_dir) if args.out_dir else Path("input/observations/turbine") / cc
     out.mkdir(parents=True, exist_ok=True)
     fmd.to_csv(out / f"{cc.lower()}_md.csv", index=False)
     obs.to_csv(out / f"{cc.lower()}_obs.csv", index=False)

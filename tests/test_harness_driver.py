@@ -44,9 +44,9 @@ def make_spec(**overrides) -> RegionSpec:
 @pytest.fixture
 def synthetic_dk(tmp_path, monkeypatch):
     tp._write_era5(tmp_path / "era5")
-    fleet = tp._write_fleet(tmp_path / "turbine_level_data" / "DK")
+    fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "turbine_level_data")
+    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
     return {"root": tmp_path, "fleet": fleet}
 

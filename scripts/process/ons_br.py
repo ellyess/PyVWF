@@ -10,7 +10,7 @@ Reads (all local, downloaded by the user; all open government data):
     (optional) the ANEEL SIGA CSV (semicolon, latin-1) — commissioning dates
         per plant, joined to ONS complexes through CEG
 
-Writes (under <out>, default input/turbine_level_data/BR/):
+Writes (under <out>, default input/observations/turbine/BR/):
     br_md.csv                  ONSBrazilSource metadata contract
     br_fc.csv                  hourly wind FC (id_ons, din_instante, CF)
     br_curtailment_mask.csv    months masked for curtailment (if COFF given)
@@ -20,11 +20,11 @@ Finalisation (monthly means, coverage floor, curtailment mask) happens inside
 ONSBrazilSource at load time, through the same audited code the tests pin.
 
     python scripts/process/ons_br.py \\
-        --fc input/ons_raw/FATOR_CAPACIDADE-2_2021_*.csv \\
-             input/ons_raw/FATOR_CAPACIDADE-2_2022_*.csv \\
-             input/ons_raw/FATOR_CAPACIDADE-2_2023_*.csv \\
-        --coff input/ons_raw/RESTRICAO_COFF_EOLICA_2021_*.csv \\
-        --siga input/ons_raw/siga-empreendimentos-geracao.csv
+        --fc input/raw/ons/FATOR_CAPACIDADE-2_2021_*.csv \\
+             input/raw/ons/FATOR_CAPACIDADE-2_2022_*.csv \\
+             input/raw/ons/FATOR_CAPACIDADE-2_2023_*.csv \\
+        --coff input/raw/ons/RESTRICAO_COFF_EOLICA_2021_*.csv \\
+        --siga input/raw/ons/siga-empreendimentos-geracao.csv
 """
 import argparse
 import glob
@@ -61,7 +61,7 @@ def main() -> None:
     ap.add_argument("--siga", default=None, help="ANEEL SIGA CSV (commissioning)")
     ap.add_argument("--curtailment-threshold", type=float, default=0.05,
                     help="Mask months whose curtailed fraction exceeds this")
-    ap.add_argument("--out", default="input/turbine_level_data/BR")
+    ap.add_argument("--out", default="input/observations/turbine/BR")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub-height default, m (ONS has no hub height)")
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",

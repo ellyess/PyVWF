@@ -80,13 +80,13 @@ input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 /dist/
 /build/
 /docs/_build/
-/input/terrain
+/input/reference/terrain
 # Real power-curve library (renewables.ninja / VWF / thewindpower.net): kept
 # local-only and never redistributed. The repo ships the open turbine curve
-# library (NatLabRockies/turbine-models, BSD-3) at input/power_curves.csv and
-# input/models.csv instead. See input/README.md.
-input/power_curves.real.csv
-input/models.real.csv
+# library (NatLabRockies/turbine-models, BSD-3) at input/reference/power_curves.csv
+# and input/reference/models.csv instead. See input/README.md.
+input/reference/power_curves.real.csv
+input/reference/models.real.csv
 /input
 /output
 /out

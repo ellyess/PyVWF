@@ -296,12 +296,12 @@ All parameters below can be set at the base level and overridden per-country via
 ## Troubleshooting
 
 **"No country configs available"** -- `pyvwf_config.py` not found in
-`input/country_level_data/`. Run `python scripts/generate_country_level_training_data.py`
+`input/observations/country/`. Run `python scripts/generate_country_level_training_data.py`
 first.
 
 **"Training failed: FileNotFoundError"** -- Missing input data. Check
-`input/turbine_level_data/<country>/` for turbine-level runs, or
-`input/country_level_data/grid_points/` and `observations/` for country-level runs.
+`input/observations/turbine/<country>/` for turbine-level runs, or
+`input/observations/country/grid_points/` and `observations/` for country-level runs.
 Verify ERA5 data exists in `input/era5/EU/`.
 
 **Per-country config not being used** -- Ensure the country code in `per_country_config`

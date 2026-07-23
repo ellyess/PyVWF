@@ -7,7 +7,7 @@ post-fix pipeline outputs on this branch. Gates were pre-specified before any
 model run; see docs/findings/ml_transfer_retest.md.
 
 Requires the train outputs under output/validation/ (train-sweep2/train-sweep3
-runs at commit 8a032d6) and input/terrain/etopo_global.nc.
+runs at commit 8a032d6) and input/reference/terrain/etopo_global.nc.
 
 Run: /opt/anaconda3/bin/python scripts/analysis/ml_transfer_retest.py
 """
@@ -79,7 +79,7 @@ def terrain_features(df: pd.DataFrame) -> pd.DataFrame:
     """Same derivation as development:scripts/pyvwf_ml/download_terrain_data.py
     (compute_terrain_derivatives), applied per-region on an ETOPO 2022 30"
     bounding-box subset, then nearest-sampled at centroids."""
-    etopo = xr.open_dataset(ROOT / "input/terrain/etopo_global.nc")
+    etopo = xr.open_dataset(ROOT / "input/reference/terrain/etopo_global.nc")
     res = 1.0 / 120.0  # 30 arcsec
     m_per_deg = 111132.954
     out = []

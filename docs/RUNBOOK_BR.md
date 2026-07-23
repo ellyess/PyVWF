@@ -31,14 +31,14 @@ Build the on-disk tables the `ons-br` source reads:
 
 ```bash
 python scripts/process/ons_br.py \
-    --fc   input/ons_raw/FATOR_CAPACIDADE-2_2021_*.csv \
-           input/ons_raw/FATOR_CAPACIDADE-2_2022_*.csv \
-           input/ons_raw/FATOR_CAPACIDADE-2_2023_*.csv \
-    --coff input/ons_raw/RESTRICAO_COFF_EOLICA_2021_*.csv \
-           input/ons_raw/RESTRICAO_COFF_EOLICA_2022_*.csv \
-           input/ons_raw/RESTRICAO_COFF_EOLICA_2023_*.csv \
-    --siga input/ons_raw/siga-empreendimentos-geracao.csv \
-    --out  input/turbine_level_data/BR
+    --fc   input/raw/ons/FATOR_CAPACIDADE-2_2021_*.csv \
+           input/raw/ons/FATOR_CAPACIDADE-2_2022_*.csv \
+           input/raw/ons/FATOR_CAPACIDADE-2_2023_*.csv \
+    --coff input/raw/ons/RESTRICAO_COFF_EOLICA_2021_*.csv \
+           input/raw/ons/RESTRICAO_COFF_EOLICA_2022_*.csv \
+           input/raw/ons/RESTRICAO_COFF_EOLICA_2023_*.csv \
+    --siga input/raw/ons/siga-empreendimentos-geracao.csv \
+    --out  input/observations/turbine/BR
 ```
 
 Writes `br_md.csv`, `br_fc.csv`, `br_curtailment_mask.csv`, and `join_report.md`.
@@ -68,7 +68,7 @@ are large and the daily pre-combine is not optional.
 
 ## 3. Power curves (bundled open library, or your own)
 
-The bundled `input/power_curves.csv` / `models.csv` are now a REAL open curve
+The bundled `input/reference/power_curves.csv` / `models.csv` are now a REAL open curve
 library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
 VWF-smoothed), so runs against them are physically meaningful. `process_ons_br.py`
 assigns every complex a UNIFORM representative curve — the default
@@ -80,7 +80,7 @@ The caveat is identity, not realism: the fleet is matched by specific power, not
 by actual machine. ONS carries no hub height or turbine model, so both height and
 model are uniform defaults recorded in the `*_source` columns (vintage-aware
 per-complex assignment is the same named follow-up as AU/US). For identity-matched
-curves, supply your own library as `input/power_curves.real.csv` (git-ignored) and
+curves, supply your own library as `input/reference/power_curves.real.csv` (git-ignored) and
 pass its key.
 
 ## 4. Run the validation harness

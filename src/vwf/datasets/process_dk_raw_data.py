@@ -293,13 +293,13 @@ def main():
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=Path("input/turbine_level_data/DK"),
+        default=Path("input/observations/turbine/DK"),
         help="Input directory containing raw data files"
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("input/turbine_level_data/DK"),
+        default=Path("input/observations/turbine/DK"),
         help="Output directory for processed CSV files"
     )
     parser.add_argument(

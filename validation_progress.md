@@ -403,7 +403,7 @@ d1_regression.md (pass/fail table + explanations) and the regression
 scripts — no real-derived outputs.
 
 ### D1 implementation to wire (after sign-off)
-EntsoeFileSource ("entsoe-country") over the country_level_data file
+EntsoeFileSource ("entsoe-country") over the observations/country file
 conventions; country-level driver evaluation (capacity-weighted country
 aggregate); corrected-CF saving in driver evaluate; scripts/d1_regression.py
 producing the diff table.
@@ -658,13 +658,13 @@ wrote at checkpoint 12 (and the user echoed). Revised AEMO estimate at
   au_nem.toml expects; roughness derives from 10m/100m shear at load, no
   preprocessing step).
 - scripts/fetch_aemo_au.sh — 48× DISPATCH_UNIT_SCADA + 48× DUDETAILSUMMARY
-  from nemweb.com.au MMSDM archives into $PYVWF_INPUT/aemo_raw/, curl -C -
+  from nemweb.com.au MMSDM archives into $PYVWF_INPUT/raw/aemo/, curl -C -
   resumable; Generation Information workbook fetched manually (quarterly
   URL). bash -n clean.
 
 ### Next checkpoint
 User reviews + runs both scripts; meanwhile (no data needed) build the
-SCADA→AEMONemSource-layout processing step (aemo_raw → au_nem_md.csv +
+SCADA→AEMONemSource-layout processing step (raw/aemo → au_nem_md.csv +
 au_nem_scada.csv) against synthetic fixtures, so ingest is ready the moment
 data lands. Then pillar C, then pillar A (hard gate).
 
@@ -675,7 +675,7 @@ data lands. Then pillar C, then pillar A (hard gate).
 **Status:** Downloads running user-side (AEMO 43/48 at last check; ERA5
 queueing, 2/48 landed). Processing batch built, all-green, diff shown,
 awaiting commit approval. Generation Information workbook received and
-copied to input/aemo_raw/.
+copied to input/raw/aemo/.
 
 ### Design decisions in the batch
 - **Partial/finalise split** of scada_to_monthly_cf (behaviour-preserving,
@@ -760,7 +760,7 @@ MB, not yet downloaded). fetch_aemo_au.sh amended (third file type,
 resumable re-run picks up only the new files). The capacity-history gate
 builds on DUDETAIL once fetched.
 
-### Fleet join evidence (input/turbine_level_data/AU_NEM/alias_review.md)
+### Fleet join evidence (input/observations/turbine/AU_NEM/alias_review.md)
 - Suspicious 10 → group sums resolve 9 as exact stage-shares (Dundonnell
   336.0/336, Hornsdale 316.8/316, ...). ONE real wrong match caught:
   MUWAWF2 was inheriting Murra Warra 1's coordinates; GWPT has a separate
@@ -1190,7 +1190,7 @@ data or real curves entered committed state or CI. Full suite green
     coordinates dropped.
 - `src/vwf/sources/eia_us.py`: `EIAUSSource` (`name="eia-us"`, obs_level
   "turbine" mechanically, obs_unit **plant**, countries `US`/`USA`) reading
-  `input/turbine_level_data/US/{us_md,us_eia923_netgen}.csv`, plus
+  `input/observations/turbine/US/{us_md,us_eia923_netgen}.csv`, plus
   `netgen_to_monthly_cf` (CF arithmetic through current metadata at load time;
   annual-respondent screen; commissioning mask; wide pivot).
 - Wiring: registered in `sources/__init__.py`; US CONUS bbox in `config.py`;

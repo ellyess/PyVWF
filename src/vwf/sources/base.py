@@ -77,7 +77,7 @@ class ObservationSource(ABC):
         ``capacity``
             Rated capacity in kW.
         ``model``
-            Power curve key, matching a column of ``input/power_curves.csv``.
+            Power curve key, matching a column of ``input/reference/power_curves.csv``.
         ``type``
             ``"onshore"`` or ``"offshore"``. Used when ``cluster_mode`` filters
             the fleet.

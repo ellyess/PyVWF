@@ -31,8 +31,8 @@ SH_SEASONS = {
 def synthetic_dk(tmp_path, monkeypatch):
     """The synthetic-DK on-disk layout from the pipeline tests, reused."""
     tp._write_era5(tmp_path / "era5")
-    fleet = tp._write_fleet(tmp_path / "turbine_level_data" / "DK")
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "turbine_level_data")
+    fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")
+    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
     return {"root": tmp_path, "fleet": fleet}
 

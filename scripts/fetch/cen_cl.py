@@ -30,7 +30,7 @@ here rather than rediscovered:
   the Infotécnica registry exposes usable coordinates, so **lon/lat must be
   joined from the Global Wind Power Tracker** (CC-BY-4.0, already on disk).
 
-Raw responses land in <input-root>/cen_raw/ (input/ is git-ignored).
+Raw responses land in <input-root>/raw/cen/ (input/ is git-ignored).
 """
 import argparse
 import json
@@ -231,7 +231,7 @@ def main() -> None:
                     help="Fetch per-plant wind generation for this window")
     args = ap.parse_args()
 
-    out_dir = Path(os.environ.get("PYVWF_INPUT", "input")) / "cen_raw"
+    out_dir = Path(os.environ.get("PYVWF_INPUT", "input")) / "raw/cen"
     if args.probe:
         probe()
     if args.years:

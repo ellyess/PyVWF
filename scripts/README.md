@@ -25,7 +25,7 @@ scripts/
   era5/
     combine.py      reduce monthly ERA5 to yearly DAILY files: --region <cc>
                     (only the big boxes — US, BR, AU — need this)
-  process/          raw inputs -> the adapter's input CSVs (input/turbine_level_data/<CC>/)
+  process/          raw inputs -> the adapter's input CSVs (input/observations/turbine/<CC>/)
     aemo_au.py  cammesa_ar.py  cen_cl.py  de.py  dk.py  eia_us.py  emi_nz.py  ons_br.py  uk.py
     windstats.py --country ES   Spain (WindStats gen + GWPT coords, mixed licence)
     (de.py + windstats.py handle CONFIDENTIAL WindStats data — RUNBOOK_DE/ES.md)

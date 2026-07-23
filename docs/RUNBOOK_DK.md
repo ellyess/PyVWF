@@ -36,7 +36,7 @@ post-2022 turbines; does not change the 2002-2020 production).
 ## 1. Acquire + process (user-executed, no credentials)
 
 ```bash
-python scripts/fetch/dk.py       # anlaeg.xlsx + maanedsdata -> input/turbine_level_data/DK/
+python scripts/fetch/dk.py       # anlaeg.xlsx + maanedsdata -> input/observations/turbine/DK/
 python scripts/process/dk.py     # -> dk_md.csv, dk_obs_2002_2020.csv
 ```
 

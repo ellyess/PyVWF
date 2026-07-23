@@ -31,8 +31,8 @@ python vwf/datasets/generate_country_level_training_data.py
 - Fetches ENTSO-E capacity factor observations via API
 - Creates grid sample points and Voronoi regions per country
 - Splits into training/test years
-- **Generates** `input/country_level_data/pyvwf_config.py` (used by all subsequent scripts)
-- **Output:** `input/country_level_data/observations/`, `input/country_level_data/grid_points/`
+- **Generates** `input/observations/country/pyvwf_config.py` (used by all subsequent scripts)
+- **Output:** `input/observations/country/observations/`, `input/observations/country/grid_points/`
 - Required for country-level workflows (NL, FR, BE, NO, SE, ES, IT, PT, IE)
 - Not needed if only running turbine-level (DK, DE, UK)
 

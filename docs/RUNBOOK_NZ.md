@@ -37,7 +37,7 @@ the resource; a standing caveat and an exclusion candidate if it distorts.
 
 ```bash
 python scripts/fetch/emi_nz.py            # 72 monthly CSVs 2019-2024 + register
-python scripts/process/emi_nz.py          # -> input/turbine_level_data/NZ/
+python scripts/process/emi_nz.py          # -> input/observations/turbine/NZ/
 ```
 
 The fetch is plain HTTP (each URL 302-redirects to an open Azure blob),
@@ -50,7 +50,7 @@ the stable-plateau capacity history, and writes the build mask. An unmapped
 wind Gen_Code is a hard error — it means a new farm needs a curated row
 (Kaiwaikawe, Northland 77 MW, is expected to appear ~mid-2026).
 
-Then read `input/turbine_level_data/NZ/join_report.md` before trusting
+Then read `input/observations/turbine/NZ/join_report.md` before trusting
 anything: farm count (13), capacity (~1.5 GW), matched-curve count, masked
 months.
 

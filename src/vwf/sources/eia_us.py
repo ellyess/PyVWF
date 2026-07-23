@@ -134,7 +134,7 @@ def netgen_to_monthly_cf(
 class EIAUSSource(ObservationSource):
     """Per-plant monthly capacity factors for the United States.
 
-    Reads pre-downloaded files from ``input/turbine_level_data/US/``:
+    Reads pre-downloaded files from ``input/observations/turbine/US/``:
 
     ``us_md.csv``
         Plant metadata: ``ID`` (EIA plant code), ``lon``, ``lat``, ``height``

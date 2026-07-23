@@ -71,7 +71,7 @@ def apply_month_mask(wide: pd.DataFrame, mask: pd.DataFrame) -> pd.DataFrame:
 class EMINewZealandSource(ObservationSource):
     """Per-farm monthly capacity factors for New Zealand.
 
-    Reads pre-processed files from ``input/turbine_level_data/NZ/`` (built by
+    Reads pre-processed files from ``input/observations/turbine/NZ/`` (built by
     ``scripts/process/emi_nz.py`` from the EMI downloads):
 
     ``nz_md.csv``

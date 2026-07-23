@@ -9,7 +9,7 @@ Reads (all local, downloaded by the user; all public-domain US government):
     the EIA-860 generator table (3_1_Generator_Y<year>.xlsx, "Operable" sheet)
     the USWTDB turbine table   (uswtdb_*.csv)
 
-Writes (under <out>, default input/turbine_level_data/US/):
+Writes (under <out>, default input/observations/turbine/US/):
     us_md.csv                 EIAUSSource plant metadata contract
     us_eia923_netgen.csv      long per-(plant, year, month) net generation
     join_report.md            fleet/coordinate/height-provenance report
@@ -19,10 +19,10 @@ happens inside EIAUSSource at load time, through the same audited code path
 the tests pin — this script only assembles the two on-disk tables.
 
     python scripts/process/eia_us.py \\
-        --eia923 input/eia_raw/EIA923_2019.xlsx input/eia_raw/EIA923_2020.xlsx \\
-        --eia860-plants input/eia_raw/2___Plant_Y2021.xlsx \\
-        --eia860-generators input/eia_raw/3_1_Generator_Y2021.xlsx \\
-        --uswtdb input/eia_raw/uswtdb_v6_1_20231128.csv
+        --eia923 input/raw/eia/EIA923_2019.xlsx input/raw/eia/EIA923_2020.xlsx \\
+        --eia860-plants input/raw/eia/2___Plant_Y2021.xlsx \\
+        --eia860-generators input/raw/eia/3_1_Generator_Y2021.xlsx \\
+        --uswtdb input/raw/eia/uswtdb_v6_1_20231128.csv
 """
 import argparse
 import sys
@@ -55,7 +55,7 @@ def main() -> None:
     ap.add_argument("--eia860-header", type=int, default=1,
                     help="0-based header row of the EIA-860 sheets")
     ap.add_argument("--uswtdb", default=None, help="USWTDB CSV (hub heights, models)")
-    ap.add_argument("--out", default="input/turbine_level_data/US")
+    ap.add_argument("--out", default="input/observations/turbine/US")
     ap.add_argument("--curve-assignment", choices=["match", "uniform"], default="match",
                     help="'match' assigns each plant a real library curve by "
                     "specific power via vwf.data.add_models (as the AU-NEM and "

@@ -26,7 +26,7 @@ Usage:
 
     # Specific output directory
     python vwf/datasets/generate_country_level_training_data.py \
-        --output-dir input/country_level_data
+        --output-dir input/observations/country
 """
 
 import argparse
@@ -244,7 +244,7 @@ def generate_norway_zone_grids(
 
     # Load actual bidding zone geometries
     import geopandas as gpd
-    zones_path = Path("input/regions/no_bidding_zones.geojson")
+    zones_path = Path("input/reference/shapes/no_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
         print("  Falling back to bounding boxes")
@@ -385,7 +385,7 @@ def generate_sweden_zone_grids(
 
     # Load actual bidding zone geometries
     import geopandas as gpd
-    zones_path = Path("input/regions/se_bidding_zones.geojson")
+    zones_path = Path("input/reference/shapes/se_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
         print("  ⚠ Cannot proceed without zone geometries")
@@ -1235,8 +1235,8 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("input/country_level_data"),
-        help="Output directory (default: input/country_level_data)",
+        default=Path("input/observations/country"),
+        help="Output directory (default: input/observations/country)",
     )
     parser.add_argument(
         "--skip-observations",

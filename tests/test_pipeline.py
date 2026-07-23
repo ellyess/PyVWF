@@ -131,9 +131,9 @@ def _write_fleet(dk_dir):
 def synthetic_dk(tmp_path, monkeypatch):
     """Lay out a synthetic DK dataset on disk and point PyVWFPaths at it."""
     _write_era5(tmp_path / "era5")
-    fleet = _write_fleet(tmp_path / "turbine_level_data" / "DK")
+    fleet = _write_fleet(tmp_path / "observations/turbine" / "DK")
 
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "turbine_level_data")
+    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
     return {"root": tmp_path, "fleet": fleet}
 

@@ -28,12 +28,12 @@ def test_repo_input_matches_the_bundled_resources():
     from importlib import resources
     from pathlib import Path
 
-    if not Path("input/power_curves.csv").is_file():
+    if not Path("input/reference/power_curves.csv").is_file():
         pytest.skip("not running from a repository checkout")
 
     root = resources.files("vwf.resources")
     for name in RESOURCE_FILES:
-        repo = Path("input") / name
+        repo = Path("input/reference") / name
         assert repo.read_bytes() == (root / name).read_bytes(), (
             f"{name} differs between input/ and vwf/resources/"
         )

@@ -19,7 +19,7 @@ raw WindStats layout directly:
                             Downtime.
 
 So "processing" Germany is validating those three files and staging them into
-input/turbine_level_data/DE/ (the format the adapter already consumes) — this
+input/observations/turbine/DE/ (the format the adapter already consumes) — this
 script makes that reproducible and checks the schema, rather than a silent
 manual copy.
 
@@ -45,7 +45,7 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", required=True,
                     help="Directory holding the confidential WindStats DE files")
-    ap.add_argument("--out-dir", default="input/turbine_level_data/DE")
+    ap.add_argument("--out-dir", default="input/observations/turbine/DE")
     ap.add_argument("--check-only", action="store_true",
                     help="Validate the source files without staging them")
     args = ap.parse_args()

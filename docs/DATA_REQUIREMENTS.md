@@ -10,10 +10,10 @@ defined centrally in [`src/vwf/config.py`](../src/vwf/config.py) (`PyVWFPaths`).
 | Data | Format | Description | Location |
 |---|---|---|---|
 | Reanalysis winds | NetCDF | ERA5 wind components (`u100`, `v100`, and `u10`/`v10` or `fsr`) | `input/era5/EU/*.nc` |
-| Turbine metadata | CSV | ID, location, capacity, hub height, rotor diameter, model | `input/turbine_level_data/<CC>/` |
-| Observed generation | CSV | Monthly generation per turbine, or national series for country-level | `input/turbine_level_data/<CC>/` or `input/country_level_data/observations/<cc>/` |
-| Power curves | CSV | Wind speed to power, one column per model | `input/power_curves.csv` |
-| Turbine models | CSV | Manufacturer, model, capacity, diameter, power density | `input/models.csv` |
+| Turbine metadata | CSV | ID, location, capacity, hub height, rotor diameter, model | `input/observations/turbine/<CC>/` |
+| Observed generation | CSV | Monthly generation per turbine, or national series for country-level | `input/observations/turbine/<CC>/` or `input/observations/country/observations/<cc>/` |
+| Power curves | CSV | Wind speed to power, one column per model | `input/reference/power_curves.csv` |
+| Turbine models | CSV | Manufacturer, model, capacity, diameter, power density | `input/reference/models.csv` |
 
 `<CC>` is the upper-case country code, `<cc>` the lower-case form.
 

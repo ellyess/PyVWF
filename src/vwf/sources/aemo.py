@@ -242,7 +242,7 @@ def scada_to_monthly_cf(
 class AEMONemSource(ObservationSource):
     """Per-farm (DUID) monthly capacity factors for the Australian NEM.
 
-    Reads pre-downloaded files from ``input/turbine_level_data/AU_NEM/``:
+    Reads pre-downloaded files from ``input/observations/turbine/AU_NEM/``:
 
     ``au_nem_md.csv``
         Farm metadata: ``ID`` (DUID), ``lon``, ``lat``, ``height`` (m),

@@ -33,7 +33,7 @@ from vwf.datasets.uk_roc import (
     roc_issuance_to_station_monthly,
 )
 
-UK_DIR = Path("input/turbine_level_data/UK")
+UK_DIR = Path("input/observations/turbine/UK")
 
 
 def _read_any(path: Path) -> pd.DataFrame:
@@ -150,7 +150,7 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     m = sub.add_parser("metadata", help="REPD -> open uk_md + divergence report")
-    m.add_argument("--repd", default="input/repd_raw/repd_wind.csv")
+    m.add_argument("--repd", default="input/raw/repd/repd_wind.csv")
     m.add_argument("--out-dir", default=str(UK_DIR))
     m.add_argument("--height", type=float, default=100.0)
     m.add_argument("--model", default="2019COE_Market_Average_2.6MW_121")

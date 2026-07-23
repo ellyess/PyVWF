@@ -30,7 +30,7 @@ Argentina's regime value is Patagonia: Chubut (23 plants) and Santa Cruz (5)
 sit in the cold-steppe westerlies at capacity factors near 50%, which nothing
 else in the validation set covers.
 
-Output: <input-root>/cammesa_raw/ (the ZIP and the extracted workbook) and a
+Output: <input-root>/raw/cammesa/ (the ZIP and the extracted workbook) and a
 tidy long CSV `ar_wind_monthly.csv` with columns ID, year, month, gwh.
 """
 import argparse
@@ -101,7 +101,7 @@ def main() -> None:
     args = ap.parse_args()
 
     root = Path(os.environ.get("PYVWF_INPUT", "input"))
-    out = Path(args.out) if args.out else root / "cammesa_raw"
+    out = Path(args.out) if args.out else root / "raw/cammesa"
 
     wind, months = load_wind(download(out))
     print(f"\nwind centrales: {wind['central'].nunique()}")
