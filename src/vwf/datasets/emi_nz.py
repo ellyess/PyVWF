@@ -1,6 +1,6 @@
 """Transforms for building the New Zealand (EMI) inputs from the public data.
 
-Pure frame-to-frame logic for ``scripts/process_emi_nz.py``: mapping EMI
+Pure frame-to-frame logic for ``scripts/process/emi_nz.py``: mapping EMI
 trading periods to UTC timestamps, reshaping the half-hourly ``Generation_MD``
 energy series into monthly capacity factors, and deriving a capacity history
 from the effective-dated EMI plant register.
@@ -10,7 +10,7 @@ EMI files; file I/O lives in the script.
 
 The unit of observation is the **farm** (``obs_unit = "farm"``): EMI reports
 metered grid injection per generating plant (keyed by point of connection +
-unit), and the curated farm table (``configs/nz_wind_farms.csv``) maps those
+unit), and the curated farm table (``configs/curation/nz_wind_farms.csv``) maps those
 keys onto wind farms with coordinates, turbine model, and hub height. New
 Zealand's fleet is small (~20 farms) but the registry-grade metadata is
 hand-compiled, which is what makes it one of the few regions outside Europe

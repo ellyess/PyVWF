@@ -41,7 +41,7 @@ class CENChileSource(ObservationSource):
     """Per-plant monthly capacity factors for Chile.
 
     Reads pre-processed files from ``input/turbine_level_data/CL/`` (built by
-    ``scripts/process_cen_cl.py`` from the CEN downloads + the GWPT join):
+    ``scripts/process/cen_cl.py`` from the CEN downloads + the GWPT join):
 
     ``cl_md.csv``
         Plant metadata: ``ID`` (``id_central``), ``lon``, ``lat``, ``height``

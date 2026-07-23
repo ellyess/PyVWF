@@ -30,7 +30,7 @@ The ONS CKAN API lists every resource URL, e.g.
 Build the on-disk tables the `ons-br` source reads:
 
 ```bash
-python scripts/process_ons_br.py \
+python scripts/process/ons_br.py \
     --fc   input/ons_raw/FATOR_CAPACIDADE-2_2021_*.csv \
            input/ons_raw/FATOR_CAPACIDADE-2_2022_*.csv \
            input/ons_raw/FATOR_CAPACIDADE-2_2023_*.csv \
@@ -58,9 +58,9 @@ Writes `br_md.csv`, `br_fc.csv`, `br_curtailment_mask.csv`, and `join_report.md`
 
 ```bash
 pip install cdsapi          # not a PyVWF dependency; ~/.cdsapirc holds your key
-python scripts/fetch_era5_br.py --dry-run     # inspect the request plan
-python scripts/fetch_era5_br.py               # 48 months, 2021-2024, whole-Brazil box
-python scripts/combine_era5_br_daily.py       # reduce to yearly daily files
+python scripts/fetch/era5.py --region br --dry-run     # inspect the request plan
+python scripts/fetch/era5.py --region br               # 48 months, 2021-2024, whole-Brazil box
+python scripts/era5/combine.py --region br       # reduce to yearly daily files
 ```
 
 The box spans the whole country and crosses the equator, so the monthly files
@@ -86,8 +86,8 @@ pass its key.
 ## 4. Run the validation harness
 
 ```bash
-python scripts/validate_region.py train    --region configs/regions/br.toml
-python scripts/validate_region.py evaluate --region configs/regions/br.toml \
+python scripts/analysis/validate_region.py train    --region configs/regions/br.toml
+python scripts/analysis/validate_region.py evaluate --region configs/regions/br.toml \
     --train-run output/validation/BR/train-<timestamp>
 ```
 

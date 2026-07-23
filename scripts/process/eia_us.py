@@ -18,7 +18,7 @@ Finalisation (CF arithmetic, annual-respondent screen, commissioning mask)
 happens inside EIAUSSource at load time, through the same audited code path
 the tests pin — this script only assembles the two on-disk tables.
 
-    python scripts/process_eia_us.py \\
+    python scripts/process/eia_us.py \\
         --eia923 input/eia_raw/EIA923_2019.xlsx input/eia_raw/EIA923_2020.xlsx \\
         --eia860-plants input/eia_raw/2___Plant_Y2021.xlsx \\
         --eia860-generators input/eia_raw/3_1_Generator_Y2021.xlsx \\

@@ -20,7 +20,7 @@ across archives before any month is finalised. Finalisation itself
 (coverage floor, commissioning mask) happens inside AEMONemSource at load
 time, through the same audited code path the tests pin.
 
-    python scripts/process_aemo_au.py \\
+    python scripts/process/aemo_au.py \\
         --gen-info "input/aemo_raw/NEM Generation Information Apr 2026.xlsx" \\
         --gwpt input/Global-Wind-Power-Tracker-February-2026.xlsx
 """
@@ -65,7 +65,7 @@ def main() -> None:
                     "power_curves.csv). Defaults to the bundled open library's "
                     "most recent market-average utility curve; override with a "
                     "specific reference or your own licensed key.")
-    ap.add_argument("--aliases", default="configs/aemo_au_aliases.csv",
+    ap.add_argument("--aliases", default="configs/curation/aemo_au_aliases.csv",
                     help="CSV with columns duid,targets: human-approved phase-aware "
                     "alias overrides ('' to disable)")
     args = ap.parse_args()

@@ -26,7 +26,7 @@ preserved the method.
   **real** curve library (`power_curves.real.csv` / `models.real.csv` copied to
   the working names) and symlinks to the real data. Real curves and data never
   enter committed state or CI.
-- Diff: `scripts/d1_regression.py`, cell by cell over numeric columns.
+- Diff: `scripts/analysis/d1_regression.py`, cell by cell over numeric columns.
 
 ### Methodology preconditions (both PASS, checked before trusting any diff)
 
@@ -87,9 +87,9 @@ Harness skill on the held-out year, real curves:
 
 ## Reproduction
 
-The committed pieces are the two runners (`scripts/d1_run_legacy.py` for the
-reference from a main worktree, `scripts/d1_run_harness.py` for the branch),
-`scripts/d1_regression.py` (the frame comparator), and the wiring they
+The committed pieces are the two runners (`scripts/analysis/d1_run_legacy.py` for the
+reference from a main worktree, `scripts/analysis/d1_run_harness.py` for the branch),
+`scripts/analysis/d1_regression.py` (the frame comparator), and the wiring they
 exercise (`EntsoeFileSource`, country-level `run_evaluate`, corrected-CF
 saving). Only the environment is external: a git worktree of `main` and a
 staging dir — `PYVWF_INPUT` pointed at a directory with the real curve files

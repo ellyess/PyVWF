@@ -38,7 +38,7 @@ class CAMMESAArgentinaSource(ObservationSource):
     """Per-plant monthly capacity factors for Argentina.
 
     Reads pre-processed files from ``input/turbine_level_data/AR/`` (built by
-    ``scripts/process_cammesa_ar.py`` from the CAMMESA download + the GWPT
+    ``scripts/process/cammesa_ar.py`` from the CAMMESA download + the GWPT
     join):
 
     ``ar_md.csv``

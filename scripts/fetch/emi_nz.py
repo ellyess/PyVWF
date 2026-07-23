@@ -5,9 +5,9 @@ USER-EXECUTED. Downloads are yours to run, like every other download on this
 project. No registration or credentials are needed — EMI datasets are plain
 public CSV downloads (each URL 302-redirects to an open Azure blob):
 
-    python scripts/fetch_emi_nz.py             # 2019-2024 + plant register
-    python scripts/fetch_emi_nz.py --dry-run   # list URLs, download nothing
-    python scripts/fetch_emi_nz.py --years 2024
+    python scripts/fetch/emi_nz.py             # 2019-2024 + plant register
+    python scripts/fetch/emi_nz.py --dry-run   # list URLs, download nothing
+    python scripts/fetch/emi_nz.py --years 2024
 
 What it fetches (verified July 2026):
 
@@ -25,7 +25,7 @@ What it fetches (verified July 2026):
   directory listing for the newest one and also saves it under the stable
   name ``DispatchedGenerationPlant.csv``.
 
-Output layout (consumed by scripts/process_emi_nz.py):
+Output layout (consumed by scripts/process/emi_nz.py):
     <input-root>/emi_raw/<YYYYMM>_Generation_MD.csv
     <input-root>/emi_raw/DispatchedGenerationPlant.csv
 where <input-root> is $PYVWF_INPUT if set, else ./input.

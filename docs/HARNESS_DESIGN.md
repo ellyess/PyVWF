@@ -48,7 +48,7 @@ src/vwf/harness/skill.py         # standard skill metrics on tidy frames
 src/vwf/harness/provenance.py    # run_manifest.json writer + curve-library identity
 src/vwf/sources/aemo.py          # AEMONemSource (skeleton in Phase 1, real ingest Phase 2)
 configs/regions/*.toml           # dk, de, uk, nl, fr, be, no, se, es, it, pt, ie, au_nem
-scripts/validate_region.py       # driver: train / evaluate / transfer
+scripts/analysis/validate_region.py       # driver: train / evaluate / transfer
 ```
 
 `configs/` lives at the repo root and is versioned: these are experiment
@@ -301,7 +301,7 @@ two binding conditions:
 
 ## 7. Driver
 
-`scripts/validate_region.py`:
+`scripts/analysis/validate_region.py`:
 
 ```
 validate_region.py --region configs/regions/au_nem.toml train

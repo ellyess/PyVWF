@@ -1,6 +1,6 @@
 """Transforms for building the AU-NEM inputs from raw AEMO + GWPT data.
 
-Pure frame-to-frame logic for ``scripts/process_aemo_au.py``: parsing AEMO
+Pure frame-to-frame logic for ``scripts/process/aemo_au.py``: parsing AEMO
 MMS archive CSVs, extracting the operating wind fleet from the Generation
 Information workbook, joining coordinates from the Global Wind Power Tracker
 (the user's public-source turbine compilation), and emitting the

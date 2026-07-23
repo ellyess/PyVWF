@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """Build the EMINewZealandSource inputs from the EMI downloads.
 
-Reads (all local, downloaded by scripts/fetch_emi_nz.py — user-executed):
+Reads (all local, downloaded by scripts/fetch/emi_nz.py — user-executed):
     input/emi_raw/<YYYYMM>_Generation_MD.csv   half-hourly kWh per plant
     input/emi_raw/DispatchedGenerationPlant.csv  (register; report-only here)
 and the curated farm tables committed in configs/:
-    configs/nz_wind_farms.csv       per-farm metadata with provenance
-    configs/nz_capacity_stages.csv  stable capacity plateaus for staged builds
-    configs/nz_mask_windows.csv     commissioning-ramp months to mask
+    configs/curation/nz_wind_farms.csv       per-farm metadata with provenance
+    configs/curation/nz_capacity_stages.csv  stable capacity plateaus for staged builds
+    configs/curation/nz_mask_windows.csv     commissioning-ramp months to mask
 
 Writes (under <out>, default input/turbine_level_data/NZ/):
     nz_md.csv          EMINewZealandSource metadata contract
@@ -27,8 +27,8 @@ against the active curve library (the same guarded matcher the US fleet
 uses), with the true manufacturer/model string carried in ``turbine_model``
 for provenance — never as the curve key.
 
-    python scripts/process_emi_nz.py
-    python scripts/process_emi_nz.py --years 2019 2024   # inclusive window
+    python scripts/process/emi_nz.py
+    python scripts/process/emi_nz.py --years 2019 2024   # inclusive window
 """
 import argparse
 import glob
@@ -105,7 +105,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", default="input/emi_raw",
                     help="Directory of <YYYYMM>_Generation_MD.csv files")
-    ap.add_argument("--configs", default="configs",
+    ap.add_argument("--configs", default="configs/curation",
                     help="Directory holding the curated nz_*.csv tables")
     ap.add_argument("--years", type=int, nargs=2, default=[2019, 2024],
                     metavar=("START", "END"), help="Inclusive UTC year window")
@@ -118,7 +118,7 @@ def main() -> None:
     raw_paths = sorted(glob.glob(str(Path(args.raw) / "*_Generation_MD.csv")))
     if not raw_paths:
         sys.exit(f"no *_Generation_MD.csv under {args.raw} — run "
-                 "scripts/fetch_emi_nz.py first (user-executed).")
+                 "scripts/fetch/emi_nz.py first (user-executed).")
 
     farms, stages, windows = load_curated(Path(args.configs))
     mapping = gen_code_map(farms)
@@ -148,7 +148,7 @@ def main() -> None:
 
     if unmapped:
         sys.exit(
-            "wind Gen_Codes with no row in configs/nz_wind_farms.csv (new "
+            "wind Gen_Codes with no row in configs/curation/nz_wind_farms.csv (new "
             f"farm(s)? add rows or an explicit exclusion): {sorted(unmapped)}"
         )
     if not pieces:
@@ -193,7 +193,7 @@ def main() -> None:
         f"{y0}-{y1}: {len(wide)}; non-NaN farm-months: {n_months}",
         f"- total final-build capacity: {farms['capacity'].sum() / 1e6:.2f} GW",
         f"- build-mask months: {len(mask)} "
-        "(commissioning ramps; curated windows in configs/nz_mask_windows.csv)",
+        "(commissioning ramps; curated windows in configs/curation/nz_mask_windows.csv)",
         f"- power curves: {out_md['model'].nunique()} distinct "
         f"({int(out_md['model_source'].str.startswith('matched').sum())} matched "
         "on scale then specific power, "

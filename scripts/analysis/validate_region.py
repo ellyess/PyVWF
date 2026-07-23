@@ -2,10 +2,10 @@
 """Thin CLI over the validation-harness driver (vwf.harness.driver).
 
 Examples:
-    python scripts/validate_region.py train --region configs/regions/dk.toml
-    python scripts/validate_region.py evaluate --region configs/regions/dk.toml \
+    python scripts/analysis/validate_region.py train --region configs/regions/dk.toml
+    python scripts/analysis/validate_region.py evaluate --region configs/regions/dk.toml \
         --train-run output/validation/DK/train-20260715T120000Z
-    python scripts/validate_region.py transfer --region configs/regions/uk.toml \
+    python scripts/analysis/validate_region.py transfer --region configs/regions/uk.toml \
         --source-region configs/regions/au_nem.toml \
         --source-run output/validation/AU-NEM/train-20260715T120000Z
 

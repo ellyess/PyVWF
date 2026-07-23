@@ -3,10 +3,10 @@
 The other half of the D1 method (docs/findings/d1_regression.md): run the
 branch's harness on the same config as the legacy reference, with
 PYTHONPATH at this tree's src/ and PYVWF_INPUT at the same staging
-directory, then diff with scripts/d1_regression.py.
+directory, then diff with scripts/analysis/d1_regression.py.
 
     PYVWF_INPUT=<stage> PYTHONPATH=<branch>/src python \\
-        scripts/d1_run_harness.py --country DK --mode onshore \\
+        scripts/analysis/d1_run_harness.py --country DK --mode onshore \\
         --source european-turbine --train-start 2015 --train-end 2019 \\
         --test-year 2020 --clusters 1 10 --time-res fixed season \\
         --bbox 7.5 13.5 54.0 58.2 --out <run-dir>

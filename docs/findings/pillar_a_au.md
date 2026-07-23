@@ -35,7 +35,7 @@ the 0–360 check is provably vacuous for AU and is recorded as an invariance
 proof, not evidence), and a curve-sensitivity check showing curve choice is
 level-not-shape (normalized-cycle r ≥ 0.9989 among real curves).
 
-Turbine identity per farm: `configs/au_turbine_models.csv` — 44.1% of fleet
+Turbine identity per farm: `configs/curation/au_turbine_models.csv` — 44.1% of fleet
 capacity manufacturer-confirmed from OEM/developer sources, 47.4%
 secondary-source, 8.5% per-farm fallback (marked). Real-library matching via
 the same `add_models` manufacturer/p_density path as every validated region.
@@ -166,8 +166,8 @@ differences between stacks isolate the curve effect.
 
 ## Reproduction
 
-`scripts/process_aemo_au.py` (ingest) → `scripts/assign_au_curves.py`
-(per-library metadata) → `scripts/combine_era5_au_daily.py` (daily ERA5) →
+`scripts/process/aemo_au.py` (ingest) → `scripts/region_tools/assign_au_curves.py`
+(per-library metadata) → `scripts/era5/combine.py --region au_nem` (daily ERA5) →
 harness `run_train`/`run_evaluate` with the AU-NEM spec (SH seasons) → gate
 computation as in the progress log (checkpoints 16–21). Real curve library
 and AEMO/ERA5 data remain local; nothing proprietary is committed.

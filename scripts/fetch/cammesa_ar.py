@@ -4,8 +4,8 @@
 USER-EXECUTED, but unusually cheap: the whole history is one ~2 MB ZIP with
 no credentials, no API, no rate limit.
 
-    python scripts/fetch_cammesa_ar.py            # download + reshape
-    python scripts/fetch_cammesa_ar.py --probe    # report coverage, write nothing
+    python scripts/fetch/cammesa_ar.py            # download + reshape
+    python scripts/fetch/cammesa_ar.py --probe    # report coverage, write nothing
 
 Verified against the live file on 2026-07-23 (the 2026-06 edition):
 

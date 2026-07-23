@@ -26,8 +26,8 @@ out of this repository, and out of any log.
 
 Environment variables win when both are present.
 
-    python scripts/fetch_epias_tr.py --probe      # verification, writes nothing
-    python scripts/fetch_epias_tr.py --years 2021 2024
+    python scripts/fetch/epias_tr.py --probe      # verification, writes nothing
+    python scripts/fetch/epias_tr.py --years 2021 2024
 
 WHAT THE PROBE ANSWERS
 ----------------------

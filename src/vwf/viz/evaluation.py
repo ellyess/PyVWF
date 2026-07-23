@@ -7,7 +7,7 @@ many clusters, and at what temporal resolution?* Error metrics are drawn
 against cluster count (log x) with one line per temporal resolution, plus an
 optional horizontal reference at the uncorrected error so the payoff of the
 correction is visible at a glance. It takes a tidy metrics DataFrame, the
-schema produced by ``scripts/evaluate_all_pyvwf_runs.py``
+schema produced by ``scripts/analysis/evaluate_all_pyvwf_runs.py``
 (``pyvwf_evaluation_metrics.csv``). Filtering to one country/run is the
 caller's job; if several are mixed, lines will zig-zag.
 
@@ -60,7 +60,7 @@ def plot_error_vs_clusters(
             Rows with ``correction_type == "uncorrected"`` (or with a null
             ``time_res``) are treated as the uncorrected baseline rather
             than as a line. This is the schema written by
-            ``scripts/evaluate_all_pyvwf_runs.py``.
+            ``scripts/analysis/evaluate_all_pyvwf_runs.py``.
         metric_cols: Error columns to plot, one panel each
             (default ``("rmse", "mae")``).
         show_uncorrected: Draw a horizontal reference line at the

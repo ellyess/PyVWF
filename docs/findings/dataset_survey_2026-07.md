@@ -65,7 +65,7 @@ verifying before committing adapter work.
   per plant is *exactly* PyVWF's native training resolution — no reshaping,
   no timezone, no DST. Fleet is Buenos Aires (30) plus **Patagonia: Chubut
   (23) and Santa Cruz (5)** — the cold-steppe westerlies nothing else in the
-  set covers. Script: `scripts/fetch_cammesa_ar.py`.
+  set covers. Script: `scripts/fetch/cammesa_ar.py`.
   Two caveats: REGIÓN/PROVINCIA are **merged Excel cells** (blank on
   continuation rows — forward-fill or plants inherit the wrong province),
   and CAMMESA carries **no coordinates, capacity, or hub heights**. GWPT has

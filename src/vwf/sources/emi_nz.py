@@ -18,7 +18,7 @@ Decisions baked into the finalisation, documented in the region config:
   low. A below-final-build mask (the AU registered-capacity pattern) is
   applied on top when present, removing the erratic partially-erected months.
 - **Registry-grade metadata is hand-compiled.** EMI carries no coordinates or
-  hub heights; the curated farm table (``configs/nz_wind_farms.csv``, with
+  hub heights; the curated farm table (``configs/curation/nz_wind_farms.csv``, with
   per-farm provenance) supplies coordinates, capacity, turbine model, and hub
   height. The fleet is ~20 farms, which is what makes hand-compilation viable
   — and makes NZ one of the few regions outside Europe with per-farm hub
@@ -72,14 +72,14 @@ class EMINewZealandSource(ObservationSource):
     """Per-farm monthly capacity factors for New Zealand.
 
     Reads pre-processed files from ``input/turbine_level_data/NZ/`` (built by
-    ``scripts/process_emi_nz.py`` from the EMI downloads):
+    ``scripts/process/emi_nz.py`` from the EMI downloads):
 
     ``nz_md.csv``
         Farm metadata: ``ID`` (farm key), ``lon``, ``lat``, ``height`` (m),
         ``capacity`` (kW, final build), ``model``, ``type``, optional
         ``commissioning_date``, plus provenance/context columns
         (``height_source``, ``model_source``, ``site_name``, ``island``).
-        Joined from the curated farm table (``configs/nz_wind_farms.csv``)
+        Joined from the curated farm table (``configs/curation/nz_wind_farms.csv``)
         and the EMI plant register.
     ``nz_obs.csv``
         Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12``

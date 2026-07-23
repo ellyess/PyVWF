@@ -24,7 +24,7 @@ exposed it.
   (`combine_era5_*_daily.py`), 1461 days each, loaded via `prep_era5`.
 - Curves: bundled open library merged with the licensed library (236 curves),
   matched per plant for the US; Brazil uniform (ONS carries no turbine data).
-- Skill: `scripts/validate_region.py evaluate` on the held-out year,
+- Skill: `scripts/analysis/validate_region.py evaluate` on the held-out year,
   `metrics.csv`.
 
 ## The bug: observed means diluted by the reporting fraction

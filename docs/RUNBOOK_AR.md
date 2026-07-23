@@ -12,14 +12,14 @@ regime nothing else in the validation set covers. 65 plants, ~5.5 GW.
 
 - The `cammesa-ar` adapter (`vwf/sources/cammesa_ar.py`), transforms
   (`vwf/datasets/cammesa_ar.py`), processing with the GWPT join
-  (`scripts/process_cammesa_ar.py`), region config, and 10 tests.
-- `configs/ar_coord_overrides.csv` — hand-curated capacity fixes (see join).
+  (`scripts/process/cammesa_ar.py`), region config, and 10 tests.
+- `configs/curation/ar_coord_overrides.csv` — hand-curated capacity fixes (see join).
 
 ## 1. Acquire + process (user-executed, no credentials)
 
 ```bash
-python scripts/fetch_cammesa_ar.py     # downloads the ZIP, writes ar_wind_monthly.csv
-python scripts/process_cammesa_ar.py   # -> input/turbine_level_data/AR/
+python scripts/fetch/cammesa_ar.py     # downloads the ZIP, writes ar_wind_monthly.csv
+python scripts/process/cammesa_ar.py   # -> input/turbine_level_data/AR/
 ```
 
 `fetch` pulls `Energía Renovables - Base de Datos` and extracts the wind rows
@@ -39,11 +39,11 @@ is dropped to the residual for re-curation.
 Outcome on the real data: **66 auto-matched, 2 capacity-fixed, 10 excluded**
 (→ 65 plants, CF mean 0.35, median 0.38, max 0.76, none > 1).
 
-- **Capacity fixes** (`configs/ar_coord_overrides.csv`): GWPT located these but
+- **Capacity fixes** (`configs/curation/ar_coord_overrides.csv`): GWPT located these but
   at a partial-phase capacity. *Manantiales Behr (YPF)* → 99 MW (30×3.3,
   Chubut). *Mataco 3 Picos* → 200 MW (El Mataco + Tres Picos complex near
   Bahía Blanca; GWPT splits it three ways).
-- **Exclusions** (`EXCLUDE` in `process_cammesa_ar.py`): 10 plants, mostly
+- **Exclusions** (`EXCLUDE` in `scripts/process/cammesa_ar.py`): 10 plants, mostly
   **self-generation autoproducers** absent from a confident GWPT match — wind
   at a cement works (Cementos Avellaneda), an oil field (YPF El Tordillo), and
   an aluminium smelter (ALUAR), plus small/ambiguous farms. **Fin del Mundo**
@@ -60,10 +60,10 @@ Read `input/turbine_level_data/AR/join_report.md` and
 ## 3. ERA5 + run
 
 ```bash
-python scripts/fetch_era5_ar.py        # 48 months 2021-2024, Patagonia+Pampas box
+python scripts/fetch/era5.py --region ar        # 48 months 2021-2024, Patagonia+Pampas box
 PYVWF_INPUT=<combined-library root> \
-python scripts/validate_region.py train    --region configs/regions/ar.toml
-python scripts/validate_region.py evaluate --region configs/regions/ar.toml \
+python scripts/analysis/validate_region.py train    --region configs/regions/ar.toml
+python scripts/analysis/validate_region.py evaluate --region configs/regions/ar.toml \
     --train-run output/validation/AR/train-<stamp>
 ```
 

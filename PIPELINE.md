@@ -40,10 +40,10 @@ python vwf/datasets/generate_country_level_training_data.py
 
 ```bash
 # List available configuration sets
-python scripts/train_all_bias_corrections.py --list
+python scripts/analysis/train_all_bias_corrections.py --list
 
 # Run turbine + country workflows
-python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
+python scripts/analysis/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
 ```
 
 Master orchestrator supporting all training configurations:
@@ -60,7 +60,7 @@ Master orchestrator supporting all training configurations:
 ### Evaluate Corrections
 
 ```bash
-python scripts/evaluate_all_pyvwf_runs.py --prefix turbine_grid
+python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid
 ```
 
 - Calculates MAE, RMSE, R² for corrected vs uncorrected capacity factors
@@ -75,10 +75,10 @@ python scripts/evaluate_all_pyvwf_runs.py --prefix turbine_grid
 python vwf/datasets/generate_country_level_training_data.py
 
 # 2. Train corrections
-python scripts/train_all_bias_corrections.py --sets turbine_grid
+python scripts/analysis/train_all_bias_corrections.py --sets turbine_grid
 
 # 3. Evaluate
-python scripts/evaluate_all_pyvwf_runs.py --prefix turbine_grid
+python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid
 ```
 
 ## Dependency Graph

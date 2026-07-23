@@ -97,7 +97,7 @@ class ONSBrazilSource(ObservationSource):
         Complex metadata: ``ID`` (``id_ons``), ``lon``, ``lat``, ``height``
         (m), ``capacity`` (kW), ``model``, ``type``, optional
         ``commissioning_date``, plus provenance/context (``height_source``,
-        ``subsystem``, ``state``). Built by ``scripts/process_ons_br.py`` from
+        ``subsystem``, ``state``). Built by ``scripts/process/ons_br.py`` from
         the ONS ``FATOR_CAPACIDADE`` file (which carries the coordinates and
         installed capacity itself), optionally enriched with ANEEL SIGA
         commissioning dates.

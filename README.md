@@ -413,7 +413,7 @@ fig.savefig("sim_vs_obs.png", dpi=150)
 ### Choosing `n_clu` and `time_res`
 
 `plot_error_vs_clusters()` takes the tidy metrics table written by
-`scripts/evaluate_all_pyvwf_runs.py` (`pyvwf_evaluation_metrics.csv`) and
+`scripts/analysis/evaluate_all_pyvwf_runs.py` (`pyvwf_evaluation_metrics.csv`) and
 plots error against cluster count, one line per temporal resolution, with the
 uncorrected error as a reference:
 
@@ -439,10 +439,10 @@ For comprehensive analysis across all supported countries:
 
 ```bash
 # List available configuration sets
-python scripts/train_all_bias_corrections.py --list
+python scripts/analysis/train_all_bias_corrections.py --list
 
 # Run turbine + country workflows
-python scripts/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
+python scripts/analysis/train_all_bias_corrections.py --sets turbine_grid country_grid_2015_2021_2023
 ```
 
 See [PIPELINE.md](PIPELINE.md) for the full script execution order.

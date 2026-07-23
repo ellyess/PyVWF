@@ -1,6 +1,6 @@
 """Transforms for building the Brazil (ONS) inputs from the public open data.
 
-Pure frame-to-frame logic for ``scripts/process_ons_br.py``: reshaping the ONS
+Pure frame-to-frame logic for ``scripts/process/ons_br.py``: reshaping the ONS
 ``FATOR_CAPACIDADE`` hourly capacity-factor series into monthly means, deriving
 the complex metadata the same file already carries, and turning the ONS
 constrained-off (``RESTRICAO_COFF_EOLICA``) series into a curtailment account.

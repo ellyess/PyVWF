@@ -1,6 +1,6 @@
 """Harness driver: train, evaluate, and transfer runs for one region config.
 
-The thin CLI in ``scripts/validate_region.py`` wraps these functions; the
+The thin CLI in ``scripts/analysis/validate_region.py`` wraps these functions; the
 logic lives here so it is importable and tested.
 
 Transfer semantics are normative (design §7): collapse the source region's

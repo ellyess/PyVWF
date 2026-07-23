@@ -1,6 +1,6 @@
 """Transforms for building the US (EIA) inputs from the public federal data.
 
-Pure frame-to-frame logic for ``scripts/process_eia_us.py``: reshaping the
+Pure frame-to-frame logic for ``scripts/process/eia_us.py``: reshaping the
 EIA-923 monthly generation schedule, summing EIA-860 wind nameplate to plant
 capacity with coordinates, aggregating the USGS/LBNL US Wind Turbine Database
 (USWTDB) turbine attributes to the plant, and emitting the ``EIAUSSource``
@@ -397,7 +397,7 @@ def assign_curves_from_library(
     therefore constrained first (see ``SCALE_BAND``), specific power second.
 
     ``capacity`` in the metadata is the PLANT total (kW), but ``add_models``
-    expects PER-TURBINE kW - the units trap ``scripts/assign_au_curves.py``
+    expects PER-TURBINE kW - the units trap ``scripts/region_tools/assign_au_curves.py``
     documents - so it is divided by ``n_turbines`` here.
 
     Plants without a USWTDB rotor diameter or turbine count keep

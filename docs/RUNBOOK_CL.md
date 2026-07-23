@@ -5,21 +5,21 @@ the ERA5 download and the train/evaluate remain.** Per-plant hourly wind runs
 back to at least 2010 (5 plants → 65 in 2025); the 2021-2024 pull is in
 `input/cen_raw/` (48 files, 1.93M rows). The `cen-cl` adapter, its transforms
 (`vwf/datasets/cen_cl.py`), the processing + GWPT join
-(`scripts/process_cen_cl.py`), and 13 tests are committed. Chile spans three
+(`scripts/process/cen_cl.py`), and 13 tests are committed. Chile spans three
 climates absent from the current set — Atacama coastal desert (BW),
 Mediterranean central Chile (Csb), maritime south (Cfb) — 60 plants, ~6.5 GW.
 
 ## Build the region inputs (done; re-run to refresh)
 
 ```bash
-python scripts/process_cen_cl.py     # -> input/turbine_level_data/CL/
+python scripts/process/cen_cl.py     # -> input/turbine_level_data/CL/
 ```
 
 Produces `cl_obs.csv` (monthly CF, commissioning prefix stripped),
 `cl_md.csv` (metadata with GWPT coordinates), `join_report.md`, and
 `cl_coord_residual.csv`. The coordinate join: 54 plants auto-matched to GWPT
 by name confirmed on capacity, 6 hand-curated in
-`configs/cl_coord_overrides.csv` (Horizonte N/S, Kallpa, San Pedro II, El
+`configs/curation/cl_coord_overrides.csv` (Horizonte N/S, Kallpa, San Pedro II, El
 Maiten, El Nogal — with per-row confidence notes), and **4 tiny PMGD plants
 excluded** (Raki, Huajache, Las Peñas, Lebu III; 5-9 MW each, ~30 MW total,
 absent from GWPT — the `EXCLUDE` list in the script, add coordinates to
@@ -89,7 +89,7 @@ Run the probe — it answers 1-3 in one go and writes nothing:
 
 ```bash
 export CEN_API_KEY=<your SIP user_key>
-python scripts/fetch_cen_cl.py --probe
+python scripts/fetch/cen_cl.py --probe
 ```
 
 It prints the registry field list, the wind-plant count, whether coordinates

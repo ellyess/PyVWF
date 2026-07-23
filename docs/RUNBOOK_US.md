@@ -23,7 +23,7 @@ Download the public files (sizes are the 2021 vintage):
 Then build the two on-disk tables the `eia-us` source reads:
 
 ```bash
-python scripts/process_eia_us.py \
+python scripts/process/eia_us.py \
     --eia923 input/eia_raw/f923_2019/EIA923_Schedules_2_3_4_5_M_12_2019_*.xlsx \
              input/eia_raw/f923_2020/EIA923_Schedules_2_3_4_5_M_12_2020_*.xlsx \
              input/eia_raw/f923_2021/EIA923_Schedules_2_3_4_5_M_12_2021_*.xlsx \
@@ -62,9 +62,9 @@ workbooks); one EIA-860 vintage supplies the static nameplate + coordinates.
 
 ```bash
 pip install cdsapi          # not a PyVWF dependency; ~/.cdsapirc holds your key
-python scripts/fetch_era5_us.py --dry-run     # inspect the request plan
-python scripts/fetch_era5_us.py               # 48 months, 2019-2022, CONUS box
-python scripts/combine_era5_us_daily.py       # reduce to yearly daily files
+python scripts/fetch/era5.py --region us --dry-run     # inspect the request plan
+python scripts/fetch/era5.py --region us               # 48 months, 2019-2022, CONUS box
+python scripts/era5/combine.py --region us       # reduce to yearly daily files
 ```
 
 The CONUS box is ~7x the AU-NEM box, so the monthly files are large and a
@@ -93,8 +93,8 @@ the future vintage-aware per-plant assignment, but is never itself the curve key
 ## 4. Run the validation harness
 
 ```bash
-python scripts/validate_region.py train    --region configs/regions/us.toml
-python scripts/validate_region.py evaluate --region configs/regions/us.toml \
+python scripts/analysis/validate_region.py train    --region configs/regions/us.toml
+python scripts/analysis/validate_region.py evaluate --region configs/regions/us.toml \
     --train-run output/validation/US/train-<timestamp>
 ```
 

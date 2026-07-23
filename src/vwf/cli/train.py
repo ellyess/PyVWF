@@ -6,7 +6,7 @@ Mirrors the ``examples/quick_run.py`` flow:
     3) simulate the capacity factor time series for the test year
 
 For batch runs across many countries/configurations, use the research driver
-``scripts/train_all_bias_corrections.py`` instead.
+``scripts/analysis/train_all_bias_corrections.py`` instead.
 """
 
 from __future__ import annotations

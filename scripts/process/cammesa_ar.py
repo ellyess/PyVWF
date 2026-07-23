@@ -2,7 +2,7 @@
 """Build the CAMMESAArgentinaSource inputs from the monthly GWh + a GWPT join.
 
 Reads (all local): the per-plant monthly wind energy CSV written by
-`scripts/fetch_cammesa_ar.py` (input/cammesa_raw/ar_wind_monthly.csv:
+`scripts/fetch/cammesa_ar.py` (input/cammesa_raw/ar_wind_monthly.csv:
 ID, region, provincia, year, month, gwh), and the Global Wind Power Tracker
 workbook (coordinates AND capacity — CAMMESA carries neither).
 
@@ -19,12 +19,12 @@ normalised name for both lon/lat and capacity_mw. Because capacity is the
 the result: a plant whose median monthly CF exceeds CAP_SUSPECT_CF has almost
 certainly matched a too-small capacity (real AR wind tops out near 0.5-0.6),
 and is written to the residual for re-curation. Overrides
-(configs/ar_coord_overrides.csv: ID,lon,lat,capacity_mw) win over the auto
+(configs/curation/ar_coord_overrides.csv: ID,lon,lat,capacity_mw) win over the auto
 join; build_ar_metadata then fails loudly on any plant lacking a coordinate or
 a capacity.
 
-    python scripts/process_cammesa_ar.py
-    python scripts/process_cammesa_ar.py --years 2021 2024
+    python scripts/process/cammesa_ar.py
+    python scripts/process/cammesa_ar.py --years 2021 2024
 """
 import argparse
 import re
@@ -112,7 +112,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--monthly", default="input/cammesa_raw/ar_wind_monthly.csv")
     ap.add_argument("--gwpt", default="input/Global-Wind-Power-Tracker-February-2026.xlsx")
-    ap.add_argument("--overrides", default="configs/ar_coord_overrides.csv")
+    ap.add_argument("--overrides", default="configs/curation/ar_coord_overrides.csv")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
     ap.add_argument("--out", default="input/turbine_level_data/AR")
@@ -122,7 +122,7 @@ def main() -> None:
 
     mp = Path(args.monthly)
     if not mp.is_file():
-        sys.exit(f"{mp} not found — run scripts/fetch_cammesa_ar.py first.")
+        sys.exit(f"{mp} not found — run scripts/fetch/cammesa_ar.py first.")
     gwh = pd.read_csv(mp)
     gwh["ID"] = gwh["ID"].astype(str)
     fleet = (gwh.groupby("ID").agg(site_name=("ID", "first"),
@@ -152,7 +152,7 @@ def main() -> None:
     print(f"CAMMESA wind plants: {len(fleet)} | joined: {len(join)} | "
           f"unmatched: {len(unmatched)} | capacity-suspect: {len(suspect)}")
     if unmatched or suspect:
-        print(f"  -> curate configs/ar_coord_overrides.csv (ID,lon,lat,capacity_mw) "
+        print(f"  -> curate configs/curation/ar_coord_overrides.csv (ID,lon,lat,capacity_mw) "
               f"from {out/'ar_join_residual.csv'} then re-run.")
 
     # Drop capacity-suspect from the join so they fail loudly (not trusted).

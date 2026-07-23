@@ -12,14 +12,14 @@ per-farm hub heights, which no other non-European region except Canada has.
 
 ## 0. What is already committed
 
-- `configs/nz_wind_farms.csv` — the curated farm table (13 dispatched farms):
+- `configs/curation/nz_wind_farms.csv` — the curated farm table (13 dispatched farms):
   Gen_Code/POC keys into EMI files, coordinates, final-build capacity,
   turbine model, hub height with per-farm provenance (`height_source` marks
   the unverified ones: tararua_3, mill_creek, kaiwera_downs_2). Compiled
   July 2026 from NZWEA/operator/Wikipedia/EMI-register sources.
-- `configs/nz_capacity_stages.csv` — stable capacity plateaus for staged
+- `configs/curation/nz_capacity_stages.csv` — stable capacity plateaus for staged
   builds (currently Turitea North-only 118.8 MW → full 221.4 MW).
-- `configs/nz_mask_windows.csv` — commissioning-ramp month windows masked at
+- `configs/curation/nz_mask_windows.csv` — commissioning-ramp month windows masked at
   load (Waipipi, Turitea x2, Harapaki, Kaiwera Downs 1 and 2).
 - The adapter (`vwf/sources/emi_nz.py`), transforms
   (`vwf/datasets/emi_nz.py`), and their tests (DST trading-period mapping is
@@ -36,8 +36,8 @@ the resource; a standing caveat and an exclusion candidate if it distorts.
 ## 1. Observations (user-executed, no credentials)
 
 ```bash
-python scripts/fetch_emi_nz.py            # 72 monthly CSVs 2019-2024 + register
-python scripts/process_emi_nz.py          # -> input/turbine_level_data/NZ/
+python scripts/fetch/emi_nz.py            # 72 monthly CSVs 2019-2024 + register
+python scripts/process/emi_nz.py          # -> input/turbine_level_data/NZ/
 ```
 
 The fetch is plain HTTP (each URL 302-redirects to an open Azure blob),
@@ -57,7 +57,7 @@ months.
 ## 2. ERA5 (user-executed, your CDS key)
 
 ```bash
-python scripts/fetch_era5_nz.py           # 72 months, 2019-2024, NZ box
+python scripts/fetch/era5.py --region nz           # 72 months, 2019-2024, NZ box
 ```
 
 Small box (53 x 49 cells) — no daily pre-combine needed, unlike BR/US.
@@ -66,8 +66,8 @@ Small box (53 x 49 cells) — no daily pre-combine needed, unlike BR/US.
 
 ```bash
 PYVWF_INPUT=<your input root with the real/combined curve library> \
-python scripts/validate_region.py train --region configs/regions/nz.toml
-python scripts/validate_region.py evaluate --region configs/regions/nz.toml \
+python scripts/analysis/validate_region.py train --region configs/regions/nz.toml
+python scripts/analysis/validate_region.py evaluate --region configs/regions/nz.toml \
     --train-run output/validation/NZ/train-<stamp>
 ```
 
@@ -93,7 +93,7 @@ Notes for reading the result:
 
 - New months: re-run both fetch scripts (they skip existing files).
 - New farms (Kaiwaikawe, Mt Munro, Te Rere Hau repowering): add a row to
-  `configs/nz_wind_farms.csv` (+ stages/mask windows if staged) — the
+  `configs/curation/nz_wind_farms.csv` (+ stages/mask windows if staged) — the
   processing step will fail loudly until you do.
 - The register filename is publication-dated (~6-monthly); the fetch script
   scrapes the directory for the newest. EMI has signalled Generation_MD will

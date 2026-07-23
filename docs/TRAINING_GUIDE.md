@@ -24,31 +24,31 @@ per-country configuration and onshore/offshore variant support.
 ### List available training sets
 
 ```bash
-python scripts/train_all_bias_corrections.py --list
+python scripts/analysis/train_all_bias_corrections.py --list
 ```
 
 ### Run all training sets
 
 ```bash
-python scripts/train_all_bias_corrections.py
+python scripts/analysis/train_all_bias_corrections.py
 ```
 
 ### Run specific sets
 
 ```bash
-python scripts/train_all_bias_corrections.py --sets turbine_simple_2015_2019 country_simple_2015_2019
+python scripts/analysis/train_all_bias_corrections.py --sets turbine_simple_2015_2019 country_simple_2015_2019
 ```
 
 ### Custom output directory
 
 ```bash
-python scripts/train_all_bias_corrections.py --outdir custom_output/runs
+python scripts/analysis/train_all_bias_corrections.py --outdir custom_output/runs
 ```
 
 ### Log output for later review
 
 ```bash
-python scripts/train_all_bias_corrections.py 2>&1 | tee training_log_$(date +%Y%m%d_%H%M).txt
+python scripts/analysis/train_all_bias_corrections.py 2>&1 | tee training_log_$(date +%Y%m%d_%H%M).txt
 ```
 
 ---
@@ -82,7 +82,7 @@ def get_training_sets():
 Then run it:
 
 ```bash
-python scripts/train_all_bias_corrections.py --sets my_custom_set
+python scripts/analysis/train_all_bias_corrections.py --sets my_custom_set
 ```
 
 All parameters shown above are required in the base configuration. The script iterates

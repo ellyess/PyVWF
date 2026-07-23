@@ -253,7 +253,7 @@ class AEMONemSource(ObservationSource):
         Long SCADA: ``timestamp`` (naive AEST market time), ``ID``, ``mw``.
     ``au_nem_scada_monthly_partials.csv`` (optional fast path)
         Per-(ID, UTC year, month) ``energy_mwh`` + ``n_intervals`` partials,
-        as written by ``scripts/process_aemo_au.py`` via
+        as written by ``scripts/process/aemo_au.py`` via
         :func:`scada_partial_aggregate`/:func:`combine_partials`. Preferred
         when present: four years of 5-minute SCADA is ~45M rows, while the
         partials are a few thousand — and finalisation (capacity, coverage

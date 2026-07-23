@@ -34,7 +34,7 @@ import pandas as pd
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--models-csv", default="configs/au_turbine_models.csv")
+    ap.add_argument("--models-csv", default="configs/curation/au_turbine_models.csv")
     ap.add_argument("--md", default="input/turbine_level_data/AU_NEM/au_nem_md.csv")
     ap.add_argument("--open-models", required=True, help="models_open.csv path")
     ap.add_argument("--open-curves", required=True, help="open power-curve CSV path")

@@ -6,7 +6,7 @@ configuration), the re-test scores **1/5** — only Brazil is predictable from
 the other regions. But three specific things moved relative to the
 development-branch experiment, and they narrow *why* transfer fails.
 
-Script: `scripts/ml_transfer_retest.py`. Gates were written down before any
+Script: `scripts/analysis/ml_transfer_retest.py`. Gates were written down before any
 model run (pre-specification reproduced at the bottom).
 
 ## Why re-test at all

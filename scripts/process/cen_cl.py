@@ -2,7 +2,7 @@
 """Build the CENChileSource inputs from the CEN downloads + a GWPT coord join.
 
 Reads (all local): the per-month CEN wind generation JSON written by
-`scripts/fetch_cen_cl.py --years` under input/cen_raw/, and the Global Wind
+`scripts/fetch/cen_cl.py --years` under input/cen_raw/, and the Global Wind
 Power Tracker workbook (coordinates; CEN exposes none).
 
 Writes (under <out>, default input/turbine_level_data/CL/):
@@ -18,11 +18,11 @@ Cabo Leones II/III, Horizonte Norte/Sur) — a GWPT name that is a substring of
 the CEN name, with capacities within tolerance, is accepted and both phases
 inherit the parent coordinate (correct at 0.25 deg ERA5 resolution). Anything
 not confidently matched is written to cl_coord_residual.csv for hand curation
-into configs/cl_coord_overrides.csv (ID,lon,lat); build_cl_metadata then fails
+into configs/curation/cl_coord_overrides.csv (ID,lon,lat); build_cl_metadata then fails
 loudly on any plant still lacking a coordinate.
 
-    python scripts/process_cen_cl.py
-    python scripts/process_cen_cl.py --years 2021 2024
+    python scripts/process/cen_cl.py
+    python scripts/process/cen_cl.py --years 2021 2024
 """
 import argparse
 import glob
@@ -47,7 +47,7 @@ CAP_TOL = 0.35  # fractional capacity agreement required to confirm a name match
 #: (5-9 MW each, ~30 MW total = <1% of the ~3.4 GW fleet) are real and report
 #: generation, but are absent from GWPT and the GWPT Below-Threshold sheet, so
 #: no coordinate can be sourced without fabricating one. Excluded rather than
-#: mis-located; add a row to configs/cl_coord_overrides.csv to reinstate any
+#: mis-located; add a row to configs/curation/cl_coord_overrides.csv to reinstate any
 #: whose location you can verify. (Magallanes / isolated systems south of -44
 #: would also live here; none are in the SEN wind fleet today.)
 EXCLUDE: tuple[str, ...] = ("334", "350", "414", "436")  # Raki, Huajache, Las Peñas, Lebu III
@@ -68,7 +68,7 @@ def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
     paths = [p for p in paths if y0 <= int(Path(p).stem.split("_")[-2]) <= y1]
     if not paths:
         sys.exit(f"no cen_gen_*.json under {raw_dir} for {y0}-{y1} — run "
-                 "scripts/fetch_cen_cl.py --years first.")
+                 "scripts/fetch/cen_cl.py --years first.")
     return pd.concat([pd.DataFrame(json.load(open(p))) for p in paths],
                      ignore_index=True)
 
@@ -123,7 +123,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", default="input/cen_raw")
     ap.add_argument("--gwpt", default="input/Global-Wind-Power-Tracker-February-2026.xlsx")
-    ap.add_argument("--overrides", default="configs/cl_coord_overrides.csv")
+    ap.add_argument("--overrides", default="configs/curation/cl_coord_overrides.csv")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
     ap.add_argument("--out", default="input/turbine_level_data/CL")
@@ -151,7 +151,7 @@ def main() -> None:
     print(f"CEN wind plants: {len(fleet)} | auto/override-matched: {len(coords)} "
           f"| residual (need curation): {len(residual)}")
     if len(residual):
-        print(f"  -> fill configs/cl_coord_overrides.csv (ID,lon,lat) from "
+        print(f"  -> fill configs/curation/cl_coord_overrides.csv (ID,lon,lat) from "
               f"{out/'cl_coord_residual.csv'} then re-run.")
 
     try:

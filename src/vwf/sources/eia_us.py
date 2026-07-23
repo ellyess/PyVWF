@@ -140,7 +140,7 @@ class EIAUSSource(ObservationSource):
         Plant metadata: ``ID`` (EIA plant code), ``lon``, ``lat``, ``height``
         (m), ``capacity`` (kW), ``model``, ``type``, optional
         ``commissioning_date``, plus provenance columns (``height_source``,
-        ``uswtdb_model``). Built by ``scripts/process_eia_us.py`` from EIA-860
+        ``uswtdb_model``). Built by ``scripts/process/eia_us.py`` from EIA-860
         (capacity, coordinates, operating date) joined to the USWTDB
         (capacity-weighted hub height, model).
     ``us_eia923_netgen.csv``

@@ -1,6 +1,6 @@
 """Transforms for building the Argentina (CAMMESA) inputs.
 
-Pure frame-to-frame logic for ``scripts/process_cammesa_ar.py``: turning the
+Pure frame-to-frame logic for ``scripts/process/cammesa_ar.py``: turning the
 CAMMESA per-central monthly *energy* series into monthly capacity factors, and
 emitting the source metadata contract once coordinates AND capacities are
 joined from an external register.

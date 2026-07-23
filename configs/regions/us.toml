@@ -19,7 +19,7 @@ test_years = [2022]
 # imputed and dropped at ingest. Bins are US calendar months.
 
 [era5]
-# The daily pre-combine (scripts/combine_era5_us_daily.py) is mandatory for a
+# The daily pre-combine (scripts/era5/combine.py --region us) is mandatory for a
 # box this size: a 4-year hourly CONUS load will not fit in memory. Point at
 # the combined daily files, not the raw monthly ones.
 path = "era5/US_daily"

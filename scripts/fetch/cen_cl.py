@@ -5,8 +5,8 @@ USER-EXECUTED. Reads your API key from the environment so it never appears in
 a command line, a settings file, or this repository:
 
     export CEN_API_KEY=<your Información Pública (SIP) user_key>
-    python scripts/fetch_cen_cl.py --probe          # verification, writes nothing
-    python scripts/fetch_cen_cl.py --years 2015 2024
+    python scripts/fetch/cen_cl.py --probe          # verification, writes nothing
+    python scripts/fetch/cen_cl.py --years 2015 2024
 
 Verified against the live API on 2026-07-22 (docs/RUNBOOK_CL.md records the
 full endpoint map). The facts that cost time to discover, so they are pinned

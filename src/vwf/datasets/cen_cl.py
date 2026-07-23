@@ -1,6 +1,6 @@
 """Transforms for building the Chile (Coordinador / CEN) inputs.
 
-Pure frame-to-frame logic for ``scripts/process_cen_cl.py``: reshaping the CEN
+Pure frame-to-frame logic for ``scripts/process/cen_cl.py``: reshaping the CEN
 ``generacion-real`` hourly series into monthly capacity factors, deriving the
 wind fleet from that same stream, and emitting the source metadata contract
 once coordinates are joined from an external register.

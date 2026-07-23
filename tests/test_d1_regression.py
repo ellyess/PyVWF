@@ -1,4 +1,4 @@
-"""The D1 frame comparator (scripts/d1_regression.py)."""
+"""The D1 frame comparator (scripts/analysis/d1_regression.py)."""
 import importlib.util
 from pathlib import Path
 
@@ -7,7 +7,7 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "d1_regression",
-    Path(__file__).resolve().parents[1] / "scripts" / "d1_regression.py",
+    Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "d1_regression.py",
 )
 d1 = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(d1)

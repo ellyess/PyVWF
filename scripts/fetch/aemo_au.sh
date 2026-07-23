@@ -16,8 +16,8 @@
 #   https://www.aemo.com.au/energy-systems/electricity/national-electricity-market-nem/nem-forecasting-and-planning/forecasting-and-planning-data/generation-information
 #
 # Usage:
-#   bash scripts/fetch_aemo_au.sh              # into $PYVWF_INPUT or ./input
-#   AEMO_OUT=/data/aemo bash scripts/fetch_aemo_au.sh
+#   bash scripts/fetch/aemo_au.sh              # into $PYVWF_INPUT or ./input
+#   AEMO_OUT=/data/aemo bash scripts/fetch/aemo_au.sh
 set -euo pipefail
 
 BASE="https://nemweb.com.au/Data_Archive/Wholesale_Electricity/MMSDM"

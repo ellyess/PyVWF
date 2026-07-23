@@ -5,8 +5,8 @@ calculates evaluation metrics using vwf.metrics.overall_error for consistency,
 and outputs a comprehensive CSV file.
 
 Usage:
-    python scripts/evaluate_all_pyvwf_runs.py --prefix turbine_grid
-    python scripts/evaluate_all_pyvwf_runs.py --prefix turbine_grid --output output/runs/turbine_grid/pyvwf_evaluation_metrics.csv
+    python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid
+    python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid --output output/runs/turbine_grid/pyvwf_evaluation_metrics.csv
 """
 
 import argparse

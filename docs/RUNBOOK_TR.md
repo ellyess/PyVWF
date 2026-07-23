@@ -16,7 +16,7 @@ endpoint returns per-plant generation:
 **How the false positive was caught, and why it matters.** The UEVM endpoint
 answers `200` with a plausible 24 rows for any `powerPlantId`, including
 invented ones — it reads exactly like per-plant hourly data. The
-must-distinguish test in `scripts/fetch_epias_tr.py --probe` requests two
+must-distinguish test in `scripts/fetch/epias_tr.py --probe` requests two
 different wind plants and compares the numbers: they are byte-identical, so
 the filter is ignored. Without that comparison this would have been recorded
 as "Turkey verified, 2016→ history", which is false. The probe now prints the

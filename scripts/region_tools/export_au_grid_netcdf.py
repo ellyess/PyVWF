@@ -22,7 +22,7 @@ The factors are fitted parameters (results); no licensed curve content
 enters the file. Attribution attributes cover ERA5/Copernicus, AEMO, and
 the Global Wind Power Tracker (CC BY 4.0).
 
-    PYVWF_INPUT=<stage> python scripts/export_au_grid_netcdf.py \\
+    PYVWF_INPUT=<stage> python scripts/region_tools/export_au_grid_netcdf.py \\
         --train-run <dir with factors_season_5.csv + train_turb_info_5.csv> \\
         --open-curves <power_curves_open_smoothed_cf.csv> --year 2023
 """
@@ -171,7 +171,7 @@ def main() -> None:
                                 "accuracy or completeness.",
             "attribution_gwpt": "Farm coordinates from the Global Wind Power Tracker, "
                                 "Global Energy Monitor (CC BY 4.0).",
-            "history": "scripts/export_au_grid_netcdf.py",
+            "history": "scripts/region_tools/export_au_grid_netcdf.py",
         },
     )
     out_path = Path(args.out)

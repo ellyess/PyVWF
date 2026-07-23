@@ -19,7 +19,7 @@ Writes (under <out>, default input/turbine_level_data/BR/):
 Finalisation (monthly means, coverage floor, curtailment mask) happens inside
 ONSBrazilSource at load time, through the same audited code the tests pin.
 
-    python scripts/process_ons_br.py \\
+    python scripts/process/ons_br.py \\
         --fc input/ons_raw/FATOR_CAPACIDADE-2_2021_*.csv \\
              input/ons_raw/FATOR_CAPACIDADE-2_2022_*.csv \\
              input/ons_raw/FATOR_CAPACIDADE-2_2023_*.csv \\

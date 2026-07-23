@@ -6,7 +6,7 @@ src/, with PYVWF_INPUT at a staging directory holding the real curve
 library. dask_n_workers=0 keeps the offset fit sequential and deterministic.
 
     PYVWF_INPUT=<stage> PYTHONPATH=<main-worktree>/src python \\
-        scripts/d1_run_legacy.py --country DK --mode onshore \\
+        scripts/analysis/d1_run_legacy.py --country DK --mode onshore \\
         --train-start 2015 --train-end 2019 --test-year 2020 \\
         --clusters 1 10 --time-res fixed season --out <ref-dir>
 
@@ -15,7 +15,7 @@ Country-level (NL, FR): load_country_data from the country_level_data files
 (pass --cl-data).
 
 Writes factors_<slice>_<n>.csv and cor_cf_<slice>_<n>.csv (+ unc_cf, obs_cf)
-into --out; diff against a harness run with scripts/d1_regression.py.
+into --out; diff against a harness run with scripts/analysis/d1_regression.py.
 """
 import argparse
 import sys
