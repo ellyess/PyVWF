@@ -13,17 +13,21 @@ running it is yours to do, like every other download on this project:
 One script for every region: the bounding box comes from the region TOML
 (``[era5] bbox`` = [W, E, S, N]) and the year span from the training/test
 window (``train_years[0]`` .. ``test_years[-1]``), so there is nothing
-region-specific to hardcode here — a new region needs only its config file.
+region-specific to hardcode here: a new region needs only its config file.
 This replaced six near-identical ``fetch_era5_<code>.py`` scripts; each box's
 rationale now lives in the comments of its region TOML (e.g. why Chile stops
 at -44 and excludes Magallanes, why Argentina spans Patagonia + Pampas).
 
 Requests are BATCHED across months to cut queue waits. One CDS request can
-carry several months of a single year (``--chunk-months``, default 6, the
-value confirmed to be accepted; the CDS ~120k-field per-request cap allows up
-to 12 for these boxes — one full year in a single request). The multi-month
-netcdf that comes back is then SPLIT into the same per-month files a
-month-at-a-time run would have produced, so nothing downstream changes:
+carry several months of a single year (``--chunk-months``, default 3). The
+ceiling is the CDS *cost* limit, which counts fields = variables x days x
+hours and ignores the area, so it is the same for every region: 3 months
+(~8.6k fields) is accepted, 6 months (~17k fields) is rejected with a 403
+"cost limits exceeded / request too large". Note the interactive CDS web form
+allows larger selections than the API does, so a size that works in the
+browser can still be refused here. The multi-month netcdf that comes back is
+then SPLIT into the same per-month files a month-at-a-time run would have
+produced, so nothing downstream changes:
 
     dataset   reanalysis-era5-single-levels, hourly, all days/times
     variables 100m u/v (wind) + 10m u/v (needed for the roughness calc)
@@ -32,21 +36,21 @@ month-at-a-time run would have produced, so nothing downstream changes:
     format    netcdf, unarchived
 
 A single multi-YEAR request would exceed the per-request field cap and be
-rejected, so chunks never cross a year boundary — the ``year`` field stays a
+rejected, so chunks never cross a year boundary: the ``year`` field stays a
 single year and only ``month`` carries the list. ``--chunk-months 1`` restores
 the old one-request-per-month behaviour byte-for-byte (no split step).
 
 Output goes to ``<input-root>/era5/<file_tag>/era5_<code>_<YYYY>_<MM>.nc``
 (``<input-root>`` is $PYVWF_INPUT if set, else ./input). NOTE the raw monthly
 files land under the ``file_tag`` dir (e.g. era5/BR), which for the big boxes
-(US, BR) is NOT the config's ``[era5] path`` — that points at the *_daily dir
+(US, BR) is NOT the config's ``[era5] path``: that points at the *_daily dir
 produced afterwards by ``scripts/era5/combine.py``. Small boxes (NZ, CL, AR)
 need no combine step and their config path is the raw dir directly.
 
 Requests run sequentially and the script is resumable: completed months are
 skipped (chunks are formed only from the months still missing), partial
 downloads land in a .part file and are renamed only on success. Expect the CDS
-queue, not bandwidth, to dominate wall-clock time — hence the batching.
+queue, not bandwidth, to dominate wall-clock time; hence the batching.
 """
 import argparse
 import os
@@ -66,14 +70,17 @@ VARIABLES = [
     "10m_v_component_of_wind",
 ]
 GRID = [0.25, 0.25]
-MAX_CHUNK_MONTHS = 12  # a full year stays under the CDS ~120k-field request cap
+# Upper bound for --chunk-months. The practical ceiling is the CDS cost limit
+# (3 accepted, 6 rejected for hourly all-day requests); this only guards the CLI
+# so an over-large value fails fast here rather than as a 403 from the server.
+MAX_CHUNK_MONTHS = 12
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
 
 
 def region_spec(code: str):
     path = CONFIG_DIR / f"{code.lower()}.toml"
     if not path.is_file():
-        sys.exit(f"no region config at {path} — is {code!r} a shipped region?")
+        sys.exit(f"no region config at {path}: is {code!r} a shipped region?")
     return load_region(path)
 
 
@@ -108,7 +115,7 @@ def plan_chunks(todo, chunk_months: int):
     """Group missing (year, month, path) into per-year chunks of <= N months.
 
     ``todo`` is ordered by (year, month), so grouping by year and slicing keeps
-    each chunk within one calendar year — the ``year`` field of a CDS request
+    each chunk within one calendar year: the ``year`` field of a CDS request
     must stay a single value or the month list would fan out across years.
     """
     chunks = []
@@ -124,7 +131,7 @@ def split_and_write(part_path: Path, chunk) -> list[Path]:
 
     A one-month chunk is just renamed (byte-for-byte the old behaviour). A
     multi-month chunk is split on the time coordinate so each month lands in
-    its own ``era5_<tag>_<YYYY>_<MM>.nc`` — the layout every consumer expects.
+    its own ``era5_<tag>_<YYYY>_<MM>.nc``: the layout every consumer expects.
     """
     if len(chunk) == 1:
         (_, _, path) = chunk[0]
@@ -156,9 +163,10 @@ def main() -> None:
     ap.add_argument("--years", type=int, nargs="+", default=None,
                     help="Override the year span (default: train[0]..test[-1])")
     ap.add_argument("--months", type=int, nargs="+", default=list(range(1, 13)))
-    ap.add_argument("--chunk-months", type=int, default=6,
-                    help="Months per CDS request within a year (1-12, default 6). "
-                         "1 restores one-request-per-month.")
+    ap.add_argument("--chunk-months", type=int, default=3,
+                    help="Months per CDS request within a year (1-12, default 3, "
+                         "the largest accepted by the CDS cost limit; 6+ is "
+                         "rejected). 1 restores one-request-per-month.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Print the request plan and exit without submitting")
     args = ap.parse_args()
