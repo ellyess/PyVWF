@@ -23,6 +23,7 @@ from vwf.sources.entsoe_files import EntsoeFileSource
 from vwf.sources.european import EuropeanTurbineSource
 from vwf.sources.in_memory import InMemoryCountrySource
 from vwf.sources.ons_br import ONSBrazilSource
+from vwf.sources.windstats import WindStatsSource
 
 __all__ = [
     "ObservationSource",
@@ -40,4 +41,5 @@ __all__ = [
     "EuropeanTurbineSource",
     "InMemoryCountrySource",
     "ONSBrazilSource",
+    "WindStatsSource",
 ]

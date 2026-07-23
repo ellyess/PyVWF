@@ -27,7 +27,8 @@ scripts/
                     (only the big boxes — US, BR, AU — need this)
   process/          raw inputs -> the adapter's input CSVs (input/turbine_level_data/<CC>/)
     aemo_au.py  cammesa_ar.py  cen_cl.py  de.py  dk.py  eia_us.py  emi_nz.py  ons_br.py  uk.py
-    (de.py stages CONFIDENTIAL WindStats data — see docs/RUNBOOK_DE.md)
+    windstats.py --country ES   Spain (WindStats gen + GWPT coords, mixed licence)
+    (de.py + windstats.py handle CONFIDENTIAL WindStats data — RUNBOOK_DE/ES.md)
   analysis/         train, evaluate, and one-off studies
     validate_region.py             train / evaluate / transfer a region (the main driver)
     train_all_bias_corrections.py  batch trainer across configurations
