@@ -33,12 +33,13 @@ bbox = [166.0, 179.0, -48.0, -36.0]
 file_tag = "NZ"
 
 [correction]
-# 13 farms but only ~11 unique coordinates (Tararua III shares the I/II ridge,
-# KD2 shares KD1) -> the unique-coordinate ceiling caps k there; k above it
-# produces a fake plateau (docs/findings/us_br_first_run.md). The sweep below
-# stays under the ceiling so every k is a real partition.
+# 13 farms, but only 8 reach the clusterer in the 2019-2023 training window:
+# Harapaki and Kaiwera Downs 2 commissioned after it, and a few sparse-coverage
+# farms drop in train_set. That 8 is the hard ceiling (k-means needs
+# n_clusters <= n_samples); k near it is one-farm-per-cluster, the fake-plateau
+# regime (docs/findings/us_br_first_run.md). The sweep stays safely under it.
 model = "affine-wind"
-cluster_list = [1, 5, 10]
+cluster_list = [1, 4, 7]
 time_slices = ["fixed", "season"]
 
 [seasons]
