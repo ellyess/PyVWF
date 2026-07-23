@@ -18,13 +18,14 @@ scripts/
     aemo_au.sh      AU  observations (AEMO SCADA)
     cammesa_ar.py   AR  observations (CAMMESA renewables ZIP)
     cen_cl.py       CL  observations (Coordinador SIP API; CEN_API_KEY env)
+    dk.py           DK  observations (Danish Energy Agency register .xlsx)
     emi_nz.py       NZ  observations (EA EMI Generation_MD)
     epias_tr.py     TR  observations (EPİAŞ; input/.epias_credentials) — demoted, see runbook
   era5/
     combine.py      reduce monthly ERA5 to yearly DAILY files: --region <cc>
                     (only the big boxes — US, BR, AU — need this)
   process/          raw inputs -> the adapter's input CSVs (input/turbine_level_data/<CC>/)
-    aemo_au.py  cammesa_ar.py  cen_cl.py  eia_us.py  emi_nz.py  ons_br.py
+    aemo_au.py  cammesa_ar.py  cen_cl.py  dk.py  eia_us.py  emi_nz.py  ons_br.py
   analysis/         train, evaluate, and one-off studies
     validate_region.py             train / evaluate / transfer a region (the main driver)
     train_all_bias_corrections.py  batch trainer across configurations
