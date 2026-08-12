@@ -19,7 +19,7 @@ file_tag = "EU"
 
 [correction]
 model = "affine-wind"
-cluster_list = [5]
+cluster_list = [1, 2]  # 1 = identifiable national baseline; 2 = the grid points own clusters
 time_slices = ["fixed", "season"]
 
 [seasons]

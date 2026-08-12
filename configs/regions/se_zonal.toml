@@ -1,0 +1,49 @@
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+#
+# Sweden with PER-ZONE observations instead of one national series. This is
+# RQ4 option 1: the national path fits 4 cluster offsets against a single
+# national number per period, under-determined by 3, so the offsets are
+# wherever the optimiser stopped. Here each of the four bidding zones supplies
+# its own observation and each cluster's offset is determined by one
+# constraint, which is the same problem the turbine-level path solves.
+#
+# Compare against configs/regions/se.toml, which is the same region, fleet and
+# test year through the national path. Both are scored on the same
+# capacity-weighted national aggregate.
+#
+# The code is SE-BZ (not SE) so it does not collide with the national ENTSO-E
+# Sweden region (configs/regions/se.toml), the same convention ES-WS uses.
+# The adapter strips the suffix to find Sweden's files; the bbox is explicit
+# here so nothing needs a BoundingBoxes entry for the variant code.
+#
+# WINDOW CAVEAT: the per-zone files stop at 2019, so training is 2015-2019
+# rather than se.toml's 2015-2021. For a like-for-like comparison run se.toml
+# with train_years = [2015, 2019] too.
+
+[region]
+code = "SE-BZ"
+name = "Sweden (per bidding zone)"
+
+[observations]
+source = "entsoe-zonal"
+obs_level = "country"
+obs_unit = "country"
+train_years = [2015, 2019]
+test_years = [2023]
+
+[era5]
+path = "era5/EU"
+bbox = [11.0, 24.2, 55.3, 69.0]
+file_tag = "EU"
+
+[correction]
+model = "affine-wind"
+cluster_list = [1, 4]  # 1 = national baseline; 4 = one cluster per bidding zone
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

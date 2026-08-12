@@ -9,7 +9,7 @@ name = "Ireland"
 source = "entsoe-country"
 obs_level = "country"
 obs_unit = "country"
-train_years = [2015, 2021]
+train_years = [2017, 2021]  # GWPT capacity register undercounts Ireland before 2017
 test_years = [2023]
 
 [era5]
@@ -19,7 +19,7 @@ file_tag = "EU"
 
 [correction]
 model = "affine-wind"
-cluster_list = [5]
+cluster_list = [1, 3]  # 1 = identifiable national baseline; 3 = the grid points own clusters
 time_slices = ["fixed", "season"]
 
 [seasons]

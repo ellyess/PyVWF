@@ -22,12 +22,17 @@ import pandas as pd
 import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
-from vwf.data import train_set, val_set
+from vwf.data import assign_country_clusters, train_set, val_set
 from vwf.harness.corrections import get_correction
 from vwf.harness.provenance import write_manifest_safe
 from vwf.harness.regions import RegionSpec
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
-from vwf.sources import EntsoeFileSource, ObservationSource, get_source
+from vwf.sources import (
+    EntsoeFileSource,
+    EntsoeZonalFileSource,
+    ObservationSource,
+    get_source,
+)
 
 #: The approved transfer pair set (Phase 0 sign-off): AU-NEM against Europe,
 #: in either direction. Everything else is out of scope on this branch.
@@ -52,14 +57,13 @@ def resolve_source(
 ) -> ObservationSource:
     """Resolve the region's observation source from the registry by name.
 
-    Country-level file-backed regions ("entsoe-country") read a different file
-    per split, so the source is built per split; turbine-level sources ignore
-    the split and are resolved by country from the registry.
+    Country-level file-backed regions ("entsoe-country", "entsoe-zonal") read a
+    different file per split, so the source is built per split; turbine-level
+    sources ignore the split and are resolved by country from the registry.
     """
-    if spec.source == "entsoe-country":
-        return EntsoeFileSource(
-            spec.code, split, spec.train_years, spec.test_years[0]
-        )
+    if spec.source in ("entsoe-country", "entsoe-zonal"):
+        cls = EntsoeFileSource if spec.source == "entsoe-country" else EntsoeZonalFileSource
+        return cls(spec.code, split, spec.train_years, spec.test_years[0])
     return get_source(spec.source, spec.code)
 
 
@@ -164,6 +168,7 @@ def run_evaluate(
     calc_z0: bool = True,
     mode: str = "all",
     run_name: str | None = None,
+    score_zones: ObservationSource | None = None,
 ) -> Path:
     """Evaluate a trained run against a held-out year.
 
@@ -174,6 +179,13 @@ def run_evaluate(
     the test fleet against the training fleet; country-level reuses the grid
     points' own cluster assignments and scores the capacity-weighted country
     aggregate.
+
+    Args:
+        score_zones: Optional zonal observation source used for an extra
+            per-zone metric. A zonal run supplies its own; pass one explicitly
+            to score a NATIONALLY trained run zone by zone, which is what makes
+            the two comparable. Without it the national fit is only ever judged
+            on the national aggregate, which is its own training objective.
     """
     is_country = spec.obs_level == "country"
     year = int(year if year is not None else spec.test_years[0])
@@ -197,29 +209,48 @@ def run_evaluate(
 
     rows = []
 
-    def _skill_row(sim_cf: pd.DataFrame, variant: str, num_clu, time_res) -> dict:
-        if is_country:
-            metrics = _country_skill(sim_cf, obs_cf, turb_info)
-        else:
+    # A zonal source can also be scored zone by zone. The national metric is the
+    # joint optimiser's own objective, so it favours a national fit by
+    # construction; the per-zone metric scores what a zonal fit actually
+    # targets. Both are reported, distinguished by the "scope" column.
+    zone_source = score_zones if score_zones is not None else (
+        source if spec.source == "entsoe-zonal" else None
+    )
+    obs_zonal = zone_source.load_observations() if zone_source is not None else None
+
+    def _skill_rows(sim_cf: pd.DataFrame, variant: str, num_clu, time_res) -> list[dict]:
+        head = {"variant": variant, "num_clu": num_clu, "time_res": time_res}
+        if not is_country:
             tidy = collapse_pseudo_replicates(
                 _tidy_eval_frame(sim_cf, obs_cf, turb_info), spec
             )
-            metrics = skill_metrics(tidy)
-        return {"variant": variant, "num_clu": num_clu, "time_res": time_res, **metrics}
+            return [{**head, "scope": "fleet", **skill_metrics(tidy)}]
+
+        out = [{**head, "scope": "national", **_country_skill(sim_cf, obs_cf, turb_info)}]
+        if obs_zonal is not None:
+            # Scored on the grid's own zone assignments, not the run's cluster
+            # count, so a 1-cluster run is still judged zone by zone.
+            out.append(
+                {**head, "scope": "per-zone", **_zonal_skill(sim_cf, obs_zonal, turb_info)}
+            )
+        return out
 
     _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
     unc_cf.to_csv(run_dir / "unc_cf.csv", index=False)
-    rows.append(_skill_row(unc_cf, "uncorrected", 1, "none"))
+    rows.extend(_skill_rows(unc_cf, "uncorrected", 1, "none"))
 
     for factors_path in sorted(train_run_dir.glob("factors_*.csv")):
         time_res, num_clu_str = factors_path.stem.split("_")[1:3]
         num_clu = int(num_clu_str)
         factors = pd.read_csv(factors_path)
         if is_country:
-            # Grid points carry their own cluster assignments from training;
-            # no re-clustering runs on the country-level path (mirrors
-            # PyVWF.simulate_cf).
-            clus_info = turb_info.copy()
+            # Grid points carry their own cluster assignments; no re-clustering
+            # runs on the country-level path (mirrors PyVWF.simulate_cf). The
+            # same resolution training used has to be reapplied here, or a
+            # single-cluster national fit would be merged against a grid still
+            # carrying its per-zone clusters and every factor would come out
+            # NaN.
+            clus_info = assign_country_clusters(turb_info, num_clu)
         else:
             train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
             clus_info = cluster_turbines(num_clu, train_fleet, False, turb_info)
@@ -227,7 +258,7 @@ def run_evaluate(
             reanalysis, clus_info, power_curves, factors, time_res, seasons=spec.seasons
         )
         cor_cf.to_csv(run_dir / f"cor_cf_{time_res}_{num_clu}.csv", index=False)
-        rows.append(_skill_row(cor_cf, spec.correction_model, num_clu, time_res))
+        rows.extend(_skill_rows(cor_cf, spec.correction_model, num_clu, time_res))
 
     metrics_df = pd.DataFrame(rows)
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)
@@ -241,6 +272,93 @@ def run_evaluate(
         },
     )
     return run_dir
+
+
+def _zone_aggregate(sim_cf: pd.DataFrame, members: pd.DataFrame) -> pd.Series:
+    """Capacity-weighted monthly mean CF over one set of grid points."""
+    cap = members.assign(ID=members["ID"].astype(str)).set_index("ID")["capacity"]
+    valid = [c for c in sim_cf.columns if c != "time" and str(c) in cap.index]
+    if not valid:
+        return pd.Series(dtype=float)
+
+    caps = cap[[str(c) for c in valid]].to_numpy(float)
+    vals = sim_cf[valid].to_numpy(float)
+    present = ~np.isnan(vals)
+    wsum = np.where(present, caps, 0.0).sum(axis=1)
+    agg = np.where(wsum > 0, np.where(present, vals * caps, 0.0).sum(axis=1) / wsum, np.nan)
+
+    frame = pd.DataFrame({"time": pd.to_datetime(sim_cf["time"]), "cf_sim": agg})
+    return frame.groupby(frame["time"].dt.to_period("M"))["cf_sim"].mean()
+
+
+def _error_metrics(merged: pd.DataFrame) -> dict:
+    """MBE, MAE, RMSE and correlation over paired sim/obs columns."""
+    if merged.empty:
+        return {"mbe": float("nan"), "mae": float("nan"), "rmse": float("nan"),
+                "pearson_r": float("nan"), "n_months": 0}
+    diff = merged["cf_sim"] - merged["cf_obs"]
+    r = (
+        float(np.corrcoef(merged["cf_sim"], merged["cf_obs"])[0, 1])
+        if len(merged) > 1 else float("nan")
+    )
+    return {
+        "mbe": float(diff.mean()),
+        "mae": float(diff.abs().mean()),
+        "rmse": float(np.sqrt((diff**2).mean())),
+        "pearson_r": r,
+        "n_months": int(len(merged)),
+    }
+
+
+def _zonal_skill(
+    sim_cf: pd.DataFrame, obs_zonal: pd.DataFrame, turb_info: pd.DataFrame
+) -> dict:
+    """Each zone's simulated aggregate against that zone's own observation.
+
+    The national metric scores the capacity-weighted country aggregate, which is
+    exactly what the joint country optimiser targets, so it favours the national
+    fit by construction: an estimator judged on its own objective tends to win.
+    This scores the quantity a zonal fit actually targets. Errors from every
+    zone are pooled into one set of statistics, so a country's zonal score is
+    comparable across cluster counts.
+
+    Args:
+        sim_cf: Wide (time x grid ID) simulated capacity factors.
+        obs_zonal: DatetimeIndexed observations with ``capacity_factor`` and
+            ``cluster``.
+        turb_info: Grid points with ``ID``, ``capacity`` and ``cluster``.
+
+    Returns:
+        Pooled metrics plus ``n_zones``.
+    """
+    obs = obs_zonal.copy()
+    if not isinstance(obs.index, pd.DatetimeIndex):
+        obs.index = pd.to_datetime(obs.index, utc=True, format="mixed")
+    if obs.index.tz is not None:
+        obs.index = obs.index.tz_convert("UTC").tz_localize(None)
+
+    pairs = []
+    for cluster, members in turb_info.groupby("cluster"):
+        zone_obs = obs[obs["cluster"] == cluster]
+        if zone_obs.empty:
+            continue
+        sim_m = _zone_aggregate(sim_cf, members)
+        if sim_m.empty:
+            continue
+        obs_m = (
+            zone_obs.groupby(zone_obs.index.to_period("M"))["capacity_factor"]
+            .mean()
+            .rename("cf_obs")
+        )
+        merged = pd.concat([sim_m, obs_m], axis=1).dropna()
+        merged["cluster"] = cluster
+        pairs.append(merged)
+
+    if not pairs:
+        return {**_error_metrics(pd.DataFrame()), "n_zones": 0}
+
+    pooled = pd.concat(pairs)
+    return {**_error_metrics(pooled), "n_zones": int(pooled["cluster"].nunique())}
 
 
 def _country_skill(
@@ -273,22 +391,7 @@ def _country_skill(
     obs["ym"] = obs["time"].dt.to_period("M")
     obs_m = obs.groupby("ym")["obs"].mean().rename("cf_obs")
 
-    merged = pd.concat([sim_m, obs_m], axis=1).dropna()
-    if merged.empty:
-        return {"mbe": float("nan"), "mae": float("nan"), "rmse": float("nan"),
-                "pearson_r": float("nan"), "n_months": 0}
-    diff = merged["cf_sim"] - merged["cf_obs"]
-    r = (
-        float(np.corrcoef(merged["cf_sim"], merged["cf_obs"])[0, 1])
-        if len(merged) > 1 else float("nan")
-    )
-    return {
-        "mbe": float(diff.mean()),
-        "mae": float(diff.abs().mean()),
-        "rmse": float(np.sqrt((diff**2).mean())),
-        "pearson_r": r,
-        "n_months": int(len(merged)),
-    }
+    return _error_metrics(pd.concat([sim_m, obs_m], axis=1).dropna())
 
 
 def collapse_factors(

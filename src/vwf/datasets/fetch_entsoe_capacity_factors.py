@@ -101,6 +101,26 @@ PSR_TYPES = {
 }
 
 
+def _wind_kinds(columns) -> set[str]:
+    """Which wind kinds a set of entsoe-py columns covers, e.g. {"onshore"}.
+
+    Columns arrive as plain strings or as ``(type, aggregation)`` tuples
+    depending on the query, so the kind is recovered from the text rather than
+    from the column structure.
+    """
+    kinds = set()
+    for column in columns:
+        text = " ".join(str(part) for part in column) if isinstance(column, tuple) else str(column)
+        lowered = text.lower()
+        if "offshore" in lowered:
+            kinds.add("offshore")
+        elif "onshore" in lowered:
+            kinds.add("onshore")
+        else:
+            kinds.add("wind")
+    return kinds
+
+
 class ENTSOEWindDataFetcher:
     """Fetch wind generation and capacity data from ENTSO-E API."""
 
@@ -169,6 +189,7 @@ class ENTSOEWindDataFetcher:
                 gen = gen_data[wind_cols].sum(axis=1)
                 if not isinstance(gen, pd.DataFrame):
                     gen = gen.to_frame(name="generation_mw")
+                gen.attrs["wind_columns"] = _wind_kinds(wind_cols)
 
             else:
                 # Fetch specific type
@@ -314,6 +335,7 @@ class ENTSOEWindDataFetcher:
                 cap = cap_data[wind_cols].sum(axis=1)
                 if not isinstance(cap, pd.DataFrame):
                     cap = cap.to_frame(name="capacity_mw")
+                cap.attrs["wind_columns"] = _wind_kinds(wind_cols)
 
             else:
                 psr_code = PSR_TYPES[psr_type]
@@ -444,6 +466,23 @@ class ENTSOEWindDataFetcher:
                 index=gen.index,
             )
 
+        # The numerator and denominator have to cover the same fleet. NL's
+        # series does not: its capacity factor climbs 4.3x from 2015 to 2021
+        # while installed capacity climbs 2.9x, which is what a generation
+        # series covering a growing share of the counted fleet looks like. No
+        # constant rescaling repairs that, and nothing downstream can see it,
+        # so the mismatch is refused here.
+        gen_kinds = gen.attrs.get("wind_columns")
+        cap_kinds = cap.attrs.get("wind_columns")
+        if gen_kinds and cap_kinds and gen_kinds != cap_kinds:
+            raise ValueError(
+                f"{country}: generation covers {sorted(gen_kinds)} but installed "
+                f"capacity covers {sorted(cap_kinds)}. A capacity factor built "
+                "from these is wrong by the share of the fleet the two disagree "
+                "about. Fetch a psr_type both sides report, or fetch each kind "
+                "separately and add the energies."
+            )
+
         # Align timeseries (capacity is usually less frequent than generation)
         # Use both forward-fill and backward-fill to handle capacity timestamps
         # that may come before or after generation timestamps
@@ -454,7 +493,9 @@ class ENTSOEWindDataFetcher:
         df["capacity_factor"] = df["generation_mw"] / df["capacity_mw"]
 
         # Clip to [0, 1] range (sometimes exceeds due to short-term overgeneration)
-        df["capacity_factor"] = df["capacity_factor"].clip(0, 1.5)  # Allow 1.5 for data quality issues
+        # NOTE: saturation here destroys the true value, so
+        # vwf.loaders.country_obs_checks flags any series that reaches it.
+        df["capacity_factor"] = df["capacity_factor"].clip(0, 1.5)
 
         return df
 

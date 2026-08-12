@@ -670,6 +670,14 @@ def generate_kmeans_grid(
     # Print metadata summary
     print("\nGrid points ready for PyVWF simulation!")
     print(f"Columns: {list(grid_clustered.columns)}")
+    print(
+        "\nNOTE: every point carries the same synthetic capacity, so the "
+        "simulated country aggregate is weighted by land area while the "
+        "observation is weighted by installed capacity. Run\n"
+        f"  python scripts/region_tools/weight_country_grid_points.py {country}\n"
+        "to replace the uniform capacities with real ones from the Global Wind "
+        "Power Tracker. Regenerating this file overwrites that weighting."
+    )
 
     return grid_clustered, cluster_geoms
 

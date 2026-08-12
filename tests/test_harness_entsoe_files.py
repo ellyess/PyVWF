@@ -28,7 +28,10 @@ def country_layout(tmp_path):
 
     def _obs(path, cf):
         idx = pd.date_range("2015-01-01", periods=4, freq="15min", tz="UTC")
-        pd.DataFrame({"capacity_factor": cf}, index=idx).to_csv(path)
+        # First value is the one the assertions read; the rest carry the series
+        # over the plausibility gate in vwf.loaders.country_obs_checks, which
+        # runs on every load and would otherwise warn about a flat series.
+        pd.DataFrame({"capacity_factor": [cf, 0.05, 0.9, 0.3]}, index=idx).to_csv(path)
 
     _obs(base / "observations" / "zz" / "zz_train_2015_2019.csv", 0.11)
     _obs(base / "observations" / "zz" / "zz_test_2023.csv", 0.22)
@@ -66,6 +69,53 @@ def test_missing_files_raise(tmp_path):
     with pytest.raises(FileNotFoundError, match="grid points"):
         src.load_metadata()
     with pytest.raises(FileNotFoundError, match="observations"):
+        src.load_observations()
+
+
+def test_aggregated_suffix_is_accepted(country_layout):
+    """Zonal regions (NO, SE) have no single national series; their national
+    file is the sum over bidding zones, written with an ``_aggregated`` suffix.
+    Both spellings must resolve, or those regions cannot be trained at all."""
+    obs_dir = country_layout / "observations" / "zz"
+    plain = obs_dir / "zz_train_2015_2019.csv"
+    plain.rename(obs_dir / "zz_train_2015_2019_aggregated.csv")
+
+    src = EntsoeFileSource("ZZ", "train", (2015, 2019), 2023, cl_data_dir=country_layout)
+    assert src.load_observations()["capacity_factor"].iloc[0] == pytest.approx(0.11)
+
+
+def test_plain_name_wins_over_aggregated(country_layout):
+    """When both spellings exist the national file is preferred, so adding an
+    aggregate never silently displaces a real national series."""
+    obs_dir = country_layout / "observations" / "zz"
+    idx = pd.date_range("2015-01-01", periods=4, freq="15min", tz="UTC")
+    pd.DataFrame({"capacity_factor": [0.99, 0.05, 0.9, 0.3]}, index=idx).to_csv(
+        obs_dir / "zz_train_2015_2019_aggregated.csv"
+    )
+
+    src = EntsoeFileSource("ZZ", "train", (2015, 2019), 2023, cl_data_dir=country_layout)
+    assert src.load_observations()["capacity_factor"].iloc[0] == pytest.approx(0.11)
+
+
+def test_missing_observations_names_every_candidate(tmp_path):
+    src = EntsoeFileSource("ZZ", "train", (2015, 2019), 2023, cl_data_dir=tmp_path)
+    with pytest.raises(FileNotFoundError, match="_aggregated"):
+        src.load_observations()
+
+
+def test_implausible_series_warns_on_load(country_layout):
+    """The gate has to fire where the data enters the model, not only in an
+    audit script someone has to remember to run."""
+    obs_dir = country_layout / "observations" / "zz"
+    idx = pd.date_range("2015-01-01", periods=8, freq="h", tz="UTC")
+    # NL's signature: every value scaled down, so the fleet never approaches
+    # its own peak. In-sample the correction absorbs it and looks fine.
+    pd.DataFrame({"capacity_factor": [0.05] * 7 + [0.09]}, index=idx).to_csv(
+        obs_dir / "zz_test_2023.csv"
+    )
+
+    src = EntsoeFileSource("ZZ", "test", (2015, 2019), 2023, cl_data_dir=country_layout)
+    with pytest.warns(UserWarning, match="never reaches"):
         src.load_observations()
 
 

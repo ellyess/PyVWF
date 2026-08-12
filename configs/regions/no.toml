@@ -19,7 +19,7 @@ file_tag = "EU"
 
 [correction]
 model = "affine-wind"
-cluster_list = [5]
+cluster_list = [1, 4]  # 1 = national baseline; 4 = one cluster per bidding zone (NO5 has no operating wind)
 time_slices = ["fixed", "season"]
 
 [seasons]
