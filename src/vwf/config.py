@@ -47,6 +47,10 @@ class PyVWFPaths:
     COUNTRY_SHAPES = REGIONS / "country_shapes.geojson"
     OFFSHORE_SHAPES = REGIONS / "offshore_shapes.geojson"
 
+    # Coastline linework, used to rebuild islands the country shapes omit
+    # (see vwf.clustering.repair_region_shape).
+    COASTLINES = INPUT_ROOT / "reference" / "terrain" / "coastlines.geojson"
+
     @classmethod
     def reference_file(cls, filename: str) -> Path:
         """Locate a small static reference table (power curves, turbine models).

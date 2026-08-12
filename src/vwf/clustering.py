@@ -7,6 +7,8 @@ evaluation workflows.
 # function signatures don't require shapely to be importable.
 from __future__ import annotations
 
+from pathlib import Path
+
 from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
@@ -69,12 +71,130 @@ def load_region_shapes():
     return _COUNTRY_SHAPES, _OFFSHORE_SHAPES
 
 
-def get_country_shape(country_code: str, cluster_mode: str = "onshore"):
+# Projected CRS for the area/distance comparisons in repair_region_shape.
+# Equal-area over Europe; never used for returned geometry, which stays EPSG:4326.
+_METRIC_CRS = "EPSG:3035"
+
+# Repaired shapes are cached per (code, mode): polygonising the coastline is far
+# too slow to repeat on every call.
+_REPAIRED_SHAPES: dict = {}
+
+
+def repair_region_shape(geom, region_code: str, fleet_xy=None, coastline_path=None):
+    """Add landmasses that ``country_shapes.geojson`` omits for a region.
+
+    The bundled country shapes drop smaller islands. Denmark is the worst case
+    in this dataset: its polygon holds only Jutland, Zealand and Funen
+    (39,208 km² against a published land area of 42,943), so Lolland, Falster,
+    Bornholm, Als, Langeland, Møn, Mors, Samsø, Læsø and Anholt are absent and
+    12.9% of the DK onshore fleet falls outside its own country polygon, a
+    median 15 km from the nearest included land. Greece (-10.1%) and Croatia
+    (-9.0%) are similarly truncated.
+
+    Closed rings in the coastline linework are polygonised and each resulting
+    landmass is claimed for a region when either:
+
+    1. it carries a point of ``fleet_xy``, when one is supplied, or
+    2. the nearest *offshore* (EEZ) zone belongs to this region.
+
+    Territorial waters are used rather than nearest land because land distance
+    gets sovereignty wrong: Bornholm is 34 km from Sweden and 143 km from the
+    Danish mainland, so nearest-land hands it to Sweden. It sits inside Denmark's
+    EEZ (distance 0.0 km, against 14.7 km to Sweden's), so the EEZ test is
+    correct without needing a fleet to disambiguate.
+
+    Args:
+        geom: The region's shapely geometry, as returned by
+            :func:`get_country_shape`.
+        region_code: Two-letter code used to match the offshore zones
+            (``'GB'``/``'UK'`` are treated as the same region).
+        fleet_xy: Optional (n, 2) array of ``(lon, lat)`` positions. Any
+            landmass carrying one is claimed regardless of the EEZ test, which
+            keeps a fleet's own sites from being dropped.
+        coastline_path: Coastline linework to polygonise. Defaults to
+            ``PyVWFPaths.COASTLINES``.
+
+    Returns:
+        The merged shapely geometry, or ``geom`` unchanged when the coastline
+        file is missing or nothing new is claimed.
+    """
+    if not HAS_GEOPANDAS or geom is None or geom.is_empty:
+        return geom
+
+    coast_path = Path(coastline_path) if coastline_path else PyVWFPaths.COASTLINES
+    if not coast_path.exists():
+        warnings.warn(
+            f"Coastline file not found at {coast_path}; returning the "
+            f"unrepaired {region_code} shape, which may omit islands"
+        )
+        return geom
+
+    from shapely.geometry import MultiPoint, box as shapely_box
+    from shapely.ops import polygonize, unary_union
+
+    _, offshore_shapes = load_region_shapes()
+    code_map = {'UK': 'GB', 'GB': 'UK'}
+    codes = {region_code, code_map.get(region_code, region_code)}
+
+    minx, miny, maxx, maxy = geom.bounds
+    window = shapely_box(minx - 3.0, miny - 2.0, maxx + 3.0, maxy + 2.0)
+    coast = gpd.read_file(coast_path)
+    near = coast[coast.intersects(window)]
+    if near.empty:
+        return geom
+    lines = unary_union([g.intersection(window) for g in near.geometry])
+
+    offshore_metric = (
+        offshore_shapes.to_crs(_METRIC_CRS)
+        if offshore_shapes is not None and not offshore_shapes.empty
+        else None
+    )
+    if offshore_metric is None:
+        warnings.warn(
+            "Offshore shapes unavailable; island attribution falls back to "
+            "nearest land, which misassigns outlying islands such as Bornholm"
+        )
+        country_shapes, _ = load_region_shapes()
+        if country_shapes is None or country_shapes.empty:
+            # Nothing to attribute against; claiming every island would be worse
+            # than leaving the shape as it came.
+            return geom
+        offshore_metric = country_shapes.to_crs(_METRIC_CRS)
+
+    fleet = None
+    if fleet_xy is not None and len(fleet_xy):
+        fleet = MultiPoint(np.asarray(fleet_xy, dtype=float))
+
+    extra = []
+    for piece in polygonize(lines):
+        if piece.is_empty or piece.within(geom.buffer(1e-9)):
+            continue
+        if fleet is not None and piece.intersects(fleet):
+            extra.append(piece)
+            continue
+        pm = gpd.GeoSeries([piece], crs="EPSG:4326").to_crs(_METRIC_CRS).iloc[0]
+        nearest = offshore_metric.iloc[offshore_metric.geometry.distance(pm).idxmin()]
+        if str(nearest["name"]) in codes:
+            extra.append(piece)
+
+    if not extra:
+        return geom
+    return unary_union([geom] + extra)
+
+
+def get_country_shape(country_code: str, cluster_mode: str = "onshore",
+                      repair: bool = False):
     """Get country or offshore shape by country code.
 
     Args:
         country_code: Two-letter country code (e.g., 'NL', 'UK', 'DE').
         cluster_mode: Either 'onshore' or 'offshore'.
+        repair: If True, merge in islands the bundled country shapes omit
+            (see :func:`repair_region_shape`). Off by default so existing
+            callers keep the exact geometry they have always received; turn it
+            on wherever a shape is used to clip or draw a whole region.
+            Ignored for ``cluster_mode='offshore'``, whose zones are not
+            island-truncated.
 
     Returns:
         Shapely geometry for the country/offshore region, or None if not found.
@@ -101,7 +221,13 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore"):
         matches = shapes_df[shapes_df['name'] == code]
         if not matches.empty:
             # Return the union of all geometries for this country (in case of multi-part)
-            return matches.geometry.unary_union
+            geom = matches.geometry.unary_union
+            if repair and cluster_mode != "offshore":
+                key = (code, cluster_mode)
+                if key not in _REPAIRED_SHAPES:
+                    _REPAIRED_SHAPES[key] = repair_region_shape(geom, code)
+                return _REPAIRED_SHAPES[key]
+            return geom
 
     warnings.warn(f"Country/offshore shape not found for {country_code} (mode={cluster_mode})")
     return None
