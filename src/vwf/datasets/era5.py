@@ -73,7 +73,8 @@ def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.D
 
     return ds.sel(lon=slice(lon_min, lon_max), lat=lat_slice)
 
-def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None):
+def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
+              resample_daily=True):
     """Preprocess ERA5 reanalysis data.
 
     Args:
@@ -85,6 +86,14 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None):
         era5_dir: Optional directory holding the ERA5 ``*.nc`` files (the
             validation harness passes the region config's path). Default None
             keeps the legacy ``PyVWFPaths.ERA5_DATA`` location.
+        resample_daily: If True (default), average to daily means, which is what
+            every published PyVWF result is built on. Set False to keep the
+            file's native resolution, which for the raw hourly downloads is
+            hourly. NOTE this is not a free switch: the power curve is convex, so
+            the daily mean of simulated power is not the power of the daily mean
+            wind, and a run at native resolution is a materially different model,
+            not a finer view of the same one. Default True so existing results
+            and the golden regression path are unchanged.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.
@@ -174,8 +183,9 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None):
         # ds = ds.rename({"fsr": "roughness"})
         ds = ds.drop_vars(["u100", "v100", "u10", "v10", "number", "expver"], errors="ignore")
 
-    # Daily resampling
-    ds = ds.resample(time="1D").mean()
+    # Daily resampling (the published resolution; see resample_daily).
+    if resample_daily:
+        ds = ds.resample(time="1D").mean()
 
     # Rounding coordinates
     ds = ds.assign_coords(
