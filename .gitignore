@@ -100,6 +100,11 @@ docs/TURBINE_GRID_EVALUATION_ANALYSIS.md
 docs/findings/TRAINING_2015_2021_SUMMARY.md
 docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
 
+# Local working notes for AI coding sessions (CLAUDE.md): records the real local
+# environment, standing caveats, and what must never be committed. Deliberately
+# not shipped -- CONTRIBUTING.md is the public contributor guide.
+/CLAUDE.md
+
 # Commercial / career material never belongs in this public repo. The working
 # copies live outside the repository entirely (../../Career/); these patterns are
 # a safety net in case anything is ever dropped in here by mistake.
