@@ -24,6 +24,12 @@ test_years = [2024]
 # heavy; wind curtailment ("vertimiento eólico") is not screened here (standing
 # caveat). Verify whether CEN exposes a wind-curtailment series before any
 # curtailment-sensitive claim.
+#
+# EVALUATION CAVEAT: the correction removes the mean bias but adds no skill, and
+# fails even in-sample. ERA5 exaggerates the north-south wind gradient (Atacama
+# too calm, Patagonia too windy) while the real fleet runs at a nearly uniform
+# capacity factor. Not a working corrected region as-is. See
+# docs/findings/south_america_spatial_bias.md.
 
 [era5]
 # Fleet-bounded box: 63 of 64 operating farms sit between -42.3 and -22.5;
@@ -35,7 +41,7 @@ file_tag = "CL"
 
 [correction]
 model = "affine-wind"
-cluster_list = [10]
+cluster_list = [1, 8]  # 8 avoids the k=3,5 northern extreme-scalar blow-up (docs/findings/cluster_sweep_and_ml_retest.md)
 time_slices = ["fixed", "season"]
 
 [seasons]

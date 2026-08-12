@@ -1,63 +1,55 @@
-# Argentina (CAMMESA) region: data acquisition and processing runbook
+# Argentina (CAMMESA)
 
-**Status: adapter BUILT and tested against the real data (2026-07-23); only
-the ERA5 download and the train/evaluate remain.** Argentina was the cheapest
-tier-1 acquisition of the whole survey (one ~2 MB ZIP, no credentials, no
-API, no rate limit), and its data is already at PyVWF's native monthly
-resolution, so the adapter has no timezone/DST logic at all. The scientific
-draw is Patagonia (Chubut + Santa Cruz) in the cold-steppe westerlies, a
-regime nothing else in the validation set covers. 65 plants, ~5.5 GW.
+**Source:** CAMMESA / MEM monthly renewables generation (public, no credentials).
+**Adapter:** `cammesa-ar` · turbine-level · unit = plant · 🟢 open.
+**Fleet:** 59 plants, ~5 GW. The scientific draw is Patagonia (Chubut, Santa
+Cruz) in the cold-steppe westerlies, a regime nothing else in the set covers.
 
-## 0. What is already committed
+CAMMESA reports monthly GWh, already at PyVWF's native resolution, so the
+adapter has no timezone or DST logic. It carries no capacity or coordinates, so
+both are joined from the Global Wind Power Tracker; the capacity join is the
+one hard part (see step 2).
 
-- The `cammesa-ar` adapter (`vwf/sources/cammesa_ar.py`), transforms
-  (`vwf/datasets/cammesa_ar.py`), processing with the GWPT join
-  (`scripts/process/cammesa_ar.py`), region config, and 10 tests.
-- `configs/curation/ar_coord_overrides.csv`: hand-curated capacity fixes (see join).
-
-## 1. Acquire + process (user-executed, no credentials)
+## 1. Acquire and process
 
 ```bash
-python scripts/fetch/cammesa_ar.py     # downloads the ZIP, writes ar_wind_monthly.csv
+python scripts/fetch/cammesa_ar.py     # downloads the ZIP -> ar_wind_monthly.csv
 python scripts/process/cammesa_ar.py   # -> input/observations/turbine/AR/
+python scripts/region_tools/apply_turbine_specs.py AR \
+    --specs configs/curation/ar_turbine_specs.csv   # real curves + hub heights
 ```
 
-`fetch` pulls `Energía Renovables - Base de Datos` and extracts the wind rows
-of "Tabla Resumen x Central" (header on row 4) to monthly GWh per central.
-`process` computes CF and joins coordinates + capacity from GWPT.
+`fetch` pulls *Energía Renovables - Base de Datos* and extracts the wind rows of
+"Tabla Resumen x Central" to monthly GWh. `process` computes CF and joins
+coordinates + capacity from GWPT. `apply_turbine_specs` replaces the uniform
+default curve with a real curve per plant, matched by scale and specific power
+from the per-farm turbine table (manufacturer, model, count, rotor diameter, hub
+height).
 
-## 2. The capacity/coordinate join (the one hard part)
+Read `input/observations/turbine/AR/join_report.md` and `ar_join_residual.csv`
+after processing.
 
-CAMMESA carries **no capacity** (every sheet is energy), so the CF
-denominator is external. Each central is matched to a GWPT operating farm by
-normalised name, which supplies BOTH lon/lat and capacity. Because capacity is
-the *output* of the join it cannot confirm the match, so a guard runs on the
-result: a plant whose **median monthly CF exceeds 0.65** almost certainly
-matched a too-small capacity (real Argentine wind tops out near 0.5-0.6) and
-is dropped to the residual for re-curation.
+## 2. The capacity join
 
-Outcome on the real data: **66 auto-matched, 2 capacity-fixed, 10 excluded**
-(→ 65 plants, CF mean 0.35, median 0.38, max 0.76, none > 1).
+CAMMESA has no capacity, so the CF denominator is external. Each plant is
+matched to a GWPT operating farm by normalised name, which supplies lon/lat and
+capacity. GWPT is per-*farm*, so a phase code (e.g. Loma Blanca 1/2/3) matched
+the parent's full nameplate and read an impossibly low CF (0.03 to 0.07).
 
-- **Capacity fixes** (`configs/curation/ar_coord_overrides.csv`): GWPT located these but
-  at a partial-phase capacity. *Manantiales Behr (YPF)* → 99 MW (30×3.3,
-  Chubut). *Mataco 3 Picos* → 200 MW (El Mataco + Tres Picos complex near
-  Bahía Blanca; GWPT splits it three ways).
-- **Exclusions** (`EXCLUDE` in `scripts/process/cammesa_ar.py`): 10 plants, mostly
-  **self-generation autoproducers** absent from a confident GWPT match: wind
-  at a cement works (Cementos Avellaneda), an oil field (YPF El Tordillo), and
-  an aluminium smelter (ALUAR), plus small/ambiguous farms. **Fin del Mundo**
-  is excluded for a different reason: it is in Tierra del Fuego, **south of the
-  −49 ERA5 box** (the Chile-Magallanes pattern). Three sizeable ones are
-  flagged in the code as worth reinstating via the override table if their
-  coordinates and capacity can be verified: **Cañadón León / Casa YPF Luz
-  (~123 MW, Santa Cruz)**, ALUAR, and La Elbita. Each override/exclude is a
-  documented judgment call; **review before publishing.**
+Fixed with the turbine research: real nameplate = turbine count × unit MW, from
+`configs/curation/ar_turbine_specs.csv`, written as capacity overrides in
+`configs/curation/ar_coord_overrides.csv` (20 rows) where GWPT diverged by more
+than 15%. Six codes are hard-dropped in `EXCLUDE` (`scripts/process/cammesa_ar.py`):
+three with zero generation across the window (duplicate MEM codes whose output
+is reported elsewhere) and three with a steady CF near 0.07 (the state-owned
+Arauco farm's old IMPSA turbines in weak La Rioja wind, and a La Castellana II
+anomaly). Self-generation autoproducers (cement works, oil fields, the ALUAR
+smelter) and Tierra del Fuego (south of the ERA5 box) are also excluded.
 
-Read `input/observations/turbine/AR/join_report.md` and
-`ar_join_residual.csv` after processing.
+Result: 59 plants, observed CF median 0.47, none below 0.12 or above 0.65. Every
+override and exclusion is a documented judgment call; review before publishing.
 
-## 3. ERA5 + run
+## 3. ERA5 and run
 
 ```bash
 python scripts/fetch/era5.py --region ar        # 48 months 2021-2024, Patagonia+Pampas box
@@ -67,20 +59,19 @@ python scripts/analysis/validate_region.py evaluate --region configs/regions/ar.
     --train-run output/validation/AR/train-<stamp>
 ```
 
-## Caveats carried into any Argentina result
+Trains 2021-2023, tests 2024. On the cleaned fleet the affine correction helps
+(uncorrected RMSE 0.151 / r 0.41 → corrected 0.133 / r 0.44).
 
-- **Static nameplate.** GWPT capacity is the final build; a farm partway
-  through its turbine install reads low against it. `strip_commissioning_prefix`
-  removes the leading pre-operational months, but a *partial-build* farm
-  generating for a year still reads at a fraction of true CF; a below-plateau
-  mask is the named follow-up. Over 2021-2024 the fleet is mostly built out
-  (~56→68 plants), so this bites fewer plants than the 2011 start would.
-- **Capacity provenance.** Every CF depends on a GWPT capacity that is itself a
-  tracker estimate; the two hand-fixed plants aside, treat the denominators as
-  good-but-not-authoritative.
-- **Curtailment** is far lighter than Chile/Brazil (Argentina's grid curtails
-  little wind over this window), so delivered CF is closer to the resource,
-  but it is unscreened, a standing caveat.
-- **Southern Hemisphere.** Seasons are explicit SH in the config. Patagonia's
-  westerlies have modest seasonal amplitude; read the seasonal slice against
-  that.
+## Caveats
+
+- **Northern under-prediction.** La Rioja / Cuyo plants sit where ERA5's 0.25°
+  grid under-resolves the wind (the same limit as Chile's Atacama); their
+  cluster fits an extreme scalar. This is the reanalysis-wind limit, fixable
+  only with a higher-resolution wind product. See
+  [`south_america_spatial_bias.md`](../findings/south_america_spatial_bias.md).
+- **Capacity provenance.** Denominators are GWPT estimates corrected by the
+  turbine research; good but not authoritative.
+- **Curtailment** is light in Argentina over this window but unscreened
+  (standing caveat).
+- **Southern Hemisphere.** Seasons are explicit SH in the config; Patagonia's
+  westerlies have modest seasonal amplitude.

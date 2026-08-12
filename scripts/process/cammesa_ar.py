@@ -60,6 +60,12 @@ EXCLUDE: tuple[str, ...] = (
     "P.EOLICO VIENTOS OLAVARRIA",             # Olavarría self-gen, ambiguous vs Ternium
     "Parque eólico autogeneración ALUAR",     # ALUAR smelter self-gen, Puerto Madryn
     "Parques Eólicos del Fin del Mundo SA",   # Tierra del Fuego, SOUTH of the ERA5 box
+    "ARAUCO EOLICO",                          # zero generation 2021-2024; output reported under ARAUCO SAPEM codes
+    "ARAUCO EOLICO 2",                        # zero generation 2021-2024; duplicate Arauco code
+    "NECOCHEA EOLICO",                        # zero generation; same farm as VIENTOS DE NECOCHEA (do not double-count)
+    "PARQUE EOLICO ARAUCO SAPEM",             # steady CF ~0.08 (old IMPSA turbines, weak La Rioja wind); unrepresentative for training
+    "PARQUE EOLICO ARAUCO II SAPEM",          # steady CF ~0.06, same Arauco cluster; unreliable code->turbine mapping
+    "Parque Eólico La Castellana II",         # steady CF ~0.07 vs windy Bahia Blanca siblings at ~0.45; capacity or curtailment anomaly
 )
 
 _DROP = {"PARQUE", "EOLICO", "EOLICA", "PE", "WIND", "FARM", "DEL", "DE",
@@ -128,6 +134,12 @@ def main() -> None:
     fleet = (gwh.groupby("ID").agg(site_name=("ID", "first"),
              region=("region", "first"), provincia=("provincia", "first"))
              .reset_index())
+
+    # EXCLUDE is a hard drop from the fleet. The self-generation autoproducers
+    # were previously dropped only by failing the GWPT join, but that does not
+    # remove a plant that DOES join (the Arauco / La Castellana codes join fine
+    # yet are unrepresentative), so the drop is applied here to the fleet itself.
+    fleet = fleet[~fleet["ID"].isin(EXCLUDE)].reset_index(drop=True)
 
     g = gwpt_argentina(Path(args.gwpt))
     ov_path = Path(args.overrides)
