@@ -22,7 +22,7 @@ file_tag = "AU"
 
 [correction]
 model = "affine-wind"
-cluster_list = [5]
+cluster_list = [1, 15]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
 time_slices = ["fixed", "season"]
 
 [seasons]

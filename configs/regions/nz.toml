@@ -39,7 +39,7 @@ file_tag = "NZ"
 # n_clusters <= n_samples); k near it is one-farm-per-cluster, the fake-plateau
 # regime (docs/findings/us_br_first_run.md). The sweep stays safely under it.
 model = "affine-wind"
-cluster_list = [1, 4, 7]
+cluster_list = [1, 5]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
 time_slices = ["fixed", "season"]
 
 [seasons]
