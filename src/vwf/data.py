@@ -747,7 +747,8 @@ def _country_cluster_means(gen_cf, time_res):
     return means.dropna(subset=["obs", "sim"]).reset_index(drop=True)
 
 
-def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = "turbine"):
+def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = "turbine",
+                      min_cluster_size: int = 1):
     """Aggregate the training pairs to one resolution and fit its corrections.
 
     One call handles one ``(num_clu, time_res)`` combination: the paired
@@ -782,6 +783,10 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
         turb_info: Fleet or grid-point metadata; must carry ``cluster`` for
             country-level data.
         obs_level: ``"turbine"`` or ``"country"``; selects the branch above.
+        min_cluster_size: Forwarded to :func:`vwf.clustering.cluster_turbines`;
+            merges clusters with fewer training sites than this into their
+            nearest neighbour before fitting. Default 1 keeps the legacy
+            partition.
 
     Returns:
         Tuple of ``(train_bias_df, clus_info)``: the per-(cluster, slice)
@@ -825,7 +830,9 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
     # turbine-level existing behavior
     gen_cf = gen_cf.groupby(["year", time_res, "ID"], as_index=False)[["obs", "sim"]].mean()
 
-    clus_info = cluster_turbines(num_clu, turb_info, True)
+    clus_info = cluster_turbines(
+        num_clu, turb_info, True, min_cluster_size=min_cluster_size
+    )
     gen_cf = pd.merge(
         gen_cf,
         clus_info[["ID", "cluster", "lon", "lat", "capacity", "height", "model"]],

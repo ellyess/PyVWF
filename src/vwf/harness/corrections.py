@@ -33,6 +33,78 @@ from vwf.data import (
 #: dask cluster startup and scatter cost only pays off on large offset fits.
 _PARALLEL_OFFSET_MIN_ROWS = 500
 
+#: Physically defensible range for an affine wind scalar. A correction is meant
+#: to repair a reanalysis bias of tens of percent, not rebuild the wind field, so
+#: a scalar outside this band means the fit is compensating for something the
+#: model cannot represent (see docs/findings/hourly_resolution_test.md, where an
+#: Atacama cluster fitted a scalar of 80).
+#:
+#: Calibrated against 373,179 fitted scalars across every region in
+#: output/validation (docs/findings/scalar_bounds_calibration.md), and the two
+#: bounds are deliberately ASYMMETRIC because they are not equally informative:
+#:
+#: - The CEILING discriminates sharply. Every healthy region tops out just below
+#:   3.0 (UK 2.86, DK 2.68, IT 2.65, AU-NEM 2.65, NZ 2.18), while the regions
+#:   with known pathologies run far past it (CL 150, US 66, AR 26, BR 8.2). A
+#:   ceiling of 3.0 sits in the gap between those populations.
+#: - The FLOOR discriminates weakly, because the country-level path legitimately
+#:   fits low scalars when it compensates for the cube-law overshoot (BE 0.314,
+#:   ES 0.330, SE 0.359). A floor of 0.3 produced no false positives on this
+#:   data, but only 4.7% clear of Belgium, which is too fine a margin to trust
+#:   across other years. It is set at 0.2 so it flags only the unambiguous
+#:   (US 0.003, DK 0.090, UK 0.096) and stays quiet otherwise: a warning that
+#:   fires on legitimate fits is one people learn to ignore.
+PLAUSIBLE_SCALAR = (0.2, 3.0)
+
+
+def fit_quality(factors: pd.DataFrame, scalar_bounds=PLAUSIBLE_SCALAR) -> dict:
+    """Summarise whether a fitted factors table is physically believable.
+
+    Skill metrics alone hide a bad fit: Chile scores as a corrected win at
+    monthly resolution while containing a wind scalar of 80 and an offset that
+    never converged. Those only become visible at finer resolution or in a
+    downstream export, which is too late. This reduces a factors table to the
+    few numbers that expose it.
+
+    Args:
+        factors: A fitted factors table with ``cluster`` and ``scalar``, and
+            usually ``offset``.
+        scalar_bounds: Inclusive ``(low, high)`` plausible range for the scalar.
+
+    Returns:
+        dict with ``n_clusters``, ``n_implausible_scalar``, ``n_failed_offset``,
+        ``max_scalar``, ``min_scalar`` and ``degenerate_clusters`` (a sorted,
+        comma-joined string, so it survives a CSV round trip).
+    """
+    if factors is None or factors.empty or "scalar" not in factors.columns:
+        return {
+            "n_clusters": 0, "n_implausible_scalar": 0, "n_failed_offset": 0,
+            "max_scalar": float("nan"), "min_scalar": float("nan"),
+            "degenerate_clusters": "",
+        }
+    low, high = scalar_bounds
+    s = pd.to_numeric(factors["scalar"], errors="coerce")
+    bad_scalar = s.notna() & ((s < low) | (s > high))
+    # A NaN offset where a scalar was fitted means the offset solver failed and
+    # nothing raised; those sites silently drop out of any simulation.
+    if "offset" in factors.columns:
+        off = pd.to_numeric(factors["offset"], errors="coerce")
+        failed_offset = off.isna() & s.notna()
+    else:
+        failed_offset = pd.Series(False, index=factors.index)
+
+    flagged = sorted(
+        {int(c) for c in factors.loc[bad_scalar | failed_offset, "cluster"].dropna()}
+    )
+    return {
+        "n_clusters": int(factors["cluster"].nunique()),
+        "n_implausible_scalar": int(bad_scalar.sum()),
+        "n_failed_offset": int(failed_offset.sum()),
+        "max_scalar": float(s.max()) if s.notna().any() else float("nan"),
+        "min_scalar": float(s.min()) if s.notna().any() else float("nan"),
+        "degenerate_clusters": ",".join(str(c) for c in flagged),
+    }
+
 
 def _fit_offsets(
     valid: pd.DataFrame,
@@ -173,6 +245,7 @@ class CorrectionModel(ABC):
         time_res: str,
         seasons: Mapping[str, Sequence[int]] | None = None,
         obs_level: str = "turbine",
+        min_cluster_size: int = 1,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Fit correction factors; return ``(factors, clus_info)``."""
 
@@ -237,13 +310,15 @@ class AffineWindCorrection(CorrectionModel):
         time_res: str,
         seasons: Mapping[str, Sequence[int]] | None = None,
         obs_level: str = "turbine",
+        min_cluster_size: int = 1,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         if obs_level not in ("turbine", "country"):
             raise ValueError(f"obs_level must be 'turbine' or 'country', got {obs_level!r}")
 
         gen_cf = _override_season_column(gen_cf, seasons)
         train_bias_df, clus_info = cluster_train_set(
-            gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level
+            gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level,
+            min_cluster_size=min_cluster_size,
         )
 
         if obs_level == "country" and country_obs_is_per_cluster(
@@ -408,6 +483,7 @@ class ScalarOnlyWindCorrection(AffineWindCorrection):
         time_res: str,
         seasons: Mapping[str, Sequence[int]] | None = None,
         obs_level: str = "turbine",
+        min_cluster_size: int = 1,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         # cluster_train_set already produces the scalars and an offset column of
         # zeros; short-circuiting before any offset solver keeps the scalars
@@ -417,7 +493,8 @@ class ScalarOnlyWindCorrection(AffineWindCorrection):
 
         gen_cf = _override_season_column(gen_cf, seasons)
         train_bias_df, clus_info = cluster_train_set(
-            gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level
+            gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level,
+            min_cluster_size=min_cluster_size,
         )
         train_bias_df = train_bias_df.copy()
         train_bias_df["offset"] = 0.0
@@ -467,11 +544,13 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         time_res: str,
         seasons: Mapping[str, Sequence[int]] | None = None,
         obs_level: str = "turbine",
+        min_cluster_size: int = 1,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         factors, clus_info = super().fit(
             gen_cf, turb_info, reanalysis, power_curves,
             num_clusters=num_clusters, time_res=time_res,
             seasons=seasons, obs_level=obs_level,
+            min_cluster_size=min_cluster_size,
         )
 
         # Simulate the affine-corrected CF on the training winds, aggregate to

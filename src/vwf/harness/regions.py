@@ -48,6 +48,7 @@ class RegionSpec:
     correction_model: str
     cluster_list: tuple[int, ...]
     time_slices: tuple[str, ...]
+    min_cluster_size: int = 1
     seasons: dict[str, tuple[int, ...]] = field(default_factory=dict)
     location_resolution: str | None = None
     pseudo_replicated_rows: bool = False
@@ -200,6 +201,15 @@ def load_region(path: str | Path) -> RegionSpec:
         _fail(path, f"[correction] unknown time_slices {bad}; valid: {list(VALID_TIME_SLICES)}")
     time_slices = tuple(str(s) for s in slices_raw)
 
+    min_cluster_size = corr.get("min_cluster_size", 1)
+    if not isinstance(min_cluster_size, int) or isinstance(min_cluster_size, bool) \
+            or min_cluster_size < 1:
+        _fail(
+            path,
+            "[correction] min_cluster_size must be an integer >= 1, got "
+            f"{min_cluster_size!r}",
+        )
+
     seasons: dict[str, tuple[int, ...]] = {}
     for season_name, months in seasons_raw.items():
         if not isinstance(months, list) or not months or not all(
@@ -230,6 +240,7 @@ def load_region(path: str | Path) -> RegionSpec:
         correction_model=correction_model,
         cluster_list=cluster_list,
         time_slices=time_slices,
+        min_cluster_size=int(min_cluster_size),
         seasons=seasons,
         location_resolution=location_resolution,
         pseudo_replicated_rows=pseudo,

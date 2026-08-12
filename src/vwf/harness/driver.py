@@ -12,6 +12,7 @@ must have AU-NEM on exactly one side.
 """
 from __future__ import annotations
 
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
@@ -23,7 +24,7 @@ import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
 from vwf.data import assign_country_clusters, train_set, val_set
-from vwf.harness.corrections import get_correction
+from vwf.harness.corrections import fit_quality, get_correction
 from vwf.harness.provenance import write_manifest_safe
 from vwf.harness.regions import RegionSpec
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
@@ -148,6 +149,7 @@ def run_train(
                 time_res=time_res,
                 seasons=spec.seasons,
                 obs_level=spec.obs_level,
+                min_cluster_size=spec.min_cluster_size,
             )
             factors.to_csv(run_dir / f"factors_{time_res}_{num_clu}.csv", index=False)
             clus_info.to_csv(
@@ -253,12 +255,32 @@ def run_evaluate(
             clus_info = assign_country_clusters(turb_info, num_clu)
         else:
             train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
-            clus_info = cluster_turbines(num_clu, train_fleet, False, turb_info)
+            clus_info = cluster_turbines(
+                num_clu, train_fleet, False, turb_info,
+                min_cluster_size=spec.min_cluster_size,
+            )
         _, cor_cf = model.apply(
             reanalysis, clus_info, power_curves, factors, time_res, seasons=spec.seasons
         )
         cor_cf.to_csv(run_dir / f"cor_cf_{time_res}_{num_clu}.csv", index=False)
-        rows.extend(_skill_rows(cor_cf, spec.correction_model, num_clu, time_res))
+        # Skill alone hides a bad fit: a region can score as a corrected win
+        # while carrying an implausible scalar or an offset that never
+        # converged, so the fit diagnostics travel with every corrected row.
+        quality = fit_quality(factors)
+        if quality["n_implausible_scalar"] or quality["n_failed_offset"]:
+            warnings.warn(
+                f"{spec.code} {time_res} k={num_clu}: "
+                f"{quality['n_implausible_scalar']} implausible scalar(s) "
+                f"(max {quality['max_scalar']:.3g}), "
+                f"{quality['n_failed_offset']} failed offset fit(s) in "
+                f"cluster(s) {quality['degenerate_clusters']}. "
+                "The skill metric can still look good; see "
+                "docs/findings/hourly_resolution_test.md."
+            )
+        rows.extend([
+            {**row, **quality}
+            for row in _skill_rows(cor_cf, spec.correction_model, num_clu, time_res)
+        ])
 
     metrics_df = pd.DataFrame(rows)
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)

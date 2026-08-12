@@ -95,7 +95,10 @@ def run_hindcast(
 
     # Cluster the fleet against the training fleet so the factors' cluster ids align.
     train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
-    clus_info = cluster_turbines(num_clu, train_fleet, False, turb_info)
+    clus_info = cluster_turbines(
+        num_clu, train_fleet, False, turb_info,
+        min_cluster_size=spec.min_cluster_size,
+    )
     factors = pd.read_csv(train_run_dir / f"factors_{time_res}_{num_clu}.csv")
 
     model = get_correction(spec.correction_model)

@@ -256,6 +256,46 @@ def _cluster_coords(frame, geographic: bool):
     )
 
 
+def _merge_undersized(labels, centres, min_size):
+    """Map undersized cluster labels onto their nearest surviving centroid.
+
+    A cluster with one or two members is fitted to those members' idiosyncrasy,
+    which is how a correction ends up with a wind scalar of 80 (see
+    docs/findings/hourly_resolution_test.md: every degenerate Chilean cluster was
+    both tiny and in the Atacama, where ERA5 badly under-resolves the wind).
+    Merging the smallest cluster into its nearest neighbour and repeating is a
+    cheap structural guard against fitting one farm.
+
+    Args:
+        labels: Cluster label per training row.
+        centres: KMeans cluster centres, indexed by label.
+        min_size: Minimum members a surviving cluster must have.
+
+    Returns:
+        dict mapping every original label to its surviving label.
+    """
+    labels = np.asarray(labels)
+    remap = {int(c): int(c) for c in range(len(centres))}
+    alive = {int(c) for c in np.unique(labels)}
+
+    while len(alive) > 1:
+        sizes = {c: int((labels == c).sum()) for c in alive}
+        small = [c for c, n in sizes.items() if n < min_size]
+        if not small:
+            break
+        victim = min(small, key=lambda c: (sizes[c], c))
+        others = [c for c in alive if c != victim]
+        # Nearest surviving centroid in the same space the fit used.
+        d = np.linalg.norm(centres[others] - centres[victim], axis=1)
+        target = int(others[int(np.argmin(d))])
+        labels = np.where(labels == victim, target, labels)
+        alive.discard(victim)
+        for src, dst in list(remap.items()):
+            if dst == victim:
+                remap[src] = target
+    return remap
+
+
 def cluster_turbines(
     num_clu,
     turb_info_train,
@@ -264,6 +304,7 @@ def cluster_turbines(
     random_state=42,
     weight_col=None,
     geographic=False,
+    min_cluster_size=1,
 ):
     """Cluster turbines by spatial coordinates.
 
@@ -288,6 +329,11 @@ def cluster_turbines(
             distance is geographic rather than degree-space (see
             :func:`_cluster_coords`). Default False preserves the legacy
             degree-space behaviour.
+        min_cluster_size: Minimum TRAINING sites a cluster must retain. Clusters
+            below this are merged into their nearest surviving centroid before
+            any correction is fitted, because a one-site cluster fits that
+            site's idiosyncrasy rather than a regional bias. Default 1 disables
+            merging and reproduces the legacy partition exactly.
 
     Returns:
         Turbine metadata with an added ``cluster`` column.
@@ -321,16 +367,34 @@ def cluster_turbines(
                 "values; falling back to an unweighted fit"
             )
 
-    kmeans.fit(_cluster_coords(turb_info_train, geographic), sample_weight=sample_weight)
+    train_coords = _cluster_coords(turb_info_train, geographic)
+    kmeans.fit(train_coords, sample_weight=sample_weight)
+
+    # The merge is derived from the TRAINING partition, so train and apply
+    # resolve identical labels given the same training fleet and seed.
+    remap = None
+    if min_cluster_size and min_cluster_size > 1:
+        remap = _merge_undersized(
+            kmeans.predict(train_coords), kmeans.cluster_centers_, int(min_cluster_size)
+        )
+        merged = sum(1 for src, dst in remap.items() if src != dst)
+        if merged:
+            warnings.warn(
+                f"cluster_turbines: merged {merged} cluster(s) with fewer than "
+                f"{int(min_cluster_size)} training sites into their nearest "
+                f"neighbour; {len(set(remap.values()))} of {num_clu} clusters remain"
+            )
+
+    def _labels(frame):
+        out = kmeans.predict(_cluster_coords(frame, geographic))
+        return np.array([remap[int(c)] for c in out]) if remap else out
 
     if train:
-        turb_info_train['cluster'] = kmeans.predict(
-            _cluster_coords(turb_info_train, geographic)
-        )
+        turb_info_train['cluster'] = _labels(turb_info_train)
         return turb_info_train
     else:
         turb_info = args[0]
-        turb_info['cluster'] = kmeans.predict(_cluster_coords(turb_info, geographic))
+        turb_info['cluster'] = _labels(turb_info)
         return turb_info
 
 

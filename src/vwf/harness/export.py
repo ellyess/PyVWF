@@ -28,6 +28,7 @@ is the actual drop-in product.
 from __future__ import annotations
 
 import subprocess
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -38,6 +39,7 @@ import xarray as xr
 import vwf
 from vwf.config import PyVWFPaths
 from vwf.datasets.era5 import prep_era5
+from vwf.harness.corrections import PLAUSIBLE_SCALAR, fit_quality
 from vwf.harness.regions import RegionSpec
 
 
@@ -167,6 +169,25 @@ def export_correction_field(
         scal[i] = np.vectorize(_s)(cluster_2d).astype("float32")
         off[i] = np.vectorize(_o)(cluster_2d).astype("float32")
 
+    # A degenerate cluster is well-sampled often enough that km_to_centroid and
+    # cluster_n_train do not catch it, so plausibility is checked separately and
+    # shipped as its own layer: without this a scalar of 80 would land silently
+    # in a downstream atlite pipeline.
+    quality = fit_quality(factors)
+    bad_clusters = {
+        int(c) for c in quality["degenerate_clusters"].split(",") if c != ""
+    }
+    degenerate_2d = np.isin(cluster_2d, list(bad_clusters)).astype("int8")
+    if bad_clusters:
+        warnings.warn(
+            f"export_correction_field({spec.code}, k={num_clu}, {time_res}): "
+            f"cluster(s) {sorted(bad_clusters)} have an implausible scalar "
+            f"(max {quality['max_scalar']:.3g}) or a failed offset fit, and cover "
+            f"{int(degenerate_2d.sum())} of {degenerate_2d.size} grid cells. "
+            "Those cells are flagged in the 'degenerate' variable; do not use "
+            "them without review."
+        )
+
     slice_coord = [str(s) for s in labels]
     dims2d = ("lat", "lon")
     coords = {"slice": slice_coord, "lat": lat, "lon": lon}
@@ -211,6 +232,17 @@ def export_correction_field(
                 long_name="installed capacity behind the applied cluster in the training "
                           "fleet (a second measure of how well-supported the correction is)",
             ),
+            "degenerate": xr.DataArray(
+                degenerate_2d, coords={"lat": lat, "lon": lon}, dims=dims2d
+            ).assign_attrs(
+                units="1",
+                long_name="1 where the applied cluster's fit is not physically "
+                          "believable: a wind scalar outside "
+                          f"{PLAUSIBLE_SCALAR[0]} to {PLAUSIBLE_SCALAR[1]}, or an "
+                          "offset that failed to converge. Such a cluster can still "
+                          "score well on aggregated skill metrics, so treat these "
+                          "cells as unusable rather than merely uncertain.",
+            ),
         },
         attrs={
             "title": f"PyVWF gridded wind-speed correction field, {spec.name}",
@@ -228,7 +260,8 @@ def export_correction_field(
                 f"{name}={sorted(months)}" for name, months in spec.seasons.items()
             ),
             "validation_note": note,
-            "confidence_layers": "Per-cell trust is carried by three fields: km_to_centroid "
+            "confidence_layers": "Per-cell trust is carried by four fields: degenerate "
+                                 "(the fit is not believable at all), km_to_centroid "
                                  "(distance from the training fleet), cluster_n_train and "
                                  "cluster_capacity_mw (how much observed data trained the "
                                  "applied cluster). A cell that is far from the fleet or "
