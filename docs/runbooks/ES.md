@@ -1,4 +1,4 @@
-# Spain (WindStats) region: processing runbook
+# Spain (WindStats, historical 1998-2000)
 
 **⚠ MIXED LICENCE.** Generation is **CONFIDENTIAL / commercial WindStats**;
 coordinates are **open GWPT** (CC-BY-4.0). Neither the data nor the derived

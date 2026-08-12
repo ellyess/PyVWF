@@ -126,9 +126,11 @@ def shipped(name: str) -> RegionSpec:
 
 def test_all_shipped_configs_load():
     paths = sorted(CONFIG_DIR.glob("*.toml"))
-    assert len(paths) == 19
+    assert len(paths) == 20
     specs = [load_region(p) for p in paths]
-    assert len({s.code for s in specs}) == 19
+    # Codes stay unique even for variant regions over the same country: ES-WS
+    # is Spain through WindStats, SE-BZ is Sweden through per-zone observations.
+    assert len({s.code for s in specs}) == 20
 
 
 def test_shipped_granularity_classification():

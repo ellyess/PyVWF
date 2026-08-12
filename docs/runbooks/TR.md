@@ -1,4 +1,4 @@
-# Turkey (EPİAŞ/EXIST Transparency): data acquisition runbook
+# Turkey (EPİAŞ/EXIST): evaluated, not shipped
 
 **Status (2026-07-22): NOT confirmed tier-1. The survey's "per-plant hourly
 via free API" claim does not hold on a Data Consultation subscription.**

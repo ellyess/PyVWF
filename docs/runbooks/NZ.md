@@ -1,10 +1,13 @@
-# New Zealand (EMI) region: data acquisition and validation runbook
+# New Zealand (EMI)
 
-End-to-end reproduction for the New Zealand region (`configs/regions/nz.toml`,
-source `emi-nz`). All inputs are open Electricity Authority data (no
-registration) or your own CDS/ERA5 credentials; none of the raw or derived
-data is committed (`input/` is git-ignored), so this runbook is how you build
-it. NZ was the #1 pick of the July-2026 dataset survey
+**Source:** EA EMI `Generation_MD` half-hourly metered injection.
+**Adapter:** `emi-nz` · turbine-level · unit = farm · 🟢 open.
+**Fleet:** 13 dispatched farms, ~1.5 GW, with per-farm hub heights.
+
+All inputs are open Electricity Authority data (no registration) or your own
+CDS/ERA5 credentials; none of the raw or derived data is committed (`input/` is
+git-ignored), so this runbook is how you build it. NZ was the #1 pick of the
+July-2026 dataset survey
 (`docs/findings/dataset_survey_2026-07.md`): per-plant half-hourly metered
 generation, openly downloadable, in a Southern-Hemisphere temperate-westerly
 complex-terrain climate the validation set does not yet cover, and with

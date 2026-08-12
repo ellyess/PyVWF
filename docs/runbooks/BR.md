@@ -1,9 +1,13 @@
-# Brazil (ONS) region: data acquisition and validation runbook
+# Brazil (ONS)
 
-End-to-end reproduction for the Brazil region (`configs/regions/br.toml`,
-source `ons-br`). All inputs are open government data (ONS + ANEEL) or your own
-CDS/ERA5 credentials; none of the raw or derived data is committed (`/input`
-is git-ignored), so this runbook is how you rebuild it.
+**Source:** ONS `FATOR_CAPACIDADE` hourly CF per complex + constrained-off
+series. **Adapter:** `ons-br` · turbine-level · unit = complex · 🟢 open.
+**Fleet:** ~152 complexes, ~26 GW. Scientific draw: the Nordeste trade-wind
+regime and a quantifiable curtailment series.
+
+All inputs are open government data (ONS + ANEEL) or your own CDS/ERA5
+credentials; none of the raw or derived data is committed (`/input` is
+git-ignored), so this runbook is how you rebuild it.
 
 The steps split into the **credential-free** half (ONS/ANEEL acquisition +
 processing, scripted and verified against the real June-2023 files) and the

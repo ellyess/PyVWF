@@ -1,4 +1,4 @@
-# Germany (WindStats) region: staging runbook
+# Germany (WindStats)
 
 **⚠ CONFIDENTIAL / COMMERCIAL DATA.** The German wind data is a licensed
 **WindStats** extract, not open data. It (and anything derived from it) must

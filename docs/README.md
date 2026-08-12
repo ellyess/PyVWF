@@ -1,36 +1,37 @@
-# PyVWF Documentation
+# PyVWF documentation
 
-Start here. This folder holds reference documentation for the core PyVWF
-bias-correction workflow. If you are new to the project, read in the order
-below.
+Reference documentation for the PyVWF bias-correction workflow. New to the
+project? Read the [project README](../README.md) first (what PyVWF is, install,
+Denmark quickstart), then come here.
 
-## Start here
+## Guides
 
-1. [Project README](../README.md) - what PyVWF is, how it works, installation,
-   and a Denmark quickstart. Read this first.
-2. [Input data](../README.md#input-data) - what data you need, where to get it,
-   and the expected `input/` directory layout.
+| Guide | Covers |
+|---|---|
+| [Data sources and preprocessing](guides/DATA_SOURCES.md) | Every data source per region, its licence, and how it is fetched and preprocessed. The data reference. |
+| [Training and evaluation](guides/TRAINING_GUIDE.md) | The region config and running `validate_region.py` (train / evaluate / transfer). |
+| [Output structure](guides/OUTPUT_STRUCTURE.md) | The files a run produces and how to read them. |
+| [Adding an observation source](guides/ADDING_AN_OBSERVATION_SOURCE.md) | The adapter contract for a new region. |
+| [Using your own data](guides/USING_YOUR_OWN_DATA.md) | Run a correction on your own fleet from two CSVs, without writing an adapter. |
 
-## Reading order
+## Region runbooks
 
-Once you can run the quickstart, work through these in order:
+Step-by-step acquisition and processing for each validated region, one file per
+country, in [`runbooks/`](runbooks): AR, BR, CL, DE, DK, ES, NZ, TR, UK, US. The
+nine ENTSO-E country-level regions are covered by the country-level section of
+[Data sources](guides/DATA_SOURCES.md#4-country-level-entso-e-workflow).
 
-| # | Document | What it covers |
-|---|----------|----------------|
-| 1 | [Data requirements](guides/DATA_REQUIREMENTS.md) | The input files PyVWF expects and how to obtain the ERA5 winds. |
-| 1a | [Data sources](guides/DATA_SOURCES.md) | Every observation/ERA5/coordinate source per region, with URLs, licences, and the fetch/process scripts. |
-| 2 | [Data pipeline](guides/DATA_PIPELINE.md) | How turbine-level and country-level data flow through the model. |
-| 3 | [Training guide](guides/TRAINING_GUIDE.md) | Configuring and running bias-correction training across countries and resolutions. |
-| 4 | [Output structure](guides/OUTPUT_STRUCTURE.md) | The layout of a run directory and the files each run produces. |
-| 5 | [ENTSO-E API guide](guides/ENTSOE_API_GUIDE.md) | Fetching national generation data for the country-level workflow. |
+## Design and findings
 
-For the end-to-end script execution order, see
-[PIPELINE.md](../PIPELINE.md) at the repository root.
+- [`design/HARNESS_DESIGN.md`](design/HARNESS_DESIGN.md): the validation-harness design.
+- [`findings/`](findings): dated research records (regression checks, method
+  reviews, per-region first runs).
 
-## Reference by task
+## By task
 
-- **I want to run PyVWF on turbine data.** Read the [README quickstart](../README.md#quickstart),
-  then [Data requirements](guides/DATA_REQUIREMENTS.md) and [Training guide](guides/TRAINING_GUIDE.md).
-- **I want national (country-level) corrections.** Read [Data pipeline](guides/DATA_PIPELINE.md)
-  and [ENTSO-E API guide](guides/ENTSOE_API_GUIDE.md), then [Training guide](guides/TRAINING_GUIDE.md).
-- **I want to understand a run's outputs.** Read [Output structure](guides/OUTPUT_STRUCTURE.md).
+- **Run a region.** [Training guide](guides/TRAINING_GUIDE.md), with its data
+  from [Data sources](guides/DATA_SOURCES.md) and the region's runbook.
+- **Country-level (national) corrections.** The country-level section of
+  [Data sources](guides/DATA_SOURCES.md#4-country-level-entso-e-workflow).
+- **Understand a run's outputs.** [Output structure](guides/OUTPUT_STRUCTURE.md).
+- **Add a region.** [Adding an observation source](guides/ADDING_AN_OBSERVATION_SOURCE.md).

@@ -3,8 +3,8 @@
 Everything below is importable from the `vwf` package. The data-acquisition
 modules under `vwf.datasets` are command-line scripts that depend on the
 optional `data` extra (and, for ENTSO-E, an API key); they are not part of the
-supported programmatic API and are documented in the
-{doc}`ENTSOE_API_GUIDE` instead.
+supported programmatic API and are documented in
+{doc}`guides/DATA_SOURCES` instead.
 
 ## The model
 

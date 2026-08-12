@@ -93,9 +93,25 @@ input/reference/models.real.csv
 /overleaf
 
 # Internal research-log docs kept local-only (research dates, "next steps"
-# language not appropriate for the public-facing docs/ folder).
+# language not appropriate for the public-facing docs/ folder). Paths updated
+# after the docs/ reorganisation moved these under findings/.
 docs/TRAINING_2015_2021_SUMMARY.md
 docs/TURBINE_GRID_EVALUATION_ANALYSIS.md
+docs/findings/TRAINING_2015_2021_SUMMARY.md
+docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
+
+# Commercial / career material never belongs in this public repo. The working
+# copies live outside the repository entirely (../../Career/); these patterns are
+# a safety net in case anything is ever dropped in here by mistake.
+Career/
+career/
+docs/career/
+docs/commercial/
+docs/notes/
+**/PASSIVE_INCOME.md
+**/BUSINESS_SETUP.md
+**/NEXT_STEPS.md
+**/FACTS.md
 
 # Python build artifacts
 build/

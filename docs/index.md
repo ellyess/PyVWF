@@ -30,13 +30,11 @@ your observations support.
 :maxdepth: 1
 :caption: Guides
 
-guides/DATA_REQUIREMENTS
 guides/DATA_SOURCES
-guides/DATA_PIPELINE
 guides/TRAINING_GUIDE
 guides/OUTPUT_STRUCTURE
-guides/ENTSOE_API_GUIDE
 guides/ADDING_AN_OBSERVATION_SOURCE
+guides/USING_YOUR_OWN_DATA
 ```
 
 ```{toctree}

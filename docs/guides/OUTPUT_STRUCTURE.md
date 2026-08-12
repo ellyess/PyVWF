@@ -1,55 +1,59 @@
-# Output Structure
+# Output structure
 
-> Extracted from the project README. This reference describes the layout of a
-> PyVWF run directory and the files each run produces.
-
-All PyVWF outputs are written to the user-specified output directory (`outdir`)
-and organised by run configuration. Each run is fully self-contained.
-
-## Directory layout
+The harness writes every run under `output/validation/<CODE>/`, one directory
+per train or evaluate run, each self-contained and stamped (a UTC timestamp, or
+the `--run-name` you pass).
 
 ```text
-outdir/
-└── run/
-    └── <run_name>/
-        ├── plots/
-        ├── results/
-        │   ├── capacity-factor/
-        │   └── wind-speed/
-        └── training/
-            ├── correction-factors/
-            └── simulated-turbines/
+output/validation/<CODE>/
+├── train-<stamp>/
+│   ├── factors_<slice>_<k>.csv        # correction factors, one per (slice, cluster count)
+│   ├── train_turb_info_<k>.csv        # training fleet with cluster assignments
+│   └── run_manifest.json              # full provenance of the run
+└── evaluate-<year>-<stamp>/
+    ├── metrics.csv                    # skill table, one row per variant
+    ├── unc_cf.csv                     # uncorrected capacity factor
+    ├── cor_cf_<slice>_<k>.csv         # corrected CF, one per factors file
+    └── run_manifest.json
 ```
 
-The `<run_name>` encodes the scenario configuration (e.g. country, correction
-mode, surface roughness treatment).
+## Factors (`factors_<slice>_<k>.csv`)
 
-### Plots (`plots/`)
+One row per `(cluster, time-slice)`, with the fitted parameters:
 
-Diagnostic figures summarising model performance:
+| Column | Meaning |
+|---|---|
+| `cluster` | Spatial cluster index |
+| `<slice>` | Time-slice key (`fixed`, `season`, …) |
+| `scalar` | Multiplicative wind correction |
+| `offset` | Additive wind correction (m/s) |
+| `avail` | Availability factor (`scaled-affine` only) |
 
-- `*_full_error_appendix.png`
-Overall error metrics across all clusters and time resolutions.
+`<slice>` is the time resolution and `<k>` the cluster count, matching a
+`cluster_list` × `time_slices` entry in the config.
 
-- `*_spatial_focus_error_appendix.png`
-Error metrics emphasising spatial structure.
+## Metrics (`metrics.csv`)
 
-- `*_temporal_focus_error_appendix.png`
-Error metrics emphasising temporal variability.
+One row per variant (the uncorrected baseline plus each factors file), scored on
+the test year:
 
-- These figures are intended for appendix or supplementary material.
+| Column | Meaning |
+|---|---|
+| `variant` | `uncorrected` or the correction model name |
+| `num_clu`, `time_res` | Which factors file it scores |
+| `scope` | `fleet` (turbine) / `national` / `per-zone` (country) |
+| `mbe`, `mae`, `rmse` | Mean bias, mean absolute, root-mean-square error |
+| `pearson_r` | Correlation with observations |
+| `emd` | Earth-mover distance of the CF distributions (turbine-level) |
+| `n_units`, `n_samples` | Fleet size and paired observations scored |
 
-### Capacity factor results (`results/capacity-factor/`)
+Read the uncorrected row first: judge the correction against the bias structure
+it starts from, not in isolation.
 
-CSV time series of simulated and observed capacity factor:
+## Manifest (`run_manifest.json`)
 
-- `<COUNTRY>_<YEAR>_<time_res>_<k>_cor_cf.csv`
-Bias-corrected capacity factor for a given time-resolution and cluster count.
-
-- `<COUNTRY>_<YEAR>_unc_cf.csv`
-Uncorrected (raw reanalysis-based) capacity factor.
-
-- `<COUNTRY>_<YEAR>_obs_cf.csv`
-Observed capacity factor used for validation.
-
-All files share a common time index.
+Full provenance so any output is attributable: `pyvwf_version`, `git_commit` and
+`git_dirty`, `created_utc`, the resolved `region`, `observations` (source, unit,
+time convention), `correction`, `seasons`, the `curve_library` identity (whether
+the open or a licensed library was used), and, for evaluate runs,
+`evaluation_year` and `trained_from`. Design §6.

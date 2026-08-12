@@ -1,4 +1,8 @@
-# Denmark (Danish Energy Agency) region: acquisition and processing runbook
+# Denmark (Danish Energy Agency)
+
+**Source:** Danish Energy Agency turbine register (per-turbine monthly kWh).
+**Adapter:** `european-turbine` · turbine-level · unit = turbine · 🟢 open.
+**Fleet:** ~6,300 turbines, the most complete open per-turbine dataset anywhere.
 
 Denmark is the programme's **reference region**: the level-dominated case
 where the affine correction wins on every metric (D1/D2), and the lineage of

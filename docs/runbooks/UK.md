@@ -1,4 +1,4 @@
-# United Kingdom (Ofgem ROC + REPD) region: acquisition runbook
+# United Kingdom (Ofgem ROC + REPD)
 
 **Read this before assuming the UK data is reproducible like Denmark's. It is
 only partly so.** The committed UK inputs (`uk_md.csv`, `ukobs.csv`) came from

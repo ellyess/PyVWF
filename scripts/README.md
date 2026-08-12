@@ -34,9 +34,14 @@ scripts/
     train_all_bias_corrections.py  batch trainer across configurations
     evaluate_all_pyvwf_runs.py     MAE/RMSE/MBE across runs
     ml_transfer_retest.py          leave-one-region-out ML transfer study
+    audit_country_observations.py  physical-bound check on country-level CF series
     d1_regression.py  d1_run_harness.py  d1_run_legacy.py   refactor regression check
   region_tools/     region-specific helpers
     assign_au_curves.py  export_au_grid_netcdf.py
+    weight_country_grid_points.py  real GWPT capacity weights for country grids
+    repair_country_capacity.py     rebuild a country CF series on a GWPT capacity register
+    assign_country_zones.py        reassign grid points to the bidding zone that contains them
+                                   (real polygons in configs/curation/zones/)
 ```
 
 Region curation data (coordinate/capacity overrides, curated farm tables,

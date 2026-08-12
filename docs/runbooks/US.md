@@ -1,9 +1,12 @@
-# US (EIA) region: data acquisition and validation runbook
+# United States (EIA)
 
-End-to-end reproduction for the US region (`configs/regions/us.toml`,
-source `eia-us`). All inputs are public-domain US government data or your own
-CDS/ERA5 credentials; none of the raw or derived data is committed (`/input`
-is git-ignored), so this runbook is how you rebuild it.
+**Source:** EIA-923 net generation + EIA-860 nameplate/coordinates + USWTDB hub
+heights. **Adapter:** `eia-us` · turbine-level · unit = plant · 🟢 open.
+**Fleet:** ~499 monthly-reporting plants (of 1,279), ~133 GW.
+
+All inputs are public-domain US government data or your own CDS/ERA5
+credentials; none of the raw or derived data is committed (`/input` is
+git-ignored), so this runbook is how you rebuild it.
 
 The steps split into two halves: the **credential-free** half (EIA/USWTDB
 acquisition + processing, fully scripted and verified against the real 2021
