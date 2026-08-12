@@ -17,9 +17,11 @@ from vwf.sources.registry import (
 from vwf.sources.aemo import AEMONemSource
 from vwf.sources.cammesa_ar import CAMMESAArgentinaSource
 from vwf.sources.cen_cl import CENChileSource
+from vwf.sources.client_csv import ClientCsvTurbineSource
 from vwf.sources.eia_us import EIAUSSource
 from vwf.sources.emi_nz import EMINewZealandSource
 from vwf.sources.entsoe_files import EntsoeFileSource
+from vwf.sources.entsoe_zonal import EntsoeZonalFileSource
 from vwf.sources.european import EuropeanTurbineSource
 from vwf.sources.in_memory import InMemoryCountrySource
 from vwf.sources.ons_br import ONSBrazilSource
@@ -35,9 +37,11 @@ __all__ = [
     "AEMONemSource",
     "CAMMESAArgentinaSource",
     "CENChileSource",
+    "ClientCsvTurbineSource",
     "EIAUSSource",
     "EMINewZealandSource",
     "EntsoeFileSource",
+    "EntsoeZonalFileSource",
     "EuropeanTurbineSource",
     "InMemoryCountrySource",
     "ONSBrazilSource",
