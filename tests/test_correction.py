@@ -98,6 +98,36 @@ def test_scalar_reporting_weights_stay_capacity_weighted():
     assert out["scalar"].iloc[0] == pytest.approx(1.0)
 
 
+def test_scalar_averages_obs_and_sim_over_the_same_plants():
+    """obs and sim must come from the SAME sample, not each from its own.
+
+    The two tests above hold ``sim`` uniform across the fleet, so the reporting
+    and non-reporting plants have identical simulated output and the bug is
+    invisible. Here the silent plant simulates much higher than the reporter.
+
+    Masking each column against only its own presence averages ``obs`` over the
+    reporters and ``sim`` over everyone, so the ratio compares two different
+    samples: 0.36 / mean(0.30, 0.50) = 0.36 / 0.40 = 0.90. Comparing like with
+    like over the reporter alone gives 0.36 / 0.30 = 1.20, which is the true
+    bias applied to that plant.
+
+    This is not a corner case. Reporting is not independent of output, and at
+    the 43% reporting rate cited above a moderate correlation biases the scalar
+    by about 7% and a strong one by about 14%, always in the same direction.
+    """
+    df = pd.DataFrame({
+        "fixed": ["1/1"] * 2,
+        "cluster": [0] * 2,
+        "year": [2020] * 2,
+        "obs": [0.36, np.nan],
+        "sim": [0.30, 0.50],           # the silent plant simulates far higher
+        "capacity": [100.0, 100.0],
+    })
+    out = calculate_scalar(df, "fixed")
+    assert out["scalar"].iloc[0] == pytest.approx(1.2)
+    assert out["sim"].iloc[0] == pytest.approx(0.30)   # not 0.40
+
+
 @pytest.fixture
 def offset_setup(make_reanalysis, power_curve):
     ds = make_reanalysis(n_hours=72, mean_speed=8.0, seed=5)
