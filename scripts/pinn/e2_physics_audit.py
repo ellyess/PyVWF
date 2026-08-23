@@ -19,6 +19,7 @@ Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -78,8 +79,12 @@ def fitted_frame(model, std, regions, density: bool) -> pd.DataFrame:
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--epochs", type=int, default=60)
+    ap.add_argument("--regions", nargs="+", default=REGIONS)
+    args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    tr = load_regions(REGIONS, "train", CACHE, quiet=True)
+    tr = load_regions(args.regions, "train", CACHE, quiet=True)
     pd.set_option("display.width", 210)
 
     fits = {}
@@ -87,7 +92,8 @@ def main():
         label = "with density" if density else "no density"
         print(f"Fitting on all five regions ({label})...")
         model, std, hist = fit(tr, hidden=None, physics=True, profile="power",
-                               density=density, epochs=60, seed=0, verbose=False)
+                               density=density, epochs=args.epochs, seed=0,
+                               verbose=False)
         fits[density] = (model, std, hist)
         print(f"  final training loss {hist[-1]:.6f}  rmse {np.sqrt(hist[-1]):.4f}")
 
