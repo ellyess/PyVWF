@@ -49,7 +49,8 @@ def main():
 
     for code in REGIONS:
         meta = load_cache(code, "test", CACHE).meta
-        units = meta[["lon", "lat"]].copy()
+        units = meta[["ID", "lon", "lat"]].copy()
+        units["ID"] = units["ID"].astype(str)
         units["region"] = code
         # Normalised against the TRAINING centroids' span, so a holdout region
         # can land outside [0, 1]; that is what extrapolation looks like and it

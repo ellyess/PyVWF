@@ -90,19 +90,31 @@ def _centroid_features() -> pd.DataFrame:
 
 
 def _unit_features(holdout: str, test_meta: pd.DataFrame) -> pd.DataFrame:
+    """SET_A features for one region's test fleet, aligned row-for-row.
+
+    The cached file holds the FULL test fleet; the tensor fleet has had units
+    without ERA5 coverage removed, so the two differ in length and the rows must
+    be matched rather than assumed. Matching is on ID: an earlier version keyed
+    on rounded coordinates, and because several units share a location exactly
+    -- six in the Danish fleet alone -- the lookup returned 5,411 rows for a
+    5,399-unit fleet and silently shifted every prediction after the first
+    duplicate. The assertion below is what makes that impossible to repeat.
+    """
     if holdout not in _UNIT_FEATURES:
         path = RF_FEATURES / f"units_{holdout}.csv"
         if path.exists():
-            feats = pd.read_csv(path)
-            if len(feats) != len(test_meta):
-                # The cached rows are the full test fleet; the tensor fleet has
-                # had units without ERA5 coverage removed. Realign on position
-                # rather than trusting the row order.
-                key = pd.MultiIndex.from_arrays(
-                    [feats.lon.round(6), feats.lat.round(6)])
-                want = pd.MultiIndex.from_arrays(
-                    [test_meta.lon.round(6), test_meta.lat.round(6)])
-                feats = feats.set_index(key).loc[want].reset_index(drop=True)
+            feats = pd.read_csv(path, dtype={"ID": str})
+            if "ID" not in feats.columns:
+                raise ValueError(
+                    f"{path} predates ID-based alignment; rerun "
+                    "scripts/pinn/prep_rf_features.py")
+            feats = (test_meta[["ID"]].astype({"ID": str})
+                     .merge(feats, on="ID", how="left", validate="one_to_one"))
+            if len(feats) != len(test_meta) or feats[SET_A].isna().any().any():
+                raise ValueError(
+                    f"{holdout}: cached RF features do not align with the test "
+                    f"fleet ({len(feats)} vs {len(test_meta)} rows, "
+                    f"{int(feats[SET_A].isna().any(axis=1).sum())} unmatched)")
             _UNIT_FEATURES[holdout] = feats
         else:
             centroids = _centroid_features()
@@ -252,8 +264,8 @@ def main():
 
 
 def te_meta_frame(r) -> pd.DataFrame:
-    """lon/lat frame for the RF baseline, aligned to the tensor unit order."""
-    return pd.DataFrame({"lon": r.lon, "lat": r.lat})
+    """ID/lon/lat frame for the RF baseline, in the tensor unit order."""
+    return pd.DataFrame({"ID": r.ids.astype(str), "lon": r.lon, "lat": r.lat})
 
 
 def summarise(res: pd.DataFrame, tag: str):
