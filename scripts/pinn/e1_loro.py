@@ -307,6 +307,17 @@ def summarise(res: pd.DataFrame, tag: str):
     print(skill.round(3).to_string())
     agg.to_csv(OUT / f"e1_{tag}_summary.csv", index=False)
 
+    # The gates are defined on the "pinn" arm. A run of a different arm -- the
+    # abstention variant, say -- has no such column, and its per-holdout results
+    # are already on disk by this point, so the summary must decline to score
+    # rather than take the process down after an hour of fitting.
+    if "pinn" not in piv.columns:
+        print(f"\n### Gates not scored: this run has no 'pinn' arm "
+              f"(arms present: {', '.join(piv.columns)})")
+        print(f"    per-holdout results are in e1_{tag}_raw.csv; score them with "
+              f"scripts/pinn/e1_report.py --tag {tag}")
+        return
+
     print(f"\n### Gate P1: pinn beats uncorrected, and degrades nothing by >10%\n")
     better = (piv["pinn"] < base)
     worse10 = (piv["pinn"] > base * 1.10)
@@ -315,14 +326,14 @@ def summarise(res: pd.DataFrame, tag: str):
           f"{', '.join(sorted(piv.index[worse10])) or 'none'}")
     print(f"  P1 {'PASS' if better.sum() >= 3 and not worse10.any() else 'FAIL'}")
 
-    if "rf-transfer" in piv:
+    if "rf-transfer" in piv and "pinn" in piv:
         beats = (piv["pinn"] < piv["rf-transfer"])
         print(f"\n### Gate P2: pinn beats the incumbent RF transfer\n")
         print(f"  beats rf-transfer in {int(beats.sum())}/5: "
               f"{', '.join(sorted(piv.index[beats]))}")
         print(f"  P2 {'PASS' if beats.sum() >= 3 else 'FAIL'}")
 
-    if "pinn-ablation" in piv:
+    if "pinn-ablation" in piv and "pinn" in piv:
         print(f"\n### Gate P3: does the physics earn its place?\n")
         d = (piv["pinn-ablation"] - piv["pinn"])
         print(d.round(4).to_string())
