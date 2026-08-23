@@ -10,6 +10,18 @@
 #
 # Everything is appended to output/pinn/logs/. To watch:  tail -f output/pinn/logs/run.log
 # To stop:  pkill -f 'scripts/pinn/'
+#
+# Rough budget, in stage order, on eight cores:
+#   00 tests            1 min
+#   01 E1 primary     ~4.8 h   <- the gated result; five seeds, as specified
+#   02 report           secs
+#   03 E2 audit       ~0.3 h
+#   04 E4 abstention  ~1.3 h   } three seeds each: sensitivities, not gates,
+#   05 E3 density     ~1.3 h   } and the seed spread is already known to be
+#   06 E7 nine regions~1.5 h   } about 2e-4 RMSE
+#   07 E5 MLP         ~2.5 h
+# About 12 hours end to end. Stages are ordered so a night that ends early still
+# ends with the gated result and the physics audit on disk.
 set -u
 
 cd "$(dirname "$0")/../.."
@@ -52,12 +64,12 @@ stage 03_e2_audit         $PY scripts/pinn/e2_physics_audit.py --epochs 60
 # 3. Abstention outside the physiographic envelope (addendum 4). Directly
 #    addresses P1's "degrades nothing by more than 10%" clause.
 stage 04_e4_abstention    $PY -u scripts/pinn/e1_loro.py \
-                              --arms pinn-abstain --seeds 0 1 2 3 42 \
+                              --arms pinn-abstain --seeds 0 1 2 \
                               --epochs 60 --tag abstain
 
 # 4. Air density as its own arm (addendum 1).
 stage 05_e3_density       $PY -u scripts/pinn/e1_loro.py \
-                              --arms pinn --density --seeds 0 1 2 3 42 \
+                              --arms pinn --density --seeds 0 1 2 \
                               --epochs 60 --tag density
 
 # 5. Nine regions instead of five (addendum 5). Fewer seeds: a sensitivity,
