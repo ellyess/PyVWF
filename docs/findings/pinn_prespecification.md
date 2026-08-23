@@ -193,3 +193,54 @@ explanation for the UK failure would have to be withdrawn.
 
 **Not a gate.** P1, P2 and P3 stand as written. This is one prediction about
 one region, recorded so it cannot be constructed after the fact.
+
+---
+
+## Addendum 4: two further arms, registered before any transfer result exists
+
+E1 is running and has produced no completed arm. Both of the following are
+committed to now, and both will be reported whatever E1 says -- including if
+E1's gates pass and they turn out to be unnecessary.
+
+### E4: abstention outside the physiographic envelope
+
+D5 measured what the earlier work inferred: half the British and American test
+units sit outside the training regions' terrain envelope, and the American fleet
+reaches 22 standard deviations from its nearest training analogue. A correction
+fitted on one envelope and applied far outside it is extrapolation whatever its
+functional form, and `ml_transfer_retest.md` named "predict only where training
+data covers the local envelope, abstain elsewhere" as future work. D5 supplies
+the measurement that makes it implementable.
+
+**The rule, fixed here.** For each unit, `d` is the distance in standardised
+terrain-feature space to the nearest TRAINING unit. `d0` is the 95th percentile
+of the training fleet's own within-training nearest-neighbour distance -- a
+scale the training set calibrates for itself, with nothing tuned on the holdout.
+The terrain terms are damped by
+
+    w = exp(-max(0, d - d0)^2 / d0^2),   gamma_eff = w*gamma,  delta_eff = w*delta
+
+so `w = 1` anywhere inside the envelope and decays outside it. Only the terrain
+terms are damped. Conversion efficiency, the sub-daily spread and air density
+are not: losses and thin air do not stop existing because the terrain is
+unfamiliar, and the fleet features are well covered everywhere.
+
+**Predictions.** (1) The worst per-region degradation relative to uncorrected
+ERA5 shrinks. (2) Regions with high coverage (DK 93%, DE 89%) move by less than
+0.002 RMSE, because `w` is essentially 1 throughout. (3) The mean skill across
+regions does not fall. Failing (2) would mean the gate is firing where it should
+be dormant, and would invalidate the rule as specified.
+
+### E5: capacity sensitivity, linear heads against an MLP
+
+The heads are linear by default: 37 parameters in total. The same model with
+two 16-wide hidden layers is a genuine neural network and a fair question --
+whether the extra capacity buys anything.
+
+**Prediction:** the MLP improves the in-region arm and is equal or WORSE on
+zero-shot transfer, because added capacity is spent on within-region structure
+that D0 already showed does not carry across regions. If the MLP transfers
+better, the linear default is wrong and will be changed.
+
+Reported as a sensitivity. It cannot promote or demote any gate in P1-P3, which
+are scored on the linear model as committed.
