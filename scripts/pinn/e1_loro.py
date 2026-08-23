@@ -64,25 +64,41 @@ AFFINE_SCORECARD = {"DK": 0.085, "DE": 0.057, "UK": 0.115, "US": 0.098, "BR": 0.
 
 
 # ------------------------------------------------------------- RF baseline ---
+# The published SET_A features depend only on position, so they are the same
+# for every holdout. Deriving them means reading ETOPO and differentiating a
+# 22-million-pixel window for the American box; doing that once per holdout was
+# both the slowest step in the run and its largest memory spike.
+_CENTROIDS: pd.DataFrame | None = None
+_UNIT_FEATURES: dict[str, pd.DataFrame] = {}
+
+
+def _centroid_features() -> pd.DataFrame:
+    global _CENTROIDS
+    if _CENTROIDS is None:
+        c = build_centroids(RUNS)
+        for x in ("lon", "lat"):
+            c[f"{x}_norm"] = (c[x] - c[x].min()) / (c[x].max() - c[x].min())
+        _CENTROIDS = terrain_features(c)
+    return _CENTROIDS
+
+
 def rf_affine_predictions(holdout: str, test_meta: pd.DataFrame, seeds):
     """Per-unit (scalar, offset) from the published RF transfer recipe."""
-    centroids = build_centroids(RUNS)
-    for c in ("lon", "lat"):
-        centroids[f"{c}_norm"] = ((centroids[c] - centroids[c].min())
-                                  / (centroids[c].max() - centroids[c].min()))
-    centroids = terrain_features(centroids)
+    centroids = _centroid_features()
     train = centroids[centroids.region != holdout]
 
-    # Test units described the same way. Normalisation constants come from the
-    # TRAINING centroids, so the holdout is genuinely unseen -- values outside
-    # [0, 1] are what extrapolation looks like and are not clipped away.
-    units = test_meta[["lon", "lat"]].copy()
-    units["region"] = holdout
-    for c in ("lon", "lat"):
-        lo, hi = centroids[c].min(), centroids[c].max()
-        units[f"{c}_norm"] = (units[c] - lo) / (hi - lo)
-    units["abs_lat"] = units["lat"].abs()
-    units = terrain_features(units)
+    if holdout not in _UNIT_FEATURES:
+        # Test units described the same way. Normalisation constants come from
+        # the TRAINING centroids, so the holdout is genuinely unseen -- values
+        # outside [0, 1] are what extrapolation looks like, not clipped away.
+        units = test_meta[["lon", "lat"]].copy()
+        units["region"] = holdout
+        for x in ("lon", "lat"):
+            lo, hi = centroids[x].min(), centroids[x].max()
+            units[f"{x}_norm"] = (units[x] - lo) / (hi - lo)
+        units["abs_lat"] = units["lat"].abs()
+        _UNIT_FEATURES[holdout] = terrain_features(units)
+    units = _UNIT_FEATURES[holdout]
 
     out = {}
     for target in ("scalar", "offset"):
