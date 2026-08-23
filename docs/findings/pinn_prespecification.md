@@ -244,3 +244,17 @@ better, the linear default is wrong and will be changed.
 
 Reported as a sensitivity. It cannot promote or demote any gate in P1-P3, which
 are scored on the linear model as committed.
+
+### Addendum 4a: clarification to E4's threshold (before E4 was run)
+
+`d0` was specified as "the 95th percentile of the training fleet's own
+within-training nearest-neighbour distance". Implemented over raw rows that is
+degenerate: German rows are postcode centroids and British rows are farm
+generation split across turbines, so **52% of those distances are exactly
+zero** and the 95th percentile comes out at 0.97 instead of the 2.38 that
+distinct sites give. The correction would have been damped more than twice as
+hard as the training data's real spacing warrants.
+
+The reference set is therefore deduplicated before the threshold is taken. This
+is the specification's evident intent -- the spacing between distinct sites --
+not a change of rule, and it is fixed here before E4 has been run even once.

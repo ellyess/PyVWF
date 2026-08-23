@@ -255,7 +255,14 @@ def coverage_weight(
     Returns:
         Weight per test unit, shape ``(N,)``.
     """
-    ref = torch.cat([std.terrain(r) for r in train_regions])
+    # Deduplicated first, and this matters. German rows are postcode centroids
+    # and British rows are farm generation split across turbines, so thousands
+    # of rows describe a few hundred distinct sites: 52% of the raw
+    # within-training nearest-neighbour distances are exactly zero, which drags
+    # the 95th percentile from 2.38 down to 0.97 and damps the correction more
+    # than twice as hard as the training data's real spacing warrants. The
+    # threshold has to be the spacing between distinct SITES.
+    ref = torch.unique(torch.cat([std.terrain(r) for r in train_regions]), dim=0)
     d0 = torch.quantile(_nn_distance(ref, ref, exclude_self=True), 0.95)
     d = _nn_distance(std.terrain(test), ref)
     excess = (d - d0).clamp(min=0.0)
