@@ -216,6 +216,52 @@ class Standardiser:
         return (r.fleet_raw[sl] - self.f_mean) / self.f_std
 
 
+def _nn_distance(query: torch.Tensor, reference: torch.Tensor,
+                  exclude_self: bool = False, chunk: int = 256) -> torch.Tensor:
+    """Distance from each query row to its nearest reference row."""
+    out = torch.empty(len(query))
+    for i in range(0, len(query), chunk):
+        d = torch.cdist(query[i:i + chunk], reference)
+        if exclude_self:
+            n = d.shape[0]
+            idx = torch.arange(i, i + n)
+            d[torch.arange(n), idx] = float("inf")
+        out[i:i + chunk] = d.min(dim=1).values
+    return out
+
+
+def coverage_weight(
+    test: "RegionTensors",
+    train_regions: list["RegionTensors"],
+    std: "Standardiser",
+) -> torch.Tensor:
+    """How far inside the training physiography each test unit sits, in [0, 1].
+
+    D5 measured that half the British and American test units lie outside the
+    training regions' terrain envelope, and that the American fleet reaches 22
+    standard deviations from its nearest training analogue. A correction fitted
+    on one envelope and evaluated far outside it is extrapolation whatever its
+    functional form, so the terrain terms are damped with distance:
+
+        w = exp(-max(0, d - d0)^2 / d0^2)
+
+    where ``d`` is the distance to the nearest training unit in standardised
+    terrain-feature space and ``d0`` is the 95th percentile of the training
+    fleet's own within-training nearest-neighbour distance. The threshold is
+    therefore calibrated by the training set against itself, with nothing tuned
+    on the region being predicted: ``w`` is 1 anywhere the training data is as
+    dense as it is internally, and decays beyond that.
+
+    Returns:
+        Weight per test unit, shape ``(N,)``.
+    """
+    ref = torch.cat([std.terrain(r) for r in train_regions])
+    d0 = torch.quantile(_nn_distance(ref, ref, exclude_self=True), 0.95)
+    d = _nn_distance(std.terrain(test), ref)
+    excess = (d - d0).clamp(min=0.0)
+    return torch.exp(-(excess ** 2) / (d0 ** 2).clamp(min=1e-6))
+
+
 def simulate_monthly(
     r: RegionTensors,
     model: PhysicsCorrection | None,
@@ -224,6 +270,7 @@ def simulate_monthly(
     *,
     profile: str = "power",
     density: bool = False,
+    damp: torch.Tensor | None = None,
     quad=None,
 ) -> torch.Tensor:
     """Monthly capacity factor for a slice of units.
@@ -239,6 +286,13 @@ def simulate_monthly(
     gamma, delta, eta, kappa = model(
         std.terrain(r, sl), std.fleet(r, sl), r.relief[sl]
     )
+    if damp is not None:
+        # Only the TERRAIN terms are damped outside the training envelope.
+        # Conversion losses and thin air do not stop existing because the
+        # terrain is unfamiliar, and the fleet features are covered everywhere.
+        w = damp[sl]
+        gamma = gamma * w
+        delta = delta * w
     if profile == "power":
         ratio = hub_wind_ratio(r.height[sl], shear=r.shear[:, sl] + delta,
                                profile="power")
@@ -330,6 +384,7 @@ def predict_frame(
     *,
     profile: str = "power",
     density: bool = False,
+    damp: torch.Tensor | None = None,
 ) -> pd.DataFrame:
     """Tidy (ID, year, month, cf_sim, cf_obs, capacity) frame for the harness."""
     quad = gauss_hermite(N_QUAD)
@@ -337,7 +392,7 @@ def predict_frame(
     for start in range(0, r.n_units, UNIT_BATCH):
         sl = torch.arange(start, min(start + UNIT_BATCH, r.n_units))
         preds.append(simulate_monthly(r, model, std, sl, profile=profile,
-                                      density=density, quad=quad))
+                                      density=density, damp=damp, quad=quad))
     pred = torch.cat(preds, dim=1).numpy()
 
     years = np.array([y for y, _ in r.months])
