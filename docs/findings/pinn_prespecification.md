@@ -156,3 +156,40 @@ reporting coverage is partial.
 training loss moves 0.5% between epoch 40 and epoch 79. Gauss-Hermite nodes
 stay at 5, on the measurement that 3, 5 and 9 give an identical held-out RMSE to
 four decimals.
+
+---
+
+## Addendum 3: the UK prediction (registered while the DK holdout was running)
+
+E1 runs its holdouts in the order DK, DE, UK, US, BR, and at the time of
+writing the run had produced no completed arm for any region. The United
+Kingdom is third, roughly two hours away. What follows is therefore a genuine
+forecast, and it is the sharpest available test of the claim that the
+two-stage design, not the regressor, is what fails.
+
+**The reasoning.** D4 measured the reliability of the per-cluster affine
+factors and found the UK's are the worst of the five by a wide margin: two
+clusters 20-30 km apart already differ by 59% of the region's entire scalar
+variance, against 6% in Brazil and 15% in Germany. At k=100 over 348 turbines
+the UK's clusters hold about three and a half turbines each, and the factors
+are correspondingly noisy. Any method that learns FROM those factors -- the
+published RF baseline included -- is fitting a target that is substantially
+estimation noise, and D3 made the UK worse, not better, by describing terrain
+more carefully: a model chasing noise it cannot distinguish from signal.
+
+The physics-informed model never touches those factors. It is fitted to
+observed generation directly, so the UK's thin clusters cost it nothing beyond
+the observations they were built from.
+
+**The prediction.** The physics-informed model's advantage over the RF transfer
+baseline, measured as `rmse(rf-transfer) - rmse(pinn)` on the held-out year,
+is at least as large for the UK as the median of that quantity across the five
+regions.
+
+**What would falsify it.** A UK advantage below the median would say the UK's
+difficulty is something other than target noise -- most likely its
+pseudo-replicated farm observations or its offshore fraction -- and the D4
+explanation for the UK failure would have to be withdrawn.
+
+**Not a gate.** P1, P2 and P3 stand as written. This is one prediction about
+one region, recorded so it cannot be constructed after the fact.
