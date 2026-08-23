@@ -64,10 +64,13 @@ AFFINE_SCORECARD = {"DK": 0.085, "DE": 0.057, "UK": 0.115, "US": 0.098, "BR": 0.
 
 
 # ------------------------------------------------------------- RF baseline ---
-# The published SET_A features depend only on position, so they are the same
-# for every holdout. Deriving them means reading ETOPO and differentiating a
-# 22-million-pixel window for the American box; doing that once per holdout was
-# both the slowest step in the run and its largest memory spike.
+# The published SET_A features depend only on position, so they are identical
+# for every holdout, and deriving them means differentiating a 22-million-pixel
+# ETOPO window for the American box. scripts/pinn/prep_rf_features.py does that
+# once, in a process holding nothing else; this reads the result. Falling back
+# to computing them inline keeps the script self-sufficient, at the cost of
+# that memory spike.
+RF_FEATURES = ROOT / "output" / "pinn" / "rf_features"
 _CENTROIDS: pd.DataFrame | None = None
 _UNIT_FEATURES: dict[str, pd.DataFrame] = {}
 
@@ -75,30 +78,49 @@ _UNIT_FEATURES: dict[str, pd.DataFrame] = {}
 def _centroid_features() -> pd.DataFrame:
     global _CENTROIDS
     if _CENTROIDS is None:
-        c = build_centroids(RUNS)
-        for x in ("lon", "lat"):
-            c[f"{x}_norm"] = (c[x] - c[x].min()) / (c[x].max() - c[x].min())
-        _CENTROIDS = terrain_features(c)
+        path = RF_FEATURES / "centroids.csv"
+        if path.exists():
+            _CENTROIDS = pd.read_csv(path)
+        else:
+            c = build_centroids(RUNS)
+            for x in ("lon", "lat"):
+                c[f"{x}_norm"] = (c[x] - c[x].min()) / (c[x].max() - c[x].min())
+            _CENTROIDS = terrain_features(c)
     return _CENTROIDS
+
+
+def _unit_features(holdout: str, test_meta: pd.DataFrame) -> pd.DataFrame:
+    if holdout not in _UNIT_FEATURES:
+        path = RF_FEATURES / f"units_{holdout}.csv"
+        if path.exists():
+            feats = pd.read_csv(path)
+            if len(feats) != len(test_meta):
+                # The cached rows are the full test fleet; the tensor fleet has
+                # had units without ERA5 coverage removed. Realign on position
+                # rather than trusting the row order.
+                key = pd.MultiIndex.from_arrays(
+                    [feats.lon.round(6), feats.lat.round(6)])
+                want = pd.MultiIndex.from_arrays(
+                    [test_meta.lon.round(6), test_meta.lat.round(6)])
+                feats = feats.set_index(key).loc[want].reset_index(drop=True)
+            _UNIT_FEATURES[holdout] = feats
+        else:
+            centroids = _centroid_features()
+            units = test_meta[["lon", "lat"]].copy()
+            units["region"] = holdout
+            for x in ("lon", "lat"):
+                lo, hi = centroids[x].min(), centroids[x].max()
+                units[f"{x}_norm"] = (units[x] - lo) / (hi - lo)
+            units["abs_lat"] = units["lat"].abs()
+            _UNIT_FEATURES[holdout] = terrain_features(units)
+    return _UNIT_FEATURES[holdout]
 
 
 def rf_affine_predictions(holdout: str, test_meta: pd.DataFrame, seeds):
     """Per-unit (scalar, offset) from the published RF transfer recipe."""
     centroids = _centroid_features()
     train = centroids[centroids.region != holdout]
-
-    if holdout not in _UNIT_FEATURES:
-        # Test units described the same way. Normalisation constants come from
-        # the TRAINING centroids, so the holdout is genuinely unseen -- values
-        # outside [0, 1] are what extrapolation looks like, not clipped away.
-        units = test_meta[["lon", "lat"]].copy()
-        units["region"] = holdout
-        for x in ("lon", "lat"):
-            lo, hi = centroids[x].min(), centroids[x].max()
-            units[f"{x}_norm"] = (units[x] - lo) / (hi - lo)
-        units["abs_lat"] = units["lat"].abs()
-        _UNIT_FEATURES[holdout] = terrain_features(units)
-    units = _UNIT_FEATURES[holdout]
+    units = _unit_features(holdout, test_meta)
 
     out = {}
     for target in ("scalar", "offset"):
