@@ -113,3 +113,46 @@ it, keeping that gate a clean physics-versus-no-physics comparison. E1's
 pre-specified gates are scored on the model as committed, without density; a
 density-enabled run is a separate, clearly labelled arm and cannot promote a
 failed gate.
+
+---
+
+## Addendum 2: fleet features (registered before any transfer result was read)
+
+The first E1 launch was stopped ten minutes in and discarded. At that point the
+run had printed only the uncorrected baselines -- no arm, no seed, no transfer
+score had been produced -- so nothing about the change below was informed by a
+result.
+
+**The defect.** The conversion-efficiency head was given `log10(capacity)` and
+`p_density` as fleet features. Neither is comparable across regions:
+
+| | DK | DE | UK | US | BR |
+|---|---|---|---|---|---|
+| observation unit | turbine | turbine | farm | plant | complex |
+| median capacity (kW) | 750 | 1,800 | 2,300 | **75,000** | **136,400** |
+| `p_density` present | yes | yes | yes | **no** | **no** |
+
+`log10(capacity)` runs 2.9-3.4 in Europe against 4.9-5.1 in the Americas: two
+disjoint ranges, so the head could label the continent from a feature that is
+supposed to describe a fleet. `p_density` is absent for US and BR entirely, and
+was being filled with a constant, which is itself a region flag. A transfer
+score from that model would measure the wrong thing.
+
+**The replacement.** Installed capacity per unit area within 10 km and 50 km,
+plus the offshore flag and hub height. Capacity density is invariant to how rows
+are aggregated -- the megawatts inside a 10 km circle are the same number
+whether they arrive as one plant row or forty turbine rows -- and it is the
+quantity wake losses actually depend on. After the change no fleet feature
+separates the continents: the 5th-95th percentile ranges of both densities
+overlap across all five regions.
+
+**Two limits this does not fix, stated rather than hidden.** Hub height is a
+uniform 100 m default for every Brazilian unit and 80 m for 62% of American
+ones, so it carries real information only in Europe. And capacity density is
+computed from the OBSERVED fleet, so it understates the true density wherever
+reporting coverage is partial.
+
+**Also fixed here:** epochs cut from 80 to 60, on the measurement that the
+training loss moves 0.5% between epoch 40 and epoch 79. Gauss-Hermite nodes
+stay at 5, on the measurement that 3, 5 and 9 give an identical held-out RMSE to
+four decimals.

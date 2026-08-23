@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.neighbors import BallTree
 
 from vwf.pinn.cache import RegionCache, load_cache
 from vwf.pinn.model import PhysicsCorrection
@@ -28,24 +29,49 @@ from vwf.pinn.physics import (
 )
 from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES
 
-FLEET_FEATURES = ("log_capacity", "p_density", "is_offshore", "log_height")
+FLEET_FEATURES = ("log_capdens_10km", "log_capdens_50km", "is_offshore", "log_height")
 N_QUAD = 5          # Gauss-Hermite nodes; the curves are already smooth
 UNIT_BATCH = 384    # units per step, chosen to bound peak memory
+EARTH_R_KM = 6371.0
+
+
+def _capacity_density(meta: pd.DataFrame, radius_km: float) -> np.ndarray:
+    """Installed capacity per unit area within ``radius_km``, in MW/km2.
+
+    The conversion-efficiency head needs a fleet descriptor that means the same
+    thing in every region, and raw capacity does not: a row is one turbine in
+    Denmark and Germany but a whole plant in the United States and a whole
+    complex in Brazil, so median capacity runs 750 kW against 136,400 kW and
+    separates the continents perfectly on data convention rather than physics.
+    A model given that feature can label the region and call it a fleet
+    property.
+
+    Capacity density is invariant to how rows are aggregated -- the megawatts
+    inside a 10 km circle are the same number whether they arrive as one plant
+    row or forty turbine rows -- and it is also the quantity wake losses
+    actually depend on. It is computed from the observed fleet only, so it
+    understates the true density wherever coverage is partial; that
+    understatement is a property of the observations, not of the region's
+    convention.
+    """
+    lon = np.radians(meta["lon"].to_numpy(dtype=float))
+    lat = np.radians(meta["lat"].to_numpy(dtype=float))
+    cap_mw = meta["capacity"].to_numpy(dtype=float) / 1000.0
+    pts = np.column_stack([lat, lon])
+    tree = BallTree(pts, metric="haversine")
+    neighbours = tree.query_radius(pts, r=radius_km / EARTH_R_KM)
+    total = np.array([cap_mw[ix].sum() for ix in neighbours])
+    return total / (np.pi * radius_km ** 2)
 
 
 def _fleet_frame(meta: pd.DataFrame) -> np.ndarray:
-    cap = meta["capacity"].to_numpy(dtype=float)
-    dens = meta.get("p_density")
-    dens = (dens.to_numpy(dtype=float) if dens is not None
-            else np.full(len(meta), np.nan))
-    dens = np.where(np.isfinite(dens), dens, np.nanmedian(dens[np.isfinite(dens)])
-                    if np.isfinite(dens).any() else 400.0)
+    """Fleet descriptors chosen to be comparable across observation units."""
     offshore = (meta.get("type", pd.Series(["onshore"] * len(meta)))
                 .astype(str).str.lower().eq("offshore").to_numpy(dtype=float))
     height = meta["height"].to_numpy(dtype=float)
     return np.column_stack([
-        np.log10(np.clip(cap, 1.0, None)),
-        dens / 100.0,
+        np.log10(np.clip(_capacity_density(meta, 10.0), 1e-4, None)),
+        np.log10(np.clip(_capacity_density(meta, 50.0), 1e-4, None)),
         offshore,
         np.log10(np.clip(height, 5.0, None)),
     ])
@@ -68,9 +94,8 @@ def _drop_unsimulable(cache: RegionCache, *, quiet: bool = False):
     a slowly varying quantity like roughness changes nothing material.
     """
     names = ("w_mean", "w_std", "z0", "shear")
-    arrs = {n: np.array(getattr(cache, {"w_mean": "w_mean", "w_std": "w_std",
-                                        "z0": "z0", "shear": "shear"}[n]),
-                        dtype="float32", copy=True) for n in names}
+    arrs = {n: np.array(getattr(cache, n), dtype="float32", copy=True)
+            for n in names}
     n_days = arrs["w_mean"].shape[0]
     all_bad = np.zeros(arrs["w_mean"].shape[1], dtype=bool)
     for a in arrs.values():
