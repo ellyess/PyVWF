@@ -76,7 +76,15 @@ def fig_transfer(raw: pd.DataFrame, table: pd.DataFrame, out: Path):
 
 def fig_coverage(table: pd.DataFrame, out: Path):
     """Skill against the physiographic coverage measured before any model ran."""
-    joint = pd.read_csv(D5 / "d5_joint.csv").set_index("holdout")
+    # D5 writes a tagged file per region set; fall back to the untagged name
+    # written before tagging existed, and skip the panel rather than crash the
+    # whole figure run if neither is there.
+    candidates = [D5 / "d5_joint_five.csv", D5 / "d5_joint.csv", D5 / "d5_joint_nine.csv"]
+    path = next((c for c in candidates if c.exists()), None)
+    if path is None:
+        print("  (skipping coverage panel: no D5 joint-coverage file found)")
+        return
+    joint = pd.read_csv(path).set_index("holdout")
     regions = [r for r in REGIONS if r in table.index and r in joint.index]
     fig, ax = plt.subplots(figsize=(3.4, 3.0))
     for arm, marker in (("pinn", "o"), ("rf-transfer", "s")):
