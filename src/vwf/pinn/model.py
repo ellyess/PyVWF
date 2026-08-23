@@ -113,6 +113,10 @@ class PhysicsCorrection(nn.Module):
         self.log_relief_scale = nn.Parameter(torch.tensor(np.log(300.0), dtype=torch.float32))
         self.raw_kappa = nn.Parameter(torch.tensor(_preactivation_for(0.5, *kb)))
 
+    def relief_scale(self) -> torch.Tensor:
+        """Relief length scale in metres, bounded away from underflow."""
+        return torch.exp(self.log_relief_scale.clamp(np.log(1.0), np.log(1e4)))
+
     def _bounds(self, b):
         if self.physics:
             return b
@@ -136,8 +140,12 @@ class PhysicsCorrection(nn.Module):
         """
         amp = _scaled_tanh(self.amp(terrain).squeeze(-1), *self._bounds(GAMMA_BOUNDS))
         if self.physics:
-            # Saturating in relief and exactly zero at zero relief.
-            r = relief / torch.exp(self.log_relief_scale)
+            # Saturating in relief and exactly zero at zero relief. The scale is
+            # clamped to 1 m - 10 km, which is generous for a terrain length
+            # scale and, more to the point, keeps the exponential away from the
+            # underflow that would turn relief/scale into an infinity and gamma
+            # into a silent NaN.
+            r = relief / self.relief_scale()
             gamma = amp * (r / (1.0 + r))
         else:
             gamma = amp
@@ -160,5 +168,5 @@ class PhysicsCorrection(nn.Module):
             "eta_mean": float(e.mean()), "eta_std": float(e.std()),
             "eta_min": float(e.min()), "eta_max": float(e.max()),
             "kappa": float(k),
-            "relief_scale_m": float(torch.exp(self.log_relief_scale)),
+            "relief_scale_m": float(self.relief_scale()),
         }

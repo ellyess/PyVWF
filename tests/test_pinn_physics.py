@@ -197,14 +197,25 @@ def test_speedup_is_pinned_to_zero_on_flat_ground(hidden):
     assert float(gamma[7].abs().detach()) > 0.0        # and it is not simply dead
 
 
-def test_bounds_hold_under_extreme_inputs():
+@pytest.mark.parametrize("seed", range(8))
+def test_bounds_hold_under_extreme_inputs(seed):
+    """Bounds, and finiteness, under parameters and inputs far outside training.
+
+    Seeded and swept rather than drawn once: the relief scale is learned in log
+    space, and a perturbation large enough to underflow its exponential used to
+    turn relief/scale into an infinity and gamma into a NaN in a few per cent of
+    draws -- exactly the kind of failure a single random test misses.
+    """
+    g = torch.Generator().manual_seed(seed)
     m = PhysicsCorrection(14, 4)
     with torch.no_grad():
         for p in m.parameters():
-            p.add_(torch.randn_like(p) * 50.0)
-    t = torch.randn(64, 14) * 100.0
-    f = torch.randn(64, 4) * 100.0
-    gamma, delta, eta, kappa = m(t, f, torch.rand(64) * 3000.0)
+            p.add_(torch.randn(p.shape, generator=g) * 50.0)
+    t = torch.randn(64, 14, generator=g) * 100.0
+    f = torch.randn(64, 4, generator=g) * 100.0
+    gamma, delta, eta, kappa = m(t, f, torch.rand(64, generator=g) * 3000.0)
+    for name, v in (("gamma", gamma), ("delta", delta), ("eta", eta)):
+        assert torch.isfinite(v).all(), f"{name} is not finite"
     assert gamma.min() >= GAMMA_BOUNDS[0] - 1e-6
     assert gamma.max() <= GAMMA_BOUNDS[1] + 1e-6
     assert delta.min() >= DELTA_BOUNDS[0] - 1e-6
