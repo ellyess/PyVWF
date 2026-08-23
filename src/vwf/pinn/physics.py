@@ -116,6 +116,44 @@ def hub_wind_ratio(
     raise ValueError(f"unknown profile {profile!r}")
 
 
+def air_density_ratio(elevation: torch.Tensor) -> torch.Tensor:
+    """Air density at a site's elevation, relative to the ISO standard 1.225.
+
+    Power curves are published at standard sea-level density. A turbine at
+    1,200 m stands in air about 11% thinner and makes about 11% less power at
+    the same wind speed, and nothing in the incumbent pipeline represents that:
+    it is absorbed by the fitted scalar, which is one more reason the scalar
+    does not mean anything transferable.
+
+    The International Standard Atmosphere below the tropopause, with no free
+    parameters to fit:
+
+        rho/rho0 = (1 - L z / T0) ** (g / (R L) - 1)
+
+    with L = 0.0065 K/m, T0 = 288.15 K, g = 9.80665 m/s2, R = 287.05 J/(kg K).
+
+    Args:
+        elevation: Site elevation in metres above sea level. Negative values
+            (below-sea-level sites, and offshore points whose ETOPO sample is
+            bathymetry) are clamped to zero.
+
+    Returns:
+        Density ratio, dimensionless and close to 1 near sea level.
+    """
+    z = elevation.clamp(min=0.0)
+    return (1.0 - 0.0065 * z / 288.15).clamp(min=1e-3) ** 4.2559
+
+
+def density_speed_factor(elevation: torch.Tensor) -> torch.Tensor:
+    """IEC 61400-12 equivalent-speed factor ``(rho/rho0) ** (1/3)``.
+
+    The standard way to score a turbine at non-standard density: instead of
+    rescaling the curve, rescale the wind speed entering it, because power goes
+    as density times speed cubed.
+    """
+    return air_density_ratio(elevation) ** (1.0 / 3.0)
+
+
 def gauss_hermite(n: int, device=None, dtype=torch.float32):
     """Nodes and weights for E[f(mu + sigma Z)], Z standard normal."""
     x, w = np.polynomial.hermite.hermgauss(n)

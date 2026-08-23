@@ -23,7 +23,8 @@ import torch
 from vwf.pinn.cache import RegionCache, load_cache
 from vwf.pinn.model import PhysicsCorrection
 from vwf.pinn.physics import (
-    PowerCurveBank, expected_cf, gauss_hermite, hub_wind_ratio, monthly_mean,
+    PowerCurveBank, density_speed_factor, expected_cf, gauss_hermite,
+    hub_wind_ratio, monthly_mean,
 )
 from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES
 
@@ -116,6 +117,7 @@ class RegionTensors:
     terrain_raw: torch.Tensor  # (N, F)
     fleet_raw: torch.Tensor    # (N, G)
     relief: torch.Tensor       # (N,) raw metres, for the speed-up pin
+    elevation: torch.Tensor    # (N,) raw metres, for the air-density factor
     month_id: torch.Tensor     # (T,)
     obs: torch.Tensor          # (M, N), NaN where unobserved
     months: list[tuple[int, int]]
@@ -159,6 +161,7 @@ class RegionTensors:
             terrain_raw=t(meta[list(TERRAIN_FEATURES)].to_numpy(dtype=float)),
             fleet_raw=t(_fleet_frame(meta)),
             relief=t(meta["relief_28km"].to_numpy(dtype=float)),
+            elevation=t(meta["z_site"].to_numpy(dtype=float)),
             month_id=t(month_id, torch.long),
             obs=t(obs), months=months,
             bank=PowerCurveBank(cache.curve_speeds, cache.curve_cf),
@@ -195,6 +198,7 @@ def simulate_monthly(
     sl: slice,
     *,
     profile: str = "power",
+    density: bool = False,
     quad=None,
 ) -> torch.Tensor:
     """Monthly capacity factor for a slice of units.
@@ -216,13 +220,17 @@ def simulate_monthly(
     else:
         ratio = hub_wind_ratio(r.height[sl], z0=r.z0[:, sl], profile="log")
     scale = torch.exp(gamma) * ratio
+    if density:
+        # Applied to the speed entering the curve, not to the wind itself: the
+        # air is thinner, the wind is not slower.
+        scale = scale * density_speed_factor(r.elevation[sl])
     u = r.w[:, sl] * scale
     sigma = (kappa * r.s[:, sl] * scale).clamp(min=1e-3)
     cf = expected_cf(u, sigma, r.curve_idx[sl], r.bank, quad)
     return monthly_mean(cf * eta, r.month_id, len(r.months))
 
 
-def region_loss(r, model, std, *, profile, quad, generator=None):
+def region_loss(r, model, std, *, profile, quad, density=False, generator=None):
     """Capacity-weighted mean squared monthly CF error, over unit minibatches."""
     n = r.n_units
     order = (torch.randperm(n, generator=generator) if generator is not None
@@ -232,7 +240,8 @@ def region_loss(r, model, std, *, profile, quad, generator=None):
     for start in range(0, n, UNIT_BATCH):
         idx = order[start:start + UNIT_BATCH]
         sl = idx
-        pred = simulate_monthly(r, model, std, sl, profile=profile, quad=quad)
+        pred = simulate_monthly(r, model, std, sl, profile=profile,
+                                density=density, quad=quad)
         obs = r.obs[:, sl]
         mask = torch.isfinite(obs)
         if not mask.any():
@@ -250,6 +259,7 @@ def fit(
     hidden: int | None = None,
     physics: bool = True,
     profile: str = "power",
+    density: bool = False,
     epochs: int = 120,
     lr: float = 0.05,
     weight_decay: float = 1e-3,
@@ -272,7 +282,8 @@ def fit(
         # Equal weight per region: the mean of per-region mean errors, not the
         # mean over pooled rows.
         loss = torch.stack([
-            region_loss(r, model, std, profile=profile, quad=quad, generator=gen)
+            region_loss(r, model, std, profile=profile, quad=quad,
+                        density=density, generator=gen)
             for r in regions
         ]).mean()
         loss.backward()
@@ -293,13 +304,15 @@ def predict_frame(
     std: Standardiser | None,
     *,
     profile: str = "power",
+    density: bool = False,
 ) -> pd.DataFrame:
     """Tidy (ID, year, month, cf_sim, cf_obs, capacity) frame for the harness."""
     quad = gauss_hermite(N_QUAD)
     preds = []
     for start in range(0, r.n_units, UNIT_BATCH):
         sl = torch.arange(start, min(start + UNIT_BATCH, r.n_units))
-        preds.append(simulate_monthly(r, model, std, sl, profile=profile, quad=quad))
+        preds.append(simulate_monthly(r, model, std, sl, profile=profile,
+                                      density=density, quad=quad))
     pred = torch.cat(preds, dim=1).numpy()
 
     years = np.array([y for y, _ in r.months])

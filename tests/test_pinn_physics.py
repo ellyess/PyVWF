@@ -234,3 +234,59 @@ def test_ablation_has_no_relief_pin():
     t, f = _inputs(seed=5)
     gamma, _, _, _ = b(t, f, torch.zeros(8))
     assert float(gamma.abs().max().detach()) > 0.0
+
+
+# ---------------------------------------------------------------- density ---
+def test_density_is_unity_at_sea_level_and_below():
+    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    z = torch.tensor([-50.0, -1.0, 0.0])
+    assert torch.allclose(air_density_ratio(z), torch.ones(3), atol=1e-6)
+    assert torch.allclose(density_speed_factor(z), torch.ones(3), atol=1e-6)
+
+
+def test_density_matches_the_standard_atmosphere():
+    """Spot values from the ISA, which the formula must reproduce."""
+    from vwf.pinn.physics import air_density_ratio
+    z = torch.tensor([1000.0, 2000.0, 3000.0])
+    # ISA density 1.1117, 1.0065, 0.9093 kg/m3 against 1.225 at sea level.
+    expected = torch.tensor([1.1117, 1.0065, 0.9093]) / 1.225
+    assert torch.allclose(air_density_ratio(z), expected, atol=2e-3)
+
+
+def test_density_speed_factor_is_the_cube_root():
+    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    z = torch.tensor([0.0, 500.0, 1500.0, 2500.0])
+    assert torch.allclose(density_speed_factor(z), air_density_ratio(z) ** (1 / 3),
+                          atol=1e-6)
+
+
+def test_density_correction_recovers_the_cube_law_exactly():
+    """On a pure v-cubed curve the speed correction reproduces power ~ density.
+
+    This is the identity the IEC equivalent-speed form is built to satisfy, and
+    it is the sharpest available check that the exponent is right.
+    """
+    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    speeds = np.arange(0.0, 40.0 + 1e-9, 0.01)
+    cubic = PowerCurveBank(speeds, ((speeds / 40.0) ** 3)[None, :])
+    u = torch.tensor([8.0, 12.0, 20.0])
+    idx = torch.zeros(3, dtype=torch.long)
+    z = torch.tensor([1500.0, 1500.0, 1500.0])
+    ratio = cubic(u * density_speed_factor(z), idx) / cubic(u, idx)
+    assert torch.allclose(ratio, air_density_ratio(z), atol=1e-4)
+
+
+def test_density_reduces_output_at_altitude(bank):
+    """A real curve, with a cut-in offset, is MORE density-sensitive than v-cubed.
+
+    Below rated the curve rises as (v - v_cut_in) cubed, so a given fractional
+    loss of wind speed costs proportionally more power than the ideal cube law
+    predicts. The reduction must therefore exceed the density deficit itself.
+    """
+    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    u = torch.tensor([8.0])
+    idx = torch.zeros(1, dtype=torch.long)
+    z = torch.tensor([1200.0])
+    ratio = float(bank(u * density_speed_factor(z), idx) / bank(u, idx))
+    assert ratio < float(air_density_ratio(z))     # steeper than the cube law
+    assert 0.75 < ratio < 1.0                       # but not pathological

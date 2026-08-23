@@ -70,3 +70,46 @@ finding is that feature scale, not physics, was the binding constraint.
 - Seeds are [0,1,2,3,42] throughout, as in the published experiment.
 - Any configuration explored beyond the pre-specified one is reported as a
   sensitivity, and cannot promote a failed gate.
+
+---
+
+## Addendum 1: air density (registered before E1's results were read)
+
+Written while E1 was still running; the E1 output file at the time contained
+only the uncorrected baselines. Recorded here rather than folded in silently,
+because adding a model term after seeing a transfer score is tuning, and adding
+one before is physics.
+
+**The omission.** Power scales with air density, and neither the incumbent
+pipeline nor the model as first committed represents it. Power curves are quoted
+at the ISO standard 1.225 kg/m3. A turbine at 1,200 m -- Tehachapi, the Bahia
+highlands, much of the interior US and Brazilian fleets -- sits in air about 11%
+thinner, which is an 11% power reduction that nothing in either model accounts
+for. In the incumbent it is absorbed by the affine scalar; in the model as
+committed it is absorbed by the terrain speed-up, whose amplitude is driven by
+relief -- and relief correlates with elevation. The speed-up term is therefore
+currently conflating two different physical effects with opposite signs.
+
+**The fix has no free parameters.** ISA density ratio from site elevation,
+
+    rho/rho0 = (1 - 0.0065 z / 288.15) ** 4.2559
+
+and the IEC 61400-12 equivalent-speed correction `v_eff = v * (rho/rho0)**(1/3)`
+applied before the power curve. Elevation is already in the cache.
+
+**Pre-registered predictions**, all three of which can fail:
+
+1. Fitted speed-up at high-elevation sites (z > 800 m) FALLS when density is
+   added, because it is currently absorbing the density deficit. If it does not
+   move, the term is not doing what it is named for.
+2. LORO transfer improves, or is unchanged, for the two regions with
+   high-elevation fleets (US, BR).
+3. LORO transfer for the near-sea-level fleets (DK, DE, UK) changes by less
+   than 0.002 RMSE, since their density ratios are within 1% of unity.
+
+**Scoring.** Density is a separate flag, so its contribution is measured on its
+own (E3) rather than being absorbed into the headline. The P3 ablation excludes
+it, keeping that gate a clean physics-versus-no-physics comparison. E1's
+pre-specified gates are scored on the model as committed, without density; a
+density-enabled run is a separate, clearly labelled arm and cannot promote a
+failed gate.

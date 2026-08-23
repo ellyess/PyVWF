@@ -133,6 +133,9 @@ def main():
     ap.add_argument("--hidden", type=int, default=0, help="0 = linear heads")
     ap.add_argument("--regions", nargs="+", default=REGIONS)
     ap.add_argument("--tag", default="primary")
+    ap.add_argument("--density", action="store_true",
+                    help="apply the ISA air-density correction (addendum 1); "
+                         "OFF for the pre-specified E1 arms")
     args = ap.parse_args()
     hidden = args.hidden or None
 
@@ -168,14 +171,28 @@ def main():
         ):
             for seed in args.seeds:
                 tr = [train_sets[c] for c in train_codes]
+                # Density is part of the model's physics, so the ablation arm
+                # never gets it: P3 must stay a clean physics/no-physics test.
+                dens = args.density and physics
                 model, std, hist = fit(tr, hidden=hidden, physics=physics,
-                                       profile="power", epochs=args.epochs,
-                                       seed=seed, verbose=False)
-                m = score(predict_frame(te, model, std), spec)
+                                       profile="power", density=dens,
+                                       epochs=args.epochs, seed=seed, verbose=False)
+                m = score(predict_frame(te, model, std, density=dens), spec)
                 rows.append(dict(holdout=holdout, arm=arm, seed=seed, **m))
                 if arm == "pinn":
                     rep = model.report(std.terrain(te), std.fleet(te), te.relief)
+                    # Pre-registered prediction 1 (addendum 1): the speed-up at
+                    # high-elevation sites should FALL once density is modelled
+                    # explicitly, because it is currently absorbing the deficit.
+                    with torch.no_grad():
+                        g, *_ = model(std.terrain(te), std.fleet(te), te.relief)
+                        high = te.elevation > 800.0
+                        rep["speedup_high_elev"] = (
+                            float(torch.exp(g[high]).mean()) if bool(high.any())
+                            else float("nan"))
+                        rep["n_high_elev"] = int(high.sum())
                     physics_records.append(dict(holdout=holdout, seed=seed,
+                                                density=dens,
                                                 final_loss=hist[-1], **rep))
             sub = [r for r in rows if r["holdout"] == holdout and r["arm"] == arm]
             rm = np.array([r["rmse"] for r in sub])
