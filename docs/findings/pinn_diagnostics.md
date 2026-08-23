@@ -194,7 +194,77 @@ with no pairs closer than 20 km, the fitted nugget is an extrapolation.
 
 ---
 
-## What the five diagnostics jointly say
+---
+
+## D5. Transfer difficulty was predictable before any model ran
+
+`ml_transfer_retest.md` concluded that the binding constraint is regime
+coverage rather than sample count, inferred from which regions failed. It is
+directly measurable. For each region held out, how much of its physiography do
+the other four span?
+
+| holdout | joint coverage | median NN distance | 90th | max |
+|---|---|---|---|---|
+| DK | 93.0% | 0.28 | 0.51 | 1.79 |
+| DE | 89.4% | 0.25 | 1.15 | 3.38 |
+| BR | 70.5% | 1.60 | 2.97 | 6.76 |
+| UK | 50.5% | 2.12 | 3.32 | 5.73 |
+| US | 49.8% | 1.44 | 4.78 | **22.18** |
+
+*Joint coverage* is the share of held-out units inside the training regions'
+1st-99th percentile range on **every** terrain feature at once; *NN distance* is
+the distance to the nearest training unit in standardised feature space.
+
+Denmark and Germany are **interpolation** problems: the training set contains
+near-identical sites. The United Kingdom, the United States and Brazil are
+**extrapolation** problems. Only **57.8%** of American units have an elevation
+the training fleets cover at all -- the mountain-site problem as a number rather
+than a story about Tehachapi.
+
+Two things the row counts hide, and which bear on every result: Germany has
+**579 unique locations behind 4,288 rows** (postcode centroids) and the UK
+**332 behind 5,621** (farm generation split across turbine rows). Both
+contribute far fewer independent physiographic samples than their size suggests,
+and Germany's terrain is sampled at settlement centres rather than at turbines.
+
+Measured before any transfer score was read, so it is a prior expectation, not
+an excuse: no method can be blamed for failing where coverage is near zero, and
+one that succeeds there deserves more credit than one that never had to.
+
+---
+
+## D6. The fitted decomposition is not identified as tightly as it looks
+
+Conversion efficiency and terrain speed-up both reduce output, so over a narrow
+wind regime they trade off. Starting the efficiency at four different values and
+fitting everything else identically:
+
+| eta start | fitted eta | fitted speed-up | training loss | held-out RMSE |
+|---|---|---|---|---|
+| 0.70 | 0.762 | 1.291 | 0.009781 | 0.0946 |
+| 0.80 | 0.794 | 1.252 | 0.009638 | 0.0942 |
+| 0.90 | 0.810 | 1.229 | 0.009668 | 0.0955 |
+| 0.98 | 0.859 | 1.178 | 0.010011 | 0.0980 |
+
+The prediction is pinned (RMSE spread 0.004); the decomposition is not (eta
+spread 0.097 at a loss spread of 0.0004). That is the signature of a flat
+direction, not of an optimiser failing.
+
+Flat ground should anchor it, since the speed-up is structurally zero without
+sub-grid relief and a flat site must therefore load the whole correction onto
+the efficiency. Adding Denmark **narrows eta's spread from 0.097 to 0.034** --
+and **widens the speed-up's from 0.113 to 0.222**. The hypothesis is half right,
+and recorded as such.
+
+**What this bears on.** The pre-specified gates score predictive skill, which
+D6 shows is robust to where the fit puts the split, so E1 stands as specified.
+What it forbids is reading the terms as measurements: a fitted efficiency of
+0.79 must not be reported as "this fleet loses 21%". In a joint fit the
+efficiency is visibly absorbing part of Denmark's wind-speed over-prediction,
+which is not a conversion loss at all.
+
+
+## What the diagnostics jointly say
 
 1. The transfer failure is **not** a metric artefact alone (D0), **not**
    collinearity (D2), and **not only** feature scale (D3).
@@ -204,6 +274,10 @@ with no pairs closer than 20 km, the fitted nugget is an extrapolation.
 3. The one physical variable that tracks the scalar consistently across regions
    is **terrain the reanalysis cannot resolve** (D1, D3), described at the ERA5
    cell scale and above.
+4. Where transfer is hard was **knowable in advance** from physiographic
+   coverage alone (D5), and it is hard exactly where coverage is thin.
+5. Any model that splits the correction into named physical parts must expect
+   those parts to be **less identified than its predictions** (D6).
 
 Together these indict the **two-stage design** rather than the choice of
 regressor. The current method fits free affine factors per cluster, then a
