@@ -30,7 +30,9 @@ def main():
     args = ap.parse_args()
 
     for code in args.regions:
-        spec = load_region(CONFIGS / f"{code.lower()}.toml")
+        # Region codes may carry a hyphen (AU-NEM) where the config filename
+        # uses an underscore (au_nem.toml).
+        spec = load_region(CONFIGS / f"{code.lower().replace('-', '_')}.toml")
         for split in args.splits:
             t0 = time.time()
             print(f"[{code}/{split}] building...")

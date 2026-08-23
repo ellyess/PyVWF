@@ -258,3 +258,46 @@ hard as the training data's real spacing warrants.
 The reference set is therefore deduplicated before the threshold is taken. This
 is the specification's evident intent -- the spacing between distinct sites --
 not a change of rule, and it is fixed here before E4 has been run even once.
+
+---
+
+## Addendum 5: E7, nine regions instead of five (registered before running)
+
+`ml_transfer_retest.md` argued that the binding constraint is regime coverage
+and that the remedy is data acquisition. Four more regions are already in this
+repository -- New Zealand, Chile, Argentina and the Australian NEM -- and the
+caches are now built for all of them. E7 asks whether training on eight regions
+instead of four improves zero-shot transfer to the original five.
+
+**Coverage first, measured before any fit.** Adding the four moves the
+physiographic coverage of the original five only slightly:
+
+| holdout | coverage, 5 regions | coverage, 9 | median NN, 5 | median NN, 9 |
+|---|---|---|---|---|
+| DK | 93.0% | 93.0% | 0.276 | 0.267 |
+| DE | 89.4% | 89.8% | 0.246 | 0.242 |
+| BR | 70.5% | 70.5% | 1.602 | 1.448 |
+| UK | 50.5% | **53.4%** | 2.116 | 1.966 |
+| US | 49.8% | **52.8%** | 1.439 | 1.306 |
+
+Three points for the UK and the US, nothing for the rest. The four new regions
+are themselves split: Argentina (91.5%) and Australia (89.2%) sit inside the
+existing envelope, while New Zealand (33.3%) and Chile (33.9%) are further
+outside it than any original region, Chile reaching a 90th-percentile
+nearest-neighbour distance of 16.1.
+
+**Prediction.** Zero-shot transfer to the original five improves in at most two
+of them, and by less than 0.005 RMSE where it does. The reasoning: coverage is
+what binds, coverage barely moved, and the two regions that add genuinely new
+physiography are the two smallest fleets in the study -- New Zealand has 12
+units and Chile 47.
+
+**What would falsify it.** A larger or broader improvement would mean fleet
+count and physics-sample count matter in their own right, beyond envelope
+coverage, and D5's framing would need revising.
+
+**Weighting stays as in E1**: regions weighted equally regardless of size. This
+is now a stronger assumption -- New Zealand's 12 farms would carry the same
+weight as Denmark's 3,692 turbines -- so a size-tempered variant is reported
+alongside as a sensitivity. Neither can promote or demote P1-P3, which are
+scored on the five-region model.

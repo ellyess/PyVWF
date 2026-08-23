@@ -27,6 +27,7 @@ Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d5_regime_coverage.py
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -46,28 +47,33 @@ KEY = ["relief_28km", "std_84km", "tpi_28km", "z_site", "land_frac_28km",
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--regions", nargs="+", default=REGIONS)
+    ap.add_argument("--tag", default="five")
+    args = ap.parse_args()
+    regions = args.regions
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {c: pd.read_csv(CACHE / f"{c}_train" / "meta.csv", dtype={"ID": str})
-            for c in REGIONS}
+            for c in regions}
     test = {c: pd.read_csv(CACHE / f"{c}_test" / "meta.csv", dtype={"ID": str})
-            for c in REGIONS}
+            for c in regions}
     pd.set_option("display.width", 220)
 
     print(f"{'='*104}\n### Physiography by region (training fleets)\n")
     summary = pd.DataFrame({
-        c: meta[c][KEY].median() for c in REGIONS
+        c: meta[c][KEY].median() for c in regions
     }).T
-    summary.insert(0, "n_units", [len(meta[c]) for c in REGIONS])
+    summary.insert(0, "n_units", [len(meta[c]) for c in regions])
     summary.insert(1, "n_unique_loc",
-                   [meta[c][["lon", "lat"]].drop_duplicates().shape[0] for c in REGIONS])
+                   [meta[c][["lon", "lat"]].drop_duplicates().shape[0] for c in regions])
     print(summary.round(2).to_string())
     print("\n  n_unique_loc matters: German rows are postcode centroids and British")
     print("  rows are farm generation split across turbines, so the number of")
     print("  INDEPENDENT physiographic samples is far below the row count.")
 
     rows, joint_rows = [], []
-    for holdout in REGIONS:
-        train = pd.concat([meta[c] for c in REGIONS if c != holdout])
+    for holdout in regions:
+        train = pd.concat([meta[c] for c in regions if c != holdout])
         te = test[holdout]
         inside_all = np.ones(len(te), dtype=bool)
         for f in TERRAIN_FEATURES:
@@ -94,8 +100,8 @@ def main():
 
     cov = pd.DataFrame(rows)
     joint = pd.DataFrame(joint_rows)
-    cov.to_csv(OUT / "d5_per_feature.csv", index=False)
-    joint.to_csv(OUT / "d5_joint.csv", index=False)
+    cov.to_csv(OUT / f"d5_per_feature_{args.tag}.csv", index=False)
+    joint.to_csv(OUT / f"d5_joint_{args.tag}.csv", index=False)
 
     print(f"\n{'='*104}\n### Per-feature coverage: share of holdout units inside the "
           f"training 1st-99th percentile range\n")
@@ -103,7 +109,7 @@ def main():
     piv = piv.loc[[f for f in TERRAIN_FEATURES]]
     print(piv.round(3).to_string())
     print("\n  worst-covered feature per holdout:")
-    for h in REGIONS:
+    for h in regions:
         f = piv[h].idxmin()
         print(f"    {h}: {f} ({piv.loc[f, h]:.1%} of units in range)")
 
@@ -113,7 +119,7 @@ def main():
     print("  EVERY terrain feature at once. nn_* are distances in standardised")
     print("  feature space to the closest training unit (0 = an identical site).")
 
-    print(f"\nwrote {OUT}/d5_*.csv")
+    print(f"\nwrote {OUT}/d5_*_{args.tag}.csv")
 
 
 if __name__ == "__main__":
