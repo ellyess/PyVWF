@@ -47,7 +47,7 @@ from vwf.harness.regions import load_region  # noqa: E402
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics  # noqa: E402
 from vwf.pinn.physics import PowerCurveBank, expected_cf, hub_wind_ratio, monthly_mean  # noqa: E402
 from vwf.pinn.train import (  # noqa: E402
-    UNIT_BATCH, fit, load_regions, predict_frame,
+    UNIT_BATCH, coverage_weight, fit, load_regions, predict_frame,
 )
 from analysis.ml_transfer_retest import (  # noqa: E402
     RF_KW, RUNS, SET_A, build_centroids, terrain_features,
@@ -183,6 +183,12 @@ def main():
     ap.add_argument("--hidden", type=int, default=0, help="0 = linear heads")
     ap.add_argument("--regions", nargs="+", default=REGIONS)
     ap.add_argument("--tag", default="primary")
+    ap.add_argument("--arms", nargs="+",
+                    default=["pinn", "pinn-ablation", "pinn-in-region"],
+                    choices=["pinn", "pinn-ablation", "pinn-in-region",
+                             "pinn-abstain"],
+                    help="which fitted arms to run; the default is the "
+                         "pre-specified E1 set")
     ap.add_argument("--density", action="store_true",
                     help="apply the ISA air-density correction (addendum 1); "
                          "OFF for the pre-specified E1 arms")
@@ -214,11 +220,15 @@ def main():
         print(f"  rf-transfer      RMSE {rf['rmse']:.4f}  MBE {rf['mbe']:+.4f}  "
               f"(scalar {sc.mean():.3f}+-{sc.std():.3f})", flush=True)
 
-        for arm, physics, train_codes in (
-            ("pinn", True, others),
-            ("pinn-ablation", False, others),
-            ("pinn-in-region", True, [holdout]),
-        ):
+        arm_specs = {
+            # name             physics  training regions  damp outside envelope
+            "pinn":           (True,  others,    False),
+            "pinn-ablation":  (False, others,    False),
+            "pinn-in-region": (True,  [holdout], False),
+            "pinn-abstain":   (True,  others,    True),
+        }
+        for arm in args.arms:
+            physics, train_codes, abstain = arm_specs[arm]
             for seed in args.seeds:
                 tr = [train_sets[c] for c in train_codes]
                 # Density is part of the model's physics, so the ablation arm
@@ -227,7 +237,9 @@ def main():
                 model, std, hist = fit(tr, hidden=hidden, physics=physics,
                                        profile="power", density=dens,
                                        epochs=args.epochs, seed=seed, verbose=False)
-                m = score(predict_frame(te, model, std, density=dens), spec)
+                damp = coverage_weight(te, tr, std) if abstain else None
+                m = score(predict_frame(te, model, std, density=dens,
+                                        damp=damp), spec)
                 rows.append(dict(holdout=holdout, arm=arm, seed=seed, **m))
                 if arm == "pinn":
                     rep = model.report(std.terrain(te), std.fleet(te), te.relief)
