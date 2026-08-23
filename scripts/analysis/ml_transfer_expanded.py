@@ -50,8 +50,8 @@ from ml_transfer_retest import (  # reuse machinery unchanged
     terrain_features,
 )
 
-# The imported module anchors ROOT at scripts/ (parents[1] of scripts/analysis);
-# repoint it at the repo root so build_centroids and terrain_features resolve.
+# Pin the imported module's ROOT to this file's repo root, so build_centroids
+# and terrain_features resolve the same way however either script is invoked.
 _mtr.ROOT = Path(__file__).resolve().parents[2]
 
 # Absolute so it wins over the imported build_centroids' own ROOT anchor.

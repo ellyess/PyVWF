@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.model_selection import KFold
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "output" / "ml_retest"
 
 # ---------------------------------------------------------------- dataset ----
