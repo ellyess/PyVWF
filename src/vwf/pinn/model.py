@@ -60,7 +60,8 @@ def _preactivation_for(value: float, lo: float, hi: float) -> float:
 class _Head(nn.Module):
     """Linear, or a small MLP when ``hidden`` is given."""
 
-    def __init__(self, n_in: int, hidden: int | None, bias0: float, n_out: int = 1):
+    def __init__(self, n_in: int, hidden: int | None, bias0: float, n_out: int = 1,
+                 init_scale: float = 0.0):
         super().__init__()
         if hidden:
             self.net = nn.Sequential(
@@ -70,11 +71,19 @@ class _Head(nn.Module):
             )
         else:
             self.net = nn.Linear(n_in, n_out)
-        # The final layer starts at exactly ``bias0`` for every input, so the
-        # model begins at a stated physical state and moves away from it only
-        # where the observations require it.
+        # The final layer starts at ``bias0`` for every input, so the model
+        # begins at a stated physical state and moves away from it only where
+        # the observations require it. With init_scale = 0 that start is exactly
+        # deterministic, which makes a run reproducible but also makes seeds
+        # meaningless: the gradient is full-batch, so nothing else in the fit is
+        # random and every seed returns the identical model. A small weight
+        # perturbation restores what seeds are for -- probing whether the
+        # optimum is unique, which D6 showed is a live question.
         last = self.net[-1] if hidden else self.net
-        nn.init.zeros_(last.weight)
+        if init_scale > 0:
+            nn.init.normal_(last.weight, std=init_scale)
+        else:
+            nn.init.zeros_(last.weight)
         nn.init.constant_(last.bias, bias0)
 
     def forward(self, x):
@@ -88,6 +97,10 @@ class PhysicsCorrection(nn.Module):
         n_terrain: Number of standardised terrain features.
         n_fleet: Number of standardised fleet features.
         hidden: Width of the hidden layers, or None for linear heads.
+        init_scale: Standard deviation of the initial head weights. Zero gives
+            an exactly deterministic fit, which is reproducible but makes seeds
+            degenerate; the default perturbs the start so that seeds measure
+            whether the optimum is unique.
         physics: When False, every physical constraint is removed -- the relief
             pin on the speed-up disappears and the bounds are widened tenfold --
             while the parameter count and the features stay the same. This is
@@ -96,7 +109,7 @@ class PhysicsCorrection(nn.Module):
     """
 
     def __init__(self, n_terrain: int, n_fleet: int, hidden: int | None = None,
-                 physics: bool = True):
+                 physics: bool = True, init_scale: float = 0.02):
         super().__init__()
         self.physics = physics
         gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS), self._bounds(DELTA_BOUNDS),
@@ -104,9 +117,12 @@ class PhysicsCorrection(nn.Module):
         # Initial state: no speed-up, no shear correction, a 10% conversion
         # loss (a fleet always loses something), and half the within-day spread
         # not yet absorbed by the pre-smoothed curves.
-        self.amp = _Head(n_terrain, hidden, _preactivation_for(0.0, *gb))
-        self.delta = _Head(n_terrain, hidden, _preactivation_for(0.0, *db))
-        self.eta = _Head(n_fleet, hidden, _preactivation_for(0.90, *eb))
+        self.amp = _Head(n_terrain, hidden, _preactivation_for(0.0, *gb),
+                         init_scale=init_scale)
+        self.delta = _Head(n_terrain, hidden, _preactivation_for(0.0, *db),
+                           init_scale=init_scale)
+        self.eta = _Head(n_fleet, hidden, _preactivation_for(0.90, *eb),
+                         init_scale=init_scale)
         # Relief scale at which the speed-up term saturates, in metres. Learned
         # in log space so it stays positive; 300 m is the median ERA5-cell
         # relief across the five training fleets.

@@ -181,7 +181,11 @@ def main():
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2, 3, 42])
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--hidden", type=int, default=0, help="0 = linear heads")
-    ap.add_argument("--regions", nargs="+", default=REGIONS)
+    ap.add_argument("--regions", nargs="+", default=REGIONS,
+                    help="regions to hold out and score, one at a time")
+    ap.add_argument("--train-pool", nargs="+", default=REGIONS,
+                    help="pool the training regions are drawn from, minus the "
+                         "holdout; widen it for the nine-region test (E7)")
     ap.add_argument("--tag", default="primary")
     ap.add_argument("--arms", nargs="+",
                     default=["pinn", "pinn-ablation", "pinn-in-region"],
@@ -196,16 +200,19 @@ def main():
     hidden = args.hidden or None
 
     OUT.mkdir(parents=True, exist_ok=True)
-    specs = {c: load_region(CONFIGS / f"{c.lower()}.toml") for c in REGIONS}
-    train_sets = {c: load_regions([c], "train", CACHE, quiet=True)[0] for c in REGIONS}
-    test_sets = {c: load_regions([c], "test", CACHE, quiet=True)[0] for c in REGIONS}
+    pool = list(dict.fromkeys([*args.train_pool, *args.regions]))
+    specs = {c: load_region(CONFIGS / f"{c.lower().replace('-', '_')}.toml")
+             for c in pool}
+    train_sets = {c: load_regions([c], "train", CACHE, quiet=True)[0] for c in pool}
+    test_sets = {c: load_regions([c], "test", CACHE, quiet=True)[0]
+                 for c in args.regions}
     print("caches loaded:",
-          {c: f"{train_sets[c].n_units}tr/{test_sets[c].n_units}te" for c in REGIONS})
+          {c: f"{train_sets[c].n_units}tr" for c in pool}, flush=True)
 
     rows, physics_records = [], []
     for holdout in args.regions:
         t0 = time.time()
-        others = [c for c in REGIONS if c != holdout]
+        others = [c for c in args.train_pool if c != holdout]
         te, spec = test_sets[holdout], specs[holdout]
         print(f"\n=== holdout {holdout}  (train on {'+'.join(others)}) ===")
 
@@ -214,11 +221,15 @@ def main():
         print(f"  uncorrected      RMSE {base['rmse']:.4f}  MBE {base['mbe']:+.4f}",
               flush=True)
 
-        sc, off = rf_affine_predictions(holdout, te_meta_frame(te), args.seeds)
-        rf = score(affine_frame(te, sc, off), spec)
-        rows.append(dict(holdout=holdout, arm="rf-transfer", seed=-1, **rf))
-        print(f"  rf-transfer      RMSE {rf['rmse']:.4f}  MBE {rf['mbe']:+.4f}  "
-              f"(scalar {sc.mean():.3f}+-{sc.std():.3f})", flush=True)
+        if set(args.train_pool) <= set(REGIONS) and holdout in REGIONS:
+            # The published RF recipe is defined on the five canonical training
+            # runs; with a widened pool there is no matching baseline, so it is
+            # skipped rather than quietly compared against something else.
+            sc, off = rf_affine_predictions(holdout, te_meta_frame(te), args.seeds)
+            rf = score(affine_frame(te, sc, off), spec)
+            rows.append(dict(holdout=holdout, arm="rf-transfer", seed=-1, **rf))
+            print(f"  rf-transfer      RMSE {rf['rmse']:.4f}  MBE {rf['mbe']:+.4f}  "
+                  f"(scalar {sc.mean():.3f}+-{sc.std():.3f})", flush=True)
 
         arm_specs = {
             # name             physics  training regions  damp outside envelope

@@ -301,3 +301,31 @@ is now a stronger assumption -- New Zealand's 12 farms would carry the same
 weight as Denmark's 3,692 turbines -- so a size-tempered variant is reported
 alongside as a sensitivity. Neither can promote or demote P1-P3, which are
 scored on the five-region model.
+
+---
+
+## Addendum 6: the seeds were doing nothing (found mid-run, fixed before E1 completed)
+
+E1's first completed arm printed `pinn RMSE 0.0990 +- 0.0000` across five seeds.
+The zero is not luck. The head weights were initialised to exactly zero with a
+fixed bias, and the gradient is full-batch, so nothing in the fit was random:
+every seed returned the identical model, and five seeds cost five times the
+compute to re-measure one number.
+
+This is a defect in the pre-specification, not only in the code. Seeds were
+specified "as in the published experiment", where they varied a RandomForest;
+carried over to a deterministic optimisation they measure nothing, and quoting a
+spread of 0.0000 would have implied a robustness that had never been tested.
+
+**The fix.** Head weights are now initialised from a small Gaussian
+(std 0.02) with the bias still at the stated physical starting value, so the fit
+still begins at the identity correction but from a different point each seed.
+The spread across seeds now measures what a spread should: whether the optimum
+is unique -- a live question, since D6 found flat directions in the loss.
+
+Verified on Brazil in-region: RMSE 0.0955, 0.0951, 0.0954, 0.0952, 0.0957 across
+the five seeds, sd 0.00023. Small, which is the reassuring answer, but now it is
+an answer rather than an artefact.
+
+E1 is rerun from the start under this change; no result from before it is
+reported.

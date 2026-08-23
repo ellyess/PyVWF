@@ -349,6 +349,7 @@ def fit(
     epochs: int = 120,
     lr: float = 0.05,
     weight_decay: float = 1e-3,
+    init_scale: float = 0.02,
     seed: int = 0,
     verbose: bool = True,
 ) -> tuple[PhysicsCorrection, Standardiser, list[float]]:
@@ -357,7 +358,8 @@ def fit(
     gen = torch.Generator().manual_seed(seed)
     std = Standardiser.fit(regions)
     model = PhysicsCorrection(len(TERRAIN_FEATURES), len(FLEET_FEATURES),
-                              hidden=hidden, physics=physics)
+                              hidden=hidden, physics=physics,
+                              init_scale=init_scale)
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     quad = gauss_hermite(N_QUAD)

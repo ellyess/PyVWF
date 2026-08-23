@@ -170,11 +170,34 @@ def _inputs(n=8, seed=0):
 
 def test_model_starts_at_the_identity_state():
     """No speed-up, no shear correction: the reanalysis is right until proven wrong."""
-    m = PhysicsCorrection(14, 4)
+    m = PhysicsCorrection(14, 4, init_scale=0.0)
     t, f = _inputs()
     gamma, delta, _, _ = m(t, f, torch.full((8,), 500.0))
     assert torch.allclose(gamma, torch.zeros(8), atol=1e-6)
     assert torch.allclose(delta, torch.zeros(8), atol=1e-6)
+
+
+def test_default_init_is_perturbed_but_still_near_identity():
+    """Seeds must actually vary the fit, without moving the physical start.
+
+    With zero weights the optimisation is fully deterministic and seeds measure
+    nothing -- a spread of 0.0000 across seeds that looks like robustness and is
+    not. The default perturbs the weights just enough to break that, while
+    leaving the model's starting physics where it was stated to be.
+    """
+    torch.manual_seed(0)
+    a = PhysicsCorrection(14, 4)
+    torch.manual_seed(1)
+    b = PhysicsCorrection(14, 4)
+    t, f = _inputs()
+    relief = torch.full((8,), 500.0)
+    ga, da, _, _ = a(t, f, relief)
+    gb, db, _, _ = b(t, f, relief)
+    assert not torch.allclose(ga, gb)              # seeds differ
+    # Still identity-ish: a log speed-up of 0.08 is a 8% departure, which is
+    # small against the 0.67x-2.46x range the term is allowed to reach.
+    assert ga.abs().max() < 0.08
+    assert da.abs().max() < 0.08
 
 
 @pytest.mark.parametrize("hidden", [None, 16])
@@ -227,8 +250,8 @@ def test_bounds_hold_under_extreme_inputs(seed):
 
 def test_ablation_matches_the_model_in_capacity():
     """Gate P3 is only a fair test if the two arms differ ONLY in the physics."""
-    a = PhysicsCorrection(14, 4, physics=True)
-    b = PhysicsCorrection(14, 4, physics=False)
+    a = PhysicsCorrection(14, 4, physics=True, init_scale=0.0)
+    b = PhysicsCorrection(14, 4, physics=False, init_scale=0.0)
     assert (sum(p.numel() for p in a.parameters())
             == sum(p.numel() for p in b.parameters()))
     t, f = _inputs()
