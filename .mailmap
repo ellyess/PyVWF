@@ -1,0 +1,26 @@
+# Canonical contributor identities.
+#
+# git shortlog, git log and GitHub's contributor statistics read this file and
+# collapse the identities on the right onto the one on the left. It changes how
+# history is DISPLAYED and rewrites nothing, so hashes and signatures are
+# untouched.
+#
+# Five author identities appear in this repository's history, all of them the
+# same person: two spellings of the name, and three GitHub noreply addresses
+# left by commits made through the web interface.
+#
+# The canonical form matches `user.name` and `user.email` in git config, so
+# commits made from now on need no entry here. The published citation record
+# uses the fuller "Ellyess F. Benmoufok" with an ORCID, and lives in
+# CITATION.cff and .zenodo.json; that is the record for citation, and this file
+# is only for reading history.
+#
+# Deliberately NOT mapped: the committer "GitHub <noreply@github.com>" on
+# web-interface commits. GitHub genuinely was the committer there, with the
+# author being the person who made the change, so the pairing is a true record
+# of how those commits were created rather than a misattribution to correct.
+
+Ellyess Benmoufok <benmoufok.ellyess@gmail.com> Ellyess F. Benmoufok <benmoufok.ellyess@gmail.com>
+Ellyess Benmoufok <benmoufok.ellyess@gmail.com> Ellyess Benmoufok <39857651+EllyessB@users.noreply.github.com>
+Ellyess Benmoufok <benmoufok.ellyess@gmail.com> Ellyess Benmoufok <39857651+ellyess@users.noreply.github.com>
+Ellyess Benmoufok <benmoufok.ellyess@gmail.com> Ellyess <39857651+ellyess@users.noreply.github.com>
