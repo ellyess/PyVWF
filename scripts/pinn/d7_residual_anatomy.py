@@ -73,6 +73,8 @@ def main():
     ap.add_argument("--wake", action="store_true")
     ap.add_argument("--hidden", type=int, default=0)
     ap.add_argument("--tag", default="base")
+    ap.add_argument("--profile", default="power",
+                    choices=["power", "shear-log", "log"])
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     pd.set_option("display.width", 220)
@@ -80,14 +82,15 @@ def main():
     tr = load_regions(args.regions, "train", CACHE, quiet=True)
     print(f"Fitting on {'+'.join(args.regions)} (in-region; this is the model's floor)...")
     model, std, hist = fit(tr, hidden=args.hidden or None, physics=True,
-                           profile="power", density=args.density,
+                           profile=args.profile, density=args.density,
                            wake=args.wake, epochs=args.epochs, seed=0,
                            verbose=False)
     print(f"  final training loss {hist[-1]:.6f}  (rmse {np.sqrt(hist[-1]):.4f})")
 
     frames = []
     for r in tr:
-        f = predict_frame(r, model, std, density=args.density).dropna(subset=["cf_sim"])
+        f = predict_frame(r, model, std, density=args.density,
+                          profile=args.profile).dropna(subset=["cf_sim"])
         f["region"] = r.code
         meta = pd.DataFrame({
             "ID": r.ids.astype(str),
