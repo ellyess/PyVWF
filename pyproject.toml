@@ -28,7 +28,7 @@ classifiers = [
 dynamic = ["version"]
 
 # Everything needed to simulate, bias-correct, evaluate and plot. Data
-# acquisition (ENTSO-E, raw Excel fleet registries) is deliberately NOT here —
+# acquisition (ENTSO-E, raw Excel fleet registries) is deliberately NOT here:
 # it needs credentials and extra libraries most users never touch. See the
 # `data` extra.
 dependencies = [

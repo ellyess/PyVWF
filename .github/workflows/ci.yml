@@ -54,7 +54,7 @@ jobs:
       - name: Install package and test dependencies
         # Install from pyproject rather than a hand-curated pip list, so CI
         # actually exercises the dependency metadata a `pip install pyvwf` user
-        # gets. A curated list silently papers over missing declared deps —
+        # gets. A curated list silently papers over missing declared deps:
         # that is how the missing `bottleneck` dependency reached main.
         # The `data` extra is deliberately NOT installed: the test suite and the
         # example must pass without the data-acquisition libraries.
