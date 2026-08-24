@@ -2,7 +2,8 @@
 and "works when installed".
 
 `load_power_curves` and `add_models` used to read the literal relative paths
-``input/power_curves.csv`` and ``input/models.csv``, so a `pip install pyvwf`
+``input/reference/power_curves.csv`` and ``input/reference/models.csv``, so a
+`pip install pyvwf`
 user working anywhere other than a repository checkout got a FileNotFoundError
 before they could simulate anything. They now resolve through
 ``PyVWFPaths.reference_file``, which prefers the user's own tables and falls

@@ -27,7 +27,6 @@ from vwf.correction import calculate_scalar, find_offset
 from vwf.datasets.era5 import prep_era5
 from vwf.wind import train_simulate_wind
 
-REPO = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "data"
 
 
@@ -40,7 +39,11 @@ def main() -> None:
 
     turbines = pd.read_csv(DATA / "turbines_example.csv")
     observations = pd.read_csv(DATA / "observations_example.csv").set_index("cluster")
-    power_curves = pd.read_csv(REPO / "input" / "power_curves.csv")
+    # Resolve through PyVWFPaths rather than a repository-relative path: it
+    # looks under the input root first and falls back to the open curve
+    # library bundled in vwf.resources, so this runs from an installed
+    # PyVWF with no checkout as well as from the repository.
+    power_curves = pd.read_csv(PyVWFPaths.reference_file("power_curves.csv"))
 
     rows = []
     for cluster, cl in turbines.groupby("cluster"):
