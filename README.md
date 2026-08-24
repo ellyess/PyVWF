@@ -87,9 +87,10 @@ The correction has been fitted and scored against observed generation in the
 regions below. Every figure is read from a `metrics.csv` under
 `output/validation/`, and the [validation
 scorecard](docs/findings/multi_region_validation_scorecard.md) gives the source
-path for each so it can be audited. Read the two caveats under the table before
-quoting any number: these runs are not current with the code, and four of them
-rest on degenerate fits.
+path for each so it can be audited. All figures were re-run on this release
+(v0.4.0). Read the caveat under the table before quoting any number: four of
+these rest on degenerate fits whose per-cluster factors are not usable, even
+though the aggregate metric is sound.
 
 **Turbine and plant level**, best held-out configuration, capacity-factor RMSE
 uncorrected to corrected:
@@ -99,23 +100,23 @@ uncorrected to corrected:
 | Germany | 4,814 turbines | 0.086 → **0.057** | Australia (NEM) | 77 farms | 0.115 → **0.094** |
 | Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 turbines | 0.145 → **0.115** |
 | Brazil † | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** |
-| United States † | 520 plants | 0.110 → **0.098** | Chile † | 59 plants | 0.123 → **0.104** |
+| United States † | 520 plants | 0.110 → **0.097** | Chile † | 59 plants | 0.123 → **0.105** |
 | Argentina † | 59 plants | 0.151 → **0.133** | | | |
 
 **† Degenerate fit.** The aggregate metric is real, but the underlying
 per-cluster factors contain implausible wind scalars, worst in Chile at 80.23
-with one offset that never converged. Do not reuse the factors from these four.
-**All figures above also predate a `calculate_scalar` fix that changes fitted
-scalars on fleets with incomplete reporting**, and have not been re-run since.
-Both caveats, with the per-region fit-quality numbers, are in the
+with one offset that never converged and the United States at 46.39. Do not
+reuse the factors from these four. Every figure above was re-run on the current
+release, and the per-region fit-quality numbers are in the
 [scorecard](docs/findings/multi_region_validation_scorecard.md).
 
-**National level** (ENTSO-E aggregate, 2023): France 0.171 → **0.012**, Belgium
-0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland 0.172 → **0.021**, Sweden
-0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal 0.110 → **0.074**.
+**National level** (ENTSO-E aggregate, held-out 2023): France 0.171 →
+**0.012**, Belgium 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland 0.172 →
+**0.021**, Sweden 0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal 0.110 →
+**0.074**. All eight country-level fits are clean.
 
 **Where it does not work, stated plainly.** Norway is already close to
-unbiased uncorrected and the correction makes it *worse* (0.025 → 0.037). The
+unbiased uncorrected and the correction makes it *worse* (0.034 → 0.039). The
 Netherlands is excluded outright: an ENTSO-E coverage defect caps its reported
 capacity factor and no rescaling repairs it. Chile and Argentina remove the
 mean bias but add limited skill, because ERA5 exaggerates the north-south wind

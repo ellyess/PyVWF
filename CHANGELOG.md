@@ -101,7 +101,7 @@ unchanged and remain pinned bit-for-bit by a golden regression test.
 Every region result rests on a **single held-out test year** and is
 screening-level, not an accredited yield assessment. The correction does not
 help everywhere and the cases where it does not are reported rather than
-dropped: **Norway gets worse** under correction (RMSE 0.025 to 0.037), and the
+dropped: **Norway gets worse** under correction (RMSE 0.034 to 0.039), and the
 **Netherlands is excluded** because an ENTSO-E coverage defect caps its
 reported capacity factor. Chile and Argentina remove the mean bias but add
 limited skill, because ERA5 exaggerates the north-south wind gradient in both.
@@ -109,14 +109,20 @@ The United States carries an unscreened ERCOT/SPP curtailment confound.
 Country-level offsets are fitted against one national series per month and are
 therefore under-determined.
 
-Two further caveats attach to the reported figures themselves. They were
-produced before the `calculate_scalar` sample-mismatch fix in this release and
-have not been re-run, so they are indicative of the method rather than
-reproducible against this tag. And four of the nine turbine-level rows (Chile,
-the United States, Argentina, Brazil) rest on fits containing implausible wind
-scalars, worst in Chile at 80.23 with one offset that never converged: the
-aggregate metrics are real but those per-cluster factors should not be reused.
-Both are documented in `docs/findings/multi_region_validation_scorecard.md`.
+All seventeen regions were re-run on this release so the reported figures are
+reproducible against this tag. The refresh moved almost nothing in aggregate:
+fourteen of the seventeen reproduced to four decimal places, and only Chile
+(0.104 to 0.105), the United States (0.098 to 0.097) and Norway's uncorrected
+baseline (0.025 to 0.034) changed at the reported precision.
+
+One caveat does survive the refresh. Four of the nine turbine-level rows
+(Chile, the United States, Argentina, Brazil) rest on fits containing
+implausible wind scalars: the aggregate metrics are real but those per-cluster
+factors should not be reused. The United States is the instructive case, since
+the `calculate_scalar` fix moved its headline RMSE by 0.0005 while more than
+doubling its worst fitted scalar, from 20.54 to 46.39. A skill metric does not
+reveal this, which is why `fit_quality` now travels with every corrected row.
+See `docs/findings/multi_region_validation_scorecard.md`.
 
 ## [0.3.0] - 2026-07-17
 
