@@ -307,6 +307,13 @@ def simulate_monthly(
     if profile == "power":
         ratio = hub_wind_ratio(r.height[sl], shear=r.shear[:, sl] + delta,
                                profile="power")
+    elif profile == "shear-log":
+        # delta is a log-roughness offset here, not a shear offset: the hourly
+        # exponent is inverted to a roughness and the log law applied, so the
+        # profile has the right curvature away from the 10-100 m band it was
+        # measured over.
+        ratio = hub_wind_ratio(r.height[sl], shear=r.shear[:, sl],
+                               log_z0_offset=delta, profile="shear-log")
     else:
         ratio = hub_wind_ratio(r.height[sl], z0=r.z0[:, sl], profile="log")
     scale = torch.exp(gamma) * ratio
@@ -364,7 +371,8 @@ def fit(
     std = Standardiser.fit(regions)
     model = PhysicsCorrection(len(TERRAIN_FEATURES), len(FLEET_FEATURES),
                               hidden=hidden, physics=physics,
-                              init_scale=init_scale, wake=wake)
+                              init_scale=init_scale, wake=wake,
+                              delta_is_log_z0=(profile == "shear-log"))
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     quad = gauss_hermite(N_QUAD)

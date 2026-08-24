@@ -83,6 +83,7 @@ def hub_wind_ratio(
     shear: torch.Tensor | None = None,
     *,
     profile: str = "power",
+    log_z0_offset: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Ratio of hub-height wind to the 100 m reanalysis wind.
 
@@ -90,10 +91,14 @@ def hub_wind_ratio(
         height: Hub height per unit, metres.
         z0: Roughness length, for ``profile="log"``.
         shear: Power-law exponent between 10 m and 100 m, for ``profile="power"``.
+        log_z0_offset: Additive correction to ``ln z0`` for ``profile="shear-log"``,
+            the learned quantity in that mode.
         profile: ``"log"`` reproduces the incumbent neutral log profile
             ``ln(h/z0)/ln(100/z0)``; ``"power"`` uses ``(h/100)**shear``, whose
             exponent is measured hourly and therefore responds to atmospheric
-            stability, which a static roughness cannot.
+            stability, which a static roughness cannot; ``"shear-log"`` inverts
+            that hourly exponent to a roughness and applies the log law, keeping
+            the stability response while getting the curvature right.
 
     Returns:
         Multiplicative ratio, broadcast over whatever shape the inputs carry.
@@ -113,6 +118,17 @@ def hub_wind_ratio(
         if shear is None:
             raise ValueError("profile='power' needs shear")
         return (height / REF_HEIGHT) ** shear
+    if profile == "shear-log":
+        if shear is None:
+            raise ValueError("profile='shear-log' needs shear")
+        z0 = roughness_from_shear(shear)
+        if log_z0_offset is not None:
+            z0 = (z0 * torch.exp(log_z0_offset)).clamp(min=1e-6, max=2.0)
+        denom = torch.log(
+            torch.tensor(REF_HEIGHT, dtype=z0.dtype, device=z0.device) / z0)
+        denom = torch.where(denom.abs() > 1e-6, denom,
+                            torch.full_like(denom, 1e-6))
+        return torch.log(height / z0) / denom
     raise ValueError(f"unknown profile {profile!r}")
 
 
@@ -152,6 +168,42 @@ def density_speed_factor(elevation: torch.Tensor) -> torch.Tensor:
     as density times speed cubed.
     """
     return air_density_ratio(elevation) ** (1.0 / 3.0)
+
+
+def roughness_from_shear(shear: torch.Tensor) -> torch.Tensor:
+    """Effective roughness length implied by a measured 10-100 m shear exponent.
+
+    The power law and the log law disagree about CURVATURE in ln z, and the
+    disagreement grows with distance from the range the exponent was measured
+    over. Extrapolated from 10-100 m, a power law gives about 1% less wind than
+    the log profile that generated it at 30 m, and about 1% more at 150 m
+    (2-3% at rough sites). The log law has the right shape by construction; the
+    power law's only advantage was that its exponent is measured hourly and so
+    responds to stability, which a static roughness cannot.
+
+    Both can be had, because the relation inverts in closed form. With
+    ``r = w100/w10 = 10**shear`` and the neutral log profile
+    ``r = ln(100/z0) / ln(10/z0)``,
+
+        ln z0 = ln(10) * (r - 2) / (r - 1)
+
+    so an hourly exponent becomes an hourly roughness, and the log law can be
+    applied with it.
+
+    Args:
+        shear: Power-law exponent between 10 m and 100 m.
+
+    Returns:
+        Effective roughness length in metres, clamped to the same physical band
+        the rest of the pipeline uses.
+    """
+    ln10 = float(np.log(10.0))
+    r = torch.pow(torch.tensor(10.0, dtype=shear.dtype, device=shear.device), shear)
+    # r -> 1 is a uniform profile, where the inversion is singular; r <= 1 is a
+    # reversed profile, which no roughness reproduces. Hold r off 1 from above.
+    r = r.clamp(min=1.0 + 1e-4)
+    ln_z0 = ln10 * (r - 2.0) / (r - 1.0)
+    return torch.exp(ln_z0.clamp(min=float(np.log(1e-6)), max=float(np.log(2.0))))
 
 
 def gauss_hermite(n: int, device=None, dtype=torch.float32):

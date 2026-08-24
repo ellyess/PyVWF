@@ -193,6 +193,9 @@ def main():
                              "pinn-abstain"],
                     help="which fitted arms to run; the default is the "
                          "pre-specified E1 set")
+    ap.add_argument("--profile", default="power",
+                    choices=["power", "shear-log", "log"],
+                    help="hub-height profile form (addendum 9)")
     ap.add_argument("--wake", action="store_true",
                     help="add the hyperbolic array-loss term (addendum 8)")
     ap.add_argument("--density", action="store_true",
@@ -248,12 +251,12 @@ def main():
                 # never gets it: P3 must stay a clean physics/no-physics test.
                 dens = args.density and physics
                 model, std, hist = fit(tr, hidden=hidden, physics=physics,
-                                       profile="power", density=dens,
+                                       profile=args.profile, density=dens,
                                        wake=args.wake and physics,
                                        epochs=args.epochs, seed=seed, verbose=False)
                 damp = coverage_weight(te, tr, std) if abstain else None
                 m = score(predict_frame(te, model, std, density=dens,
-                                        damp=damp), spec)
+                                        damp=damp, profile=args.profile), spec)
                 rows.append(dict(holdout=holdout, arm=arm, seed=seed, **m))
                 if arm == "pinn":
                     rep = model.report(std.terrain(te), std.fleet(te), te.relief,

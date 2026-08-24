@@ -395,3 +395,78 @@ def test_efficiency_respects_its_floor_under_extreme_density():
     t, f = _inputs()
     eta = m(t, f, torch.full((8,), 400.0), torch.full((8,), 500.0))[2]
     assert float(eta.min()) >= ETA_FLOOR - 1e-6
+
+
+# ------------------------------------------------------- profile curvature ---
+def test_roughness_inversion_round_trips():
+    """The shear-to-roughness inversion must be exact, not approximate.
+
+    It is derived in closed form from the neutral log profile, so a measured
+    exponent of 0.145 has to come back as z0 = 0.03 m to full precision; any
+    drift here would silently bias every hub height.
+    """
+    from vwf.pinn.physics import roughness_from_shear
+    for z0_true in (0.0002, 0.01, 0.03, 0.1, 0.5):
+        r = np.log(100 / z0_true) / np.log(10 / z0_true)     # w100/w10
+        shear = np.log(r) / np.log(10.0)
+        z0 = float(roughness_from_shear(torch.tensor([shear])))
+        assert z0 == pytest.approx(z0_true, rel=1e-4)
+
+
+def test_shear_log_profile_reproduces_the_log_law_exactly():
+    """The point of the change: right curvature away from the measured band.
+
+    A power law fitted on 10-100 m and extrapolated errs by about 1% at 30 m and
+    1% the other way at 150 m. The shear-log form inverts the same measurement
+    and must land on the log law it came from, at every height.
+    """
+    z0_true = 0.03
+    r = np.log(100 / z0_true) / np.log(10 / z0_true)
+    shear = torch.tensor(float(np.log(r) / np.log(10.0)))
+    for h in (20.0, 30.0, 45.0, 80.0, 120.0, 150.0):
+        hh = torch.tensor(h)
+        got = float(hub_wind_ratio(hh, shear=shear, profile="shear-log"))
+        want = float(np.log(h / z0_true) / np.log(100 / z0_true))
+        assert got == pytest.approx(want, abs=1e-5)
+
+
+def test_power_law_errs_in_opposite_directions_either_side_of_100m():
+    """The fact that corrected the reasoning behind this change.
+
+    A power law extrapolated out of its fitting range does NOT over-predict at
+    both ends: it gives less wind below 100 m and more above. So curvature can
+    explain a tall-turbine over-prediction and cannot explain a short-turbine
+    one.
+    """
+    z0_true = 0.03
+    r = np.log(100 / z0_true) / np.log(10 / z0_true)
+    shear = torch.tensor(float(np.log(r) / np.log(10.0)))
+    def err(h):
+        pw = float(hub_wind_ratio(torch.tensor(h), shear=shear, profile="power"))
+        return pw / float(np.log(h / z0_true) / np.log(100 / z0_true)) - 1
+    assert err(30.0) < -0.005      # under-predicts well below the band
+    assert err(150.0) > +0.005     # over-predicts well above it
+
+
+def test_shear_log_is_unity_at_the_reference_height():
+    shear = torch.tensor([0.10, 0.145, 0.25])
+    r = hub_wind_ratio(torch.tensor(100.0), shear=shear, profile="shear-log")
+    assert torch.allclose(r, torch.ones(3), atol=1e-5)
+
+
+def test_log_z0_offset_moves_the_profile_monotonically():
+    """The learned quantity in this mode: rougher ground, more shear."""
+    shear = torch.tensor(0.145)
+    h = torch.tensor(45.0)
+    ratios = [float(hub_wind_ratio(h, shear=shear, profile="shear-log",
+                                   log_z0_offset=torch.tensor(d)))
+              for d in (-2.0, -1.0, 0.0, 1.0, 2.0)]
+    assert all(a > b for a, b in zip(ratios, ratios[1:]))   # rougher -> less wind at 45 m
+
+
+def test_shear_log_survives_a_degenerate_profile():
+    """A uniform or reversed 10-100 m profile has no roughness that explains it."""
+    from vwf.pinn.physics import roughness_from_shear
+    out = roughness_from_shear(torch.tensor([-0.05, 0.0, 1e-9, 0.6]))
+    assert torch.isfinite(out).all()
+    assert (out > 0).all()

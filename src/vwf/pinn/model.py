@@ -35,6 +35,13 @@ from torch import nn
 #          credible fleet, 1.0 is lossless.
 GAMMA_BOUNDS = (-0.4, 0.9)
 DELTA_BOUNDS = (-0.15, 0.25)
+#   delta, as a log-roughness offset (profile="shear-log"). A factor of exp(2.5)
+#   either way spans essentially the whole physical roughness range from any
+#   starting point: from open water at 1e-4 m to forest or built-up land above
+#   1 m. The offset corrects for sub-grid land cover the reanalysis averages
+#   away, so it should be able to cross that range, and no further; z0 itself is
+#   clamped to [1e-6, 2] m afterwards regardless.
+DELTA_LOG_Z0_BOUNDS = (-2.5, 2.5)
 ETA_BOUNDS = (0.55, 1.0)
 KAPPA_BOUNDS = (0.0, 1.5)
 # Floor on the efficiency AFTER array losses. A dense offshore array can lose
@@ -107,6 +114,9 @@ class PhysicsCorrection(nn.Module):
             default so the gated results stay reproducible.
         wake_feature: Index of the capacity-density column in the fleet feature
             matrix; withheld from the efficiency head when ``wake`` is on.
+        delta_is_log_z0: Interpret the second head's output as an offset to
+            ``ln z0`` rather than to the shear exponent, which is what the
+            ``shear-log`` profile needs. Widens that head's bounds accordingly.
         init_scale: Standard deviation of the initial head weights. Zero gives
             an exactly deterministic fit, which is reproducible but makes seeds
             degenerate; the default perturbs the start so that seeds measure
@@ -120,10 +130,14 @@ class PhysicsCorrection(nn.Module):
 
     def __init__(self, n_terrain: int, n_fleet: int, hidden: int | None = None,
                  physics: bool = True, init_scale: float = 0.02,
-                 wake: bool = False, wake_feature: int = 0):
+                 wake: bool = False, wake_feature: int = 0,
+                 delta_is_log_z0: bool = False):
         super().__init__()
         self.physics = physics
-        gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS), self._bounds(DELTA_BOUNDS),
+        self.delta_is_log_z0 = delta_is_log_z0
+        self._delta_bounds = (DELTA_LOG_Z0_BOUNDS if delta_is_log_z0
+                              else DELTA_BOUNDS)
+        gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS), self._bounds(self._delta_bounds),
                           self._bounds(ETA_BOUNDS), self._bounds(KAPPA_BOUNDS))
         # Initial state: no speed-up, no shear correction, a 10% conversion
         # loss (a fleet always loses something), and half the within-day spread
@@ -211,7 +225,8 @@ class PhysicsCorrection(nn.Module):
             gamma = amp * (r / (1.0 + r))
         else:
             gamma = amp
-        delta = _scaled_tanh(self.delta(terrain).squeeze(-1), *self._bounds(DELTA_BOUNDS))
+        delta = _scaled_tanh(self.delta(terrain).squeeze(-1),
+                             *self._bounds(self._delta_bounds))
         if self.wake and self.physics:
             if capdens is None:
                 raise ValueError("wake=True needs capdens (MW/km2)")
