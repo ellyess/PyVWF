@@ -58,6 +58,10 @@ def grid():
 # ---------------------------------------------------------------------------
 
 def test_unparseable_fields_are_dropped(grid, curves):
+    # pandas 3 raises rather than upcasting a float column in place, so widen
+    # it first. The point of the test is what prepare_country_fleet does with
+    # an unparseable capacity, not how the bad value got there.
+    grid["capacity"] = grid["capacity"].astype(object)
     grid.loc[1, "capacity"] = "not a number"
     out = prepare_country_fleet(grid, curves)
     assert out["ID"].tolist() == ["g0", "g2", "g3"]

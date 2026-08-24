@@ -68,7 +68,7 @@ def test_understated_generation_is_caught_by_the_peak_test():
 
 
 def test_capacity_factor_above_one_is_caught():
-    cf = healthy()["capacity_factor"].to_numpy()
+    cf = healthy()["capacity_factor"].to_numpy().copy()
     cf[5] = 1.29
     report = check_country_cf(series(cf), "XX", warn=False)
     assert any("exceeds 1" in issue for issue in report.issues)
@@ -77,7 +77,7 @@ def test_capacity_factor_above_one_is_caught():
 def test_clip_saturation_is_reported_separately_from_exceeding_one():
     """Rows on the fetcher's ceiling are not merely high; their true value was
     discarded, so they cannot be treated as observations at all."""
-    cf = healthy()["capacity_factor"].to_numpy()
+    cf = healthy()["capacity_factor"].to_numpy().copy()
     cf[:3] = CLIP_CEILING
     report = check_country_cf(series(cf), "XX", warn=False)
     assert any("clip ceiling" in issue for issue in report.issues)

@@ -109,6 +109,11 @@ vwf = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# `python -m pytest` puts the working directory on sys.path but a bare `pytest`
+# does not, and CI invokes the bare form. tests/test_country_zonal.py imports a
+# helper from tests/test_pipeline.py, so the repo root has to be importable
+# either way.
+pythonpath = ["."]
 # Both filters silence UPSTREAM noise, not PyVWF code, so real warnings from
 # this package stay visible. Drop each when the upstream fix ships.
 filterwarnings = [
