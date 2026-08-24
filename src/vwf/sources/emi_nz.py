@@ -118,7 +118,7 @@ class EMINewZealandSource(ObservationSource):
             raise FileNotFoundError(
                 f"EMI-NZ farm metadata not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step: docs/runbooks/NZ.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/nz.md)."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -144,7 +144,7 @@ class EMINewZealandSource(ObservationSource):
             raise FileNotFoundError(
                 f"EMI-NZ observations not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step: docs/runbooks/NZ.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/nz.md)."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

@@ -1,4 +1,4 @@
-"""Run-manifest provenance (docs/design/HARNESS_DESIGN.md §6)."""
+"""Run-manifest provenance (docs/design/harness.md §6)."""
 import json
 import shutil
 from importlib import resources

@@ -68,7 +68,7 @@ Trains 2021-2023, tests 2024. On the cleaned fleet the affine correction helps
   grid under-resolves the wind (the same limit as Chile's Atacama); their
   cluster fits an extreme scalar. This is the reanalysis-wind limit, fixable
   only with a higher-resolution wind product. See
-  [`south_america_spatial_bias.md`](../findings/south_america_spatial_bias.md).
+  [`region-south-america.md`](../findings/region-south-america.md).
 - **Capacity provenance.** Denominators are GWPT estimates corrected by the
   turbine research; good but not authoritative.
 - **Curtailment** is light in Argentina over this window but unscreened

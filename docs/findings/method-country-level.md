@@ -11,8 +11,8 @@ The country-level path is wired consistently with the turbine-level path, but it
 fits a different estimator under the same name, and its observations were never
 checked. Two of nine regions could not load at all, and four had capacity-factor
 series that are physically impossible. Fixes for the loading, the checking and
-the spatial weighting are in this branch. The identifiability of the joint offset
-fit is unchanged and remains open.
+the spatial weighting are described in section 4. The identifiability of the
+joint offset fit is unchanged and remains open.
 
 ## 1. What each path fits
 
@@ -213,7 +213,7 @@ be reported; the earlier NL results in
 [TURBINE_GRID_EVALUATION_ANALYSIS.md](TURBINE_GRID_EVALUATION_ANALYSIS.md) are
 explained by this and not by fleet-composition drift alone.
 
-## 4. Changes made in this branch
+## 4. Changes made
 
 - `vwf/loaders/country_obs_checks.py`: physical-bound gates on a country CF
   series (peak, ceiling saturation, mean band, frozen capacity register, missing
@@ -237,15 +237,15 @@ explained by this and not by fleet-composition drift alone.
 GWPT coordinate coverage is 100% of operating projects in all nine countries, so
 nothing is lost to missing geolocation.
 
-**Design note.** [HARNESS_DESIGN.md](../design/HARNESS_DESIGN.md) records that
+**Design note.** [harness.md](../design/harness.md) records that
 the country-level joint-offset optimiser is studied by the identifiability
 work and changed by nothing. It is unchanged: `find_offsets_country_level` is untouched, and every
 `entsoe-country` region still routes to it, because a single national
 observation is not per-cluster. The new per-cluster route is reached only by the
 new `entsoe-zonal` source. Other changes in this section (weighting, monthly
 aggregation, cluster validation, year-specific fleets) do move the numbers for
-existing country regions, so results from before this branch are not comparable
-with results after it.
+existing country regions, so country-level results produced before these
+changes are not comparable with results produced after them.
 
 ### Second pass
 

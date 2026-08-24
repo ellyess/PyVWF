@@ -8,7 +8,7 @@ degenerate fits, and what does it cost?
 
 Both were prompted by Chile shipping a k=10 correction containing a wind scalar
 of 80.2 and an offset that never converged, while scoring as a corrected win at
-monthly resolution (`hourly_resolution_test.md`).
+monthly resolution (`method-hourly-resolution.md`).
 
 ## Part 1: the scalar bounds, from 373,179 real fits
 

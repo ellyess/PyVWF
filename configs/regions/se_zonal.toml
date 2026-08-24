@@ -1,4 +1,4 @@
-# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/harness.md).
 # Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
 #
 # Sweden with PER-ZONE observations instead of one national series. The

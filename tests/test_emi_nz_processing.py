@@ -255,7 +255,7 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "NZ").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = EMINewZealandSource("NZ")
-    with pytest.raises(FileNotFoundError, match="runbooks/NZ"):
+    with pytest.raises(FileNotFoundError, match="runbooks/nz"):
         src.load_metadata()
-    with pytest.raises(FileNotFoundError, match="runbooks/NZ"):
+    with pytest.raises(FileNotFoundError, match="runbooks/nz"):
         src.load_observations(2020, 2020)

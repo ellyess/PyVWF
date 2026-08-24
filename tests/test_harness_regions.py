@@ -1,4 +1,4 @@
-"""Region-config loading and validation (docs/design/HARNESS_DESIGN.md §1)."""
+"""Region-config loading and validation (docs/design/harness.md §1)."""
 from pathlib import Path
 
 import pytest

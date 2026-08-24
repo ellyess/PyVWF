@@ -105,5 +105,5 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "ES").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = WindStatsSource("ES-WS")
-    with pytest.raises(FileNotFoundError, match="runbooks/ES"):
+    with pytest.raises(FileNotFoundError, match="runbooks/es"):
         src.load_metadata()

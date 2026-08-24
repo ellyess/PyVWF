@@ -8,7 +8,7 @@ Core functionality (always available):
 - train_set, val_set: Data preparation functions
 - Loaders: Functions for loading turbine and country-level data
 - ObservationSource: Pluggable adapters supplying observed generation. See
-  docs/guides/ADDING_AN_OBSERVATION_SOURCE.md to add a new region.
+  docs/guides/adding-an-observation-source.md to add a new region.
 - Configuration: Path and bounding box configuration
 
 Optional functionality (requires additional dependencies):

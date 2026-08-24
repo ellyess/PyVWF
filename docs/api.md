@@ -4,7 +4,7 @@ Everything below is importable from the `vwf` package. The data-acquisition
 modules under `vwf.datasets` are command-line scripts that depend on the
 optional `data` extra (and, for ENTSO-E, an API key); they are not part of the
 supported programmatic API and are documented in
-{doc}`guides/DATA_SOURCES` instead.
+{doc}`guides/data-sources` instead.
 
 ## The model
 
@@ -21,7 +21,7 @@ and simulates capacity factors for a test year.
 
 Observed generation and site metadata come from pluggable adapters, so
 supporting a new region means writing a source rather than editing the core
-pipeline. See {doc}`guides/ADDING_AN_OBSERVATION_SOURCE`.
+pipeline. See {doc}`guides/adding-an-observation-source`.
 
 ```{eval-rst}
 .. automodule:: vwf.sources.base

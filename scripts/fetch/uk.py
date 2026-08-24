@@ -2,7 +2,7 @@
 """Fetch the open UK wind-farm data (REPD) and guide the Ofgem ROC export.
 
 USER-EXECUTED. The UK region has two observed-source components, with very
-different reproducibility (see docs/runbooks/UK.md for the full story):
+different reproducibility (see docs/runbooks/uk.md for the full story):
 
   METADATA: auto-downloadable. The Renewable Energy Planning Database (REPD,
   Open Government Licence) from gov.uk gives per-site location, capacity, and

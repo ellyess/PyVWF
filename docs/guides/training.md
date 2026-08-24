@@ -4,7 +4,7 @@ PyVWF trains and evaluates one **region** at a time through the validation
 harness. A region is a single TOML file in `configs/regions/`; the harness reads
 it, fits correction factors on the training window, and scores them on a
 held-out test year. The design is in
-[`design/HARNESS_DESIGN.md`](../design/HARNESS_DESIGN.md).
+[`design/harness.md`](../design/harness.md).
 
 ## The region config
 
@@ -59,7 +59,7 @@ curve library (`input/combined`); otherwise the open bundled library is used
 (with a warning).
 
 Outputs land under `output/validation/<CODE>/`; see
-[`OUTPUT_STRUCTURE.md`](OUTPUT_STRUCTURE.md).
+[`output-structure.md`](output-structure.md).
 
 ## Correction models
 
@@ -75,14 +75,14 @@ Selected by `[correction] model`:
 
 `cluster_list` fits each spatial resolution in one run. `k`-means needs
 `k ≤ n_farms` reaching the trainer, and `k` near that ceiling is
-one-farm-per-cluster (a fake plateau, `docs/findings/us_br_first_run.md`). For
+one-farm-per-cluster (a fake plateau, `docs/findings/region-us-br.md`). For
 country-level regions, `cluster_list` must be `1` or the grid's own cluster
-count (see [`DATA_SOURCES.md`](DATA_SOURCES.md#4-country-level-entso-e-workflow)).
+count (see [`data-sources.md`](data-sources.md#4-country-level-entso-e-workflow)).
 
 ## Transfer runs
 
 `transfer` applies one region's factors to another, restricted to the approved
-AU↔Europe pair on this branch:
+AU↔Europe pair, the only pairing that has been validated:
 
 ```bash
 python scripts/analysis/validate_region.py transfer \
@@ -95,6 +95,6 @@ python scripts/analysis/validate_region.py transfer \
 
 Write one `ObservationSource` adapter and one TOML config; nothing in the
 pipeline changes. See
-[`ADDING_AN_OBSERVATION_SOURCE.md`](ADDING_AN_OBSERVATION_SOURCE.md). For where
+[`adding-an-observation-source.md`](adding-an-observation-source.md). For where
 each region's data comes from and how it is preprocessed, see
-[`DATA_SOURCES.md`](DATA_SOURCES.md).
+[`data-sources.md`](data-sources.md).

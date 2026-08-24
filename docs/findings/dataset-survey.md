@@ -1,14 +1,17 @@
-# Global survey: candidate observation datasets beyond DK/DE/UK/US/BR/AU
+# Candidate observation datasets beyond DK/DE/UK/US/BR/AU
 
-July 2026. Web survey of market-operator and registry data for new validation
+**Date:** 2026-07
+**Scope:** a web survey of market-operator and registry data for new validation
 regions, scoped by the adapter requirements in
-`docs/guides/ADDING_AN_OBSERVATION_SOURCE.md` (per-plant monthly CF or finer +
-coordinates/capacity metadata; or zone/country aggregate + plant register).
+[adding-an-observation-source.md](../guides/adding-an-observation-source.md):
+per-plant monthly capacity factor or finer plus coordinate and capacity
+metadata, or a zone/country aggregate plus a plant register.
+
 Verification status per item: **verified** = primary portal/file/API inspected
 during the survey; **reported** = primary-page claim not inspected file-level.
 
 Context for prioritisation: the ML transfer re-test
-(`ml_transfer_retest.md`) found the binding constraint on cross-region
+(`method-ml-transfer.md`) found the binding constraint on cross-region
 prediction is **regime coverage, not sample count**. New regions should be
 chosen to cover unrepresented physical regimes (monsoon, complex terrain,
 Mediterranean, cold-steppe westerlies, coastal desert), not to add more
@@ -22,7 +25,7 @@ temperate-maritime plants.
 | **Chile** | Coordinador (CEN), bulk yearly per-central hourly + REST API (`portal.api.coordinador.cl`, registration) | per plant, hourly | 2000→ (wind ~2009→) | Infotécnica + Energía Abierta (capacity, commissioning); no heights | **Atacama coastal desert (BW), Mediterranean (Csb), maritime south (Cfb)**: 3 regimes in one system | ~4.5–5 GW, ~70 parks | Cloudflare blocks plain scraping; use API/bulk. |
 | ~~**Turkey**~~ | ~~EPİAŞ/EXIST Transparency~~ | **DEMOTED (see below)** | | | | | Per-plant access not reachable on a Data Consultation subscription (verified 2026-07-22). |
 | **Canada (ON+AB)** | IESO Generator Output & Capability (per-generator hourly, 2010→, verified to CSV header) + AESO metered volumes (per-asset hourly, **2001–2025**, verified) | per generator/asset, hourly | 2001/2010→ | **Canadian Wind Turbine Database (NRCan): per-turbine coords, model, hub height, rotor, commissioning**; the only candidate with native heights | Cold continental (Dfb/Dfa), icing, Chinook | ON ~5.5 GW + AB ~6 GW | Best data quality + metadata; least climate novelty (overlaps US Midwest). |
-| **Argentina** ✅ | CAMMESA renewables base: one open ~2 MB ZIP, no credentials (`?wpdmdl=37500`) | per plant, **monthly (CONFIRMED live 2026-07-23)**: 75 wind centrales, 186 month columns | **2011-01 → 2026-06** | Capacity per plant; coords from GWPT; no heights | **Patagonian cold-steppe westerlies (BSk/BWk)** + Pampas (Cfa) | ~4.3 GW, ~60 parks | Monthly per-plant = exactly PyVWF's native training resolution. Ramping fleet → commissioning mask needed (AU DUDETAIL pattern). |
+| **Argentina** | CAMMESA renewables base: one open ~2 MB ZIP, no credentials (`?wpdmdl=37500`) | per plant, **monthly (CONFIRMED live 2026-07-23)**: 75 wind centrales, 186 month columns | **2011-01 → 2026-06** | Capacity per plant; coords from GWPT; no heights | **Patagonian cold-steppe westerlies (BSk/BWk)** + Pampas (Cfa) | ~4.3 GW, ~60 parks | Monthly per-plant = exactly PyVWF's native training resolution. Ramping fleet → commissioning mask needed (AU DUDETAIL pattern). |
 | **Uruguay** | ADME_Data: per-plant **10-min raw SCADA incl. on-site wind speed**, free CLI, no registration | per plant, 10-min | mid-2010s→ (depth unverified) | No coords/heights from ADME; MIEM registry + GWPT | Humid subtropical Cfa, ~30–40% penetration | ~1.5 GW, ~45 parks | Wind-speed channels are a rare bonus for bias-correction diagnostics; raw/unvalidated SCADA. |
 | ~~**Peru**~~ | COES portal. **DEMOTED**: the open endpoint is per-COMPANY (62 firms), not per-plant | ~~per plant, 30-min~~ | wind 2014→ (portal depth not pinned) | Fichas técnicas (capacity, turbine count); no coords/heights | **Hyper-arid coastal desert (BWh/BWn), steady Humboldt coastal jet**: the most distinctive single regime | ~1.1 GW, ~10 plants | Tiny fleet → low effort. |
 | **Australia WEM** | AEMO facility SCADA, open CSV 2006–Oct 2023 (verified directory) + post-reform 5-min via OpenElectricity API | per facility, 30-min/5-min | 2006→ | Same style as NEM | Mediterranean SW Australia (Csa/Csb), sea breeze | ~17 farms | Reuses existing AEMO tooling; note Oct-2023 regime break. |
@@ -36,7 +39,7 @@ verifying before committing adapter work.
 - **Chile: CONFIRMED and better than surveyed.** Per-plant hourly wind runs
   from at least 2010 (5 plants) to 2025 (65 plants), with `potencia_maxima`
   on every row so the CF denominator tracks the build-out for free. Details
-  and the gotcha list: `docs/runbooks/CL.md`.
+  and the gotcha list: `docs/runbooks/cl.md`.
 - **Turkey: DEMOTED.** The claim "per-plant hourly via free API" does not
   hold on a Data Consultation subscription. Authentication and the
   2,584-plant list work, but the UEVM endpoint **silently ignores
@@ -45,7 +48,7 @@ verifying before committing adapter work.
   must-distinguish test (same request, two different plant ids → identical
   bytes) is what exposed it; the endpoint otherwise answers 200 with a
   plausible 24 rows and reads exactly like success. Recovery path in
-  `docs/runbooks/TR.md`.
+  `docs/runbooks/tr.md`.
 
 - **Peru: DEMOTED to company level.** The open COES endpoint
   (`portalinformacion/generacion`, no auth) does answer 200 with
@@ -121,7 +124,7 @@ CFs (simulated).
   concentrated; ODbL share-alike.
 - **The Wind Power (commercial)**: per-farm models/heights at scale, but
   subscription + no republication of raw fields (reproducibility hazard;
-  cf. the open-library finding on this branch).
+  cf. the open-library finding).
 - Academic open SCADA (Hill of Towie 21 turbines/8.7 y CC-BY-4.0, Kelmarsh,
   Penmanshiel): UK-only, validation-grade, no new climate.
 
@@ -137,7 +140,7 @@ CFs (simulated).
    register on the API portal first.
 3. **Turkey (EPİAŞ)**: DEMOTED 2026-07-22, per-plant access is not reachable
    on a Data Consultation subscription (the UEVM endpoint ignores
-   powerPlantId). Needs a renewables-service subscription; see ../runbooks/TR.md.
+   powerPlantId). Needs a renewables-service subscription; see ../runbooks/tr.md.
 4. **Argentina (CAMMESA)**: monthly per-plant since 2011 matches the training
    resolution exactly; Patagonia is a regime nothing else offers.
 5. **Canada (IESO+AESO+CWTDB)**: when hub-height-sensitive questions come

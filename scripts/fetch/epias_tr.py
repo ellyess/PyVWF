@@ -4,7 +4,7 @@
 USER-EXECUTED. Turkey is the only surveyed candidate with BOTH per-plant
 hourly generation and a national turbine register (TÜREB) carrying turbine
 models, so hub heights become derivable per plant; see
-docs/runbooks/TR.md and docs/findings/dataset_survey_2026-07.md.
+docs/runbooks/tr.md and docs/findings/dataset-survey.md.
 
 WHERE TO PUT YOUR CREDENTIALS
 -----------------------------
@@ -291,7 +291,7 @@ def probe() -> None:
     print("but NO per-plant generation endpoint is reachable on this")
     print("subscription. injection-quantity and realtime-generation both return")
     print("the national mix; renewables/licensed-realtime-generation returns 403")
-    print("(not subscribed). Turkey is NOT confirmed tier-1; see docs/runbooks/TR.md.")
+    print("(not subscribed). Turkey is NOT confirmed tier-1; see docs/runbooks/tr.md.")
     print("=" * 70)
 
 

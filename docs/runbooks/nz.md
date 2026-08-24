@@ -8,7 +8,7 @@ All inputs are open Electricity Authority data (no registration) or your own
 CDS/ERA5 credentials; none of the raw or derived data is committed (`input/` is
 git-ignored), so this runbook is how you build it. NZ was the #1 pick of the
 July-2026 dataset survey
-(`docs/findings/dataset_survey_2026-07.md`): per-plant half-hourly metered
+(`docs/findings/dataset-survey.md`): per-plant half-hourly metered
 generation, openly downloadable, in a Southern-Hemisphere temperate-westerly
 complex-terrain climate the validation set does not yet cover, and with
 per-farm hub heights, which no other non-European region except Canada has.
@@ -84,7 +84,7 @@ Notes for reading the result:
 - **k ceiling**: 13 farms, 12 unique coordinates (Tararua III shares the
   I/II ridge coordinates; KD2 shares KD1's). `cluster_list = [5]` shipped;
   sweep [1, 5, 10] and remember k above ~12 is a fake plateau
-  (`docs/findings/us_br_first_run.md`).
+  (`docs/findings/region-us-br.md`).
 - **Train/test**: 2019-2023 → 2024. Turitea contributes 2022 (North plateau)
   and 2024; its 2021/2023 ramps are masked. Harapaki effectively enters at
   test time (masked to Jul 2024); watch its months in evaluation.

@@ -17,7 +17,7 @@ as it stood at a point in time. That matters here: NL's country-level run
 failed because the fleet doubled between training and test, and uniform weights
 cannot represent that at all.
 
-The GWPT is CC-BY-4.0. See docs/guides/DATA_SOURCES.md.
+The GWPT is CC-BY-4.0. See docs/guides/data-sources.md.
 
 Usage:
     PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py NL --dry-run
@@ -103,7 +103,7 @@ def load_gwpt(path: Path = GWPT_PATH) -> pd.DataFrame:
     if not path.is_file():
         raise FileNotFoundError(
             f"Global Wind Power Tracker not found at {path}. "
-            "See docs/guides/DATA_SOURCES.md for where to download it."
+            "See docs/guides/data-sources.md for where to download it."
         )
     return pd.read_excel(path, sheet_name="Data")
 

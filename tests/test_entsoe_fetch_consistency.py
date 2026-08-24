@@ -6,7 +6,7 @@ covering a growing share of the fleet the capacity counts. Downstream nothing
 can see it: the affine correction absorbs the error into the scalar and reports
 a clean in-sample fit. The only place to catch it is where the ratio is formed.
 
-See docs/findings/country_level_method_review.md.
+See docs/findings/method-country-level.md.
 """
 from __future__ import annotations
 

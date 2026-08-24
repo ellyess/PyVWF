@@ -1,6 +1,6 @@
 """Run the LEGACY PyVWF path for a D1 regression reference.
 
-Half of the D1 method (docs/findings/harness_regression.md): generate the
+Half of the D1 method (docs/findings/method-harness-regression.md): generate the
 reference from a git worktree of main by pointing PYTHONPATH at that tree's
 src/, with PYVWF_INPUT at a staging directory holding the real curve
 library. dask_n_workers=0 keeps the offset fit sequential and deterministic.

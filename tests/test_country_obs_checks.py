@@ -6,7 +6,7 @@ produces a scalar that fits it, so the model looks healthy in sample and is
 wrong out of it. The gate is the only place the error is visible.
 
 The real motivating cases are recorded in
-docs/findings/country_level_method_review.md: NL never exceeds CF 0.57 over four
+docs/findings/method-country-level.md: NL never exceeds CF 0.57 over four
 years of quarter-hourly data, and IE rails against the fetcher's 1.5 clip.
 """
 from __future__ import annotations

@@ -1,5 +1,9 @@
 # US + Brazil: first real train/evaluate, and a scalar-dilution bug
 
+**Date:** 2026-07-22
+**Scope:** the first real train and evaluate runs for the United States and Brazil, and
+the scalar-dilution bug they exposed.
+
 **Question.** Both new regions are staged against real data (EIA-923/860 +
 USWTDB; ONS + ANEEL) and real ERA5. Does the `affine-wind` correction improve
 held-out skill, as it does for DK/DE/UK, and how many spatial clusters does it

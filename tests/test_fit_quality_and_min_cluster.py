@@ -3,7 +3,7 @@
 Both exist because of the same incident: a Chilean cluster of ONE plant fitted a
 wind scalar of 80 with an offset that never converged, and the monthly skill
 metric still reported the region as a corrected win. See
-docs/findings/hourly_resolution_test.md.
+docs/findings/method-hourly-resolution.md.
 
 - ``fit_quality`` makes such a fit visible.
 - ``min_cluster_size`` stops a one-plant cluster being fitted in the first place.

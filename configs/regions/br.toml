@@ -1,4 +1,4 @@
-# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/harness.md).
 # Seasons are EXPLICIT month lists. Brazil is (mostly) Southern Hemisphere, so
 # these must NOT inherit the legacy NH mapping. The dominant signal in the
 # Nordeste wind fleet is not thermal at all but the TRADE-WIND maximum in the
@@ -32,7 +32,7 @@ file_tag = "BR"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 20]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
+cluster_list = [1, 20]  # sweep knee (docs/findings/method-cluster-count.md)
 time_slices = ["fixed", "season"]
 
 [seasons]

@@ -17,7 +17,7 @@ Raw reanalysis winds carry systematic, location-dependent biases, so capacity fa
 
 PyVWF implements the granular bias-correction method introduced in Benmoufok et al. (2024, *Energy*, lead author), [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759). The method is also applied in co-authored follow-on work that extends the framework to high-resolution UK bias correction (Wang et al., 2026, *Energy Conversion and Management*, [doi:10.1016/j.enconman.2026.121066](https://doi.org/10.1016/j.enconman.2026.121066)). It ships a synthetic-data `pytest` suite with continuous integration on Python 3.10 to 3.12, and is pip-installable.
 
-The method has since been run against observed generation in seventeen regions across four continents, at turbine, plant and national level. The per-region numbers, their source paths and the caveats that travel with them are in the [validation scorecard](docs/findings/multi_region_validation_scorecard.md). It is screening-level validation on one held-out test year per region, not an accredited yield assessment, and it does not help everywhere: see [Validated regions](#validated-regions).
+The method has since been run against observed generation in seventeen regions across four continents, at turbine, plant and national level. The per-region numbers, their source paths and the caveats that travel with them are in the [validation scorecard](docs/findings/scorecard.md). It is screening-level validation on one held-out test year per region, not an accredited yield assessment, and it does not help everywhere: see [Validated regions](#validated-regions).
 
 New here? See [How it works](#how-it-works) for the five-step pipeline, then [Quickstart](#quickstart) to run it.
 
@@ -86,7 +86,7 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 The correction has been fitted and scored against observed generation in the
 regions below. Every figure is read from a `metrics.csv` under
 `output/validation/`, and the [validation
-scorecard](docs/findings/multi_region_validation_scorecard.md) gives the source
+scorecard](docs/findings/scorecard.md) gives the source
 path for each so it can be audited. All figures were re-run on this release
 (v0.4.0). Read the caveat under the table before quoting any number: four of
 these rest on degenerate fits whose per-cluster factors are not usable, even
@@ -108,7 +108,7 @@ per-cluster factors contain implausible wind scalars, worst in Chile at 80.23
 with one offset that never converged and the United States at 46.39. Do not
 reuse the factors from these four. Every figure above was re-run on the current
 release, and the per-region fit-quality numbers are in the
-[scorecard](docs/findings/multi_region_validation_scorecard.md).
+[scorecard](docs/findings/scorecard.md).
 
 **National level** (ENTSO-E aggregate, held-out 2023): France 0.171 →
 **0.012**, Belgium 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland 0.172 →
@@ -318,7 +318,7 @@ python src/vwf/datasets/generate_country_level_training_data.py
 
 This fetches national generation from the ENTSO-E Transparency Platform (an API
 key is required; see the country-level section of
-[docs/guides/DATA_SOURCES.md](docs/guides/DATA_SOURCES.md#4-country-level-entso-e-workflow))
+[docs/guides/data-sources.md](docs/guides/data-sources.md#4-country-level-entso-e-workflow))
 and writes grid points and train/test observation splits under
 `input/observations/country/`.
 
@@ -519,8 +519,8 @@ python scripts/analysis/validate_region.py evaluate \
 `transfer` is the third verb: it applies one region's factors to another and
 reports the result. Adding a region means writing one observation adapter and
 one config, with no change to the correction maths, the clustering or the
-curves. See the [training guide](docs/guides/TRAINING_GUIDE.md), the
-[adapter contract](docs/guides/ADDING_AN_OBSERVATION_SOURCE.md), and the
+curves. See the [training guide](docs/guides/training.md), the
+[adapter contract](docs/guides/adding-an-observation-source.md), and the
 per-region [runbooks](docs/runbooks/).
 
 ### Full multi-country training
@@ -547,13 +547,13 @@ in `docs/` as plain Markdown, so everything is also readable directly on
 GitHub. Start with the [documentation index](docs/README.md) for a suggested
 reading order, or jump to a specific reference:
 
-- [Data sources and preprocessing](docs/guides/DATA_SOURCES.md): input formats, every data source per region, and how each is preprocessed.
-- [Training and evaluation](docs/guides/TRAINING_GUIDE.md): the region config, and running train / evaluate / transfer.
-- [Output structure](docs/guides/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
-- [Adding an observation source](docs/guides/ADDING_AN_OBSERVATION_SOURCE.md): the adapter contract for a new region.
-- [Using your own data](docs/guides/USING_YOUR_OWN_DATA.md): running the correction on a fleet you supply as CSV.
+- [Data sources and preprocessing](docs/guides/data-sources.md): input formats, every data source per region, and how each is preprocessed.
+- [Training and evaluation](docs/guides/training.md): the region config, and running train / evaluate / transfer.
+- [Output structure](docs/guides/output-structure.md): the layout of a run directory and the files it produces.
+- [Adding an observation source](docs/guides/adding-an-observation-source.md): the adapter contract for a new region.
+- [Using your own data](docs/guides/your-own-data.md): running the correction on a fleet you supply as CSV.
 - [Region runbooks](docs/runbooks/): the acquisition and processing steps per region, including the ones that did not work out.
-- [Harness design](docs/design/HARNESS_DESIGN.md): why the seams are where they are.
+- [Harness design](docs/design/harness.md): why the seams are where they are.
 - [Findings](docs/findings/): the validation results, including the negative ones.
 - [PIPELINE.md](PIPELINE.md): the script execution order.
 
@@ -622,7 +622,7 @@ caveats apply to the validation figures specifically, and travel with them:
   national series per month, so N cluster offsets meet N-1 fewer constraints
   than they need. In practice they largely repair the scalar's cube-law
   overshoot rather than capturing an additive spatial bias
-  ([country_level_method_review.md](docs/findings/country_level_method_review.md)).
+  ([method-country-level.md](docs/findings/method-country-level.md)).
 
 ## Reproducibility
 

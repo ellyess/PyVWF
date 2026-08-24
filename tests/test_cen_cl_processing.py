@@ -168,7 +168,7 @@ def test_missing_files_raise_with_runbook_pointer(monkeypatch, tmp_path):
     (tmp_path / "CL").mkdir()
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = CENChileSource("CL")
-    with pytest.raises(FileNotFoundError, match="runbooks/CL"):
+    with pytest.raises(FileNotFoundError, match="runbooks/cl"):
         src.load_metadata()
-    with pytest.raises(FileNotFoundError, match="runbooks/CL"):
+    with pytest.raises(FileNotFoundError, match="runbooks/cl"):
         src.load_observations(2021, 2023)

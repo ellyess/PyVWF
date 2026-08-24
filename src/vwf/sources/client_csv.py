@@ -19,7 +19,7 @@ Expected inputs (column names are remappable via ``column_map``):
   generated energy (converted to capacity factor using the site's capacity and
   the hours in the month) or a capacity factor directly.
 
-See ``docs/guides/USING_YOUR_OWN_DATA.md`` for a worked example and the exact
+See ``docs/guides/your-own-data.md`` for a worked example and the exact
 column contract.
 """
 from __future__ import annotations

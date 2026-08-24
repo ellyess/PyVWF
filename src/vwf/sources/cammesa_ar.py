@@ -77,7 +77,7 @@ class CAMMESAArgentinaSource(ObservationSource):
             raise FileNotFoundError(
                 f"CAMMESA-AR plant metadata not found at {path}. This adapter "
                 "reads pre-processed files; see the class docstring for the "
-                "schema (data acquisition is user-executed: docs/runbooks/AR.md)."
+                "schema (data acquisition is user-executed: docs/runbooks/ar.md)."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -103,7 +103,7 @@ class CAMMESAArgentinaSource(ObservationSource):
             raise FileNotFoundError(
                 f"CAMMESA-AR observations not found at {path}. This adapter "
                 "reads pre-processed files; see the class docstring for the "
-                "schema (data acquisition is user-executed: docs/runbooks/AR.md)."
+                "schema (data acquisition is user-executed: docs/runbooks/ar.md)."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

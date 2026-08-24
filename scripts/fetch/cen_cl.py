@@ -8,7 +8,7 @@ a command line, a settings file, or this repository:
     python scripts/fetch/cen_cl.py --probe          # verification, writes nothing
     python scripts/fetch/cen_cl.py --years 2015 2024
 
-Verified against the live API on 2026-07-22 (docs/runbooks/CL.md records the
+Verified against the live API on 2026-07-22 (docs/runbooks/cl.md records the
 full endpoint map). The facts that cost time to discover, so they are pinned
 here rather than rediscovered:
 
@@ -195,7 +195,7 @@ def probe() -> None:
     print("Coordinates are NOT in the API: join the Global Wind Power Tracker.")
     print("fecha_hora is Chilean civil time (America/Santiago observes DST) and")
     print("hora is 1-24 where hora N starts at (N-1):00; confirm before the")
-    print("adapter bins to UTC. See docs/runbooks/CL.md.")
+    print("adapter bins to UTC. See docs/runbooks/cl.md.")
     print("=" * 70)
 
 

@@ -1,4 +1,4 @@
-# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/harness.md).
 # Seasons are EXPLICIT month lists. New Zealand is Southern Hemisphere, so
 # these must NOT inherit the legacy NH mapping. The dominant regime is the
 # year-round westerly circulation ("Roaring Forties") funnelled by the two
@@ -37,9 +37,9 @@ file_tag = "NZ"
 # Harapaki and Kaiwera Downs 2 commissioned after it, and a few sparse-coverage
 # farms drop in train_set. That 8 is the hard ceiling (k-means needs
 # n_clusters <= n_samples); k near it is one-farm-per-cluster, the fake-plateau
-# regime (docs/findings/us_br_first_run.md). The sweep stays safely under it.
+# regime (docs/findings/region-us-br.md). The sweep stays safely under it.
 model = "affine-wind"
-cluster_list = [1, 5]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
+cluster_list = [1, 5]  # sweep knee (docs/findings/method-cluster-count.md)
 time_slices = ["fixed", "season"]
 
 [seasons]

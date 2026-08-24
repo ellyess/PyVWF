@@ -73,7 +73,7 @@ inside the ceiling with no failed offsets. Every country-level fit in the table
 below is also clean. These figures come from the refreshed runs and now travel
 in `metrics.csv` automatically, so a future run cannot hide them.
 
-Chile is the worst and is documented in `scalar_bounds_calibration.md`, which
+Chile is the worst and is documented in `method-scalar-bounds.md`, which
 shows no `min_cluster_size` setting satisfies all three of its gates: raising it
 to 3 clears the failed offset and still beats uncorrected (0.1069 against
 0.1226) but leaves a scalar of 39.3, and raising it to 5 collapses the
@@ -117,7 +117,7 @@ The country-level fit removes very large mean biases (FR, BE, ES, IE all from
 unbiased uncorrected (RMSE 0.034) and the correction makes it worse (0.039); and the country method
 fits under-determined offsets against one national series per month, so the
 offsets largely repair the scalar's cube-law overshoot rather than a genuine
-additive spatial bias (`country_level_method_review.md`).
+additive spatial bias (`method-country-level.md`).
 
 ## What must NOT be overclaimed
 
@@ -140,7 +140,7 @@ additive spatial bias (`country_level_method_review.md`).
   guidance: check `fit_quality` rather than the cluster count. AR is usable
   only after its capacity denominators were rebuilt; a northern cluster still
   fits an extreme scalar that a higher-resolution wind product, not more data,
-  would fix (`south_america_spatial_bias.md`).
+  would fix (`region-south-america.md`).
 - **NO gets worse; NL is excluded** (an ENTSO-E coverage defect makes its CF
   series unusable). Reporting either as a corrected region would be false.
 - **US carries an unscreened curtailment confound** (ERCOT/SPP); its near-zero

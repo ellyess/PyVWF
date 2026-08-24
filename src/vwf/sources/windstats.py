@@ -87,7 +87,7 @@ class WindStatsSource(ObservationSource):
             raise FileNotFoundError(
                 f"WindStats metadata not found at {path}. Built from CONFIDENTIAL "
                 "WindStats data by scripts/process/windstats.py; see "
-                "docs/runbooks/ES.md. (Data is git-ignored and commercial.)"
+                "docs/runbooks/es.md. (Data is git-ignored and commercial.)"
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -111,7 +111,7 @@ class WindStatsSource(ObservationSource):
             raise FileNotFoundError(
                 f"WindStats observations not found at {path}. Built from "
                 "CONFIDENTIAL WindStats data by scripts/process/windstats.py; "
-                "see docs/runbooks/ES.md."
+                "see docs/runbooks/es.md."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

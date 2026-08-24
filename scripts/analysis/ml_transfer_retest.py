@@ -4,7 +4,7 @@
 Re-runs the development-branch ML transfer experiment (leave-one-region-out
 prediction of correction factors from terrain + spatial features) against the
 post-fix pipeline outputs on this branch. Gates were pre-specified before any
-model run; see docs/findings/ml_transfer_retest.md.
+model run; see docs/findings/method-ml-transfer.md.
 
 Requires the train outputs under output/validation/ (train-sweep2/train-sweep3
 runs at commit 8a032d6) and input/reference/terrain/etopo_global.nc.

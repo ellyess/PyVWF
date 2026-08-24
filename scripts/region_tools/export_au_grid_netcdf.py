@@ -132,7 +132,7 @@ def main() -> None:
                        "AEMO 2020-2022 farm observations, applied to the ERA5 grid. "
                        "Headline finding: ERA5 over-amplifies South Australia's "
                        "seasonal cycle; the correction compresses it toward "
-                       "observation (docs/findings/au_seasonal_cycle.md).",
+                       "observation (docs/findings/region-au-nem.md).",
             "EXTRAPOLATION_CAVEAT": "Corrections were trained at wind-farm locations "
                                     "and extended to the grid by nearest cluster "
                                     "centroid. Cells far from training farms (see "
@@ -145,7 +145,7 @@ def main() -> None:
                                     "before using them.",
             "FACTORS_PROVENANCE": "Factors come from the far-north-exclusion training "
                                   "run (sites at lat > -20 excluded) per the "
-                                  "robustness analysis in docs/findings/au_seasonal_cycle.md, "
+                                  "robustness analysis in docs/findings/region-au-nem.md, "
                                   "which removes a known n=1 overfit cluster whose "
                                   "extreme factors (scalars up to 2.4) would otherwise "
                                   "be applied across the tropical north. The findings "

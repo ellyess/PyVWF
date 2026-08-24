@@ -18,7 +18,7 @@ self-contained. What CEN does NOT expose anywhere is coordinates (the
 blank), so lon/lat must be joined from the Global Wind Power Tracker.
 
 Two facts about the CEN series shape the design, verified against the real
-2021-2024 data (docs/runbooks/CL.md):
+2021-2024 data (docs/runbooks/cl.md):
 
 - **Fixed offset, no DST.** ``fecha_hora`` runs a clean 24 hours every day,
   including Chile's 2024 spring-forward (7 Sep 2024 has 24 rows, not 23), so

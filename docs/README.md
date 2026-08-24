@@ -1,37 +1,35 @@
 # PyVWF documentation
 
-Reference documentation for the PyVWF bias-correction workflow. New to the
-project? Read the [project README](../README.md) first (what PyVWF is, install,
-Denmark quickstart), then come here.
+New to the project? Read the [project README](../README.md) first, for what
+PyVWF is, how to install it, and a Denmark quickstart. The full documentation
+site is built from this folder and hosted at
+[pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/); [`index.md`](index.md)
+is its front page and the canonical contents list.
 
-## Guides
+## How this folder is organised
 
-| Guide | Covers |
-|---|---|
-| [Data sources and preprocessing](guides/DATA_SOURCES.md) | Every data source per region, its licence, and how it is fetched and preprocessed. The data reference. |
-| [Training and evaluation](guides/TRAINING_GUIDE.md) | The region config and running `validate_region.py` (train / evaluate / transfer). |
-| [Output structure](guides/OUTPUT_STRUCTURE.md) | The files a run produces and how to read them. |
-| [Adding an observation source](guides/ADDING_AN_OBSERVATION_SOURCE.md) | The adapter contract for a new region. |
-| [Using your own data](guides/USING_YOUR_OWN_DATA.md) | Run a correction on your own fleet from two CSVs, without writing an adapter. |
+Every filename is lower-case with hyphens, and the folder supplies the
+category, so a name never repeats it: the training guide is
+`guides/training.md`, not `guides/TRAINING_GUIDE.md`.
 
-## Region runbooks
+| Folder | Holds | Naming |
+|---|---|---|
+| [`guides/`](guides) | How to use PyVWF: data, training, outputs, extending it. Maintained, and published to the site. | `<topic>.md` |
+| [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | `<iso-code>.md` |
+| [`design/`](design) | Why the code is shaped as it is. Published. | `<component>.md` |
+| [`findings/`](findings) | Dated research records: one experiment each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | `<type>-<subject>.md` |
 
-Step-by-step acquisition and processing for each validated region, one file per
-country, in [`runbooks/`](runbooks): AR, BR, CL, DE, DK, ES, NZ, TR, UK, US. The
-nine ENTSO-E country-level regions are covered by the country-level section of
-[Data sources](guides/DATA_SOURCES.md#4-country-level-entso-e-workflow).
+`findings/` names carry their document type as a prefix, so two files sharing a
+prefix share a shape:
 
-## Design and findings
+- `scorecard.md` is the index of per-region results, and the entry point.
+- `region-*.md` reports one region's validation, e.g. `region-nz.md`.
+- `method-*.md` studies one method question across regions, e.g.
+  `method-cluster-count.md`. A `-<code>` suffix marks a single-region deep dive
+  of the same question, as in `method-cluster-count-dk.md`.
+- `dataset-survey.md` surveys candidate observation datasets.
 
-- [`design/HARNESS_DESIGN.md`](design/HARNESS_DESIGN.md): the validation-harness design.
-- [`findings/`](findings): dated research records (regression checks, method
-  reviews, per-region first runs).
-
-## By task
-
-- **Run a region.** [Training guide](guides/TRAINING_GUIDE.md), with its data
-  from [Data sources](guides/DATA_SOURCES.md) and the region's runbook.
-- **Country-level (national) corrections.** The country-level section of
-  [Data sources](guides/DATA_SOURCES.md#4-country-level-entso-e-workflow).
-- **Understand a run's outputs.** [Output structure](guides/OUTPUT_STRUCTURE.md).
-- **Add a region.** [Adding an observation source](guides/ADDING_AN_OBSERVATION_SOURCE.md).
+The findings tree is excluded from the built site on purpose. Each document
+reports one dated experiment against one held-out test year, and several record
+negative results whose value is the reasoning rather than the number, so
+publishing them as site pages would present run-specific figures as guidance.

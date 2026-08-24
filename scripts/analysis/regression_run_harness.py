@@ -1,6 +1,6 @@
 """Run the HARNESS path for a D1 regression comparison.
 
-The other half of the D1 method (docs/findings/harness_regression.md): run the
+The other half of the D1 method (docs/findings/method-harness-regression.md): run the
 branch's harness on the same config as the legacy reference, with
 PYTHONPATH at this tree's src/ and PYVWF_INPUT at the same staging
 directory, then diff with scripts/analysis/regression_compare.py.

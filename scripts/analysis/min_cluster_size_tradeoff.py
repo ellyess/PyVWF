@@ -2,12 +2,12 @@
 
 Chile's shipped k=10 correction contains a wind scalar of 80.2 on a ONE-plant
 cluster and an offset that never converged, while still scoring as a corrected
-win at monthly resolution (docs/findings/hourly_resolution_test.md). This asks
+win at monthly resolution (docs/findings/method-hourly-resolution.md). This asks
 whether refusing to fit tiny clusters removes that, and what it costs in skill.
 
 REVISED HYPOTHESIS. The obvious story ("degenerate fits come from small
 clusters, so forbid small clusters") is NOT what the cross-region survey shows
-(docs/findings/scalar_bounds_calibration.md). Across 373,179 fitted scalars the
+(docs/findings/method-scalar-bounds.md). Across 373,179 fitted scalars the
 RATE of implausible scalars is roughly flat in cluster size (0.19% to 0.42%) and
 is actually highest for clusters above 20 sites. What cluster size predicts is
 SEVERITY: the worst scalar is 126 to 150 for clusters of five sites or fewer,

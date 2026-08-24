@@ -122,7 +122,7 @@ factors should not be reused. The United States is the instructive case, since
 the `calculate_scalar` fix moved its headline RMSE by 0.0005 while more than
 doubling its worst fitted scalar, from 20.54 to 46.39. A skill metric does not
 reveal this, which is why `fit_quality` now travels with every corrected row.
-See `docs/findings/multi_region_validation_scorecard.md`.
+See `docs/findings/scorecard.md`.
 
 ## [0.3.0] - 2026-07-17
 
@@ -196,7 +196,7 @@ changes the numbers the evaluation layer reports.
   `InMemoryCountrySource` for caller-supplied frames. `train_set` and `val_set`
   take a `source=` argument; the existing `external_grid_points` /
   `external_obs_data` arguments still work and are wrapped automatically. See
-  [docs/guides/ADDING_AN_OBSERVATION_SOURCE.md](docs/guides/ADDING_AN_OBSERVATION_SOURCE.md).
+  [docs/guides/adding-an-observation-source.md](docs/guides/adding-an-observation-source.md).
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:

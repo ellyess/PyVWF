@@ -4,7 +4,7 @@ The single reference for the data PyVWF uses: what each source is, its licence,
 how it is fetched, and **what the processing does to it** for every region.
 Full step-by-step acquisition lives in the per-region runbooks
 (`docs/runbooks/<CC>.md`); the adapter contract is in
-[`ADDING_AN_OBSERVATION_SOURCE.md`](ADDING_AN_OBSERVATION_SOURCE.md).
+[`adding-an-observation-source.md`](adding-an-observation-source.md).
 
 **Licence key:** 🟢 open (redistributable) · 🟡 mixed (open coordinates over a
 confidential generation series) · 🔴 confidential / commercial.
@@ -38,16 +38,16 @@ resolves it to an adapter in `src/vwf/sources/`. Every source is reduced to a
 
 | Region | Code | Adapter | Source | Lic. | Fetch → Process | Runbook |
 |---|---|---|:---:|:---:|---|---|
-| Denmark | DK | `european-turbine` | Danish Energy Agency turbine register (monthly kWh) | 🟢 | `fetch/dk.py` → `process/dk.py` | [DK](../runbooks/DK.md) |
-| United Kingdom | UK | `european-turbine` | REPD metadata + Ofgem ROC certificates | 🟡 | `fetch/uk.py` → `process/uk.py` | [UK](../runbooks/UK.md) |
-| Germany | DE | `european-turbine` | WindStats per-turbine register (commercial) | 🔴 | (none) → `process/de.py` | [DE](../runbooks/DE.md) |
-| Spain (hist.) | ES-WS | `windstats` | WindStats generation + GWPT coordinates | 🟡 | (none) → `process/windstats.py` | [ES](../runbooks/ES.md) |
-| United States | US | `eia-us` | EIA-923 netgen + EIA-860 + USWTDB heights | 🟢 | (none) → `process/eia_us.py` | [US](../runbooks/US.md) |
-| Brazil | BR | `ons-br` | ONS `FATOR_CAPACIDADE` hourly CF + constrained-off | 🟢 | (none) → `process/ons_br.py` | [BR](../runbooks/BR.md) |
+| Denmark | DK | `european-turbine` | Danish Energy Agency turbine register (monthly kWh) | 🟢 | `fetch/dk.py` → `process/dk.py` | [DK](../runbooks/dk.md) |
+| United Kingdom | UK | `european-turbine` | REPD metadata + Ofgem ROC certificates | 🟡 | `fetch/uk.py` → `process/uk.py` | [UK](../runbooks/uk.md) |
+| Germany | DE | `european-turbine` | WindStats per-turbine register (commercial) | 🔴 | (none) → `process/de.py` | [DE](../runbooks/de.md) |
+| Spain (hist.) | ES-WS | `windstats` | WindStats generation + GWPT coordinates | 🟡 | (none) → `process/windstats.py` | [ES](../runbooks/es.md) |
+| United States | US | `eia-us` | EIA-923 netgen + EIA-860 + USWTDB heights | 🟢 | (none) → `process/eia_us.py` | [US](../runbooks/us.md) |
+| Brazil | BR | `ons-br` | ONS `FATOR_CAPACIDADE` hourly CF + constrained-off | 🟢 | (none) → `process/ons_br.py` | [BR](../runbooks/br.md) |
 | Australia (NEM) | AU-NEM | `aemo-nem` | AEMO NEMWEB 5-min SCADA + Generation Information | 🟢 | `fetch/aemo_au.sh` → `process/aemo_au.py` | (none) |
-| New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | 🟢 | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/NZ.md) |
-| Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | 🟢 | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/CL.md) |
-| Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | 🟢 | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/AR.md) |
+| New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | 🟢 | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
+| Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | 🟢 | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
+| Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | 🟢 | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
 | 9 ENTSO-E countries | BE ES FR IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | 🟢 | `datasets/generate_country_level_training_data.py` | (none) |
 | Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | 🟢 | `datasets/generate_country_level_training_data.py` | (none) |
 
@@ -97,7 +97,7 @@ source lacks them. The region-specific work:
 
 Turbine-level sources report at different native units (turbine / farm / plant /
 complex); the per-adapter unit, time convention, and curtailment handling are in
-[`ADDING_AN_OBSERVATION_SOURCE.md`](ADDING_AN_OBSERVATION_SOURCE.md).
+[`adding-an-observation-source.md`](adding-an-observation-source.md).
 
 ### Source URLs
 
@@ -196,7 +196,7 @@ Three steps make the grid trustworthy, and each has a script:
    ```
    The affine correction absorbs a constant observation error into the scalar,
    so a uniformly-wrong series still fits well in sample. **NL and IE fail this
-   audit** (see [country_level_method_review.md](../findings/country_level_method_review.md)).
+   audit** (see [method-country-level.md](../findings/method-country-level.md)).
 
 ---
 
@@ -205,10 +205,10 @@ Three steps make the grid trustworthy, and each has a script:
 - **Turkey (TR):** EPİAŞ Şeffaflık. The per-plant licensed-realtime endpoint
   returns 403 under the public subscription and aggregates ignore
   `powerPlantId`, so per-plant wind is not obtainable openly.
-  `fetch/epias_tr.py` + [TR runbook](../runbooks/TR.md) document the gap.
+  `fetch/epias_tr.py` + [TR runbook](../runbooks/tr.md) document the gap.
 - **Sweden & Finland (WindStats):** the format supports them, but GWPT matches
   only 7-9% of their fragmented fleets. Parked pending a thewindpower.net
-  coordinate table ([ES runbook](../runbooks/ES.md)).
+  coordinate table ([ES runbook](../runbooks/es.md)).
 
 ## 6. Redistribution summary
 

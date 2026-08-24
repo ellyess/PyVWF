@@ -1,7 +1,7 @@
-# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/harness.md).
 # ⚠ MIXED LICENCE: generation is CONFIDENTIAL WindStats (commercial); coordinates
 # are open GWPT (CC-BY-4.0). Neither the data nor derived observations are
-# committed (input/ is git-ignored). See docs/runbooks/ES.md.
+# committed (input/ is git-ignored). See docs/runbooks/es.md.
 #
 # Code is ES-WS (not ES) so it does not collide with the country-level ENTSO-E
 # Spain region (configs/regions/es.toml). CAVEAT: the WindStats Spain extract

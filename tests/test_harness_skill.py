@@ -1,4 +1,4 @@
-"""Skill metrics and pseudo-replicate handling (docs/design/HARNESS_DESIGN.md §5, §2)."""
+"""Skill metrics and pseudo-replicate handling (docs/design/harness.md §5, §2)."""
 import numpy as np
 import pandas as pd
 import pytest

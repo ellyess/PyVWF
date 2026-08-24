@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Build the UK (european-turbine) inputs from REPD and Ofgem ROC data.
 
-Two sub-commands, matching the two source components (docs/runbooks/UK.md):
+Two sub-commands, matching the two source components (docs/runbooks/uk.md):
 
     python scripts/process/uk.py metadata          # REPD -> open uk_md + divergence
     python scripts/process/uk.py observations --roc <ofgem export>   # ROCs -> ukobs

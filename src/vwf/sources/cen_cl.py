@@ -79,7 +79,7 @@ class CENChileSource(ObservationSource):
             raise FileNotFoundError(
                 f"CEN-CL plant metadata not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step: docs/runbooks/CL.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/cl.md)."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -105,7 +105,7 @@ class CENChileSource(ObservationSource):
             raise FileNotFoundError(
                 f"CEN-CL observations not found at {path}. This adapter reads "
                 "pre-processed files; see the class docstring for the schema "
-                "(data acquisition is a user-executed step: docs/runbooks/CL.md)."
+                "(data acquisition is a user-executed step: docs/runbooks/cl.md)."
             )
         wide = pd.read_csv(path)
         wide["ID"] = wide["ID"].astype(str)

@@ -5,7 +5,7 @@ in `vwf/harness/`, kept because the reasoning behind the seams is harder to
 recover from the code than the seams themselves. Where the text describes a
 future step, read it as the plan that was carried out; the results are in
 `docs/findings/`, and the region-by-region numbers in
-`docs/findings/multi_region_validation_scorecard.md`.
+`docs/findings/scorecard.md`.
 
 The original scope was the European re-runs (DK, DE, UK and nine ENTSO-E
 countries) plus Australia (NEM), with transfer restricted to Australia
@@ -327,9 +327,8 @@ validate_region.py --factors-from output/validation/AU-NEM/<run>/ \
 ### Transfer semantics (normative)
 
 Cluster labels are region-specific: a source region's factors table has no
-cluster correspondence in the target region. On this branch, transfer is
-defined as exactly the following, and the driver implements this and nothing
-else:
+cluster correspondence in the target region. Transfer is therefore defined as
+exactly the following, and the driver implements this and nothing else:
 
 1. Collapse the source region's factors to **one scalar and one offset per
    time-slice**, as the **capacity-weighted** mean over the source clusters
@@ -347,7 +346,7 @@ else:
    physically questionable and excluded from the approved pair runs.)
 
 No spatial matching schemes (nearest-cluster, regridding, wind-climate
-analogues) on this branch.
+analogues) are implemented.
 
 - `transfer` applies a foreign factors table to the target region's simulation
   and evaluates. The driver enforces the approved pair set (AU↔Europe);
@@ -394,13 +393,13 @@ analogues) on this branch.
 
 ## Decisions (resolved at design review, 2026-07-15)
 
-1. Package name: `vwf.harness`. ✔
-2. `configs/regions/` at repo root. ✔
-3. Seasons as explicit month lists per region config. ✔
+1. Package name: `vwf.harness`.
+2. `configs/regions/` at repo root.
+3. Seasons as explicit month lists per region config.
 4. Legacy `PyVWF.train`/`simulate_cf` write the manifest: own commit,
-   never-abort semantics (§6). ✔
-5. Driver is a script; console entry point may be promoted later if the
-   harness stabilises. ✔
+   never-abort semantics (§6).
+5. Driver is a script; a console entry point may be promoted later if the
+   harness stabilises.
 
 Amendments A–D from the same review are folded into §7 (transfer semantics,
 season-name matching), §2 (`obs_unit` granularity with verified

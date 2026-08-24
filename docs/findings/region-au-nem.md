@@ -1,5 +1,9 @@
 # Australia/NEM seasonal validation
 
+**Date:** 2026-07-16
+**Scope:** the Australia/NEM seasonal validation: the diagnosed bias structure, the
+pre-specified cycle gate, and the absolute-skill cost reported alongside it.
+
 **Finding.** PyVWF **diagnosed the structure of ERA5's NEM bias**: a
 near-zero level bias (fleet MBE −0.024) combined with an **over-amplified
 seasonal cycle in South Australia**. The shape is right (winter-peaking) but
@@ -133,7 +137,7 @@ periods, i.e. SA winter. The direction of the ERA5–observation discrepancy
 (simulated winter peak too strong relative to observation) is therefore
 consistent with some of the gap being observed output suppressed by
 curtailment rather than reanalysis resource bias. With semi-dispatch-cap
-data excluded from this branch's scope, resource bias and curtailment-driven
+data out of scope here, resource bias and curtailment-driven
 seasonality **cannot be fully separated in SA**; "PyVWF proved a pure ERA5
 resource bias in SA" is not claimable on this evidence. What the evidence
 does establish: SA's effective generation cycle is materially misrepresented

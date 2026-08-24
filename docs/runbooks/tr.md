@@ -32,7 +32,7 @@ hub-height advantage intact.
 
 **Original acquisition guide below (adapter not written).** Turkey is the #3
 candidate region in the July-2026 dataset survey
-(`docs/findings/dataset_survey_2026-07.md`) and the only candidate with BOTH
+(`docs/findings/dataset-survey.md`) and the only candidate with BOTH
 per-plant hourly generation and a national turbine register (TÜREB) carrying
 turbine models, i.e. hub heights become derivable per plant, which no other
 non-European candidate offers except Canada. Climate: Mediterranean Aegean/
@@ -98,4 +98,4 @@ plants) in the dataset survey doc before any adapter work.
 - The fleet is heavily Aegean/Marmara; expect strong within-region climate
   contrast with Anatolian BSk plants, which is exactly the regime-coverage
   property the ML transfer re-test asks for
-  (`docs/findings/ml_transfer_retest.md`).
+  (`docs/findings/method-ml-transfer.md`).

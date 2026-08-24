@@ -50,7 +50,7 @@ Trains 2021-2023, tests 2024. With matched curves the affine correction helps
   m/s, which no correctly-specified turbine turns into the observed 21% CF;
   matched curves confirmed it is the reanalysis wind, not the turbine. Fixable
   only with a higher-resolution wind product. See
-  [`south_america_spatial_bias.md`](../findings/south_america_spatial_bias.md).
+  [`region-south-america.md`](../findings/region-south-america.md).
 - **Curtailment.** `gen_real_mw` is delivered energy, and Chile's northern grid
   curtails wind, so delivered CF sits below the resource. No screen: the SIP API
   exposes no vertimiento series (`factor_ernc` is flat at 1.0), and there is no

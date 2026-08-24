@@ -1,8 +1,12 @@
 # Australia/NEM synthesis: what generalises, what doesn't, and what a global method needs
 
+**Date:** 2026-07-16
+**Scope:** what the Australia/NEM validation says generalises across regions, what does
+not, and what a global method would need. The closing document for that work.
+
 Closing document for the Australia/NEM validation. The per-result documents
-behind it are `harness_regression.md` (does the refactored pipeline still
-reproduce known-good results?) and `au_seasonal_cycle.md` (the seasonal
+behind it are `method-harness-regression.md` (does the refactored pipeline still
+reproduce known-good results?) and `region-au-nem.md` (the seasonal
 finding and its absolute-skill cost).
 
 ## The central result: correction value tracks the STRUCTURE of the bias
@@ -22,7 +26,7 @@ seasonal shape where the bias is shape-dominated** (AU: the pre-specified
 cycle gate passes on both curve libraries). It cannot improve absolute
 skill where there is no level bias to remove, and its level machinery then
 adds farm-level noise (AU: +16% RMSE, reported in full in
-`au_seasonal_cycle.md`). This is one result seen from two sides, not a success
+`region-au-nem.md`). This is one result seen from two sides, not a success
 and a failure: the method improves the component of the bias that exists.
 For anyone applying correction to a new region, the actionable version is:
 **diagnose the bias structure first** (level vs shape decomposition of
@@ -52,7 +56,7 @@ winter months):
   pathologies), a publishable negative result: correction factors encode a
   region's specific reanalysis-bias fingerprint, not portable physics.
 
-## What generalises (validated on this branch)
+## What generalises (validated)
 
 - **The pipeline.** The regression validation: the harness reproduces the
   legacy method bit-for-bit

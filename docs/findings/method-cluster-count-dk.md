@@ -66,7 +66,7 @@ Best: `k=3300`, `season`, RMSE 0.0851 (MAE 0.0533, MBE +0.0282, r 0.824).
   0.824. Denmark onshore is a well-behaved region: ERA5's bias here is close to
   a clusterable wind-speed offset, which is exactly what the affine model
   represents (unlike the Atacama/Patagonia regimes in
-  [south_america_spatial_bias.md](south_america_spatial_bias.md)).
+  [region-south-america.md](region-south-america.md)).
 
 **Practical setting for DK onshore:** `cluster_list = [1, 200]`, `season` (or
 `bimonth`). Beyond `k=200` the model is not wrong, just not better.

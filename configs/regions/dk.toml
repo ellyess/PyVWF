@@ -1,4 +1,4 @@
-# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/harness.md).
 # Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
 
 [region]
@@ -19,7 +19,7 @@ file_tag = "EU"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 100]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
+cluster_list = [1, 100]  # sweep knee (docs/findings/method-cluster-count.md)
 time_slices = ["fixed", "season"]
 
 [seasons]

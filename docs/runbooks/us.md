@@ -103,8 +103,8 @@ python scripts/analysis/validate_region.py evaluate --region configs/regions/us.
 
 `train` fits `(cluster, slice)` correction factors for every combination in the
 config (10 clusters × {fixed, season}); `evaluate` scores the held-out test
-year (2022) with the standard skill table. Transfer runs stay out of scope on
-this branch (the driver's approved-pair guard is AU↔Europe only).
+year (2022) with the standard skill table. Transfer runs are out of scope for
+the US: the driver's validated-pair guard covers AU and Europe only.
 
 ## Caveats carried into any US result
 

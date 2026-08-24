@@ -97,8 +97,8 @@ python scripts/analysis/validate_region.py evaluate --region configs/regions/br.
 
 `train` fits `(cluster, slice)` correction factors for every combination in the
 config (8 clusters × {fixed, season}); `evaluate` scores the held-out test year
-(2024). Transfer runs stay out of scope on this branch (the driver's
-approved-pair guard is AU↔Europe only).
+(2024). Transfer runs are out of scope for Brazil: the driver's validated-pair
+guard covers AU and Europe only.
 
 ## Caveats carried into any Brazil result
 

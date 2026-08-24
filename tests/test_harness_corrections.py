@@ -234,7 +234,7 @@ def test_scaled_affine_reduces_to_affine_when_no_loss(synthetic_dk):
 def test_scaled_affine_availability_is_redundant_with_the_offset(synthetic_dk):
     """Planting a uniform level loss does NOT drive availability below 1,
     because the affine offset re-fits to absorb the level. This is the
-    documented redundancy (docs/findings/south_america_spatial_bias.md): the
+    documented redundancy (docs/findings/region-south-america.md): the
     availability term only bites when the affine fit cannot reach the level, not
     in the ordinary case. Halving every observation is exactly such an ordinary
     level shift, and availability stays at its ceiling."""

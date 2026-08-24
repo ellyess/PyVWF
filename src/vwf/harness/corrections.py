@@ -36,11 +36,11 @@ _PARALLEL_OFFSET_MIN_ROWS = 500
 #: Physically defensible range for an affine wind scalar. A correction is meant
 #: to repair a reanalysis bias of tens of percent, not rebuild the wind field, so
 #: a scalar outside this band means the fit is compensating for something the
-#: model cannot represent (see docs/findings/hourly_resolution_test.md, where an
+#: model cannot represent (see docs/findings/method-hourly-resolution.md, where an
 #: Atacama cluster fitted a scalar of 80).
 #:
 #: Calibrated against 373,179 fitted scalars across every region in
-#: output/validation (docs/findings/scalar_bounds_calibration.md), and the two
+#: output/validation (docs/findings/method-scalar-bounds.md), and the two
 #: bounds are deliberately ASYMMETRIC because they are not equally informative:
 #:
 #: - The CEILING discriminates sharply. Every healthy region tops out just below
@@ -529,7 +529,7 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
 
     This is a genuine model extension for fleets where part of the gap is
     generation loss rather than reanalysis wind error (Patagonia, the Brazilian
-    Nordeste), not a tuning knob. See docs/findings/south_america_spatial_bias.md.
+    Nordeste), not a tuning knob. See docs/findings/region-south-america.md.
     """
 
     name: ClassVar[str] = "scaled-affine"

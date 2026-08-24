@@ -1,5 +1,9 @@
 # New Zealand: first run (the first new-climate region since the survey)
 
+**Date:** 2026-07-23
+**Scope:** New Zealand's first train and evaluate run, the first region in a new climate
+since the European set.
+
 Trained 2019–2023, evaluated on held-out **2024**, EMI per-farm monthly CF,
 external combined curve library, k-means++ defaults. Region config
 `configs/regions/nz.toml`, source `emi-nz`. Run:

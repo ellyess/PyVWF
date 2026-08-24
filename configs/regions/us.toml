@@ -1,4 +1,4 @@
-# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Region config for the multi-region validation harness (docs/design/harness.md).
 # Seasons are EXPLICIT month lists; the US is Northern Hemisphere, so these
 # coincide with the legacy NH mapping, but they are stated, not inherited, so
 # the harness never depends on vwf.time_utils for this region.
@@ -28,7 +28,7 @@ file_tag = "US"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 25]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
+cluster_list = [1, 25]  # sweep knee (docs/findings/method-cluster-count.md)
 time_slices = ["fixed", "season"]
 
 [seasons]

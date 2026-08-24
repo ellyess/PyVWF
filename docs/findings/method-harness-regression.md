@@ -1,5 +1,9 @@
 # Regression validation of the refactored correction path
 
+**Date:** 2026-07-15
+**Scope:** does the refactored correction path still reproduce known-good results on
+regions where the answer is already known, against real curves and real data?
+
 **Question.** The harness refactored the correction path (the `CorrectionModel`
 delegate, the `seasons` seam, ERA5 longitude normalisation, file-backed
 country loading). Does it still reproduce known-good results on regions where
@@ -102,4 +106,4 @@ The refactor is behaviour-preserving on the validated European regions, at both
 observation levels and across the true-coordinate, postcode, and joint-offset
 paths. The win condition is met with zero discrepancies. This cleared the
 way for the Australia/NEM validation, which is written up in
-`au_seasonal_cycle.md` and `au_nem_synthesis.md`.
+`region-au-nem.md` and `method-generalisation.md`.
