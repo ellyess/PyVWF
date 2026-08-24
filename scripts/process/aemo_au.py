@@ -128,7 +128,7 @@ def main() -> None:
         print(f"partials: {len(combined)} (DUID, month) rows -> "
               f"{out / 'au_nem_scada_monthly_partials.csv'}")
 
-    # --- registered-capacity mask (MASK option, D2 sign-off) -----------------
+    # --- registered-capacity mask ------------------------------------------
     cap_archives = sorted(raw.glob("dudetail_cap/PUBLIC_DVD_DUDETAIL_*.zip"))
     if cap_archives and combined is not None:
         hist = registered_capacity_history(

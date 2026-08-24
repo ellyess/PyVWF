@@ -10,7 +10,7 @@ legacy ``vwf.metrics`` and harness ``vwf.harness.skill`` compute skill with
 different (intentional) formulas, so a metric diff is a formula choice, not a
 regression. If the frames match, the refactor preserved the method.
 
-    python scripts/analysis/d1_regression.py --reference REF_DIR --harness RUN_DIR \
+    python scripts/analysis/regression_compare.py --reference REF_DIR --harness RUN_DIR \
         --atol 1e-12 --label DK
 
 Exit code 0 = every frame within tolerance, 1 = at least one FAIL, 2 = no

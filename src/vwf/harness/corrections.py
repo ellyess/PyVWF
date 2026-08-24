@@ -336,8 +336,9 @@ class AffineWindCorrection(CorrectionModel):
         if obs_level == "country":
             # Delegation mirror of PyVWF.train's country branch: one country
             # observation per period, all cluster offsets optimised jointly
-            # (correction.find_offsets_country_level; identifiability is RQ4's
-            # question, not changed here).
+            # (correction.find_offsets_country_level). Whether those
+            # offsets are identifiable at all is an open question studied
+            # elsewhere; nothing here changes the estimator.
             unique_periods = train_bias_df[["year", time_res]].drop_duplicates()
             offsets_rows: list[dict[str, Any]] = []
             for _, period in unique_periods.iterrows():

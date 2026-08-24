@@ -1,4 +1,4 @@
-"""Per-zone country observations: RQ4 option 1.
+"""Per-zone country observations, the exactly-determined country-level fit.
 
 With one national observation, N cluster offsets are under-determined by N-1
 and `find_offsets_country_level` returns wherever L-BFGS-B stopped. With one

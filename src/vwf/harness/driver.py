@@ -35,8 +35,8 @@ from vwf.sources import (
     get_source,
 )
 
-#: The approved transfer pair set (Phase 0 sign-off): AU-NEM against Europe,
-#: in either direction. Everything else is out of scope on this branch.
+#: The transfer pair set that has been validated: AU-NEM against Europe, in
+#: either direction. Other pairings are untested rather than unsupported.
 TRANSFER_HUB = "AU-NEM"
 
 

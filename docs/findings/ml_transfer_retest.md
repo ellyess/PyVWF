@@ -84,8 +84,8 @@ training set has no coverage of the physical regime, consistent with the D2
   pure country-identity encodings.
 - **Fleet features (Set C: hub height, log capacity, cluster size)** lift DE
   to **+0.12** and BR to +0.34, leave UK ~0, don't rescue DK/US. Hub-height
-  metadata carries genuine cross-region signal, relevant to the d2_synthesis
-  point that height metadata should be first-class.
+  metadata carries genuine cross-region signal, relevant to the
+  Australia/NEM synthesis point that height metadata should be first-class.
 
 ## T4: pooled random 5-fold CV (comparability anchor)
 

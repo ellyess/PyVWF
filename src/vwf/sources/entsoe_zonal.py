@@ -1,6 +1,7 @@
 """Per-bidding-zone country-level observations.
 
-This is RQ4 option 1. The national path fits N cluster offsets against a single
+This is the first of the two answers to the country-level identifiability
+question. The national path fits N cluster offsets against a single
 national observation per period, which is under-determined by N-1: the offsets
 are wherever the optimiser stopped, not estimates. When each cluster carries its
 own observation the problem becomes N observations against N offsets, exactly

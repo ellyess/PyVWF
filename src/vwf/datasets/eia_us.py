@@ -35,7 +35,7 @@ Known limitations, stated up front (also in the join report):
   column says which, per plant, so no downstream step can mistake a default
   for data. This is already better than the AU branch (which had no
   hub-height data at all), and the vintage-aware power-curve assignment
-  remains a named follow-up (RQ7 territory), exactly as for AU.
+  remains a named follow-up, exactly as for AU.
 - Capacity is the EIA-860 nameplate, static over the window. Plants built out
   in stages inside the training window have their early months biased low
   relative to the evolving in-service capacity; the commissioning mask removes

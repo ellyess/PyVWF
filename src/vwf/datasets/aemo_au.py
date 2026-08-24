@@ -14,13 +14,14 @@ writes):
 
 - GWPT carries no hub height or turbine model, so ``height`` and ``model``
   are uniform defaults recorded in ``height_source``/``model_source``
-  columns. A vintage-aware assignment is a named follow-up (RQ7 territory).
+  columns. A vintage-aware assignment is a named follow-up, along with
+  hub-height and turbine-vintage covariates generally.
 - Capacity is the Generation Information nameplate, static over the window.
   Farms with STAGED commissioning inside 2020-2023 (e.g. multi-stage sites)
   have their early months biased low relative to the evolving registered
   capacity; the commissioning mask removes pre-FCUD months but not partial
   staging. DUDETAILSUMMARY-based capacity histories are the named follow-up
-  before pillar A gates.
+  before any seasonal-cycle result is trusted.
 """
 from __future__ import annotations
 
@@ -335,15 +336,16 @@ def capacity_mask_months(
 ) -> pd.DataFrame:
     """Months whose registered capacity is unreliable as a CF denominator.
 
-    A month is masked (MASK option, D2 sign-off: clean denominators over
-    data retention; the measured cost is ~1% of farm-months) when:
+    A month is masked when the following holds. The rule deliberately
+    prefers clean denominators over data retention; the measured cost is
+    about 1% of farm-months.
 
     - the registered capacity changes WITHIN the month (ambiguous
       denominator),
     - the month's capacity is below ``(1 - tolerance) ×`` the final
       registered capacity (farm not fully built: a ramping farm injects a
-      spurious sub-annual signal into exactly the seasonal cycle pillar A
-      judges), or
+      spurious sub-annual signal into exactly the seasonal cycle the
+      Australia validation measures), or
     - the month predates the DUID's first registration (trial generation).
 
     Args:

@@ -37,8 +37,8 @@ SCADA_INTERVAL_MINUTES = 5
 DEFAULT_MIN_COVERAGE = 0.9
 
 #: Training window used when no explicit year range is requested.
-#: Trimmed to 2020-2022 at D2 sign-off: the four validation pillars need a
-#: couple of full held-out years, not six, and it cuts the SCADA download.
+#: Trimmed to 2020-2022: the validation needs a couple of full held-out
+#: years, not six, and the shorter window cuts the SCADA download.
 DEFAULT_TRAIN_YEARS: tuple[int, int] = (2020, 2022)
 
 
@@ -132,7 +132,7 @@ def finalise_monthly_cf(
             final build, or pre-registration), built from AEMO DUDETAIL by
             ``vwf.datasets.aemo_au.capacity_mask_months``. A ramping farm
             otherwise injects a spurious sub-annual signal into exactly the
-            seasonal cycle pillar A judges.
+            seasonal cycle the Australia validation measures.
     """
     monthly = partials.copy()
     monthly["ID"] = monthly["ID"].astype(str)

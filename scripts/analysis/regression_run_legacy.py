@@ -1,12 +1,12 @@
 """Run the LEGACY PyVWF path for a D1 regression reference.
 
-Half of the D1 method (docs/findings/d1_regression.md): generate the
+Half of the D1 method (docs/findings/harness_regression.md): generate the
 reference from a git worktree of main by pointing PYTHONPATH at that tree's
 src/, with PYVWF_INPUT at a staging directory holding the real curve
 library. dask_n_workers=0 keeps the offset fit sequential and deterministic.
 
     PYVWF_INPUT=<stage> PYTHONPATH=<main-worktree>/src python \\
-        scripts/analysis/d1_run_legacy.py --country DK --mode onshore \\
+        scripts/analysis/regression_run_legacy.py --country DK --mode onshore \\
         --train-start 2015 --train-end 2019 --test-year 2020 \\
         --clusters 1 10 --time-res fixed season --out <ref-dir>
 
@@ -15,7 +15,7 @@ Country-level (NL, FR): load_country_data from the observations/country files
 (pass --cl-data).
 
 Writes factors_<slice>_<n>.csv and cor_cf_<slice>_<n>.csv (+ unc_cf, obs_cf)
-into --out; diff against a harness run with scripts/analysis/d1_regression.py.
+into --out; diff against a harness run with scripts/analysis/regression_compare.py.
 """
 import argparse
 import sys

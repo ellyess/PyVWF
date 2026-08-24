@@ -1,8 +1,8 @@
-"""Pillar B: synthetic Southern-Hemisphere ground truth through the FULL pipeline.
+"""Synthetic Southern-Hemisphere ground truth through the FULL pipeline.
 
-D2's pre-flight (validation design, docs + progress log): there is no legacy
-AU path to bit-diff against, so confidence in the SH/AU numbers is
-constructed. This test plants a KNOWN seasonal bias in a synthetic AU-shaped
+A precondition for the Australia validation: there is no legacy AU path to
+bit-diff against, so confidence in the Southern-Hemisphere numbers has to be
+constructed rather than inherited. This test plants a KNOWN seasonal bias in a synthetic AU-shaped
 dataset (reanalysis over-blows by 30% during JJA, austral winter) and runs
 the complete real stack: AEMO-format 5-minute SCADA files on disk →
 AEMONemSource (AEST→UTC binning) → harness run_train with an SH-season config
@@ -164,7 +164,7 @@ def au_paths(au_world, monkeypatch):
 def au_spec() -> RegionSpec:
     return RegionSpec(
         code="AU-NEM",
-        name="Australia (synthetic pillar B)",
+        name="Australia (synthetic ground truth)",
         source="aemo-nem",
         obs_level="turbine",
         obs_unit="farm",

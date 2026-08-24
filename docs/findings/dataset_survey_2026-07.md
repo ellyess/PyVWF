@@ -140,8 +140,8 @@ CFs (simulated).
    powerPlantId). Needs a renewables-service subscription; see ../runbooks/TR.md.
 4. **Argentina (CAMMESA)**: monthly per-plant since 2011 matches the training
    resolution exactly; Patagonia is a regime nothing else offers.
-5. **Canada (IESO+AESO+CWTDB)**: when hub-height-sensitive questions (RQ7)
-   come up, it is the only region where heights are native and per-turbine.
+5. **Canada (IESO+AESO+CWTDB)**: when hub-height-sensitive questions come
+   up, it is the only region where heights are native and per-turbine.
 6. **India (CEA, state-level)**: through the country-level path; the monsoon
    gap is worth an "acceptable-tier" ingest.
 7. **WEM / Uruguay / Peru**: cheap adds when marginal effort is available.

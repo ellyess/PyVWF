@@ -67,7 +67,7 @@ python scripts/analysis/validate_region.py evaluate --region configs/regions/dk.
 Denmark trains on 2015-2019 and tests on 2020 (`dk.toml`). It is
 level-dominated (uncorrected MBE +0.121), and the affine correction wins on
 every metric, the anchor the other regions are read against
-(`docs/findings/d1_regression.md`, `d2_synthesis.md`). ERA5 for DK comes from
+(`docs/findings/harness_regression.md`, `au_nem_synthesis.md`). ERA5 for DK comes from
 the shared European box (`era5/EU`), already on disk; there is no DK-specific
 ERA5 fetch.
 

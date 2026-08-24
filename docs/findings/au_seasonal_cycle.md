@@ -1,4 +1,4 @@
-# Pillar A: Australia/NEM seasonal validation (D2)
+# Australia/NEM seasonal validation
 
 **Finding.** PyVWF **diagnosed the structure of ERA5's NEM bias**: a
 near-zero level bias (fleet MBE −0.024) combined with an **over-amplified
@@ -27,12 +27,15 @@ baseline), evaluated on held-out 2023. Observations: AEMO 5-minute SCADA per
 DUID, UTC-binned monthly, coverage floor, commissioning and
 registered-capacity masks (42/3,455 farm-months masked). Fleet: 104 farms,
 14.26 GW (99% of NEM wind DUIDs); 76 farms carry complete 2023 observations
-and form the gate set. Preconditions established beforehand: pillar B
-(synthetic SH ground truth through the full pipeline: labels, value, and
-NH-application-is-worse-than-nothing, all pinned), pillar C (ERA5-AU slice
-integrity: 48/48 file integrity, farm containment, lat-flip bit-identity;
-the 0–360 check is provably vacuous for AU and is recorded as an invariance
-proof, not evidence), and a curve-sensitivity check showing curve choice is
+and form the gate set. Three preconditions were established beforehand.
+First, a synthetic Southern-Hemisphere ground truth driven through the full
+pipeline, pinning the season labels, the correction's value, and the result
+that applying Northern-Hemisphere labels is worse than not correcting at all
+(`tests/test_southern_hemisphere_pipeline.py`). Second, ERA5 slice
+integrity: 48 of 48 files intact, every farm inside the domain, and
+latitude-flip bit-identity. The 0-360 longitude check is provably vacuous
+for Australia, so it is recorded as an invariance proof rather than as
+evidence. Third, a curve-sensitivity check showing curve choice is
 level-not-shape (normalized-cycle r ≥ 0.9989 among real curves).
 
 Turbine identity per farm: `configs/curation/au_turbine_models.csv`, 44.1% of fleet
@@ -64,9 +67,8 @@ undercut and shoulder seasons; SA's JJA error itself barely moves,
 
 ## Absolute skill, reported alongside the gate
 
-The seasonal-cycle gate above was the **pre-specified criterion**, signed as
-the data-as-judge gate at checkpoint 16 of the validation log, before any
-results existed. Pre-specification is the defence against metric-shopping,
+The seasonal-cycle gate above was the **pre-specified criterion**, fixed
+before any results existed and with the data itself as the judge. Pre-specification is the defence against metric-shopping,
 and it only works if the other numbers are shown too. They are:
 
 | AU-NEM, held-out 2023 (77 farms) | RMSE | MAE | MBE |
@@ -168,6 +170,6 @@ differences between stacks isolate the curve effect.
 
 `scripts/process/aemo_au.py` (ingest) → `scripts/region_tools/assign_au_curves.py`
 (per-library metadata) → `scripts/era5/combine.py --region au_nem` (daily ERA5) →
-harness `run_train`/`run_evaluate` with the AU-NEM spec (SH seasons) → gate
-computation as in the progress log (checkpoints 16–21). Real curve library
+harness `run_train`/`run_evaluate` with the AU-NEM spec (SH seasons) → the
+gate computation described under *Setup* above. Real curve library
 and AEMO/ERA5 data remain local; nothing proprietary is committed.

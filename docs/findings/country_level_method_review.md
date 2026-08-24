@@ -238,8 +238,8 @@ GWPT coordinate coverage is 100% of operating projects in all nine countries, so
 nothing is lost to missing geolocation.
 
 **Design note.** [HARNESS_DESIGN.md](../design/HARNESS_DESIGN.md) records that
-the country-level joint-offset optimiser is studied by RQ4 and changed by
-nothing. It is unchanged: `find_offsets_country_level` is untouched, and every
+the country-level joint-offset optimiser is studied by the identifiability
+work and changed by nothing. It is unchanged: `find_offsets_country_level` is untouched, and every
 `entsoe-country` region still routes to it, because a single national
 observation is not per-cluster. The new per-cluster route is reached only by the
 new `entsoe-zonal` source. Other changes in this section (weighting, monthly
@@ -281,7 +281,7 @@ with results after it.
   over seven years but the fleet genuinely only grew 15%, while IE's two numbers
   are 0.6% apart.
 
-## 5. RQ4: per-zone observations
+## 5. Per-zone observations
 
 `entsoe-zonal` reads the per-bidding-zone observation files
 `generate_country_level_training_data` has always written alongside the national
@@ -477,8 +477,8 @@ parameters to do it. This holds at turbine level too (DK -0.975, NZ -0.988),
 where the offsets are exactly identified, so **it is a property of the affine
 parameterisation, not of the country-level identifiability problem**.
 
-That reframes RQ4. The question was whether the under-determined offsets mean
-anything. The answer appears to be that they mostly encode a deterministic
+That reframes the identifiability question. It was whether the
+under-determined offsets mean anything. The answer appears to be that they mostly encode a deterministic
 function of the scalar, which would explain both why the joint fit works despite
 being under-determined (the solution set is nearly one-dimensional in the
 direction that matters) and why making it identifiable did not help.
@@ -489,8 +489,8 @@ Testable predictions this generates, none yet run:
    speed, or `k = cbrt(obs_CF/sim_CF)`, should approach affine performance. If it
    does, the second parameter is close to redundant.
 2. The residual after removing the `cbrt` relationship is the part of the offset
-   that is genuinely additive bias. That residual, not the raw offset, is what
-   RQ4 should be asking about.
+   that is genuinely additive bias. That residual, not the raw offset, is
+   what the identifiability question should be asking about.
 3. If (1) holds, the country-level identifiability problem largely dissolves: one
    parameter per cluster against one national observation is still
    under-determined for N > 1, but the parameter count halves and a pooled fit
@@ -526,12 +526,12 @@ but still static inside a training window. `train_set`'s country branch
 simulates once over the whole window with one `turb_info`, so making the weights
 vary year by year inside it needs restructuring.
 
-**IT and DK zones.** Both have market zones and would extend the RQ4 comparison,
-but neither has per-zone observation files fetched yet.
+**IT and DK zones.** Both have market zones and would extend the per-zone
+comparison, but neither has per-zone observation files fetched yet.
 
 **The one-parameter test.** Section 5b's predictions: fit `cor_ws = k · unc_ws`
 with `k` on the wind-speed scale, and compare against affine. If it matches,
-the offset is largely redundant and the RQ4 parameter count halves. This is now
+the offset is largely redundant and the parameter count halves. This is now
 the highest-value open item.
 
 **Why NO and PT get worse under correction**, on clean geometry and clean

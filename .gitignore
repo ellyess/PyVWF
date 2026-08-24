@@ -104,6 +104,14 @@ docs/TURBINE_GRID_EVALUATION_ANALYSIS.md
 docs/findings/TRAINING_2015_2021_SUMMARY.md
 docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
 
+# The multi-region validation running log: a checkpoint-by-checkpoint record of
+# what was decided and why, written for the branch rather than for readers of
+# the repository. It carries sign-off language, open questions addressed to
+# reviewers, and references to conversations that are not public. The findings
+# it produced live in docs/findings/ as standalone documents; the log itself
+# stays local.
+/validation_progress.md
+
 # Local working notes for AI coding sessions (CLAUDE.md): records the real local
 # environment, standing caveats, and what must never be committed. Deliberately
 # not shipped -- CONTRIBUTING.md is the public contributor guide.

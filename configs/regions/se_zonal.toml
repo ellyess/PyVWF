@@ -1,8 +1,8 @@
 # Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
 # Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
 #
-# Sweden with PER-ZONE observations instead of one national series. This is
-# RQ4 option 1: the national path fits 4 cluster offsets against a single
+# Sweden with PER-ZONE observations instead of one national series. The
+# national path fits 4 cluster offsets against a single
 # national number per period, under-determined by 3, so the offsets are
 # wherever the optimiser stopped. Here each of the four bidding zones supplies
 # its own observation and each cluster's offset is determined by one

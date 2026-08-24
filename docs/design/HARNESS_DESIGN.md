@@ -1,10 +1,16 @@
-# Multi-Region Validation Harness: Phase 1 Design
+# Multi-Region Validation Harness: Design
 
-Status: **AMENDED DRAFT (rev 2), awaiting confirmation. No implementation exists yet.**
-Branch: `multi-region-validation`. Scope per Phase 0 sign-off (2026-07-15):
-Europe re-runs (DK/DE/UK + 9 ENTSO-E countries) + Australia (NEM).
-US/Brazil deferred. Transfer restricted to AU↔Europe. RQ1–RQ4 committed,
-RQ5 gated on RQ1, RQ6 local-only with provenance blocker, RQ7 descriptive only.
+Status: **implemented**. This document is the design record for the harness
+in `vwf/harness/`, kept because the reasoning behind the seams is harder to
+recover from the code than the seams themselves. Where the text describes a
+future step, read it as the plan that was carried out; the results are in
+`docs/findings/`, and the region-by-region numbers in
+`docs/findings/multi_region_validation_scorecard.md`.
+
+The original scope was the European re-runs (DK, DE, UK and nine ENTSO-E
+countries) plus Australia (NEM), with transfer restricted to Australia
+against Europe. The United States and Brazil were deferred at design time
+and added afterwards.
 
 Rev 2 amendments (per design review): transfer semantics specified (§7);
 season-name matching for seasonal transfer (§7, tested in §8); observation
@@ -21,8 +27,8 @@ conditions on legacy manifest writing recorded (§6).
 3. The affine baseline is wrapped, not modified: alternative correction
    formulations compare against it through a common interface, and the
    validated core in `vwf/correction.py` / `vwf/wind.py` is untouched.
-4. Every run's output is self-describing about which curve library produced it
-   (the Phase 1 blocker for RQ6).
+4. Every run's output is self-describing about which curve library produced
+   it, without which no synthetic-versus-real curve claim is checkable.
 5. The two silent-corruption hazards found in Phase 0 (Northern-Hemisphere
    seasons and the ERA5 longitude convention) are closed by construction,
    not by convention.
@@ -31,7 +37,8 @@ conditions on legacy manifest writing recorded (§6).
 
 - `vwf/vwf.py` training loop, `vwf/metrics.py`, `vwf/data.py`, legacy scripts:
   all keep working exactly as today. The harness is additive.
-- The country-level joint-offset optimiser: RQ4 *studies* it; nothing changes it.
+- The country-level joint-offset optimiser: the identifiability work
+  *studies* it; nothing changes it.
 - Sub-monthly validation: the observation contract stays monthly
   (`obs_1..obs_12`) so Europe and AU are compared like-for-like. AEMO's 5-min
   SCADA is aggregated to monthly; finer resolutions are a possible follow-up,
@@ -93,15 +100,17 @@ Design decision: **seasons are explicit month lists per region**, not a
 hemisphere flag. Rationale: (a) the Phase 0 finding was that NH months are
 hardcoded in two places; a flag would fix AU but leave the mapping implicit
 and unauditable; (b) explicit months also serve regions where meteorological
-seasons are not the right split (monsoon/trade regimes), which RQ2 will need.
+seasons are not the right split (monsoon and trade-wind regimes), which the
+temporal-resolution work needs.
 European configs carry the current NH mapping verbatim, so legacy results
 reproduce bit-for-bit.
 
 **`[seasons]` is mandatory in every region config**, even when `"season"` is
 not among the region's `time_slices`. Rationale: season definitions are used
 beyond seasonal correction training: transfer matches slices by season name
-against the *target's* definitions (§7.3), and the RQ1/RQ2 diagnostics group
-residuals by season regardless of which slices were trained. A config without
+against the *target's* definitions (§7.3), and the bias-structure and
+temporal-resolution diagnostics group residuals by season regardless of
+which slices were trained. A config without
 season definitions would make those operations silently fall back to
 *something*, and that something would inevitably be the NH mapping this
 design exists to eliminate. Configs fail validation if `[seasons]` is missing
@@ -170,8 +179,8 @@ Consequences the harness must respect:
   not 6,604. Any per-"turbine" skill claim for the UK is really a per-farm
   claim; `skill.py` reports counts of *independent* units (by `obs_unit`),
   and UK Q-Q/EMD comparisons deduplicate to stations first.
-- The DE postcode caveat bounds how much spatial precision DE corrections can
-  claim (RQ3 pooling results for DE inherit it).
+- The DE postcode caveat bounds how much spatial precision DE corrections
+  can claim, and any pooling result for DE inherits that bound.
 
 ### AEMO timezone convention (decided now, applies to Phase 2 ingest)
 
@@ -255,7 +264,7 @@ here as opt-in alternatives; none of them modify the baseline.
 All reported before/after correction, in-sample and held-out. Legacy
 `vwf/metrics.py` is untouched; the harness does not call it.
 
-## 6. Run provenance (Phase 1 blocker for RQ6)
+## 6. Run provenance
 
 `vwf/harness/provenance.py` writes `run_manifest.json` into every harness run
 directory. This is a shape sketch rather than a literal document: `...`
@@ -289,9 +298,9 @@ in the underclaiming direction (nothing unverified can masquerade as the
 bundled synthetic library), and the code will carry a comment saying so.
 Contents of external curve files are never copied into the manifest, only
 hashes and counts, so the manual `cp models.real.csv models.csv` workflow
-stays exactly as it is while every output becomes attributable. The RQ6 rule
-is then mechanical: an RQ6 result is only reportable from a manifest with
-`library == "external"`.
+stays exactly as it is while every output becomes attributable. The rule is
+then mechanical: a result that turns on real rather than bundled curves is
+only reportable from a manifest with `library == "external"`.
 
 Legacy `PyVWF.train`/`simulate_cf` also write the manifest (approved), under
 two binding conditions:

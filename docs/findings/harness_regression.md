@@ -1,4 +1,4 @@
-# D1: Regression validation of the refactored correction path
+# Regression validation of the refactored correction path
 
 **Question.** The harness refactored the correction path (the `CorrectionModel`
 delegate, the `seasons` seam, ERA5 longitude normalisation, file-backed
@@ -18,7 +18,7 @@ skill with different (intentional) formulas, so the gate sits upstream on the
 `factors_*.csv` and `cor_cf_*.csv` frames. If those match, the refactor
 preserved the method.
 
-- **Reference (R1, the gate):** a git worktree of `main` at `53c4330` runs the
+- **Reference (the gate):** a git worktree of `main` at `53c4330` runs the
   legacy `PyVWF.train(dask_n_workers=0)` + `simulate_cf` path.
 - **Harness:** the branch runs the same config through
   `vwf.harness.driver` (`run_train` + `run_evaluate`).
@@ -26,7 +26,7 @@ preserved the method.
   **real** curve library (`power_curves.real.csv` / `models.real.csv` copied to
   the working names) and symlinks to the real data. Real curves and data never
   enter committed state or CI.
-- Diff: `scripts/analysis/d1_regression.py`, cell by cell over numeric columns.
+- Diff: `scripts/analysis/regression_compare.py`, cell by cell over numeric columns.
 
 ### Methodology preconditions (both PASS, checked before trusting any diff)
 
@@ -69,7 +69,7 @@ Harness skill on the held-out year, real curves:
 | FR | uncorrected | −0.013 | 0.015 | 0.018 |
 | FR | affine (5, fixed) | −0.007 | 0.012 | 0.019 |
 
-- **NL reproduces a documented failure (R2 anchor).**
+- **NL reproduces a documented failure.**
   `docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md` records the NL 2023 static-grid run
   as pathological: the uncorrected simulation over-predicts and the correction
   overshoots into large under-prediction (fleet grew +155% between training and
@@ -78,7 +78,7 @@ Harness skill on the held-out year, real curves:
   this run trains on 2015–2019 where the doc used 2015–2021; the direction and
   pathology match. Reproducing a known-bad result is as good a regression check
   as a known-good one.
-- **DK error reduction (R3 anchor, loose).** The Energy paper reports ~43%
+- **DK error reduction (a loose anchor).** The Energy paper reports ~43%
   error reduction at its best configuration (700 clusters, bimonthly) over the
   `PyVWF(1;fixed)` baseline. This run does not use that configuration, so it is
   not a direct check; at the configs run here the DK correction reduces MAE by
@@ -87,9 +87,9 @@ Harness skill on the held-out year, real curves:
 
 ## Reproduction
 
-The committed pieces are the two runners (`scripts/analysis/d1_run_legacy.py` for the
-reference from a main worktree, `scripts/analysis/d1_run_harness.py` for the branch),
-`scripts/analysis/d1_regression.py` (the frame comparator), and the wiring they
+The committed pieces are the two runners (`scripts/analysis/regression_run_legacy.py` for the
+reference from a main worktree, `scripts/analysis/regression_run_harness.py` for the branch),
+`scripts/analysis/regression_compare.py` (the frame comparator), and the wiring they
 exercise (`EntsoeFileSource`, country-level `run_evaluate`, corrected-CF
 saving). Only the environment is external: a git worktree of `main` and a
 staging dir, with `PYVWF_INPUT` pointed at a directory holding the real curve
@@ -100,5 +100,6 @@ runner's docstring carries its invocation.
 
 The refactor is behaviour-preserving on the validated European regions, at both
 observation levels and across the true-coordinate, postcode, and joint-offset
-paths. D1's win condition is met with zero discrepancies. This clears the way
-for D2 (AU-NEM ingest), still gated on data-acquisition approvals.
+paths. The win condition is met with zero discrepancies. This cleared the
+way for the Australia/NEM validation, which is written up in
+`au_seasonal_cycle.md` and `au_nem_synthesis.md`.

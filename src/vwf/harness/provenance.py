@@ -3,8 +3,9 @@
 Every run directory gets a ``run_manifest.json`` recording the package
 version, git state, region config, observation granularity caveats, and
 (the reason this module exists) the identity of the curve library that
-produced the numbers. RQ6 results are only reportable from a manifest whose
-``curve_library.library`` is ``"external"``.
+produced the numbers. Any result that turns on real rather than bundled
+curves is only reportable from a manifest whose ``curve_library.library`` is
+``"external"``.
 
 Provenance is diagnostic, not load-bearing: :func:`write_manifest_safe` never
 raises, so a manifest failure can never abort a run.

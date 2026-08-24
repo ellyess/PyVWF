@@ -1,9 +1,9 @@
-# D2 synthesis: what generalises, what doesn't, and what a global method needs
+# Australia/NEM synthesis: what generalises, what doesn't, and what a global method needs
 
-Closing document for the Australia/NEM validation (D1–D5 on the
-`multi-region-validation` branch). Full decision history: the validation
-log (`validation_progress.md`, checkpoints 1–23); per-result documents:
-`d1_regression.md`, `pillar_a_au.md`.
+Closing document for the Australia/NEM validation. The per-result documents
+behind it are `harness_regression.md` (does the refactored pipeline still
+reproduce known-good results?) and `au_seasonal_cycle.md` (the seasonal
+finding and its absolute-skill cost).
 
 ## The central result: correction value tracks the STRUCTURE of the bias
 
@@ -22,7 +22,7 @@ seasonal shape where the bias is shape-dominated** (AU: the pre-specified
 cycle gate passes on both curve libraries). It cannot improve absolute
 skill where there is no level bias to remove, and its level machinery then
 adds farm-level noise (AU: +16% RMSE, reported in full in
-`pillar_a_au.md`). This is one result seen from two sides, not a success
+`au_seasonal_cycle.md`). This is one result seen from two sides, not a success
 and a failure: the method improves the component of the bias that exists.
 For anyone applying correction to a new region, the actionable version is:
 **diagnose the bias structure first** (level vs shape decomposition of
@@ -54,7 +54,8 @@ winter months):
 
 ## What generalises (validated on this branch)
 
-- **The pipeline.** D1: the harness reproduces the legacy method bit-for-bit
+- **The pipeline.** The regression validation: the harness reproduces the
+  legacy method bit-for-bit
   (max abs diff 0.000e+00) on DK/DE/NL/FR (turbine-level, postcode-located,
   and country-level joint-offset paths) against real curves and data, with
   both methodology preconditions (PYVWF_INPUT honoured on both sides; main
@@ -69,13 +70,14 @@ winter months):
   registered-capacity masks (42/3,455 farm-months) keeping CF denominators
   clean. Verified fast path == slow path frame-identically.
 - **The evidence discipline.** Pre-specified gates; must-distinguish tests
-  (a check that cannot fail is not a check; see the pillar C re-scope,
-  where the planned 0–360 wrap test was provably vacuous for AU and the
-  lat-flip equivalence replaced it); conservative headline numbers with
+  (a check that cannot fail is not a check; the planned 0-360 longitude
+  wrap test turned out to be provably vacuous for Australia and was
+  replaced by a latitude-flip equivalence test); conservative headline
+  numbers with
   robustness analyses alongside (all-farms −10.9% as the claim, far-north
   exclusion −18.3% as support).
-- **Dual-stack robustness.** The pillar A verdict and its regional pattern
-  hold on the licensed curve library and on a fully-open library with a
+- **Dual-stack robustness.** The seasonal-cycle verdict and its regional
+  pattern hold on the licensed curve library and on a fully-open library with a
   different matching strategy (confounded by design; divergence was a
   hard-stop condition and did not occur). Curve choice is level-not-shape
   (normalized-cycle r ≥ 0.9989 across real curves).
@@ -112,40 +114,50 @@ winter months):
    open-library run shows the full stack can be open without changing the
    verdict.
 
-## Open-questions triage (the once-only triage mandated at checkpoint 8)
+## Open questions
 
-**Answered by this branch:** RQ1 in its practical form (where affine holds:
-level-dominated regions; its limit: shape-dominated ones, the central
-result); RQ2's seasonal half (seasonal factors beat fixed on cycle tracking
-in AU; roughly tie in DK); the hemisphere/season design question (explicit
-month lists, adopted); the ERA5 longitude/lat-ordering hazards (closed with
-tests); the NEMWeb access-path question (resolved, HTTPS live).
+**Answered here.** Where the affine correction holds (level-dominated
+regions) and where it stops (shape-dominated ones), which is the central
+result above. Seasonal factors beat fixed ones on cycle tracking in
+Australia and roughly tie in Denmark. The hemisphere and season-definition
+question is settled by explicit month lists. The ERA5 longitude and
+latitude-ordering hazards are closed with tests. The NEMWeb access path is
+resolved.
 
-**Closed by ruling:** RQ5 non-linear variants (gated at the phase boundary;
-the shape-only variant stays one named line of future work); pillar D
-external anchors (deferred; RN-AU noted as circular, OpenNEM preferred if
-ever run); Yawong (excluded, stated limitation); US/Brazil regions
-(deferred off-branch).
+**Closed by decision, not by evidence.** Non-linear correction variants
+were ruled out of this work to avoid tuning the method on the same data
+used to evaluate it; the shape-only variant named in the central result
+stays one line of future work. External validation anchors were deferred:
+Renewables.ninja for Australia would be circular, and OpenNEM is the
+preferred anchor if one is ever run. Yawong is excluded and stated as a
+limitation.
 
-**Open, with what unblocks each:** RQ4 country-level joint-offset
-identifiability (needs the synthetic-ground-truth experiment; untouched,
-since D1 validated only reproduction); RQ2's directional half; RQ3 systematic
-pooling curves (the DK-vs-DE postcode diagnostic from checkpoint 3 remains
-the cheap first probe); RQ6 formal synthetic-vs-real attribution (the
-dual-library run covers the demo-relevant content; the formal two-way
-comparison was not run); RQ7 hub-height/vintage covariates (blocked on
-height data; AU all-default heights make it impossible there today);
-curtailment separation in SA (needs semi-dispatch-cap data); the JOSS
-synthetic→open curve replacement (parked post-AU, checkpoint 19, and the
-strongest candidate for immediate follow-up).
+**Still open, with what would unblock each.**
 
-## Deliverables shipped
+- **Country-level joint-offset identifiability.** Needs a synthetic
+  ground-truth experiment. Untouched here, because the regression
+  validation established only that the refactor reproduces the old
+  behaviour, not that the behaviour is well-posed.
+- **Whether seasonal factors help directionally**, not just on cycle
+  tracking.
+- **Systematic pooling curves**: how skill varies as observations are
+  pooled across sites. The Denmark-versus-Germany postcode comparison is
+  the cheap first probe, since the two regions differ mainly in how
+  precisely turbines are located.
+- **A formal synthetic-versus-real curve attribution.** The dual-library
+  run covers what the demonstration needs; the formal two-way comparison
+  was not run.
+- **Hub-height and vintage covariates.** Blocked on height data. Australia
+  runs on an all-default 100 m height, so it cannot be tested there.
+- **Separating curtailment from resource bias in South Australia.** Needs
+  semi-dispatch-cap data.
 
-D1 regression validation (PASS, bit-for-bit, 4 regions) · pillar B
-synthetic SH ground truth (3 pins) · pillar C data-integrity preconditions
-(re-scoped honestly, PASS) · pillar A dual-library seasonal validation
-(gate PASS ×2, absolute skill reported in full) · D3 notebook (open-stack,
-headlessly verified, licence-diligenced data bundle) · D4 gridded NetCDF
-(exclusion-run factors, loud provenance) · D5 this synthesis + the transfer
-table. All work on `multi-region-validation`; real curves and raw
-market/reanalysis data never entered committed state or CI.
+## What this work produced
+
+The regression validation (bit-for-bit on four regions), a synthetic
+Southern-Hemisphere ground-truth test through the full pipeline, the
+data-integrity preconditions, the dual-library seasonal validation with its
+absolute-skill cost reported in full, a validation notebook that runs on the
+open stack, a gridded corrected-wind and capacity-factor NetCDF export, and
+this synthesis with the transfer table. Real curves and raw market and
+reanalysis data never entered committed state or CI.

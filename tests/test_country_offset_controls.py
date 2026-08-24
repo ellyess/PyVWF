@@ -1,6 +1,6 @@
-"""Controls for the country-level identifiability question (RQ4).
+"""Controls for the country-level offset identifiability question.
 
-Two things needed pinning before the RQ4 comparison means anything.
+Two things needed pinning before that comparison means anything.
 
 The **zero-offset control** (`scalar-only`) separates the two halves of an
 N-cluster country fit. The scalars are identified; the offsets, against one
