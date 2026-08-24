@@ -113,7 +113,7 @@ def main() -> None:
         print(f"[{i}/{len(todo)}] {path.name}", flush=True)
         try:
             download(url, path)
-        except Exception as exc:  # noqa: BLE001; report and continue
+        except Exception as exc:  # noqa: BLE001 - report and continue
             failures.append((url, str(exc)))
             print(f"    FAILED: {exc}", flush=True)
 
