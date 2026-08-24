@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """D5: can transfer work at all? How much of each region's physiography the others cover.
 
-`ml_transfer_retest.md` concluded that the binding constraint on transfer is
+`method-ml-transfer.md` concluded that the binding constraint on transfer is
 regime coverage rather than sample count: Brazil transferred once anything like
 it existed in training, and the United States failed hardest because nothing in
 a European training fleet resembles a mountain pass. That was an inference from

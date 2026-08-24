@@ -1,6 +1,6 @@
 # E9: a physically-shaped wake term. Right diagnosis, wrong remedy.
 
-Registered in `pinn_prespecification.md` addendum 8 before implementing, with
+Registered in `method-physics-informed-prespecification.md` addendum 8 before implementing, with
 three predictions. Two passed, the decisive one failed, and the term is **not
 adopted**. What it establishes is worth more than a small accuracy gain would
 have been.
@@ -99,7 +99,7 @@ aggregation level, should recover the transfer. Neither is done here.
 
 - The term is **implemented, tested (7 tests) and off by default.** It is not
   in any carried-forward configuration.
-- `pinn_evaluation.md` ranked it the top improvement lead. That ranking was
+- `method-physics-informed-evaluation.md` ranked it the top improvement lead. That ranking was
   based on in-region residual structure, and the lesson is that **residual
   structure ranks candidates by size, not by transferability**. The next two
   leads -- profile curvature at the hub-height extremes, and directional terrain

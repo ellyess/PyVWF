@@ -2,14 +2,14 @@
 
 What follows is the method: what it takes in, what it computes, what it learns,
 and why each learned quantity is one that can survive being carried to a region
-it was never fitted on. Results and gate outcomes are in `pinn_results.md`; the
-evidence that motivated the design is in `pinn_diagnostics.md`; the gates were
-fixed in advance in `pinn_prespecification.md`.
+it was never fitted on. Results and gate outcomes are in `method-physics-informed-results.md`; the
+evidence that motivated the design is in `method-physics-informed-diagnostics.md`; the gates were
+fixed in advance in `method-physics-informed-prespecification.md`.
 
 ## The problem this is answering
 
 `w' = a*w + b`, fitted per cluster per time slice against observed generation,
-works well where it is fitted and does not transfer (`ml_transfer_retest.md`).
+works well where it is fitted and does not transfer (`method-ml-transfer.md`).
 The diagnostics locate the reason in the SHAPE of the method rather than in the
 choice of regressor:
 

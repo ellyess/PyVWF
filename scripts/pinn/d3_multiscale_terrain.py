@@ -12,7 +12,7 @@ DK null, and DK is flat enough to have almost no relief variance), where the
 
 This tests whether describing terrain at the RIGHT scale, with no physics and
 no change of model, moves cross-region transfer. It is the baseline that the
-physics-informed model must beat (gate P2 in pinn_prespecification.md), and it
+physics-informed model must beat (gate P2 in method-physics-informed-prespecification.md), and it
 is also gate P3's ablation in embryo: if scale alone closes the gap, the
 finding is about feature scale, not physics.
 

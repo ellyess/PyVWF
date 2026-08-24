@@ -1,9 +1,9 @@
 # Evaluation: what the programme established, and what to do next
 
 Closing document for the physics-informed correction workstream. Gates and
-predictions were fixed in `pinn_prespecification.md` before each experiment;
-the gated result is in `pinn_results.md`; the diagnosis that motivated the
-design is in `pinn_diagnostics.md`; the method is in `pinn_method.md`.
+predictions were fixed in `method-physics-informed-prespecification.md` before each experiment;
+the gated result is in `method-physics-informed-results.md`; the diagnosis that motivated the
+design is in `method-physics-informed-diagnostics.md`; the method is in `method-physics-informed.md`.
 
 ## 1. The configuration ladder
 
@@ -32,7 +32,8 @@ Per region, RMSE on the held-out test year:
 
 D beats the incumbent RF transfer in **5 of 5**, and beats the incumbent affine
 correction *fitted on the region's own data* in 1 of 5 (Brazil, 0.1030 against
-0.1054). E8's pre-set bar -- beat both B and C in at least 3 of 5 -- is met
+0.1054 -- a row `scorecard.md` flags as a degenerate fit, so read it as clearing
+a low bar rather than a sound one). E8's pre-set bar -- beat both B and C in at least 3 of 5 -- is met
 (3/5 and 4/5), so the two effects are additive rather than one carrying the other.
 
 ## 2. What the failed predictions taught
@@ -47,7 +48,7 @@ holdout's terrain; it is that the **shared global constants** -- the sub-daily
 spread factor, the relief length scale, how efficiency depends on fleet density
 -- are pinned better by more data, and those help everywhere. This is a
 stronger argument for data acquisition than the coverage framing gave, and it
-revises `ml_transfer_retest.md`'s "regime coverage is the binding constraint"
+revises `method-ml-transfer.md`'s "regime coverage is the binding constraint"
 rather than confirming it.
 
 **Constrained capacity helps rather than hurts.** I predicted MLP heads would

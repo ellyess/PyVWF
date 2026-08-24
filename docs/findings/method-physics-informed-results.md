@@ -1,7 +1,7 @@
 # E1: does a physics-informed correction transfer to unseen regions?
 
-Gates were fixed in `pinn_prespecification.md` before any model was fitted.
-Method: `pinn_method.md`. Evidence that motivated the design: `pinn_diagnostics.md`.
+Gates were fixed in `method-physics-informed-prespecification.md` before any model was fitted.
+Method: `method-physics-informed.md`. Evidence that motivated the design: `method-physics-informed-diagnostics.md`.
 
 Run: commit `bd1c721`, licensed combined curve library (236 curves), five seeds,
 60 epochs, leave-one-region-out over {DK, DE, UK, US, BR}. Scored with the
@@ -34,14 +34,24 @@ Seed spread (sd of RMSE): pinn 0.0002–0.0011; ablation **0.0297–0.1059**.
 
 `affine in-region` is the incumbent per-cluster affine correction at its
 best-of-sweep configuration, read from `cluster_sweep_2026-07-24/*_metrics.csv`.
-It is a reference point, not a transfer arm, and it is optimistic: the
-configuration is chosen on the test year, which the physics-informed arms never
-do.
+It is a reference point, not a transfer arm, and it is optimistic in two ways.
+
+First, its configuration is chosen on the test year, which the physics-informed
+arms never do. Second, and more sharply: `scorecard.md` marks the Brazilian and
+American rows with a dagger, meaning `fit_quality` finds the fit behind them
+**degenerate** against the calibrated bounds (scalar in 0.2 to 3.0) -- the US
+row's factors reach a scalar of 46.4 and Brazil's 4.8. So in two of the five
+regions the number this work is compared against comes from a fit the
+repository's own quality check rejects. That does not change any figure in the
+table, and the comparison is still the right one to make, because it is what
+the method actually delivers today. It does mean the BR and US comparisons
+should be read as "better than a fit known to be degenerate" rather than
+"better than a sound one".
 
 ## Gates
 
 **P1 PASS.** Zero-shot beats uncorrected ERA5 in **5 of 5** regions, and
-degrades none — not by 10%, not at all.
+degrades none: not by 10%, not at all.
 
 **P2 PASS.** Beats the incumbent RF transfer in **4 of 5**. The exception is
 Germany (0.0790 against 0.0702), and it is worth naming why: German turbine
@@ -69,7 +79,7 @@ gain.
 
 **Where the gains are large, and where they are not.** Denmark (+0.54) and
 Brazil (+0.41) gain a great deal; Germany (+0.16) moderately; the UK (+0.03) and
-the US (+0.05) barely. That ordering is not arbitrary — see coverage, below.
+the US (+0.05) barely. That ordering is not arbitrary; see coverage, below.
 
 **Zero-shot Brazil matches Brazil's own fitted correction.** 0.1062 against
 0.1054 for the incumbent affine fitted on Brazilian data at its best sweep
@@ -97,8 +107,8 @@ physiography the other four span:
 The two regions where the correction barely helps are the two where half the
 units sit outside the training envelope. This is the earlier programme's "regime
 coverage is the binding constraint" confirmed from the other side: the physics
-does not repeal it, it survives it. Brazil is the informative exception —
-70.5% coverage and a large gain — which fits the mechanism, since Brazil's bias
+does not repeal it, it survives it. Brazil is the informative exception, at
+70.5% coverage with a large gain, which fits the mechanism: Brazil's bias
 is a level offset the physics can carry, not a terrain regime it has to
 extrapolate into.
 

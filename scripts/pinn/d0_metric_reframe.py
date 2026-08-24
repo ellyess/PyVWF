@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """D0: is leave-one-region-out R2 the decision-relevant transfer metric?
 
-The prior experiment (docs/findings/ml_transfer_retest.md) scored cross-region
+The prior experiment (docs/findings/method-ml-transfer.md) scored cross-region
 transfer as sklearn ``r2_score`` on the per-cluster scalar. That denominator is
 the HOLDOUT's own mean -- a quantity nobody has when they arrive in an unseen
 region. The decision a practitioner actually faces is "apply a transferred

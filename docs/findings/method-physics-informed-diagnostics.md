@@ -3,7 +3,7 @@
 Measurements on artefacts already on disk (the canonical post-fix train runs at
 commit `8a032d6`, k=100 for DK/DE/UK/US and k=60 for BR). No model is tuned
 here and no gate is claimed; gates for the modelling work are fixed in
-`pinn_prespecification.md`. Scripts: `scripts/pinn/d[0-4]_*.py`.
+`method-physics-informed-prespecification.md`. Scripts: `scripts/pinn/d[0-4]_*.py`.
 
 Two of the five diagnostics falsified the hypothesis they were written to test.
 Both are reported.
@@ -12,7 +12,7 @@ Both are reported.
 
 ## D0. The published transfer metric answers a question nobody can act on
 
-`ml_transfer_retest.md` scores transfer as sklearn `r2_score` on the per-cluster
+`method-ml-transfer.md` scores transfer as sklearn `r2_score` on the per-cluster
 scalar. That denominator is the **holdout region's own mean** -- a number you do
 not have when you arrive in an unseen region. The choice a practitioner faces is
 "apply a transferred correction, or apply none", so the baseline that decides it
@@ -198,7 +198,7 @@ with no pairs closer than 20 km, the fitted nugget is an extrapolation.
 
 ## D5. Transfer difficulty was predictable before any model ran
 
-`ml_transfer_retest.md` concluded that the binding constraint is regime
+`method-ml-transfer.md` concluded that the binding constraint is regime
 coverage rather than sample count, inferred from which regions failed. It is
 directly measurable. For each region held out, how much of its physiography do
 the other four span?
@@ -291,4 +291,4 @@ The alternative that follows is to remove stage one: make the correction a
 smooth function of physiography, and fit it **directly to observed generation**
 through the physical forward operator, so the supervision is the observation
 rather than a noisy intermediate estimate. That is the model specified in
-`pinn_prespecification.md` and built next.
+`method-physics-informed-prespecification.md` and built next.

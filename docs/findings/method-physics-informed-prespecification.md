@@ -1,14 +1,14 @@
 # Pre-specification: physics-informed ERA5 wind bias correction
 
 Written **before** any model in this workstream was fitted. Diagnostics D0-D2
-(`pinn_diagnostics.md`) are measurements of existing artefacts and carry no
+(`method-physics-informed-diagnostics.md`) are measurements of existing artefacts and carry no
 gate; everything from D3 onward involves choices that could be tuned to the
 evaluation, so the gates are fixed here first.
 
 ## The question
 
 The affine correction `w' = a*w + b` is fitted per cluster per region and does
-not transfer to unseen regions (`ml_transfer_retest.md`, 1/5 under its gate).
+not transfer to unseen regions (`method-ml-transfer.md`, 1/5 under its gate).
 Can a correction whose free parameters are **physical quantities constrained by
 boundary-layer theory**, learned as functions of local physiography, transfer
 zero-shot to a region it was never fitted on?
@@ -59,7 +59,7 @@ finding is that feature scale, not physics, was the binding constraint.
 
 - P1 fails -> the physics-informed parameterisation does not generalise either,
   and the honest headline is that the constraint is data coverage, not model
-  form (consistent with `ml_transfer_retest.md`).
+  form (consistent with `method-ml-transfer.md`).
 - P1 passes but P2 fails -> the gain is from feature scale, not physics.
 - P3's ablation matches -> same conclusion as above, stated plainly.
 
@@ -208,7 +208,7 @@ D5 measured what the earlier work inferred: half the British and American test
 units sit outside the training regions' terrain envelope, and the American fleet
 reaches 22 standard deviations from its nearest training analogue. A correction
 fitted on one envelope and applied far outside it is extrapolation whatever its
-functional form, and `ml_transfer_retest.md` named "predict only where training
+functional form, and `method-ml-transfer.md` named "predict only where training
 data covers the local envelope, abstain elsewhere" as future work. D5 supplies
 the measurement that makes it implementable.
 
@@ -263,7 +263,7 @@ not a change of rule, and it is fixed here before E4 has been run even once.
 
 ## Addendum 5: E7, nine regions instead of five (registered before running)
 
-`ml_transfer_retest.md` argued that the binding constraint is regime coverage
+`method-ml-transfer.md` argued that the binding constraint is regime coverage
 and that the remedy is data acquisition. Four more regions are already in this
 repository -- New Zealand, Chile, Argentina and the Australian NEM -- and the
 caches are now built for all of them. E7 asks whether training on eight regions
@@ -378,7 +378,7 @@ not more flexibility.
 where `D` is local capacity density in MW/km2 within 10 km and `c >= 0` is a
 single global coefficient -- the only free number the term adds.
 
-**A deviation from what section 4 of `pinn_evaluation.md` proposed, and why.**
+**A deviation from what section 4 of `method-physics-informed-evaluation.md` proposed, and why.**
 That said `exp(-c*D)`. Observed densities run to 9 MW/km2, where an exponential
 with any `c` large enough to matter at the median (0.14) collapses the
 efficiency to near zero. Deep-array physics saturates rather than collapsing --

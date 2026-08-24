@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """E1: leave-one-region-out transfer, physics-informed vs the incumbent.
 
-The pre-specified experiment (docs/findings/pinn_prespecification.md). For each
+The pre-specified experiment (docs/findings/method-physics-informed-prespecification.md). For each
 region in turn: fit on the other four, apply zero-shot to the held-out region's
 test year, and score capacity-factor error with the harness's own
 ``skill_metrics`` against observed generation.
@@ -59,7 +59,7 @@ OUT = ROOT / "output" / "pinn" / "e1"
 CONFIGS = ROOT / "configs" / "regions"
 
 # Published per-cluster affine results, quoted for reference only, from
-# docs/findings/multi_region_validation_scorecard.md (best held-out config).
+# docs/findings/scorecard.md (best held-out config).
 AFFINE_SCORECARD = {"DK": 0.085, "DE": 0.057, "UK": 0.115, "US": 0.098, "BR": 0.105}
 
 
