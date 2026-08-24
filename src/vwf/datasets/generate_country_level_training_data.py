@@ -354,7 +354,7 @@ def generate_norway_zone_grids(
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("⚠ GeoPandas not available - skipping GeoJSON export")
+            print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
 
     else:
@@ -388,7 +388,7 @@ def generate_sweden_zone_grids(
     zones_path = Path("input/reference/shapes/se_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
-        print("  ⚠ Cannot proceed without zone geometries")
+        print("  Warning: Cannot proceed without zone geometries")
         raise FileNotFoundError(f"Swedish bidding zones file not found: {zones_path}")
 
     zones_gdf = gpd.read_file(zones_path)
@@ -401,7 +401,7 @@ def generate_sweden_zone_grids(
         # Get zone_id from properties (already in SE_1 format from our extraction)
         zone_id = zone_row.get('zone_id') or zone_row.get('zone_name')
         if not zone_id:
-            print(f"  ⚠ Warning: Missing zone_id for feature {idx}, skipping")
+            print(f"  Warning: Missing zone_id for feature {idx}, skipping")
             continue
 
         zone_geom = zone_row.geometry
@@ -453,7 +453,7 @@ def generate_sweden_zone_grids(
         print(f"  Grid points: {len(zone_grid_filtered)}")
 
         if len(zone_grid_filtered) == 0:
-            print(f"  ⚠ Warning: No grid points generated for {zone_id}")
+            print(f"  Warning: No grid points generated for {zone_id}")
             continue
 
         all_zones_grids.append(zone_grid_filtered)
@@ -493,7 +493,7 @@ def generate_sweden_zone_grids(
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("⚠ GeoPandas not available - skipping GeoJSON export")
+            print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
 
     else:
@@ -590,7 +590,7 @@ def generate_norway_zone_grids_fallback(
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("⚠ GeoPandas not available - skipping GeoJSON export")
+            print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
 
     else:

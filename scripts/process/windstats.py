@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Build a WindStats region's inputs from the CONFIDENTIAL extract + GWPT coords.
 
-⚠ CONFIDENTIAL / COMMERCIAL (WindStats) generation, with open GWPT coordinates
+CONFIDENTIAL / COMMERCIAL (WindStats) generation, with open GWPT coordinates
 for Spain (mixed licence). Nothing it writes may be committed or redistributed;
 `input/` is git-ignored, and this only reshapes files the user already holds.
 
@@ -50,7 +50,7 @@ def main() -> None:
     cc = args.country
     src = Path(args.src)
     print("=" * 70)
-    print(f"⚠  CONFIDENTIAL WindStats ({cc}) generation + open GWPT coords "
+    print(f"CONFIDENTIAL WindStats ({cc}) generation + open GWPT coords "
           "(mixed licence).")
     print("   Output is NOT redistributable; input/ is git-ignored.")
     print("=" * 70)
@@ -81,7 +81,7 @@ def main() -> None:
     obs.to_csv(out / f"{cc.lower()}_obs.csv", index=False)
     lines = [
         f"# {GWPT_COUNTRY[cc]} (WindStats) coordinate-join report", "",
-        "⚠ Generation is CONFIDENTIAL WindStats; coordinates are open GWPT.",
+        "Warning: Generation is CONFIDENTIAL WindStats; coordinates are open GWPT.",
         f"- turbines with a coordinate: {len(fmd)} of {len(smd)} "
         f"({len(fmd)/len(smd):.0%})",
         f"- capacity: {fmd['capacity'].sum()/1e6:.2f} GW; "

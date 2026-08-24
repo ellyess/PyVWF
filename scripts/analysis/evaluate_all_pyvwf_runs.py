@@ -148,13 +148,13 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
     results_dir = run_dir / "results" / "capacity-factor"
 
     if not results_dir.exists():
-        print(f"  ⚠ No results directory found: {results_dir}")
+        print(f"  Warning: No results directory found: {results_dir}")
         return []
 
     # Find observation file to extract year
     obs_files = sorted(results_dir.glob("*_obs_cf.csv"))
     if not obs_files:
-        print(f"  ⚠ No observation file found in {results_dir}")
+        print(f"  Warning: No observation file found in {results_dir}")
         return []
 
     # Prefer a year-specific observation file (e.g. DK_2020_obs_cf.csv) when available
@@ -176,7 +176,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
 
     turb_info_path = next((path for path in candidates if path.exists()), None)
     if turb_info_path is None:
-        print("  ⚠ No turbine info file found for capacity weighting")
+        print("  Warning: No turbine info file found for capacity weighting")
         return []
 
     turb_info = pd.read_csv(turb_info_path)
@@ -197,7 +197,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
             time_res_set.add(time_res_clean)
 
     if not cluster_set or not time_res_set:
-        print("  ⚠ Could not parse cluster counts or time resolutions from filenames")
+        print("  Warning: Could not parse cluster counts or time resolutions from filenames")
         return []
 
     cluster_list = sorted(list(cluster_set))
@@ -264,7 +264,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
             overall_args.append(year)
         metrics_df = overall_error(*overall_args)
     except Exception as e:
-        print(f"  ⚠ Error calculating metrics: {e}")
+        print(f"  Warning: Error calculating metrics: {e}")
         return []
 
     # Convert overall_error output to expected format

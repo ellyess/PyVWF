@@ -1,7 +1,7 @@
 # United States (EIA)
 
 **Source:** EIA-923 net generation + EIA-860 nameplate/coordinates + USWTDB hub
-heights. **Adapter:** `eia-us` · turbine-level · unit = plant · 🟢 open.
+heights. **Adapter:** `eia-us` · turbine-level · unit = plant · open.
 **Fleet:** ~499 monthly-reporting plants (of 1,279), ~133 GW.
 
 All inputs are public-domain US government data or your own CDS/ERA5

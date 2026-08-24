@@ -7,7 +7,7 @@ the raw or derived data is committed (`input/` is git-ignored).
 
 The per-region flow is always the same three steps (**fetch observations →
 fetch ERA5 → process**), then train/evaluate with the harness. Each region has
-a runbook in `docs/runbooks/<CC>.md`.
+a runbook in `docs/runbooks/<cc>.md`.
 
 ## Layout
 

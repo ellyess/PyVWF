@@ -1,7 +1,7 @@
 # New Zealand (EMI)
 
 **Source:** EA EMI `Generation_MD` half-hourly metered injection.
-**Adapter:** `emi-nz` · turbine-level · unit = farm · 🟢 open.
+**Adapter:** `emi-nz` · turbine-level · unit = farm · open.
 **Fleet:** 13 dispatched farms, ~1.5 GW, with per-farm hub heights.
 
 All inputs are open Electricity Authority data (no registration) or your own

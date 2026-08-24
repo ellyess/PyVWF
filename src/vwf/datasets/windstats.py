@@ -1,6 +1,6 @@
 """Transforms for the CONFIDENTIAL WindStats regions (ES now; SE/FI later).
 
-⚠ CONFIDENTIAL / COMMERCIAL (WindStats). The generation and turbine-spec data
+CONFIDENTIAL / COMMERCIAL (WindStats). The generation and turbine-spec data
 is a licensed WindStats extract; neither it nor anything derived from it may be
 committed or redistributed. `input/` is git-ignored, and these transforms only
 reshape files the user already holds locally. The COORDINATES for Spain are

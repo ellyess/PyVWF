@@ -106,7 +106,7 @@ def read_ofgem_confidential_certificates(
 ) -> pd.DataFrame:
     """Station-monthly MWh from the CONFIDENTIAL Ofgem certificate warehouse.
 
-    ⚠ CONFIDENTIAL / DIFFERENTLY LICENSED. These per-station certificate
+    CONFIDENTIAL / DIFFERENTLY LICENSED. These per-station certificate
     exports are not the open REPD/RER path: they carry their own licence and
     must never be committed or redistributed. This reader only transforms
     files the user already holds locally.

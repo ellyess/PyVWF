@@ -95,7 +95,7 @@ def cmd_observations(args) -> None:
         if not paths:
             sys.exit(f"no files matched {args.ofgem_confidential}")
         print("=" * 70)
-        print("⚠  CONFIDENTIAL Ofgem certificate warehouse: differently licensed.")
+        print("CONFIDENTIAL Ofgem certificate warehouse: differently licensed.")
         print("   Output is CONFIDENTIAL; input/ is git-ignored. Do NOT commit or")
         print("   redistribute the derived observations. (Open path: --roc, from")
         print("   the public RER export.)")

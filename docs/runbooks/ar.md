@@ -1,7 +1,7 @@
 # Argentina (CAMMESA)
 
 **Source:** CAMMESA / MEM monthly renewables generation (public, no credentials).
-**Adapter:** `cammesa-ar` · turbine-level · unit = plant · 🟢 open.
+**Adapter:** `cammesa-ar` · turbine-level · unit = plant · open.
 **Fleet:** 59 plants, ~5 GW. The scientific draw is Patagonia (Chubut, Santa
 Cruz) in the cold-steppe westerlies, a regime nothing else in the set covers.
 

@@ -1,6 +1,6 @@
 # Spain (WindStats, historical 1998-2000)
 
-**⚠ MIXED LICENCE.** Generation is **CONFIDENTIAL / commercial WindStats**;
+**MIXED LICENCE.** Generation is **CONFIDENTIAL / commercial WindStats**;
 coordinates are **open GWPT** (CC-BY-4.0). Neither the data nor the derived
 observation/metadata tables may be committed or redistributed. `input/` is
 git-ignored; the script below only reshapes files you already hold.

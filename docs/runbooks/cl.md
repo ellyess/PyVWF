@@ -2,7 +2,7 @@
 
 **Source:** Coordinador SIP API `generacion-real`, per-plant hourly delivered
 energy (free API key). **Adapter:** `cen-cl` · turbine-level · unit = plant ·
-🟢 open. **Fleet:** 60 plants, ~6.5 GW, spanning three climates absent from the
+open. **Fleet:** 60 plants, ~6.5 GW, spanning three climates absent from the
 rest of the set: Atacama coastal desert (BW), Mediterranean central Chile (Csb),
 maritime south (Cfb).
 

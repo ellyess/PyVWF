@@ -3,11 +3,12 @@
 The single reference for the data PyVWF uses: what each source is, its licence,
 how it is fetched, and **what the processing does to it** for every region.
 Full step-by-step acquisition lives in the per-region runbooks
-(`docs/runbooks/<CC>.md`); the adapter contract is in
+(`docs/runbooks/<cc>.md`); the adapter contract is in
 [`adding-an-observation-source.md`](adding-an-observation-source.md).
 
-**Licence key:** 🟢 open (redistributable) · 🟡 mixed (open coordinates over a
-confidential generation series) · 🔴 confidential / commercial.
+**Licence key**, used in the `Lic.` column below: **open** = redistributable;
+**mixed** = open coordinates over a confidential generation series;
+**confidential** = confidential or commercial, never redistributed.
 
 Nothing under `input/` is committed (`/input` is git-ignored) except the open
 curve library in `input/reference/`. Every fetch script is **user-executed**: it
@@ -38,18 +39,18 @@ resolves it to an adapter in `src/vwf/sources/`. Every source is reduced to a
 
 | Region | Code | Adapter | Source | Lic. | Fetch → Process | Runbook |
 |---|---|---|:---:|:---:|---|---|
-| Denmark | DK | `european-turbine` | Danish Energy Agency turbine register (monthly kWh) | 🟢 | `fetch/dk.py` → `process/dk.py` | [DK](../runbooks/dk.md) |
-| United Kingdom | UK | `european-turbine` | REPD metadata + Ofgem ROC certificates | 🟡 | `fetch/uk.py` → `process/uk.py` | [UK](../runbooks/uk.md) |
-| Germany | DE | `european-turbine` | WindStats per-turbine register (commercial) | 🔴 | (none) → `process/de.py` | [DE](../runbooks/de.md) |
-| Spain (hist.) | ES-WS | `windstats` | WindStats generation + GWPT coordinates | 🟡 | (none) → `process/windstats.py` | [ES](../runbooks/es.md) |
-| United States | US | `eia-us` | EIA-923 netgen + EIA-860 + USWTDB heights | 🟢 | (none) → `process/eia_us.py` | [US](../runbooks/us.md) |
-| Brazil | BR | `ons-br` | ONS `FATOR_CAPACIDADE` hourly CF + constrained-off | 🟢 | (none) → `process/ons_br.py` | [BR](../runbooks/br.md) |
-| Australia (NEM) | AU-NEM | `aemo-nem` | AEMO NEMWEB 5-min SCADA + Generation Information | 🟢 | `fetch/aemo_au.sh` → `process/aemo_au.py` | (none) |
-| New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | 🟢 | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
-| Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | 🟢 | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
-| Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | 🟢 | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 9 ENTSO-E countries | BE ES FR IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | 🟢 | `datasets/generate_country_level_training_data.py` | (none) |
-| Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | 🟢 | `datasets/generate_country_level_training_data.py` | (none) |
+| Denmark | DK | `european-turbine` | Danish Energy Agency turbine register (monthly kWh) | open | `fetch/dk.py` → `process/dk.py` | [DK](../runbooks/dk.md) |
+| United Kingdom | UK | `european-turbine` | REPD metadata + Ofgem ROC certificates | mixed | `fetch/uk.py` → `process/uk.py` | [UK](../runbooks/uk.md) |
+| Germany | DE | `european-turbine` | WindStats per-turbine register (commercial) | confidential | (none) → `process/de.py` | [DE](../runbooks/de.md) |
+| Spain (hist.) | ES-WS | `windstats` | WindStats generation + GWPT coordinates | mixed | (none) → `process/windstats.py` | [ES](../runbooks/es.md) |
+| United States | US | `eia-us` | EIA-923 netgen + EIA-860 + USWTDB heights | open | (none) → `process/eia_us.py` | [US](../runbooks/us.md) |
+| Brazil | BR | `ons-br` | ONS `FATOR_CAPACIDADE` hourly CF + constrained-off | open | (none) → `process/ons_br.py` | [BR](../runbooks/br.md) |
+| Australia (NEM) | AU-NEM | `aemo-nem` | AEMO NEMWEB 5-min SCADA + Generation Information | open | `fetch/aemo_au.sh` → `process/aemo_au.py` | (none) |
+| New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
+| Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
+| Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
+| 9 ENTSO-E countries | BE ES FR IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | (none) |
+| Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | open | `datasets/generate_country_level_training_data.py` | (none) |
 
 ## 2. What the processing does (per region)
 
@@ -105,7 +106,7 @@ complex); the per-adapter unit, time convention, and curtailment handling are in
 |---|---|---|---|
 | Danish Energy Agency | `ens.dk/media/4945/download`, `.../4948/download` | download | open, attribution |
 | UK REPD | `gov.uk/.../renewable-energy-planning-database-quarterly-extract` | download | OGL |
-| Ofgem ROC | `rer.ofgem.gov.uk` (open) / certificate warehouse (🔴) | export / licensed | mixed |
+| Ofgem ROC | `rer.ofgem.gov.uk` (open) / certificate warehouse (confidential) | export / licensed | mixed |
 | EIA-923 / EIA-860 | `eia.gov/electricity/data/` | download | US public domain |
 | USWTDB | `energy.usgs.gov/uswtdb/data/` | download | US public domain |
 | ONS Brazil | `dados.ons.org.br` (`fator-capacidade-2`) | open portal | ONS Open Data |
@@ -114,7 +115,7 @@ complex); the per-adapter unit, time convention, and curtailment handling are in
 | CEN Chile | `sipub.api.coordinador.cl` (SIP) | API (free key) | public transparency |
 | CAMMESA (AR) | `cammesaweb.cammesa.com/erenovables/` | download | public |
 | ENTSO-E | `transparency.entsoe.eu` | API (free key) | public-by-regulation |
-| WindStats (DE, ES) | commercial subscription | (none) | 🔴 commercial |
+| WindStats (DE, ES) | commercial subscription | (none) | confidential, commercial |
 
 ---
 
@@ -150,7 +151,7 @@ per-farm heights instead.
   NREL/turbine-models library (BSD-3-Clause, DOI 10.11578/dc.20210112.1,
   VWF-smoothed). Bundled in the package too, so an installed PyVWF runs outside
   a checkout. Provenance in `power_curves_provenance.csv`.
-- *Licensed (local only, 🔴):* `input/reference/{power_curves,models}.real.csv`,
+- *Licensed (local only, confidential):* `input/reference/{power_curves,models}.real.csv`,
   the renewables.ninja/VWF library from thewindpower.net. Swap in for production
   runs; the merged set is under `input/combined/reference/` (`PYVWF_INPUT=input/combined`).
 
@@ -212,7 +213,7 @@ Three steps make the grid trustworthy, and each has a script:
 
 ## 6. Redistribution summary
 
-| May be committed / shared | Must stay local (🔴 / 🟡) |
+| May be committed / shared | Must stay local (confidential or mixed) |
 |---|---|
 | Open curve library, region shapes, zone polygons | WindStats DE/ES generation and per-turbine derivatives |
 | All fetch/process scripts, configs, curation tables | Ofgem confidential certificate-warehouse exports |

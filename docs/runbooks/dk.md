@@ -1,7 +1,7 @@
 # Denmark (Danish Energy Agency)
 
 **Source:** Danish Energy Agency turbine register (per-turbine monthly kWh).
-**Adapter:** `european-turbine` · turbine-level · unit = turbine · 🟢 open.
+**Adapter:** `european-turbine` · turbine-level · unit = turbine · open.
 **Fleet:** ~6,300 turbines, the most complete open per-turbine dataset anywhere.
 
 Denmark is the programme's **reference region**: the level-dominated case

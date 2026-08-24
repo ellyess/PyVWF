@@ -1,7 +1,7 @@
 # Brazil (ONS)
 
 **Source:** ONS `FATOR_CAPACIDADE` hourly CF per complex + constrained-off
-series. **Adapter:** `ons-br` · turbine-level · unit = complex · 🟢 open.
+series. **Adapter:** `ons-br` · turbine-level · unit = complex · open.
 **Fleet:** ~152 complexes, ~26 GW. Scientific draw: the Nordeste trade-wind
 regime and a quantifiable curtailment series.
 

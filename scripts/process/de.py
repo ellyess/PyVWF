@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Stage + validate the CONFIDENTIAL WindStats Germany data for PyVWF.
 
-⚠ CONFIDENTIAL / COMMERCIAL (WindStats). The German wind data is a licensed
+CONFIDENTIAL / COMMERCIAL (WindStats). The German wind data is a licensed
 WindStats extract, not open data. Nothing it produces may be committed or
 redistributed; `input/` is git-ignored, and this script only moves files the
 user already holds locally.
@@ -51,7 +51,7 @@ def main() -> None:
     args = ap.parse_args()
 
     print("=" * 70)
-    print("⚠  CONFIDENTIAL WindStats (Germany): commercial, not redistributable.")
+    print("CONFIDENTIAL WindStats (Germany): commercial, not redistributable.")
     print("=" * 70)
     src = Path(args.src)
     problems = []

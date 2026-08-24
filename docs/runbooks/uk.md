@@ -63,7 +63,7 @@ python scripts/process/uk.py observations --roc input/ofgem_raw/roc_issuance.xls
 ### 2a. Confidential fast path: the Ofgem certificate warehouse
 
 If you hold the **confidential** Ofgem "CertificatesExternalPublicDataWarehouse"
-per-year exports (⚠ differently licensed, NOT the open RER/REPD data; never
+per-year exports (differently licensed, NOT the open RER/REPD data; never
 commit or redistribute them or anything derived), they carry the full
 per-station monthly issuance directly and **reproduce the committed `ukobs.csv`
 exactly**:

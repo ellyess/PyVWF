@@ -141,7 +141,7 @@ def savefig(
         png_path = path.with_suffix(".png")
         fig.savefig(png_path, dpi=600, **kwargs)
         path.unlink()
-        print(f"  ⚠  {path.name} was {size_mb:.1f} MB → saved as {png_path.name}")
+        print(f"  Warning: {path.name} was {size_mb:.1f} MB → saved as {png_path.name}")
     if close:
         plt.close(fig)
 

@@ -1,6 +1,6 @@
 # Germany (WindStats)
 
-**⚠ CONFIDENTIAL / COMMERCIAL DATA.** The German wind data is a licensed
+**CONFIDENTIAL / COMMERCIAL DATA.** The German wind data is a licensed
 **WindStats** extract, not open data. It (and anything derived from it) must
 never be committed or redistributed. `input/` is git-ignored; the script below
 only moves files you already hold locally.

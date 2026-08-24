@@ -1,5 +1,5 @@
 # Region config for the multi-region validation harness (docs/design/harness.md).
-# ⚠ MIXED LICENCE: generation is CONFIDENTIAL WindStats (commercial); coordinates
+# MIXED LICENCE: generation is CONFIDENTIAL WindStats (commercial); coordinates
 # are open GWPT (CC-BY-4.0). Neither the data nor derived observations are
 # committed (input/ is git-ignored). See docs/runbooks/es.md.
 #

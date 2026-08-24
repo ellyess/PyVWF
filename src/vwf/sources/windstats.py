@@ -1,6 +1,6 @@
 """Per-turbine observation source for the CONFIDENTIAL WindStats regions.
 
-⚠ CONFIDENTIAL / COMMERCIAL (WindStats) generation, with open (GWPT)
+CONFIDENTIAL / COMMERCIAL (WindStats) generation, with open (GWPT)
 coordinates for Spain: a MIXED-LICENCE region. Nothing derived may be
 committed or redistributed; the adapter reads pre-processed files under
 ``input/observations/turbine/<CC>/`` that the user builds locally with
