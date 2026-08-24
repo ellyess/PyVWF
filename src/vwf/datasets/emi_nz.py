@@ -37,7 +37,6 @@ Two NZ-specific facts shape the design:
 from __future__ import annotations
 
 from calendar import monthrange
-from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 import pandas as pd

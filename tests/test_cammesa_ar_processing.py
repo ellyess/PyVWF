@@ -104,7 +104,8 @@ def test_build_metadata_exclude_allows_missing():
 # --------------------------------------------------------------- adapter
 def test_source_resolves_and_loads(monkeypatch, tmp_path):
     from vwf.sources import resolve
-    ar = tmp_path / "AR"; ar.mkdir()
+    ar = tmp_path / "AR"
+    ar.mkdir()
     pd.DataFrame({
         "ID": ["PE A"], "lon": [-67.0], "lat": [-45.0], "height": [100.0],
         "capacity": [99_000.0], "model": ["2019COE_Market_Average_2.6MW_121"],

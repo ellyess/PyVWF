@@ -13,13 +13,12 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 import pandas as pd
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from vwf.metrics import overall_error
 
 
@@ -177,7 +176,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
 
     turb_info_path = next((path for path in candidates if path.exists()), None)
     if turb_info_path is None:
-        print(f"  ⚠ No turbine info file found for capacity weighting")
+        print("  ⚠ No turbine info file found for capacity weighting")
         return []
 
     turb_info = pd.read_csv(turb_info_path)
@@ -198,7 +197,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
             time_res_set.add(time_res_clean)
 
     if not cluster_set or not time_res_set:
-        print(f"  ⚠ Could not parse cluster counts or time resolutions from filenames")
+        print("  ⚠ Could not parse cluster counts or time resolutions from filenames")
         return []
 
     cluster_list = sorted(list(cluster_set))
@@ -415,7 +414,7 @@ def main():
     print("Summary")
     print("=" * 80)
 
-    print(f"\nNote: Metrics calculated using vwf.metrics.overall_error(type='total')")
+    print("\nNote: Metrics calculated using vwf.metrics.overall_error(type='total')")
     print(f"Total evaluations: {len(df)}")
     print(f"\nCountries: {sorted(df['country'].unique())}")
     print(f"Observation levels: {sorted(df['obs_level'].unique())}")

@@ -67,7 +67,7 @@ def cmd_metadata(args) -> None:
         lines += [
             "", "## fleet-level divergence (keys differ: REPD Ref ID vs ROC "
             "accreditation number, so this is not a row match)", "",
-            f"| metric | open (REPD, current fleet) | curated (2015-2019 RO set) |",
+            "| metric | open (REPD, current fleet) | curated (2015-2019 RO set) |",
             "|---|---|---|",
             f"| turbine rows | {rep['open']['turbine_rows']} | {rep['curated']['turbine_rows']} |",
             f"| stations | {rep['open']['stations']} | {rep['curated']['stations']} |",

@@ -3,7 +3,6 @@
 All fixtures are synthetic: the real WindStats data is CONFIDENTIAL and never
 enters the repo. These pin the reshaping and the coordinate-join guards.
 """
-import numpy as np
 import pandas as pd
 import pytest
 

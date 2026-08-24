@@ -20,7 +20,6 @@ match GWPT are dropped and listed. Spain's WindStats extract is 1998-2000, so
 the default window is historical.
 """
 import argparse
-import sys
 from pathlib import Path
 
 import pandas as pd

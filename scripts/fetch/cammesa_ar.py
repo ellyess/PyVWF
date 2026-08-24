@@ -36,7 +36,6 @@ tidy long CSV `ar_wind_monthly.csv` with columns ID, year, month, gwh.
 import argparse
 import io
 import os
-import sys
 import urllib.request
 import zipfile
 from pathlib import Path

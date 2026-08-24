@@ -16,12 +16,13 @@ from datetime import datetime
 import pandas as pd
 import traceback
 
-# Add project root to path (this file now lives in scripts/, so go up one level)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Add project root to path. This file lives in scripts/analysis/, so the
+# repository root is two levels up, not one.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "input" / "observations/country"))
 
-from vwf.vwf import PyVWF
+from vwf.vwf import PyVWF  # noqa: E402  (must follow the sys.path setup above)
 try:
     from pyvwf_config import get_all_configs
     HAS_COUNTRY_CONFIG = True
@@ -653,7 +654,7 @@ def main():
     start_time = datetime.now()
 
     print(f"\n{'#'*80}")
-    print(f"BIAS CORRECTION TRAINING - FULL RUN")
+    print("BIAS CORRECTION TRAINING - FULL RUN")
     print(f"{'#'*80}")
     print(f"Output directory: {base_dir}")
     print(f"Training sets: {len(sets_to_run)}")
@@ -677,7 +678,7 @@ def main():
 
     # Summary
     print(f"\n{'#'*80}")
-    print(f"TRAINING COMPLETE")
+    print("TRAINING COMPLETE")
     print(f"{'#'*80}")
     print(f"Duration: {duration}")
     print(f"Output: {base_dir}")

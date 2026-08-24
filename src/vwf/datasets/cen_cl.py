@@ -188,7 +188,6 @@ def strip_commissioning_prefix(
     Returns:
         The frame with leading pre-operational months set to NaN.
     """
-    oc = [f"obs_{m}" for m in range(1, 13)]
     out = wide.sort_values(["ID", "year"]).copy()
     for pid, block in out.groupby("ID"):
         # flatten to a chronological (year, month) series

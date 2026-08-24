@@ -145,7 +145,8 @@ def test_build_metadata_exclude_allows_missing_coord():
 # --------------------------------------------------------------- adapter
 def test_source_resolves_and_loads(monkeypatch, tmp_path):
     from vwf.sources import resolve
-    cl = tmp_path / "CL"; cl.mkdir()
+    cl = tmp_path / "CL"
+    cl.mkdir()
     pd.DataFrame({
         "ID": ["1"], "lon": [-70.0], "lat": [-24.0], "height": [100.0],
         "capacity": [100_000.0], "model": ["2019COE_Market_Average_2.6MW_121"],
