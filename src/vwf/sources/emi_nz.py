@@ -39,7 +39,7 @@ from vwf.sources.registry import register
 DEFAULT_TRAIN_YEARS: tuple[int, int] = (2019, 2023)
 
 
-def apply_month_mask(wide: pd.DataFrame, mask: pd.DataFrame) -> pd.DataFrame:
+def apply_month_mask(wide: pd.DataFrame, mask: pd.DataFrame | None) -> pd.DataFrame:
     """NaN the ``(ID, year, month)`` cells listed in ``mask``.
 
     The same finalisation shape as the BR curtailment mask: an explicit list

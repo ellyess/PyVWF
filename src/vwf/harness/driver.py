@@ -368,7 +368,7 @@ def _zonal_skill(
         if sim_m.empty:
             continue
         obs_m = (
-            zone_obs.groupby(zone_obs.index.to_period("M"))["capacity_factor"]
+            zone_obs.groupby(pd.DatetimeIndex(zone_obs.index).to_period("M"))["capacity_factor"]
             .mean()
             .rename("cf_obs")
         )

@@ -590,7 +590,9 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         sim["cluster"] = sim["ID"].map(cluster_of)
         sim["cap"] = sim["ID"].map(cap_of)
         sim = sim.dropna(subset=["cf", "cluster", "cap"])
-        sim_level = sim.groupby("cluster").apply(
+        # include_groups is real in pandas 2.2+ but absent from pandas-stubs'
+        # apply overloads, so the call is correct and the stub is behind.
+        sim_level = sim.groupby("cluster").apply(  # type: ignore[call-overload]
             lambda g: (g["cf"] * g["cap"]).sum() / g["cap"].sum(),
             include_groups=False,
         )
@@ -601,7 +603,7 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         obs["cluster"] = obs["ID"].map(cluster_of)
         obs["cap"] = obs["ID"].map(cap_of)
         obs = obs.dropna(subset=["obs", "cluster", "cap"])
-        obs_level_by = obs.groupby("cluster").apply(
+        obs_level_by = obs.groupby("cluster").apply(  # type: ignore[call-overload]
             lambda g: (g["obs"] * g["cap"]).sum() / g["cap"].sum(),
             include_groups=False,
         )

@@ -26,8 +26,22 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
-from entsoe import EntsoePandasClient
-from entsoe.exceptions import NoMatchingDataError
+# entsoe-py lives in the optional `data` extra: acquisition needs it, the pure
+# transforms in this module do not, and CI deliberately installs the package
+# without that extra. Importing it lazily keeps this module importable (and so
+# keeps tests/test_entsoe_fetch_consistency.py running) on an install that
+# cannot fetch. Constructing the fetcher without it fails loudly, below.
+try:
+    from entsoe import EntsoePandasClient
+    from entsoe.exceptions import NoMatchingDataError
+except ImportError:  # pragma: no cover - exercised only without the extra
+    EntsoePandasClient = None  # type: ignore[assignment,misc]
+
+    class NoMatchingDataError(Exception):  # type: ignore[no-redef]
+        """Stand-in so the ``except`` clauses below stay importable.
+
+        Unreachable without entsoe-py, since nothing can be fetched at all.
+        """
 
 # ENTSO-E country and zone codes
 COUNTRY_CODES = {
@@ -140,6 +154,12 @@ class ENTSOEWindDataFetcher:
                     "Get your key at: https://transparency.entsoe.eu/"
                 )
 
+        if EntsoePandasClient is None:
+            raise ImportError(
+                "entsoe-py is required to fetch from ENTSO-E but is not "
+                "installed. It ships in the optional data extra: "
+                "pip install 'pyvwf[data]'."
+            )
         self.client = EntsoePandasClient(api_key=api_key)
 
     def fetch_generation(
