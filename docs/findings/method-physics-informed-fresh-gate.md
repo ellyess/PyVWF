@@ -84,4 +84,72 @@ Nothing below this line was known when the above was written.
 
 ## RESULTS
 
-*(appended after the run)*
+Held-out capacity-factor RMSE, three seeds, on the four regions' own test years.
+
+| holdout | uncorrected | config A | **config D** | affine in-region | skill A | skill D |
+|---|---|---|---|---|---|---|
+| AR | 0.1512 | **0.1294** | 0.1351 | 0.133 † | 0.268 | 0.201 |
+| AU-NEM | 0.1153 | **0.0788** | 0.0801 | 0.094 | 0.534 | 0.518 |
+| CL | 0.1225 | 0.1279 | **0.1181** | 0.105 † | −0.091 | 0.071 |
+| NZ | 0.1567 | **0.0848** | 0.0851 | 0.106 | 0.707 | 0.705 |
+
+Seed spread 0.0003 to 0.0014, so every difference above is larger than seed noise.
+
+### Q1: PASS
+
+Configuration D beats uncorrected ERA5 in **4 of 4**, degrading none. On the two
+least-covered regions in the entire study, at 33% coverage, it removes 46% of New
+Zealand's error and 3.6% of Chile's. Against the pre-registered expectation that
+this gate was "genuinely at risk" and would land at 3/4 or fail, it passed
+outright on regions chosen for difficulty.
+
+**Zero-shot also beats the in-region affine fit in 3 of 4** (AU-NEM 0.0801 vs
+0.094, NZ 0.0851 vs 0.106, and AR 0.1351 vs 0.133 is a near-tie the other way);
+only Chile's in-region fit wins clearly. Two of those affine rows are daggered
+as degenerate, so this is again a comparison against a low bar.
+
+### Q2: FAIL
+
+D beats configuration A in **1 of 4**, not the required 3. Configuration A --
+linear heads, five training regions, the originally gated model -- is better in
+Argentina, Australia and New Zealand.
+
+Per the consequence registered before the run: **D's advantage was an artefact
+of the five regions it was selected against, and the linear five-region default
+stands.** The headline remains configuration A.
+
+One nuance that does not rescue D but should be recorded: mean skill still
+favours D, 0.374 against 0.354, because Chile swings hard between them, and
+**A is the arm that harms a region** (Chile, −0.091 skill, a 4.4% RMSE increase)
+while D harms none. Neither configuration dominates; A wins three regions
+individually, D wins the mean and the do-no-harm property.
+
+### Prediction 2: FAILED, and it takes a framing with it
+
+Predicted ranking AR > AU-NEM > CL ~ NZ, following physiographic coverage.
+Actual: **NZ > AU-NEM > AR > CL**. New Zealand has the LOWEST coverage of the
+four (33.3%) and the HIGHEST skill (+0.705); Argentina has the highest coverage
+(91.5%) and less than a third of NZ's skill.
+
+Pooling all nine regions now scored, coverage does not predict skill:
+
+| predictor of zero-shot skill | pearson | p |
+|---|---|---|
+| physiographic coverage | +0.224 | 0.56 |
+| uncorrected RMSE | +0.226 | 0.56 |
+| **absolute uncorrected MBE** | **+0.562** | 0.115 |
+| MBE as a share of RMSE | +0.502 | 0.17 |
+
+Coverage looked convincing on five regions (Denmark 93% and +0.54, the US 50%
+and +0.05) and does not survive nine. The better predictor is how much of a
+region's error is **level bias**: New Zealand's MBE is 40% of its RMSE and
+Denmark's 75%, both large gainers; Argentina's is 6.5% and Chile's 22%, both
+small. At n=9 and p=0.115 that is suggestive, not established.
+
+This restores, rather than replaces, the finding already in
+`method-generalisation.md`: the correction earns its keep where the reanalysis
+bias is level-dominated. That was established for the affine model and now holds
+for the physics-informed one. The coverage framing in
+`method-physics-informed-diagnostics.md` D5 and in the evaluation should be read
+as superseded: coverage bounds what a terrain model can EXTRAPOLATE, but it does
+not predict how much a region stands to gain.
