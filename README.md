@@ -17,12 +17,15 @@ Raw reanalysis winds carry systematic, location-dependent biases, so capacity fa
 
 PyVWF implements the granular bias-correction method introduced in Benmoufok et al. (2024, *Energy*, lead author), [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759). The method is also applied in co-authored follow-on work that extends the framework to high-resolution UK bias correction (Wang et al., 2026, *Energy Conversion and Management*, [doi:10.1016/j.enconman.2026.121066](https://doi.org/10.1016/j.enconman.2026.121066)). It ships a synthetic-data `pytest` suite with continuous integration on Python 3.10 to 3.12, and is pip-installable.
 
+The method has since been run against observed generation in seventeen regions across four continents, at turbine, plant and national level. The per-region numbers, their source paths and the caveats that travel with them are in the [validation scorecard](docs/findings/multi_region_validation_scorecard.md). It is screening-level validation on one held-out test year per region, not an accredited yield assessment, and it does not help everywhere: see [Validated regions](#validated-regions).
+
 New here? See [How it works](#how-it-works) for the five-step pipeline, then [Quickstart](#quickstart) to run it.
 
 ## Contents
 
 - [How it works](#how-it-works)
 - [Key features](#key-features)
+- [Validated regions](#validated-regions)
 - [Installation](#installation)
 - [Input data](#input-data)
 - [Quickstart](#quickstart)
@@ -68,8 +71,47 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 - Statistical bias correction of wind speeds
 - Power curve-based generation modelling
 - Modular, research-friendly Python codebase
+- **Region-as-config validation harness**: train, evaluate and transfer a
+  region from one TOML file, with pluggable observation adapters, so adding a
+  country means writing one adapter and one config rather than editing the
+  pipeline
+- **Run provenance**: every run writes a `run_manifest.json` recording the
+  package version, git state, region config and the identity and hashes of the
+  curve library that produced the numbers
 - Version-pinned environment for reproducibility
 - **Automated test suite** (`pytest`) and continuous integration
+
+## Validated regions
+
+The correction has been fitted and scored against observed generation in the
+regions below. Every figure is read from a `metrics.csv` under
+`output/validation/`, and the [validation
+scorecard](docs/findings/multi_region_validation_scorecard.md) gives the source
+path for each so it can be audited.
+
+**Turbine and plant level**, best held-out configuration, capacity-factor RMSE
+uncorrected to corrected:
+
+| Region | Fleet (test) | RMSE | Region | Fleet (test) | RMSE |
+|---|---|---|---|---|---|
+| Germany | 4,814 turbines | 0.086 → **0.057** | Australia (NEM) | 77 farms | 0.115 → **0.094** |
+| Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 turbines | 0.145 → **0.115** |
+| Brazil | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** |
+| United States | 520 plants | 0.110 → **0.098** | Chile | 59 plants | 0.123 → **0.104** |
+| Argentina | 59 plants | 0.151 → **0.133** | | | |
+
+**National level** (ENTSO-E aggregate, 2023): France 0.171 → **0.012**, Belgium
+0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland 0.172 → **0.021**, Sweden
+0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal 0.110 → **0.074**.
+
+**Where it does not work, stated plainly.** Norway is already close to
+unbiased uncorrected and the correction makes it *worse* (0.025 → 0.037). The
+Netherlands is excluded outright: an ENTSO-E coverage defect caps its reported
+capacity factor and no rescaling repairs it. Chile and Argentina remove the
+mean bias but add limited skill, because ERA5 exaggerates the north-south wind
+gradient in both, and the residual needs a finer wind product rather than more
+data. The United States carries an unscreened ERCOT/SPP curtailment confound.
+Each of these is written up in [docs/findings/](docs/findings/).
 
 ## Installation
 
@@ -444,9 +486,36 @@ A data-free reproduction of all six figures is in
 
 ## Going further
 
+### Running a region through the validation harness
+
+The harness trains and evaluates one **region** at a time. A region is a single
+TOML file in `configs/regions/` naming its observation adapter, its ERA5 window
+and bounding box, the cluster counts and time slices to fit, and an explicit
+month list per season, so a Southern-Hemisphere region cannot silently inherit
+Northern-Hemisphere seasons:
+
+```bash
+# Fit factors for every (cluster, slice) combination in the config
+python scripts/analysis/validate_region.py train \
+    --region configs/regions/nz.toml
+
+# Score a trained run against its held-out test year
+python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/nz.toml \
+    --train-run output/validation/NZ/train-<timestamp>
+```
+
+`transfer` is the third verb: it applies one region's factors to another and
+reports the result. Adding a region means writing one observation adapter and
+one config, with no change to the correction maths, the clustering or the
+curves. See the [training guide](docs/guides/TRAINING_GUIDE.md), the
+[adapter contract](docs/guides/ADDING_AN_OBSERVATION_SOURCE.md), and the
+per-region [runbooks](docs/runbooks/).
+
 ### Full multi-country training
 
-For comprehensive analysis across all supported countries:
+The legacy batch trainer still works, for comprehensive analysis across the
+originally supported countries:
 
 ```bash
 # List available configuration sets
@@ -468,7 +537,13 @@ GitHub. Start with the [documentation index](docs/README.md) for a suggested
 reading order, or jump to a specific reference:
 
 - [Data sources and preprocessing](docs/guides/DATA_SOURCES.md): input formats, every data source per region, and how each is preprocessed.
+- [Training and evaluation](docs/guides/TRAINING_GUIDE.md): the region config, and running train / evaluate / transfer.
 - [Output structure](docs/guides/OUTPUT_STRUCTURE.md): the layout of a run directory and the files it produces.
+- [Adding an observation source](docs/guides/ADDING_AN_OBSERVATION_SOURCE.md): the adapter contract for a new region.
+- [Using your own data](docs/guides/USING_YOUR_OWN_DATA.md): running the correction on a fleet you supply as CSV.
+- [Region runbooks](docs/runbooks/): the acquisition and processing steps per region, including the ones that did not work out.
+- [Harness design](docs/design/HARNESS_DESIGN.md): why the seams are where they are.
+- [Findings](docs/findings/): the validation results, including the negative ones.
 - [PIPELINE.md](PIPELINE.md): the script execution order.
 
 ## Testing
@@ -520,7 +595,23 @@ follows semantic versioning and stays in step with `CITATION.cff`.
 - Wake effects are not explicitly modelled
 - Power curve selection strongly influences results
 
-These assumptions should be considered when interpreting results.
+These assumptions should be considered when interpreting results. Four further
+caveats apply to the validation figures specifically, and travel with them:
+
+- **One held-out test year per region.** The reportable result is the drop from
+  uncorrected to corrected. Orderings between two close configurations are not
+  meaningful, and neither is the exact best cluster count.
+- **Screening-level, not an accredited yield assessment.** Nothing here is
+  MEASNET or DNV accredited, and none of it is investment advice.
+- **The correction does not always help.** Norway gets worse under it; the
+  Netherlands is excluded for a data defect. Both are reported rather than
+  dropped, because a correction method that is only ever shown where it wins
+  has not been evaluated.
+- **Country-level offsets are under-determined.** They are fitted against one
+  national series per month, so N cluster offsets meet N-1 fewer constraints
+  than they need. In practice they largely repair the scalar's cube-law
+  overshoot rather than capturing an additive spatial bias
+  ([country_level_method_review.md](docs/findings/country_level_method_review.md)).
 
 ## Reproducibility
 
