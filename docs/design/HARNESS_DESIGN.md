@@ -258,9 +258,11 @@ All reported before/after correction, in-sample and held-out. Legacy
 ## 6. Run provenance (Phase 1 blocker for RQ6)
 
 `vwf/harness/provenance.py` writes `run_manifest.json` into every harness run
-directory:
+directory. This is a shape sketch rather than a literal document: `...`
+marks an elided value and `|` an alternative, so it is fenced as text
+rather than json.
 
-```json
+```text
 {
   "pyvwf_version": "...", "git_commit": "...", "git_dirty": false,
   "created_utc": "...",

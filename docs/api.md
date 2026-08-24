@@ -21,7 +21,7 @@ and simulates capacity factors for a test year.
 
 Observed generation and site metadata come from pluggable adapters, so
 supporting a new region means writing a source rather than editing the core
-pipeline. See {doc}`ADDING_AN_OBSERVATION_SOURCE`.
+pipeline. See {doc}`guides/ADDING_AN_OBSERVATION_SOURCE`.
 
 ```{eval-rst}
 .. automodule:: vwf.sources.base
