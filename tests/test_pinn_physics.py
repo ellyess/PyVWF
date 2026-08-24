@@ -324,3 +324,74 @@ def test_density_reduces_output_at_altitude(bank):
     ratio = float(bank(u * density_speed_factor(z), idx) / bank(u, idx))
     assert ratio < float(air_density_ratio(z))     # steeper than the cube law
     assert 0.75 < ratio < 1.0                       # but not pathological
+
+
+# ------------------------------------------------------------ array losses ---
+def test_array_efficiency_is_one_at_zero_density():
+    """An isolated turbine wakes nobody, so the term must be exactly inert."""
+    m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
+    assert float(m.array_efficiency(torch.zeros(1))) == pytest.approx(1.0)
+
+
+def test_array_efficiency_falls_monotonically_with_density():
+    m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
+    with torch.no_grad():
+        m.raw_wake.fill_(0.0)          # a sizeable coefficient
+    d = torch.tensor([0.0, 0.05, 0.14, 0.5, 2.0, 9.0])
+    eff = m.array_efficiency(d)
+    assert torch.all(eff[1:] < eff[:-1])
+    assert float(eff.max()) <= 1.0 and float(eff.min()) > 0.0
+
+
+def test_array_efficiency_saturates_rather_than_collapsing():
+    """Deep-array losses approach an asymptote; they do not decay to nothing.
+
+    This is why the term is hyperbolic and not exponential: observed densities
+    reach 9 MW/km2, where an exponential steep enough to matter at the median
+    (0.14) would leave essentially no output at all.
+    """
+    m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
+    with torch.no_grad():
+        m.raw_wake.fill_(0.0)
+    c = float(m.wake_coefficient())
+    hyper = float(m.array_efficiency(torch.tensor([9.0])))
+    exponential = float(torch.exp(-torch.tensor(c * 9.0)))
+    assert hyper > exponential * 2
+
+
+def test_wake_coefficient_cannot_go_negative():
+    """A negative coefficient would mean crowding turbines RAISES output."""
+    m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
+    with torch.no_grad():
+        m.raw_wake.fill_(-50.0)
+    assert float(m.wake_coefficient()) >= 0.0
+
+
+def test_wake_off_reproduces_the_previous_efficiency_exactly():
+    """Existing results must reproduce, so the default has to be a no-op."""
+    t, f = _inputs()
+    relief = torch.full((8,), 400.0)
+    capdens = torch.rand(8) * 5.0
+    torch.manual_seed(0)
+    off = PhysicsCorrection(14, 4, wake=False, init_scale=0.0)
+    torch.manual_seed(0)
+    on = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
+    assert torch.allclose(off(t, f, relief)[2],
+                          on(t, f, relief, torch.zeros(8))[2], atol=1e-6)
+
+
+def test_wake_needs_a_density_to_apply():
+    m = PhysicsCorrection(14, 4, wake=True)
+    t, f = _inputs()
+    with pytest.raises(ValueError, match="capdens"):
+        m(t, f, torch.full((8,), 400.0))
+
+
+def test_efficiency_respects_its_floor_under_extreme_density():
+    from vwf.pinn.model import ETA_FLOOR
+    m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
+    with torch.no_grad():
+        m.raw_wake.fill_(3.0)
+    t, f = _inputs()
+    eta = m(t, f, torch.full((8,), 400.0), torch.full((8,), 500.0))[2]
+    assert float(eta.min()) >= ETA_FLOOR - 1e-6

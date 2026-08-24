@@ -403,3 +403,22 @@ misread; the term should then be removed rather than retuned.
 what would be carried forward, with three seeds. D is itself post-hoc, so this
 is a comparison between two post-hoc configurations and cannot promote or demote
 P1-P3.
+
+### Addendum 8a: an implementation gap in E9, found from its own result
+
+The first E9 run confirmed prediction 1 -- the density-slice residual span fell
+from 0.0561 to 0.0219 -- but only scraped prediction 2, with pooled in-region
+RMSE rising 0.07795 to 0.07870 against a 0.001 tolerance, and it pushed error
+onto other axes (hub-height span 0.0455 to 0.0558, land-fraction 0.0386 to
+0.0488) while raising the overall bias from +0.0108 to +0.0176.
+
+The cause is a gap between what addendum 8 specified and what was built.
+Addendum 8 says `eta = eta_base(offshore, hub height, 50 km density) * 1/(1+cD)`
+-- the 10 km density withheld from the head. It was not withheld. The model
+therefore had two routes to the same effect, a learned function of the
+standardised density and a physical function of the raw one, and could fit the
+physical term while quietly undoing it in the head.
+
+The density is now withheld, as specified. Both E9 runs are repeated from
+scratch under the corrected implementation and the first run's numbers are
+reported only as the record of this error, never as the result.

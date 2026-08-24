@@ -193,6 +193,8 @@ def main():
                              "pinn-abstain"],
                     help="which fitted arms to run; the default is the "
                          "pre-specified E1 set")
+    ap.add_argument("--wake", action="store_true",
+                    help="add the hyperbolic array-loss term (addendum 8)")
     ap.add_argument("--density", action="store_true",
                     help="apply the ISA air-density correction (addendum 1); "
                          "OFF for the pre-specified E1 arms")
@@ -247,18 +249,21 @@ def main():
                 dens = args.density and physics
                 model, std, hist = fit(tr, hidden=hidden, physics=physics,
                                        profile="power", density=dens,
+                                       wake=args.wake and physics,
                                        epochs=args.epochs, seed=seed, verbose=False)
                 damp = coverage_weight(te, tr, std) if abstain else None
                 m = score(predict_frame(te, model, std, density=dens,
                                         damp=damp), spec)
                 rows.append(dict(holdout=holdout, arm=arm, seed=seed, **m))
                 if arm == "pinn":
-                    rep = model.report(std.terrain(te), std.fleet(te), te.relief)
+                    rep = model.report(std.terrain(te), std.fleet(te), te.relief,
+                                       te.capdens)
                     # Pre-registered prediction 1 (addendum 1): the speed-up at
                     # high-elevation sites should FALL once density is modelled
                     # explicitly, because it is currently absorbing the deficit.
                     with torch.no_grad():
-                        g, *_ = model(std.terrain(te), std.fleet(te), te.relief)
+                        g, *_ = model(std.terrain(te), std.fleet(te),
+                                      te.relief, te.capdens)
                         high = te.elevation > 800.0
                         rep["speedup_high_elev"] = (
                             float(torch.exp(g[high]).mean()) if bool(high.any())

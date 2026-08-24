@@ -37,6 +37,10 @@ GAMMA_BOUNDS = (-0.4, 0.9)
 DELTA_BOUNDS = (-0.15, 0.25)
 ETA_BOUNDS = (0.55, 1.0)
 KAPPA_BOUNDS = (0.0, 1.5)
+# Floor on the efficiency AFTER array losses. A dense offshore array can lose
+# far more than a lone turbine, so this sits below ETA_BOUNDS' floor; it exists
+# to stop the wake term running away, not to encode a belief about losses.
+ETA_FLOOR = 0.30
 
 
 def _scaled_tanh(x: torch.Tensor, lo: float, hi: float) -> torch.Tensor:
@@ -97,6 +101,12 @@ class PhysicsCorrection(nn.Module):
         n_terrain: Number of standardised terrain features.
         n_fleet: Number of standardised fleet features.
         hidden: Width of the hidden layers, or None for linear heads.
+        wake: Multiply the efficiency by a hyperbolic array-loss term in local
+            capacity density, adding one global coefficient, and WITHHOLD that
+            density from the efficiency head so the two cannot offset. Off by
+            default so the gated results stay reproducible.
+        wake_feature: Index of the capacity-density column in the fleet feature
+            matrix; withheld from the efficiency head when ``wake`` is on.
         init_scale: Standard deviation of the initial head weights. Zero gives
             an exactly deterministic fit, which is reproducible but makes seeds
             degenerate; the default perturbs the start so that seeds measure
@@ -109,7 +119,8 @@ class PhysicsCorrection(nn.Module):
     """
 
     def __init__(self, n_terrain: int, n_fleet: int, hidden: int | None = None,
-                 physics: bool = True, init_scale: float = 0.02):
+                 physics: bool = True, init_scale: float = 0.02,
+                 wake: bool = False, wake_feature: int = 0):
         super().__init__()
         self.physics = physics
         gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS), self._bounds(DELTA_BOUNDS),
@@ -121,13 +132,45 @@ class PhysicsCorrection(nn.Module):
                          init_scale=init_scale)
         self.delta = _Head(n_terrain, hidden, _preactivation_for(0.0, *db),
                            init_scale=init_scale)
-        self.eta = _Head(n_fleet, hidden, _preactivation_for(0.90, *eb),
+        # With the array-loss term active, the density it is defined on is
+        # withheld from the efficiency head. Leaving it in gives the model two
+        # routes to the same effect -- a learned function and a physical one --
+        # which can offset each other, so the physical term is fitted while the
+        # head quietly undoes it. The remaining fleet features are unaffected.
+        self.wake_feature = wake_feature if wake else None
+        eta_inputs = n_fleet - 1 if wake else n_fleet
+        self.eta = _Head(eta_inputs, hidden, _preactivation_for(0.90, *eb),
                          init_scale=init_scale)
         # Relief scale at which the speed-up term saturates, in metres. Learned
         # in log space so it stays positive; 300 m is the median ERA5-cell
         # relief across the five training fleets.
         self.log_relief_scale = nn.Parameter(torch.tensor(np.log(300.0), dtype=torch.float32))
         self.raw_kappa = nn.Parameter(torch.tensor(_preactivation_for(0.5, *kb)))
+        # softplus(-3) = 0.049 km2/MW: an array-loss coefficient that starts
+        # small, so the term has to earn its effect rather than assert it.
+        self.raw_wake = nn.Parameter(torch.tensor(-3.0))
+        self.wake = wake
+
+    def wake_coefficient(self) -> torch.Tensor:
+        """Non-negative array-loss coefficient ``c``, in km2/MW."""
+        return torch.nn.functional.softplus(self.raw_wake)
+
+    def array_efficiency(self, capdens: torch.Tensor) -> torch.Tensor:
+        """Array efficiency ``1 / (1 + c * D)`` for capacity density ``D``.
+
+        The residual anatomy found the model over-predicting by 0.051 capacity
+        factor in the densest fleets, against 0.004 in the middle: efficiency
+        was not falling steeply enough where turbines crowd each other. What was
+        missing is a shape, not flexibility, so this adds exactly one number.
+
+        Hyperbolic rather than exponential because deep-array losses SATURATE.
+        An infinite wind farm reaches an asymptotic efficiency set by the
+        momentum it can draw from the boundary layer, and does not decay towards
+        zero; observed densities here reach 9 MW/km2, where any exponential
+        steep enough to matter at the median would collapse the efficiency
+        entirely.
+        """
+        return 1.0 / (1.0 + self.wake_coefficient() * capdens.clamp(min=0.0))
 
     def relief_scale(self) -> torch.Tensor:
         """Relief length scale in metres, bounded away from underflow."""
@@ -141,7 +184,7 @@ class PhysicsCorrection(nn.Module):
         return (mid + (lo - mid) * 10.0, mid + (hi - mid) * 10.0)
 
     def forward(self, terrain: torch.Tensor, fleet: torch.Tensor,
-                relief: torch.Tensor):
+                relief: torch.Tensor, capdens: torch.Tensor | None = None):
         """Compute the four physical quantities for a batch of units.
 
         Args:
@@ -150,6 +193,9 @@ class PhysicsCorrection(nn.Module):
             relief: RAW ERA5-cell relief in metres, ``(N,)``. Unstandardised on
                 purpose: the pin needs a quantity that is genuinely zero on flat
                 ground, which a standardised feature is not.
+            capdens: RAW local capacity density in MW/km2, ``(N,)``, required
+                when ``wake`` is enabled. Unstandardised for the same reason:
+                the array-loss form is defined on the physical quantity.
 
         Returns:
             ``(gamma, delta, eta, kappa)``; the first three are ``(N,)``.
@@ -166,14 +212,23 @@ class PhysicsCorrection(nn.Module):
         else:
             gamma = amp
         delta = _scaled_tanh(self.delta(terrain).squeeze(-1), *self._bounds(DELTA_BOUNDS))
-        eta = _scaled_tanh(self.eta(fleet).squeeze(-1), *self._bounds(ETA_BOUNDS))
+        if self.wake and self.physics:
+            if capdens is None:
+                raise ValueError("wake=True needs capdens (MW/km2)")
+            keep = [i for i in range(fleet.shape[-1]) if i != self.wake_feature]
+            eta = _scaled_tanh(self.eta(fleet[..., keep]).squeeze(-1),
+                               *self._bounds(ETA_BOUNDS))
+            eta = (eta * self.array_efficiency(capdens)).clamp(min=ETA_FLOOR)
+        else:
+            eta = _scaled_tanh(self.eta(fleet).squeeze(-1),
+                               *self._bounds(ETA_BOUNDS))
         kappa = _scaled_tanh(self.raw_kappa, *self._bounds(KAPPA_BOUNDS))
         return gamma, delta, eta, kappa
 
     @torch.no_grad()
-    def report(self, terrain, fleet, relief) -> dict[str, float]:
+    def report(self, terrain, fleet, relief, capdens=None) -> dict[str, float]:
         """Summary of the fitted physical quantities, for the run record."""
-        g, d, e, k = self.forward(terrain, fleet, relief)
+        g, d, e, k = self.forward(terrain, fleet, relief, capdens)
         k = k.detach()
         return {
             "gamma_mean": float(g.mean()), "gamma_std": float(g.std()),
@@ -185,4 +240,5 @@ class PhysicsCorrection(nn.Module):
             "eta_min": float(e.min()), "eta_max": float(e.max()),
             "kappa": float(k),
             "relief_scale_m": float(self.relief_scale()),
+            "wake_c": float(self.wake_coefficient()) if self.wake else float("nan"),
         }

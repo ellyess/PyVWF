@@ -143,6 +143,7 @@ class RegionTensors:
     fleet_raw: torch.Tensor    # (N, G)
     relief: torch.Tensor       # (N,) raw metres, for the speed-up pin
     elevation: torch.Tensor    # (N,) raw metres, for the air-density factor
+    capdens: torch.Tensor      # (N,) raw MW/km2 within 10 km, for array losses
     month_id: torch.Tensor     # (T,)
     obs: torch.Tensor          # (M, N), NaN where unobserved
     months: list[tuple[int, int]]
@@ -187,6 +188,9 @@ class RegionTensors:
             fleet_raw=t(_fleet_frame(meta)),
             relief=t(meta["relief_28km"].to_numpy(dtype=float)),
             elevation=t(meta["z_site"].to_numpy(dtype=float)),
+            # Raw, not standardised: the array-loss form is defined on the
+            # physical density, and must be exactly zero-effect at zero density.
+            capdens=t(_capacity_density(meta, 10.0)),
             month_id=t(month_id, torch.long),
             obs=t(obs), months=months,
             bank=PowerCurveBank(cache.curve_speeds, cache.curve_cf),
@@ -291,7 +295,7 @@ def simulate_monthly(
         return monthly_mean(cf, r.month_id, len(r.months))
 
     gamma, delta, eta, kappa = model(
-        std.terrain(r, sl), std.fleet(r, sl), r.relief[sl]
+        std.terrain(r, sl), std.fleet(r, sl), r.relief[sl], r.capdens[sl]
     )
     if damp is not None:
         # Only the TERRAIN terms are damped outside the training envelope.
@@ -346,6 +350,7 @@ def fit(
     physics: bool = True,
     profile: str = "power",
     density: bool = False,
+    wake: bool = False,
     epochs: int = 120,
     lr: float = 0.05,
     weight_decay: float = 1e-3,
@@ -359,7 +364,7 @@ def fit(
     std = Standardiser.fit(regions)
     model = PhysicsCorrection(len(TERRAIN_FEATURES), len(FLEET_FEATURES),
                               hidden=hidden, physics=physics,
-                              init_scale=init_scale)
+                              init_scale=init_scale, wake=wake)
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     quad = gauss_hermite(N_QUAD)

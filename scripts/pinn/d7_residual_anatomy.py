@@ -70,14 +70,18 @@ def main():
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--regions", nargs="+", default=REGIONS)
     ap.add_argument("--density", action="store_true")
+    ap.add_argument("--wake", action="store_true")
+    ap.add_argument("--hidden", type=int, default=0)
+    ap.add_argument("--tag", default="base")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     pd.set_option("display.width", 220)
 
     tr = load_regions(args.regions, "train", CACHE, quiet=True)
     print(f"Fitting on {'+'.join(args.regions)} (in-region; this is the model's floor)...")
-    model, std, hist = fit(tr, hidden=None, physics=True, profile="power",
-                           density=args.density, epochs=args.epochs, seed=0,
+    model, std, hist = fit(tr, hidden=args.hidden or None, physics=True,
+                           profile="power", density=args.density,
+                           wake=args.wake, epochs=args.epochs, seed=0,
                            verbose=False)
     print(f"  final training loss {hist[-1]:.6f}  (rmse {np.sqrt(hist[-1]):.4f})")
 
@@ -98,7 +102,7 @@ def main():
         frames.append(f.merge(meta, on="ID", how="left"))
     res = pd.concat(frames, ignore_index=True)
     res["resid"] = res.cf_sim - res.cf_obs
-    res.to_csv(OUT / "d7_residuals.csv", index=False)
+    res.to_csv(OUT / f"d7_residuals_{args.tag}.csv", index=False)
 
     print(f"\n{'='*96}\n### Residual by region (simulated minus observed)\n")
     print(res.groupby("region").agg(
@@ -130,7 +134,7 @@ def main():
     print("\n  span_over_sd is the swing in MEAN residual across the slice, relative")
     print("  to the residual's own spread. Large means a systematic term is missing;")
     print("  near zero means that axis is already handled and nothing is to be won.")
-    t.to_csv(OUT / "d7_slice_trends.csv", index=False)
+    t.to_csv(OUT / f"d7_slice_trends_{args.tag}.csv", index=False)
 
     print(f"\n{'='*96}\n### Seasonal structure, per region\n")
     piv = res.pivot_table(index="region", columns="month", values="resid", aggfunc="mean")
