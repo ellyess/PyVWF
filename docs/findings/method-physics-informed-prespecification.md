@@ -422,3 +422,78 @@ physical term while quietly undoing it in the head.
 The density is now withheld, as specified. Both E9 runs are repeated from
 scratch under the corrected implementation and the first run's numbers are
 reported only as the record of this error, never as the result.
+
+---
+
+## Addendum 9: E10, profile curvature (registered before implementing)
+
+`method-physics-informed-evaluation.md` ranked this the second improvement lead
+and described the evidence as "the model over-predicts at BOTH hub-height
+extremes and is unbiased in the middle, which is the signature of a power law
+fitted between 10 m and 100 m being extrapolated outside that range."
+
+**That reasoning was wrong, and the check that shows it took ten minutes.** A
+power law fitted on 10-100 m and extrapolated does not err in the same direction
+at both ends. Against the log profile that generated it, it gives LESS wind
+below 100 m and MORE above:
+
+| z0 (m) | h=20 | h=30 | h=45 | h=80 | h=120 | h=150 |
+|---|---|---|---|---|---|---|
+| 0.0002 | −0.40% | −0.46% | −0.41% | −0.15% | +0.15% | +0.36% |
+| 0.03 | −1.21% | −1.38% | −1.21% | −0.45% | +0.42% | +1.01% |
+| 0.30 | −2.80% | −3.12% | −2.68% | −0.97% | +0.91% | +2.17% |
+
+So curvature can explain the over-prediction above 120 m and **predicts the
+opposite sign** below it. Whatever drives the low-hub-height residual, it is not
+this.
+
+**The apparent trend is also largely region composition.** Splitting the
+residual by height AND region:
+
+| height | share DE | share DK | share UK | DE | DK | UK |
+|---|---|---|---|---|---|---|
+| 0-40 m | 0% | 64% | 36% | -- | +0.014 | +0.034 |
+| 40-60 m | 7% | 63% | 30% | +0.006 | −0.005 | −0.022 |
+| 60-80 m | 31% | 11% | 54% | +0.012 | −0.032 | +0.033 |
+| 80-100 m | 54% | 14% | 26% | +0.015 | −0.022 | +0.075 |
+| 100-120 m | 89% | 1% | 10% | +0.005 | −0.008 | 0.000 |
+| **120-200 m** | **91%** | 0% | 9% | **+0.037** | -- | +0.028 |
+
+Within regions there is no monotone height trend: Denmark runs
++0.014, −0.005, −0.032, −0.022, −0.008 and Germany sits near +0.01 until its top
+bin. The pooled "trend" is mostly which region occupies which bin. The one place
+a genuine height signal survives is the 120-200 m bin, **91% German**, at
++0.037 -- and that is exactly where curvature has the right sign.
+
+This is the E9 lesson applied before spending the day rather than after:
+residual structure ranked this second by SIZE, and most of that size is
+composition.
+
+**The fix, which is still worth making.** The power law has the wrong curvature
+in ln z; the log law has the right one by construction. The current model uses
+the power law because its exponent is measured hourly and so responds to
+stability, which a static roughness cannot. Both can be had: the measured
+exponent inverts to an effective roughness in closed form,
+
+    z0_eff = exp( ln(10) * (r - 2) / (r - 1) ),    r = w100/w10 = 10**shear
+
+and the log law is then applied with that time-varying roughness. The learned
+correction changes meaning from a shear-exponent offset to a **log-roughness
+offset**, which is the more physical quantity of the two and stays equally
+bounded.
+
+**Predictions, judged on TRANSFER, not on the in-region residual:**
+
+1. Zero-shot held-out RMSE improves for **Germany** by more than for any other
+   region, Germany having by far the tallest fleet.
+2. Mean zero-shot skill across the five regions improves or is unchanged
+   (within 0.005).
+3. The 120-200 m residual bin falls in magnitude from +0.037.
+
+**Falsification.** If (1) fails, the tall-turbine residual is not curvature and
+the change should be reverted rather than retuned. Given the effect is 1-2% of
+wind speed over about 2% of rows, the honest prior is that this is **small**;
+it is being done because it is correct and nearly free, not because it is
+expected to move the headline.
+
+Scored against configuration D (MLP heads, nine training regions), three seeds.
