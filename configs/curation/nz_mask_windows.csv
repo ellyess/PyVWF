@@ -1,0 +1,7 @@
+ID,from_month,to_month,reason
+waipipi,2020-11,2021-06,commissioning ramp (first power Nov 2020; fully operational mid-2021)
+turitea,2021-03,2021-10,North stage ramp (first export Mar 2021; 33 turbines stable ~Nov 2021)
+turitea,2023-01,2023-12,South stage ramp (27 turbines commissioning through 2023; denominator held at North-only 118.8 MW)
+harapaki,2023-11,2024-07,commissioning ramp (first generation Nov 2023; full commissioning Jul 2024)
+kaiwera_downs_1,2023-08,2023-11,commissioning ramp (Aug-Nov 2023)
+kaiwera_downs_2,2026-03,2027-12,commissioning through 2026-27 (fully masked in the current window)

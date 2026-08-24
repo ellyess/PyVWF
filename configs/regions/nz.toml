@@ -1,0 +1,49 @@
+# Region config for the multi-region validation harness (docs/design/harness.md).
+# Seasons are EXPLICIT month lists. New Zealand is Southern Hemisphere, so
+# these must NOT inherit the legacy NH mapping. The dominant regime is the
+# year-round westerly circulation ("Roaring Forties") funnelled by the two
+# islands' terrain (Cook Strait, Manawatu Gorge). Seasonal amplitude is modest
+# by European standards, and the astronomical SH seasons below are a
+# defensible partition.
+
+[region]
+code = "NZ"
+name = "New Zealand (EMI-dispatched fleet)"
+
+[observations]
+source = "emi-nz"
+obs_level = "turbine"
+obs_unit = "farm"
+train_years = [2019, 2023]
+test_years = [2024]
+# EMI Generation_MD is metered half-hourly grid injection per plant; trading
+# periods are NZ civil time with DST (46/48/50-period days) -> UTC at ingest;
+# monthly bins are UTC. CF denominator is the then-current registered
+# capacity from the effective-dated EMI plant register, with commissioning
+# months masked below final build (Turitea 2021-2023, Harapaki 2024).
+# Metered injection is net of farm availability but NZ sees little economic
+# curtailment over this window (hydro-dominated system; standing caveat,
+# not screened).
+
+[era5]
+# Both main islands; the fleet spans Te Uku (-37.9) to Kaiwera Downs (-46.5).
+# Box stays west of the antimeridian: no longitude wrap.
+path = "era5/NZ"
+bbox = [166.0, 179.0, -48.0, -36.0]
+file_tag = "NZ"
+
+[correction]
+# 13 farms, but only 8 reach the clusterer in the 2019-2023 training window:
+# Harapaki and Kaiwera Downs 2 commissioned after it, and a few sparse-coverage
+# farms drop in train_set. That 8 is the hard ceiling (k-means needs
+# n_clusters <= n_samples); k near it is one-farm-per-cluster, the fake-plateau
+# regime (docs/findings/region-us-br.md). The sweep stays safely under it.
+model = "affine-wind"
+cluster_list = [1, 5]  # sweep knee (docs/findings/method-cluster-count.md)
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [12, 1, 2]
+autumn = [3, 4, 5]
+winter = [6, 7, 8]
+spring = [9, 10, 11]

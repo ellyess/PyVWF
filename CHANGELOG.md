@@ -11,6 +11,119 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-24
+
+The theme of this release is that a region stopped being a code change. PyVWF
+0.3.0 could correct Denmark, Germany, the UK and nine ENTSO-E countries, but
+each of those was wired into the pipeline. 0.4.0 adds a validation harness in
+which a region is one TOML file plus one observation adapter, and uses it to
+run the method against observed generation in seventeen regions on four
+continents. The correction maths, the clustering and the power curves are
+unchanged and remain pinned bit-for-bit by a golden regression test.
+
+### Added
+
+- **The multi-region validation harness** (`vwf.harness`). Seven modules:
+  `driver` (`run_train`, `run_evaluate`, `run_transfer`), `regions` (reads
+  `configs/regions/*.toml`), `corrections` (a `CorrectionModel` registry with
+  the affine baseline plus two controls), `skill` (the metrics), `provenance`,
+  `export` and `hindcast`. The affine model delegates to the existing
+  `vwf.correction` / `vwf.wind` / `vwf.data` code rather than reimplementing
+  it, and a regression test pins the harness output against the legacy path to
+  machine precision on four regions.
+- **Twenty region configurations** in `configs/regions/`, and **fourteen
+  observation adapters** behind the existing `ObservationSource` contract:
+  AEMO (Australia), EIA (United States), ONS (Brazil), EMI (New Zealand),
+  Coordinador/CEN (Chile), CAMMESA (Argentina), WindStats (Germany, Spain),
+  Ofgem ROC (United Kingdom), per-zone and file-backed ENTSO-E, and a
+  user-supplied CSV source for running the correction on your own fleet.
+- **Explicit season month lists in every region config.** Season names
+  previously resolved through a hardcoded Northern-Hemisphere mapping, which a
+  Southern-Hemisphere region would have inherited silently. A config without
+  season definitions is now refused rather than defaulted.
+- **Run provenance.** Every run writes `run_manifest.json` recording the
+  package version, git state and dirtiness, the region config and its hash,
+  observation granularity, and the identity, path and hash of the curve
+  library. Provenance is diagnostic and never aborts a run.
+- **Gridded correction export.** Corrected wind and capacity-factor fields as
+  NetCDF, applied across the archive, plus a hindcast entry point.
+- **Ten region runbooks and fourteen findings documents** under `docs/`,
+  including a per-region validation scorecard giving the source path for every
+  reported number.
+- **Optional parallel offset fitting.** `PYVWF_OFFSET_WORKERS` above 1 fans
+  the row-wise fit across dask workers, roughly four times faster at high
+  cluster counts. The default of 0 keeps the sequential path that the golden
+  test pins; the parallel path is verified bit-identical.
+- **Optional clustering variants**, both off by default because the evidence
+  did not support making either standard: capacity weighting, and geographic
+  distance on the unit sphere.
+- Region shape repair (islands that `country_shapes.geojson` omits) and
+  bidding-zone polygons for the zonal regions.
+
+### Changed
+
+- **k-means clustering now uses k-means++ initialisation.** The previous
+  initialisation made the partition a seed lottery, and an apparent skill
+  curve against cluster count turned out to be partition noise rather than
+  signal. Measured across five regions before adoption.
+- **The merged open curve library is the uniform default**, so the validated
+  rows reproduce without the licensed library.
+- `input/` is reorganised by pipeline stage (`raw/`, `observations/`,
+  `reference/`), `scripts/` and `configs/` by function, and `docs/` by purpose
+  (`guides/`, `runbooks/`, `findings/`, `design/`).
+- The six separate ERA5 fetchers are consolidated into one script, batching
+  months per CDS request; the default `--chunk-months` drops to 3, the CDS
+  cost-limit ceiling.
+- ERA5 daily averaging is now optional, so the correction can be tested at
+  hourly resolution.
+
+### Fixed
+
+- **Scalar dilution in `calculate_scalar`.** The weighted observed mean took
+  its numerator over reporting units but its denominator over every unit's
+  capacity, including plants that reported nothing. Simulated values are never
+  NaN, so only the observed side was scaled down, by exactly the reporting
+  fraction, and the fitted scalar was wrong by that factor.
+- **`calculate_scalar` compared observed and simulated over different
+  samples.** Both sides are now taken over the same units.
+- **The country-level path**: the estimator, the observation handling and the
+  fleet weighting were each wrong in ways that partly cancelled.
+- **ERA5 combine dropped `expver`**, which recent CDS responses mix (ERA5 and
+  ERA5T) and which silently broke the concatenation.
+- Degenerate fits are surfaced rather than returned quietly, and clusters too
+  small to fit are guarded.
+- Argentina's capacity denominators are rebuilt from turbine specifications;
+  New Zealand's `Trading_date` header drift (2019 files use lowercase) is
+  normalised.
+
+### Known limitations
+
+Every region result rests on a **single held-out test year** and is
+screening-level, not an accredited yield assessment. The correction does not
+help everywhere and the cases where it does not are reported rather than
+dropped: **Norway gets worse** under correction (RMSE 0.034 to 0.039), and the
+**Netherlands is excluded** because an ENTSO-E coverage defect caps its
+reported capacity factor. Chile and Argentina remove the mean bias but add
+limited skill, because ERA5 exaggerates the north-south wind gradient in both.
+The United States carries an unscreened ERCOT/SPP curtailment confound.
+Country-level offsets are fitted against one national series per month and are
+therefore under-determined.
+
+All seventeen regions were re-run on this release so the reported figures are
+reproducible against this tag. The refresh moved almost nothing in aggregate:
+fourteen of the seventeen reproduced to four decimal places, and only Chile
+(0.104 to 0.105), the United States (0.098 to 0.097) and Norway's uncorrected
+baseline (0.025 to 0.034) changed at the reported precision.
+
+One caveat does survive the refresh. Four of the nine turbine-level rows
+(Chile, the United States, Argentina, Brazil) rest on fits containing
+implausible wind scalars: the aggregate metrics are real but those per-cluster
+factors should not be reused. The United States is the instructive case, since
+the `calculate_scalar` fix moved its headline RMSE by 0.0005 while more than
+doubling its worst fitted scalar, from 20.54 to 46.39. A skill metric does not
+reveal this, which is why `fit_quality` now travels with every corrected row.
+See `docs/findings/scorecard.md`.
+
 ## [0.3.0] - 2026-07-17
 
 ### Added
@@ -83,7 +196,7 @@ changes the numbers the evaluation layer reports.
   `InMemoryCountrySource` for caller-supplied frames. `train_set` and `val_set`
   take a `source=` argument; the existing `external_grid_points` /
   `external_obs_data` arguments still work and are wrapped automatically. See
-  [docs/ADDING_AN_OBSERVATION_SOURCE.md](docs/ADDING_AN_OBSERVATION_SOURCE.md).
+  [docs/guides/adding-an-observation-source.md](docs/guides/adding-an-observation-source.md).
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:
@@ -160,8 +273,8 @@ changes the numbers the evaluation layer reports.
   raises `NotImplementedError` naming both ways to supply the data.
 - **PyVWF could not be used outside a repository checkout.**
   `load_power_curves()` and `add_models()` read the literal relative paths
-  `input/power_curves.csv` and `input/models.csv`, and the region-shape loader
-  read `input/regions/*.geojson`, so an installed copy raised
+  `input/reference/power_curves.csv` and `input/reference/models.csv`, and the region-shape loader
+  read `input/reference/shapes/*.geojson`, so an installed copy raised
   `FileNotFoundError` unless the working directory happened to be a checkout.
   The declared package data also matched no files, so the wheel shipped none.
   Paths now resolve through `PyVWFPaths`, and the reference tables are bundled.

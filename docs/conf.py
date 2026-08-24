@@ -36,10 +36,14 @@ exclude_patterns = [
     # This folder's own index; superseded by index.md on the built site.
     "README.md",
     # Working notes from specific research runs rather than maintained
-    # documentation. They stay in the repository but are not published, so the
-    # site does not present stale run-specific numbers as guidance.
-    "TRAINING_2015_2021_SUMMARY.md",
-    "TURBINE_GRID_EVALUATION_ANALYSIS.md",
+    # documentation. They stay in the repository, and are readable on GitHub,
+    # but are not published, so the site does not present stale run-specific
+    # numbers as guidance. The whole findings/ tree is excluded on that same
+    # reasoning: each document reports one dated experiment against one
+    # held-out test year, and several record negative results whose value is
+    # the reasoning rather than the number. The maintained documentation is
+    # guides/, runbooks/ and design/, all of which are in the toctree.
+    "findings/**",
 ]
 
 autosummary_generate = True

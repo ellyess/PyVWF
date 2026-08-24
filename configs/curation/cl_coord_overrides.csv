@@ -1,0 +1,7 @@
+ID,lon,lat,note
+2138,-69.901,-24.967,PE HORIZONTE NORTE -> Horizonte wind farm (816MW); Norte+Sur phases co-located; high confidence
+2379,-69.901,-24.967,PE HORIZONTE SUR -> Horizonte wind farm (816MW); Norte+Sur phases co-located; high confidence
+2170,-69.771,-24.841,PE KALLPA -> Antofagasta wind farm (364MW); sole unclaimed north-Chile farm near 359MW; medium confidence (name differs)
+366,-73.920,-42.280,PE SAN PEDRO II -> San Pedro De Dalcahue (65MW row); Chiloe; id268 took the 36MW row; high confidence
+594,-72.555,-37.270,PE EL MAITEN -> El Maiten wind farm (18MW); high confidence (name match)
+621,-72.421,-37.590,PMGD PE EL NOGAL -> El Nogal wind farm (24MW); high confidence (name match)

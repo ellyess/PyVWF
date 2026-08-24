@@ -62,7 +62,7 @@ class PyVWF:
         >>> # Generate data first using scripts/generate_country_level_training_data.py
         >>> from vwf.vwf import PyVWF
         >>> import sys, pandas as pd
-        >>> sys.path.insert(0, "input/country_level_data")
+        >>> sys.path.insert(0, "input/observations/country")
         >>> from pyvwf_config import get_config
         >>>
         >>> config = get_config("NL")
@@ -220,6 +220,34 @@ class PyVWF:
         self.correct = correct
         self.calc_z0 = calc_z0
 
+    def _write_run_manifest(self, run_mode: str, **extra) -> None:
+        """Best-effort provenance manifest for legacy runs (never aborts).
+
+        Records which curve library produced this run's outputs (design §6).
+        Every failure path (including the harness import itself) degrades
+        to a warning: provenance is diagnostic, not load-bearing.
+        """
+        try:
+            # Imported lazily so a broken/absent harness cannot break PyVWF.
+            from vwf.harness.provenance import write_manifest_safe
+
+            write_manifest_safe(
+                self.directory_path,
+                extra={
+                    "run_mode": run_mode,
+                    "country": self.country,
+                    "obs_level": self.obs_level,
+                    "correct": self.correct,
+                    "calc_z0": self.calc_z0,
+                    "cluster_mode": self.cluster_mode,
+                    "cluster_list": list(getattr(self, "full_clus_list", []) or []),
+                    "time_res_list": list(getattr(self, "full_time_list", []) or []),
+                    **extra,
+                },
+            )
+        except Exception as exc:
+            print(f"Warning: could not write run manifest: {exc}. The run continues.")
+
     def _build_country_sources(self) -> None:
         """Wrap the loaded country-level frames in observation sources.
 
@@ -299,7 +327,7 @@ class PyVWF:
                       Index must be DatetimeIndex with year information.
             obs_test: Test observations with same format as obs_train.
             grid_points_dir: Directory containing year-specific grid point files
-                           (default: input/country_level_data/grid_points/{country}/)
+                           (default: input/observations/country/grid_points/{country}/)
 
         Returns:
             Self for method chaining.
@@ -335,8 +363,8 @@ class PyVWF:
         print(f"Training years: {train_years}")
 
         # Load year-specific grid points using the loader
-        # base_dir should be input/country_level_data/, not input/country_level_data/grid_points/
-        # grid_points_dir is input/country_level_data/grid_points/{country}/
+        # base_dir should be input/observations/country/, not input/observations/country/grid_points/
+        # grid_points_dir is input/observations/country/grid_points/{country}/
         # So we need .parent.parent to get base_dir
         self.grid_points, self.grid_points_by_year = load_year_specific_grid_points(
             self.country, 
@@ -364,7 +392,7 @@ class PyVWF:
         cls,
         country_code: str,
         path: str = "",
-        config_dir: str = "input/country_level_data",
+        config_dir: str = "input/observations/country",
         **kwargs
     ):
         """Create PyVWF model from generated country-level configuration.
@@ -375,7 +403,7 @@ class PyVWF:
         Args:
             country_code: Country code (NL, FR, BE, NO).
             path: Output path for model artifacts (default: "").
-            config_dir: Directory containing pyvwf_config.py (default: "input/country_level_data").
+            config_dir: Directory containing pyvwf_config.py (default: "input/observations/country").
             **kwargs: Additional arguments to override config (e.g., calc_z0=False).
 
         Returns:
@@ -718,6 +746,7 @@ class PyVWF:
             print("Completed and saved. Elapsed time: {:.2f} seconds\n".format(elapsed_time))
             print("--------------------------------")
 
+        self._write_run_manifest("legacy-train")
         return self
 
     def simulate_cf(self, year_test, fix_turb_test=None):
@@ -875,4 +904,5 @@ class PyVWF:
         self.turb_info = turb_info
         self.year_test = year_test
 
+        self._write_run_manifest("legacy-simulate", year_test=int(year_test))
         return self

@@ -38,10 +38,25 @@ Those datasets carry their own licensing terms and are **not redistributed** her
 
 ## Using your own curve library (for production runs)
 
-Keep licensed files out of git as `input/power_curves.real.csv` and
-`input/models.real.csv` (both gitignored), then swap them in when needed:
+Keep licensed files out of git as `input/reference/power_curves.real.csv` and
+`input/reference/models.real.csv` (both gitignored), then swap them in when needed:
 
 ```bash
-cp input/power_curves.real.csv input/power_curves.csv    # use your own curves
-git checkout input/power_curves.csv input/models.csv     # restore the open library before committing
+cp input/reference/power_curves.real.csv input/reference/power_curves.csv    # use your own curves
+git checkout input/reference/power_curves.csv input/reference/models.csv     # restore the open library before committing
 ```
+
+## Folder layout
+
+`input/` is organised by pipeline stage:
+
+```
+input/
+  raw/<source>/                  upstream downloads (provenance): aemo, cammesa, cen, eia, emi, ons, repd
+  era5/                          reanalysis, per region
+  observations/{turbine,country}/  processed capacity factors the adapters read
+  reference/                     static shared lookups: power_curves.csv, models.csv, shapes/, terrain/, gwpt/
+  combined/                      alternate run root: same data via symlink + the merged (open+licensed) curve library
+```
+
+Point `PYVWF_INPUT` at `input/combined` to run with the fuller curve library.

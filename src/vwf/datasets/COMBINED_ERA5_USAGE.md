@@ -195,7 +195,7 @@ python combine_era5_files.py --all-years --add-roughness
 ```bash
 python combine_era5_files.py --all-years --add-roughness \
     --roughness-source terrain \
-    --terrain-file input/terrain/terrain_europe_full.nc
+    --terrain-file input/reference/terrain/terrain_europe_full.nc
 ```
 
 ### Specific years only:
@@ -251,10 +251,10 @@ python combine_era5_files.py --all-years --add-roughness \
 
 ## Summary
 
-✅ **Done**: Combined 18 files into 9 optimized files
-✅ **Speedup**: ~50% faster I/O
-✅ **Space**: 4.2% smaller total size
-✅ **Added feature**: Roughness length (z0) included
-✅ **Code**: Simpler, cleaner data access
+- **Done**: Combined 18 files into 9 optimized files
+- **Speedup**: ~50% faster I/O
+- **Space**: 4.2% smaller total size
+- **Added feature**: Roughness length (z0) included
+- **Code**: Simpler, cleaner data access
 
 Your code will now run faster with these combined files!

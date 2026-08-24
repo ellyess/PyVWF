@@ -29,13 +29,37 @@ def calculate_scalar(gen_cf, time_res):
     # This was causing double-weighting issues where scalars were influenced by turbine size
     # rather than just representing the meteorological bias at that location
 
-    def weighted_avg(group_df, whole_df, values, weights):
-        """Compute a weighted average for a group."""
-        v = whole_df.loc[group_df.index, values]
-        w = whole_df.loc[group_df.index, weights]
-        # Use min_count=1 so that all-NaN groups return NaN instead of 0.0
-        # (pd.Series.sum() returns 0.0 for all-NaN by default with skipna=True)
-        return (v * w).sum(min_count=1) / w.sum()
+    def weighted_avg(group_df, whole_df, values, weights, required=('obs', 'sim')):
+        """Compute a weighted average for a group, over the ROWS THAT HAVE A VALUE.
+
+        ``sim`` exists for every turbine but ``obs`` does not. Dividing by the
+        group's whole capacity would count plants that reported nothing in the
+        denominator while the numerator skipped them, scaling ``obs`` down by
+        the reporting fraction and leaving ``sim`` untouched, so the scalar
+        came out as ``true_scalar * reporting_fraction``. On the real US fleet
+        only 43% of capacity reports monthly, which turned a correct scalar of
+        1.09 into 0.47 and made the correction worse than no correction at all,
+        in-sample as well as out.
+
+        The presence mask is shared across ``required`` rather than computed per
+        column, so ``obs`` and ``sim`` are averaged over the SAME plants. Masking
+        each column against only its own presence puts ``obs`` over the reporters
+        and ``sim`` over the whole fleet, and the ratio then compares two
+        different samples: the plant-to-plant spread in ``sim`` no longer cancels
+        and the scalar carries the difference. That is harmless when reporting is
+        independent of output, but reporting is not independent of output, and at
+        the 43% reporting rate above a moderate correlation biases the scalar by
+        about 7%, a strong one by about 14%, always in the same direction.
+        """
+        idx = group_df.index
+        w = whole_df.loc[idx, weights]
+        present = w.notna()
+        for col in required:
+            present &= whole_df.loc[idx, col].notna()
+        v = whole_df.loc[idx, values]
+        # min_count=1 so an all-missing group returns NaN rather than 0.0
+        # (an empty sum is 0.0 by default), and NaN/0 keeps that NaN.
+        return (v[present] * w[present]).sum(min_count=1) / w[present].sum()
         
     df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
                             "obs": lambda x: weighted_avg(x, gen_cf, 'obs', 'capacity'),

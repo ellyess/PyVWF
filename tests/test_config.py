@@ -1,8 +1,9 @@
-"""Tests for path resolution — the difference between "works in my checkout"
+"""Tests for path resolution: the difference between "works in my checkout"
 and "works when installed".
 
 `load_power_curves` and `add_models` used to read the literal relative paths
-``input/power_curves.csv`` and ``input/models.csv``, so a `pip install pyvwf`
+``input/reference/power_curves.csv`` and ``input/reference/models.csv``, so a
+`pip install pyvwf`
 user working anywhere other than a repository checkout got a FileNotFoundError
 before they could simulate anything. They now resolve through
 ``PyVWFPaths.reference_file``, which prefers the user's own tables and falls
@@ -14,6 +15,7 @@ their turbines are being represented by class proxies.
 """
 from __future__ import annotations
 
+import os
 import warnings
 from pathlib import Path
 
@@ -39,7 +41,8 @@ def test_reference_file_prefers_the_users_own_table(tmp_path, monkeypatch):
     """A local (possibly licensed, non-redistributable) power-curve library must
     win over the bundled open library."""
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
-    local = tmp_path / "power_curves.csv"
+    local = tmp_path / "reference" / "power_curves.csv"
+    local.parent.mkdir()
     local.write_text("data$speed,MyTurbine.5000\n0,0\n10,0.8\n")
 
     with warnings.catch_warnings():
@@ -120,8 +123,8 @@ def test_add_models_works_outside_a_checkout(no_input_root):
 
 def test_repo_checkout_still_uses_its_own_input_dir():
     """In a checkout (the default INPUT_ROOT), the repo's own tables are used and
-    nothing warns — the existing workflow is untouched."""
-    if not Path("input/power_curves.csv").is_file():
+    nothing warns; the existing workflow is untouched."""
+    if not Path("input/reference/power_curves.csv").is_file():
         pytest.skip("not running from a repository checkout")
 
     with warnings.catch_warnings():
@@ -131,20 +134,33 @@ def test_repo_checkout_still_uses_its_own_input_dir():
     assert "data$speed" in curves.columns
 
 
-def test_pyvwf_input_env_var_redirects_the_root(tmp_path, monkeypatch):
-    """PYVWF_INPUT is what lets an installed copy find input data anywhere."""
-    monkeypatch.setenv("PYVWF_INPUT", str(tmp_path))
+def test_pyvwf_input_env_var_redirects_the_root(tmp_path):
+    """PYVWF_INPUT is what lets an installed copy find input data anywhere.
 
-    import importlib
+    Run in a subprocess rather than with importlib.reload. Reloading
+    ``vwf.config`` rebinds ``PyVWFPaths`` to a NEW class object, and every
+    module that did ``from vwf.config import PyVWFPaths`` at import time keeps
+    the old one. Reloading a second time restores the values but not those
+    stale references, so a later test that monkeypatches ``PyVWFPaths`` patches
+    a class the code under test is no longer reading. That surfaced as
+    test_country_zonal failing with an empty ERA5 glob, but only when the whole
+    suite shares one process, which is how CI runs it and how a per-file local
+    run never does. A subprocess is also the more honest test: a fresh
+    interpreter is exactly what an installed copy gets.
+    """
+    import json
+    import subprocess
+    import sys
 
-    import vwf.config
-
-    reloaded = importlib.reload(vwf.config)
-    try:
-        assert reloaded.PyVWFPaths.INPUT_ROOT == tmp_path
-        assert reloaded.PyVWFPaths.ERA5_DATA == tmp_path / "era5" / "EU"
-        assert reloaded.PyVWFPaths.TURBINE_DATA == tmp_path / "turbine_level_data"
-    finally:
-        # Restore the module for every other test in the session.
-        monkeypatch.delenv("PYVWF_INPUT")
-        importlib.reload(vwf.config)
+    env = {**os.environ, "PYVWF_INPUT": str(tmp_path)}
+    probe = (
+        "import json;from vwf.config import PyVWFPaths as P;"
+        "print(json.dumps([str(P.INPUT_ROOT), str(P.ERA5_DATA), str(P.TURBINE_DATA)]))"
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", probe], env=env, capture_output=True, text=True, check=True
+    )
+    root, era5, turbine = (Path(p) for p in json.loads(out.stdout))
+    assert root == tmp_path
+    assert era5 == tmp_path / "era5" / "EU"
+    assert turbine == tmp_path / "observations" / "turbine"

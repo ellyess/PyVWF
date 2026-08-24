@@ -1,6 +1,6 @@
 """End-to-end tests for the PyVWF orchestration on a synthetic fleet.
 
-These drive the real, unmocked pipeline — the same code path a user gets from
+These drive the real, unmocked pipeline: the same code path a user gets from
 ``pyvwf-train``:
 
     ERA5-shaped winds -> hub-height extrapolation -> power curve -> per-cluster
@@ -9,7 +9,7 @@ These drive the real, unmocked pipeline — the same code path a user gets from
 
 Nothing is stubbed: `PyVWF.train` and `PyVWF.simulate_cf` read from disk,
 cluster the fleet, run the numerical offset fit, and write their real outputs.
-The only thing synthetic is the *data* — a small fleet with a deliberately
+The only thing synthetic is the *data*: a small fleet with a deliberately
 planted bias (the reanalysis blows harder than the turbines actually generate),
 so we know which way a correct correction must move.
 
@@ -131,15 +131,15 @@ def _write_fleet(dk_dir):
 def synthetic_dk(tmp_path, monkeypatch):
     """Lay out a synthetic DK dataset on disk and point PyVWFPaths at it."""
     _write_era5(tmp_path / "era5")
-    fleet = _write_fleet(tmp_path / "turbine_level_data" / "DK")
+    fleet = _write_fleet(tmp_path / "observations/turbine" / "DK")
 
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "turbine_level_data")
+    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
     return {"root": tmp_path, "fleet": fleet}
 
 
 # ---------------------------------------------------------------------------
-# train_set / cluster_train_set — the data-preparation layer
+# train_set / cluster_train_set: the data-preparation layer
 # ---------------------------------------------------------------------------
 
 def test_train_set_pairs_observations_with_simulations(synthetic_dk):
@@ -203,7 +203,7 @@ def test_cluster_train_set_respects_temporal_resolution(synthetic_dk):
 
 
 # ---------------------------------------------------------------------------
-# PyVWF.train + simulate_cf — the full orchestration
+# PyVWF.train + simulate_cf: the full orchestration
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -291,9 +291,42 @@ def test_simulate_cf_outputs_are_physical(trained_model):
     assert ((values >= 0.0) & (values <= 1.0)).all(), "corrected CF outside [0, 1]"
 
 
+def test_legacy_runs_write_a_provenance_manifest(trained_model):
+    """PyVWF.train and simulate_cf self-describe their curve library
+    (design §6): the manifest records synthetic-vs-external and the run
+    parameters, so legacy outputs are attributable too."""
+    import json
+
+    model, _ = trained_model
+    manifest_path = f"{model.directory_path}/run_manifest.json"
+    manifest = json.loads(open(manifest_path).read())
+    assert manifest["run_mode"] == "legacy-train"
+    assert manifest["country"] == "DK"
+    assert manifest["curve_library"]["library"] == "synthetic-bundled"
+
+    model.simulate_cf(YEAR_TEST)
+    manifest = json.loads(open(manifest_path).read())
+    assert manifest["run_mode"] == "legacy-simulate"
+    assert manifest["year_test"] == YEAR_TEST
+
+
+def test_manifest_failure_never_aborts_a_run(trained_model, monkeypatch, capsys):
+    """The never-abort condition (design §6): a manifest-write failure logs a
+    warning and the run completes."""
+    import vwf.harness.provenance as provenance
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("disk full (simulated)")
+
+    monkeypatch.setattr(provenance, "write_manifest_safe", boom)
+    model, _ = trained_model
+    model.simulate_cf(YEAR_TEST)  # must not raise
+    assert "could not write run manifest" in capsys.readouterr().out
+
+
 def test_simulate_cf_is_idempotent(trained_model):
     """Re-running must reuse the existing outputs rather than recompute or
-    corrupt them — the guard that lets a long sweep be resumed."""
+    corrupt them: the guard that lets a long sweep be resumed."""
     model, _ = trained_model
     model.simulate_cf(YEAR_TEST)
 

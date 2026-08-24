@@ -1,4 +1,6 @@
 """ERA5 reanalysis import and preprocessing utilities."""
+from pathlib import Path
+
 import xarray as xr
 import numpy as np
 
@@ -71,7 +73,8 @@ def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.D
 
     return ds.sel(lon=slice(lon_min, lon_max), lat=lat_slice)
 
-def prep_era5(country, train=False, calc_z0=True, bbox=None):
+def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
+              resample_daily=True):
     """Preprocess ERA5 reanalysis data.
 
     Args:
@@ -80,13 +83,25 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None):
         calc_z0: If True, compute surface roughness length from 10m/100m winds.
         bbox: Optional ``(lon_min, lon_max, lat_min, lat_max)`` tuple. If None,
             uses ``BoundingBoxes.get(country)`` when available.
+        era5_dir: Optional directory holding the ERA5 ``*.nc`` files (the
+            validation harness passes the region config's path). Default None
+            keeps the legacy ``PyVWFPaths.ERA5_DATA`` location.
+        resample_daily: If True (default), average to daily means, which is what
+            every published PyVWF result is built on. Set False to keep the
+            file's native resolution, which for the raw hourly downloads is
+            hourly. NOTE this is not a free switch: the power curve is convex, so
+            the daily mean of simulated power is not the power of the daily mean
+            wind, and a run at native resolution is a materially different model,
+            not a finer view of the same one. Default True so existing results
+            and the golden regression path are unchanged.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.
     """
     print(f"prepping ERA5 data for {country}, train={train}, calc_z0={calc_z0}")
 
-    path = str(PyVWFPaths.ERA5_DATA / "*.nc")
+    data_dir = Path(era5_dir) if era5_dir is not None else PyVWFPaths.ERA5_DATA
+    path = str(data_dir / "*.nc")
     ds = xr.open_mfdataset(path, combine="by_coords", parallel=False)
     ds = unify_time_coordinate(ds)
 
@@ -107,8 +122,13 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None):
 
     ds = ds.load()  # now load only the sliced subset
 
-    # Wind speed at 100m
-    ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2)
+    # Wind speed at 100m. Pre-combined files may already carry wnd100m
+    # (computed from HOURLY components before any daily averaging: mean
+    # speed, not speed of mean components); recomputing from daily-mean u/v
+    # would be wrong, and raw files carry components, so compute only when
+    # absent.
+    if "wnd100m" not in ds.data_vars:
+        ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2)
 
     if calc_z0:
         ds = ds.drop_vars("fsr", errors="ignore")
@@ -163,8 +183,9 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None):
         # ds = ds.rename({"fsr": "roughness"})
         ds = ds.drop_vars(["u100", "v100", "u10", "v10", "number", "expver"], errors="ignore")
 
-    # Daily resampling
-    ds = ds.resample(time="1D").mean()
+    # Daily resampling (the published resolution; see resample_daily).
+    if resample_daily:
+        ds = ds.resample(time="1D").mean()
 
     # Rounding coordinates
     ds = ds.assign_coords(

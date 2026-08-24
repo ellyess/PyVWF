@@ -1,35 +1,35 @@
-# PyVWF Documentation
+# PyVWF documentation
 
-Start here. This folder holds reference documentation for the core PyVWF
-bias-correction workflow. If you are new to the project, read in the order
-below.
+New to the project? Read the [project README](../README.md) first, for what
+PyVWF is, how to install it, and a Denmark quickstart. The full documentation
+site is built from this folder and hosted at
+[pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/); [`index.md`](index.md)
+is its front page and the canonical contents list.
 
-## Start here
+## How this folder is organised
 
-1. [Project README](../README.md) - what PyVWF is, how it works, installation,
-   and a Denmark quickstart. Read this first.
-2. [Input data](../README.md#input-data) - what data you need, where to get it,
-   and the expected `input/` directory layout.
+Every filename is lower-case with hyphens, and the folder supplies the
+category, so a name never repeats it: the training guide is
+`guides/training.md`, not `guides/TRAINING_GUIDE.md`.
 
-## Reading order
+| Folder | Holds | Naming |
+|---|---|---|
+| [`guides/`](guides) | How to use PyVWF: data, training, outputs, extending it. Maintained, and published to the site. | `<topic>.md` |
+| [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | `<iso-code>.md` |
+| [`design/`](design) | Why the code is shaped as it is. Published. | `<component>.md` |
+| [`findings/`](findings) | Dated research records: one experiment each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | `<type>-<subject>.md` |
 
-Once you can run the quickstart, work through these in order:
+`findings/` names carry their document type as a prefix, so two files sharing a
+prefix share a shape:
 
-| # | Document | What it covers |
-|---|----------|----------------|
-| 1 | [Data requirements](DATA_REQUIREMENTS.md) | The input files PyVWF expects and how to obtain the ERA5 winds. |
-| 2 | [Data pipeline](DATA_PIPELINE.md) | How turbine-level and country-level data flow through the model. |
-| 3 | [Training guide](TRAINING_GUIDE.md) | Configuring and running bias-correction training across countries and resolutions. |
-| 4 | [Output structure](OUTPUT_STRUCTURE.md) | The layout of a run directory and the files each run produces. |
-| 5 | [ENTSO-E API guide](ENTSOE_API_GUIDE.md) | Fetching national generation data for the country-level workflow. |
+- `scorecard.md` is the index of per-region results, and the entry point.
+- `region-*.md` reports one region's validation, e.g. `region-nz.md`.
+- `method-*.md` studies one method question across regions, e.g.
+  `method-cluster-count.md`. A `-<code>` suffix marks a single-region deep dive
+  of the same question, as in `method-cluster-count-dk.md`.
+- `dataset-survey.md` surveys candidate observation datasets.
 
-For the end-to-end script execution order, see
-[PIPELINE.md](../PIPELINE.md) at the repository root.
-
-## Reference by task
-
-- **I want to run PyVWF on turbine data.** Read the [README quickstart](../README.md#quickstart),
-  then [Data requirements](DATA_REQUIREMENTS.md) and [Training guide](TRAINING_GUIDE.md).
-- **I want national (country-level) corrections.** Read [Data pipeline](DATA_PIPELINE.md)
-  and [ENTSO-E API guide](ENTSOE_API_GUIDE.md), then [Training guide](TRAINING_GUIDE.md).
-- **I want to understand a run's outputs.** Read [Output structure](OUTPUT_STRUCTURE.md).
+The findings tree is excluded from the built site on purpose. Each document
+reports one dated experiment against one held-out test year, and several record
+negative results whose value is the reasoning rather than the number, so
+publishing them as site pages would present run-specific figures as guidance.

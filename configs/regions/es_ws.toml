@@ -1,0 +1,44 @@
+# Region config for the multi-region validation harness (docs/design/harness.md).
+# MIXED LICENCE: generation is CONFIDENTIAL WindStats (commercial); coordinates
+# are open GWPT (CC-BY-4.0). Neither the data nor derived observations are
+# committed (input/ is git-ignored). See docs/runbooks/es.md.
+#
+# Code is ES-WS (not ES) so it does not collide with the country-level ENTSO-E
+# Spain region (configs/regions/es.toml). CAVEAT: the WindStats Spain extract
+# covers only 1998-2000 (an old ~600 kW fleet): a historical, short-window
+# region, not a contemporary of the 2015-2019 reference set. Training needs
+# ERA5 for 1998-2000.
+
+[region]
+code = "ES-WS"
+name = "Spain (WindStats per-turbine, historical 1998-2000)"
+
+[observations]
+source = "windstats"
+obs_level = "turbine"
+obs_unit = "turbine"
+train_years = [1998, 1999]
+test_years = [2000]
+# WindStats per-turbine monthly Output (kWh) -> CF against nameplate kW.
+# Coordinates: WindStats id -> geolocate (thewindpower name) -> GWPT fuzzy
+# match (~80% of turbines; unmatched farms excluded, listed in the join
+# report). Northern Hemisphere seasons.
+
+[era5]
+# Mainland Spain. Canary-Islands turbines (lat < 30) are outside this box and
+# excluded (the CL-Magallanes pattern); ERA5 for 1998-2000 must be fetched
+# (scripts/fetch/era5.py --region es-ws).
+path = "era5/ES"
+bbox = [-10.0, 4.0, 35.0, 44.0]
+file_tag = "ES"
+
+[correction]
+model = "affine-wind"
+cluster_list = [10]
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

@@ -1,0 +1,23 @@
+ID,lon,lat,capacity_mw,note
+MANANTIALES BEHR (YPF),-67.789,-45.675,99.0,GWPT located the farm but at a 50MW phase; YPF Luz Manantiales Behr is 99MW (30x3.3MW) Chubut; median CF ~0.60 (windy Comodoro Rivadavia)
+P.EOLICO MATACO 3 PICOS,-62.243,-38.305,200.0,El Mataco + Tres Picos complex near Bahia Blanca; GWPT splits into Mataco(36)+Tres Picos(100)+San Jorge(103); combined ~200MW gives median CF 0.52
+DIADEMA EOLICO,-67.6634,-45.7506,6.3,turbine-derived nameplate (count x unit_mw); GWPT gave 28MW (phase-split full-farm cap); conf=confirmed
+P.EOLICO BICENTENARIO 2,-66.9931,-47.2995,25.2,turbine-derived nameplate (count x unit_mw); GWPT gave 101MW (phase-split full-farm cap); conf=secondary
+P.EOLICO CAÑADON LEÓN MATER,-67.6486,-46.5925,21.0,turbine-derived nameplate (count x unit_mw); GWPT gave 122MW (phase-split full-farm cap); conf=secondary
+P.EOLICO CAÑADON LEÓN REN 2,-67.6486,-46.5925,100.8,turbine-derived nameplate (count x unit_mw); GWPT gave 122MW (phase-split full-farm cap); conf=secondary
+P.EOLICO DIADEMA 2,-67.6634,-45.7506,21.2,turbine-derived nameplate (count x unit_mw); GWPT gave 28MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LA ENERGETICA MATER,-62.2228,-38.3608,20.0,turbine-derived nameplate (count x unit_mw); GWPT gave 80MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LA GENOVEVA II MATER,-61.9221,-38.5759,41.8,turbine-derived nameplate (count x unit_mw); GWPT gave 87MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LEVALLE,-63.919,-34.0333,62.0,turbine-derived nameplate (count x unit_mw); GWPT gave 155MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LEVALLE II,-63.919,-34.0333,93.0,turbine-derived nameplate (count x unit_mw); GWPT gave 155MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LOMA BLANCA 1,-65.3333,-42.9167,51.2,turbine-derived nameplate (count x unit_mw); GWPT gave 100MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LOMA BLANCA 2,-65.3333,-42.9167,51.2,turbine-derived nameplate (count x unit_mw); GWPT gave 100MW (phase-split full-farm cap); conf=secondary
+P.EOLICO LOMA BLANCA 3,-65.3333,-42.9167,51.2,turbine-derived nameplate (count x unit_mw); GWPT gave 100MW (phase-split full-farm cap); conf=secondary
+PE. CHUBUT NORTE III,-65.1584,-42.5858,57.2,turbine-derived nameplate (count x unit_mw); GWPT gave 83MW (phase-split full-farm cap); conf=secondary
+Parque eólico Chubut norte,-65.1584,-42.5858,28.8,turbine-derived nameplate (count x unit_mw); GWPT gave 83MW (phase-split full-farm cap); conf=secondary
+Parque eólico Los TEROS II,-59.7715,-37.143,52.0,turbine-derived nameplate (count x unit_mw); GWPT gave 123MW (phase-split full-farm cap); conf=secondary
+Puerto Madryn I,-65.2575,-42.7081,69.0,turbine-derived nameplate (count x unit_mw); GWPT gave 151MW (phase-split full-farm cap); conf=secondary
+RAWSON 3 EOLICO,-65.188,-43.3514,24.0,turbine-derived nameplate (count x unit_mw); GWPT gave 52MW (phase-split full-farm cap); conf=secondary
+RAWSONII ENARSA,-65.188,-43.3514,28.8,turbine-derived nameplate (count x unit_mw); GWPT gave 52MW (phase-split full-farm cap); conf=confirmed
+EÓLICO VILLALONGA II GENNEIA,-62.6593,-40.0394,3.4,turbine-derived nameplate; GWPT gave phase-split full-farm cap; conf=inferred but CF confirms
+Parque Eólico POMONA II,-65.715,-39.5611,11.7,turbine-derived nameplate; GWPT gave phase-split full-farm cap; conf=inferred but CF confirms

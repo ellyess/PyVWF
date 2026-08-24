@@ -80,13 +80,13 @@ input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
 /dist/
 /build/
 /docs/_build/
-/input/terrain
+/input/reference/terrain
 # Real power-curve library (renewables.ninja / VWF / thewindpower.net): kept
 # local-only and never redistributed. The repo ships the open turbine curve
-# library (NatLabRockies/turbine-models, BSD-3) at input/power_curves.csv and
-# input/models.csv instead. See input/README.md.
-input/power_curves.real.csv
-input/models.real.csv
+# library (NatLabRockies/turbine-models, BSD-3) at input/reference/power_curves.csv
+# and input/reference/models.csv instead. See input/README.md.
+input/reference/power_curves.real.csv
+input/reference/models.real.csv
 # Turbine metadata and observed generation are typically proprietary and are
 # never committed (README "Input data"). Redundant with the blanket /input
 # rule below, but kept explicit so the intent survives if that rule changes.
@@ -97,9 +97,38 @@ input/turbine_level_data/
 /overleaf
 
 # Internal research-log docs kept local-only (research dates, "next steps"
-# language not appropriate for the public-facing docs/ folder).
+# language not appropriate for the public-facing docs/ folder). Paths updated
+# after the docs/ reorganisation moved these under findings/.
 docs/TRAINING_2015_2021_SUMMARY.md
 docs/TURBINE_GRID_EVALUATION_ANALYSIS.md
+docs/findings/TRAINING_2015_2021_SUMMARY.md
+docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
+
+# The multi-region validation running log: a checkpoint-by-checkpoint record of
+# what was decided and why, written for the branch rather than for readers of
+# the repository. It carries sign-off language, open questions addressed to
+# reviewers, and references to conversations that are not public. The findings
+# it produced live in docs/findings/ as standalone documents; the log itself
+# stays local.
+/validation_progress.md
+
+# Local working notes for AI coding sessions (CLAUDE.md): records the real local
+# environment, standing caveats, and what must never be committed. Deliberately
+# not shipped -- CONTRIBUTING.md is the public contributor guide.
+/CLAUDE.md
+
+# Commercial / career material never belongs in this public repo. The working
+# copies live outside the repository entirely (../../Career/); these patterns are
+# a safety net in case anything is ever dropped in here by mistake.
+Career/
+career/
+docs/career/
+docs/commercial/
+docs/notes/
+**/PASSIVE_INCOME.md
+**/BUSINESS_SETUP.md
+**/NEXT_STEPS.md
+**/FACTS.md
 
 # Python build artifacts
 build/

@@ -15,7 +15,7 @@ Nothing here is real reanalysis or real generation data:
 The observations are generated from the model itself with a known bias, so
 `run_minimal.py` can demonstrably recover a correction that reproduces them. It
 is an illustration of the workflow, not a validation result. The power curves
-come from the bundled open library (`input/power_curves.csv`, real
+come from the bundled open library (`input/reference/power_curves.csv`, real
 redistributable curves); see [`input/README.md`](../../input/README.md).
 
 Regenerate everything with:

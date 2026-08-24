@@ -25,17 +25,45 @@ your observations support.
   observations, open-library power curves), with no ERA5 download and no private
   turbine data.
 - **Looking for a function?** Go to the {doc}`api`.
+- **Want the validation numbers?** The per-region scorecard, and the research
+  records behind it, live in `docs/findings/` in the repository rather than on
+  this site. Each is one dated experiment against one held-out test year, and
+  several record negative results, so they are kept where they can be read with
+  their full context instead of presented here as guidance. Start at
+  [findings/scorecard.md](https://github.com/ellyess/PyVWF/blob/main/docs/findings/scorecard.md).
 
 ```{toctree}
 :maxdepth: 1
 :caption: Guides
 
-DATA_REQUIREMENTS
-DATA_PIPELINE
-TRAINING_GUIDE
-OUTPUT_STRUCTURE
-ENTSOE_API_GUIDE
-ADDING_AN_OBSERVATION_SOURCE
+guides/data-sources
+guides/training
+guides/output-structure
+guides/adding-an-observation-source
+guides/your-own-data
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Region runbooks
+
+runbooks/dk
+runbooks/uk
+runbooks/de
+runbooks/es
+runbooks/us
+runbooks/br
+runbooks/nz
+runbooks/cl
+runbooks/ar
+runbooks/tr
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Design
+
+design/harness
 ```
 
 ```{toctree}

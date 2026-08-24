@@ -26,7 +26,7 @@ Usage:
 
     # Specific output directory
     python vwf/datasets/generate_country_level_training_data.py \
-        --output-dir input/country_level_data
+        --output-dir input/observations/country
 """
 
 import argparse
@@ -244,7 +244,7 @@ def generate_norway_zone_grids(
 
     # Load actual bidding zone geometries
     import geopandas as gpd
-    zones_path = Path("input/regions/no_bidding_zones.geojson")
+    zones_path = Path("input/reference/shapes/no_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
         print("  Falling back to bounding boxes")
@@ -354,7 +354,7 @@ def generate_norway_zone_grids(
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("⚠ GeoPandas not available - skipping GeoJSON export")
+            print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
 
     else:
@@ -385,10 +385,10 @@ def generate_sweden_zone_grids(
 
     # Load actual bidding zone geometries
     import geopandas as gpd
-    zones_path = Path("input/regions/se_bidding_zones.geojson")
+    zones_path = Path("input/reference/shapes/se_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
-        print("  ⚠ Cannot proceed without zone geometries")
+        print("  Warning: Cannot proceed without zone geometries")
         raise FileNotFoundError(f"Swedish bidding zones file not found: {zones_path}")
 
     zones_gdf = gpd.read_file(zones_path)
@@ -401,7 +401,7 @@ def generate_sweden_zone_grids(
         # Get zone_id from properties (already in SE_1 format from our extraction)
         zone_id = zone_row.get('zone_id') or zone_row.get('zone_name')
         if not zone_id:
-            print(f"  ⚠ Warning: Missing zone_id for feature {idx}, skipping")
+            print(f"  Warning: Missing zone_id for feature {idx}, skipping")
             continue
 
         zone_geom = zone_row.geometry
@@ -453,7 +453,7 @@ def generate_sweden_zone_grids(
         print(f"  Grid points: {len(zone_grid_filtered)}")
 
         if len(zone_grid_filtered) == 0:
-            print(f"  ⚠ Warning: No grid points generated for {zone_id}")
+            print(f"  Warning: No grid points generated for {zone_id}")
             continue
 
         all_zones_grids.append(zone_grid_filtered)
@@ -493,7 +493,7 @@ def generate_sweden_zone_grids(
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("⚠ GeoPandas not available - skipping GeoJSON export")
+            print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
 
     else:
@@ -590,7 +590,7 @@ def generate_norway_zone_grids_fallback(
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("⚠ GeoPandas not available - skipping GeoJSON export")
+            print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
 
     else:
@@ -670,6 +670,14 @@ def generate_kmeans_grid(
     # Print metadata summary
     print("\nGrid points ready for PyVWF simulation!")
     print(f"Columns: {list(grid_clustered.columns)}")
+    print(
+        "\nNOTE: every point carries the same synthetic capacity, so the "
+        "simulated country aggregate is weighted by land area while the "
+        "observation is weighted by installed capacity. Run\n"
+        f"  python scripts/region_tools/weight_country_grid_points.py {country}\n"
+        "to replace the uniform capacities with real ones from the Global Wind "
+        "Power Tracker. Regenerating this file overwrites that weighting."
+    )
 
     return grid_clustered, cluster_geoms
 
@@ -1235,8 +1243,8 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("input/country_level_data"),
-        help="Output directory (default: input/country_level_data)",
+        default=Path("input/observations/country"),
+        help="Output directory (default: input/observations/country)",
     )
     parser.add_argument(
         "--skip-observations",

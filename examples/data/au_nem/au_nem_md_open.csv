@@ -1,0 +1,105 @@
+ID,site_name,region,lon,lat,height,capacity,model,model_source,type,commissioning_date
+ARWF1,Ararat Wind Farm,VIC1,143.0429,-37.2411,100.0,240000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2017-01-01
+BALDHWF1,Bald Hills Wind Farm,VIC1,145.9499,-38.7488,100.0,106600.0,VestasV82_1.65MW_82,pdensity-class,onshore,2015-01-01
+BOCORWF1,Boco Rock Wind Farm,NSW1,149.0863,-36.5905,100.0,113000.0,2023NREL_Bespoke_6MW_196,pdensity-class,onshore,2014-01-01
+BODWF1,Bodangora Wind Farm,NSW1,149.0413,-32.4071,100.0,113190.0,IEA_Reference_3.4MW_130,pdensity-class,onshore,2019-01-01
+BRYB1WF1,Berrybank Wind Farm,VIC1,143.5302,-37.9491,100.0,180600.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2021-01-01
+BRYB2WF2,Berrybank Wind Farm,VIC1,143.5302,-37.9491,100.0,109200.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2021-01-01
+BULGANA1,Bulgana Green Power Hub - Wind Farm,VIC1,142.9654,-37.0998,100.0,200750.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2020-01-01
+CAPTL_WF,Capital Wind Farm,NSW1,149.5246,-35.1608,100.0,140700.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2010-01-01
+CATHROCK,Cathedral Rocks,SA1,135.5772,-34.8484,100.0,62000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2007-01-01
+CBWF1,Coonooer Bridge Wind Farm,VIC1,143.3604,-36.4288,100.0,19800.0,VestasV82_1.65MW_82,pdensity-class,onshore,2016-01-01
+CHALLHWF,Challicum Hills,VIC1,143.1027,-37.3955,100.0,52500.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2003-01-01
+CHYTWF1,Cherry Tree Wind Farm,VIC1,145.2656,-37.1018,100.0,57600.0,IEA_Reference_3.4MW_130,pdensity-class,onshore,2020-01-01
+CLEMGPWF,Clements Gap Wind Farm,SA1,138.1184,-33.5078,100.0,56700.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2010-01-01
+CLRKCWF1,Clarke Creek Wind Farm,QLD1,149.4532,-22.8505,100.0,346500.0,2023NREL_Bespoke_3MW_127.5,pdensity-class,onshore,2026-07-01
+CLRKCWF2,Clarke Creek Wind Farm,QLD1,149.4532,-22.8505,100.0,103500.0,2023NREL_Bespoke_3MW_127.5,pdensity-class,onshore,2026-07-01
+CNUNDAWF,Canunda,SA1,140.3512,-37.6847,100.0,46000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2005-01-01
+COLWF01,Collector,NSW1,149.3867,-34.874,100.0,226800.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2021-01-01
+COOPGWF1,Coopers Gap Wind Farm,QLD1,151.47229999999996,-26.732600000000005,100.0,452890.0,IEA_Reference_3.4MW_130,pdensity-class,onshore,2020-01-01
+CROWLWF1,Crowlands Wind Farm,VIC1,143.1537,-37.1216,100.0,79950.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2020-01-01
+CRURWF1,Crudine Ridge Wind Farm,NSW1,149.6759,-32.9348,100.0,141710.0,IEA_Reference_3.4MW_130,pdensity-class,onshore,2020-01-01
+CTHLWF1,Cattle Hill Wind Farm,TAS1,146.6882,-42.1614,100.0,144000.0,2023NREL_Bespoke_6MW_196,pdensity-class,onshore,2020-01-01
+CULLRGWF,Cullerin Range Wind Farm,NSW1,149.4009,-34.80669999999999,100.0,30000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2009-01-01
+DULAWF1,Dulacca Wind Farm,QLD1,149.8533,-26.6116,100.0,172860.0,BAR_BAUa_5.0MW_167.4,pdensity-class,onshore,2024-01-01
+DUNDWF1,Dundonnell Wind Farm,VIC1,142.972,-37.8616,100.0,168000.0,2023NREL_Bespoke_3MW_127.5,pdensity-class,onshore,2021-01-01
+DUNDWF2,Dundonnell Wind Farm,VIC1,142.972,-37.8616,100.0,46200.0,2023NREL_Bespoke_3MW_127.5,pdensity-class,onshore,2021-01-01
+DUNDWF3,Dundonnell Wind Farm,VIC1,142.972,-37.8616,100.0,121800.0,2023NREL_Bespoke_3MW_127.5,pdensity-class,onshore,2021-01-01
+FLYCRKWF,Flyers Creek Wind Farm,NSW1,149.0804,-33.5633,100.0,145540.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2024-01-01
+FNWF1,Ferguson Wind Farm,VIC1,143.1794,-38.6109,100.0,12000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2021-01-01
+GRANWF1,Granville Harbour Wind Farm,TAS1,145.039,-41.7803,100.0,111600.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2020-01-01
+GULLRWF1,Gullen Range Wind Farm,NSW1,149.43684727272728,-34.55871454545454,100.0,165500.0,2023NREL_Bespoke_3.3MW_148,pdensity-class,onshore,2014-01-01
+GUNNING1,Gunning Wind Farm,NSW1,149.3829,-34.6878,100.0,46500.0,DOE_GE_1.5MW_77,pdensity-class,onshore,2011-01-01
+HD1WF1,Hawkesdale Wind Farm,VIC1,142.3609,-38.1481,100.0,96600.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2024-01-01
+HDWF1,Hornsdale Wind Farm Stage 1,SA1,138.5174607594937,-33.08509303797469,100.0,102400.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2017-01-01
+HDWF2,Hornsdale Wind Farm Stage 2,SA1,138.5174607594937,-33.08509303797469,100.0,102400.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2017-01-01
+HDWF3,Hornsdale Wind Farm Stage 3,SA1,138.5174607594937,-33.08509303797469,100.0,112000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2017-01-01
+KiataWF1,Kiata Wind Farm,VIC1,141.7501,-36.3963,100.0,31050.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2017-01-01
+LGAPWF1,Lincoln Gap Wind Farm - stage 1,SA1,137.5508,-32.5432,100.0,126000.0,2023NREL_Bespoke_3MW_127.5,pdensity-class,onshore,2020-01-01
+LGAPWF2,Lincoln Gap Wind Farm - Stage 2,SA1,137.5508,-32.5432,100.0,86400.0,IEA_Reference_3.4MW_130,pdensity-class,onshore,2020-01-01
+MACARTH1,Macarthur Wind Farm,VIC1,142.1838,-38.0417,100.0,420000.0,VestasV82_1.65MW_82,pdensity-class,onshore,2013-01-01
+MEWF1,Mount Emerald,QLD1,145.3868,-17.1577,100.0,180730.0,VestasV82_1.65MW_82,pdensity-class,onshore,2019-01-01
+MLWF1,Mortons Lane Wind Farm,VIC1,142.4705,-37.8382,100.0,19500.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2013-01-01
+MRTLSWF1,Mortlake South Wind Farm,VIC1,142.8574,-38.1274,100.0,157500.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2021-01-01
+MUSSELR1,Musselroe Wind Farm,TAS1,148.0072,-40.7792,100.0,168000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2013-01-01
+MUWAWF1,Murra Warra Wind Farm - stage 1,VIC1,142.2898,-36.44720000000001,100.0,225700.0,BAR_BAUa_5.0MW_167.4,pdensity-class,onshore,2020-01-01
+OAKLAND1,Oaklands Hill Wind Farm,VIC1,142.582,-37.6914,100.0,67200.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2012-01-01
+RYANCWF1,Ryan Corner Wind Farm,VIC1,142.1435,-38.2708,100.0,218400.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2024-01-01
+RYEPARK1,Rye Park Wind Farm,NSW1,148.9783,-34.6172,100.0,396000.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2026-10-07
+SALTCRK1,Salt Creek Wind Farm,VIC1,142.7821,-37.9173,100.0,54000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2018-01-01
+SAPHWF1,Sapphire Wind Farm,NSW1,151.4111,-29.6998,100.0,270000.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2018-01-01
+STARHLWF,Starfish Hill,SA1,138.1575,-35.5703,100.0,33000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2003-01-01
+STOCKYD1,Stockyard Hill Wind Farm,VIC1,143.3033,-37.5542,100.0,527560.0,2023NREL_Bespoke_3.3MW_148,pdensity-class,onshore,2021-01-01
+STWF1,Silverton Wind Farm,NSW1,141.248,-31.8045,100.0,198940.0,IEA_Reference_3.4MW_130,pdensity-class,onshore,2020-01-01
+TARALGA1,Taralga Wind Farm,NSW1,149.8624,-34.4289,100.0,106800.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2015-01-01
+TOORAWF,Toora,VIC1,146.3394,-38.6536,100.0,21000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2002-01-01
+WATERLWF,Waterloo Wind Farm,SA1,138.91456422018348,-33.99719633027522,100.0,130800.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2010-01-01
+WAUBRAWF,Waubra,VIC1,143.6026,-37.3614,100.0,192000.0,DOE_GE_1.5MW_77,pdensity-class,onshore,2009-01-01
+WGWF1,Willogoleche Wind Farm,SA1,138.8553,-33.3906,100.0,122560.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2019-01-01
+WHILL1,Windy Hill,QLD1,145.5314,-17.5892,100.0,12000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2000-01-01
+WONWP,Wonthaggi Wind Farm,VIC1,145.548,-38.6074,100.0,12000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2005-01-01
+WOODLWN1,Woodlawn Wind Farm,NSW1,149.5655,-35.0788,100.0,48300.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2011-01-01
+WPWF,Wattle Point,SA1,137.6977,-35.1373,100.0,90750.0,VestasV82_1.65MW_82,pdensity-class,onshore,2005-01-01
+WRWF1,White Rock Wind Farm - Stage 1,NSW1,151.548,-29.7876,100.0,175000.0,2020ATB_NREL_Reference_7MW_200,pdensity-class,onshore,2018-01-01
+YSWF1,Yaloak South Wind Farm,VIC1,144.242,-37.7165,100.0,28700.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2018-01-01
+MUWAWF2,Murra Warra Wind Farm - stage 2,VIC1,142.3173,-36.4326,100.0,209000.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2022-01-01
+BANGOWF1,Bango 973 Wind Farm,NSW1,148.7943,-34.5533,100.0,159000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2022-01-01
+BANGOWF2,Bango 999 Wind Farm,NSW1,148.7943,-34.5533,100.0,84800.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2022-01-01
+LKBONNY1,Lake Bonney 1 Wind Farm,SA1,140.40920000000003,-37.78159999999999,100.0,80500.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2005-01-01
+LKBONNY2,Lake Bonney 2 Wind Farm,SA1,140.40920000000003,-37.78159999999999,100.0,159000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2005-01-01
+LKBONNY3,Lake Bonney 3 Wind Farm,SA1,140.40920000000003,-37.78159999999999,100.0,39000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2005-01-01
+GSWF1A,Goyder South Wind Farm 1A,SA1,138.9602974153298,-33.7518123885918,100.0,209000.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2024-01-01
+GSWF1B1,Goyder South Wind Farm 1B,SA1,138.9602974153298,-33.7518123885918,100.0,203500.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2024-01-01
+MCINTYR1,MacIntyre Wind Farm,QLD1,151.6305,-28.3225,100.0,923400.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2026-12-01
+GULLRWF2,Gullen Range Wind Farm 2,NSW1,149.43684727272728,-34.55871454545454,100.0,110670.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2022-10-27
+PAREPW1,Port Augusta Renewable Energy Park - Wind,SA1,137.8854,-32.5954,100.0,201000.0,BAR_BAUa_5.0MW_167.4,pdensity-class,onshore,2022-01-01
+KEPWF1,Kennedy Energy Park - Phase 1 - Wind,QLD1,151.73748038176032,-25.27797667020149,100.0,43200.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2024-01-01
+KABANWF1,Kaban Wind Farm,QLD1,145.4133,-17.5604,100.0,156800.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2023-01-01
+SNOWTWN1,Snowtown Wind Farm,SA1,138.1352,-33.7317,100.0,98700.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2008-01-01
+SNOWNTH1,Snowtown S2 Wind Farm,SA1,138.1533,-33.7674,100.0,144000.0,DOE_GE_1.5MW_77,pdensity-class,onshore,2014-01-01
+SNOWSTH1,Snowtown S2 Wind Farm,SA1,138.1533,-33.7674,100.0,126000.0,DOE_GE_1.5MW_77,pdensity-class,onshore,2014-01-01
+MERCER01,Mt Mercer Wind Farm,VIC1,143.8619,-37.8367,100.0,131200.0,VestasV82_1.65MW_82,pdensity-class,onshore,2014-01-01
+MTGELWF1,Mt Gellibrand Wind Farm,VIC1,143.7635,-38.2463,100.0,138600.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2018-01-01
+MTMILLAR,Mt Millar Wind Farm,SA1,136.7038,-33.6258,100.0,72450.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2006-01-01
+GPWFEST1,Golden Plains Wind Farm East,VIC1,143.783,-37.9729,100.0,248000.0,VestasV82_1.65MW_82,pdensity-class,onshore,2026-01-01
+GPWFEST2,Golden Plains Wind Farm East,VIC1,143.783,-37.9729,100.0,260399.99999999997,VestasV82_1.65MW_82,pdensity-class,onshore,2026-01-01
+GPWFEST3,Golden Plains Wind Farm East,VIC1,143.783,-37.9729,100.0,248000.0,VestasV82_1.65MW_82,pdensity-class,onshore,2026-01-01
+WAMBOWF1,Wambo Wind Farm,QLD1,151.3343,-26.658,100.0,252000.0,2023NREL_Bespoke_8.3MW_196,pdensity-class,onshore,2025-02-28
+CROOKWF2,Crookwell 2 Wind Farm,NSW1,149.5424,-34.51659999999999,100.0,96040.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2018-01-01
+CROOKWF3,Crookwell 3 Wind Farm,NSW1,149.5424,-34.51659999999999,100.0,57600.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2018-01-01
+ELAINWF1,Elaine Wind Farm,VIC1,143.9917,-37.757,100.0,83600.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2020-01-01
+YENDWF1,Yendon Wind Farm,VIC1,144.0237,-37.6352,100.0,144400.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2020-01-01
+PORTWF,Portland Wind Farm,VIC1,141.50253154362414,-38.39423422818792,100.0,151700.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2008-01-01
+YAMBUKWF,Yambuk,VIC1,142.0277,-38.318,100.0,30000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2007-01-01
+CODRNGTON,Codrington Wind Farm,VIC1,141.9545,-38.2826,100.0,18200.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2001-01-01
+WOOLNTH1,Woolnorth Studland Bay / Bluff Point,TAS1,144.71133884892086,-40.76009784172662,100.0,138000.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2002-01-01
+MOORAWF1,Moorabool Wind Farm,VIC1,144.16984485981308,-37.70342710280374,100.0,312000.0,2023NREL_Bespoke_6MW_196,pdensity-class,onshore,2020-01-01
+HALLWF1,Hallett Stage 1 Brown Hill,SA1,138.7082,-33.3156,100.0,94500.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2008-01-01
+HALLWF2,Hallett Stage 2 Hallett Hill,SA1,138.864,-33.5642,100.0,71400.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2010-01-01
+NBHWF1,Hallett 4 North Brown Hill,SA1,138.7044,-33.2991,100.0,132300.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2012-01-01
+BLUFF1,Hallett 5 The Bluff WF,SA1,138.7959,-33.3853,100.0,52500.0,BAR_HighSP_5.0MW_134.9,pdensity-class,onshore,2011-01-01
+CHPSTWF1,Chepstowe Wind Farm - VIC,VIC1,143.4962,-37.5943,100.0,6150.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2015-01-01
+DIAPURWF1,Diapur Wind Farm,VIC1,141.4341,-36.3403,100.0,8000.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,
+MAROOWF1,Maroona Wind Farm,VIC1,142.8218,-37.4338,100.0,6900.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2010-01-01
+TIMWEST,Timboon West Wind Farm,VIC1,142.9162,-38.5284,100.0,7200.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,
+HEPWIND1,Leonards Hill,VIC1,144.121,-37.4267,100.0,4100.0,IEC_Class2_Normalized_Industry_Composite,iec-class2-generic,onshore,2011-01-01

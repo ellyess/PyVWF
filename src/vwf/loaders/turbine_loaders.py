@@ -65,7 +65,7 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
     country = country.upper()
 
     if country == "DK":
-        # Load processed metadata from turbine_level_data
+        # Load processed metadata from observations/turbine
         dk_md = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DK/dk_md.csv")
 
         # Select and rename columns
@@ -101,7 +101,7 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
         return _standardise_turb_info_minimal(dk_md)
 
     if country == "DE":
-        # Load Germany data from turbine_level_data
+        # Load Germany data from observations/turbine
         de_geo = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DE/geolocate.germany.csv")
         de_md = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DE/DE_md.csv")
 
@@ -115,7 +115,7 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
         return _standardise_turb_info_minimal(de_md)
 
     if country == "UK":
-        # Load UK data from turbine_level_data
+        # Load UK data from observations/turbine
         uk_md = pd.read_csv(PyVWFPaths.TURBINE_DATA / "UK/uk_md.csv")
         return _standardise_turb_info_minimal(uk_md)
 
@@ -147,7 +147,7 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
     country = country.upper()
 
     if country == "DK":
-        # Load processed observations from turbine_level_data (long format)
+        # Load processed observations from observations/turbine (long format)
         dk_data = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DK/dk_obs_2002_2020.csv")
 
         # Filter by year range
@@ -172,7 +172,7 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
         return obs
 
     if country == "DE":
-        # Load Germany observations from turbine_level_data
+        # Load Germany observations from observations/turbine
         de_data = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DE/DE_data.csv")
         de_data = (
             de_data.loc[(de_data["Year"] >= year_start) & (de_data["Year"] <= year_end)]
@@ -190,7 +190,7 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
         return obs
 
     if country == "UK":
-        # Load UK observations from turbine_level_data
+        # Load UK observations from observations/turbine
         obs = pd.read_csv(PyVWFPaths.TURBINE_DATA / "UK/ukobs.csv")
         # Filter by year (UK data may not need year filtering, but include for consistency)
         if "year" in obs.columns:

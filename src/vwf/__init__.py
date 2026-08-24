@@ -8,14 +8,14 @@ Core functionality (always available):
 - train_set, val_set: Data preparation functions
 - Loaders: Functions for loading turbine and country-level data
 - ObservationSource: Pluggable adapters supplying observed generation. See
-  docs/ADDING_AN_OBSERVATION_SOURCE.md to add a new region.
+  docs/guides/adding-an-observation-source.md to add a new region.
 - Configuration: Path and bounding box configuration
 
 Optional functionality (requires additional dependencies):
 - Visualisation: Distributional diagnostics via ``vwf.viz`` (requires matplotlib).
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # ============================================================================
 # CORE FUNCTIONALITY (Always available)

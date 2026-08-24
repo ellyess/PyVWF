@@ -28,20 +28,28 @@ class PyVWFPaths:
     INPUT_ROOT = Path(os.environ.get("PYVWF_INPUT", "input"))
     OUTPUT_ROOT = Path(os.environ.get("PYVWF_OUTPUT", "output"))
 
-    # Data directories
+    # Data directories. input/ is organised by pipeline stage:
+    #   raw/<source>/         upstream downloads (provenance)
+    #   observations/{turbine,country}/  processed CF the adapters read
+    #   era5/                 reanalysis, per region
+    #   reference/            static shared lookups (curves, models, shapes, terrain)
     COUNTRY_DATA = INPUT_ROOT / "country-data"
-    TURBINE_DATA = INPUT_ROOT / "turbine_level_data"
-    COUNTRY_LEVEL_DATA = INPUT_ROOT / "country_level_data"
-    REGIONS = INPUT_ROOT / "regions"
+    TURBINE_DATA = INPUT_ROOT / "observations" / "turbine"
+    COUNTRY_LEVEL_DATA = INPUT_ROOT / "observations" / "country"
+    REGIONS = INPUT_ROOT / "reference" / "shapes"
     ERA5_DATA = INPUT_ROOT / "era5" / "EU"
 
     # Static reference files
-    POWER_CURVES = INPUT_ROOT / "power_curves.csv"
-    TURBINE_MODELS = INPUT_ROOT / "models.csv"
+    POWER_CURVES = INPUT_ROOT / "reference" / "power_curves.csv"
+    TURBINE_MODELS = INPUT_ROOT / "reference" / "models.csv"
 
     # Regional shapes
     COUNTRY_SHAPES = REGIONS / "country_shapes.geojson"
     OFFSHORE_SHAPES = REGIONS / "offshore_shapes.geojson"
+
+    # Coastline linework, used to rebuild islands the country shapes omit
+    # (see vwf.clustering.repair_region_shape).
+    COASTLINES = INPUT_ROOT / "reference" / "terrain" / "coastlines.geojson"
 
     @classmethod
     def reference_file(cls, filename: str) -> Path:
@@ -49,9 +57,9 @@ class PyVWFPaths:
 
         Resolution order:
 
-        1. ``INPUT_ROOT/<filename>``: your own copy. Manufacturer-specific
-           curve libraries are licensed and not redistributable, so a local
-           file always wins.
+        1. ``INPUT_ROOT/reference/<filename>``: your own copy. Manufacturer-
+           specific curve libraries are licensed and not redistributable, so a
+           local file always wins.
         2. The open curve library bundled in ``vwf.resources``, so an
            installed PyVWF runs outside a repository checkout.
 
@@ -69,7 +77,7 @@ class PyVWFPaths:
             FileNotFoundError: If the file is neither in ``INPUT_ROOT`` nor
                 bundled with the package.
         """
-        local = cls.INPUT_ROOT / filename
+        local = cls.INPUT_ROOT / "reference" / filename
         if local.is_file():
             return local
 
@@ -168,6 +176,14 @@ class BoundingBoxes:
         "IT": (6.6, 18.5, 36.6, 47.1),    # Italy
         "PT": (-9.5, -6.2, 37.0, 42.2),   # Portugal
         "IE": (-10.5, -5.4, 51.4, 55.4),  # Ireland
+        # Multi-region expansion: contiguous US (CONUS). Alaska and Hawaii are
+        # excluded: a separate, antimeridian-crossing box would be needed for
+        # AK, and the EIA-923 wind fleet is overwhelmingly CONUS.
+        "US": (-125.0, -66.0, 24.0, 50.0),
+        # Brazil: whole country (crosses the equator). The wind fleet is
+        # concentrated in the Nordeste (~ -18..-2 lat) and the far south (Rio
+        # Grande do Sul), both inside this box.
+        "BR": (-74.0, -34.0, -34.0, 6.0),
     }
 
     @classmethod

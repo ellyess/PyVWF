@@ -11,7 +11,7 @@ Everything downstream (interpolation, power curves, clustering, the correction
 maths) is source agnostic. Adding a new country therefore means writing one
 adapter, registering it, and nothing else.
 
-See ``docs/ADDING_AN_OBSERVATION_SOURCE.md`` for a worked example.
+See ``docs/guides/adding-an-observation-source.md`` for a worked example.
 """
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ class ObservationSource(ABC):
         ``capacity``
             Rated capacity in kW.
         ``model``
-            Power curve key, matching a column of ``input/power_curves.csv``.
+            Power curve key, matching a column of ``input/reference/power_curves.csv``.
         ``type``
             ``"onshore"`` or ``"offshore"``. Used when ``cluster_mode`` filters
             the fleet.

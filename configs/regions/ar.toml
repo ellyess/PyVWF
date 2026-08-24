@@ -1,0 +1,49 @@
+# Region config for the multi-region validation harness (docs/design/harness.md).
+# Seasons are EXPLICIT month lists. Argentina is Southern Hemisphere, so these
+# must NOT inherit the legacy NH mapping. The fleet's scientific draw is
+# Patagonia: Chubut and Santa Cruz sit in the cold-steppe westerlies (BSk/BWk)
+# at capacity factors near 50%, a regime nothing else in the validation set
+# covers; the Buenos Aires / Pampas cluster (Cfa) is the other half.
+
+[region]
+code = "AR"
+name = "Argentina (CAMMESA / MEM)"
+
+[observations]
+source = "cammesa-ar"
+obs_level = "turbine"
+obs_unit = "plant"
+train_years = [2021, 2023]
+test_years = [2024]
+# CAMMESA reports monthly GWh per central (native monthly, no timezone/DST).
+# CF is GWh against a GWPT-joined capacity (CAMMESA carries no capacity), so
+# the coordinate/capacity join is load-bearing twice. Fleet ramped 2011-2019;
+# over 2021-2024 it is mostly stable (~56 -> ~68 plants), with commissioning
+# prefixes stripped. A partial-build farm reads low against the static
+# nameplate (named follow-up, not screened). No curtailment screen (standing
+# caveat, though AR curtails far less wind than CL/BR).
+#
+# EVALUATION CAVEAT: the correction removes most of the mean bias (MBE 0.12 ->
+# 0.02) and cuts RMSE ~28%, but absolute skill stays low. Same spatial bias as
+# Chile: ERA5 exaggerates the wind gradient (north too calm, Patagonia too
+# windy). Partial-build plants (Villalonga II, Pomona II, ...) with obs CF near
+# 0.03-0.05 against full nameplate explain ~1/3 of the Patagonian over-
+# prediction. See docs/findings/region-south-america.md.
+
+[era5]
+# Fleet-bounded box (scripts/fetch/era5.py --region ar): GWPT AR operating farms span
+# lat -47.3..-28.7, lon -69.8..-57.7; box adds ~1.5 deg margin.
+path = "era5/AR"
+bbox = [-71.0, -56.0, -49.0, -27.0]
+file_tag = "AR"
+
+[correction]
+model = "affine-wind"
+cluster_list = [1, 12]  # sweep knee (docs/findings/method-cluster-count.md)
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [12, 1, 2]
+autumn = [3, 4, 5]
+winter = [6, 7, 8]
+spring = [9, 10, 11]

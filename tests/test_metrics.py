@@ -39,7 +39,7 @@ def wide_cf(cf_by_id: dict[str, float], years=(2020,), months=12) -> pd.DataFram
 
 
 def long_obs(cf_by_id: dict[str, float], years=(2020,)) -> pd.DataFrame:
-    """Long observation frame (ID, year, month, obs) — the `train=True` schema."""
+    """Long observation frame (ID, year, month, obs): the `train=True` schema."""
     rows = [
         {"ID": turb, "year": year, "month": month, "obs": cf}
         for turb, cf in cf_by_id.items()
@@ -107,8 +107,8 @@ def test_prepare_monthly_data_test_schema_melts_to_long():
 def test_prepare_monthly_data_train_preserves_real_years(years):
     """Regression: the training branch used to discard the real (year, month)
     index and overwrite it with a hard-coded 2015-01..2019-12 range. Any window
-    that wasn't exactly those 60 months either crashed or — for a 60-month
-    window starting elsewhere — was silently relabelled, merging observations
+    that wasn't exactly those 60 months either crashed or (for a 60-month
+    window starting elsewhere) was silently relabelled, merging observations
     against the wrong year's simulation."""
     obs = long_obs({"A": 0.3, "B": 0.3}, years=years)
     sim = wide_cf({"A": 0.4, "B": 0.4}, years=years)
@@ -144,7 +144,7 @@ def test_prepare_monthly_data_does_not_mutate_inputs():
 
 
 # ---------------------------------------------------------------------------
-# calculate_error — known answers
+# calculate_error: known answers
 # ---------------------------------------------------------------------------
 
 ERROR_MODES = ["total", "spatial-focus", "temporal-focus"]
@@ -196,7 +196,7 @@ def test_error_is_capacity_weighted_across_turbines(mode):
 
 def test_temporal_focus_aggregates_over_turbines_before_scoring():
     """Temporal focus scores the country-level monthly series, so equal and
-    opposite turbine errors within a month cancel — unlike spatial focus,
+    opposite turbine errors within a month cancel, unlike spatial focus,
     which scores each turbine and cannot cancel."""
     obs = wide_cf({"A": 0.30, "B": 0.30})
     sim = wide_cf({"A": 0.40, "B": 0.20})  # +0.10 and -0.10, equal capacity
@@ -212,7 +212,7 @@ def test_temporal_focus_aggregates_over_turbines_before_scoring():
 
 def test_seasonal_error_cancels_in_mbe_but_not_rmse():
     """A simulation that is too high in winter and too low in summer has ~zero
-    mean bias yet a real RMSE — the case MBE alone would hide."""
+    mean bias yet a real RMSE: the case MBE alone would hide."""
     times = pd.date_range("2020-01-01", periods=12, freq="MS")
     swing = np.where(times.month <= 6, 0.10, -0.10)
     sim = pd.DataFrame({"time": times, "A": 0.30 + swing})
@@ -246,7 +246,7 @@ def test_calculate_error_does_not_mutate_turb_info():
 
 
 # ---------------------------------------------------------------------------
-# calculate_error — the grouped report modes
+# calculate_error: the grouped report modes
 # ---------------------------------------------------------------------------
 
 def test_monthly_error_reports_one_diff_per_month_plus_both():
@@ -287,7 +287,7 @@ def test_turbine_error_reports_one_diff_per_turbine():
 
 
 # ---------------------------------------------------------------------------
-# overall_error — sweeps a run directory
+# overall_error: sweeps a run directory
 # ---------------------------------------------------------------------------
 
 def _write_run(tmp_path, country="DK", year=2020):
