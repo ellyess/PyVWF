@@ -329,3 +329,32 @@ an answer rather than an artefact.
 
 E1 is rerun from the start under this change; no result from before it is
 reported.
+
+---
+
+## Addendum 7: E8, combining the two things that worked (POST-HOC, labelled as such)
+
+Registered after reading E5 and E7, and therefore **not** a pre-specified test.
+It is recorded here so the record shows plainly which results were forecast and
+which were not.
+
+Two independently-established findings point the same way and neither was
+predicted:
+
+- **E7**: training on nine regions rather than five improved zero-shot transfer
+  in 5 of 5 regions (mean skill +0.238 to +0.318). My registered prediction --
+  at most two regions, under 0.005 RMSE -- failed, and its stated falsification
+  condition was that D5's envelope-coverage framing would need revising.
+- **E5**: MLP heads beat linear heads on zero-shot transfer in 5 of 5 (mean
+  0.1068 to 0.1022) while being no better in-region. My registered prediction
+  was the exact inverse, and its stated consequence was that the linear default
+  is wrong and should change.
+
+E8 runs both together. This is confirmation of two established effects in
+combination, not a search over configurations: no other combination is being
+tried, and the result cannot promote or demote P1-P3, which stand on the
+five-region linear model as specified.
+
+**What it would take to be believed.** E8 must beat BOTH E5 and E7 alone, in at
+least 3 of 5 regions each. If it does not, the two effects are not additive and
+the honest statement is that one of them is doing the work.
