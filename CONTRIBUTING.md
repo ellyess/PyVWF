@@ -40,7 +40,7 @@ The test suite uses synthetic data and needs no ERA5 downloads or API access:
 ```bash
 pytest                 # run all tests
 pytest --cov=vwf       # with coverage
-ruff check vwf tests   # lint
+ruff check src/vwf tests   # lint
 ```
 
 Continuous integration (`.github/workflows/ci.yml`) runs the same checks on
@@ -54,7 +54,7 @@ Python 3.10–3.12 for every pull request.
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
-4. Ensure `pytest` and `ruff check vwf tests` pass locally.
+4. Ensure `pytest` and `ruff check src/vwf tests` pass locally.
 5. Open a pull request describing the change and its motivation. Link any
    related issue.
 

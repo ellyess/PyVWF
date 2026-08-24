@@ -11,7 +11,7 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-07-16
+## [0.3.0] - 2026-07-17
 
 ### Added
 
@@ -56,6 +56,16 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
   typed Args, Returns, and usage notes; the generated API reference renders
   them.
 - `paper.md` describes the bundled open curve library and its provenance.
+
+### Documentation
+
+- JOSS pre-submission audit: corrected the method-paper citation to its full
+  six-author list, fixed referenced file paths and a broken README anchor, and
+  removed doc claims the code did not back up (no PyPI release, not a fully
+  pinned environment). Made the `input/turbine_level_data/` gitignore intent
+  explicit.
+- Trimmed the `paper.md` Functionality section to the released feature set,
+  corrected the MERRA-2 wording, and revised the prose for submission.
 
 ## [0.2.0] - 2026-07-14
 
@@ -174,7 +184,8 @@ changes the numbers the evaluation layer reports.
   evaluation metrics, the `pyvwf-train` console script, and the distributional
   diagnostics (`plot_cf_distribution`, `plot_qq`) in `vwf.viz`.
 
-[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ellyess/PyVWF/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ellyess/PyVWF/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ellyess/PyVWF/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ellyess/PyVWF/releases/tag/v0.1.0

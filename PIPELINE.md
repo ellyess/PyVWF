@@ -25,7 +25,7 @@ Train bias correction factors from observed vs reanalysis capacity factors.
 ### Prerequisites: Generate Country-Level Training Data
 
 ```bash
-python vwf/datasets/generate_country_level_training_data.py
+python src/vwf/datasets/generate_country_level_training_data.py
 ```
 
 - Fetches ENTSO-E capacity factor observations via API
@@ -72,7 +72,7 @@ python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid
 
 ```bash
 # 1. (Country-level only) Generate training data
-python vwf/datasets/generate_country_level_training_data.py
+python src/vwf/datasets/generate_country_level_training_data.py
 
 # 2. Train corrections
 python scripts/analysis/train_all_bias_corrections.py --sets turbine_grid

@@ -26,7 +26,7 @@ New here? See [How it works](#how-it-works) for the five-step pipeline, then [Qu
 - [Installation](#installation)
 - [Input data](#input-data)
 - [Quickstart](#quickstart)
-- [Visualising distributional fit](#visualising-distributional-fit)
+- [Visualising a run](#visualising-a-run)
 - [Going further](#going-further)
 - [Detailed usage and reference](#detailed-usage-and-reference)
 - [Testing](#testing)
@@ -73,7 +73,9 @@ The framework is intended for **daily to monthly** analysis at **turbine, region
 
 ## Installation
 
-PyVWF uses a fully pinned Conda environment to ensure reproducibility across systems.
+PyVWF provides a Conda environment (`environment.yaml`) with the core
+scientific dependencies pinned to exact versions for reproducibility across
+systems.
 
 #### 1. Clone the repository
 
@@ -258,7 +260,7 @@ The country-level workflow uses generated inputs rather than files you download
 by hand. Run:
 
 ```bash
-python vwf/datasets/generate_country_level_training_data.py
+python src/vwf/datasets/generate_country_level_training_data.py
 ```
 
 This fetches national generation from the ENTSO-E Transparency Platform (an API
@@ -369,14 +371,16 @@ Pass the *training* fleet so the deterministic clustering reproduces the
 cluster IDs the factors were fitted on:
 
 ```python
+from shapely.geometry import box
+
 from vwf.viz import plot_correction_factor_map
 
 fig = plot_correction_factor_map(
     res.factors[(1000, "bimonth")],   # one (n_clu, time_res) configuration
     res.train_turb_info,              # the fleet the factors were fitted on
-    boundary="input/reference/shapes/dk.json", # clip cells to the country outline
-)
-fig.savefig("factor_map.png", dpi=150)
+    boundary=box(8.0, 54.5, 13.0, 57.8),  # optional: clip cells to a region
+)                                         # (any shapely geometry, GeoDataFrame,
+fig.savefig("factor_map.png", dpi=150)    #  or path to a GeoJSON outline)
 ```
 
 ![Correction factor map](docs/img/viz_factor_map.png)
@@ -481,14 +485,14 @@ ruff check src/vwf tests   # lint
 mypy                       # type check
 ```
 
-Continuous integration (`.github/workflows/ci.yml`) runs, for every push and
-pull request:
+Continuous integration (`.github/workflows/ci.yml`) runs, for every pull
+request and push to `main`:
 
 - **Lint and type check**: `ruff` and `mypy` (the package ships a `py.typed`
   marker, so type information is exported to downstream users).
 - **Test**: the suite plus the end-to-end example on Python 3.10–3.12,
   installed from `pyproject.toml` so the declared dependencies are exercised
-  exactly as a `pip install pyvwf` user would get them. Coverage is gated, so
+  exactly as a fresh `pip install` of the package would get them. Coverage is gated, so
   it cannot silently regress.
 - **Docs**: builds the API reference and guides with `-W`, so a broken
   docstring or an orphaned page fails rather than quietly degrading the site.
@@ -520,7 +524,7 @@ These assumptions should be considered when interpreting results.
 
 ## Reproducibility
 
-- All dependencies are version-pinned
+- Core scientific dependencies are pinned to exact versions in `environment.yaml`
 - Deterministic methods are used where possible
 - Results should be reproducible across systems using `environment.yaml`
 
@@ -546,7 +550,8 @@ the exact version you ran, use the version-specific DOI from the
 
 **The method**, the bias-correction approach PyVWF implements:
 
-> Benmoufok, E. F., Warder, S. C., Zhu, E., and Piggott, M. D. (2024).
+> Benmoufok, E. F., Warder, S. C., Zhu, E., Bhaskaran, B., Staffell, I., and
+> Piggott, M. D. (2024).
 > *Improving wind power modelling through granular spatial and temporal bias
 > correction of reanalysis data.* Energy.
 > [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759)

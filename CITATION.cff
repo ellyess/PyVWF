@@ -33,7 +33,7 @@ keywords:
 license: BSD-3-Clause
 repository-code: "https://github.com/ellyess/PyVWF"
 version: 0.3.0
-date-released: "2026-07-16"
+date-released: "2026-07-17"
 doi: 10.5281/zenodo.21236619
 identifiers:
   - type: doi
