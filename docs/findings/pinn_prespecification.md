@@ -358,3 +358,48 @@ five-region linear model as specified.
 **What it would take to be believed.** E8 must beat BOTH E5 and E7 alone, in at
 least 3 of 5 regions each. If it does not, the two effects are not additive and
 the honest statement is that one of them is doing the work.
+
+---
+
+## Addendum 8: E9, a physically-shaped wake term (registered before implementing)
+
+The residual anatomy (`d7`) found the model over-predicts by **+0.051 capacity
+factor** in the densest bin of local capacity density (above 0.75 MW/km2),
+against roughly +0.004 in the middle bins. Efficiency currently depends on
+capacity density through a smooth learned function of standardised features, and
+that dependence is evidently too weak at the top end. This is physics the model
+approximates badly rather than physics it lacks, so the fix is the right SHAPE,
+not more flexibility.
+
+**Form.** Array efficiency multiplies the rest of the efficiency term:
+
+    eta = eta_base(offshore, hub height, 50 km density) * 1 / (1 + c * D)
+
+where `D` is local capacity density in MW/km2 within 10 km and `c >= 0` is a
+single global coefficient -- the only free number the term adds.
+
+**A deviation from what section 4 of `pinn_evaluation.md` proposed, and why.**
+That said `exp(-c*D)`. Observed densities run to 9 MW/km2, where an exponential
+with any `c` large enough to matter at the median (0.14) collapses the
+efficiency to near zero. Deep-array physics saturates rather than collapsing --
+an infinite wind farm reaches an asymptotic efficiency set by the momentum flux
+it can draw down, which is the Frandsen picture -- and `1/(1 + cD)` has that
+shape while `exp(-cD)` does not. Recorded here rather than changed quietly.
+
+**Predictions, each able to fail:**
+
+1. The mean residual in the densest capacity-density bin falls in magnitude,
+   from +0.051 toward zero.
+2. In-region RMSE pooled over the five regions improves or is unchanged
+   (within 0.001).
+3. Zero-shot transfer improves in **>= 3 of 5** regions against the same
+   configuration without the term.
+
+**What would falsify the diagnosis.** If prediction 1 fails, the dense-fleet
+over-prediction is not a density effect and the residual anatomy has been
+misread; the term should then be removed rather than retuned.
+
+**Scored against configuration D** (MLP heads, nine training regions), which is
+what would be carried forward, with three seeds. D is itself post-hoc, so this
+is a comparison between two post-hoc configurations and cannot promote or demote
+P1-P3.
