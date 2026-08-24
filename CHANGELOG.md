@@ -107,8 +107,16 @@ reported capacity factor. Chile and Argentina remove the mean bias but add
 limited skill, because ERA5 exaggerates the north-south wind gradient in both.
 The United States carries an unscreened ERCOT/SPP curtailment confound.
 Country-level offsets are fitted against one national series per month and are
-therefore under-determined. See
-`docs/findings/multi_region_validation_scorecard.md`.
+therefore under-determined.
+
+Two further caveats attach to the reported figures themselves. They were
+produced before the `calculate_scalar` sample-mismatch fix in this release and
+have not been re-run, so they are indicative of the method rather than
+reproducible against this tag. And four of the nine turbine-level rows (Chile,
+the United States, Argentina, Brazil) rest on fits containing implausible wind
+scalars, worst in Chile at 80.23 with one offset that never converged: the
+aggregate metrics are real but those per-cluster factors should not be reused.
+Both are documented in `docs/findings/multi_region_validation_scorecard.md`.
 
 ## [0.3.0] - 2026-07-17
 

@@ -87,7 +87,9 @@ The correction has been fitted and scored against observed generation in the
 regions below. Every figure is read from a `metrics.csv` under
 `output/validation/`, and the [validation
 scorecard](docs/findings/multi_region_validation_scorecard.md) gives the source
-path for each so it can be audited.
+path for each so it can be audited. Read the two caveats under the table before
+quoting any number: these runs are not current with the code, and four of them
+rest on degenerate fits.
 
 **Turbine and plant level**, best held-out configuration, capacity-factor RMSE
 uncorrected to corrected:
@@ -96,9 +98,17 @@ uncorrected to corrected:
 |---|---|---|---|---|---|
 | Germany | 4,814 turbines | 0.086 → **0.057** | Australia (NEM) | 77 farms | 0.115 → **0.094** |
 | Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 turbines | 0.145 → **0.115** |
-| Brazil | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** |
-| United States | 520 plants | 0.110 → **0.098** | Chile | 59 plants | 0.123 → **0.104** |
-| Argentina | 59 plants | 0.151 → **0.133** | | | |
+| Brazil † | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** |
+| United States † | 520 plants | 0.110 → **0.098** | Chile † | 59 plants | 0.123 → **0.104** |
+| Argentina † | 59 plants | 0.151 → **0.133** | | | |
+
+**† Degenerate fit.** The aggregate metric is real, but the underlying
+per-cluster factors contain implausible wind scalars, worst in Chile at 80.23
+with one offset that never converged. Do not reuse the factors from these four.
+**All figures above also predate a `calculate_scalar` fix that changes fitted
+scalars on fleets with incomplete reporting**, and have not been re-run since.
+Both caveats, with the per-region fit-quality numbers, are in the
+[scorecard](docs/findings/multi_region_validation_scorecard.md).
 
 **National level** (ENTSO-E aggregate, 2023): France 0.171 → **0.012**, Belgium
 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland 0.172 → **0.021**, Sweden
