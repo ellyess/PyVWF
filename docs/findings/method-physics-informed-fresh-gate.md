@@ -7,9 +7,9 @@
 Configuration D (MLP heads, nine training regions) reaches mean zero-shot skill
 +0.338 against the gated configuration A's +0.238. But D was **chosen after
 seeing E5 and E7**, both scored on the same five holdout regions, so its
-advantage on those five is not independent evidence. `method-physics-informed-
-evaluation.md` says so and asks for a fresh gate before D is used as a headline.
-This is that gate.
+advantage on those five is not independent evidence. The evaluation document
+says so itself and asks for a fresh gate before D is used as a headline
+(`method-physics-informed-evaluation.md`). This is that gate.
 
 ## What makes it fresh
 

@@ -33,7 +33,17 @@ Per region, RMSE on the held-out test year:
 D beats the incumbent RF transfer in **5 of 5**, and beats the incumbent affine
 correction *fitted on the region's own data* in 1 of 5 (Brazil, 0.1030 against
 0.1054 -- a row `scorecard.md` flags as a degenerate fit, so read it as clearing
-a low bar rather than a sound one). E8's pre-set bar -- beat both B and C in at least 3 of 5 -- is met
+a low bar rather than a sound one).
+
+**Superseded by the fresh gate.** Configuration D was chosen after seeing E5 and
+E7 on these same five regions. Re-tested on four regions never used as holdouts
+(`method-physics-informed-fresh-gate.md`), D passes the transfer gate 4 of 4 but
+**loses to configuration A in 3 of those 4**. Per the consequence registered
+before that run, **the headline is configuration A**, the linear five-region
+model: mean skill +0.238 on the original five, +0.354 on the fresh four. D is
+retained as a variant, not as the recommendation. Neither dominates -- A wins
+three of the fresh four individually, D wins their mean and is the arm that
+harms no region. E8's pre-set bar -- beat both B and C in at least 3 of 5 -- is met
 (3/5 and 4/5), so the two effects are additive rather than one carrying the other.
 
 ## 2. What the failed predictions taught
@@ -84,32 +94,40 @@ large means a systematic term is missing, near zero means the axis is handled.
 Offshore against onshore: RMSE **0.122 against 0.072**, at almost identical mean
 bias (+0.014 against +0.013). Offshore error is spread, not level.
 
-## 4. What to do next, in order
+## 4. What to do next: this ranking was tried, and it failed twice
 
-**1. A physically-shaped wake term.** The model over-predicts by **5 percentage
-points of capacity factor** in the densest fleets. Efficiency currently depends
-on capacity density through a smooth learned function; the residual says that
-dependence is too weak at the top end. The fix is not more flexibility but the
-right shape -- a Jensen-type array efficiency, `eta ~ exp(-c * density)`, with
-`c` the only free number. Highest value per unit of effort, and it is physics
-the model is currently approximating badly rather than physics it lacks.
+This section originally ranked four physics terms to add, ordered by the size of
+the residual structure each targeted. The top two have been built and tested,
+and **both were rejected**:
 
-**2. A profile with the right curvature.** The model over-predicts at BOTH hub
-height extremes and is unbiased in the middle, which is the signature of a
-power law fitted between 10 m and 100 m being extrapolated outside that range.
-A log profile with a stability correction has the right curvature; failing that,
-letting the shear correction depend on `ln(h/100)` would absorb most of it. This
-matters most for Denmark's old low-hub fleet and for modern 120-150 m machines.
+| | targeted defect | fixed it? | transfer |
+|---|---|---|---|
+| E9 wake (`method-physics-informed-wake.md`) | dense-fleet over-prediction | **yes**, span −61% | **worse, 5/5** |
+| E10 curvature (`method-physics-informed-profile.md`) | tall-turbine over-prediction | **yes**, bin −62% | **worse, 5/5** |
 
-**3. Directional terrain exposure.** The named miss is Altamont Pass: fitted
-speed-up 1.016 where the incumbent needs 3.43, because its ERA5-cell relief is
-only 130 m. Altamont's resource is flow CHANNELLED through a gap in the coastal
-hills -- a directional effect that scalar relief cannot see at any scale. ERA5
-carries wind direction; terrain exposure computed per sector and weighted by the
-daily direction is the WAsP-style term this needs.
+Each removed the systematic it aimed at, each **redistributed the error onto
+other axes** rather than removing it, and each cost transfer in every region.
+E10 pinned the mechanism: the freedom given up consists of profile shapes no
+physical roughness can produce, and the fit was using it.
 
-**4. Offshore physics.** 71% higher error offshore at the same mean bias. The
-marine boundary layer and large-array wakes are both unrepresented.
+With D6's flat direction between efficiency and speed-up already on record, that
+is what a model with compensating degrees of freedom does when a new constrained
+term arrives. **The ranking was by residual SIZE, and residual size does not
+predict transferability.**
+
+The two remaining leads from the original list -- directional terrain exposure
+for the Altamont channelling case, and offshore boundary-layer physics -- are
+therefore **not** recommended on the strength of that ranking. They may still be
+right; the ranking that produced them has been falsified twice and should not be
+trusted a third time.
+
+**What the evidence points at instead: identify the terms already present.**
+D6 showed efficiency and speed-up trade along a nearly flat direction; E10 showed
+the profile term using unphysical freedom. The cheap concrete test, not run here:
+constrain several existing terms jointly rather than one at a time, and ask
+whether transfer improves when the model has LESS freedom. E9 and E10 each
+removed freedom in one place and lost; whether removing it in several places at
+once behaves differently is open.
 
 ## 5. What NOT to do, measured rather than assumed
 
@@ -149,6 +167,13 @@ marine boundary layer and large-array wakes are both unrepresented.
   to where the fit puts the split; the split is not.
 - **One test year per region.** Orderings of two close arms are not meaningful.
 - **The incumbent still wins in-region** in Germany and the UK.
-- Configuration D was selected after seeing E5 and E7, and is labelled
-  **post-hoc** in the pre-specification. It has not been re-validated against a
-  fresh pre-specified gate, and should be before it is used as a headline.
+- Configuration D **has now been re-validated** against a fresh pre-specified
+  gate on four never-held-out regions, and **its advantage did not reproduce**
+  (1 of 4). The headline is configuration A
+  (`method-physics-informed-fresh-gate.md`).
+- **No predictor of which regions gain is established.** Two were proposed and
+  both refuted: physiographic coverage (p = 0.56) and level-dominated bias
+  (p = 0.32). See `method-physics-informed-predictors.md`.
+- Two physics terms derived from the residual anatomy were built and both
+  rejected on transfer. That is evidence about the model's remaining degrees of
+  freedom, not only about those two terms.

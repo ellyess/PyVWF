@@ -91,7 +91,7 @@ wins by 10–38%, as it should.
 +10.5% against it. With 37 parameters rather than roughly 800 free per-cluster
 factors, and no configuration chosen on the test year.
 
-## Coverage predicts the ordering
+## Coverage predicts the ordering (SUPERSEDED, see below)
 
 D5 measured, before any model ran, how much of each held-out region's
 physiography the other four span:
@@ -104,13 +104,21 @@ physiography the other four span:
 | UK | 50.5% | +0.031 |
 | US | 49.8% | +0.046 |
 
-The two regions where the correction barely helps are the two where half the
-units sit outside the training envelope. This is the earlier programme's "regime
-coverage is the binding constraint" confirmed from the other side: the physics
-does not repeal it, it survives it. Brazil is the informative exception, at
-70.5% coverage with a large gain, which fits the mechanism: Brazil's bias
-is a level offset the physics can carry, not a terrain regime it has to
-extrapolate into.
+On these five that reads cleanly: the two regions where the correction barely
+helps are the two where half the units sit outside the training envelope.
+
+**This does not survive the four regions added later.** New Zealand has the
+lowest coverage in the whole study (33.3%) and the highest skill of any region
+(+0.707); Argentina has among the highest coverage (91.5%) and less than half of
+New Zealand's skill. Pooled over all nine, coverage and skill correlate at
+pearson +0.224, p = 0.56 -- nothing. A replacement predictor, level-dominated
+bias, was then offered and also fails (+0.377, p = 0.32).
+
+The table above is left standing because it is what the five-region evidence
+showed and the claim was made on it. It should be read as refuted:
+`method-physics-informed-predictors.md` has both candidates and the evidence
+against each. Coverage still bounds what a terrain model can EXTRAPOLATE; it
+does not predict how much a region stands to gain.
 
 ## The pre-registered UK prediction: satisfied, but only trivially
 
