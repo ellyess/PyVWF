@@ -193,6 +193,8 @@ def main():
                              "pinn-abstain"],
                     help="which fitted arms to run; the default is the "
                          "pre-specified E1 set")
+    ap.add_argument("--bound-scale", type=float, default=1.0,
+                    help="shrink every bounded term toward its start (addendum 10)")
     ap.add_argument("--profile", default="power",
                     choices=["power", "shear-log", "log"],
                     help="hub-height profile form (addendum 9)")
@@ -253,6 +255,7 @@ def main():
                 model, std, hist = fit(tr, hidden=hidden, physics=physics,
                                        profile=args.profile, density=dens,
                                        wake=args.wake and physics,
+                                       bound_scale=args.bound_scale,
                                        epochs=args.epochs, seed=seed, verbose=False)
                 damp = coverage_weight(te, tr, std) if abstain else None
                 m = score(predict_frame(te, model, std, density=dens,

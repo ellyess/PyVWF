@@ -470,3 +470,36 @@ def test_shear_log_survives_a_degenerate_profile():
     out = roughness_from_shear(torch.tensor([-0.05, 0.0, 1e-9, 0.6]))
     assert torch.isfinite(out).all()
     assert (out > 0).all()
+
+
+# --------------------------------------------------------- joint constraint ---
+@pytest.mark.parametrize("scale", [1.0, 0.6, 0.35, 0.0])
+def test_bound_scale_shrinks_every_term_toward_its_start(scale):
+    """The joint knob must narrow the range without moving the starting state.
+
+    Shrinking toward the midpoint instead would move where the model begins as
+    well as how far it can go, and the experiment needs those separable.
+    """
+    m = PhysicsCorrection(14, 4, bound_scale=scale, init_scale=0.0)
+    t, f = _inputs()
+    gamma, delta, eta, kappa = m(t, f, torch.full((8,), 500.0))
+    assert torch.allclose(gamma, torch.zeros(8), atol=1e-3)
+    assert torch.allclose(delta, torch.zeros(8), atol=1e-3)
+    assert float(eta[0]) == pytest.approx(0.90, abs=1e-3)
+    assert float(kappa.detach()) == pytest.approx(0.50, abs=1e-3)
+
+
+def test_bound_scale_actually_narrows_the_reachable_range():
+    from vwf.pinn.model import GAMMA_BOUNDS
+    wide = PhysicsCorrection(14, 4, bound_scale=1.0)._bounds(GAMMA_BOUNDS, 0.0)
+    tight = PhysicsCorrection(14, 4, bound_scale=0.35)._bounds(GAMMA_BOUNDS, 0.0)
+    assert (tight[1] - tight[0]) < (wide[1] - wide[0])
+    assert tight[0] > wide[0] and tight[1] < wide[1]
+
+
+def test_bound_scale_one_is_exactly_the_unconstrained_model():
+    """The sweep's control arm must be bit-identical to the current model."""
+    from vwf.pinn.model import GAMMA_BOUNDS, ETA_BOUNDS
+    m = PhysicsCorrection(14, 4, bound_scale=1.0)
+    assert m._bounds(GAMMA_BOUNDS, 0.0) == GAMMA_BOUNDS
+    assert m._bounds(ETA_BOUNDS, 0.90) == ETA_BOUNDS

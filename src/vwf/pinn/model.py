@@ -114,6 +114,9 @@ class PhysicsCorrection(nn.Module):
             default so the gated results stay reproducible.
         wake_feature: Index of the capacity-density column in the fleet feature
             matrix; withheld from the efficiency head when ``wake`` is on.
+        bound_scale: Shrink every bounded quantity toward its starting value by
+            this factor, 1.0 leaving the model unchanged. Constrains all four
+            terms at once (addendum 10).
         delta_is_log_z0: Interpret the second head's output as an offset to
             ``ln z0`` rather than to the shear exponent, which is what the
             ``shear-log`` profile needs. Widens that head's bounds accordingly.
@@ -131,14 +134,21 @@ class PhysicsCorrection(nn.Module):
     def __init__(self, n_terrain: int, n_fleet: int, hidden: int | None = None,
                  physics: bool = True, init_scale: float = 0.02,
                  wake: bool = False, wake_feature: int = 0,
-                 delta_is_log_z0: bool = False):
+                 delta_is_log_z0: bool = False, bound_scale: float = 1.0):
         super().__init__()
         self.physics = physics
+        # One knob shrinking every bounded quantity toward its starting value.
+        # 1.0 leaves the model as it stands; smaller values remove freedom from
+        # all four terms at once, which is what distinguishes a joint constraint
+        # from constraining one term and watching the error move to another.
+        self.bound_scale = float(bound_scale)
         self.delta_is_log_z0 = delta_is_log_z0
         self._delta_bounds = (DELTA_LOG_Z0_BOUNDS if delta_is_log_z0
                               else DELTA_BOUNDS)
-        gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS), self._bounds(self._delta_bounds),
-                          self._bounds(ETA_BOUNDS), self._bounds(KAPPA_BOUNDS))
+        gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS, 0.0),
+                          self._bounds(self._delta_bounds, 0.0),
+                          self._bounds(ETA_BOUNDS, 0.90),
+                          self._bounds(KAPPA_BOUNDS, 0.5))
         # Initial state: no speed-up, no shear correction, a 10% conversion
         # loss (a fleet always loses something), and half the within-day spread
         # not yet absorbed by the pre-smoothed curves.
@@ -190,12 +200,25 @@ class PhysicsCorrection(nn.Module):
         """Relief length scale in metres, bounded away from underflow."""
         return torch.exp(self.log_relief_scale.clamp(np.log(1.0), np.log(1e4)))
 
-    def _bounds(self, b):
-        if self.physics:
+    def _bounds(self, b, start: float | None = None):
+        """Bounds after the ablation widening and the joint-constraint shrink.
+
+        The shrink is toward ``start``, the quantity's initial value, not toward
+        the midpoint: shrinking toward the midpoint would move the model's
+        starting state as well as its range, and the two need to be separable.
+        """
+        if not self.physics:
+            lo, hi = b
+            mid = 0.5 * (lo + hi)
+            b = (mid + (lo - mid) * 10.0, mid + (hi - mid) * 10.0)
+        if self.bound_scale == 1.0:
             return b
         lo, hi = b
-        mid = 0.5 * (lo + hi)
-        return (mid + (lo - mid) * 10.0, mid + (hi - mid) * 10.0)
+        v0 = 0.5 * (lo + hi) if start is None else start
+        # Floored: a scale of exactly zero collapses the band to a point, and a
+        # zero-width band has no pre-activation that reaches a given value.
+        k = max(self.bound_scale, 1e-3)
+        return (v0 + k * (lo - v0), v0 + k * (hi - v0))
 
     def forward(self, terrain: torch.Tensor, fleet: torch.Tensor,
                 relief: torch.Tensor, capdens: torch.Tensor | None = None):
@@ -214,7 +237,8 @@ class PhysicsCorrection(nn.Module):
         Returns:
             ``(gamma, delta, eta, kappa)``; the first three are ``(N,)``.
         """
-        amp = _scaled_tanh(self.amp(terrain).squeeze(-1), *self._bounds(GAMMA_BOUNDS))
+        amp = _scaled_tanh(self.amp(terrain).squeeze(-1),
+                           *self._bounds(GAMMA_BOUNDS, 0.0))
         if self.physics:
             # Saturating in relief and exactly zero at zero relief. The scale is
             # clamped to 1 m - 10 km, which is generous for a terrain length
@@ -226,18 +250,18 @@ class PhysicsCorrection(nn.Module):
         else:
             gamma = amp
         delta = _scaled_tanh(self.delta(terrain).squeeze(-1),
-                             *self._bounds(self._delta_bounds))
+                             *self._bounds(self._delta_bounds, 0.0))
         if self.wake and self.physics:
             if capdens is None:
                 raise ValueError("wake=True needs capdens (MW/km2)")
             keep = [i for i in range(fleet.shape[-1]) if i != self.wake_feature]
             eta = _scaled_tanh(self.eta(fleet[..., keep]).squeeze(-1),
-                               *self._bounds(ETA_BOUNDS))
+                               *self._bounds(ETA_BOUNDS, 0.90))
             eta = (eta * self.array_efficiency(capdens)).clamp(min=ETA_FLOOR)
         else:
             eta = _scaled_tanh(self.eta(fleet).squeeze(-1),
-                               *self._bounds(ETA_BOUNDS))
-        kappa = _scaled_tanh(self.raw_kappa, *self._bounds(KAPPA_BOUNDS))
+                               *self._bounds(ETA_BOUNDS, 0.90))
+        kappa = _scaled_tanh(self.raw_kappa, *self._bounds(KAPPA_BOUNDS, 0.5))
         return gamma, delta, eta, kappa
 
     @torch.no_grad()
