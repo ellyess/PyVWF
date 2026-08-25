@@ -497,3 +497,56 @@ it is being done because it is correct and nearly free, not because it is
 expected to move the headline.
 
 Scored against configuration D (MLP heads, nine training regions), three seeds.
+
+---
+
+## Addendum 10: E11, joint constraint (registered before implementing)
+
+Three results now point the same way. D6 found the efficiency and speed-up terms
+trading off along a nearly flat direction. E9 constrained the efficiency's
+density dependence: it fixed that systematic and pushed error onto other axes,
+costing transfer in 5 of 5. E10 constrained the profile to physically realisable
+shapes: same pattern, and it identified what was surrendered as profile shapes
+no physical roughness can produce.
+
+The common reading is that the model carries **compensating degrees of freedom**,
+so constraining one term relocates the error rather than removing it. If that is
+right, constraining SEVERAL at once should behave differently from constraining
+one. If it is wrong, the freedom is being used productively and taking it away
+will simply make the model worse, monotonically.
+
+**The knob.** One scalar `lambda` shrinks every bounded quantity toward its
+initial value: for a bound `(lo, hi)` with starting value `v0`,
+
+    lo' = v0 + lambda * (lo - v0),    hi' = v0 + lambda * (hi - v0)
+
+`lambda = 1` is the model as it stands. `lambda -> 0` collapses it to no speed-up,
+no shear correction, a fixed 0.90 efficiency and a fixed 0.5 spread factor.
+Applied to all four of gamma, delta, eta and kappa at once, which is what makes
+this a JOINT constraint rather than a fourth single-term experiment. It is a
+one-parameter family, so this is a sweep, not a search.
+
+**Protocol.** Configuration A -- linear heads, five-region training pool -- since
+that is the headline after the fresh gate. Sweep `lambda` in {1.0, 0.6, 0.35}
+over the original five holdouts, two seeds (the seed spread is 0.0002-0.0014, so
+two is ample). Then take whichever lambda wins the sweep and validate it on the
+four fresh regions against `lambda = 1`, three seeds. Sweeping on the regions
+already used and confirming on the unused ones is deliberate: it keeps the
+confirmation independent of the choice.
+
+**Predictions:**
+
+1. Mean zero-shot skill over the five is **maximised at lambda < 1**. This is the
+   hypothesis; it is what "the model has too much freedom" predicts.
+2. The winning lambda beats `lambda = 1` on the fresh four in **at least 3 of 4**.
+3. Skill falls again at the smallest lambda, since 0.35 leaves little room for a
+   real correction. A monotone rise all the way down would mean the correction
+   is barely earning its parameters at all, which is a different and more
+   uncomfortable finding.
+
+**Falsification.** If skill is maximised at `lambda = 1`, the compensating-freedom
+reading of D6, E9 and E10 is wrong: the freedom is productive, those three
+results need another explanation, and no amount of joint constraining will help.
+That is the outcome I would bet against but it is the one the last two
+experiments would have predicted, each having lost skill when freedom was
+removed.
