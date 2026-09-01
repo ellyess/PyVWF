@@ -139,3 +139,7 @@ build/
 coverage.xml
 htmlcov/
 .pytest_cache/
+
+# Private drafting space: manuscripts in preparation are not part of the
+# repository. docs/findings/ is the versioned research record.
+docs/manuscript/

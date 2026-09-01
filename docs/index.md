@@ -39,6 +39,7 @@ your observations support.
 guides/data-sources
 guides/training
 guides/output-structure
+guides/visualisation
 guides/adding-an-observation-source
 guides/your-own-data
 ```

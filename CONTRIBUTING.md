@@ -38,13 +38,35 @@ pip install -e ".[dev]"
 The test suite uses synthetic data and needs no ERA5 downloads or API access:
 
 ```bash
-pytest                 # run all tests
-pytest --cov=vwf       # with coverage
+pytest                     # run all tests
+pytest --cov=vwf           # with coverage
 ruff check src/vwf tests   # lint
+mypy                       # type check
 ```
 
-Continuous integration (`.github/workflows/ci.yml`) runs the same checks on
-Python 3.10–3.12 for every pull request.
+Continuous integration (`.github/workflows/ci.yml`) runs, for every pull request
+and every push to `main`:
+
+- `ruff` and `mypy` (the package ships `py.typed`, so type information reaches
+  downstream users);
+- the suite plus `examples/run_minimal.py` on Python 3.10 to 3.12, installed
+  from `pyproject.toml` so the declared dependencies are exercised as a fresh
+  `pip install` would get them, with coverage gated;
+- a Sphinx build of the docs with `-W`, so a broken docstring or an orphaned
+  page fails rather than quietly degrading the site;
+- an sdist and wheel build, `twine` metadata validation, then a clean-environment
+  install and import of the wheel with no repository on `sys.path`.
+
+To build the docs locally:
+
+```bash
+pip install -e ".[docs]"
+sphinx-build -b html docs docs/_build/html -W
+```
+
+The version lives in one place, `vwf.__version__`, from which `pyproject.toml`
+reads it dynamically; `tests/test_packaging.py` asserts it is valid semantic
+versioning and stays in step with `CITATION.cff`.
 
 ## Submitting a pull request
 

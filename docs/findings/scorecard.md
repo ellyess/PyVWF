@@ -1,49 +1,22 @@
 # Multi-region validation scorecard
 
-**Date:** 2026-08-24 (refreshed; first recorded 2026-07-24)
-**What this is:** one place that states, per region, how much PyVWF's affine
-wind-speed correction reduces the error between ERA5-simulated and observed wind
-capacity factors, on a held-out year. Every number is read from a
-`metrics.csv` under `output/validation/`; source paths are given so each is
-auditable. This is screening-level validation, one test year per region, not an
-accredited yield assessment.
+Per region, how much PyVWF's affine wind-speed correction reduces the error
+between ERA5-simulated and observed capacity factors on a held-out year. Every
+number is read from a `metrics.csv` under `output/validation/`, with the source
+path given so each is auditable. Screening-level validation, one test year per
+region, not an accredited yield assessment.
 
-> **Refreshed 2026-08-24.** Every row in both tables below was re-run on
-> current HEAD (v0.4.0, commit `41462e9`, clean tree) against the same
-> observations, the same byte-identical curve libraries and the same
-> configuration as the original runs. The figures here are the refreshed ones.
->
-> **Why it needed doing.** The original runs were made at commit `df2e81f` with
-> `git_dirty: true`, so they were not reproducible from any commit, and they
-> predated four commits that touch fitting, including `53d667b`, whose own note
-> says it "changes fitted scalars on any fleet with incomplete reporting".
->
-> **What the refresh changed: almost nothing in aggregate.** Seven of the nine
-> turbine rows and seven of the eight country rows reproduced to four decimal
-> places. Three figures moved at the reported precision: Chile's corrected RMSE
-> 0.104 to 0.105, the United States' 0.098 to 0.097, and Norway's uncorrected
-> baseline 0.025 to 0.034. That last one is the largest single change and is
-> consistent with the region-shape and country-estimator fixes that landed
-> after the original runs; Norway's qualitative finding is unchanged, and the
-> correction still makes it worse.
->
-> **What the refresh did change, and it matters:** the United States' worst
-> fitted wind scalar more than doubled, from 20.54 to 46.39, while its headline
-> RMSE improved by 0.0005. That is exactly the failure mode `53d667b` predicted
-> for a fleet with incomplete reporting, and it is invisible in the skill
-> metric. Four rows rest on degenerate fits, marked with a dagger below.
->
-> Refreshed runs, with manifests: `output/validation/refresh_2026-08-24/`.
+All rows were produced on v0.4.0 from a clean tree, so the table is reproducible
+against a commit. Runs and manifests are in
+`output/validation/refresh_2026-08-24/<CODE>/`, each carrying the region config
+it used. The curve library differs by region: the bundled open library for CL
+and AR, the licensed external one elsewhere, verified by sha256 on both sides
+and recorded in each manifest.
 
 ## Turbine / plant-level (observed capacity factor per farm)
 
 Matched real turbine curves and hub heights; k-swept affine fit; best held-out
-`affine-wind` row (fleet scope). Source: `refresh_2026-08-24/<CODE>/`, which
-carries the region config used and a manifest per run. The originals these
-replace were `cluster_sweep_2026-07-24/<CODE>/`, except CL
-(`cl_matched_2026-07-24`) and AR (`ar_capfix3_2026-07-24`). Curve library per
-region matches the original: external (licensed) for all but CL and AR, which
-use the bundled open library, verified by sha256 on both sides.
+`affine-wind` row, fleet scope.
 
 | Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg |
 |---|---|---|---|---|---|---|---|---|
@@ -69,9 +42,9 @@ offsets required to converge):
 | Brazil (BR) | k60 fixed | **4.82** | 2 | 0 |
 
 The other five are clean: DE 2.79, AU-NEM 2.64, UK 1.86, NZ 1.81, DK 1.15, all
-inside the ceiling with no failed offsets. Every country-level fit in the table
-below is also clean. These figures come from the refreshed runs and now travel
-in `metrics.csv` automatically, so a future run cannot hide them.
+inside the ceiling with no failed offsets, as is every country-level fit below.
+These figures travel in `metrics.csv` automatically, so a future run cannot hide
+them.
 
 Chile is the worst and is documented in `method-scalar-bounds.md`, which
 shows no `min_cluster_size` setting satisfies all three of its gates: raising it
@@ -97,9 +70,8 @@ exports built from them carry a `degenerate` layer for exactly this reason.
 
 ## Country-level (ENTSO-E national aggregate, 2023)
 
-Capacity-weighted national monthly CF, held-out 2023.
-Source: `refresh_2026-08-24/<CODE>/`, replacing `country_baseline_2026-07-23/`.
-Bundled open curve library throughout.
+Capacity-weighted national monthly CF, held-out 2023, bundled open curve library
+throughout.
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg |
 |---|---|---|---|---|---|
@@ -126,10 +98,10 @@ additive spatial bias (`method-country-level.md`).
   usable. Chile carries a fitted wind scalar of 80.23 with one offset that never
   converged, and the United States carries 46.39. Neither is visible in the
   skill metric, which is the point.
-- **An aggregate that barely moves does not mean the fit did not move.** The
-  2026-08-24 refresh changed the United States' headline RMSE by 0.0005 while
-  more than doubling its worst fitted scalar. Check `fit_quality`, not the
-  metric, when judging whether a correction is sound.
+- **An aggregate that barely moves does not mean the fit did not move.** A
+  change of fitting code moved the United States' headline RMSE by 0.0005 while
+  more than doubling its worst fitted scalar, from 20.54 to 46.39. Check
+  `fit_quality`, not the metric, when judging whether a correction is sound.
 - **One test year per region.** Orderings of two close configs are not
   meaningful; the headline is the uncorrected-to-corrected drop, not the exact k.
 - **CL and AR are caveated, not headline wins.** ERA5 exaggerates the
