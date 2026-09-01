@@ -10,9 +10,9 @@ path, plus an audit of the nine ENTSO-E observation series on disk.
 The country-level path is wired consistently with the turbine-level path, but it
 fits a different estimator under the same name, and its observations were never
 checked. Two of nine regions could not load at all, and four had capacity-factor
-series that are physically impossible. Fixes for the loading, the checking and
-the spatial weighting are described in section 4. The identifiability of the
-joint offset fit is unchanged and remains open.
+series that are physically impossible. Loading, checking and spatial weighting
+are all fixed below. The identifiability of the joint offset fit is unchanged
+and remains open.
 
 ## 1. What each path fits
 
@@ -213,7 +213,7 @@ be reported; the earlier NL results in
 [TURBINE_GRID_EVALUATION_ANALYSIS.md](TURBINE_GRID_EVALUATION_ANALYSIS.md) are
 explained by this and not by fleet-composition drift alone.
 
-## 4. Changes made
+## 4. Fixes applied
 
 - `vwf/loaders/country_obs_checks.py`: physical-bound gates on a country CF
   series (peak, ceiling saturation, mean band, frozen capacity register, missing
@@ -247,7 +247,7 @@ aggregation, cluster validation, year-specific fleets) do move the numbers for
 existing country regions, so country-level results produced before these
 changes are not comparable with results produced after them.
 
-### Second pass
+### Further fixes
 
 - **Year-specific fleets.** `--per-year 2015 2024` writes one grid per year on a
   point set fixed across the range, so the cluster set is stable between splits

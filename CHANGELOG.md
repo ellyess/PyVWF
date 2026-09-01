@@ -11,6 +11,28 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
+### Added
+
+- **`vwf.pinn`, a physics-informed correction** for regions with no observed
+  generation to fit against. Four bounded physical quantities (terrain
+  speed-up, shear-exponent offset, conversion efficiency, sub-daily wind
+  spread) are learned inside a differentiable forward operator and supervised
+  directly on observed capacity factor, so the two-stage estimation of free
+  per-cluster factors is removed. Zero-shot on nine regions it never saw, it
+  improves on uncorrected ERA5 where a statistical transfer of the affine
+  factors does harm. Not wired into the harness and no stable API yet. Needs
+  the new optional `[pinn]` extra (`torch`), which CI does not install;
+  `tests/test_pinn_physics.py` skips itself when torch is absent.
+  Method, gates and results in `docs/findings/method-physics-informed.md`.
+
+### Changed
+
+- The README is cut from 683 lines to 217, with the visualisation gallery moved
+  to a new `docs/guides/visualisation.md` and the CI detail to
+  `CONTRIBUTING.md`. The harness design document and the physics-informed
+  findings are rewritten to state what is true rather than narrate how the work
+  unfolded.
+
 ## [0.4.0] - 2026-08-24
 
 The theme of this release is that a region stopped being a code change. PyVWF

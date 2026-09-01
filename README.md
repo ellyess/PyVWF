@@ -55,6 +55,7 @@ pip install -e .            # simulate, bias-correct, evaluate, plot
 pip install -e ".[data]"    # + ENTSO-E client and Excel/Parquet readers
 pip install -e ".[dev]"     # + pytest, ruff, mypy
 pip install -e ".[docs]"    # + sphinx, myst-parser
+pip install -e ".[pinn]"    # + torch, for the experimental physics-informed correction
 ```
 
 PyVWF reads inputs from `input/` in the working directory; set `PYVWF_INPUT` to
@@ -157,8 +158,9 @@ shear-exponent offset, conversion efficiency, sub-daily wind spread) learned
 inside a differentiable forward operator and supervised directly on observed
 capacity factor. Zero-shot on nine regions it never saw, it improves on
 uncorrected ERA5 where a statistical transfer of the affine factors does harm.
-It is not wired into the harness and has no stable API. Method, gates and
-results, including four refuted hypotheses, are in
+It is not wired into the harness and has no stable API, and it needs the
+optional `[pinn]` extra. Method, gates and results, including four refuted
+hypotheses, are in
 [docs/findings/method-physics-informed.md](docs/findings/method-physics-informed.md).
 
 ## Limitations

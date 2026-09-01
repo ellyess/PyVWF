@@ -10,14 +10,19 @@ speed-up is exactly zero on flat ground whatever the network has learned.
 import numpy as np
 import pandas as pd
 import pytest
-import torch
-from scipy.interpolate import Akima1DInterpolator
 
-from vwf import wind
-from vwf.pinn.model import (
+# torch lives in the optional [pinn] extra, so that installing PyVWF to run the
+# affine pipeline does not pull a deep-learning stack. CI does not install it.
+pytest.importorskip("torch")
+
+import torch  # noqa: E402
+from scipy.interpolate import Akima1DInterpolator  # noqa: E402
+
+from vwf import wind  # noqa: E402
+from vwf.pinn.model import (  # noqa: E402
     DELTA_BOUNDS, ETA_BOUNDS, GAMMA_BOUNDS, PhysicsCorrection,
 )
-from vwf.pinn.physics import (
+from vwf.pinn.physics import (  # noqa: E402
     PowerCurveBank, expected_cf, gauss_hermite, hub_wind_ratio, monthly_mean,
 )
 
@@ -371,7 +376,6 @@ def test_wake_off_reproduces_the_previous_efficiency_exactly():
     """Existing results must reproduce, so the default has to be a no-op."""
     t, f = _inputs()
     relief = torch.full((8,), 400.0)
-    capdens = torch.rand(8) * 5.0
     torch.manual_seed(0)
     off = PhysicsCorrection(14, 4, wake=False, init_scale=0.0)
     torch.manual_seed(0)

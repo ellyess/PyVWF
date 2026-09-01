@@ -68,6 +68,14 @@ data = [
     "cdsapi>=0.7.0",
 ]
 
+# The physics-informed correction (vwf.pinn) only. Kept out of the base install
+# so that running the affine pipeline does not pull a deep-learning stack, and
+# out of CI so the matrix stays light; tests/test_pinn_physics.py skips itself
+# when torch is absent.
+pinn = [
+    "torch>=2.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

@@ -168,9 +168,9 @@ class RegionTensors:
 
         obs = np.full((len(months), len(ids)), np.nan, dtype="float32")
         o = cache.obs.dropna(subset=["obs"])
-        rows = [month_pos.get((int(y), int(m)), -1) for y, m in zip(o.year, o.month)]
-        cols = [id_pos.get(str(i), -1) for i in o.ID]
-        rows, cols = np.array(rows), np.array(cols)
+        rows = np.array([month_pos.get((int(y), int(m)), -1)
+                         for y, m in zip(o.year, o.month)])
+        cols = np.array([id_pos.get(str(i), -1) for i in o.ID])
         ok = (rows >= 0) & (cols >= 0)
         obs[rows[ok], cols[ok]] = o["obs"].to_numpy(dtype="float32")[ok]
 
@@ -294,6 +294,9 @@ def simulate_monthly(
         cf = expected_cf(r.w[:, sl] * ratio, None, r.curve_idx[sl], r.bank, None)
         return monthly_mean(cf, r.month_id, len(r.months))
 
+    # A model always arrives with the standardiser it was fitted against; the
+    # None case is the uncorrected branch above, which has already returned.
+    assert std is not None, "simulate_monthly needs a standardiser alongside a model"
     gamma, delta, eta, kappa = model(
         std.terrain(r, sl), std.fleet(r, sl), r.relief[sl], r.capdens[sl]
     )

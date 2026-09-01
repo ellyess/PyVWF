@@ -320,7 +320,7 @@ The runs differ in mode (all vs onshore) and slicing (fixed/season vs bimonth),
 so they are not like-for-like, but the disagreement should be resolved before
 any k recommendation is published for DK.
 
-## What was ruled out for the US, before the bug was found
+## What was ruled out for the US
 
 Recorded because the negative results stand on their own.
 
@@ -339,7 +339,7 @@ Recorded because the negative results stand on their own.
    (2019 +0.0053, 2020 +0.0033, 2021 +0.0107, 2022 +0.0219).
 5. **Unscreened ERCOT/SPP curtailment.** Real, but not the cause (see below).
 
-## The curtailment confound (real, and still open)
+## The curtailment confound
 
 The US is the only region with unscreened curtailment (Brazil masks 2610
 complex-months). Splitting the 2022 held-out set by balancing area (ERCOT (TX)
@@ -393,7 +393,7 @@ for open+licensed, with cluster factors agreeing to ~3 decimal places. **The
 open-library result reproduces the licensed-library result**, so published
 results need not depend on non-redistributable curves.
 
-## Two silent traps fixed along the way
+## Two silent traps
 
 Both bite only at scale, which is why smaller regions never surfaced them.
 
@@ -410,27 +410,26 @@ Both bite only at scale, which is why smaller regions never surfaced them.
   Brazil survived only because ONS has no hub-height data. The underlying
   scaling, O(grid x unique_heights) for an O(turbines) result, is unfixed.
 
-## Named follow-ups
+**DK, DE and UK cannot have been touched by the scalar bug.** Their reporting
+fraction is *exactly* 1.000 (DK 5588 plants, DE 10477, UK 6345, zero missing
+observations), so the `present` mask is all-True and the fixed and unfixed
+`weighted_avg` execute identical arithmetic. That is why the method "always
+worked" on those three and only the US, at 43.1% reporting, broke. All three
+were re-run end to end and the correction improves every one (DK -55% MAE,
+DE -37%, UK -37%).
 
-1. ~~Re-check DK/DE/UK against the scalar fix.~~ **RESOLVED: no effect,
-   provably.** Their reporting fraction is *exactly* 1.000 (DK 5588 plants, DE
-   10477, UK 6345; zero missing observations). With no NaNs the `present` mask
-   is all-True, so the fixed and unfixed `weighted_avg` execute identical
-   arithmetic: the bug cannot have touched them. This also explains why the
-   method "always worked" on those three, and why only the US (43.1% reporting)
-   broke. All three were re-run end-to-end and the correction improves every
-   one (DK -55% MAE, DE -37%, UK -37%).
-2. **Sweep `cluster_list` per region and pick the optimum.** 8-10 is below the
-   optimum everywhere, k=1 is actively harmful, and DK shows the optimum is
-   interior (peaks ~100, degrades by 500). No universal value exists; each
-   region needs its own sweep against the training-fleet ceiling.
-3. **Resolve the DK harness-vs-legacy disagreement at high k** (see Result 3)
-   before publishing a DK k recommendation.
+## Open
+
+1. **Sweep `cluster_list` per region.** 8 to 10 is below the optimum
+   everywhere, k=1 is actively harmful, and DK shows the optimum is interior
+   (peaks near 100, degrades by 500). No universal value exists.
+2. **Resolve the DK harness-versus-legacy disagreement at high k** before
+   publishing a DK cluster-count recommendation.
 3. **Screen US curtailment** into the shared `pyvwf.qc` module, with
    `ons_br.constrained_off_account` as the working reference. Needed to
    interpret the +0.039 / -0.024 regional bias split.
 4. **Move the domain guard into `aggregate_turbines_to_grid`**, so no region can
    silently simulate a site outside its reanalysis box.
 5. **Fix `interpolate_wind` scaling** (interpolate to points, then apply the log
-   law). The log law is nonlinear in z0, so reordering shifts results for
-   every existing region and needs a deliberate decision.
+   law). The log law is nonlinear in z0, so reordering shifts results for every
+   existing region and needs a deliberate decision.

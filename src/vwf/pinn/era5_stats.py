@@ -16,6 +16,7 @@ within-day distribution instead of evaluating it at a point.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -61,11 +62,15 @@ def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataA
     profile, and the exponent responds to atmospheric stability as well as to
     surface roughness, which a static roughness cannot.
     """
-    wnd100 = (ds["wnd100m"] if "wnd100m" in ds.data_vars
-              else np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2))
+    # cast: numpy's stubs type np.sqrt on a DataArray as ndarray, while at
+    # runtime xarray returns a DataArray. Using ** 0.5 instead would type
+    # cleanly but is not guaranteed to round identically to sqrt, and this
+    # field is pinned bit-for-bit against prep_era5.
+    wnd100 = cast(xr.DataArray, ds["wnd100m"] if "wnd100m" in ds.data_vars
+                  else np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2))
 
     if {"u10", "v10"} <= set(ds.data_vars):
-        wnd10 = np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2).clip(min=1e-3)
+        wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(min=1e-3)
         w100c = wnd100.clip(min=1e-3)
         shear = np.log(w100c / wnd10) / np.log(10.0)
         # Physically admissible band: -0.1 (very unstable, near-uniform or
@@ -82,7 +87,7 @@ def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataA
             z0 = z0.broadcast_like(wnd100)
     else:
         # The same inversion of the neutral log profile prep_era5 falls back to.
-        wnd10 = np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2).clip(min=1e-4)
+        wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(min=1e-4)
         w100 = wnd100.clip(min=1e-4)
         num = w100 * np.log(10.0) - wnd10 * np.log(100.0)
         denom = (w100 - wnd10)
@@ -91,7 +96,7 @@ def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataA
         z0_log = z0_log.bfill("time").clip(min=np.log(1e-6), max=np.log(_Z0_MAX))
         z0 = np.exp(z0_log)
 
-    return wnd100, z0.clip(min=_Z0_MIN, max=_Z0_MAX), shear
+    return wnd100, z0.clip(min=_Z0_MIN, max=_Z0_MAX), cast(xr.DataArray, shear)
 
 
 def daily_stats_at_points(
@@ -100,7 +105,7 @@ def daily_stats_at_points(
     lon: np.ndarray,
     lat: np.ndarray,
     years: range | list[int],
-) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Daily mean wind, within-day wind spread, and daily mean roughness.
 
     Each ERA5 file is reduced to daily statistics and interpolated onto the
@@ -129,16 +134,18 @@ def daily_stats_at_points(
     if not files:
         raise FileNotFoundError(f"no NetCDF files under {hourly_dir}")
 
-    years = set(int(y) for y in years)
+    wanted = {int(y) for y in years}
     plon = xr.DataArray(np.asarray(lon, dtype=float), dims="point")
     plat = xr.DataArray(np.asarray(lat, dtype=float), dims="point")
 
-    chunks: list[tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray]] = []
+    chunks: list[
+        tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    ] = []
     for path in files:
         with xr.open_dataset(path) as probe:
             probe = unify_time_coordinate(probe)
             file_years = set(pd.DatetimeIndex(probe["time"].values).year.unique())
-        if not (file_years & years):
+        if not (file_years & wanted):
             continue
 
         ds = _open_normalised(path, bbox)
@@ -151,7 +158,7 @@ def daily_stats_at_points(
                 "shear": shear.resample(time="1D").mean(),
             }
         )
-        daily = daily.sel(time=daily.time.dt.year.isin(sorted(years)))
+        daily = daily.sel(time=daily.time.dt.year.isin(sorted(wanted)))
         if daily.sizes.get("time", 0) == 0:
             ds.close()
             continue
@@ -174,7 +181,7 @@ def daily_stats_at_points(
 
     if not chunks:
         raise FileNotFoundError(
-            f"no ERA5 files under {hourly_dir} covered years {sorted(years)}"
+            f"no ERA5 files under {hourly_dir} covered years {sorted(wanted)}"
         )
 
     dates = pd.DatetimeIndex(np.concatenate([c[0].values for c in chunks]))
@@ -183,4 +190,5 @@ def daily_stats_at_points(
     stacked = [np.concatenate([c[i] for c in chunks])[order] for i in (1, 2, 3, 4)]
 
     keep = ~dates.duplicated()
-    return (dates[keep], *(a[keep] for a in stacked))
+    out_w, out_sd, out_z0, out_shear = (a[keep] for a in stacked)
+    return dates[keep], out_w, out_sd, out_z0, out_shear

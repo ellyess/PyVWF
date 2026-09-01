@@ -24,7 +24,7 @@ from vwf.data import clean_obs_data, load_power_curves, prep_country
 from vwf.harness.driver import resolve_source
 from vwf.harness.regions import RegionSpec
 from vwf.pinn.era5_stats import daily_stats_at_points
-from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES, terrain_descriptors
+from vwf.pinn.terrain import terrain_descriptors
 
 OBS_COLS = [f"obs_{m}" for m in range(1, 13)]
 

@@ -4,9 +4,7 @@
 **Scope:** how test-year skill varies with the number of spatial clusters, for
 each of the nine turbine-level regions. The Denmark grid is swept far more
 finely, over four time resolutions, in
-[method-cluster-count-dk.md](method-cluster-count-dk.md). The ML transfer
-experiment that originally shared this document now lives in
-[method-ml-transfer.md](method-ml-transfer.md).
+[method-cluster-count-dk.md](method-cluster-count-dk.md).
 
 Each region's affine correction was fit at a range of cluster counts (one train
 run, all `k` at once) and scored on the test year. RMSE on the test fleet,
@@ -37,15 +35,14 @@ minimum noisy):
   desert's ERA5 under-prediction. This is a red flag for CL as a
   finely-clustered region.
 
-  **Correction (2026-08-24).** This document originally concluded that
-  "only `k=1` or `k>=8` are safe". That is withdrawn. The fit-quality work
-  ([method-scalar-bounds.md](method-scalar-bounds.md)) showed that CL at
-  `k=10`, which the rule admits and which the scorecard reported, is itself
-  degenerate: it carries a fitted wind scalar of 80.23 and one offset that
-  never converged, while still scoring as a corrected win. Test-year RMSE is
-  not a fit-health test, and cluster count does not predict fit health. Read
-  `fit_quality`, which now travels with every corrected row in `metrics.csv`,
-  rather than choosing `k` from this table alone.
+  **No cluster count is safe for CL on this evidence.** `k=10`, which the table
+  picks and the scorecard reports, is itself degenerate
+  ([method-scalar-bounds.md](method-scalar-bounds.md)): it carries a fitted
+  wind scalar of 80.23 and one offset that never converged, while still
+  scoring as a corrected win. Test-year RMSE is not a fit-health test, and
+  cluster count does not predict fit health. Read `fit_quality`, which travels
+  with every corrected row in `metrics.csv`, rather than choosing `k` from this
+  table alone.
 - **NZ hits its fake-plateau ceiling** at `k=7` (8 farms reach the trainer), so
   its "best" is one-farm-per-cluster; `k=5` is the honest choice.
 - **AR keeps improving to the grid edge** (`k=35`), but that is overfitting a
