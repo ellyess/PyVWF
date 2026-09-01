@@ -330,7 +330,8 @@ changes the numbers the evaluation layer reports.
   evaluation metrics, the `pyvwf-train` console script, and the distributional
   diagnostics (`plot_cf_distribution`, `plot_qq`) in `vwf.viz`.
 
-[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ellyess/PyVWF/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ellyess/PyVWF/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ellyess/PyVWF/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ellyess/PyVWF/compare/v0.1.0...v0.1.1
