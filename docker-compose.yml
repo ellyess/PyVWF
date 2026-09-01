@@ -1,0 +1,28 @@
+# Running PyVWF against your own data. `docker run` covers the bundled demo;
+# this file exists for the volume mounts a real run needs.
+#
+#   docker compose run --rm pyvwf                       # the synthetic demo
+#   docker compose run --rm pyvwf pyvwf-train --help
+#   docker compose run --rm pyvwf \
+#       python scripts/analysis/validate_region.py train --region configs/regions/nz.toml
+
+services:
+  pyvwf:
+    image: pyvwf:latest
+    build:
+      context: .
+      args:
+        PYTHON_VERSION: "3.12"
+        # "[pinn]" adds torch for the experimental physics-informed correction.
+        EXTRAS: ""
+    volumes:
+      # Read-only: a run reads the input tree and must never write back to it.
+      - ./input:/data/input:ro
+      - ./output:/data/output
+    environment:
+      PYVWF_INPUT: /data/input
+    # Bind mounts keep host ownership, so the container user has to match the
+    # host user or writes to ./output are refused. 1000 is the image's own user
+    # and the common case; where it is not, run as yourself:
+    #   UID=$(id -u) GID=$(id -g) docker compose run --rm pyvwf
+    user: "${UID:-1000}:${GID:-1000}"

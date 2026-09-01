@@ -102,6 +102,46 @@ maps of what the correction learned per cluster. See the
 
 ![Correction factor map](docs/img/viz_factor_map.png)
 
+## Docker
+
+The image carries the scientific stack (geopandas, pyproj, netCDF4) that is
+otherwise awkward to install reproducibly. It runs the bundled synthetic
+example with no arguments and no data:
+
+```bash
+docker build -t pyvwf .
+docker run --rm pyvwf
+```
+
+Any other command overrides the default, since there is no entrypoint in the
+way:
+
+```bash
+docker run --rm pyvwf pyvwf-train --help
+```
+
+Inputs and outputs are mounted rather than baked in, because a real run is
+driven by tens of gigabytes of user-supplied data. `docker-compose.yml` wires
+`./input` and `./output` to the paths the container expects:
+
+```bash
+docker compose run --rm pyvwf \
+    python scripts/analysis/validate_region.py train --region configs/regions/nz.toml
+```
+
+The container runs as a non-root user (uid 1000). Bind mounts keep host
+ownership, so if your host uid differs, run as yourself with
+`UID=$(id -u) GID=$(id -g) docker compose run --rm pyvwf`.
+
+`torch` is not in the image: the experimental physics-informed correction needs
+`--build-arg EXTRAS="[pinn]"`, which adds close to a gigabyte and is not needed
+by the affine pipeline. `--build-arg PYTHON_VERSION=3.10` builds against the
+oldest supported interpreter.
+
+CI builds the image from a clean checkout on every push and pull request, runs
+the example inside it, and checks the output, the console script, the bundled
+curve library and the non-root user, so the image cannot rot unnoticed.
+
 ## Validated regions
 
 Fitted and scored against observed generation, best held-out configuration,

@@ -98,6 +98,54 @@ jobs:
           name: docs-html
           path: docs/_build/html
 
+  docker:
+    name: Docker (build + run)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the image
+        # Plain docker build rather than buildx with a registry cache: this job
+        # exists to prove the image builds from a clean checkout, and a warm
+        # cache would hide a broken dependency layer.
+        run: docker build -t pyvwf:ci .
+
+      - name: The default command runs end to end on bundled data
+        # Same synthetic example the test job runs on the host, so a failure
+        # here is specifically a packaging or environment problem rather than a
+        # regression in the correction.
+        run: docker run --rm pyvwf:ci | tee /tmp/demo.log
+
+      - name: The example actually corrected something
+        # Guards against an image that starts, prints nothing useful and exits
+        # zero, which a smoke test on exit status alone would pass.
+        run: grep -q "reduced the mean capacity-factor error" /tmp/demo.log
+
+      - name: The console script is on PATH
+        run: docker run --rm pyvwf:ci pyvwf-train --help
+
+      - name: The bundled curve library resolves inside the image
+        # PYVWF_INPUT points at an empty mount point by default, so this also
+        # checks the fallback to the packaged open library works when no input
+        # tree is mounted.
+        run: |
+          docker run --rm pyvwf:ci python -c "
+          from vwf.config import PyVWFPaths
+          import pandas as pd
+          df = pd.read_csv(PyVWFPaths.reference_file('power_curves.csv'))
+          print('curves:', df.shape[1] - 1)
+          assert df.shape[1] > 1
+          "
+
+      - name: It does not run as root
+        run: |
+          test "$(docker run --rm pyvwf:ci id -un)" = pyvwf
+          test "$(docker run --rm pyvwf:ci id -u)" = 1000
+
+      - name: Report the image size
+        run: docker image ls pyvwf:ci --format '{{.Repository}}:{{.Tag}} {{.Size}}'
+
   package:
     name: Package (build + clean install)
     runs-on: ubuntu-latest

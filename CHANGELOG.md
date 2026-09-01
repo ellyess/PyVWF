@@ -13,6 +13,17 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ### Added
 
+- **Docker support.** A multi-stage `Dockerfile` builds the scientific stack
+  into a virtualenv and copies it into a slim runtime that runs as a non-root
+  user; `docker run pyvwf` executes the bundled synthetic example with no data
+  and no arguments. Inputs and outputs are mounted rather than baked in, wired
+  up by `docker-compose.yml`. `torch` is behind `--build-arg EXTRAS="[pinn]"`
+  and the interpreter behind `--build-arg PYTHON_VERSION`. A CI job builds the
+  image from a clean checkout and exercises it, so it cannot rot unnoticed.
+  The `.dockerignore` is load-bearing: the working tree carries 43 GB of
+  inputs, 7 GB of outputs and a 12 GB `.git`, and excluding them takes the
+  build context from roughly 62 GB to 8 MB.
+
 - **`vwf.pinn`, a physics-informed correction** for regions with no observed
   generation to fit against. Four bounded physical quantities (terrain
   speed-up, shear-exponent offset, conversion efficiency, sub-daily wind

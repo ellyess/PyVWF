@@ -1,0 +1,53 @@
+# The build context. This file is load-bearing rather than cosmetic: the
+# working tree carries 43 GB of user-supplied inputs, 7 GB of run outputs and
+# a 12 GB .git, none of which belong in an image, and all of which would
+# otherwise be streamed to the daemon on every build.
+
+# Data and results, both gitignored and both enormous. Real runs mount these.
+input/
+output/
+outputs/
+
+.git/
+.gitignore
+.gitattributes
+.mailmap
+
+# Local tooling and scratch space
+.claude/
+.conda/
+.venv/
+venv/
+CLAUDE.md
+validation_progress.md
+
+# Build, test and type-check artefacts
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+docs/_build/
+
+# Not needed at runtime. The docs are published to Read the Docs and the
+# findings are a research record; neither belongs in a runtime image.
+docs/
+paper.md
+paper.bib
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+.github/
+
+# Large or machine-specific inputs that occasionally appear loose in the tree
+*.nc
+*.nc4
+*.grib
+*.zip
+.DS_Store
