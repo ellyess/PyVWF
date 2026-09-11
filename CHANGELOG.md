@@ -51,6 +51,11 @@ reproduces exactly on this code.
   findings document or scorecard row against the evidence rules before it
   lands. `new-region`, invoked by name, adds a turbine-level region in
   seven gated phases, stopping for human sign-off after each.
+- `tests/test_committed_files.py` fails if a tracked file is excluded by
+  `.gitignore`, apart from a stated allowlist, if a licensed-library file is
+  tracked, or if either copy of the open library differs from its recorded
+  sha256. A third skill, `provenance-guard`, runs it with the packaging and
+  curve-library tests before any release-shaped action.
 - **`CONTEXT.md`, the project's controlled vocabulary.** One approved term per
   concept, one sense per term, with the rejected synonyms listed. It resolves
   collisions that had already caused errors, among them four senses of
