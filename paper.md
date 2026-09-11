@@ -24,6 +24,11 @@ date: 17 July 2026
 bibliography: paper.bib
 ---
 
+**Status, 2026-09-11.** Submitted to the Journal of Open Source Software. The
+review is closed, and the paper is not currently under submission. It is kept
+as a description of PyVWF as it stood at submission and is not updated; the
+current state of the software is in `README.md`.
+
 # Summary
 
 `PyVWF` (the Python Virtual Wind Farm) is an open-source Python framework

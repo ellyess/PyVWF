@@ -2,7 +2,8 @@
 
 Submodules:
 - ``vwf.viz.distribution``: distributional diagnostics (CF histograms, ECDFs, QQ)
-  plus the ``Results`` loader used by the JOSS paper figures.
+  plus the ``Results`` loader, which holds one run and year's capacity-factor
+  series for distributional comparison.
 - ``vwf.viz.factors``: what the correction learned: factor maps per cluster
   and the scalar/offset joint distribution.
 - ``vwf.viz.evaluation``: error vs cluster count / temporal resolution, and
