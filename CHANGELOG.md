@@ -66,6 +66,12 @@ reproduces exactly on this code.
 
 ### Documentation
 
+- `docs/README.md` separates procedural documents (guides, runbooks), which
+  follow three writing rules adapted from Simplified Technical English
+  principles, from argumentative ones (findings, design), which follow three
+  structural rules. A findings document now answers one question and is
+  revised in place, matching practice. New pre-registration records use a
+  `-prereg` suffix.
 - `docs/guides/adding-an-observation-source.md` now covers every file a turbine
   or plant-level region touches, in dependency order, with New Zealand as the
   template. It adds the three curve-assignment routes and what a region must

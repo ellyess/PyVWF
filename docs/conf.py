@@ -39,9 +39,9 @@ exclude_patterns = [
     # documentation. They stay in the repository, and are readable on GitHub,
     # but are not published, so the site does not present stale run-specific
     # numbers as guidance. The whole findings/ tree is excluded on that same
-    # reasoning: each document reports one dated experiment against one
-    # held-out test year, and several record negative results whose value is
-    # the reasoning rather than the number. The maintained documentation is
+    # reasoning: each document answers one research question against a single
+    # test year, and several record negative results whose value is the
+    # reasoning rather than the number. The maintained documentation is
     # guides/, runbooks/ and design/, all of which are in the toctree.
     "findings/**",
 ]
