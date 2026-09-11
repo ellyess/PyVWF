@@ -59,6 +59,16 @@ reproduces exactly on this code.
   NZ correlations it had cleared rest mostly on other-maker curves. The notice
   now leaves open whether they hold on each unit's own curves.
 
+### Documentation
+
+- `docs/guides/adding-an-observation-source.md` now covers every file a turbine
+  or plant-level region touches, in dependency order, with New Zealand as the
+  template. It adds the three curve-assignment routes and what a region must
+  record for its match to be checkable. Its registration example was a stale
+  country-level `aemo` adapter, and its run example used the legacy path;
+  both now show the harness. The built-in adapter table gains the three
+  registered adapters it was missing.
+
 ## [0.5.1] - 2026-09-11
 
 A corrections-only release. The 0.5.0 archive carries a scorecard preamble and
