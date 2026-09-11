@@ -163,7 +163,10 @@ at 46.39. Do not reuse the factors from these four.
 **National level** (ENTSO-E aggregate, held-out 2023, all eight clean): France
 0.171 → **0.012**, Belgium 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland
 0.172 → **0.021**, Sweden 0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal
-0.110 → **0.074**.
+0.110 → **0.074**. All eight were simulated on one fallback curve, a 100 kW
+distributed-wind turbine, because their grids name Vestas models the bundled
+open library does not contain, and how much of each reduction reflects that
+mismatch rather than ERA5 bias is not yet quantified.
 
 **Where it does not work.** Norway is close to unbiased uncorrected and the
 correction makes it worse (0.034 → 0.039). The Netherlands is excluded: an

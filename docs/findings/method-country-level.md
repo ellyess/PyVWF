@@ -4,6 +4,32 @@
 **Scope:** the `obs_level = "country"` path against the turbine-level path, plus
 an audit of the nine ENTSO-E observation series on disk.
 
+**Correction, 2026-09-11: every simulated or fitted country-level figure below
+was computed on the wrong power curve.** The grid points name `Vestas.V80.2000`
+(FR, IT, PT), `Vestas.V90.2000` (ES, IE) or `Vestas.V90.3000` (BE, NL, SE, NO).
+None of these is in the bundled open library, and every country-level run
+behind this document recorded that library in its manifest. So each grid point
+fell back to the library's first column, `2019COE_DW100_100kW_27.6`, a 100 kW
+distributed-wind turbine. The fallback emits a warning and records nothing, so
+it went unnoticed. It was confirmed by re-running the eight scorecard country
+rows with warnings visible (`scorecard.md`). The uncorrected errors, the NL
+scalars in section 1, the IE RMSE figures in section 4, the results in section
+6, and the country-level figures in the scalar and offset analysis in section 7
+all rest on that curve. The document attributes the
+uncorrected error to the reanalysis, and the offsets' work to repairing the
+scalar. Neither attribution was tested against the substitution.
+
+How much of the uncorrected error, and of what the correction removes, is this
+specific-power mismatch rather than ERA5 bias is not quantified. It is the lead
+question of a curve library study, and nothing here should be read as answering
+it. Sections 2 and 3, and the diagnosis of the NL and IE observation series in
+section 4, depend only on the observations and the fleet register, not on any
+power curve, and stand. So do the DK and NZ correlations quoted in section 7,
+which are turbine-level and reproduce to the quoted precision from
+`output/validation/DK/train-ppopen` (bundled library, every training turbine
+matched to a curve the library contains) and `output/validation/NZ/train-k147`
+(licensed library).
+
 The country-level path is wired consistently with the turbine-level path but
 fits a different estimator under the same name, and its observations had never
 been checked. Two of nine regions could not load at all and four carried
