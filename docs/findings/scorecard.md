@@ -36,22 +36,64 @@ open library does not contain, so every unit in those eight rows fell back to a
 single default curve, the open library's first column:
 `2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind turbine.
 
+**Other brand** is the share of each row's fitted training fleet, by capacity,
+simulated on another manufacturer's curve. **Reference curve** is the share on a
+research reference design or generic composite curve, which is never the unit's
+own machine; on the open library it is often the only kind available, so read
+it as a fact about the library rather than about the matching. **Unverifiable**
+is the share where either side cannot be identified, so the match cannot be
+checked in either direction. Unit counts and the largest mismatched pairs are in
+`output/validation/curve_resolution_backfill_2026-09-11/cross_manufacturer_audit.csv`,
+produced by `scripts/analysis/curve_match_audit.py`.
+
+Every turbine-level row except BR is matched on specific power, by one of three
+routes:
+
+- **DE, DK and UK:** `add_models` at load time, a fuzzy manufacturer match then
+  nearest specific power.
+- **US, NZ, CL and AR:** `assign_curves_from_library` at processing time,
+  nearest specific power within a rating band, with no manufacturer step.
+- **AU-NEM:** a specific-power class.
+
+BR assigns one uniform curve to every complex, and nothing records its
+manufacturers, so its match shares are n/a rather than zero.
+
+The two mismatch columns therefore measure how far each row rests on the
+assumption that specific power fixes a curve's shape. Whether held-out skill
+survives that assumption is not assessed here. Largest case: 13.4% of DE
+capacity is Vestas turbines on Gamesa curves.
+
+The rule is strict and names brands, not lineages. A Bonus turbine on a
+Siemens curve counts as other brand. A GE plant on the DOE reference curve of a
+GE 1.5 MW machine counts as a reference curve; that is 6.6% of US capacity.
+
+Every model key in every turbine-level row has a curve in its
+`power_curves.csv`, so nothing there was substituted. That is a different table
+from `models.csv`, which the audit reads for each model's manufacturer: 11 AU-NEM
+farms (14.3% of capacity) carry keys with a curve in `power_curves.csv` and no
+row in `models.csv`, because the open library's normalized composites are
+curve-only by design; the audit identifies them from the open library's
+provenance file as reference curves. The country-level table's **Substituted**
+column is the share of the evaluated fleet whose model key has no curve in
+`power_curves.csv` at all. Per-row records are in each row's
+`curve_resolution.csv` under the same folder.
+
 ## Turbine / plant-level (observed capacity factor per farm)
 
 Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 `affine-wind` row, fleet scope.
 
-| Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg |
-|---|---|---|---|---|---|---|---|---|
-| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.042 | +0.001 | 0.85 | k100 fixed |
-| Denmark (DK) | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season |
-| Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † |
-| United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † |
-| Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season |
-| United Kingdom (UK) | 348 turbines | 2015-18 → 2019 | 0.145 | **0.115** | +0.037 | -0.038 | 0.70 | k50 fixed |
-| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** | -0.062 | +0.021 | 0.66 | k7 fixed |
-| Chile (CL) | 59 plants | 2021-23 → 2024 | 0.123 | **0.105** | -0.026 | -0.002 | 0.43 | k10 fixed † |
-| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.151 | **0.133** | +0.010 | +0.001 | 0.44 | k10 fixed † |
+| Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Other brand | Reference curve | Unverifiable |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.042 | +0.001 | 0.85 | k100 fixed | 40.0% | 8.9% | 0.0% |
+| Denmark (DK) | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season | 11.6% | 0.6% | 23.0% |
+| Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | n/a | n/a | 100.0% |
+| United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | 48.3% | 22.0% | 1.1% |
+| Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | 2.8% | 84.5% | 4.5% |
+| United Kingdom (UK) | 348 turbines | 2015-18 → 2019 | 0.145 | **0.115** | +0.037 | -0.038 | 0.70 | k50 fixed | 21.8% | 7.5% | 0.0% |
+| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** | -0.062 | +0.021 | 0.66 | k7 fixed | 41.9% | 47.3% | 0.0% |
+| Chile (CL) | 59 plants | 2021-23 → 2024 | 0.123 | **0.105** | -0.026 | -0.002 | 0.43 | k10 fixed † | 3.5% | 91.6% | 0.0% |
+| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.151 | **0.133** | +0.010 | +0.001 | 0.44 | k10 fixed † | 0.2% | 96.7% | 0.0% |
 
 **† The fit behind this row is degenerate.** `fit_quality` run against the exact
 factors file each row reports, with the calibrated bounds (scalar in 0.2 to 3.0,
@@ -96,16 +138,16 @@ exports built from them carry a `degenerate` layer for exactly this reason.
 Capacity-weighted national monthly CF, held-out 2023, bundled open curve library
 throughout.
 
-| Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg |
-|---|---|---|---|---|---|
-| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed |
-| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season |
-| Spain (ES) | 0.135 | **0.026** | +0.130 | +0.016 | N=4 fixed |
-| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season |
-| Sweden (SE) | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed |
-| Italy (IT) | 0.066 | **0.034** | +0.062 | -0.020 | N=3 season |
-| Portugal (PT) | 0.110 | **0.074** | -0.097 | +0.029 | N=1 season |
-| Norway (NO) | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help |
+| Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Substituted |
+|---|---|---|---|---|---|---|
+| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | 100% |
+| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | 100% |
+| Spain (ES) | 0.135 | **0.026** | +0.130 | +0.016 | N=4 fixed | 100% |
+| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | 100% |
+| Sweden (SE) | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | 100% |
+| Italy (IT) | 0.066 | **0.034** | +0.062 | -0.020 | N=3 season | 100% |
+| Portugal (PT) | 0.110 | **0.074** | -0.097 | +0.029 | N=1 season | 100% |
+| Norway (NO) | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | 100% |
 
 The country-level fit removes very large mean biases (FR, BE, ES, IE all from
 0.13-0.34 down to ~0.01-0.03). Two honest notes: NO is already close to
