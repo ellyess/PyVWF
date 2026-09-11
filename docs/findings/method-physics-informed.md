@@ -24,6 +24,13 @@ the pre-specification counts the UK among its five of five on that 0.002
 margin; without the UK it passes at four of five. The UK's 348 units, which
 section 1 calls turbines, are farms (`docs/design/harness.md`).
 
+**Correction notice, 2026-09-11: the CL affine in-region figure compared
+different plants.** Section 3's CL "affine, in region" figure, 0.105, was
+scored on 55 plants, while its uncorrected 0.1225 covers 59 (`scorecard.md`,
+daggered-rows notice of the same date). On the same rows, the affine figure
+is 0.104 against an uncorrected 0.110. The zero-shot and MLP columns come from
+this document's own pipeline and were not rescored.
+
 ## 1. Why the incumbent does not transfer
 
 Five diagnostics on artefacts already on disk. Two falsified the hypothesis they

@@ -65,9 +65,87 @@ includes zero. The interval is itself a lower bound on the uncertainty, so an
 interval that excludes zero by 0.001 or 0.002 is not a clean result. CL is not
 assessed in this notice.
 
+**Correction notice, 2026-09-11: the daggered rows' worst damage never reached
+their scores.** The reading under the turbine-level table says that, in the four
+daggered rows, the fleet average absorbed the damage of a degenerate fit. It did
+not absorb it. The corrected score never contained it.
+
+A degenerate cluster loses corrected values in two ways. A failed offset leaves
+the cluster with no factors to apply. An implausible scalar pushes corrected
+speeds above 40 m/s, where the power curves end, and a large negative offset
+pushes them below 0 m/s. Outside the curve, the interpolator returns no value
+rather than zero output. Until 2026-09-11 a missing value dropped out of the
+score, and a monthly mean still skips missing days. So the corrected score
+left out exactly the units and days that a degenerate fit damaged most.
+
+| Row | Degenerate clusters with missing values | Units (capacity) | Missing unit-days: failed offset / above 40 m/s / below 0 m/s | Unit-months wholly / partly missing | Corrected RMSE, as scored / with off-curve days as zero |
+|---|---|---|---|---|---|
+| CL k10 fixed | 6, 8 | 6 plants (26%) | 1,464 / 695 / 0 | 65 / 7 | 0.104 / 0.109 |
+| AR k10 fixed | 7 | 2 plants (5.1%) | 0 / 308 / 0 | 0 / 24 | 0.133 / 0.132 |
+| US k250 fixed | 15, 38, 102, 156, 183 | 28 plants (1.4%) | 0 / 727 / 2,569 | 21 / 244 | 0.097 / 0.096 |
+| BR k60 fixed | 29 | 1 complex (0.3%) | 0 / 0 / 128 | 0 / 12 | 0.105 / 0.107 |
+
+The last column scores the saved frames on common rows twice, the second time
+with every off-curve corrected day counted as zero output. Zero is the physical
+value below cut-in and above cut-out. This is a measurement, and the simulation
+is unchanged. Scripts: `scripts/analysis/missing_value_audit.py`,
+`off_curve_sensitivity.py` and `common_row_rescore.py`. Data:
+`output/curve_library_study_2026-09-11/` (`missing_value_audit/`,
+`off_curve_sensitivity/`, `common_row_rescore/`).
+
+- **CL compared two different sets of plants.** Its published uncorrected
+  score covered 59 plants and 677 plant-months, and its corrected score 55
+  plants and 635. The rows missing from the corrected side are the worst
+  uncorrected. So the published gain of 0.018 was mainly a comparison with a
+  different denominator on each side, not an overstated improvement. On the
+  same rows, the uncorrected RMSE itself falls from 0.123 to 0.110, which is
+  more than the gain under either scoring. The harness now scores every
+  variant of a run on the rows all of them can score (commit `513f57c`). For
+  CL this excludes 49 plant-months, 16.0% of capacity, and six plants wholly:
+  the four in cluster 6, and two that `fixed_10` cannot score in most months
+  and the unreported `season_10` variant cannot score in the rest. The table
+  now shows the re-run on the fixed harness
+  (`output/validation/common_row_rerun_2026-09-11/CL/evaluate-2024-rerun/`):
+  RMSE 0.110 uncorrected and 0.104 corrected, where 0.123 and 0.105 were
+  published; MBE -0.015 and +0.001, where -0.026 and -0.002 were published;
+  53 of 59 plants scored. On those 53 plants (35.8 capacity-effective), the
+  gain of 0.006 has a 95% interval of -0.007 to 0.021 when plants are
+  resampled, and the MAE gain of 0.004 has one of -0.009 to 0.017. The gain
+  cannot be distinguished from zero, so the row carries the ‡ marker.
+- **An unreported configuration moved AR's reported figures.** The common rows
+  are shared by all variants of a run. AR's reported `fixed_10` row moved
+  because its unreported `season_10` variant lacks two rows. The table now
+  shows the re-run (`output/validation/common_row_rerun_2026-09-11/AR/evaluate-2024-rerun/`).
+  Uncorrected RMSE went from 0.151 to 0.150, uncorrected MBE from +0.010 to
+  +0.011, and correlation from 0.44 to 0.43. Corrected RMSE and MBE are
+  unchanged at displayed precision. AR's resampled gain interval on the common
+  rows is 0.002 to 0.030, against 0.002 to 0.031 in the notice above. The
+  re-run does not reach AR's 24 partly missing plant-months, which are still
+  scored on the days that remain.
+- **The US** loses 11 of 6,078 plant-months to common-row scoring, and nothing
+  moves at displayed precision. Every other row, all eight country-level rows
+  included, reproduces its `metrics.csv` exactly.
+- **The `min_cluster_size` comparisons under the degenerate-fit table** used
+  different rows too. The pre-registered gates in `method-scalar-bounds.md`
+  still pass on common rows, with smaller margins; that document carries the
+  figures.
+- **Below-zero days also occur in clusters that `fit_quality` calls clean**, in
+  the US, BR, DE, UK, NZ, AU-NEM and FR. `fit_quality` bounds the scalar and
+  checks that each offset converged. It does not check whether a scalar and
+  offset pair goes negative over the observed speed range. Counting those days
+  as zero moves no corrected RMSE in those rows by more than 0.002. ES and IT
+  are a different case, covered separately.
+
+The CL interval has the limits stated in the UK and NZ notice above, and the
+choice of `k=10` on the test year also stays outside the resampling.
+
 All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 2026-08-24, one region per process. Runs are in
-`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. Each row
+`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The CL
+and AR rows are the exception since 2026-09-11: they come from an
+evaluate-only re-run of the same training directories on the common-row
+harness, at commit `bbaf5b3` from a clean tree
+(`output/validation/common_row_rerun_2026-09-11/`). Each row
 was run from the single-configuration file committed under
 `configs/regions/scorecard/` (`<code>_k<N>.toml` or `<code>_country.toml`), which
 fixes the cluster count and time slice the row reports. For the eight
@@ -151,11 +229,11 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | 2.8% | 84.5% | 4.5% |
 | United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.145 | **0.115** ‡ | +0.037 | -0.038 | 0.70 | k50 fixed | 21.8% | 7.5% | 0.0% |
 | New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | 41.9% | 47.3% | 0.0% |
-| Chile (CL) | 59 plants | 2021-23 → 2024 | 0.123 | **0.105** | -0.026 | -0.002 | 0.43 | k10 fixed † | 3.5% | 91.6% | 0.0% |
-| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.151 | **0.133** | +0.010 | +0.001 | 0.44 | k10 fixed † | 0.2% | 96.7% | 0.0% |
+| Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | 3.5% | 91.6% | 0.0% |
+| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.150 | **0.133** | +0.011 | +0.001 | 0.43 | k10 fixed † | 0.2% | 96.7% | 0.0% |
 
 **‡ Gain not distinguishable from zero when the test year's units are resampled;
-see the correction notice above.**
+see the correction notices above.**
 
 **† The fit behind this row is degenerate.** `fit_quality` run against the exact
 factors file each row reports, with the calibrated bounds (scalar in 0.2 to 3.0,

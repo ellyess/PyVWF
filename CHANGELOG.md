@@ -98,6 +98,20 @@ a corrected variant lacks some values.
   report UK or NZ skill. The UK fleet is counted in farms, not turbines. AR
   and AU-NEM are named as resolved only narrowly. The resampling scripts are
   `scripts/analysis/baseline_bootstrap.py` and `unit_concentration.py`.
+- **The daggered rows' worst damage never reached their scores.** A degenerate
+  cluster loses corrected values through a failed offset, or through speeds
+  pushed off the power curve, where the interpolator gives no value rather
+  than zero output. Those values dropped out of the score, so the corrected
+  score left out exactly what a degenerate fit damaged most. That is the
+  reverse of the scorecard's reading that the fleet average absorbed the
+  damage. The scorecard's notice sizes it for CL, AR, the US and BR. CL also
+  compared its uncorrected and corrected scores on different plants. Its row,
+  and AR's, now come from a re-run on the common-row harness, and CL carries
+  the unresolved-gain marker in the scorecard and the README.
+  `region-south-america.md`, `method-scalar-bounds.md` (whose pre-registered
+  gates still pass, with smaller margins), `method-hourly-resolution.md`,
+  `method-physics-informed.md` and `method-cluster-count.md` carry notices
+  where they report CL skill.
 
 ### Documentation
 

@@ -6,6 +6,25 @@ physically plausible bounds for a fitted wind scalar, judged against every fit i
 the archive rather than intuition? (2) Does `min_cluster_size` actually fix
 degenerate fits, and what does it cost?
 
+**Correction notice, 2026-09-11: Part 2 compared corrected and uncorrected
+scores on different plants.** Each `min_cluster_size` run scored its
+uncorrected variant on all 59 plants, but its corrected variant only on the
+plants with a corrected value: 55 at min=1 and 54 at min=3. At min=3 no offset
+failed. Five plants lost their values because a scalar of 39.3 pushed
+corrected speeds above 40 m/s, where the power curves end. Rescored on common
+rows, the gate outcomes stand, with smaller margins:
+
+- **G2**, min=3 against uncorrected on that run's common rows (54 plants):
+  0.1069 against 0.1119. PASS.
+- **G3**, min=3 against min=1 on the rows common to all three runs (53
+  plants): 0.1049 against 0.1037, inside the 10% allowance of 0.1141. PASS. On
+  those rows min=3 costs 1.2% of RMSE, not 2%.
+- **min=5** had no missing values, so 0.2366 against 0.1226 stands.
+- **G1** is a bound on the scalar and is unaffected.
+
+Script: `scripts/analysis/common_row_rescore.py --joint`. Data:
+`output/curve_library_study_2026-09-11/common_row_rescore/CL_joint_rescore.csv`.
+
 Both were prompted by Chile shipping a k=10 correction containing a wind scalar
 of 80.2 and an offset that never converged, while scoring as a corrected win at
 monthly resolution (`method-hourly-resolution.md`).
