@@ -134,10 +134,56 @@ is unchanged. Scripts: `scripts/analysis/missing_value_audit.py`,
   checks that each offset converged. It does not check whether a scalar and
   offset pair goes negative over the observed speed range. Counting those days
   as zero moves no corrected RMSE in those rows by more than 0.002. ES and IT
-  are a different case, covered separately.
+  are a different case, covered by the suspension notice below.
 
 The CL interval has the limits stated in the UK and NZ notice above, and the
 choice of `k=10` on the test year also stays outside the resampling.
+
+**Suspension notice, 2026-09-11: the IT, PT and ES rows are suspended.** They
+are not simulations of those fleets' winds. The chain, in order:
+
+1. **The ERA5 download never covered them.** The European ERA5 files cover
+   12°W to 22°E and 42°N to 72°N. The IT, PT and ES configurations' boxes
+   extend south of 42°N, and the download was never extended to match.
+2. **The harness extrapolated silently.** `interpolate_wind` interpolates with
+   `fill_value=None`, which extrapolates linearly outside the grid without a
+   warning. Grid points up to 5° outside the data receive extrapolated winds,
+   and uncorrected hub-height speeds reach -57.7 m/s.
+3. **The fit fitted factors to that input.** In ES, clusters 0 and 3 lie
+   wholly outside the data. They carry offsets of -5.64 and -4.46 m/s, at
+   scalars near 0.5.
+4. **Those factors push most days off the curve.** In the ES training years,
+   clusters 0 and 3 put 54% and 53% of their capacity-weighted days below
+   0 m/s. Those days drop out of the fit's objective and out of the score.
+   This is the mechanism in the daggered-rows notice above, set off by
+   fabricated input rather than by a degenerate fit.
+5. **The corrected CF reads too high.** Counting the dropped days as zero
+   lowers the mean corrected CF by 0.036 in ES and by 0.036 in IT. ES's
+   corrected MBE goes from +0.016 to -0.020, and IT's corrected RMSE from
+   0.034 to 0.064. In the ES training years, the fitted national CF matches
+   the observed one only with the dropped days removed. Counted as zero, it is
+   0.03 to 0.05 below observed in every year.
+
+| Row | Capacity outside the ERA5 data | Grid points outside | Furthest outside |
+|---|---|---|---|
+| IT | 94.5% | 19 of 28 | 4.4° |
+| PT | 89.9% | 23 of 26 | 4.5° |
+| ES | 50.3% | 34 of 52 | 5.0° |
+
+**PT shows why a stable result is not evidence.** 90% of PT's capacity is
+extrapolated from a single row of data at 42°N, its northern border. Yet its
+figures do not move when off-curve days count as zero, because few of its days
+fall off the curve. Nothing in PT's metrics shows that its winds were never in
+the input, and a reader comparing it with a sound row cannot tell the two
+apart. The check that exposed ES and IT cannot see PT.
+
+The three rows move to a table of suspended rows under the country-level
+table, with their published figures kept for the record. They return once ERA5
+is downloaded to cover their boxes and they are re-run. NO (4.4% of capacity,
+3 of 26 grid points, up to 7.5° east of the data) and SE (0.8%, 1 of 40, up to
+1.0°) stay in the table with those shares stated, and get the same download.
+Script for the training-year figures: `scripts/analysis/training_objective_check.py`.
+Data: `output/curve_library_study_2026-09-11/training_objective_check/`.
 
 All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 2026-08-24, one region per process. Runs are in
@@ -282,15 +328,26 @@ throughout.
 |---|---|---|---|---|---|---|
 | France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | 100% |
 | Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | 100% |
-| Spain (ES) | 0.135 | **0.026** | +0.130 | +0.016 | N=4 fixed | 100% |
 | Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | 100% |
 | Sweden (SE) | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | 100% |
-| Italy (IT) | 0.066 | **0.034** | +0.062 | -0.020 | N=3 season | 100% |
-| Portugal (PT) | 0.110 | **0.074** | -0.097 | +0.029 | N=1 season | 100% |
 | Norway (NO) | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | 100% |
 
-The country-level fit removes very large mean biases (FR, BE, ES, IE all from
-0.13-0.34 down to ~0.01-0.03). Two honest notes: NO is already close to
+NO has 4.4% and SE 0.8% of capacity outside the ERA5 data, which the harness
+extrapolated (suspension notice above). Both get the same ERA5 download as the
+suspended rows.
+
+**Suspended rows.** Not results: most of their capacity was simulated from
+winds extrapolated beyond the ERA5 data (suspension notice above). The
+published figures are kept for the record only.
+
+| Region | Capacity outside the ERA5 data | Published uncorr RMSE | Published corr RMSE | Published uncorr MBE | Published corr MBE | Best cfg |
+|---|---|---|---|---|---|---|
+| Italy (IT) | 94.5% | 0.066 | 0.034 | +0.062 | -0.020 | N=3 season |
+| Portugal (PT) | 89.9% | 0.110 | 0.074 | -0.097 | +0.029 | N=1 season |
+| Spain (ES) | 50.3% | 0.135 | 0.026 | +0.130 | +0.016 | N=4 fixed |
+
+The country-level fit removes very large mean biases (FR, BE and IE all from
+0.17-0.34 down to ~0.01-0.02). Two honest notes: NO is already close to
 unbiased uncorrected (RMSE 0.034) and the correction makes it worse (0.039); and the country method
 fits under-determined offsets against one national series per month, so the
 offsets largely repair the scalar's cube-law overshoot rather than a genuine

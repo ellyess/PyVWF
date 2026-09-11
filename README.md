@@ -173,10 +173,12 @@ manufacturer to check against. The [scorecard](docs/findings/scorecard.md)
 gives those shares per row. Whether the correction's skill survives that
 mismatch is not yet assessed.
 
-**National level** (ENTSO-E aggregate, held-out 2023, all eight clean): France
-0.171 → **0.012**, Belgium 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland
-0.172 → **0.021**, Sweden 0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal
-0.110 → **0.074**. All eight were simulated on one fallback curve, a 100 kW
+**National level** (ENTSO-E aggregate, held-out 2023): France 0.171 →
+**0.012**, Belgium 0.340 → **0.020**, Ireland 0.172 → **0.021**, Sweden 0.088 →
+**0.030**. Italy, Portugal and Spain are suspended: half or more of their capacity lies
+outside the ERA5 data the harness was given, so their winds were extrapolated,
+not simulated. They return once ERA5 covers them (see the scorecard). All the
+country rows were simulated on one fallback curve, a 100 kW
 distributed-wind turbine, because their grids name Vestas models the bundled
 open library does not contain, and how much of each reduction reflects that
 mismatch rather than ERA5 bias is not yet quantified.

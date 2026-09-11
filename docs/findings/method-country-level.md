@@ -41,6 +41,21 @@ manufacturer, so its match cannot be checked in either direction
 (`output/validation/curve_resolution_backfill_2026-09-11/cross_manufacturer_audit.csv`).
 Whether the two correlations hold on each unit's own curves is open.
 
+**Suspension notice, 2026-09-11: the IT, PT and ES figures below rest on
+extrapolated winds.** The European ERA5 files cover 42°N to 72°N and 12°W to
+22°E. Italy's, Portugal's and Spain's grid points lie largely south of 42°N:
+94.5%, 89.9% and 50.3% of their capacity. The harness extrapolated winds to
+them linearly and without a warning (`fill_value=None`), up to 5° beyond the
+data, giving uncorrected speeds as low as -57.7 m/s. Every simulated or fitted
+figure for those three countries rests on that input: the results in section
+6, the scalar and offset analysis in section 7, and the question in section 8
+of why PT gets worse under correction. They are suspended with the scorecard
+rows (`scorecard.md`, suspension notice of the same date). ES's clusters 0 and
+3 lie wholly outside the data, and their offsets of -5.64 and -4.46 m/s were
+fitted to it. NO (4.4% of capacity) and SE (0.8%) are affected at those
+shares. As with the correction above, sections 2 and 3 depend only on the
+observations and the fleet register, and stand for all three.
+
 The country-level path is wired consistently with the turbine-level path but
 fits a different estimator under the same name, and its observations had never
 been checked. Two of nine regions could not load at all and four carried

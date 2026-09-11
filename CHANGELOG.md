@@ -112,6 +112,18 @@ a corrected variant lacks some values.
   gates still pass, with smaller margins), `method-hourly-resolution.md`,
   `method-physics-informed.md` and `method-cluster-count.md` carry notices
   where they report CL skill.
+- **The IT, PT and ES country-level rows are suspended.** The European ERA5
+  download never covered their southern grid points, and the harness
+  extrapolated winds to them without a warning. In ES and IT the fit then
+  drove offsets to values that push most of those days off the curve, and the
+  dropped days made the corrected capacity factor read high. PT's figures
+  barely move under the same check, and that is the warning: nothing in its
+  metrics shows its winds were never in the input. The scorecard moves the three
+  rows to a table of suspended rows, with a notice giving the capacity share
+  outside the data for each. They return once ERA5 covers them and they are
+  re-run. NO and SE keep their rows, with their smaller extrapolated shares
+  stated. `method-country-level.md` carries the notice, and the README drops
+  the three from its national-level line.
 
 ### Documentation
 
