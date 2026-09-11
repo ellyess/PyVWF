@@ -97,11 +97,15 @@ def _source_for(
 
 
 def _default_power_curve(power_curves: pd.DataFrame) -> str:
-    """Pick a default turbine model from a power curve table."""
-    cols = [c for c in power_curves.columns if c != "data$speed"]
-    if not cols:
+    """Pick a default turbine model from a power curve table.
+
+    The same curve the simulation falls back to for a missing model
+    (:func:`vwf.wind.default_curve_key`), so the two cannot drift apart.
+    """
+    key = wind.default_curve_key(power_curves)
+    if key is None:
         raise ValueError("power_curves has no turbine model columns.")
-    return cols[0]
+    return key
 
 
 # ============================================================================
@@ -877,7 +881,15 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
         df: Turbine metadata.
 
     Returns:
-        DataFrame with a ``model`` column added.
+        DataFrame with a ``model`` column added, and ``model_match`` naming how
+        each turbine was matched: ``"fuzzy-manufacturer+specific-power"`` (a model
+        within 1 W/m2 of the turbine's specific power from a manufacturer whose
+        name fuzzily matches, at a difflib cutoff of 0.3) or
+        ``"specific-power-only"`` (the nearest specific power across all models,
+        within 100 W/m2). Turbines with neither are dropped. The fuzzy match is
+        loose: "ewt" scores 0.4 against "vestasv", so a Vestas V27 (392.98 W/m2)
+        can be matched to the EWT DW54 at the same specific power. The first tier
+        therefore does not guarantee the turbine's own manufacturer.
     """
     models = pd.read_csv(PyVWFPaths.reference_file("models.csv"))
     models["model"] = models["model"].astype("string")
@@ -959,7 +971,15 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
         tolerance=100,
     )["model"]
 
+    # Record which tier matched each turbine, so a run can say how its fleet
+    # got its curves (vwf.harness.provenance.curve_resolution reads this).
+    # A specific-power-only match is a different machine chosen for its rotor
+    # loading, not the turbine's own.
+    matched_by_manufacturer = df["model"].notna()
     df["model"] = df["model"].fillna(fallback)
+    df["model_match"] = np.where(
+        matched_by_manufacturer, "fuzzy-manufacturer+specific-power", "specific-power-only"
+    )
 
     # Drop if still no model
     df = df.dropna(subset=["model"]).reset_index(drop=True)

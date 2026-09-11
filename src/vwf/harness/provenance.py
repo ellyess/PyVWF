@@ -12,6 +12,7 @@ raises, so a manifest failure can never abort a run.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import platform
@@ -22,11 +23,13 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 import vwf
 from vwf.config import PyVWFPaths
 from vwf.harness.regions import RegionSpec
+from vwf.wind import default_curve_key
 
 MANIFEST_NAME = "run_manifest.json"
 
@@ -91,6 +94,135 @@ def curve_library_identity() -> dict[str, Any]:
         "library": "synthetic-bundled" if synthetic else "external",
         "n_curves": n_curves,
         "n_models": n_models,
+    }
+
+
+#: How a unit's model key got onto the fleet, read from the first of these
+#: columns the fleet carries: ``model_source`` is written into the metadata by
+#: the process scripts that call ``assign_curves_from_library``, and
+#: ``model_match`` by :func:`vwf.data.add_models` at load time.
+_ASSIGNMENT_COLUMNS = ("model_source", "model_match")
+
+CURVE_RESOLUTION_NAME = "curve_resolution.csv"
+
+
+def _curve_hash(values: Any) -> str:
+    """SHA-256 of one curve's capacity-factor values, as float64 bytes."""
+    arr = np.ascontiguousarray(np.asarray(values, dtype=np.float64))
+    return hashlib.sha256(arr.tobytes()).hexdigest()
+
+
+@functools.lru_cache(maxsize=1)
+def _bundled_curve_hashes() -> frozenset[str]:
+    packaged = Path(str(resources.files("vwf.resources") / "power_curves.csv"))
+    if not packaged.is_file():
+        return frozenset()
+    table = pd.read_csv(packaged)
+    return frozenset(_curve_hash(table[c]) for c in table.columns if c != "data$speed")
+
+
+def curve_resolution(fleet: pd.DataFrame, power_curves: pd.DataFrame) -> pd.DataFrame:
+    """Record which curve each model key in a fleet actually resolves to.
+
+    The simulation looks each unit's ``model`` up in the curve table and, for a
+    key the table lacks, silently uses :func:`vwf.wind.default_curve_key`'s
+    curve after a one-off warning. That is how every country-level run on the
+    bundled library came to simulate a 100 kW distributed-wind turbine without
+    any artefact saying so. This reconstructs the lookup from the same fleet and
+    table the simulation receives, using the same fallback helper, so it records
+    what the simulation did without touching the simulation.
+
+    Args:
+        fleet: The units a run simulates, with ``model`` and ideally
+            ``capacity``, and optionally ``model_source`` or ``model_match``.
+        power_curves: The curve table the run simulates with.
+
+    Returns:
+        One row per requested key: ``requested``, ``n_units``, ``capacity``
+        (in the fleet's own units), ``capacity_share``, ``assigned_by`` (how the
+        key got onto the fleet, ``"as-given"`` when nothing records it),
+        ``status`` (``"resolved"`` or ``"substituted"``), ``curve_used``,
+        ``curve_sha256`` and ``origin``. ``origin`` is ``"open"`` when the
+        curve's values hash-match a column of the bundled open library and
+        ``"external"`` otherwise, so under ``input/combined`` external means the
+        licensed library. Matching on values rather than names means a key
+        present in both libraries is only "open" if it carries the open curve,
+        and an edited open curve labels as external, failing towards
+        underclaiming as :func:`curve_library_identity` does.
+    """
+    columns = [
+        "requested", "n_units", "capacity", "capacity_share", "assigned_by",
+        "status", "curve_used", "curve_sha256", "origin",
+    ]
+    present = set(power_curves.columns) - {"data$speed"}
+    fallback = default_curve_key(power_curves)
+
+    if "model" in fleet.columns:
+        requested = fleet["model"].astype(object)
+        requested = requested.where(requested.notna(), "<none>").astype(str)
+    else:
+        requested = pd.Series("<none>", index=fleet.index)
+    if "capacity" in fleet.columns:
+        capacity = pd.to_numeric(fleet["capacity"], errors="coerce").fillna(0.0)
+    else:
+        capacity = pd.Series(1.0, index=fleet.index)
+    source_col = next((c for c in _ASSIGNMENT_COLUMNS if c in fleet.columns), None)
+    assigned = (
+        fleet[source_col].astype(object).where(fleet[source_col].notna(), "unrecorded")
+        .astype(str)
+        if source_col is not None
+        else pd.Series("as-given", index=fleet.index)
+    )
+
+    frame = pd.DataFrame({
+        "requested": requested.to_numpy(),
+        "capacity": capacity.to_numpy(dtype=float),
+        "assigned_by": assigned.to_numpy(),
+    })
+    total = float(frame["capacity"].sum())
+    bundled = _bundled_curve_hashes()
+
+    rows = []
+    for key, group in frame.groupby("requested", sort=True):
+        resolved = key in present
+        used = key if resolved else fallback
+        sha = _curve_hash(power_curves[used]) if used is not None else None
+        cap = float(group["capacity"].sum())
+        rows.append({
+            "requested": key,
+            "n_units": int(len(group)),
+            "capacity": cap,
+            "capacity_share": cap / total if total > 0 else float("nan"),
+            "assigned_by": ";".join(sorted(set(group["assigned_by"]))),
+            "status": "resolved" if resolved else "substituted",
+            "curve_used": used,
+            "curve_sha256": sha,
+            "origin": None if sha is None else ("open" if sha in bundled else "external"),
+        })
+    return pd.DataFrame(rows, columns=columns)
+
+
+def summarise_curve_resolution(resolution: pd.DataFrame) -> dict[str, Any]:
+    """Reduce a :func:`curve_resolution` table to the manifest's summary.
+
+    ``substituted_capacity_share`` is the headline: the share of the fleet's
+    capacity simulated on a curve other than the one its model key names.
+    """
+    share = resolution["capacity_share"].fillna(0.0)
+    substituted = resolution["status"] == "substituted"
+    by_assignment = share.groupby(resolution["assigned_by"]).sum()
+    return {
+        "n_models_requested": int(len(resolution)),
+        "n_models_substituted": int(substituted.sum()),
+        "substituted_capacity_share": float(share[substituted].sum()),
+        "substitutions": {
+            str(k): str(v)
+            for k, v in zip(resolution.loc[substituted, "requested"],
+                            resolution.loc[substituted, "curve_used"])
+        },
+        "open_capacity_share": float(share[resolution["origin"] == "open"].sum()),
+        "external_capacity_share": float(share[resolution["origin"] == "external"].sum()),
+        "assigned_by_capacity_share": {str(k): float(v) for k, v in by_assignment.items()},
     }
 
 

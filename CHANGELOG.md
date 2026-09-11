@@ -11,6 +11,20 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
+### Added
+
+- Curve resolution logging. Every harness train, evaluate and transfer run
+  writes `curve_resolution.csv`, recording for each model key the fleet
+  requests whether the curve table has it, which curve was actually used, that
+  curve's sha256, and whether it is an open-library curve. The manifest
+  carries a summary, and `metrics.csv` gains `substituted_capacity_share` on
+  every row. A model missing from the table used to be visible only as a
+  one-off warning, which is how every country-level run on the bundled library
+  came to simulate a 100 kW distributed-wind turbine unnoticed. Recording
+  only: the fallback itself is unchanged, and a test now pins its identity.
+- `add_models` adds a `model_match` column naming the tier that matched each
+  turbine: `fuzzy-manufacturer+specific-power` or `specific-power-only`.
+
 ## [0.5.1] - 2026-09-11
 
 A corrections-only release. The 0.5.0 archive carries a scorecard preamble and

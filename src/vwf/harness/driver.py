@@ -25,7 +25,12 @@ from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
 from vwf.data import assign_country_clusters, train_set, val_set
 from vwf.harness.corrections import fit_quality, get_correction
-from vwf.harness.provenance import write_manifest_safe
+from vwf.harness.provenance import (
+    CURVE_RESOLUTION_NAME,
+    curve_resolution,
+    summarise_curve_resolution,
+    write_manifest_safe,
+)
 from vwf.harness.regions import RegionSpec
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
 from vwf.sources import (
@@ -66,6 +71,30 @@ def resolve_source(
         cls = EntsoeFileSource if spec.source == "entsoe-country" else EntsoeZonalFileSource
         return cls(spec.code, split, spec.train_years, spec.test_years[0])
     return get_source(spec.source, spec.code)
+
+
+def _record_curve_resolution(
+    run_dir: Path, fleet: pd.DataFrame, power_curves: pd.DataFrame, code: str
+) -> dict:
+    """Write ``curve_resolution.csv`` for the fleet a run simulates.
+
+    A model missing from the curve table used to be visible only as a one-off
+    warning, which is how every country-level row came to be simulated on a
+    100 kW fallback curve for two months unnoticed. The record goes in the run
+    directory, its summary in the manifest, and the substituted share into
+    every metrics row, so it travels with the numbers the way ``fit_quality``
+    does. Recording only: a substitution never stops a run.
+    """
+    resolution = curve_resolution(fleet, power_curves)
+    resolution.to_csv(run_dir / CURVE_RESOLUTION_NAME, index=False)
+    summary = summarise_curve_resolution(resolution)
+    if summary["n_models_substituted"]:
+        warnings.warn(
+            f"{code}: {summary['substituted_capacity_share']:.1%} of fleet capacity "
+            f"simulated on a substitute curve {summary['substitutions']}; see "
+            f"{run_dir / CURVE_RESOLUTION_NAME}."
+        )
+    return summary
 
 
 def _era5_dir(spec: RegionSpec) -> Path:
@@ -137,6 +166,7 @@ def run_train(
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, "train", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
+    curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
 
     for num_clu in spec.cluster_list:
         for time_res in spec.time_slices:
@@ -156,7 +186,11 @@ def run_train(
                 run_dir / f"train_turb_info_{num_clu}.csv", index=False
             )
 
-    write_manifest_safe(run_dir, spec, extra={"run_mode": "train", "fleet_mode": mode})
+    write_manifest_safe(
+        run_dir,
+        spec,
+        extra={"run_mode": "train", "fleet_mode": mode, "curve_resolution": curves},
+    )
     return run_dir
 
 
@@ -208,6 +242,7 @@ def run_evaluate(
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, f"evaluate-{year}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
+    curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
 
     rows = []
 
@@ -283,6 +318,8 @@ def run_evaluate(
         ])
 
     metrics_df = pd.DataFrame(rows)
+    # Every variant simulates the same fleet on the same table.
+    metrics_df["substituted_capacity_share"] = curves["substituted_capacity_share"]
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
@@ -291,6 +328,7 @@ def run_evaluate(
             "run_mode": "evaluate",
             "evaluation_year": year,
             "trained_from": str(train_run_dir),
+            "curve_resolution": curves,
         },
     )
     return run_dir
@@ -492,6 +530,7 @@ def run_transfer(
     model = get_correction(target_spec.correction_model)
     run_dir = _run_dir(out_root, target_spec, f"transfer-from-{source_spec.code}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
+    curves = _record_curve_resolution(run_dir, turb_info, power_curves, target_spec.code)
 
     rows = []
 
@@ -531,12 +570,15 @@ def run_transfer(
             _skill_row(cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
         )
 
-    pd.DataFrame(rows).to_csv(run_dir / "metrics.csv", index=False)
+    pd.DataFrame(rows).assign(
+        substituted_capacity_share=curves["substituted_capacity_share"]
+    ).to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
         target_spec,
         extra={
             "run_mode": "transfer",
+            "curve_resolution": curves,
             "transfer_source_region": source_spec.code,
             "transfer_source_run": str(source_run_dir),
             "transfer_semantics": "capacity-weighted-collapse, uniform, season-name-matched",

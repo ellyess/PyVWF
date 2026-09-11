@@ -25,6 +25,23 @@ from vwf.utils import ensure_numeric
 _power_curve_cache: dict[int, dict[str, Any]] = {}
 
 
+def default_curve_key(power_curves: pd.DataFrame) -> str | None:
+    """The model whose curve stands in for any model the table lacks.
+
+    It is the table's first model column, and its identity decides results:
+    every unit whose model is missing from the table is simulated on this
+    curve (see ``_CurveByModel``), and ``vwf.data._default_power_curve`` assigns
+    it to a country grid with no ``model`` column. For the bundled library it
+    is a 100 kW distributed-wind machine, which is what every country-level run
+    on that library simulated with. ``vwf.harness.provenance.curve_resolution``
+    calls this too, so the resolution log cannot disagree with the simulation,
+    and ``tests/test_curve_resolution.py`` pins its value for the bundled
+    library so that reordering the table cannot change results unnoticed.
+    """
+    cols = [c for c in power_curves.columns if c != "data$speed"]
+    return cols[0] if cols else None
+
+
 class _CurveByModel(dict):
     """Model name -> Akima power-curve interpolator, with a warned fallback.
 
@@ -77,7 +94,7 @@ def _get_power_curve_cache(powerCurveFile):
     model_cols = [m for m in powerCurveFile.columns if m != "data$speed"]
     curve_by_model = _CurveByModel(
         {m: Akima1DInterpolator(x, powerCurveFile[m].to_numpy()) for m in model_cols},
-        default_model=model_cols[0] if model_cols else None,
+        default_model=default_curve_key(powerCurveFile),
     )
     _power_curve_cache[cache_key] = {
         "columns": columns,
