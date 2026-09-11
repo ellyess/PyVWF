@@ -49,6 +49,12 @@ anyone remembering:
 | ‡ | The gain cannot be distinguished from zero when the test year's units are resampled. | the correction notice that set it |
 | § | `extrapolated_capacity_share` is above zero: part of the fleet lies outside the loaded ERA5 extent, and its winds were extrapolated. The share is stated beside the marker. | `extrapolated_capacity_share`, in the row's `metrics.csv` |
 
+`fit_quality` also reports, beside the dagger, the worst shares of training
+steps a fitted pair sends below 0 m/s or above the power curve
+(`max_below_zero_share`, `max_above_curve_share`, `max_period_dropped_share`).
+They do not set the dagger. A bound on them needs its own pre-registered
+calibration against the archive, as the scalar bounds had.
+
 A row with a non-zero extrapolated share carries § whether or not its region
 opted in to extrapolation. Opting in lets the run finish; it does not make the
 number sound. For a row run before the field existed, the share comes from the

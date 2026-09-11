@@ -57,7 +57,38 @@ _PARALLEL_OFFSET_MIN_ROWS = 500
 PLAUSIBLE_SCALAR = (0.2, 3.0)
 
 
-def fit_quality(factors: pd.DataFrame, scalar_bounds=PLAUSIBLE_SCALAR) -> dict:
+def _off_curve_quality(diagnostics: pd.DataFrame | None) -> dict:
+    """The worst off-curve shares in a ``wind.fit_diagnostics`` table."""
+    nan = float("nan")
+    if diagnostics is None or diagnostics.empty:
+        return {"max_below_zero_share": nan, "max_above_curve_share": nan,
+                "max_period_dropped_share": nan}
+    slice_col = [c for c in diagnostics.columns if c in ("fixed", "season", "bimonth", "month")][0]
+    per_cluster = diagnostics.groupby(["cluster", slice_col])[
+        ["weight_steps", "weight_below_zero", "weight_above_curve"]].sum()
+    per_period = diagnostics.groupby([slice_col, "year"])[
+        ["weight_steps", "weight_below_zero", "weight_above_curve"]].sum()
+
+    def worst(num: pd.Series, den: pd.Series) -> float:
+        share = (num / den.where(den > 0)).dropna()
+        return float(share.max()) if len(share) else nan
+
+    return {
+        "max_below_zero_share": worst(per_cluster["weight_below_zero"], per_cluster["weight_steps"]),
+        "max_above_curve_share": worst(per_cluster["weight_above_curve"], per_cluster["weight_steps"]),
+        # The share of a whole period's capacity-weighted steps that the fitted
+        # factors drop: for a country-level fit, the share of that period's
+        # objective computed on nothing.
+        "max_period_dropped_share": worst(
+            per_period["weight_below_zero"] + per_period["weight_above_curve"],
+            per_period["weight_steps"],
+        ),
+    }
+
+
+def fit_quality(
+    factors: pd.DataFrame, scalar_bounds=PLAUSIBLE_SCALAR, diagnostics: pd.DataFrame | None = None
+) -> dict:
     """Summarise whether a fitted factors table is physically believable.
 
     Skill metrics alone hide a bad fit: Chile scores as a corrected win at
@@ -70,17 +101,25 @@ def fit_quality(factors: pd.DataFrame, scalar_bounds=PLAUSIBLE_SCALAR) -> dict:
         factors: A fitted factors table with ``cluster`` and ``scalar``, and
             usually ``offset``.
         scalar_bounds: Inclusive ``(low, high)`` plausible range for the scalar.
+        diagnostics: Optional ``wind.fit_diagnostics`` table for the same fit.
+            It adds the worst shares of training steps the fitted factors send
+            below 0 m/s and above the power curve, per cluster and slice, and
+            the worst share of one period's steps dropped. These are recorded
+            beside the dagger and do not set it: a bound on them waits for its
+            own calibration against the archive, as the scalar bounds had.
 
     Returns:
         dict with ``n_clusters``, ``n_implausible_scalar``, ``n_failed_offset``,
-        ``max_scalar``, ``min_scalar`` and ``degenerate_clusters`` (a sorted,
-        comma-joined string, so it survives a CSV round trip).
+        ``max_scalar``, ``min_scalar``, ``degenerate_clusters`` (a sorted,
+        comma-joined string, so it survives a CSV round trip), and
+        ``max_below_zero_share``, ``max_above_curve_share`` and
+        ``max_period_dropped_share`` (NaN without ``diagnostics``).
     """
     if factors is None or factors.empty or "scalar" not in factors.columns:
         return {
             "n_clusters": 0, "n_implausible_scalar": 0, "n_failed_offset": 0,
             "max_scalar": float("nan"), "min_scalar": float("nan"),
-            "degenerate_clusters": "",
+            "degenerate_clusters": "", **_off_curve_quality(None),
         }
     low, high = scalar_bounds
     s = pd.to_numeric(factors["scalar"], errors="coerce")
@@ -103,6 +142,7 @@ def fit_quality(factors: pd.DataFrame, scalar_bounds=PLAUSIBLE_SCALAR) -> dict:
         "max_scalar": float(s.max()) if s.notna().any() else float("nan"),
         "min_scalar": float(s.min()) if s.notna().any() else float("nan"),
         "degenerate_clusters": ",".join(str(c) for c in flagged),
+        **_off_curve_quality(diagnostics),
     }
 
 

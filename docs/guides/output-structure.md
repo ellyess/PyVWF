@@ -9,6 +9,7 @@ output/validation/<CODE>/
 ├── train-<stamp>/
 │   ├── factors_<slice>_<k>.csv        # correction factors, one per (slice, cluster count)
 │   ├── train_turb_info_<k>.csv        # training fleet with cluster assignments
+│   ├── fit_diagnostics_<slice>_<k>.csv # where the fitted factors send the training speeds
 │   ├── curve_resolution.csv           # which power curve each model key resolved to
 │   └── run_manifest.json              # full provenance of the run
 └── evaluate-<year>-<stamp>/
@@ -35,6 +36,25 @@ One row per `(cluster, time-slice)`, with the fitted parameters:
 `<slice>` is the time resolution and `<k>` the cluster count, matching a
 `cluster_list` × `time_slices` entry in the config.
 
+## Fit diagnostics (`fit_diagnostics_<slice>_<k>.csv`)
+
+An affine pair with a negative offset sends every speed below
+`-offset / scalar` to a negative corrected speed. That speed has no value on
+the power curve, so the step drops out of the fit's own objective. The file
+records, for each cluster, slice value and training year:
+
+| Column | Meaning |
+|---|---|
+| `scalar`, `offset` | The fitted pair |
+| `zero_crossing_speed` | `-offset / scalar` where the offset is negative, else empty |
+| `unit_steps` | Training unit-steps in the group |
+| `weight_steps` | The same, capacity-weighted |
+| `weight_below_zero`, `weight_above_curve` | Capacity-weighted steps the pair sends below 0 m/s, and above the curve |
+
+The weighted counts are kept, not shares, so that shares aggregate exactly.
+`fit_quality` reduces them to three columns of `metrics.csv` (below), and the
+train manifest's `fit_diagnostics` block holds them per factors file.
+
 ## Metrics (`metrics.csv`)
 
 One row per variant (the uncorrected baseline plus each factors file), scored on
@@ -52,6 +72,8 @@ the test year:
 | `substituted_capacity_share` | Share of fleet capacity simulated on a curve other than the one its model key names (see below) |
 | `excluded_share` | Share of scorable rows left out because some variant has no value for them (see below) |
 | `extrapolated_capacity_share` | Share of fleet capacity outside the loaded ERA5 extent (see below). Zero unless the region opted in |
+| `max_below_zero_share`, `max_above_curve_share` | From the fit diagnostics: the worst share of one cluster's training steps its pair sends below 0 m/s, and above the curve. Recorded beside the dagger; they do not set it |
+| `max_period_dropped_share` | The worst share of one training period's capacity-weighted steps the fitted factors drop. For a country-level fit, the share of that period's objective computed on nothing |
 | `off_curve_below_share`, `off_curve_above_share`, `no_speed_share` | Capacity-weighted shares of this variant's simulated unit-steps below the power curve, above it, and with no speed (see below) |
 | `unit_months_wholly_missing`, `unit_months_partly_missing` | Unit-months with every step missing, and with some but not all (see below) |
 

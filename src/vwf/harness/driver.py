@@ -204,6 +204,7 @@ def run_train(
     run_dir.mkdir(parents=True, exist_ok=True)
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
     era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
+    fit_record: dict[str, dict] = {}
 
     for num_clu in spec.cluster_list:
         for time_res in spec.time_slices:
@@ -222,12 +223,24 @@ def run_train(
             clus_info.to_csv(
                 run_dir / f"train_turb_info_{num_clu}.csv", index=False
             )
+            # What the fitted pairs do to the speeds they were fitted on: a pair
+            # that sends training days off the curve drops them from its own
+            # objective. Recorded beside the dagger; it does not set it.
+            diagnostics = wind.fit_diagnostics(
+                reanalysis, clus_info, factors, time_res, power_curves,
+                seasons=spec.seasons, years=spec.train_years,
+            )
+            diagnostics.to_csv(run_dir / f"fit_diagnostics_{time_res}_{num_clu}.csv", index=False)
+            fit_record[f"{time_res}_{num_clu}"] = {
+                k: v for k, v in fit_quality(factors, diagnostics=diagnostics).items()
+                if k.startswith("max_") and k.endswith("_share")
+            }
 
     write_manifest_safe(
         run_dir,
         spec,
         extra={"run_mode": "train", "fleet_mode": mode, "curve_resolution": curves,
-               "era5_extent": era5_extent},
+               "era5_extent": era5_extent, "fit_diagnostics": fit_record},
     )
     return run_dir
 
@@ -348,7 +361,9 @@ def run_evaluate(
         # Skill alone hides a bad fit: a region can score as a corrected win
         # while carrying an implausible scalar or an offset that never
         # converged, so the fit diagnostics travel with every corrected row.
-        quality = fit_quality(factors)
+        diagnostics_path = train_run_dir / f"fit_diagnostics_{time_res}_{num_clu}.csv"
+        diagnostics = pd.read_csv(diagnostics_path) if diagnostics_path.is_file() else None
+        quality = fit_quality(factors, diagnostics=diagnostics)
         if quality["n_implausible_scalar"] or quality["n_failed_offset"]:
             warnings.warn(
                 f"{spec.code} {time_res} k={num_clu}: "

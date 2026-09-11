@@ -125,6 +125,84 @@ def off_curve_record(
     }
 
 
+def fit_diagnostics(
+    reanalysis, clus_info: pd.DataFrame, factors: pd.DataFrame, time_res: str,
+    power_curves: pd.DataFrame, seasons=None, years: tuple[int, int] | None = None,
+) -> pd.DataFrame:
+    """Where a fitted correction sends the speeds it was fitted on.
+
+    ``fit_quality`` bounds the scalar and checks that each offset converged. It
+    never asks what the pair does to the speeds it is applied to. An affine
+    pair sends every speed below ``-offset / scalar`` to a negative corrected
+    speed, which has no value on the power curve and drops out of both the fit's
+    objective and the score. In the Spanish country row, clusters 0 and 3 cross
+    zero at 11.7 and 8.9 m/s, and more than half their training days fell below
+    it. This applies each cluster's fitted factors to its own training winds and
+    records how much of them lands off the curve.
+
+    Args:
+        reanalysis: The training reanalysis the factors were fitted on.
+        clus_info: The fitted units, with ``cluster``, ``capacity`` and the
+            columns :func:`interpolate_wind` needs.
+        factors: The fitted factors table (``cluster``, the slice column,
+            ``scalar``, ``offset``).
+        time_res: The time slice the factors were fitted at.
+        power_curves: The power curve table, for its speed range.
+        seasons: Season definitions, as for :func:`correct_wind_speed`.
+        years: Inclusive ``(first, last)`` training years to keep; the loaded
+            reanalysis may hold more.
+
+    Returns:
+        One row per cluster, slice value and year: the scalar and offset, the
+        zero-crossing speed (``-offset / scalar`` where the offset is negative,
+        else NaN), the unit-steps, and the capacity-weighted steps in total,
+        below 0 m/s and above the curve. The weighted counts are kept so that
+        shares aggregate exactly.
+    """
+    ws = interpolate_wind(reanalysis, clus_info).transpose("time", "turbine")
+    times = pd.DatetimeIndex(ws["time"].values)
+    keep = np.ones(len(times), dtype=bool)
+    if years is not None:
+        keep = (times.year >= years[0]) & (times.year <= years[1])
+    speeds = np.asarray(ws.values, dtype=float)[keep]
+    times = times[keep]
+    slices = add_time_resolution_columns(
+        pd.DataFrame({"month": times.month}), seasons
+    )[time_res].to_numpy()
+    grid = power_curves["data$speed"].to_numpy(dtype=float)
+    top, bottom = float(grid.max()), float(grid.min())
+    units = pd.Index(np.asarray(ws["turbine"].values).astype(str))
+    info = clus_info.assign(ID=clus_info["ID"].astype(str)).set_index("ID").loc[units]
+    cluster = info["cluster"].to_numpy()
+    capacity = info["capacity"].to_numpy(dtype=float)
+    rows = []
+    for cl, value, scalar, offset in zip(
+        factors["cluster"], factors[time_res],
+        factors["scalar"].astype(float), factors["offset"].astype(float),
+    ):
+        cols = cluster == cl
+        rows_t = slices == value
+        if not cols.any() or not rows_t.any():
+            continue
+        corrected = speeds[np.ix_(rows_t, cols)] * scalar + offset
+        weight = np.broadcast_to(capacity[cols][None, :], corrected.shape)
+        valid = ~np.isnan(corrected)
+        for year in sorted(set(times[rows_t].year)):
+            in_year = (times[rows_t].year == year)[:, None] & valid
+            rows.append({
+                "cluster": cl, time_res: value, "year": int(year),
+                "scalar": scalar, "offset": offset,
+                "zero_crossing_speed": (
+                    -offset / scalar if offset < 0 and scalar > 0 else float("nan")
+                ),
+                "unit_steps": int(in_year.sum()),
+                "weight_steps": float(weight[in_year].sum()),
+                "weight_below_zero": float(weight[in_year & (corrected < bottom)].sum()),
+                "weight_above_curve": float(weight[in_year & (corrected > top)].sum()),
+            })
+    return pd.DataFrame(rows)
+
+
 # Global cache for power curve interpolators (cleared on module reload).
 # Keyed by id() of the power-curve table; each entry holds the column tuple it
 # was built from (to detect a stale id() reuse), the speed grid, and the

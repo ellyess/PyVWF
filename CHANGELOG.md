@@ -23,6 +23,15 @@ a corrected variant lacks some values.
 
 ### Added
 
+- **Fit diagnostics: what a fitted pair does to its own training speeds.**
+  `fit_quality` bounds the scalar and checks each offset converged, but an
+  affine pair with a negative offset sends every speed below
+  `-offset / scalar` off the curve, and out of its own objective. Train runs
+  now write `fit_diagnostics_<slice>_<k>.csv`: per cluster, slice value and
+  training year, the zero-crossing speed and the capacity-weighted training
+  steps sent below 0 m/s and above the curve. `fit_quality` reports the worst
+  shares, and they reach `metrics.csv`. They are recorded beside the dagger
+  and do not set it until a bound has its own pre-registered calibration.
 - **Off-curve values are counted.** A speed below 0 m/s or above the curve
   table's last speed has no value on the curve, so the capacity factor is
   missing, not zero. A monthly mean skips it. Every variant of an evaluate or
