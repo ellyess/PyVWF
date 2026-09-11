@@ -76,6 +76,16 @@ reproduces exactly on this code.
 - **The section 7 caveat in `method-country-level.md` is reopened.** The DK and
   NZ correlations it had cleared rest mostly on other-maker curves. The notice
   now leaves open whether they hold on each unit's own curves.
+- **The UK and NZ rows do not show that the correction improves those
+  regions.** When the test year's units are resampled, neither row's gain can
+  be distinguished from zero, and in each a few units that the correction
+  makes worse decide the result. For NZ the limit is structural: the fleet has
+  too few farms. The scorecard carries a dated correction notice and marks
+  both rows, and so does the README. `method-cluster-count.md`,
+  `method-physics-informed.md` and `region-nz.md` carry notices where they
+  report UK or NZ skill. The UK fleet is counted in farms, not turbines. AR
+  and AU-NEM are named as resolved only narrowly. The resampling scripts are
+  `scripts/analysis/baseline_bootstrap.py` and `unit_concentration.py`.
 
 ### Documentation
 
