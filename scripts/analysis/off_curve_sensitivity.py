@@ -27,19 +27,25 @@ every variant of all 17 scorecard rows.
 
 Added after the first row (ES) was run, on the same day. ES's uncorrected
 values were missing on the same days as many of its off-curve corrected ones,
-because the uncorrected speed is itself off the curve: the hub-height profile
-``ws100 * ln(h/z0) / ln(100/z0)``, with z0 estimated daily from the 10 m and
-100 m winds, goes negative when z0 lies between hub height and 100 m, and
-blows up as z0 approaches 100 m. Two measurements were added:
+because the uncorrected speed is itself off the curve. Two measurements were
+added:
 
 - ``zero_fill_both``: as ``zero_fill``, and every off-curve uncorrected value
   is also set to 0. The uncorrected speeds are recomputed and checked against
-  ``unc_cf.csv`` first. Zero output is not physical for a speed the profile
-  broke, so this basis only bounds how much the uncorrected side depends on
-  those days;
-- per row, the unit-days where the hub-height profile broke in a contributing
-  ERA5 cell, whether or not the speed lands on the curve (hubs at or below
-  100 m only; see the comment in the code).
+  ``unc_cf.csv`` first. Zero output is not physical for an extrapolated speed,
+  so this basis only bounds how much the uncorrected side depends on those
+  days;
+- per row, the unit-days where the hub-height speed falls outside (0, 1]
+  times the interpolated 100 m speed (hubs at or below 100 m only).
+
+Corrected on the same day: this docstring first blamed ES's off-curve
+uncorrected speeds on the hub-height profile breaking when z0 approaches hub
+height. That cannot happen. ``prep_era5`` clips z0 to 1e-6 to 2 m, so the
+profile is valid at every hub height in use. The off-curve uncorrected speeds
+come from spatial extrapolation: the European ERA5 files stop at 42N, and
+``interpolate_wind`` extrapolates linearly past the grid (``fill_value=None``).
+The ratio count therefore measures extrapolation artefacts, not profile
+failures. No number changes; only the explanation was wrong.
 
 It needs ERA5, the local input root and the git-ignored run tree, so a third
 party cannot run it. Usage, from the repository root, one region per process,
@@ -109,12 +115,11 @@ def main(code, out_dir):
     unc_values[unc_outside] = 0.0
     unc_filled = unc.copy()
     unc_filled[ucols] = unc_values
-    # Unit-days where the hub-height profile broke in at least one contributing
-    # ERA5 cell. Speed is profiled per cell and then interpolated, so the unit's
-    # own z0 is not the test. For a hub at or below 100 m, a valid log profile
-    # gives a hub speed between 0 and the 100 m speed in every cell, and so at
-    # the unit; a ratio outside (0, 1] means some cell's profile was invalid.
-    # Hubs above 100 m are not tested (the valid range has no fixed upper bound).
+    # Unit-days where the hub-height speed is outside (0, 1] times the
+    # interpolated 100 m speed. With z0 clipped to at most 2 m the log profile is
+    # valid in every cell, so for a hub at or below 100 m this ratio can leave
+    # (0, 1] only through the spatial interpolation, which extrapolates past the
+    # grid. Hubs above 100 m are not tested.
     ids = np.asarray(turb_info["ID"], dtype=object)
     at = {
         "lon": xr.DataArray(np.asarray(turb_info["lon"], float), dims="turbine", coords={"turbine": ids}),
