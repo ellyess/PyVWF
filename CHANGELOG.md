@@ -7,23 +7,57 @@ PyVWF adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the major version is 0, the public API may change in a minor release.
 
 The version is defined once, in `vwf.__version__`; `pyproject.toml` reads it
-from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
+from there, and `tests/test_packaging.py` asserts that `CITATION.cff` and the
+newest release in this file stay in step with it.
 
 ## [Unreleased]
 
+Changes since 0.5.1 make the power curve behind every number a recorded fact: a
+run says which curve each unit was actually simulated on, and the scorecard
+says how much of each fleet runs on a curve from a different manufacturer from
+the turbine's own. No correction, clustering or curve-matching behaviour
+changes: the golden regression test is untouched, and every scorecard row
+reproduces exactly on this code.
+
 ### Added
 
-- Curve resolution logging. Every harness train, evaluate and transfer run
+- **Curve resolution logging.** Every harness train, evaluate and transfer run
   writes `curve_resolution.csv`, recording for each model key the fleet
-  requests whether the curve table has it, which curve was actually used, that
-  curve's sha256, and whether it is an open-library curve. The manifest
-  carries a summary, and `metrics.csv` gains `substituted_capacity_share` on
-  every row. A model missing from the table used to be visible only as a
-  one-off warning, which is how every country-level run on the bundled library
-  came to simulate a 100 kW distributed-wind turbine unnoticed. Recording
-  only: the fallback itself is unchanged, and a test now pins its identity.
+  requests:
+  - whether `power_curves.csv` has it;
+  - which curve was actually used, and that curve's sha256;
+  - whether that curve is an open-library curve.
+
+  The manifest carries a summary, and `metrics.csv` gains
+  `substituted_capacity_share` on every row. A model missing from the table
+  used to be visible only as a one-off warning, which is how every
+  country-level run on the bundled library came to simulate a 100 kW
+  distributed-wind turbine unnoticed. Recording only: the fallback itself is
+  unchanged, and a test now pins its identity. `run_hindcast` and the legacy
+  `PyVWF` path are not covered; `docs/guides/output-structure.md` says so.
 - `add_models` adds a `model_match` column naming the tier that matched each
-  turbine: `fuzzy-manufacturer+specific-power` or `specific-power-only`.
+  turbine: `fuzzy-manufacturer+specific-power` or `specific-power-only`. The
+  manufacturer tier is loose (a difflib cutoff of 0.3 lets "ewt" match
+  "vestasv"), and the tier name says so; matching itself is unchanged.
+- **Cross-manufacturer curve audit** (`scripts/analysis/curve_match_audit.py`),
+  comparing each unit's own manufacturer with the manufacturer of the curve it
+  was assigned. The scorecard's turbine table gains Other brand, Reference
+  curve and Unverifiable columns from it. Whether held-out skill survives
+  specific-power matching is not assessed; it is an open question for a curve
+  library study.
+- `tests/test_packaging.py` ties the newest CHANGELOG release, its compare links
+  and the `CITATION.cff` release date to `vwf.__version__`.
+
+### Fixed
+
+- **Only four scorecard rows depend on the licensed curve library** (DE, DK, UK,
+  US), not seven. AU-NEM, BR and NZ were run with it but simulate only on
+  curves the open library also contains, and reproduce byte for byte on the
+  open library. The scorecard, the 0.4.0 correction note and the 0.5.1 entry
+  are corrected in place.
+- **The section 7 caveat in `method-country-level.md` is reopened.** The DK and
+  NZ correlations it had cleared rest mostly on other-maker curves. The notice
+  now leaves open whether they hold on each unit's own curves.
 
 ## [0.5.1] - 2026-09-11
 
