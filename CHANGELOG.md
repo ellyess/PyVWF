@@ -47,6 +47,11 @@ reproduces exactly on this code.
   library study.
 - `tests/test_packaging.py` ties the newest CHANGELOG release, its compare links
   and the `CITATION.cff` release date to `vwf.__version__`.
+- **`CONTEXT.md`, the project's controlled vocabulary.** One approved term per
+  concept, one sense per term, with the rejected synonyms listed. It resolves
+  collisions that had already caused errors, among them four senses of
+  "fallback" and "curve table" meaning two different files. Procedural
+  documents use only its terms. Nothing loads it automatically yet.
 
 ### Fixed
 
