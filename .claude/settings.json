@@ -4,6 +4,7 @@
     "deny": [
       "Bash(git tag *)",
       "Bash(gh release *)",
+      "Bash(gh pr merge *)",
       "Bash(git push)",
       "Bash(git push *main*)",
       "Bash(git push *HEAD*)",

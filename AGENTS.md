@@ -51,7 +51,8 @@ They live in `.claude/skills/`.
 
 `.claude/settings.json` denies these commands to Claude Code:
 
-- `git tag`, and `gh release`;
+- `git tag`, `gh release`, and `gh pr merge`, which merges to `main` by another
+  route;
 - a bare `git push`, which pushes the current branch, and that may be `main`;
 - a push whose command names `main`, `HEAD`, `--tags`, `--follow-tags`,
   `--mirror`, `--all`, `refs/tags/`, `tag`, or a version-shaped name such as
