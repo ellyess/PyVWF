@@ -329,12 +329,15 @@ throughout.
 | France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | 100% |
 | Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | 100% |
 | Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | 100% |
-| Sweden (SE) | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | 100% |
-| Norway (NO) | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | 100% |
+| Sweden (SE) § 0.8% | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | 100% |
+| Norway (NO) § 4.4% | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | 100% |
 
-NO has 4.4% and SE 0.8% of capacity outside the ERA5 data, which the harness
-extrapolated (suspension notice above). Both get the same ERA5 download as the
-suspended rows.
+**§ Part of the fleet lies outside the loaded ERA5 extent, and its winds were
+extrapolated; the share of capacity follows the marker** (suspension notice
+above; the rule is in `docs/README.md`). These two rows were run before the
+harness recorded `extrapolated_capacity_share`, so their shares come from the
+extent check of 2026-09-11. They get the same ERA5 download as the suspended
+rows, and return either clean or still marked.
 
 **Suspended rows.** Not results: most of their capacity was simulated from
 winds extrapolated beyond the ERA5 data (suspension notice above). The

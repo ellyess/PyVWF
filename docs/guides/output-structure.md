@@ -51,6 +51,7 @@ the test year:
 | `n_units`, `n_samples` | Fleet size and paired observations scored, the same for every variant |
 | `substituted_capacity_share` | Share of fleet capacity simulated on a curve other than the one its model key names (see below) |
 | `excluded_share` | Share of scorable rows left out because some variant has no value for them (see below) |
+| `extrapolated_capacity_share` | Share of fleet capacity outside the loaded ERA5 extent (see below). Zero unless the region opted in |
 
 Read the uncorrected row first: judge the correction against the bias structure
 it starts from, not in isolation.
@@ -62,7 +63,8 @@ Full provenance so any output is attributable: `pyvwf_version`, `git_commit` and
 time convention), `correction`, `seasons`, the `curve_library` identity (whether
 the open or a licensed library was used), the `curve_resolution` summary, and,
 for evaluate runs, `evaluation_year` and `trained_from`. Design §6. Evaluate and
-transfer runs also carry the `common_row_scoring` summary.
+transfer runs also carry the `common_row_scoring` summary. Every harness run
+carries the `era5_extent` block (see below).
 
 ## Curve resolution (`curve_resolution.csv`)
 
@@ -88,6 +90,31 @@ substitution map, the open and external shares of capacity, and capacity by
 into every row of `metrics.csv`. A non-zero share also raises a warning at run
 time. Any result from a run with a non-zero share was not simulated on the
 fleet's own curves, and should be read with that share beside it.
+
+## Loaded ERA5 extent (`era5_extent`)
+
+The loaded extent is the lon/lat range of the ERA5 grid a run loaded, after its
+bbox slice. A unit inside it has its winds interpolated between grid cells. A
+unit outside it would have its winds extrapolated from the edge of the grid.
+
+- By default, a unit outside the loaded extent stops the run with an
+  `ExtrapolationError`.
+- `prep_era5` warns when the ERA5 files stop short of the requested bbox.
+- A region can opt in with `[era5] allow_extrapolation = true`. The run then
+  finishes, and records the share.
+
+The manifest's `era5_extent` block records the loaded extent, the requested
+bbox, the units outside and their capacity share, the furthest distance
+outside, and whether the region opted in. It is written for every run, with
+zeros when nothing is outside.
+
+Inside the loaded extent is a statement about position only. It does not
+check the data in those cells. A unit can sit inside the extent over cells
+whose values are unusable. Off-curve and missing values are counted
+separately.
+
+A scorecard row with a non-zero `extrapolated_capacity_share` carries the §
+marker and the share (`docs/README.md`).
 
 ## Scoring exclusions (`scoring_exclusions.csv`)
 

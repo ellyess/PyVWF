@@ -102,6 +102,36 @@ def _record_curve_resolution(
     return summary
 
 
+def _record_era5_extent(reanalysis, fleet: pd.DataFrame, spec: RegionSpec) -> dict:
+    """Where the fleet lies against the loaded ERA5 extent, for the run record.
+
+    A run only gets here with units outside the extent if its region opted in
+    (``[era5] allow_extrapolation = true``); otherwise ``interpolate_wind``
+    has already refused. The record is written either way, with zeros when
+    nothing is outside, so an absent value never needs interpreting. Inside the
+    loaded extent is a statement about position, not a check of the data in
+    those cells; off-curve and missing values are counted separately.
+    """
+    coverage = wind.loaded_extent_coverage(reanalysis, fleet)
+    record = {
+        **coverage,
+        "requested_bbox": list(spec.bbox),
+        "allow_extrapolation": bool(spec.allow_extrapolation),
+        "meaning": (
+            "units inside the loaded ERA5 extent are interpolated, not extrapolated; "
+            "this does not verify the data in those cells"
+        ),
+    }
+    if coverage["units_outside_loaded_extent"]:
+        warnings.warn(
+            f"{spec.code}: {coverage['capacity_share_outside_loaded_extent']:.1%} of fleet "
+            "capacity lies outside the loaded ERA5 extent and was simulated from "
+            "extrapolated winds ([era5] allow_extrapolation = true). Any scorecard row "
+            "from this run carries the extrapolation marker and the share."
+        )
+    return record
+
+
 def _era5_dir(spec: RegionSpec) -> Path:
     return PyVWFPaths.INPUT_ROOT / spec.era5_path
 
@@ -166,12 +196,14 @@ def run_train(
         source=source,
         era5_dir=_era5_dir(spec),
         bbox=spec.bbox,
+        allow_extrapolation=spec.allow_extrapolation,
     )
 
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, "train", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
+    era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
 
     for num_clu in spec.cluster_list:
         for time_res in spec.time_slices:
@@ -194,7 +226,8 @@ def run_train(
     write_manifest_safe(
         run_dir,
         spec,
-        extra={"run_mode": "train", "fleet_mode": mode, "curve_resolution": curves},
+        extra={"run_mode": "train", "fleet_mode": mode, "curve_resolution": curves,
+               "era5_extent": era5_extent},
     )
     return run_dir
 
@@ -242,12 +275,14 @@ def run_evaluate(
         source=source,
         era5_dir=_era5_dir(spec),
         bbox=spec.bbox,
+        allow_extrapolation=spec.allow_extrapolation,
     )
 
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, f"evaluate-{year}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
+    era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
 
     # A zonal source can also be scored zone by zone. The national metric is the
     # joint optimiser's own objective, so it favours a national fit by
@@ -335,6 +370,7 @@ def run_evaluate(
     metrics_df["excluded_share"] = metrics_df["scope"].map(
         {scope: summary["excluded_share"] for scope, summary in scoring.items()}
     )
+    metrics_df["extrapolated_capacity_share"] = era5_extent["capacity_share_outside_loaded_extent"]
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
@@ -345,6 +381,7 @@ def run_evaluate(
             "trained_from": str(train_run_dir),
             "curve_resolution": curves,
             "common_row_scoring": scoring,
+            "era5_extent": era5_extent,
         },
     )
     return run_dir
@@ -647,12 +684,14 @@ def run_transfer(
         source=target_source,
         era5_dir=_era5_dir(target_spec),
         bbox=target_spec.bbox,
+        allow_extrapolation=target_spec.allow_extrapolation,
     )
 
     model = get_correction(target_spec.correction_model)
     run_dir = _run_dir(out_root, target_spec, f"transfer-from-{source_spec.code}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, target_spec.code)
+    era5_extent = _record_era5_extent(reanalysis, turb_info, target_spec)
 
     def _variant(sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
         tidy = collapse_pseudo_replicates(_tidy_eval_frame(sim_cf, obs_cf, turb_info), target_spec)
@@ -699,6 +738,7 @@ def run_transfer(
     pd.DataFrame(rows).drop(columns="scope").assign(
         substituted_capacity_share=curves["substituted_capacity_share"],
         excluded_share=scoring["fleet"]["excluded_share"],
+        extrapolated_capacity_share=era5_extent["capacity_share_outside_loaded_extent"],
     ).to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
@@ -711,6 +751,7 @@ def run_transfer(
             "transfer_semantics": "capacity-weighted-collapse, uniform, season-name-matched",
             "evaluation_year": year,
             "common_row_scoring": scoring,
+            "era5_extent": era5_extent,
         },
     )
     return run_dir

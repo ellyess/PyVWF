@@ -427,6 +427,7 @@ def train_set(
     external_obs_data: pd.DataFrame | None = None,
     era5_dir=None,
     bbox=None,
+    allow_extrapolation=False,
 ):
     """Prepare training inputs for PyVWF.
 
@@ -462,7 +463,8 @@ def train_set(
         turb_info["model"] = fix_turb
 
     # prep era5 + curves once
-    reanalysis = prep_era5(country, True, calc_z0, bbox=bbox, era5_dir=era5_dir)
+    reanalysis = prep_era5(country, True, calc_z0, bbox=bbox, era5_dir=era5_dir,
+                           allow_extrapolation=allow_extrapolation)
     power_curves = load_power_curves()
 
     # -------------------------
@@ -571,7 +573,7 @@ def train_set(
     return gen_cf, turb_info, reanalysis, power_curves
 
 
-def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None, era5_dir=None, bbox=None):
+def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None, era5_dir=None, bbox=None, allow_extrapolation=False):
     """Prepare validation data for a country.
 
     Args:
@@ -590,6 +592,8 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
             harness). Default None keeps the legacy location.
         bbox: Optional bounding box forwarded to prep_era5. Default None keeps
             the legacy BoundingBoxes lookup.
+        allow_extrapolation: Forwarded to prep_era5. Default False refuses
+            units outside the loaded ERA5 extent.
 
     Returns:
         Tuple of observations, turbine metadata, reanalysis, and power curves.
@@ -604,7 +608,8 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         turb_info["model"] = fix_turb
 
     # preping era5 for val
-    reanalysis = prep_era5(country, False, calc_z0, bbox=bbox, era5_dir=era5_dir)
+    reanalysis = prep_era5(country, False, calc_z0, bbox=bbox, era5_dir=era5_dir,
+                           allow_extrapolation=allow_extrapolation)
 
     # Filter to test year only
     if year_test is not None:

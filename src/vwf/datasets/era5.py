@@ -2,6 +2,8 @@
 from pathlib import Path
 
 import xarray as xr
+import warnings
+
 import numpy as np
 
 from vwf.config import BoundingBoxes, PyVWFPaths
@@ -73,8 +75,29 @@ def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.D
 
     return ds.sel(lon=slice(lon_min, lon_max), lat=lat_slice)
 
+def _extent_shortfall(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> dict[str, float]:
+    """How far, per side, the loaded grid stops short of the requested bbox.
+
+    A shortfall of up to one grid step is normal (the bbox need not fall on
+    grid lines), so only sides short by more than one step are returned.
+    """
+    lon = np.asarray(ds["lon"].values, dtype=float)
+    lat = np.asarray(ds["lat"].values, dtype=float)
+    if lon.size == 0 or lat.size == 0:
+        return {"west": float("inf")}
+    step_lon = float(np.min(np.abs(np.diff(np.sort(lon))))) if lon.size > 1 else 0.25
+    step_lat = float(np.min(np.abs(np.diff(np.sort(lat))))) if lat.size > 1 else 0.25
+    lon_min, lon_max, lat_min, lat_max = bbox
+    short = {
+        "west": lon.min() - lon_min, "east": lon_max - lon.max(),
+        "south": lat.min() - lat_min, "north": lat_max - lat.max(),
+    }
+    steps = {"west": step_lon, "east": step_lon, "south": step_lat, "north": step_lat}
+    return {side: float(d) for side, d in short.items() if d > steps[side] + 1e-9}
+
+
 def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
-              resample_daily=True):
+              resample_daily=True, allow_extrapolation=False):
     """Preprocess ERA5 reanalysis data.
 
     Args:
@@ -94,6 +117,11 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             wind, and a run at native resolution is a materially different model,
             not a finer view of the same one. Default True so existing results
             and the golden regression path are unchanged.
+        allow_extrapolation: Attached to the returned dataset, where
+            ``vwf.wind.interpolate_wind`` reads it: whether units outside the
+            loaded extent may have their winds extrapolated. Default False, so
+            such units are refused. A region opts in with
+            ``[era5] allow_extrapolation = true``.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.
@@ -119,6 +147,18 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             bbox = BoundingBoxes.get(country)
     if bbox is not None:
         ds = _slice_bbox(ds, bbox)
+        # The cheap check: a download that stops short of the box would leave
+        # units beyond the data. The ES, IT and PT country boxes reach south of
+        # the European files' 42N edge, and nothing said so at load time.
+        shortfall = _extent_shortfall(ds, bbox)
+        if shortfall:
+            sides = ", ".join(f"{side} by {d:.2f} degrees" for side, d in shortfall.items())
+            warnings.warn(
+                f"ERA5 for {country} stops short of the requested bbox {tuple(bbox)}: "
+                f"{sides} (files in {data_dir}). Units beyond the data are refused "
+                "unless the region allows extrapolation.",
+                stacklevel=2,
+            )
 
     ds = ds.load()  # now load only the sliced subset
 
@@ -193,5 +233,8 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
         lat=np.round(ds.lat.astype(float), 5),
     )
 
+    from vwf.wind import EXTRAPOLATION_ATTR
+
+    ds.attrs[EXTRAPOLATION_ATTR] = bool(allow_extrapolation)
     print("ERA5 for " + country + " ready")
     return ds

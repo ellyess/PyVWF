@@ -84,6 +84,11 @@ When a result enters `docs/findings/scorecard.md`:
   country-level row, fill the substituted column.
 - Mark a degenerate fit with a dagger, and add its fit quality to the table
   under the scorecard.
+- Mark a row whose `extrapolated_capacity_share` is above zero with §, and
+  state the share beside it. Read the value from the row's `metrics.csv`. The
+  rule holds even when the region opted in (`[era5] allow_extrapolation =
+  true`): opting in lets the run finish, and does not make the number sound.
+  The markers and their rules are in `docs/README.md`.
 
 ## CHANGELOG
 

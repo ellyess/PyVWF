@@ -54,6 +54,7 @@ class RegionSpec:
     pseudo_replicated_rows: bool = False
     station_id_regex: str | None = None
     time_convention: str = "utc-monthly-bins"
+    allow_extrapolation: bool = False
 
 
 def season_of_month(spec: RegionSpec) -> dict[int, str]:
@@ -166,6 +167,10 @@ def load_region(path: str | Path) -> RegionSpec:
     if not era5_path or not file_tag:
         _fail(path, "[era5] path and file_tag must be non-empty")
 
+    allow_extrapolation = era5.get("allow_extrapolation", False)
+    if not isinstance(allow_extrapolation, bool):
+        _fail(path, f"[era5] allow_extrapolation must be true or false, got {allow_extrapolation!r}")
+
     bbox_raw = _require(era5, "era5", "bbox", path)
     if (
         not isinstance(bbox_raw, list)
@@ -246,4 +251,5 @@ def load_region(path: str | Path) -> RegionSpec:
         pseudo_replicated_rows=pseudo,
         station_id_regex=station_regex,
         time_convention=time_convention,
+        allow_extrapolation=allow_extrapolation,
     )

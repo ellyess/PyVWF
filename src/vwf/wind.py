@@ -18,6 +18,63 @@ from scipy.interpolate import Akima1DInterpolator
 from vwf.time_utils import add_time_resolution_columns
 from vwf.utils import ensure_numeric
 
+#: Dataset attribute carrying whether a run may extrapolate winds beyond the
+#: loaded ERA5 extent. ``prep_era5`` sets it; ``interpolate_wind`` reads it, so
+#: the permission travels with the data through every path that simulates.
+EXTRAPOLATION_ATTR = "pyvwf_allow_extrapolation"
+
+
+class ExtrapolationError(ValueError):
+    """Units lie outside the loaded ERA5 extent and extrapolation is not allowed."""
+
+
+def loaded_extent_coverage(reanalysis, turb_info) -> dict[str, Any]:
+    """Where a fleet's units lie relative to the loaded ERA5 extent.
+
+    The loaded extent is the lon/lat range of the grid a run actually loaded,
+    after the bbox slice. A unit inside it has its winds interpolated between
+    grid cells; a unit outside it would have them extrapolated linearly from
+    the edge of the grid, which produces winds from data that does not exist
+    (the European download stops at 42N, and Spanish grid points five degrees
+    south of it were simulated at speeds down to -57.7 m/s).
+
+    Inside the loaded extent is a statement about position only. It does not
+    verify the data in the surrounding cells: a unit can sit inside the extent
+    over cells whose values are unusable. Off-curve and missing values are
+    counted separately.
+
+    Args:
+        reanalysis: Dataset with ``lon`` and ``lat`` coordinates.
+        turb_info: Units with ``ID``, ``lon``, ``lat`` and ``capacity``.
+
+    Returns:
+        The loaded extent, the number and capacity share of units outside it,
+        how far outside the furthest one lies (degrees), and up to ten of their
+        IDs.
+    """
+    lon = np.asarray(reanalysis["lon"].values, dtype=float)
+    lat = np.asarray(reanalysis["lat"].values, dtype=float)
+    lon_min, lon_max, lat_min, lat_max = lon.min(), lon.max(), lat.min(), lat.max()
+    x = np.asarray(turb_info["lon"], dtype=float)
+    y = np.asarray(turb_info["lat"], dtype=float)
+    capacity = np.asarray(turb_info["capacity"], dtype=float)
+    beyond = np.maximum.reduce(
+        [lon_min - x, x - lon_max, lat_min - y, y - lat_max, np.zeros_like(x)]
+    )
+    outside = beyond > 1e-9
+    total = float(np.nansum(capacity))
+    return {
+        "loaded_extent": [float(lon_min), float(lon_max), float(lat_min), float(lat_max)],
+        "units": int(len(x)),
+        "units_outside_loaded_extent": int(outside.sum()),
+        "capacity_share_outside_loaded_extent": (
+            float(np.nansum(capacity[outside])) / total if total > 0 else 0.0
+        ),
+        "max_degrees_outside_loaded_extent": float(beyond.max()) if len(x) else 0.0,
+        "ids_outside": [str(i) for i in np.asarray(turb_info["ID"])[outside][:10]],
+    }
+
+
 # Global cache for power curve interpolators (cleared on module reload).
 # Keyed by id() of the power-curve table; each entry holds the column tuple it
 # was built from (to detect a stale id() reuse), the speed grid, and the
@@ -221,16 +278,46 @@ def simulate_country_cf(
     return country_cf.to_series()
 
 
-def interpolate_wind(reanalysis, turb_info):
+def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None = None):
     """Interpolate reanalysis wind speeds to turbine locations.
+
+    Refuses by default when any unit lies outside the loaded ERA5 extent:
+    ``xarray``'s interpolation is called with ``fill_value=None``, which would
+    otherwise extrapolate linearly past the grid without a warning. Passing
+    this check means the units lie inside the loaded extent. It does not verify
+    the data in those cells (see :func:`loaded_extent_coverage`).
 
     Args:
         reanalysis: Reanalysis dataset with wind fields.
         turb_info: Turbine metadata with lon/lat/height.
+        allow_extrapolation: Permit units outside the loaded extent. None (the
+            default) reads the permission ``prep_era5`` attached to the
+            dataset, which is False unless a run opted in.
 
     Returns:
         DataArray of interpolated wind speeds.
+
+    Raises:
+        ExtrapolationError: If a unit lies outside the loaded extent and
+            extrapolation is not allowed.
     """
+    if allow_extrapolation is None:
+        allow_extrapolation = bool(reanalysis.attrs.get(EXTRAPOLATION_ATTR, False))
+    coverage = loaded_extent_coverage(reanalysis, turb_info)
+    if coverage["units_outside_loaded_extent"] and not allow_extrapolation:
+        lon_min, lon_max, lat_min, lat_max = coverage["loaded_extent"]
+        raise ExtrapolationError(
+            f"{coverage['units_outside_loaded_extent']} of {coverage['units']} units "
+            f"({coverage['capacity_share_outside_loaded_extent']:.1%} of capacity) lie "
+            f"outside the loaded ERA5 extent (lon {lon_min} to {lon_max}, lat {lat_min} "
+            f"to {lat_max}), up to {coverage['max_degrees_outside_loaded_extent']:.2f} "
+            f"degrees beyond it; for example {coverage['ids_outside'][:5]}. Their winds "
+            "would be extrapolated from the edge of the grid, not interpolated. Download "
+            "ERA5 that covers them, or opt in with [era5] allow_extrapolation = true "
+            "(allow_extrapolation=True outside the harness), which records the share "
+            "and marks any scorecard result. Passing this check means only that units "
+            "lie inside the loaded extent; it does not verify the data in those cells."
+        )
     reanalysis = reanalysis.assign_coords(height=("height", turb_info["height"].unique()))
 
     EPS = 1e-6  # meters

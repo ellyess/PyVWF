@@ -37,6 +37,23 @@ answer changes, and git holds its history. Every result states its training
 years and its single test year. A correction to a published claim is a dated
 correction notice at the top of the document, never a quiet edit.
 
+### Scorecard markers
+
+A scorecard row carries a marker when its number does not mean what it would
+mean alone. The markers are set by rule, from the run's records, not by
+anyone remembering:
+
+| Marker | Set when | Read from |
+|---|---|---|
+| † | The fit is degenerate: a scalar outside 0.2 to 3.0, or an offset that did not converge. | `fit_quality`, in the row's `metrics.csv` |
+| ‡ | The gain cannot be distinguished from zero when the test year's units are resampled. | the correction notice that set it |
+| § | `extrapolated_capacity_share` is above zero: part of the fleet lies outside the loaded ERA5 extent, and its winds were extrapolated. The share is stated beside the marker. | `extrapolated_capacity_share`, in the row's `metrics.csv` |
+
+A row with a non-zero extrapolated share carries § whether or not its region
+opted in to extrapolation. Opting in lets the run finish; it does not make the
+number sound. For a row run before the field existed, the share comes from the
+region's extent check, and the row cites it.
+
 The findings tree is excluded from the built site on purpose. Several documents
 record negative results whose value is the reasoning rather than the number.
 Publishing them as site pages would present run-specific figures as guidance.

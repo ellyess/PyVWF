@@ -99,8 +99,14 @@ class PyVWF:
         fix_turb=None,
         *,
         obs_level: str = "turbine",
+        allow_extrapolation: bool = False,
     ):
-        """Initialize the PyVWF object and create output folders."""
+        """Initialize the PyVWF object and create output folders.
+
+        ``allow_extrapolation`` permits units outside the loaded ERA5 extent,
+        whose winds are then extrapolated past the grid. Default False refuses
+        them (``vwf.wind.ExtrapolationError``).
+        """
         if obs_level not in ("turbine", "country"):
             raise ValueError("obs_level must be one of: 'turbine', 'country'")
 
@@ -219,6 +225,7 @@ class PyVWF:
         self.directory_path = directory_path
         self.correct = correct
         self.calc_z0 = calc_z0
+        self.allow_extrapolation = allow_extrapolation
 
     def _write_run_manifest(self, run_mode: str, **extra) -> None:
         """Best-effort provenance manifest for legacy runs (never aborts).
@@ -520,6 +527,7 @@ class PyVWF:
             fix_turb=self.fix_turb,
             obs_level=self.obs_level,
             source=self.source_train,
+            allow_extrapolation=self.allow_extrapolation,
         )
 
         # Store training data for downstream access
@@ -788,6 +796,7 @@ class PyVWF:
             fix_turb_test,
             obs_level=self.obs_level,
             source=self.source_test,
+            allow_extrapolation=self.allow_extrapolation,
         )
 
         obs_cf.to_csv(

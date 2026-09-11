@@ -91,7 +91,8 @@ def run_hindcast(
     power_curves = load_power_curves()
 
     # Full-window reanalysis (no year filter): the length of the context.
-    reanalysis = prep_era5(spec.code, False, calc_z0, bbox=spec.bbox, era5_dir=era5_dir)
+    reanalysis = prep_era5(spec.code, False, calc_z0, bbox=spec.bbox, era5_dir=era5_dir,
+                           allow_extrapolation=spec.allow_extrapolation)
 
     # Cluster the fleet against the training fleet so the factors' cluster ids align.
     train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")

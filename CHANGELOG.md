@@ -23,6 +23,13 @@ a corrected variant lacks some values.
 
 ### Added
 
+- **The loaded ERA5 extent is recorded for every harness run.** The manifest
+  gains an `era5_extent` block: the loaded extent, the requested bbox, the
+  units outside and their capacity share, and whether the region opted in.
+  `metrics.csv` gains `extrapolated_capacity_share`, and `prep_era5` warns
+  when the ERA5 files stop short of the requested bbox. `CONTEXT.md` defines
+  the loaded extent and the extrapolated share, and `docs/README.md` states
+  the scorecard markers and their rules.
 - **Curve resolution logging.** Every harness train, evaluate and transfer run
   writes `curve_resolution.csv`, recording for each model key the fleet
   requests:
@@ -67,6 +74,20 @@ a corrected variant lacks some values.
   collisions that had already caused errors, among them four senses of
   "fallback" and "curve table" meaning two different files. Procedural
   documents use only its terms. Nothing loads it automatically yet.
+
+### Changed
+
+- **A unit outside the loaded ERA5 extent stops the run.** `interpolate_wind`
+  extrapolated winds linearly past the grid without a warning, and the IT, PT
+  and ES country rows were simulated that way. It now raises
+  `ExtrapolationError`, naming the units, their capacity share, how far
+  outside they lie, and the two remedies. A region can opt in with
+  `[era5] allow_extrapolation = true` (`allow_extrapolation=True` on the
+  legacy `PyVWF` class). The run then finishes and records the share, and any
+  scorecard row from it carries the § marker by rule (`docs/README.md`). The
+  permission travels with the loaded dataset, so every path that simulates is
+  covered. Passing the check means the units lie inside the loaded extent. It
+  does not verify the data in those cells.
 
 ### Fixed
 

@@ -175,16 +175,21 @@ mismatch is not yet assessed.
 
 **National level** (ENTSO-E aggregate, held-out 2023): France 0.171 →
 **0.012**, Belgium 0.340 → **0.020**, Ireland 0.172 → **0.021**, Sweden 0.088 →
-**0.030**. Italy, Portugal and Spain are suspended: half or more of their capacity lies
-outside the ERA5 data the harness was given, so their winds were extrapolated,
-not simulated. They return once ERA5 covers them (see the scorecard). All the
+**0.030** §. Italy, Portugal and Spain are suspended: half or more of their
+capacity lies outside the ERA5 data the harness was given, so their winds were
+extrapolated, not simulated. They return once ERA5 covers them (see the
+scorecard). All the
 country rows were simulated on one fallback curve, a 100 kW
 distributed-wind turbine, because their grids name Vestas models the bundled
 open library does not contain, and how much of each reduction reflects that
 mismatch rather than ERA5 bias is not yet quantified.
 
-**Where it does not work.** Norway is close to unbiased uncorrected and the
-correction makes it worse (0.034 → 0.039). The Netherlands is excluded: an
+**§ Extrapolated winds.** Part of the fleet lies outside the ERA5 data the run
+loaded, and its winds were extrapolated past the grid: 0.8% of capacity in
+Sweden and 4.4% in Norway. The scorecard marks every such row with the share.
+
+**Where it does not work.** Norway (§ 4.4%) is close to unbiased uncorrected
+and the correction makes it worse (0.034 → 0.039). The Netherlands is excluded: an
 ENTSO-E coverage defect caps its reported capacity factor and no rescaling
 repairs it. Chile and Argentina remove the mean bias but add limited skill,
 because ERA5 exaggerates the north-south wind gradient in both. The United
