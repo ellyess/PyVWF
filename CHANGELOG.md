@@ -56,6 +56,10 @@ reproduces exactly on this code.
   tracked, or if either copy of the open library differs from its recorded
   sha256. A third skill, `provenance-guard`, runs it with the packaging and
   curve-library tests before any release-shaped action.
+- **`AGENTS.md`**, the standing rules for coding agents, imported by
+  `.claude/CLAUDE.md` so Claude Code loads it with `CONTEXT.md`. A committed
+  `.claude/settings.json` denies tagging, releases, and pushes to `main` or
+  of tags; `AGENTS.md` gives the reason and the limits.
 - **`CONTEXT.md`, the project's controlled vocabulary.** One approved term per
   concept, one sense per term, with the rejected synonyms listed. It resolves
   collisions that had already caused errors, among them four senses of
