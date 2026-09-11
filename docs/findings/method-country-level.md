@@ -24,11 +24,22 @@ specific-power mismatch rather than ERA5 bias is not quantified. It is the lead
 question of a curve library study, and nothing here should be read as answering
 it. Sections 2 and 3, and the diagnosis of the NL and IE observation series in
 section 4, depend only on the observations and the fleet register, not on any
-power curve, and stand. So do the DK and NZ correlations quoted in section 7,
-which are turbine-level and reproduce to the quoted precision from
-`output/validation/DK/train-ppopen` (bundled library, every training turbine
-matched to a curve the library contains) and `output/validation/NZ/train-k147`
-(licensed library).
+power curve, and stand.
+
+The DK and NZ correlations quoted in section 7 are turbine-level and outside
+the fallback defect. They reproduce to the quoted precision from
+`output/validation/DK/train-ppopen` and `output/validation/NZ/train-k147`, and
+every unit in both resolved to a curve its library contains. That does not make
+the curves right. Most of both fleets was matched on specific power to another
+manufacturer's model or a research reference design:
+
+- DK: 63.0% of `train-ppopen`'s training capacity (1,731 of 3,699 turbines);
+- NZ: 89.1% of `train-k147`'s (7 of 8 farms).
+
+A further 22.9% of the DK capacity (1,297 turbines) has no recorded
+manufacturer, so its match cannot be checked in either direction
+(`output/validation/curve_resolution_backfill_2026-09-11/cross_manufacturer_audit.csv`).
+Whether the two correlations hold on each unit's own curves is open.
 
 The country-level path is wired consistently with the turbine-level path but
 fits a different estimator under the same name, and its observations had never
