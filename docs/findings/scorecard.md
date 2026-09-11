@@ -6,12 +6,30 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
-All rows were produced on v0.4.0 from a clean tree, so the table is reproducible
-against a commit. Runs and manifests are in
-`output/validation/refresh_2026-08-24/<CODE>/`, each carrying the region config
-it used. The curve library differs by region: the bundled open library for CL
-and AR, the licensed external one elsewhere, verified by sha256 on both sides
-and recorded in each manifest.
+All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
+2026-08-24, one region per process. Runs are in
+`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. Each row
+was run from the single-configuration file committed under
+`configs/regions/scorecard/` (`<code>_k<N>.toml` or `<code>_country.toml`), which
+fixes the cluster count and time slice the row reports. For the eight
+country-level regions that file is identical to the maintained
+`configs/regions/<code>.toml`. For the nine turbine-level regions it is not: the
+maintained configs carry a cluster sweep, and for seven of the nine (all but DK
+and UK) that sweep does not contain the reported cluster count, so re-running the
+maintained config does not reproduce the row.
+
+Each evaluate manifest's `trained_from` records a temporary path that no longer
+exists. The link to `train-refresh/` was verified on 2026-09-11: re-running every
+evaluation at the same commit, against the surviving training directories,
+reproduced all seventeen `metrics.csv` files byte for byte.
+
+Seven rows (DE, DK, UK, US, BR, AU-NEM, NZ) use a licensed curve library that is
+not redistributable. It is identified by sha256 in each manifest, and those rows
+are not reproducible by a third party. The other ten (CL, AR and the eight
+country-level regions) use the bundled open library. The country-level grid
+points name Vestas models that the open library does not contain, so every unit
+in those eight rows fell back to a single default curve, the open library's
+first column: `2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind turbine.
 
 ## Turbine / plant-level (observed capacity factor per farm)
 
