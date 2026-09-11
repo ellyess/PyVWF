@@ -57,6 +57,16 @@ ASD-STE100 Simplified Technical English:
 3. One approved term per concept, each in one sense only, as listed in
    `CONTEXT.md`.
 
+The rules simplify sentence structure only:
+
+- They never remove a proper noun, a document reference or an identifier. A
+  searchable name is worth the words it costs.
+- A kept reference may push a sentence past the length limit. In that case,
+  keep the reference, and mark the sentence with an HTML comment naming what it
+  keeps.
+- They do not simplify the field's standard technical terms, such as
+  "dimensionless". Rule 3 governs the project's own vocabulary.
+
 The rules apply to new procedural documents and to existing ones when they are
 next revised.
 

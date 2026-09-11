@@ -83,6 +83,13 @@ reproduces exactly on this code.
   country-level `aemo` adapter, and its run example used the legacy path;
   both now show the harness. The built-in adapter table gains the three
   registered adapters it was missing.
+- The adding-a-region guide and the New Zealand runbook follow the procedural
+  writing rules: one instruction per sentence, short sentences, and only the
+  terms in `CONTEXT.md`. The guide's heading is now "Adding a region and its
+  adapter"; its file name is unchanged. The runbook gains a capacity-factor
+  denominator section. The README's uses of rejected terms are fixed. The
+  rules simplify sentence structure only: they never remove a proper noun, a
+  document reference, an identifier or a standard technical term.
 - The New Zealand documentation no longer misstates how the region is built.
   The adapter and transform docstrings and the `nz.toml` comment said the
   capacity-factor denominator comes from the EMI plant register; it comes

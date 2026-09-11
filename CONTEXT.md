@@ -19,7 +19,8 @@ In "Do not use", an entry with no qualifier is always wrong and can be checked
 by search. An entry with a qualifier in brackets is wrong only in that sense;
 a reader, not a search, decides it. Enforcement is therefore a search for the
 unqualified entries plus a reader's review of the rest. A clean search is not a
-pass.
+pass. The search also catches exact forms only: an inflected form, such as
+"falls back" for "fell back", needs a reader.
 
 Nothing loads this file into a writer's or an agent's context automatically
 yet. Until an agent-instructions file imports it, it is enforced only when

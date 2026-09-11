@@ -15,11 +15,11 @@ granular bias-correction method of
 
 Raw reanalysis winds carry systematic, location-dependent biases, so capacity
 factors simulated straight from ERA5 drift away from what fleets actually
-generate. PyVWF learns a per-cluster, per-time-slice linear correction of the
+generate. PyVWF learns a per-cluster, per-time-slice affine correction of the
 **wind speed** (`w_corrected = a*w + b`) from observed generation, then converts
 the corrected wind to power. Unlike API-only tools, it exposes the full
 *training* workflow, so the factors are yours to inspect, map and retrain at
-whatever spatial and temporal resolution your observations support.
+whatever spatial resolution and time slice your observations support.
 
 ```mermaid
 flowchart TD
@@ -59,10 +59,12 @@ pip install -e ".[pinn]"    # + torch, for the experimental physics-informed cor
 ```
 
 PyVWF reads inputs from `input/` in the working directory; set `PYVWF_INPUT` to
-point elsewhere. It bundles an open turbine curve library (69 real machines plus
+point elsewhere. It bundles the open library of power curves (69 real machines plus
 7 composites from NREL/turbine-models, BSD-3-Clause, VWF-smoothed) so it runs on
-real curve physics out of the box, matching fleets by specific power and warning
-whenever it falls back. Turbine metadata and observed generation are not shipped,
+real curve physics out of the box, matching fleets by specific power. It warns
+whenever it uses this open library because the input root has no
+`power_curves.csv` of its own. Turbine metadata and observed generation are not
+shipped,
 because such datasets are usually proprietary. See
 [data sources](docs/guides/data-sources.md) for the full input layout.
 
@@ -80,7 +82,7 @@ With your own data, through the `pyvwf-train` console script:
 pyvwf-train --outdir outputs/demo_DK_2020 --country DK --year-test 2020 --calc-z0
 ```
 
-This trains the correction factors, simulates the test year, and writes metrics
+This trains the factors, simulates the test year, and writes metrics
 and diagnostic plots. `--help` lists the options: `--cluster-mode`,
 `--cluster-list`, `--time-res-list` and the rest.
 
@@ -192,7 +194,7 @@ plain Markdown in [`docs/`](docs/README.md).
 - [Training and evaluation](docs/guides/training.md): the region config, and train / evaluate / transfer.
 - [Output structure](docs/guides/output-structure.md): what a run directory contains.
 - [Visualisation](docs/guides/visualisation.md): the `vwf.viz` figures.
-- [Adding an observation source](docs/guides/adding-an-observation-source.md): the adapter contract.
+- [Adding a region and its adapter](docs/guides/adding-an-observation-source.md): the adapter contract.
 - [Using your own data](docs/guides/your-own-data.md): running the correction on a CSV fleet.
 - [Region runbooks](docs/runbooks/): acquisition and processing per region.
 - [Harness design](docs/design/harness.md): why the seams are where they are.
