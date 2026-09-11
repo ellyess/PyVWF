@@ -153,14 +153,18 @@ the [scorecard](docs/findings/scorecard.md) gives the source path for each.
 | Region | Fleet (test) | RMSE | Region | Fleet (test) | RMSE |
 |---|---|---|---|---|---|
 | Germany | 4,814 turbines | 0.086 → **0.057** | Australia (NEM) | 77 farms | 0.115 → **0.094** |
-| Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 turbines | 0.145 → **0.115** |
-| Brazil † | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** |
+| Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 farms | 0.145 → **0.115** ‡ |
+| Brazil † | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** ‡ |
 | United States † | 520 plants | 0.110 → **0.097** | Chile † | 59 plants | 0.123 → **0.105** |
 | Argentina † | 59 plants | 0.151 → **0.133** | | | |
 
 **† Degenerate fit.** The aggregate metric is real, but the per-cluster factors
 contain implausible wind scalars, worst in Chile at 80.23 and the United States
 at 46.39. Do not reuse the factors from these four.
+
+**‡ Gain not resolved.** When the test year's units are resampled, the United
+Kingdom and New Zealand gains cannot be distinguished from zero. See the
+correction notice in the [scorecard](docs/findings/scorecard.md).
 
 **Curve matching.** Turbines are matched to power curves by specific power, not
 by make, so in most of these fleets part of the capacity runs on another

@@ -4,6 +4,18 @@
 **Scope:** New Zealand's first train and evaluate run, the first region in a new climate
 since the European set.
 
+**Correction notice, 2026-09-11: the headline is not resolved.** The headline
+says the affine correction wins on every metric, and places NZ with DK, DE and
+UK among the regions where the correction earns its keep. When the test year's
+12 farms are resampled (1,000 paired draws, on the scorecard row's run), the
+`k=7` fixed RMSE gain is 0.051 with a 95% interval of -0.032 to 0.114, and the
+MAE gain is 0.065, with an interval of -0.018 to 0.119. Neither excludes zero.
+One farm, 12% of capacity, goes from an RMSE of 0.05 uncorrected to 0.24
+corrected, and carries 61% of the corrected squared error. The UK is not
+resolved either (`scorecard.md`, correction notice of the same date). The
+figures in the table stand. The intervals are conditional on the single test
+year and treat farms as independent, so they understate the uncertainty.
+
 Trained 2019–2023, evaluated on held-out **2024**, EMI per-farm monthly CF,
 external combined curve library, k-means++ defaults. Region config
 `configs/regions/nz.toml`, source `emi-nz`. Run:

@@ -6,6 +6,16 @@ each of the nine turbine-level regions. The Denmark grid is swept far more
 finely, over four time resolutions, in
 [method-cluster-count-dk.md](method-cluster-count-dk.md).
 
+**Correction notice, 2026-09-11: the UK and NZ lines are not resolved.** This
+document reads UK's optimum as `k=50`, with `k=100` overfitting (0.123 against
+0.115), and reads NZ as improving up to `k=7`. At those cluster counts, the gain
+over uncorrected cannot be distinguished from zero when the test year's farms
+are resampled: UK 0.031, 95% interval -0.001 to 0.069; NZ 0.051, -0.032 to
+0.114 (`scorecard.md`, correction notice of the same date). The differences
+between cluster counts were not resampled, because the sweep's corrected frames
+were not kept. So the UK optimum, the overfitting reading and the NZ ordering
+are untested. The figures stand.
+
 Each region's affine correction was fit at a range of cluster counts (one train
 run, all `k` at once) and scored on the test year. RMSE on the test fleet,
 `fixed` slice:

@@ -6,6 +6,65 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-09-11: the UK and NZ rows do not show that the
+correction improves those regions.** Both rows report a lower corrected RMSE,
+and the reading under the turbine-level table counts both among the clean rows
+where the correction lowers RMSE and drives MBE toward zero. Every figure in
+both rows stands as measured. The claim does not: when the test year's units
+are resampled, neither row's gain can be distinguished from zero, and in both a
+few units that the correction makes worse decide the result.
+
+| Row | Units | Capacity-effective units | RMSE gain [95% interval] | MAE gain [95% interval] | Corrected squared error: largest unit, largest five |
+|---|---|---|---|---|---|
+| UK k50 fixed | 348 farms | 104 | 0.031 [-0.001, 0.069] | 0.034 [0.014, 0.057] | 37%, 60% |
+| NZ k7 fixed | 12 farms | 9.3 | 0.051 [-0.032, 0.114] | 0.065 [-0.018, 0.119] | 61%, 87% |
+
+The gain is uncorrected minus corrected error, capacity-weighted as in
+`metrics.csv`. Each interval comes from 1,000 paired draws of the test year's
+units with replacement. Capacity-effective units is (sum of weights) squared
+over the sum of squared weights. Every row's rebuilt metrics reproduced its
+`metrics.csv` before resampling. Scripts: `scripts/analysis/baseline_bootstrap.py`
+and `scripts/analysis/unit_concentration.py`. Data:
+`output/curve_library_study_2026-09-11/baseline_bootstrap/`
+(`all_concentration.csv`, `UK_top5_units.csv`, `NZ_top5_units.csv`), from the
+`curve_resolution_backfill_2026-09-11` evaluate frames.
+
+- **UK.** Four of the five farms that carry the most corrected error are worse
+  corrected than uncorrected. The largest, 2.2% of capacity, goes from a farm
+  RMSE of 0.31 to 0.47. MBE moves from +0.037 to -0.038, not toward zero. The
+  MAE gain is resolved; the RMSE gain is not. The choice of `k=50` over `k=100`
+  (0.115 against 0.123) cannot be resampled without a re-run, because the
+  cluster sweep's corrected frames were not saved. It remains open.
+- **NZ.** One farm, 12% of capacity, goes from a farm RMSE of 0.05 to 0.24 and
+  carries 61% of the corrected squared error. Neither gain is resolved.
+- **The NZ limit is structural.** With 12 farms, 9.3 of them
+  capacity-effective, any one farm can decide the fleet result. Such a fleet
+  resolves a gain only if nearly every farm improves by a similar amount, in
+  any test year. The marker records a limit of the region, not an unlucky year.
+- **The UK's 348 units are farms, not turbines.** They are ROC stations whose
+  generation is spread equally over turbine-shaped rows (`docs/design/harness.md`).
+  Until this notice, the table's Fleet column said 348 turbines.
+- **The MBE reading is also false for the US**, whose MBE moves from +0.022
+  to +0.024.
+
+These intervals understate the uncertainty, for three reasons. They are
+conditional on each row's single test year. They treat units as independent,
+although neighbouring units share weather. And both rows' cluster counts were
+chosen as the best of a sweep on that same test year (`method-cluster-count.md`),
+and the resampling leaves that choice out.
+
+The same check finds no such pattern in DE, DK or US. Their RMSE gain intervals
+are 0.027 to 0.031, 0.059 to 0.063 and 0.008 to 0.017, and no single unit
+carries more than 2.6% of corrected squared error in any of them. BR's gain is
+also resolved, at 0.016 to 0.050.
+
+Two rows are resolved only narrowly, and their claims are not withdrawn.
+AU-NEM's RMSE gain is 0.021, with an interval of 0.001 to 0.040. AR's is 0.018,
+with an interval of 0.002 to 0.031, and its MAE gain interval, -0.001 to 0.024,
+includes zero. The interval is itself a lower bound on the uncertainty, so an
+interval that excludes zero by 0.001 or 0.002 is not a clean result. CL is not
+assessed in this notice.
+
 All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 2026-08-24, one region per process. Runs are in
 `output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. Each row
@@ -90,10 +149,13 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | n/a | n/a | 100.0% |
 | United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | 2.8% | 84.5% | 4.5% |
-| United Kingdom (UK) | 348 turbines | 2015-18 → 2019 | 0.145 | **0.115** | +0.037 | -0.038 | 0.70 | k50 fixed | 21.8% | 7.5% | 0.0% |
-| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** | -0.062 | +0.021 | 0.66 | k7 fixed | 41.9% | 47.3% | 0.0% |
+| United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.145 | **0.115** ‡ | +0.037 | -0.038 | 0.70 | k50 fixed | 21.8% | 7.5% | 0.0% |
+| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | 41.9% | 47.3% | 0.0% |
 | Chile (CL) | 59 plants | 2021-23 → 2024 | 0.123 | **0.105** | -0.026 | -0.002 | 0.43 | k10 fixed † | 3.5% | 91.6% | 0.0% |
 | Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.151 | **0.133** | +0.010 | +0.001 | 0.44 | k10 fixed † | 0.2% | 96.7% | 0.0% |
+
+**‡ Gain not distinguishable from zero when the test year's units are resampled;
+see the correction notice above.**
 
 **† The fit behind this row is degenerate.** `fit_quality` run against the exact
 factors file each row reports, with the calibrated bounds (scalar in 0.2 to 3.0,

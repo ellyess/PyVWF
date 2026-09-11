@@ -12,6 +12,18 @@ and how each prediction turned out is in
 `method-physics-informed-prespecification.md`. Code: `src/vwf/pinn/`, drivers in
 `scripts/pinn/`, 51 tests in `tests/test_pinn_physics.py`.
 
+**Correction notice, 2026-09-11: the UK's in-region affine drop is not
+resolved.** Section 3 reports the UK's affine correction in region at 0.1146
+against 0.1451 uncorrected. Section 6 says that this drop, unlike the ordering
+of two close arms, is meaningful. For the UK it is not: when the test year's
+348 farms are resampled, the drop is 0.031 with a 95% interval of -0.001 to
+0.069 (`scorecard.md`, correction notice of the same date). The UK's other arms
+were not resampled. Zero-shot beats uncorrected by 0.002 and the in-region
+physics arm by 0.018, both less than the affine arm's unresolved 0.031. P1 in
+the pre-specification counts the UK among its five of five on that 0.002
+margin; without the UK it passes at four of five. The UK's 348 units, which
+section 1 calls turbines, are farms (`docs/design/harness.md`).
+
 ## 1. Why the incumbent does not transfer
 
 Five diagnostics on artefacts already on disk. Two falsified the hypothesis they
