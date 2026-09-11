@@ -16,6 +16,7 @@ output/validation/<CODE>/
     ├── unc_cf.csv                     # uncorrected capacity factor
     ├── cor_cf_<slice>_<k>.csv         # corrected CF, one per factors file
     ├── curve_resolution.csv
+    ├── scoring_exclusions.csv         # rows left out so every variant is scored on the same rows
     └── run_manifest.json
 ```
 
@@ -47,8 +48,9 @@ the test year:
 | `mbe`, `mae`, `rmse` | Mean bias, mean absolute, root-mean-square error |
 | `pearson_r` | Correlation with observations |
 | `emd` | Earth-mover distance of the CF distributions (turbine-level) |
-| `n_units`, `n_samples` | Fleet size and paired observations scored |
+| `n_units`, `n_samples` | Fleet size and paired observations scored, the same for every variant |
 | `substituted_capacity_share` | Share of fleet capacity simulated on a curve other than the one its model key names (see below) |
+| `excluded_share` | Share of scorable rows left out because some variant has no value for them (see below) |
 
 Read the uncorrected row first: judge the correction against the bias structure
 it starts from, not in isolation.
@@ -59,7 +61,8 @@ Full provenance so any output is attributable: `pyvwf_version`, `git_commit` and
 `git_dirty`, `created_utc`, the resolved `region`, `observations` (source, unit,
 time convention), `correction`, `seasons`, the `curve_library` identity (whether
 the open or a licensed library was used), the `curve_resolution` summary, and,
-for evaluate runs, `evaluation_year` and `trained_from`. Design §6.
+for evaluate runs, `evaluation_year` and `trained_from`. Design §6. Evaluate and
+transfer runs also carry the `common_row_scoring` summary.
 
 ## Curve resolution (`curve_resolution.csv`)
 
@@ -85,6 +88,36 @@ substitution map, the open and external shares of capacity, and capacity by
 into every row of `metrics.csv`. A non-zero share also raises a warning at run
 time. Any result from a run with a non-zero share was not simulated on the
 fleet's own curves, and should be read with that share beside it.
+
+## Scoring exclusions (`scoring_exclusions.csv`)
+
+Every variant of an evaluate or transfer run is scored on the same rows. A row
+is scored only if every variant has a simulated value, an observation and,
+at turbine level, a capacity. A corrected variant has no value for units in a
+cluster whose offset fit failed. Without this rule, its score would leave out
+exactly those units, and the uncorrected score would keep them.
+
+The common rows are shared by all variants of the run, not only by the pair
+being compared. So a variant you do not report can change the score of one you
+do report. In the AR scorecard row, the reported `fixed_10` score moved because
+the unreported `season_10` variant lacked two rows. The variant set is part of
+a run's design: adding or removing a factors file can change every score.
+
+The file lists each row that at least one variant could score but another
+could not. It has one row per excluded row:
+
+| Column | Meaning |
+|---|---|
+| `scope` | `fleet`, `national` or `per-zone` |
+| `ID`, `year`, `month` | The unit and month (turbine-level) |
+| `ym`, `cluster` | The month, and the zone for `per-zone` (country-level) |
+| `capacity` | The unit's capacity (turbine-level) |
+| `missing_in` | The variants that had no value, joined by `;` |
+
+The file is written for every run, with a header only when nothing is excluded.
+The manifest's `common_row_scoring` block gives, per scope, the rows scorable,
+scored and excluded, the excluded share and the units with every row excluded.
+A non-zero share also raises a warning at run time.
 
 **Known gaps.** Coverage is the harness's train, evaluate and transfer runs
 only:

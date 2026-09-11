@@ -16,8 +16,10 @@ Changes since 0.5.1 make the power curve behind every number a recorded fact: a
 run says which curve each unit was actually simulated on, and the scorecard
 says how much of each fleet runs on a curve from a different manufacturer from
 the turbine's own. No correction, clustering or curve-matching behaviour
-changes: the golden regression test is untouched, and every scorecard row
-reproduces exactly on this code.
+changes, and the golden regression test is untouched. One scoring change: the
+variants of a run are now compared on the same rows (see Fixed). Every
+scorecard row reproduces exactly on this code except CL, AR and the US, where
+a corrected variant lacks some values.
 
 ### Added
 
@@ -68,6 +70,16 @@ reproduces exactly on this code.
 
 ### Fixed
 
+- **The variants of a run are compared on the same rows.** `run_evaluate` and
+  `run_transfer` scored each variant on its own complete rows. So a corrected
+  variant with no value for some units, such as those in a cluster whose offset
+  fit failed, was compared with the uncorrected variant on a different set of
+  rows, and the rows it dropped were the hard ones. Every variant of a run is
+  now scored on the rows that all of them can score. The excluded rows, and
+  the variants that lacked them, are written to `scoring_exclusions.csv`.
+  `metrics.csv` gains `excluded_share`, and the manifest gains a
+  `common_row_scoring` summary. Of the scorecard rows, CL moves materially and
+  AR and the US marginally.
 - **Only four scorecard rows depend on the licensed curve library** (DE, DK, UK,
   US), not seven. AU-NEM, BR and NZ were run with it but simulate only on
   curves the open library also contains, and reproduce byte for byte on the

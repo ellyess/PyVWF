@@ -32,7 +32,12 @@ from vwf.harness.provenance import (
     write_manifest_safe,
 )
 from vwf.harness.regions import RegionSpec
-from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
+from vwf.harness.skill import (
+    collapse_pseudo_replicates,
+    restrict_to_common_rows,
+    skill_metrics,
+    summarise_exclusions,
+)
 from vwf.sources import (
     EntsoeFileSource,
     EntsoeZonalFileSource,
@@ -244,8 +249,6 @@ def run_evaluate(
     run_dir.mkdir(parents=True, exist_ok=True)
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
 
-    rows = []
-
     # A zonal source can also be scored zone by zone. The national metric is the
     # joint optimiser's own objective, so it favours a national fit by
     # construction; the per-zone metric scores what a zonal fit actually
@@ -255,26 +258,31 @@ def run_evaluate(
     )
     obs_zonal = zone_source.load_observations() if zone_source is not None else None
 
-    def _skill_rows(sim_cf: pd.DataFrame, variant: str, num_clu, time_res) -> list[dict]:
-        head = {"variant": variant, "num_clu": num_clu, "time_res": time_res}
+    def _pairs(sim_cf: pd.DataFrame) -> dict[str, pd.DataFrame]:
         if not is_country:
-            tidy = collapse_pseudo_replicates(
+            return {"fleet": collapse_pseudo_replicates(
                 _tidy_eval_frame(sim_cf, obs_cf, turb_info), spec
-            )
-            return [{**head, "scope": "fleet", **skill_metrics(tidy)}]
-
-        out = [{**head, "scope": "national", **_country_skill(sim_cf, obs_cf, turb_info)}]
+            )}
+        out = {"national": _country_pairs(sim_cf, obs_cf, turb_info)}
         if obs_zonal is not None:
             # Scored on the grid's own zone assignments, not the run's cluster
             # count, so a 1-cluster run is still judged zone by zone.
-            out.append(
-                {**head, "scope": "per-zone", **_zonal_skill(sim_cf, obs_zonal, turb_info)}
-            )
+            out["per-zone"] = _zonal_pairs(sim_cf, obs_zonal, turb_info)
         return out
+
+    # Every variant's paired frame is built first and scored afterwards, all on
+    # the rows every variant can score (see _score_on_common_rows).
+    variants: list[dict] = []
 
     _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
     unc_cf.to_csv(run_dir / "unc_cf.csv", index=False)
-    rows.extend(_skill_rows(unc_cf, "uncorrected", 1, "none"))
+    variants.append({
+        "label": "uncorrected",
+        "head": {"variant": "uncorrected", "num_clu": 1, "time_res": "none"},
+        "extra": {},
+        "pairs": _pairs(unc_cf),
+    })
+    del unc_cf
 
     for factors_path in sorted(train_run_dir.glob("factors_*.csv")):
         time_res, num_clu_str = factors_path.stem.split("_")[1:3]
@@ -312,14 +320,21 @@ def run_evaluate(
                 "The skill metric can still look good; see "
                 "docs/findings/method-hourly-resolution.md."
             )
-        rows.extend([
-            {**row, **quality}
-            for row in _skill_rows(cor_cf, spec.correction_model, num_clu, time_res)
-        ])
+        variants.append({
+            "label": f"{time_res}_{num_clu}",
+            "head": {"variant": spec.correction_model, "num_clu": num_clu, "time_res": time_res},
+            "extra": quality,
+            "pairs": _pairs(cor_cf),
+        })
+        del cor_cf
 
+    rows, scoring = _score_on_common_rows(variants, spec.code, run_dir)
     metrics_df = pd.DataFrame(rows)
     # Every variant simulates the same fleet on the same table.
     metrics_df["substituted_capacity_share"] = curves["substituted_capacity_share"]
+    metrics_df["excluded_share"] = metrics_df["scope"].map(
+        {scope: summary["excluded_share"] for scope, summary in scoring.items()}
+    )
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
@@ -329,9 +344,89 @@ def run_evaluate(
             "evaluation_year": year,
             "trained_from": str(train_run_dir),
             "curve_resolution": curves,
+            "common_row_scoring": scoring,
         },
     )
     return run_dir
+
+
+#: Per scope: the columns that identify a row across variants, the weight
+#: column (None for the unweighted monthly aggregates) and the unit column.
+_SCOPE_KEYS: dict[str, tuple[list[str], str | None, str | None]] = {
+    "fleet": (["ID", "year", "month"], "capacity", "ID"),
+    "national": (["ym"], None, None),
+    "per-zone": (["cluster", "ym"], None, "cluster"),
+}
+
+SCORING_EXCLUSIONS_NAME = "scoring_exclusions.csv"
+
+
+def _score_on_common_rows(
+    variants: list[dict], code: str, run_dir: Path
+) -> tuple[list[dict], dict]:
+    """Score every variant of one run on the rows all of them can score.
+
+    Scored one at a time, a variant with no value for some units (a corrected
+    variant whose cluster failed to fit) was compared with the uncorrected
+    variant on a different set of rows. The rows dropped were the hard ones,
+    so the comparison flattered the correction. Each scope is now restricted
+    to its common complete rows before any metric is computed. The rows
+    excluded, and the variants that lacked them, are written to
+    ``scoring_exclusions.csv``. The excluded share goes into ``metrics.csv``,
+    and a summary into the manifest.
+
+    Args:
+        variants: One dict per variant, in output order, with ``label`` (the
+            name used in the exclusions file), ``head`` (the leading metrics
+            columns), ``extra`` (trailing columns, such as fit quality) and
+            ``pairs`` (scope name to paired frame).
+        code: Region code, for warnings.
+        run_dir: Where the exclusions file is written.
+
+    Returns:
+        The metrics rows, and the per-scope summary for the manifest.
+    """
+    scopes = list(variants[0]["pairs"])
+    scored: dict[str, dict[str, pd.DataFrame]] = {}
+    summaries: dict[str, dict] = {}
+    exclusion_tables = []
+    for scope in scopes:
+        keys, weight, unit = _SCOPE_KEYS[scope]
+        frames = {v["label"]: v["pairs"][scope] for v in variants}
+        scored[scope], excluded = restrict_to_common_rows(frames, keys, weight=weight)
+        summaries[scope] = summarise_exclusions(
+            frames, excluded, keys, weight=weight, unit=unit
+        )
+        if len(excluded):
+            exclusion_tables.append(excluded.assign(scope=scope))
+            summary = summaries[scope]
+            warnings.warn(
+                f"{code} {scope}: {summary['n_rows_excluded']} row(s), "
+                f"{summary['excluded_share']:.1%} of what any variant could score, "
+                "lack a value in some variant and are excluded from every "
+                f"variant's score; see {run_dir / SCORING_EXCLUSIONS_NAME}."
+            )
+
+    # Written even when empty, so a missing file never has to be interpreted.
+    columns = ["scope", "ID", "year", "month", "cluster", "ym", "capacity", "missing_in"]
+    exclusions = pd.concat(exclusion_tables, ignore_index=True) if exclusion_tables else None
+    (
+        exclusions[[c for c in columns if c in exclusions.columns]]
+        if exclusions is not None else pd.DataFrame(columns=columns)
+    ).to_csv(run_dir / SCORING_EXCLUSIONS_NAME, index=False)
+
+    rows = []
+    for v in variants:
+        for scope in scopes:
+            frame = scored[scope][v["label"]]
+            if scope == "fleet":
+                metrics = skill_metrics(frame)
+            elif scope == "per-zone":
+                metrics = _zonal_metrics(frame)
+            else:
+                metrics = _error_metrics(frame)
+            rows.append({**v["head"], "scope": scope, **metrics, **v["extra"]})
+    return rows, summaries
 
 
 def _zone_aggregate(sim_cf: pd.DataFrame, members: pd.DataFrame) -> pd.Series:
@@ -391,6 +486,17 @@ def _zonal_skill(
     Returns:
         Pooled metrics plus ``n_zones``.
     """
+    return _zonal_metrics(_zonal_pairs(sim_cf, obs_zonal, turb_info).dropna())
+
+
+def _zonal_pairs(
+    sim_cf: pd.DataFrame, obs_zonal: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Per-zone monthly simulated and observed CF, one row per (zone, month).
+
+    Rows keep a missing side as NaN, so the caller can score several
+    conditions on the same rows (``restrict_to_common_rows``).
+    """
     obs = obs_zonal.copy()
     if not isinstance(obs.index, pd.DatetimeIndex):
         obs.index = pd.to_datetime(obs.index, utc=True, format="mixed")
@@ -410,14 +516,19 @@ def _zonal_skill(
             .mean()
             .rename("cf_obs")
         )
-        merged = pd.concat([sim_m, obs_m], axis=1).dropna()
+        merged = pd.concat([sim_m, obs_m], axis=1)
         merged["cluster"] = cluster
         pairs.append(merged)
 
     if not pairs:
-        return {**_error_metrics(pd.DataFrame()), "n_zones": 0}
+        return pd.DataFrame(columns=["cluster", "ym", "cf_sim", "cf_obs"])
+    pooled = pd.concat(pairs).rename_axis("ym").reset_index()
+    return pooled[["cluster", "ym", "cf_sim", "cf_obs"]]
 
-    pooled = pd.concat(pairs)
+
+def _zonal_metrics(pooled: pd.DataFrame) -> dict:
+    if pooled.empty:
+        return {**_error_metrics(pd.DataFrame()), "n_zones": 0}
     return {**_error_metrics(pooled), "n_zones": int(pooled["cluster"].nunique())}
 
 
@@ -430,6 +541,17 @@ def _country_skill(
     per timestep (NaN-skipping, reweighting on the present grid points), then
     both sides are compared as monthly means, matching the legacy
     country-level metric.
+    """
+    return _error_metrics(_country_pairs(sim_cf, obs_country, turb_info).dropna())
+
+
+def _country_pairs(
+    sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Monthly national simulated and observed CF, one row per month (``ym``).
+
+    Rows keep a missing side as NaN, so the caller can score several
+    conditions on the same months (``restrict_to_common_rows``).
     """
     grid_cols = [c for c in sim_cf.columns if c != "time"]
     cap = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
@@ -451,7 +573,7 @@ def _country_skill(
     obs["ym"] = obs["time"].dt.to_period("M")
     obs_m = obs.groupby("ym")["obs"].mean().rename("cf_obs")
 
-    return _error_metrics(pd.concat([sim_m, obs_m], axis=1).dropna())
+    return pd.concat([sim_m, obs_m], axis=1).rename_axis("ym").reset_index()
 
 
 def collapse_factors(
@@ -532,16 +654,19 @@ def run_transfer(
     run_dir.mkdir(parents=True, exist_ok=True)
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, target_spec.code)
 
-    rows = []
+    def _variant(sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
+        tidy = collapse_pseudo_replicates(_tidy_eval_frame(sim_cf, obs_cf, turb_info), target_spec)
+        return {
+            "label": variant,
+            "head": {"variant": variant, "time_res": time_res},
+            "extra": {},
+            "pairs": {"fleet": tidy},
+        }
 
-    def _skill_row(sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
-        tidy = _tidy_eval_frame(sim_cf, obs_cf, turb_info)
-        tidy = collapse_pseudo_replicates(tidy, target_spec)
-        metrics = skill_metrics(tidy)
-        return {"variant": variant, "time_res": time_res, **metrics}
-
+    # As in run_evaluate: every variant is scored on the rows all of them can score.
+    variants = []
     _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
-    rows.append(_skill_row(unc_cf, "uncorrected", "none"))
+    variants.append(_variant(unc_cf, "uncorrected", "none"))
 
     # Uniform application: every target site is cluster 0.
     target_info = turb_info.copy()
@@ -566,12 +691,14 @@ def run_transfer(
             time_res,
             seasons=target_spec.seasons,  # season-NAME matching, design §7.3
         )
-        rows.append(
-            _skill_row(cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
+        variants.append(
+            _variant(cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
         )
 
-    pd.DataFrame(rows).assign(
-        substituted_capacity_share=curves["substituted_capacity_share"]
+    rows, scoring = _score_on_common_rows(variants, target_spec.code, run_dir)
+    pd.DataFrame(rows).drop(columns="scope").assign(
+        substituted_capacity_share=curves["substituted_capacity_share"],
+        excluded_share=scoring["fleet"]["excluded_share"],
     ).to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
@@ -583,6 +710,7 @@ def run_transfer(
             "transfer_source_run": str(source_run_dir),
             "transfer_semantics": "capacity-weighted-collapse, uniform, season-name-matched",
             "evaluation_year": year,
+            "common_row_scoring": scoring,
         },
     )
     return run_dir

@@ -9,6 +9,9 @@ coarser observation unit (UK: farm generation equally pre-split across
 turbine rows) must be collapsed to independent stations with
 :func:`collapse_pseudo_replicates` before distribution comparisons, and
 ``n_units`` always counts independent units, not rows.
+
+Conditions compared with each other are scored on the same rows: see
+:func:`restrict_to_common_rows`.
 """
 from __future__ import annotations
 
@@ -144,6 +147,119 @@ def skill_metrics(df: pd.DataFrame, *, weighted: bool = True) -> dict[str, float
         "emd": emd,
         "n_units": int(data["ID"].nunique()),
         "n_samples": int(len(data)),
+    }
+
+
+def restrict_to_common_rows(
+    frames: dict[str, pd.DataFrame],
+    keys: list[str],
+    *,
+    weight: str | None = "capacity",
+) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
+    """Restrict every condition to the rows that every condition can score.
+
+    Each scoring call drops its own incomplete rows. Scored one at a time, two
+    conditions are therefore compared on different rows whenever one of them
+    cannot simulate some units. A corrected condition has no value for units
+    in a cluster whose offset fit failed, so its score silently excluded
+    exactly the units the correction failed on, while the uncorrected score
+    kept them. That is not a comparison. Here a row is scored only if it is
+    complete (``cf_sim`` and ``cf_obs`` present, and the weight when given) in
+    every condition.
+
+    Args:
+        frames: Condition name to paired frame. Every frame carries ``keys``,
+            ``cf_sim`` and ``cf_obs``, and ``weight`` when given.
+        keys: Columns identifying a row across conditions, for example
+            ``["ID", "year", "month"]`` or ``["ym"]``.
+        weight: Column weighting the excluded share, or None to count rows.
+
+    Returns:
+        The frames restricted to the common complete rows, and a table of the
+        rows excluded from comparison: those complete in at least one condition
+        but not in all. It has the key columns, ``weight`` when given, and
+        ``missing_in``, the conditions that could not score the row, joined by
+        ";". A row complete in no condition (a missing observation) is not
+        listed, since no condition was ever scored on it.
+    """
+    required = ["cf_sim", "cf_obs"] + ([weight] if weight else [])
+    complete = {
+        name: frame.dropna(subset=required).drop_duplicates(subset=keys)[keys]
+        for name, frame in frames.items()
+    }
+    key_index = {
+        name: pd.MultiIndex.from_frame(rows.astype(object)) for name, rows in complete.items()
+    }
+    names = list(frames)
+    common = key_index[names[0]]
+    union = key_index[names[0]]
+    for name in names[1:]:
+        common = common.intersection(key_index[name])
+        union = union.union(key_index[name])
+
+    restricted = {}
+    for name, frame in frames.items():
+        idx = pd.MultiIndex.from_frame(frame[keys].astype(object))
+        keep = idx.isin(common) & frame[required].notna().all(axis=1).to_numpy()
+        restricted[name] = frame.loc[keep].reset_index(drop=True)
+
+    excluded_keys = union.difference(common)
+    columns = [*keys, *([weight] if weight else []), "missing_in"]
+    if len(excluded_keys) == 0:
+        return restricted, pd.DataFrame(columns=columns)
+
+    excluded = excluded_keys.to_frame(index=False)
+    excluded.columns = keys
+    excluded["missing_in"] = [
+        ";".join(n for n in names if key not in key_index[n]) for key in excluded_keys
+    ]
+    if weight:
+        # A row's weight is the same in every condition that has it.
+        weights = pd.concat(
+            [f.dropna(subset=required)[[*keys, weight]] for f in frames.values()]
+        ).drop_duplicates(subset=keys)
+        weights[keys] = weights[keys].astype(object)
+        excluded = excluded.astype({k: object for k in keys}).merge(weights, on=keys, how="left")
+    return restricted, excluded[columns]
+
+
+def summarise_exclusions(
+    frames: dict[str, pd.DataFrame],
+    excluded: pd.DataFrame,
+    keys: list[str],
+    *,
+    weight: str | None = "capacity",
+    unit: str | None = "ID",
+) -> dict:
+    """Summarise :func:`restrict_to_common_rows` for the run record.
+
+    Returns the number of rows any condition could score, the number scored,
+    the excluded share of those rows (by ``weight``, or by count when
+    ``weight`` is None), and the units with every row excluded.
+    """
+    required = ["cf_sim", "cf_obs"] + ([weight] if weight else [])
+    union = pd.concat(
+        [f.dropna(subset=required)[[*keys, *([weight] if weight else [])]] for f in frames.values()]
+    ).drop_duplicates(subset=keys)
+    n_union, n_excluded = len(union), len(excluded)
+    if weight:
+        total = float(union[weight].sum())
+        share = float(excluded[weight].sum()) / total if total > 0 else 0.0
+    else:
+        share = n_excluded / n_union if n_union else 0.0
+    dropped_units: list[str] = []
+    if unit and n_excluded:
+        rows_per_unit = union.groupby(unit).size()
+        excluded_per_unit = excluded.groupby(unit).size()
+        dropped_units = sorted(
+            str(u) for u, n in excluded_per_unit.items() if n == rows_per_unit.get(u, 0)
+        )
+    return {
+        "n_rows_scorable": int(n_union),
+        "n_rows_scored": int(n_union - n_excluded),
+        "n_rows_excluded": int(n_excluded),
+        "excluded_share": share,
+        "units_wholly_excluded": dropped_units,
     }
 
 
