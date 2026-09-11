@@ -47,6 +47,10 @@ reproduces exactly on this code.
   library study.
 - `tests/test_packaging.py` ties the newest CHANGELOG release, its compare links
   and the `CITATION.cff` release date to `vwf.__version__`.
+- **Two Claude Code skills** in `.claude/skills/`. `findings-doc` checks a
+  findings document or scorecard row against the evidence rules before it
+  lands. `new-region`, invoked by name, adds a turbine-level region in
+  seven gated phases, stopping for human sign-off after each.
 - **`CONTEXT.md`, the project's controlled vocabulary.** One approved term per
   concept, one sense per term, with the rejected synonyms listed. It resolves
   collisions that had already caused errors, among them four senses of
