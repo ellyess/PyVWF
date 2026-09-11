@@ -23,13 +23,18 @@ exists. The link to `train-refresh/` was verified on 2026-09-11: re-running ever
 evaluation at the same commit, against the surviving training directories,
 reproduced all seventeen `metrics.csv` files byte for byte.
 
-Seven rows (DE, DK, UK, US, BR, AU-NEM, NZ) use a licensed curve library that is
-not redistributable. It is identified by sha256 in each manifest, and those rows
-are not reproducible by a third party. The other ten (CL, AR and the eight
-country-level regions) use the bundled open library. The country-level grid
-points name Vestas models that the open library does not contain, so every unit
-in those eight rows fell back to a single default curve, the open library's
-first column: `2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind turbine.
+Seven rows (DE, DK, UK, US, BR, AU-NEM, NZ) were run with a licensed curve
+library that is not redistributable, identified by sha256 in each manifest.
+Four of them (DE, DK, UK, US) simulate 74% to 90% of their capacity on curves
+only that library contains, and are not reproducible by a third party. The
+other three (BR, AU-NEM, NZ) simulate only on curves the open library also
+contains: re-run on the open library on 2026-09-11, each reproduced its
+`metrics.csv` byte for byte (`output/validation/open_library_check_2026-09-11/`).
+The remaining ten (CL, AR and the eight country-level regions) were run on the
+bundled open library. The country-level grid points name Vestas models that the
+open library does not contain, so every unit in those eight rows fell back to a
+single default curve, the open library's first column:
+`2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind turbine.
 
 ## Turbine / plant-level (observed capacity factor per farm)
 

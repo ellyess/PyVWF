@@ -47,7 +47,9 @@ is a docstring.
 - **The scorecard's curve-library claim.** It said every region except CL and
   AR used the licensed library; the eight country-level rows used the bundled
   open library. The seven rows that do use the licensed library are now stated
-  as not reproducible by a third party.
+  as not reproducible by a third party. *[Correction, 2026-09-11: four, not
+  seven. AU-NEM, BR and NZ were run with the licensed library but simulate only
+  on curves the open library contains, and reproduce byte for byte on it.]*
 - **The scorecard's reproducibility claim.** The configurations behind its rows
   had never been committed, and for seven of the nine turbine-level regions the
   maintained config cannot produce the reported cluster count. The exact
@@ -154,11 +156,13 @@ unchanged and remain pinned bit-for-bit by a golden regression test.
   signal. Measured across five regions before adoption.
 - **The merged open curve library is the uniform default**, so the validated
   rows reproduce without the licensed library. *[Correction, 2026-09-11: this
-  was never true. Seven of the seventeen scorecard rows (DE, DK, UK, US, BR,
-  AU-NEM, NZ) were produced on the licensed library and cannot be reproduced
-  without it, and the eight country-level rows that did run on the open
-  library simulated every unit on a 100 kW fallback curve. See
-  [0.5.1](#051---2026-09-11).]*
+  was never true. Four scorecard rows (DE, DK, UK, US) simulate most of their
+  capacity on curves only the licensed library contains, so they cannot be
+  reproduced without it. The eight country-level rows did run on the open
+  library, but every unit fell back to a 100 kW curve. This note first said
+  seven licensed rows: AU-NEM, BR and NZ were run with the licensed library,
+  yet reproduce byte for byte on the open one. See
+  [0.5.1](#051---2026-09-11) and `docs/findings/scorecard.md`.]*
 - `input/` is reorganised by pipeline stage (`raw/`, `observations/`,
   `reference/`), `scripts/` and `configs/` by function, and `docs/` by purpose
   (`guides/`, `runbooks/`, `findings/`, `design/`).
