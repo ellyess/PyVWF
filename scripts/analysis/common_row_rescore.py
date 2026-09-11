@@ -23,6 +23,17 @@ Output per row, in ``<out_dir>``: ``<CODE>_rescore.csv`` (old against new,
 per variant and scope) and ``<CODE>/scoring_exclusions.csv`` (as the fixed
 harness writes it). ``all_rescore.csv`` joins the rows.
 
+Added after the rescore results, on the same day: for a turbine-level row with
+exclusions, the paired resampled gain of the reported configuration on the
+common rows (``<CODE>_common_rows_bootstrap.csv``). It uses the same draws,
+seed and interval as ``baseline_bootstrap.py``, and the same capacity-effective
+count and top-unit shares as ``unit_concentration.py``. The gain intervals in
+the UK and NZ notice were computed before the fix, on each variant's own rows;
+for rows with no exclusions they are unchanged. CL's first interval, -0.007 to
+0.020, was computed on the rows common to the uncorrected and ``fixed_10``
+variants only (55 plants), not on the rows common to all three (53 plants),
+which the fixed harness scores.
+
 It reads the git-ignored run tree and the local input root, so a third party
 cannot run it. It is committed so that the figures in the CL correction notice
 can be regenerated.
@@ -37,12 +48,13 @@ import sys
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 import baseline_bootstrap as bb
 from vwf.harness import driver
 from vwf.harness.regions import load_region
-from vwf.harness.skill import collapse_pseudo_replicates
+from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
 
 COMPARED = ("rmse", "mbe", "mae", "n_units", "n_samples", "n_months")
 
@@ -103,8 +115,57 @@ def main(code, out_dir):
                            units_wholly_excluded=[";".join(scoring[s]["units_wholly_excluded"])
                                                   for s in merged["scope"]])
     report.to_csv(Path(out_dir) / f"{code}_rescore.csv", index=False)
+    if spec.obs_level == "turbine" and n_excluded:
+        frames = {v["label"]: v["pairs"]["fleet"] for v in variants}
+        restricted, _ = restrict_to_common_rows(frames, ["ID", "year", "month"])
+        common_rows_bootstrap(code, restricted, bb.REPORTED[code], Path(out_dir))
     print(f"{code}: {int(changed.sum())} of {len(merged)} variant rows change; "
           f"{n_excluded} row(s) excluded")
+
+
+def common_rows_bootstrap(code, restricted, reported, out_dir):
+    """Paired resampled gain of the reported configuration, on the common rows."""
+    per_unit = {}
+    for name in ("uncorrected", reported):
+        t = restricted[name]
+        d = t["cf_sim"] - t["cf_obs"]
+        per_unit[name] = t.assign(
+            w=t["capacity"], e=t["capacity"] * d**2, a=t["capacity"] * d.abs()
+        ).groupby("ID")[["w", "e", "a"]].sum().sort_index()
+    u, c = per_unit["uncorrected"], per_unit[reported]
+    if not u.index.equals(c.index):
+        raise SystemExit(f"{code}: common rows give different unit sets")
+    n = len(u)
+    rng = np.random.default_rng(bb.SEED)
+    counts = np.stack(
+        [np.bincount(r, minlength=n) for r in rng.integers(0, n, size=(bb.N_DRAWS, n))]
+    ).astype(float)
+
+    def rmse(g):
+        return np.sqrt(counts @ g.e.values / (counts @ g.w.values))
+
+    def mae(g):
+        return counts @ g.a.values / (counts @ g.w.values)
+
+    w = u.w.to_numpy()
+    shares = (c.e / c.e.sum()).sort_values(ascending=False)
+    out = {
+        "region": code, "reported": reported, "units": n,
+        "capacity_effective_n": float(w.sum() ** 2 / (w**2).sum()),
+        "uncorrected_rmse": float(np.sqrt(u.e.sum() / u.w.sum())),
+        "corrected_rmse": float(np.sqrt(c.e.sum() / c.w.sum())),
+        "uncorrected_mbe": float((restricted["uncorrected"].eval("capacity * (cf_sim - cf_obs)")).sum()
+                                 / restricted["uncorrected"]["capacity"].sum()),
+        "corrected_mbe": float((restricted[reported].eval("capacity * (cf_sim - cf_obs)")).sum()
+                               / restricted[reported]["capacity"].sum()),
+        "cor_sse_top1": float(shares.iloc[0]), "cor_sse_top5": float(shares.head(5).sum()),
+    }
+    out["rmse_gain"] = out["uncorrected_rmse"] - out["corrected_rmse"]
+    out["rmse_gain_ci_lo"], out["rmse_gain_ci_hi"] = bb.ci(rmse(u) - rmse(c))
+    out["mae_gain"] = float(u.a.sum() / u.w.sum() - c.a.sum() / c.w.sum())
+    out["mae_gain_ci_lo"], out["mae_gain_ci_hi"] = bb.ci(mae(u) - mae(c))
+    pd.DataFrame([out]).to_csv(out_dir / f"{code}_common_rows_bootstrap.csv", index=False)
+    print(pd.Series(out).to_string())
 
 
 if __name__ == "__main__":
