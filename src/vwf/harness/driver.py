@@ -110,7 +110,7 @@ def _record_era5_extent(reanalysis, fleet: pd.DataFrame, spec: RegionSpec) -> di
     has already refused. The record is written either way, with zeros when
     nothing is outside, so an absent value never needs interpreting. Inside the
     loaded extent is a statement about position, not a check of the data in
-    those cells; off-curve and missing values are counted separately.
+    those cells; ``wind.off_curve_record`` counts off-curve and missing values.
     """
     coverage = wind.loaded_extent_coverage(reanalysis, fleet)
     record = {
@@ -309,15 +309,19 @@ def run_evaluate(
     # the rows every variant can score (see _score_on_common_rows).
     variants: list[dict] = []
 
-    _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+    capacity = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
+    unc_ws, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
     unc_cf.to_csv(run_dir / "unc_cf.csv", index=False)
     variants.append({
         "label": "uncorrected",
         "head": {"variant": "uncorrected", "num_clu": 1, "time_res": "none"},
-        "extra": {},
+        # The uncorrected row carries the fit-quality columns empty, so the
+        # corrected rows' columns keep their place in metrics.csv.
+        "extra": dict.fromkeys(fit_quality(pd.DataFrame()), np.nan),
+        "tail": wind.off_curve_record(unc_ws, unc_cf, capacity, power_curves),
         "pairs": _pairs(unc_cf),
     })
-    del unc_cf
+    del unc_ws, unc_cf
 
     for factors_path in sorted(train_run_dir.glob("factors_*.csv")):
         time_res, num_clu_str = factors_path.stem.split("_")[1:3]
@@ -337,7 +341,7 @@ def run_evaluate(
                 num_clu, train_fleet, False, turb_info,
                 min_cluster_size=spec.min_cluster_size,
             )
-        _, cor_cf = model.apply(
+        cor_ws, cor_cf = model.apply(
             reanalysis, clus_info, power_curves, factors, time_res, seasons=spec.seasons
         )
         cor_cf.to_csv(run_dir / f"cor_cf_{time_res}_{num_clu}.csv", index=False)
@@ -359,11 +363,13 @@ def run_evaluate(
             "label": f"{time_res}_{num_clu}",
             "head": {"variant": spec.correction_model, "num_clu": num_clu, "time_res": time_res},
             "extra": quality,
+            "tail": wind.off_curve_record(cor_ws, cor_cf, capacity, power_curves),
             "pairs": _pairs(cor_cf),
         })
-        del cor_cf
+        del cor_ws, cor_cf
 
     rows, scoring = _score_on_common_rows(variants, spec.code, run_dir)
+    off_curve = _record_off_curve(variants, spec.code)
     metrics_df = pd.DataFrame(rows)
     # Every variant simulates the same fleet on the same table.
     metrics_df["substituted_capacity_share"] = curves["substituted_capacity_share"]
@@ -382,9 +388,32 @@ def run_evaluate(
             "curve_resolution": curves,
             "common_row_scoring": scoring,
             "era5_extent": era5_extent,
+            "off_curve": off_curve,
         },
     )
     return run_dir
+
+
+def _record_off_curve(variants: list[dict], code: str) -> dict:
+    """Each variant's off-curve record, for the manifest, with a warning if any."""
+    record = {v["label"]: v.get("tail", {}) for v in variants}
+    hit = {
+        label: r for label, r in record.items()
+        if r and (r["off_curve_below_share"] or r["off_curve_above_share"] or r["no_speed_share"])
+    }
+    if hit:
+        worst = max(hit, key=lambda k: hit[k]["off_curve_below_share"]
+                    + hit[k]["off_curve_above_share"] + hit[k]["no_speed_share"])
+        r = hit[worst]
+        warnings.warn(
+            f"{code}: {len(hit)} variant(s) have simulated values the power curves could "
+            f"not convert; worst {worst}: {r['off_curve_below_share']:.2%} below the "
+            f"curve, {r['off_curve_above_share']:.2%} above it, {r['no_speed_share']:.2%} "
+            f"with no speed, by capacity, and {r['unit_months_partly_missing']} unit-months "
+            "scored on only some of their steps. They are missing, not zero; see the "
+            "off_curve block in the manifest."
+        )
+    return record
 
 
 #: Per scope: the columns that identify a row across variants, the weight
@@ -416,7 +445,8 @@ def _score_on_common_rows(
         variants: One dict per variant, in output order, with ``label`` (the
             name used in the exclusions file), ``head`` (the leading metrics
             columns), ``extra`` (trailing columns, such as fit quality) and
-            ``pairs`` (scope name to paired frame).
+            ``pairs`` (scope name to paired frame), and optionally ``tail``
+            (columns appended after ``extra``, such as the off-curve record).
         code: Region code, for warnings.
         run_dir: Where the exclusions file is written.
 
@@ -462,7 +492,8 @@ def _score_on_common_rows(
                 metrics = _zonal_metrics(frame)
             else:
                 metrics = _error_metrics(frame)
-            rows.append({**v["head"], "scope": scope, **metrics, **v["extra"]})
+            rows.append({**v["head"], "scope": scope, **metrics, **v["extra"],
+                         **v.get("tail", {})})
     return rows, summaries
 
 
@@ -693,19 +724,22 @@ def run_transfer(
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, target_spec.code)
     era5_extent = _record_era5_extent(reanalysis, turb_info, target_spec)
 
-    def _variant(sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
+    capacity = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
+
+    def _variant(sim_ws: pd.DataFrame, sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
         tidy = collapse_pseudo_replicates(_tidy_eval_frame(sim_cf, obs_cf, turb_info), target_spec)
         return {
             "label": variant,
             "head": {"variant": variant, "time_res": time_res},
             "extra": {},
+            "tail": wind.off_curve_record(sim_ws, sim_cf, capacity, power_curves),
             "pairs": {"fleet": tidy},
         }
 
     # As in run_evaluate: every variant is scored on the rows all of them can score.
     variants = []
-    _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
-    variants.append(_variant(unc_cf, "uncorrected", "none"))
+    unc_ws, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+    variants.append(_variant(unc_ws, unc_cf, "uncorrected", "none"))
 
     # Uniform application: every target site is cluster 0.
     target_info = turb_info.copy()
@@ -722,7 +756,7 @@ def run_transfer(
         collapsed.to_csv(
             run_dir / f"collapsed_factors_{time_res}_{num_clu_str}.csv", index=False
         )
-        _, cor_cf = model.apply(
+        cor_ws, cor_cf = model.apply(
             reanalysis,
             target_info,
             power_curves,
@@ -731,10 +765,11 @@ def run_transfer(
             seasons=target_spec.seasons,  # season-NAME matching, design §7.3
         )
         variants.append(
-            _variant(cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
+            _variant(cor_ws, cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
         )
 
     rows, scoring = _score_on_common_rows(variants, target_spec.code, run_dir)
+    off_curve = _record_off_curve(variants, target_spec.code)
     pd.DataFrame(rows).drop(columns="scope").assign(
         substituted_capacity_share=curves["substituted_capacity_share"],
         excluded_share=scoring["fleet"]["excluded_share"],
@@ -752,6 +787,7 @@ def run_transfer(
             "evaluation_year": year,
             "common_row_scoring": scoring,
             "era5_extent": era5_extent,
+            "off_curve": off_curve,
         },
     )
     return run_dir

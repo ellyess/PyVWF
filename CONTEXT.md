@@ -104,6 +104,7 @@ someone reads it.
 | scorecard config | The byte-identical copy of the configuration behind one scorecard row, in `configs/regions/scorecard/` (`<stem>_k<N>.toml` or `<stem>_country.toml`). | refresh config |
 | third-party reproducible | Regenerable by anyone from committed files, public data and the open library. | open (for a result), public (for a result) |
 | loaded extent | The lon/lat range of the ERA5 grid a run loaded, after its bbox slice. A unit inside it has its winds interpolated. Inside is a statement about position, not a check of the data in those cells. | ERA5 coverage, covered (for inside the loaded extent) |
+| off-curve value | A simulated speed below the power curve table's first speed or above its last. It has no value on the curve, so the capacity factor is missing, not zero. | out-of-range value, clipped value |
 | extrapolated share | `extrapolated_capacity_share`: the share of a fleet's capacity outside the loaded extent, simulated from winds extrapolated past the grid. Marked § in the scorecard. | extrapolation share, outside share |
 
 ## Evidence and documents

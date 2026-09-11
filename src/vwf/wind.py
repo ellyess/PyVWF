@@ -40,8 +40,8 @@ def loaded_extent_coverage(reanalysis, turb_info) -> dict[str, Any]:
 
     Inside the loaded extent is a statement about position only. It does not
     verify the data in the surrounding cells: a unit can sit inside the extent
-    over cells whose values are unusable. Off-curve and missing values are
-    counted separately.
+    over cells whose values are unusable; :func:`off_curve_record` counts
+    those.
 
     Args:
         reanalysis: Dataset with ``lon`` and ``lat`` coordinates.
@@ -72,6 +72,56 @@ def loaded_extent_coverage(reanalysis, turb_info) -> dict[str, Any]:
         ),
         "max_degrees_outside_loaded_extent": float(beyond.max()) if len(x) else 0.0,
         "ids_outside": [str(i) for i in np.asarray(turb_info["ID"])[outside][:10]],
+    }
+
+
+def off_curve_record(
+    ws: pd.DataFrame, cf: pd.DataFrame, capacity: pd.Series, power_curves: pd.DataFrame
+) -> dict[str, Any]:
+    """How many simulated values the power curves could not convert, and why.
+
+    A speed below the power curve table's first speed (0 m/s) or above its last
+    (40 m/s) has no value on the curve. The Akima interpolator returns NaN
+    there, not zero output, and a missing speed (for example an undefined
+    roughness in the input) also gives NaN. A monthly or national mean then
+    skips the value. So a unit-month can be scored on only some of its steps,
+    and the steps it loses are the ones the simulation could not handle. Off
+    the curve, the values are left missing: counting them as zero output is a
+    separate question about the physics.
+
+    Args:
+        ws: Wide frame of simulated speeds, a ``time`` column plus one column
+            per unit, as :func:`simulate_wind` returns.
+        cf: The matching wide frame of capacity factors.
+        capacity: Capacity by unit ID (string index), for the weights.
+        power_curves: The power curve table the speeds were converted on.
+
+    Returns:
+        Capacity-weighted shares of unit-steps below the curve, above it, and
+        with no speed, and the number of unit-months with every step missing
+        and with some but not all.
+    """
+    cols = [c for c in ws.columns if c != "time"]
+    speeds = ws[cols].to_numpy(dtype=float)
+    grid = power_curves["data$speed"].to_numpy(dtype=float)
+    weights = capacity.reindex([str(c) for c in cols]).to_numpy(dtype=float)
+    weights = np.broadcast_to(np.nan_to_num(weights)[None, :], speeds.shape)
+    total = float(weights.sum())
+
+    def share(mask: np.ndarray) -> float:
+        return float(weights[mask].sum()) / total if total > 0 else 0.0
+
+    with np.errstate(invalid="ignore"):
+        below = speeds < grid.min()
+        above = speeds > grid.max()
+    months = pd.to_datetime(cf["time"]).dt.to_period("M").to_numpy()
+    missing = cf[cols].isna().groupby(months).mean().to_numpy()
+    return {
+        "off_curve_below_share": share(below),
+        "off_curve_above_share": share(above),
+        "no_speed_share": share(np.isnan(speeds)),
+        "unit_months_wholly_missing": int((missing == 1.0).sum()),
+        "unit_months_partly_missing": int(((missing > 0) & (missing < 1.0)).sum()),
     }
 
 

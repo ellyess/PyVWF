@@ -52,6 +52,8 @@ the test year:
 | `substituted_capacity_share` | Share of fleet capacity simulated on a curve other than the one its model key names (see below) |
 | `excluded_share` | Share of scorable rows left out because some variant has no value for them (see below) |
 | `extrapolated_capacity_share` | Share of fleet capacity outside the loaded ERA5 extent (see below). Zero unless the region opted in |
+| `off_curve_below_share`, `off_curve_above_share`, `no_speed_share` | Capacity-weighted shares of this variant's simulated unit-steps below the power curve, above it, and with no speed (see below) |
+| `unit_months_wholly_missing`, `unit_months_partly_missing` | Unit-months with every step missing, and with some but not all (see below) |
 
 Read the uncorrected row first: judge the correction against the bias structure
 it starts from, not in isolation.
@@ -63,8 +65,9 @@ Full provenance so any output is attributable: `pyvwf_version`, `git_commit` and
 time convention), `correction`, `seasons`, the `curve_library` identity (whether
 the open or a licensed library was used), the `curve_resolution` summary, and,
 for evaluate runs, `evaluation_year` and `trained_from`. Design §6. Evaluate and
-transfer runs also carry the `common_row_scoring` summary. Every harness run
-carries the `era5_extent` block (see below).
+transfer runs also carry the `common_row_scoring` summary and the `off_curve`
+record per variant. Every harness run carries the `era5_extent` block (see
+below).
 
 ## Curve resolution (`curve_resolution.csv`)
 
@@ -110,11 +113,35 @@ zeros when nothing is outside.
 
 Inside the loaded extent is a statement about position only. It does not
 check the data in those cells. A unit can sit inside the extent over cells
-whose values are unusable. Off-curve and missing values are counted
-separately.
+whose values are unusable. The off-curve counts below record that.
 
 A scorecard row with a non-zero `extrapolated_capacity_share` carries the §
 marker and the share (`docs/README.md`).
+
+## Off-curve values (`off_curve`)
+
+A power curve covers speeds from its table's first speed (0 m/s) to its last
+(40 m/s). A simulated speed outside that range has no value on the curve. The
+capacity factor there is missing, not zero. A missing speed also gives a
+missing capacity factor, for example where the input roughness is undefined.
+
+A monthly mean skips missing steps. So a unit-month can be scored on only some
+of its steps, and the steps it loses are the ones the simulation could not
+handle. The common-row scoring (below) excludes only unit-months with every
+step missing.
+
+Each variant of an evaluate or transfer run records:
+
+| Field | Meaning |
+|---|---|
+| `off_curve_below_share` | Capacity-weighted share of unit-steps with a speed below the curve |
+| `off_curve_above_share` | The same, above the curve |
+| `no_speed_share` | The same, with no speed |
+| `unit_months_wholly_missing` | Unit-months with every step missing |
+| `unit_months_partly_missing` | Unit-months with some steps missing, still scored on the rest |
+
+The fields are columns of `metrics.csv`, and the manifest's `off_curve` block
+holds them per variant. A non-zero share raises a warning at run time.
 
 ## Scoring exclusions (`scoring_exclusions.csv`)
 

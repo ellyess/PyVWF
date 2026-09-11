@@ -23,6 +23,14 @@ a corrected variant lacks some values.
 
 ### Added
 
+- **Off-curve values are counted.** A speed below 0 m/s or above the curve
+  table's last speed has no value on the curve, so the capacity factor is
+  missing, not zero. A monthly mean skips it. Every variant of an evaluate or
+  transfer run now records the capacity-weighted shares of unit-steps below
+  the curve, above it and with no speed. It also records the unit-months
+  scored on only some of their steps, which the common-row scoring does not
+  catch. They are `metrics.csv` columns and an `off_curve` manifest block, and
+  a non-zero share warns. Recording only: off-curve values stay missing.
 - **The loaded ERA5 extent is recorded for every harness run.** The manifest
   gains an `era5_extent` block: the loaded extent, the requested bbox, the
   units outside and their capacity share, and whether the region opted in.
