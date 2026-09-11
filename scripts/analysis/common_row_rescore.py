@@ -34,6 +34,15 @@ for rows with no exclusions they are unchanged. CL's first interval, -0.007 to
 variants only (55 plants), not on the rows common to all three (53 plants),
 which the fixed harness scores.
 
+Also added after the rescore results: ``--joint DIR [DIR ...]`` rescores a
+set of evaluate runs of one region whose results a document compares across
+runs. It was written for the Chile ``min_cluster_size`` runs, whose gates
+compare corrected scores from three runs with one uncorrected score. Each run
+is rescored on its own common rows, as the fixed harness would score it, and
+all runs together on the rows common to every variant of every run. The
+uncorrected frames of the runs must be identical. Output:
+``<CODE>_joint_rescore.csv``.
+
 It reads the git-ignored run tree and the local input root, so a third party
 cannot run it. It is committed so that the figures in the CL correction notice
 can be regenerated.
@@ -42,6 +51,7 @@ Usage, from the repository root, one region per process, with ``PYVWF_INPUT``
 as in the row's manifest:
 
     PYTHONPATH=src python scripts/analysis/common_row_rescore.py <CODE> <out_dir>
+    PYTHONPATH=src python scripts/analysis/common_row_rescore.py <CODE> <out_dir> --joint DIR...
 """
 import json
 import sys
@@ -168,5 +178,71 @@ def common_rows_bootstrap(code, restricted, reported, out_dir):
     print(pd.Series(out).to_string())
 
 
+def joint(code, out_dir, eval_dirs):
+    """Rescore several evaluate runs of one region, each alone and all together."""
+    spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
+    eval_dirs = [Path(d) for d in eval_dirs]
+    years = {json.loads((d / "run_manifest.json").read_text())["evaluation_year"] for d in eval_dirs}
+    if len(years) != 1:
+        raise SystemExit(f"{code}: runs evaluate different years {years}")
+    obs, turb_info = bb.load_obs_and_fleet(spec, int(years.pop()))
+
+    def pairs(sim_cf):
+        return {"fleet": collapse_pseudo_replicates(
+            driver._tidy_eval_frame(sim_cf, obs, turb_info), spec)}
+
+    unc = pd.read_csv(eval_dirs[0] / "unc_cf.csv")
+    for d in eval_dirs[1:]:
+        other = pd.read_csv(d / "unc_cf.csv")
+        same = other.columns.equals(unc.columns) and np.allclose(
+            other.drop(columns="time").to_numpy(float), unc.drop(columns="time").to_numpy(float),
+            equal_nan=True, rtol=0, atol=0)
+        if not same:
+            raise SystemExit(f"{code}: uncorrected frame of {d} differs from {eval_dirs[0]}")
+    unc_variant = {"label": "uncorrected", "extra": {}, "pairs": pairs(unc),
+                   "head": {"run": "all", "variant": "uncorrected", "num_clu": 1, "time_res": "none"}}
+
+    per_run = {}
+    for d in eval_dirs:
+        per_run[d.name] = []
+        for path in sorted(d.glob("cor_cf_*.csv")):
+            time_res, num_clu = path.stem.removeprefix("cor_cf_").rsplit("_", 1)
+            per_run[d.name].append({
+                "label": f"{d.name}:{time_res}_{num_clu}", "extra": {},
+                "head": {"run": d.name, "variant": spec.correction_model,
+                         "num_clu": int(num_clu), "time_res": time_res},
+                "pairs": pairs(pd.read_csv(path)),
+            })
+
+    rows = []
+    scratch = Path(out_dir) / f"{code}_joint"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for name, variants in per_run.items():
+            (scratch / name).mkdir(parents=True, exist_ok=True)
+            scored, summary = driver._score_on_common_rows([unc_variant, *variants], code, scratch / name)
+            old = pd.read_csv(Path([d for d in eval_dirs if d.name == name][0]) / "metrics.csv")
+            for row in scored:
+                ref = old[(old["variant"] == row["variant"]) & (old["num_clu"] == row["num_clu"])
+                          & (old["time_res"] == row["time_res"])].iloc[0]
+                rows.append({"basis": f"within:{name}", **row, "run": row["run"] if row["run"] != "all" else name,
+                             "rmse_old": ref["rmse"], "n_units_old": ref["n_units"],
+                             "n_samples_old": ref["n_samples"],
+                             "excluded_share": summary["fleet"]["excluded_share"]})
+        pooled = [unc_variant] + [v for vs in per_run.values() for v in vs]
+        (scratch / "all").mkdir(parents=True, exist_ok=True)
+        scored, summary = driver._score_on_common_rows(pooled, code, scratch / "all")
+        for row in scored:
+            rows.append({"basis": "joint", **row, "excluded_share": summary["fleet"]["excluded_share"]})
+    report = pd.DataFrame(rows)
+    report.to_csv(Path(out_dir) / f"{code}_joint_rescore.csv", index=False)
+    with pd.option_context("display.width", 220):
+        print(report[["basis", "run", "variant", "rmse", "mbe", "n_units", "n_samples",
+                      "rmse_old", "n_units_old", "excluded_share"]].round(4).to_string(index=False))
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    if len(sys.argv) > 3 and sys.argv[3] == "--joint":
+        joint(sys.argv[1], sys.argv[2], sys.argv[4:])
+    else:
+        main(sys.argv[1], sys.argv[2])
