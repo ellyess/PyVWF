@@ -11,6 +11,43 @@ from there and `tests/test_packaging.py` asserts `CITATION.cff` stays in step.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-11
+
+A corrections-only release. The 0.5.0 archive carries a scorecard preamble and
+a country-level findings document that state things the runs behind them do not
+support; this release corrects them. No behaviour changes: the only source edit
+is a docstring.
+
+### Fixed
+
+- **Every country-level result was simulated on a 100 kW fallback curve.** The
+  country grid points name `Vestas.V80.2000`, `Vestas.V90.2000` or
+  `Vestas.V90.3000`, none of which is in the bundled open library these runs
+  used, so every grid point fell back, with a warning and no record, to the
+  library's first column, `2019COE_DW100_100kW_27.6`, a 100 kW
+  distributed-wind turbine. Confirmed by re-running the eight scorecard
+  country rows. `method-country-level.md` carries a dated correction notice
+  naming which of its figures rest on that curve, the scorecard states it, and
+  the README's national-level line says so. How much of the country-level
+  correction absorbs this mismatch rather than ERA5 bias is not quantified.
+- **The scorecard's curve-library claim.** It said every region except CL and
+  AR used the licensed library; the eight country-level rows used the bundled
+  open library. The seven rows that do use the licensed library are now stated
+  as not reproducible by a third party.
+- **The scorecard's reproducibility claim.** The configurations behind its rows
+  had never been committed, and for seven of the nine turbine-level regions the
+  maintained config cannot produce the reported cluster count. The exact
+  configurations are now in `configs/regions/scorecard/`, one per row. The
+  links from each evaluation to its training run, recorded as a path that no
+  longer exists, were verified by re-running every evaluation at the original
+  commit: all seventeen `metrics.csv` files are byte-identical.
+
+### Documentation
+
+- `paper.md` is marked as archived: submitted to the Journal of Open Source
+  Software, review closed, not currently under submission.
+- The `vwf.viz` docstring no longer refers to a JOSS paper.
+
 ## [0.5.0] - 2026-09-01
 
 ### Added
@@ -102,7 +139,12 @@ unchanged and remain pinned bit-for-bit by a golden regression test.
   curve against cluster count turned out to be partition noise rather than
   signal. Measured across five regions before adoption.
 - **The merged open curve library is the uniform default**, so the validated
-  rows reproduce without the licensed library.
+  rows reproduce without the licensed library. *[Correction, 2026-09-11: this
+  was never true. Seven of the seventeen scorecard rows (DE, DK, UK, US, BR,
+  AU-NEM, NZ) were produced on the licensed library and cannot be reproduced
+  without it, and the eight country-level rows that did run on the open
+  library simulated every unit on a 100 kW fallback curve. See
+  [0.5.1](#051---2026-09-11).]*
 - `input/` is reorganised by pipeline stage (`raw/`, `observations/`,
   `reference/`), `scripts/` and `configs/` by function, and `docs/` by purpose
   (`guides/`, `runbooks/`, `findings/`, `design/`).
@@ -332,7 +374,8 @@ changes the numbers the evaluation layer reports.
   evaluation metrics, the `pyvwf-train` console script, and the distributional
   diagnostics (`plot_cf_distribution`, `plot_qq`) in `vwf.viz`.
 
-[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/ellyess/PyVWF/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/ellyess/PyVWF/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ellyess/PyVWF/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ellyess/PyVWF/compare/v0.2.0...v0.3.0
