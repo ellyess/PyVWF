@@ -68,6 +68,12 @@ reproduces exactly on this code.
   country-level `aemo` adapter, and its run example used the legacy path;
   both now show the harness. The built-in adapter table gains the three
   registered adapters it was missing.
+- The New Zealand documentation no longer misstates how the region is built.
+  The adapter and transform docstrings and the `nz.toml` comment said the
+  capacity-factor denominator comes from the EMI plant register; it comes
+  from the curated capacity stages and farm table, and the register is only
+  reported on. The runbook's cluster counts were two versions out of date,
+  and it set `PYVWF_INPUT` on the train line only.
 
 ## [0.5.1] - 2026-09-11
 

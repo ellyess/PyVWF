@@ -49,7 +49,10 @@ The fetch is plain HTTP (each URL 302-redirects to an open Azure blob),
 is not stable across years), maps trading periods to UTC through
 `Pacific/Auckland` (46/48/50-period DST days handled and pinned by tests),
 sums multi-POC farms (West Wind, Tararua I/II), computes monthly CF against
-the stable-plateau capacity history, and writes the build mask. An unmapped
+the stable-plateau capacity history (`nz_capacity_stages.csv` for staged
+builds, otherwise each farm's final capacity from `nz_wind_farms.csv`; the EMI
+register is fetched for the join report only), and writes the build mask from
+`nz_mask_windows.csv`. An unmapped
 wind Gen_Code is a hard error: it means a new farm needs a curated row
 (Kaiwaikawe, Northland 77 MW, is expected to appear ~mid-2026).
 
@@ -68,11 +71,15 @@ Small box (53 x 49 cells), so no daily pre-combine is needed, unlike BR/US.
 ## 3. Train and evaluate
 
 ```bash
-PYVWF_INPUT=<your input root with the real/combined curve library> \
-python scripts/analysis/validate_region.py train --region configs/regions/nz.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/nz.toml \
-    --train-run output/validation/NZ/train-<stamp>
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+    --region configs/regions/nz.toml
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/nz.toml --train-run output/validation/NZ/train-<stamp>
 ```
+
+Set `PYVWF_INPUT` on both lines. Evaluation resolves the curve library again,
+so an evaluate run without it silently uses the bundled library; its manifest
+records which one it used.
 
 Notes for reading the result:
 
@@ -81,10 +88,14 @@ Notes for reading the result:
   (~40%); ERA5 in complex terrain (Manawatu Gorge, Cook Strait funnelling)
   plausibly under-resolves the resource, the Tehachapi-like regime the ML
   transfer re-test identified as globally under-represented.
-- **k ceiling**: 13 farms, 12 unique coordinates (Tararua III shares the
-  I/II ridge coordinates; KD2 shares KD1's). `cluster_list = [5]` shipped;
-  sweep [1, 5, 10] and remember k above ~12 is a fake plateau
-  (`docs/findings/region-us-br.md`).
+- **k ceiling**: only 8 of the 13 farms reach the clusterer in the 2019-2023
+  training window (Harapaki and Kaiwera Downs 2 commission later, and some
+  sparse-coverage farms drop in `train_set`), and k-means needs k no larger
+  than that. k=10 crashed for that reason (`region-nz.md`), and k near 8 is
+  one farm per cluster, the fake-plateau regime (`region-us-br.md`). The
+  maintained config sweeps `cluster_list = [1, 5]`. The scorecard row is k7
+  fixed, and the exact configuration behind it is
+  `configs/regions/scorecard/nz_k7.toml`.
 - **Train/test**: 2019-2023 → 2024. Turitea contributes 2022 (North plateau)
   and 2024; its 2021/2023 ramps are masked. Harapaki effectively enters at
   test time (masked to Jul 2024); watch its months in evaluation.

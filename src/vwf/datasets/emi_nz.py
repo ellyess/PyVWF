@@ -2,8 +2,8 @@
 
 Pure frame-to-frame logic for ``scripts/process/emi_nz.py``: mapping EMI
 trading periods to UTC timestamps, reshaping the half-hourly ``Generation_MD``
-energy series into monthly capacity factors, and deriving a capacity history
-from the effective-dated EMI plant register.
+energy series into monthly capacity factors, and building the capacity
+history they are divided by.
 
 Everything here takes and returns DataFrames so it is testable without the raw
 EMI files; file I/O lives in the script.
@@ -26,13 +26,16 @@ Two NZ-specific facts shape the design:
   on DST days by construction (no period is skipped or double-counted),
   and the monthly bins downstream are UTC, matching the ERA5/simulation
   convention everywhere else (``time_convention = "utc-monthly-bins"``).
-- **The register is effective-dated.** The EMI dispatched-plant register
-  carries nameplate capacity per unit with validity windows, so a capacity
-  *history* per farm is derivable. The monthly CF is computed against the
-  then-current registered capacity (the ONS-style denominator), which keeps
-  ramping builds (Turitea 2021-2023, Harapaki 2024) from biasing CF low; a
-  below-final-build mask is offered on top for the erratic
-  partially-erected months (the AU DUDETAIL pattern).
+- **Capacity changes over time.** The monthly CF is computed against a
+  then-current capacity, which keeps ramping builds (Turitea 2021-2023,
+  Harapaki 2024) from biasing CF low. The processing step builds that history
+  from the curated tables (``nz_capacity_stages.csv``, then each farm's final
+  capacity from ``nz_wind_farms.csv``) and masks the commissioning windows in
+  ``nz_mask_windows.csv``. The register-based alternatives here,
+  :func:`capacity_history_from_register` and :func:`below_final_build_mask`,
+  derive the same things from the EMI dispatched-plant register's
+  effective-dated nameplate rows. They are tested but not used by the
+  processing step.
 """
 from __future__ import annotations
 
@@ -247,7 +250,10 @@ def monthly_cf(
         half_hourly: Output of :func:`half_hourly_from_generation_md`,
             aggregated to one row per (ID, timestamp); sum multiple units
             of one farm before calling.
-        capacity_history: Output of :func:`capacity_history_from_register`.
+        capacity_history: ``ID``, ``effective_from``, ``capacity`` (kW). The
+            processing step builds it from the curated tables;
+            :func:`capacity_history_from_register` is the register-based
+            alternative.
         year_start: First UTC year to include (inclusive).
         year_end: Last UTC year to include (inclusive).
         min_coverage: Minimum fraction of a month's half-hours required.
