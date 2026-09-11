@@ -160,6 +160,13 @@ the [scorecard](docs/findings/scorecard.md) gives the source path for each.
 contain implausible wind scalars, worst in Chile at 80.23 and the United States
 at 46.39. Do not reuse the factors from these four.
 
+**Curve matching.** Turbines are matched to power curves by specific power, not
+by make, so in most of these fleets part of the capacity runs on another
+manufacturer's curve or a research reference design, and some fleets record no
+manufacturer to check against. The [scorecard](docs/findings/scorecard.md)
+gives those shares per row. Whether the correction's skill survives that
+mismatch is not yet assessed.
+
 **National level** (ENTSO-E aggregate, held-out 2023, all eight clean): France
 0.171 → **0.012**, Belgium 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland
 0.172 → **0.021**, Sweden 0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal
