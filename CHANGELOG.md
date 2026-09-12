@@ -150,6 +150,18 @@ a corrected variant lacks some values.
   gates still pass, with smaller margins), `method-hourly-resolution.md`,
   `method-physics-informed.md` and `method-cluster-count.md` carry notices
   where they report CL skill.
+- **The rows do not share one roughness treatment.** Every region derives the
+  surface roughness by inverting the log wind profile from the 10 m and 100 m
+  winds. The European files carry a single annual mean of it, so DE, DK, UK and
+  the eight country-level rows run on one static field per year, while the
+  other six rows derive it hour by hour. The difference is not the formula but
+  whether its result varies in time, and it confounds any comparison between
+  the two halves of the scorecard. Which treatment is better is not
+  established, and is under test on Denmark; no figure changes until that
+  reports. The scorecard carries the notice, and two documentation errors are
+  corrected with it: `COMBINED_ERA5_USAGE.md` called the European roughness
+  terrain-derived, and `combine_era5_files.py` offered a `terrain` source that
+  does not exist.
 - **The IT, PT and ES country-level rows are suspended.** The European ERA5
   download never covered their southern grid points, and the harness
   extrapolated winds to them without a warning. In ES and IT the fit then
@@ -165,6 +177,15 @@ a corrected variant lacks some values.
 
 ### Documentation
 
+- **Two design notes on surface roughness.**
+  `docs/design/roughness-temporal-treatment.md` records that every region
+  derives the roughness the same way but eleven rows apply an annual mean of it
+  and six apply an hourly one, what that does to comparisons between regions,
+  and that neither treatment is recommended while the two are under test.
+  `docs/design/undefined-roughness-in-complex-terrain.md` records where the
+  shear-derived estimator has no value at all: with no shear or inverted shear,
+  which in the Andes cells of the Brazilian box holds for every hour of a
+  month.
 - `docs/README.md` separates procedural documents (guides, runbooks), which
   follow three writing rules adapted from Simplified Technical English
   principles, from argumentative ones (findings, design), which follow three

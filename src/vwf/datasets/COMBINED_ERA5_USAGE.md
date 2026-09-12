@@ -138,9 +138,18 @@ for ds in datasets:
 
 ## Roughness Length (z0) Details
 
-The `z0` variable contains surface roughness length derived from terrain data:
+The `z0` variable contains surface roughness length derived from the 10 m to
+100 m wind shear, by inverting the log wind profile, and then averaged over the
+year. It is one static field per year, not a time series.
 
-**Value ranges:**
+**Corrected 2026-09-12.** This section said the field is derived from terrain
+data. It is not, and the code has no terrain option: `--roughness-source`
+accepts `pyvwf` (the shear method above) or `constant`. The field's own
+attributes record the shear method and the time averaging. Which temporal
+treatment is better is under test; see
+`docs/design/roughness-temporal-treatment.md`.
+
+**Value ranges (shear-derived, annual mean):**
 - Ocean/smooth surfaces: ~0.0001 m
 - Grassland: ~0.03 m (default for missing data)
 - Agricultural land: ~0.05-0.1 m
@@ -191,11 +200,10 @@ python combine_era5_files.py --all-years
 python combine_era5_files.py --all-years --add-roughness
 ```
 
-### With terrain-derived roughness:
+### With shear-derived roughness (the European files' method):
 ```bash
 python combine_era5_files.py --all-years --add-roughness \
-    --roughness-source terrain \
-    --terrain-file input/reference/terrain/terrain_europe_full.nc
+    --roughness-source pyvwf
 ```
 
 ### Specific years only:
@@ -213,11 +221,11 @@ python combine_era5_files.py --all-years \
 ## Maintenance
 
 ### Re-running the combination:
-If you get new ERA5 data or update terrain:
+If you get new ERA5 data:
 ```bash
 # Will overwrite existing combined files
 python combine_era5_files.py --all-years --add-roughness \
-    --roughness-source terrain
+    --roughness-source pyvwf
 ```
 
 ### Removing old files:
@@ -242,8 +250,8 @@ If processing fails due to memory, process one year at a time:
 python combine_era5_files.py --years 2019 --add-roughness
 ```
 
-### Roughness interpolation fails:
-If terrain file is incompatible, fall back to constant roughness:
+### Roughness comes out unusable:
+Fall back to constant roughness:
 ```bash
 python combine_era5_files.py --all-years --add-roughness \
     --roughness-source constant --roughness-value 0.03

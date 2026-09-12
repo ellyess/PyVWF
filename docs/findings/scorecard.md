@@ -185,6 +185,51 @@ is downloaded to cover their boxes and they are re-run. NO (4.4% of capacity,
 Script for the training-year figures: `scripts/analysis/training_objective_check.py`.
 Data: `output/curve_library_study_2026-09-11/training_objective_check/`.
 
+**Correction notice, 2026-09-12: the rows do not share one roughness
+treatment.** The difference between regions is not the formula, it is whether
+the result of the formula varies in time. Every region derives the surface
+roughness z0 by inverting the log wind profile from the 10 m and 100 m winds,
+the equation the method describes. The European files carry a single annual
+mean of that quantity, computed once per year in
+`src/vwf/datasets/combine_era5_files.py`. Every other region derives z0 hour by
+hour and averages it to daily along with the winds.
+
+| Roughness applied | Rows |
+|---|---|
+| One annual mean per year | DE, DK, UK and the eight country-level rows: 11 of 17, all reading `era5/EU` |
+| Hourly, averaged to daily | US, BR, AU-NEM, NZ, CL, AR: 6 of 17 |
+
+**Cross-region comparison is confounded.** This table invites reading rows
+against each other, and the two halves differ in an input, not only in fleet,
+observations and climate. Every statement in this repository that ranks or
+contrasts regions inherits that, including the transfer and physics-informed
+work. A reader cannot work this out from the rows.
+
+**Which treatment is better is not established.** The annual mean may be the
+more stable estimator, since shear-derived z0 is noisy and undefined in some
+hours by construction (`docs/design/roughness-temporal-treatment.md`,
+`docs/design/undefined-roughness-in-complex-terrain.md`). Neither treatment is
+recommended here. The two are being compared on Denmark under a
+pre-registration, and no figure in this document changes until that reports.
+
+**What the dating evidence supports.** No PyVWF run output surviving in this
+repository predates the combined European files of 11 February 2026; the
+earliest surviving output is 13 February 2026. Run directories are pruned, so
+this does not establish that no earlier run existed, only that none survives to
+be checked.
+
+**The thesis is silent, not wrong.** Its method section gives the equation and
+states that the ERA5 input is hourly. It does not state how z0 is treated in
+time, and a reader would naturally take the equation as applying per timestep.
+Nothing in the thesis changes. Any paper drawn from those chapters has to state
+the temporal treatment that actually ran.
+
+**Two documentation errors, corrected on 2026-09-12.** They are not the
+finding. `src/vwf/datasets/COMBINED_ERA5_USAGE.md` said the European z0 is
+derived from terrain data; it is not, and the code has no terrain option. The
+usage line in `combine_era5_files.py` offered `--roughness-source terrain`,
+which does not exist.
+
 All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 2026-08-24, one region per process. Runs are in
 `output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The CL

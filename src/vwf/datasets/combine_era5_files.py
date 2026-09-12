@@ -4,14 +4,19 @@
 This script combines:
 1. u10, v10 (10-meter winds)
 2. u100, v100 (100-meter winds)
-3. z0 (surface roughness length) - optional
+3. z0 (surface roughness length) - optional, and when added it is the
+   ANNUAL MEAN of the shear-derived roughness, one static field per year, not
+   a time series (see calculate_roughness_from_winds). Every region outside
+   Europe instead derives z0 hour by hour in vwf.datasets.era5.prep_era5.
+   Which treatment is better is under test; see
+   docs/design/roughness-temporal-treatment.md.
 
 Into single files per year with optimized encoding for faster I/O.
 
 Usage:
     python combine_era5_files.py --years 2019 2020 2021
     python combine_era5_files.py --all-years  # Process all available years
-    python combine_era5_files.py --years 2019 --add-roughness --roughness-source terrain
+    python combine_era5_files.py --years 2019 --add-roughness --roughness-source pyvwf
 """
 
 import argparse
