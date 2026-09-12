@@ -185,6 +185,25 @@ is downloaded to cover their boxes and they are re-run. NO (4.4% of capacity,
 Script for the training-year figures: `scripts/analysis/training_objective_check.py`.
 Data: `output/curve_library_study_2026-09-11/training_objective_check/`.
 
+*[Correction, 2026-09-12: NO and SE are not the only rows left with
+extrapolated winds. DK is one too, 0.6% of capacity and 47 of 5,446 units, and
+now carries § in the turbine-level table above. This paragraph listed the
+country-level rows only, and the check of 2026-09-11 behind it compared the
+European rows against the extent of the ERA5 files rather than against each
+row's own bbox-sliced extent, which is what a run loads. DK's box stops inside
+the files. The commit message of c480f46, which added the extent guard, says
+"the other twelve rows are inside their grids" on the same mistaken basis; it
+is eleven, and DK is not one of them. A commit message is dated history, so it
+is corrected here and not rewritten.
+
+`scripts/analysis/extent_audit.py` now asks the second question for all
+seventeen rows, so the count has a script behind it. Six rows carry
+extrapolated winds: ES 50.3%, IT 94.5%, PT 89.9%, NO 4.4%, SE 0.8% and DK 0.6%.
+The five published shares reproduce exactly, including the distances out, and
+DK is the addition. The other eleven rows have no unit outside the extent their
+own configuration loads. Data:
+`output/extent_audit_2026-09-12/`.]*
+
 **Correction notice, 2026-09-12: the rows do not share one roughness
 treatment.** The difference between regions is not the formula, it is whether
 the result of the formula varies in time. Every region derives the surface
@@ -314,7 +333,7 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Other brand | Reference curve | Unverifiable |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.042 | +0.001 | 0.85 | k100 fixed | 40.0% | 8.9% | 0.0% |
-| Denmark (DK) | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season | 11.6% | 0.6% | 23.0% |
+| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season | 11.6% | 0.6% | 23.0% |
 | Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | n/a | n/a | 100.0% |
 | United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | 2.8% | 84.5% | 4.5% |
@@ -325,6 +344,22 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 
 **‡ Gain not distinguishable from zero when the test year's units are resampled;
 see the correction notices above.**
+
+**§ Part of the fleet lies outside the loaded ERA5 extent, and its winds were
+extrapolated; the share of capacity follows the marker** (the rule is in
+`docs/README.md`). DK's box stops at 13.5°E and Bornholm lies near 14.9°E, so
+47 of the 5,446 units in its test fleet, 0.6% of capacity, sit up to 1.64°
+beyond the data, as do 38 of the 5,122 in its training fleet. The share was
+measured by the extent audit of 2026-09-12, read-only, because the run behind
+this row predates `extrapolated_capacity_share`
+(`scripts/analysis/extent_audit.py`, data in
+`output/extent_audit_2026-09-12/`). Nothing else about the row
+changes: the figures are the ones published on 2026-08-24, and the marker says
+they were produced partly from winds that were extrapolated rather than
+interpolated. The data covering Bornholm is already in the European files, so
+this is a bounding-box error and not a missing download; widening the box is
+logged as separate work, and produces a different DK row with its own
+configuration.
 
 **† The fit behind this row is degenerate.** `fit_quality` run against the exact
 factors file each row reports, with the calibrated bounds (scalar in 0.2 to 3.0,
@@ -379,9 +414,10 @@ throughout.
 
 **§ Part of the fleet lies outside the loaded ERA5 extent, and its winds were
 extrapolated; the share of capacity follows the marker** (suspension notice
-above; the rule is in `docs/README.md`). These two rows were run before the
-harness recorded `extrapolated_capacity_share`, so their shares come from the
-extent check of 2026-09-11. They get the same ERA5 download as the suspended
+above; the rule is in `docs/README.md`, and the DK row above carries it too).
+These two rows were run before the harness recorded
+`extrapolated_capacity_share`, so their shares come from the extent check of
+2026-09-11, and the audit of 2026-09-12 reproduces both. They get the same ERA5 download as the suspended
 rows, and return either clean or still marked.
 
 **Suspended rows.** Not results: most of their capacity was simulated from

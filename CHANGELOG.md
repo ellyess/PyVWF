@@ -192,6 +192,14 @@ a corrected variant lacks some values.
 
 ### Documentation
 
+- **The scorecard's Denmark row carries the § marker.** The extent check of
+  2026-09-11 compared the European rows against the extent of the ERA5 files
+  rather than against each row's bbox-sliced extent, which is what a run
+  loads, so it missed a row whose box stops inside the files.
+  `scripts/analysis/extent_audit.py` now asks the second question for every
+  row, read-only, and the suspension notice and the guard commit's claim about
+  how many rows lie inside their grids are corrected in place, with a date.
+  The row's own figures are unchanged.
 - **Two design notes on surface roughness.**
   `docs/design/roughness-temporal-treatment.md` records that every region
   derives the roughness the same way but eleven rows apply an annual mean of it
