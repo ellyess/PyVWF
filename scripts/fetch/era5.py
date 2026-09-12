@@ -60,15 +60,57 @@ files land under the ``file_tag`` dir (e.g. era5/BR), which for the big boxes
 produced afterwards by ``scripts/era5/combine.py``. Small boxes (NZ, CL, AR)
 need no combine step and their config path is the raw dir directly.
 
-Requests run sequentially and the script is resumable: completed months are
-skipped (chunks are formed only from the months still missing), partial
-downloads land in a .part file and are renamed only on success. Expect the CDS
-queue, not bandwidth, to dominate wall-clock time; hence the batching.
+The script is resumable: completed months are skipped (chunks are formed only
+from the months still missing), partial downloads land in a .part file and are
+renamed only on success. Expect the CDS queue, not bandwidth, to dominate
+wall-clock time; hence the batching. The extended European box measured about
+11 minutes per request, of which roughly 40 seconds was transfer.
+
+``--workers N`` submits N requests at once through a thread pool, which
+overlaps those queue waits. It defaults to 1, so nothing changes for an
+existing caller, and is capped at 6. Four is the recommended value, for
+reasons that are worth stating because none of them is obvious:
+
+- **ECMWF documents no per-user concurrency limit.** The CDS documentation says
+  only that limits exist, change with system load, and that requests which
+  would exceed them are QUEUED rather than refused. The one concrete number
+  anywhere ("most ECMWF services are limited to 20 concurrent requests",
+  default 2) comes from a third-party R package, predates the current
+  datastores backend, and is not relied on here.
+- **The failure mode is therefore invisible.** Exceeding the limit does not
+  raise; the quality-of-service scheduler queues and may deprioritise a heavy
+  user, which cannot be measured from the client. A small pool takes most of
+  the available overlap for almost none of that risk, which is why the cap is
+  6 rather than 20.
+- **A local reason for 4:** ``split_and_write`` opens each chunk with xarray,
+  and an EU chunk is about 478 MB. This machine has 16 GB and has OOM-killed a
+  test suite before.
+
+**The client is not shared between workers.** ``requests.Session`` is not
+thread-safe, so each worker builds its own client. That is enough on the path
+this key takes: a key without a colon routes ``cdsapi.Client`` to
+``ecmwf.datastores.legacy_client.LegacyClient``, whose ``session`` argument
+defaults to None and builds a fresh Session per client. It would NOT be enough
+on the older path: ``cdsapi.api.Client`` declares ``session=requests.Session()``
+as a default argument, one instance evaluated at import and shared by every
+client built without an explicit session. Anyone changing the key format needs
+to know that, and to pass a session per worker if the old path comes back.
+
+Submit-and-poll was considered and rejected.
+``Client(wait_until_complete=False).retrieve`` does return an
+``ecmwf.datastores.Remote`` with a request id, so all 36 requests could be
+submitted at once and polled. It buys no real concurrency, since the server
+queues them under the same limits, and it adds durable state: a request id per
+chunk that must be persisted or the request is orphaned on a restart. The
+resume rule here is "a month is done when its file exists", which needs no
+state at all, and the thread pool keeps that property.
 """
 import argparse
 import os
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from itertools import groupby
 from pathlib import Path
@@ -88,6 +130,11 @@ GRID = [0.25, 0.25]
 # (3 accepted, 6 rejected for hourly all-day requests); this only guards the CLI
 # so an over-large value fails fast here rather than as a 403 from the server.
 MAX_CHUNK_MONTHS = 12
+# Requests in flight at once. ECMWF documents no per-user concurrency limit and
+# queues rather than refusing what exceeds it, so the ceiling here is a
+# judgement about unmeasurable risk, not a published figure: see the docstring.
+MAX_WORKERS = 6
+RECOMMENDED_WORKERS = 4
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
 
 
@@ -220,6 +267,59 @@ def split_and_write(part_path: Path, chunk) -> list[Path]:
     return written
 
 
+def thread_local_clients(factory):
+    """A callable handing each thread its own client.
+
+    ``requests.Session`` is not thread-safe, and a client owns one, so workers
+    must not share a client. Built lazily, so a sequential run still builds
+    exactly one.
+    """
+    local = threading.local()
+
+    def client():
+        if not hasattr(local, "client"):
+            local.client = factory()
+        return local.client
+
+    return client
+
+
+def fetch_chunk(clients, spec, out_dir: Path, tag: str, year: int, chunk) -> dict:
+    """Fetch one chunk and split it into its months. Never raises.
+
+    Returns what happened, for the caller to report: a worker that raised into
+    a thread pool would lose the other chunks. The chunk's own ``.part`` file
+    is named for its year and first month, so two workers cannot collide, and
+    it is removed whether the request succeeds or fails.
+
+    A failure part-way through the split leaves the months already renamed in
+    place and the rest absent. That is resumable, not corrupt: the next run
+    fetches only what is missing.
+    """
+    months = [m for (_, m, _) in chunk]
+    span = (f"{year}-{months[0]:02d}" if len(months) == 1
+            else f"{year}-{months[0]:02d}..{months[-1]:02d}")
+    part = out_dir / f".era5_{tag}_{year}_{months[0]:02d}_chunk.nc.part"
+    result = {"year": year, "months": months, "span": span,
+              "written": [], "mb": 0.0, "seconds": 0.0, "error": None}
+    # Printed on submission as well as on completion: a chunk waits minutes in
+    # the CDS queue, and a run that prints nothing until the first one lands
+    # looks hung. Lines carry their span, since workers interleave.
+    print(f"  {span} submitted ({len(months)} month(s))", flush=True)
+    t0 = time.time()
+    try:
+        clients().retrieve(DATASET, chunk_request(spec, year, months), str(part))
+        written = split_and_write(part, chunk)
+        result["written"] = written
+        result["mb"] = sum(p.stat().st_size for p in written) / 1e6
+    except Exception as exc:  # noqa: BLE001  (reported, not swallowed)
+        result["error"] = str(exc)
+    finally:
+        part.unlink(missing_ok=True)
+        result["seconds"] = time.time() - t0
+    return result
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -242,6 +342,11 @@ def main() -> None:
                     help="Months per CDS request within a year (1-12, default 3, "
                          "the largest accepted by the CDS cost limit; 6+ is "
                          "rejected). 1 restores one-request-per-month.")
+    ap.add_argument("--workers", type=int, default=1,
+                    help=f"Requests in flight at once (1-{MAX_WORKERS}, default 1). "
+                         "The CDS queue dominates wall-clock time, so a small pool "
+                         "overlaps it; see the module docstring for why the cap is "
+                         f"{MAX_WORKERS} and {RECOMMENDED_WORKERS} is recommended")
     ap.add_argument("--dry-run", action="store_true",
                     help="Print the request plan and exit without submitting")
     args = ap.parse_args()
@@ -249,6 +354,9 @@ def main() -> None:
     if not 1 <= args.chunk_months <= MAX_CHUNK_MONTHS:
         sys.exit(f"--chunk-months must be 1..{MAX_CHUNK_MONTHS} "
                  f"(a full year is the largest request under the CDS field cap)")
+    if not 1 <= args.workers <= MAX_WORKERS:
+        sys.exit(f"--workers must be 1..{MAX_WORKERS}; the limit is a judgement "
+                 "about an undocumented CDS limit, not a published figure")
 
     spec, years = resolve_spec(args)
     # Filenames key on file_tag, not the region code: AU-NEM writes era5_au_*.
@@ -279,28 +387,27 @@ def main() -> None:
     import cdsapi  # imported here so --dry-run works without it installed
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    client = cdsapi.Client()
+    clients = thread_local_clients(cdsapi.Client)
 
+    done = 0
     failures = []
-    for i, (year, chunk) in enumerate(chunks, 1):
-        months = [m for (_, m, _) in chunk]
-        span = (f"{year}-{months[0]:02d}"
-                if len(months) == 1 else
-                f"{year}-{months[0]:02d}..{months[-1]:02d}")
-        part = out_dir / f".era5_{tag}_{year}_{months[0]:02d}_chunk.nc.part"
-        print(f"[{i}/{len(chunks)}] {span} ({len(months)} month(s))", flush=True)
-        t0 = time.time()
-        try:
-            client.retrieve(DATASET, chunk_request(spec, year, months), str(part))
-            written = split_and_write(part, chunk)
-            part.unlink(missing_ok=True)
-            total_mb = sum(p.stat().st_size for p in written) / 1e6
-            print(f"    done in {time.time() - t0:.0f}s "
-                  f"-> {len(written)} file(s), {total_mb:.0f} MB", flush=True)
-        except Exception as exc:
-            part.unlink(missing_ok=True)
-            failures.append((year, months, str(exc)))
-            print(f"    FAILED: {exc}", flush=True)
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = [pool.submit(fetch_chunk, clients, spec, out_dir, tag, year, chunk)
+                   for year, chunk in chunks]
+        # No cancellation on failure: one refused chunk must not lose the
+        # others, and every month it did not write is simply fetched again by
+        # the next run.
+        for future in as_completed(futures):
+            result = future.result()
+            done += 1
+            span = result["span"]
+            if result["error"] is None:
+                print(f"[{done}/{len(chunks)}] {span} done in {result['seconds']:.0f}s "
+                      f"-> {len(result['written'])} file(s), {result['mb']:.0f} MB",
+                      flush=True)
+            else:
+                failures.append((result["year"], result["months"], result["error"]))
+                print(f"[{done}/{len(chunks)}] {span} FAILED: {result['error']}", flush=True)
 
     if failures:
         print(f"\n{len(failures)} request(s) failed; re-run to retry just those "

@@ -100,3 +100,140 @@ def test_the_year_span_fixes_the_request_count():
     chunks = fetch.plan_chunks(todo, 3)
     assert len(chunks) == 36
     assert all(len({y for (y, _, _) in chunk}) == 1 for _, chunk in chunks)
+
+
+# --- the worker pool -------------------------------------------------------
+#
+# The CDS queue dominates wall-clock time, so requests overlap through a thread
+# pool. Three properties make that safe, and each is pinned below: a worker
+# never raises into the pool, so one refused chunk cannot lose the others; a
+# chunk's temporary file is named for its own year and first month, so two
+# workers cannot collide; and each worker builds its own client, because
+# requests.Session is not thread-safe.
+
+def _chunk(tmp_path, year, months):
+    return [(year, m, tmp_path / f"era5_eu_{year}_{m:02d}.nc") for m in months]
+
+
+def _months_file(path, year, months):
+    """A stand-in for a downloaded chunk: hourly steps across the months."""
+    import numpy as np
+    import xarray as xr
+
+    times = np.concatenate([
+        np.arange(f"{year}-{m:02d}-01", f"{year}-{m:02d}-02", dtype="datetime64[h]")
+        for m in months
+    ])
+    xr.Dataset(
+        {"u10": (("valid_time",), np.arange(len(times), dtype="float32"))},
+        coords={"valid_time": times},
+    ).to_netcdf(path)
+
+
+class FakeClient:
+    """Writes the target file the way ``retrieve`` does, or refuses."""
+
+    def __init__(self, year, months, refuse_months=()):
+        self.year, self.months, self.refuse = year, months, set(refuse_months)
+        self.calls = []
+
+    def retrieve(self, dataset, request, target):
+        got = [int(m) for m in request["month"]]
+        self.calls.append(got)
+        if self.refuse & set(got):
+            raise RuntimeError("cost limits exceeded")
+        _months_file(target, int(request["year"][0]), got)
+
+
+def test_a_worker_reports_a_refusal_instead_of_raising(tmp_path):
+    """A worker that raised would take the other chunks down with it."""
+    spec, _ = fetch.resolve_spec(args(code="eu", bbox=EU_BOX, years=[2015]))
+    client = FakeClient(2015, [1], refuse_months=[1])
+    result = fetch.fetch_chunk(lambda: client, spec, tmp_path, "eu", 2015,
+                               _chunk(tmp_path, 2015, [1]))
+    assert "cost limits exceeded" in result["error"]
+    assert result["written"] == []
+    assert list(tmp_path.glob("*.nc")) == []          # no month file
+    assert list(tmp_path.glob("*.part")) == []        # and no partial left behind
+
+
+def test_a_worker_writes_its_months_and_clears_its_part_file(tmp_path):
+    spec, _ = fetch.resolve_spec(args(code="eu", bbox=EU_BOX, years=[2015]))
+    chunk = _chunk(tmp_path, 2015, [1, 2, 3])
+    result = fetch.fetch_chunk(lambda: FakeClient(2015, [1, 2, 3]), spec, tmp_path,
+                               "eu", 2015, chunk)
+    assert result["error"] is None
+    assert [p.name for p in result["written"]] == [p.name for (_, _, p) in chunk]
+    assert all(p.is_file() for (_, _, p) in chunk)
+    assert list(tmp_path.glob("*.part")) == []
+    assert result["span"] == "2015-01..03"
+
+
+def test_a_split_that_fails_part_way_leaves_what_it_wrote(tmp_path):
+    """Resumable, not corrupt: the months already renamed stay, the rest are
+    absent, and the next run fetches only those."""
+    spec, _ = fetch.resolve_spec(args(code="eu", bbox=EU_BOX, years=[2015]))
+    chunk = _chunk(tmp_path, 2015, [1, 2, 3])
+
+    class ShortClient(FakeClient):
+        def retrieve(self, dataset, request, target):      # month 3 never arrives
+            _months_file(target, 2015, [1, 2])
+
+    result = fetch.fetch_chunk(lambda: ShortClient(2015, [1, 2, 3]), spec, tmp_path,
+                               "eu", 2015, chunk)
+    assert "missing month 03" in result["error"]
+    written = sorted(p.name for p in tmp_path.glob("*.nc"))
+    assert written == ["era5_eu_2015_01.nc", "era5_eu_2015_02.nc"]
+    assert list(tmp_path.glob("*.part")) == []
+
+
+def test_each_thread_builds_its_own_client():
+    """requests.Session is not thread-safe, so a client is never shared."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    built = []
+
+    def factory():
+        built.append(object())
+        return built[-1]
+
+    clients = fetch.thread_local_clients(factory)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        got = list(pool.map(lambda _: id(clients()), range(24)))
+    assert len(set(got)) == len(built) <= 3     # one per thread, not one per task
+    assert len(built) >= 2                      # and more than one thread ran
+
+
+def test_a_sequential_run_still_builds_exactly_one_client():
+    built = []
+    clients = fetch.thread_local_clients(lambda: built.append(1) or "client")
+    clients(), clients(), clients()
+    assert len(built) == 1
+
+
+def test_one_refused_chunk_does_not_lose_the_others(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    spec, _ = fetch.resolve_spec(args(code="eu", bbox=EU_BOX, years=[2015]))
+    chunks = [(2015, _chunk(tmp_path, 2015, ms))
+              for ms in ([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])]
+    clients = fetch.thread_local_clients(
+        lambda: FakeClient(2015, list(range(1, 13)), refuse_months=[7, 8, 9]))
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(fetch.fetch_chunk, clients, spec, tmp_path, "eu", y, c)
+                   for y, c in chunks]
+        results = [f.result() for f in as_completed(futures)]
+
+    failed = [r for r in results if r["error"]]
+    assert len(failed) == 1 and failed[0]["months"] == [7, 8, 9]
+    assert len(sorted(tmp_path.glob("*.nc"))) == 9     # the other three chunks
+    assert list(tmp_path.glob("*.part")) == []
+
+
+@pytest.mark.parametrize("workers", ["0", "7"])
+def test_the_worker_count_is_bounded(workers, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["era5.py", "--region", "nz", "--workers", workers])
+    with pytest.raises(SystemExit) as e:
+        fetch.main()
+    assert "--workers must be 1.." in str(e.value)
