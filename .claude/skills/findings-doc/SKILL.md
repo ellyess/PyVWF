@@ -16,6 +16,13 @@ Their shape and naming are set in `docs/README.md`; read it first. Terms follow
    number. Without it, stop and ask for it.
 2. After the full metrics table, stop. The human frames the result; you do not.
 3. Before committing, show the diff and wait for approval.
+4. **When a decision changes, re-read the whole document, not the edited
+   part.** A document written under the old decision carries sentences that
+   still assume it, often far from the edit: a consequence, a caveat, a
+   pointer, a section that names the open question as open. Twice now a stale
+   sentence has survived an approved change and contradicted a decision made
+   two bullets above it. Read the document end to end and fix every sentence
+   written under the old answer, then show the diff.
 
 ## Shape
 
