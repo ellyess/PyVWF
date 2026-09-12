@@ -349,7 +349,8 @@ see the correction notices above.**
 extrapolated; the share of capacity follows the marker** (the rule is in
 `docs/README.md`). DK's box stops at 13.5°E and Bornholm lies near 14.9°E, so
 47 of the 5,446 units in its test fleet, 0.6% of capacity, sit up to 1.64°
-beyond the data, as do 38 of the 5,122 in its training fleet. The share was
+beyond the data, as do 15 of the 3,707 in the fleet the row was trained on,
+0.5% of that capacity and up to 1.55°. The share was
 measured by the extent audit of 2026-09-12, read-only, because the run behind
 this row predates `extrapolated_capacity_share`
 (`scripts/analysis/extent_audit.py`, data in

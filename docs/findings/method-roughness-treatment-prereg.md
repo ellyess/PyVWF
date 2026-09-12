@@ -246,10 +246,17 @@ scorecard configuration plus the opt-in, and R1 from
 to it. The scorecard configuration itself is untouched.
 
 **Why.** DK's bounding box stops at 13.5°E and Bornholm lies near 14.9°E, so
-the extent guard refuses the run. Measured read-only on 2026-09-12: 38 of the
-5,122 units in the training fleet and 47 of the 5,446 in the test fleet lie
-outside the loaded extent (lon 7.5 to 13.5, lat 54.0 to 58.0), 0.6% of capacity
-in each, up to 1.64° beyond it.
+the extent guard refuses the run. The runs record it: 15 of the 3,707 units in
+the training fleet, 0.515% of its capacity, up to 1.55° beyond the loaded
+extent (lon 7.5 to 13.5, lat 54.0 to 58.0), and 47 of the 5,446 in the test
+fleet, 0.597%, up to 1.64°. Both conditions record exactly the same figures.
+
+*[Correction, 2026-09-12, made before the DK results were read: this paragraph
+first said 38 of 5,122 training units at 0.6%. That is the fleet metadata
+before the join to the training years' observations, which is what a read-only
+check of `train_set` returns; the fleet the run fits is the 3,707 above. The
+test-fleet figures, and the 0.6% the scorecard's DK row carries, are
+unaffected.]*
 
 **Why not the alternatives.** Widening the box changes the input and the
 treatment in one step, and would leave no run that isolates the treatment.
