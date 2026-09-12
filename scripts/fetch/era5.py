@@ -86,6 +86,20 @@ reasons that are worth stating because none of them is obvious:
   and an EU chunk is about 478 MB. This machine has 16 GB and has OOM-killed a
   test suite before.
 
+**What four workers actually bought, once, on one box.** The extended European
+download took 4.21 hours for 105 months at ``--workers 4``, with a median chunk
+of 29 minutes against a single sequential sample of 11. That is roughly 1.5
+times faster overall, not the 4 the worker count suggests: each request waited
+longer while four were in flight.
+
+**Do not cite 1.5 as a constant.** The sequential baseline is ONE request at a
+different time of day, and CDS load varies on its own, so this is indicative
+and nothing more. The only thing it suggests, and does not establish, is that
+the throughput ceiling is per user rather than per request in flight, which
+would mean raising the cap buys little. That is at least consistent with ECMWF
+documenting no number while evidently applying one. Measure again before
+relying on any of it.
+
 **The client is not shared between workers.** ``requests.Session`` is not
 thread-safe, so each worker builds its own client. That is enough on the path
 this key takes: a key without a colon routes ``cdsapi.Client`` to
