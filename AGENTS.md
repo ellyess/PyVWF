@@ -37,13 +37,16 @@ They live in `.claude/skills/`.
   co-author trailer; the human who commits is the author.
 - **Run under `output/`.** Start runs from the repository root, on a clean
   tree. Never run from a temporary or session directory.
-- **Create nothing in the tree while a run is in flight.** Not a tracked file,
+- **Create nothing in the tree while a run that writes a manifest is in
+  flight.** Not a tracked file,
   not an untracked one, not the analysis script you intend to use on the
   results. A run stamps `git_commit` and `git_dirty` into every manifest it
   writes, and `git_dirty` comes from `git status --porcelain`, which counts an
   untracked file too. One file created mid-run makes every manifest of that
   run say `git_dirty: true`, and the only repair is to delete the runs and
   repeat them. Write it outside the repository, or wait for the run to finish.
+  The rule is scoped to its mechanism: work alongside something that records no
+  git state, such as a download or a read-only audit, is not covered.
 - **Read the checks before the commit command, not after.** Run ruff, the test
   files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
   read the output; then write the message. A message that says a check passed
