@@ -150,6 +150,13 @@ a corrected variant lacks some values.
   gates still pass, with smaller margins), `method-hourly-resolution.md`,
   `method-physics-informed.md` and `method-cluster-count.md` carry notices
   where they report CL skill.
+- **`method-cluster-count-dk.md` is not a reproduction of the published
+  results.** Its scope line said the paper's research grid was reproduced. The
+  run shares the grid, the onshore-only fleet and the years, but differs in the
+  roughness treatment, the fleet size after the paper's exclusions, and the
+  curve library. The notice states all three, and the sweep's own numbers
+  stand. `method-harness-regression.md`, which already kept its comparison with
+  the paper loose on purpose, gains the roughness difference in its list.
 - **The rows do not share one roughness treatment.** Every region derives the
   surface roughness by inverting the log wind profile from the 10 m and 100 m
   winds. The European files carry a single annual mean of it, so DE, DK, UK and

@@ -87,7 +87,10 @@ Harness skill on the held-out year, real curves:
   `PyVWF(1;fixed)` baseline. This run does not use that configuration, so it is
   not a direct check; at the configs run here the DK correction reduces MAE by
   ~47% (0.124→0.066 at 10/season), the same order of magnitude. Kept loose on
-  purpose: the paper's preprocessing and fleet may differ.
+  purpose: the paper's preprocessing and fleet may differ, and so does the
+  roughness treatment, since this run reads the European files' annual mean
+  while the paper derives the roughness per timestep
+  (`docs/design/roughness-temporal-treatment.md`).
 
 ## Reproduction
 

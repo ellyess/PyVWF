@@ -1,9 +1,32 @@
 # Denmark onshore: cluster-count and time-resolution sweep
 
 **Date:** 2026-07-24
-**Scope:** the paper's research grid, reproduced on the harness for Denmark
+**Scope:** the paper's research grid, re-run on the harness for Denmark
 **onshore only** with the combined (open + licensed) turbine-curve library and
 real turbine matching (no uniform default curve).
+
+**Correction notice, 2026-09-12: this is not a reproduction of the published
+results.** The scope line said the paper's grid was "reproduced", and the
+reading below says the result matches the paper's headline that `n_clu`
+dominates `t_freq`. The run does share the paper's grid, its onshore-only
+fleet, and its 2015 to 2019 training and 2020 test split. It differs from the
+paper in three ways that were not stated:
+
+- **Roughness treatment.** This run reads the European ERA5 files, which carry
+  one annual mean of the derived roughness. The paper derives the roughness per
+  timestep inside the simulation
+  (`docs/design/roughness-temporal-treatment.md`, `scorecard.md`).
+- **Fleet size.** 4,866 onshore turbines reach the trainer here. The paper's
+  preprocessing excluded about 35% of turbines, leaving 3,389 onshore in
+  training and 4,834 in validation.
+- **Curve library.** This run uses the combined open and licensed library; the
+  paper used a collection of 159 manufacturer curves.
+
+So the agreement on which lever dominates is a separate run reaching the same
+qualitative conclusion, not a reproduction, and the figures here should not be
+read against the paper's. What a reproduction would take is recorded as
+candidate work; it is not attempted here. The sweep's own numbers stand: they
+are a property of this configuration, which is stated above.
 
 - `n_clu` in {1, 2, 3, 5, 7, 10, 20, 50, 70, 100, 200, 500, 700, 800, 900,
   1000, 2000, 3000, 3300}
@@ -56,7 +79,9 @@ Best: `k=3300`, `season`, RMSE 0.0851 (MAE 0.0533, MBE +0.0282, r 0.824).
   at every `k`, but the whole spread is ~0.003 RMSE. `fixed` (one annual factor)
   is the weakest; `season` is best. `month` is slightly *worse* than `season`,
   i.e. the extra temporal freedom over-fits monthly noise rather than adding
-  skill. This matches the paper's headline that `n_clu` dominates `t_freq`.
+  skill. This reaches the same qualitative conclusion as the paper, that
+  `n_clu` dominates `t_freq`, from a different configuration (see the
+  correction notice above).
 - **A low-`k` clustering artifact.** `k=2` and `k=3` (0.098) are slightly worse
   than `k=1` (0.096): splitting the onshore fleet into two or three clusters
   partitions it badly before finer clustering recovers from `k=5` on. The
