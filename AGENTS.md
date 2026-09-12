@@ -36,8 +36,19 @@ They live in `.claude/skills/`.
 - **Show the diff before each commit.** Keep one concern per commit. Add no AI
   co-author trailer; the human who commits is the author.
 - **Run under `output/`.** Start runs from the repository root, on a clean
-  tree. Never run from a temporary or session directory. Do not edit tracked
-  files while a run writes its manifest.
+  tree. Never run from a temporary or session directory.
+- **Create nothing in the tree while a run is in flight.** Not a tracked file,
+  not an untracked one, not the analysis script you intend to use on the
+  results. A run stamps `git_commit` and `git_dirty` into every manifest it
+  writes, and `git_dirty` comes from `git status --porcelain`, which counts an
+  untracked file too. One file created mid-run makes every manifest of that
+  run say `git_dirty: true`, and the only repair is to delete the runs and
+  repeat them. Write it outside the repository, or wait for the run to finish.
+- **Read the checks before the commit command, not after.** Run ruff, the test
+  files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
+  read the output; then write the message. A message that says a check passed
+  is a claim about output already seen. Amending works only while the commit
+  is still local.
 - **Keep negative results.** Every result states its training years and its
   single test year.
 - **Correct in place, with a date.** A wrong published claim gets a dated
