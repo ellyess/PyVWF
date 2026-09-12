@@ -8,6 +8,12 @@ should use. Terms follow `CONTEXT.md`; the background is
 **Everything below is fixed before any run.** The outcome columns are filled in
 afterwards. A condition added later is labelled post hoc and cannot pass a gate.
 
+**Two deviations were recorded on 2026-09-12, before any DK run of this study
+existed: G3 is withdrawn, and DK opts in to extrapolation in both conditions.
+They are in the Deviations section at the end, which says what changed, why,
+and whether a result had been seen. The registered text above them is left as
+written.**
+
 ## The question
 
 Every region derives the roughness length by inverting the log wind profile
@@ -94,7 +100,7 @@ At country level there is no absolute floor, as in the curve library study.
 |---|---|---|
 | **G1** (DK) | The paired interval for the R1 minus R0 corrected RMSE difference. **Indistinguishable** if it includes zero and its width is at most 0.004. **Resolved** if it excludes zero; the sign names the better treatment. **Indeterminate** if it includes zero and is wider than 0.004. | |
 | **G2** (FR) | The same paired interval at country level, with no absolute floor. Reported as consistent or inconsistent with zero, with its width beside it, since a wide interval consistent with zero establishes nothing. | |
-| **G3** (both) | A method change needs G1 and G2 to resolve and agree in direction. Two ways of failing that are different results, and are separated below. | |
+| **G3** (both) | A method change needs G1 and G2 to resolve and agree in direction. Two ways of failing that are different results, and are separated below. | Withdrawn on 2026-09-12, before any DK result: see deviation D1. |
 
 **0.004 is a judgement, not a measurement.** It states how much imprecision is
 accepted before a comparison counts as resolved, and it is fixed here before
@@ -172,3 +178,101 @@ is not decided under pressure once results are in.
   existing bootstrap, off-curve and audit scripts over the results.
 
 Estimated compute: under an hour in total.
+
+## Deviations
+
+Both were recorded on 2026-09-12, before any DK run of this study existed. FR
+had already reported when they were written; DK had not.
+
+### D1, 2026-09-12: G3 is withdrawn, and the country branch is untestable
+
+**What changed.** G3 required G1 and G2 to resolve and agree in direction
+before the method could change. It is withdrawn. DK alone decides the method,
+under G1. FR is still run and still reported under G2, and its result is
+reported as uninformative about the treatment rather than as evidence about it.
+
+**Why.** The roughness reaches a simulated capacity factor only through the
+hub-height profile,
+
+    w(h) = w100 ln(h / z0) / ln(100 / z0)
+
+At h = 100 m the factor is exactly 1 for every z0, so the roughness cancels
+there. The treatment can move a speed only in proportion to the distance
+between the hub height and the 100 m reference:
+
+| Hub height | Factor at z0 = 0.01 m | at z0 = 0.25 m | Spread |
+|---|---|---|---|
+| 30 m | 0.869 | 0.799 | 0.070 |
+| 45 m | 0.913 | 0.867 | 0.047 |
+| 60 m | 0.945 | 0.915 | 0.030 |
+| 80 m | 0.976 | 0.963 | 0.013 |
+| 90 m | 0.989 | 0.982 | 0.006 |
+| 100 m | 1.000 | 1.000 | 0.000 |
+
+FR's 176 grid points all carry one hub height, 90 m, where the whole plausible
+range of z0 moves a speed by 0.6%. This is not particular to FR. Every
+country-level region gives its grid points a single uniform height, and every
+one of those heights lies between 80 and 100 m: BE 100, SE 100, FR 90, ES 90,
+IE 85, IT 80, NO 80, PT 80. At BE and SE the factor is identically 1 and the
+treatment is exactly inert. No ENTSO-E grid in this repository can test the
+treatment, so **the country branch is untestable as the grids stand**, which is
+a result about the design and not about France.
+
+**When, relative to a result.** After FR reported and before DK ran. The
+hub-height check was made while reading FR's null. It does not rescue FR's
+number or reinterpret it; it lowers what that number can support, from "the
+treatment does not matter at country level" to "the treatment cannot be seen at
+90 m". A deviation that weakens the study's own evidence is recorded on the
+same terms as one that strengthens it, and this one is registered while the
+informative row is still unrun.
+
+**What it costs.** G3's divergent branch is now unreachable, because it needed
+both rows to resolve. Whether the two pipeline branches want different
+treatments stays open on no evidence either way, and the consequence stated for
+a divergent result stands unused rather than refuted. Testing the country
+branch needs grid points well below 100 m, which is a change to how
+country-level grids are built and not a re-run.
+
+**What is unchanged.** G1, G2, the floor, the metrics, the predictions P1 to
+P4, and every branch of the download, including the indeterminate one. P2 is
+still scored against FR's interval.
+
+### D2, 2026-09-12: DK opts in to extrapolation, in both conditions
+
+**What changed.** Both DK conditions set `[era5] allow_extrapolation = true`.
+R0 runs from `configs/regions/study/dk_k100_stored.toml`, which is the
+scorecard configuration plus the opt-in, and R1 from
+`configs/regions/study/dk_k100_derived.toml`, which adds the derived treatment
+to it. The scorecard configuration itself is untouched.
+
+**Why.** DK's bounding box stops at 13.5°E and Bornholm lies near 14.9°E, so
+the extent guard refuses the run. Measured read-only on 2026-09-12: 38 of the
+5,122 units in the training fleet and 47 of the 5,446 in the test fleet lie
+outside the loaded extent (lon 7.5 to 13.5, lat 54.0 to 58.0), 0.6% of capacity
+in each, up to 1.64° beyond it.
+
+**Why not the alternatives.** Widening the box changes the input and the
+treatment in one step, and would leave no run that isolates the treatment.
+Substituting DE or UK loses the hub heights that make DK the informative row:
+DK's units run from 12 to 140 m with a median of 45 m, against FR's uniform
+90 m, and D1 above is exactly the reason that matters.
+
+**What it does to the comparison.** The same units fall outside in both
+conditions, and both extrapolate from the same edge winds, because the extent,
+the box and the fleet are identical and only the treatment differs. The
+hub-height speed at those units still differs between the conditions, exactly
+as it does at every other unit, since that is the quantity under test. The
+paired difference the study measures is therefore not confounded by the
+extrapolation; each condition's absolute figures are.
+
+**What it does not do.** It does not make the extrapolated winds sound. Under
+the § rule a row with a non-zero extrapolated share carries the marker whether
+or not the region opted in, and the scorecard's DK row is corrected in the same
+sequence, before these runs, to carry § and its 0.6%. That correction rests on
+the extent check, not on this comparison. These study runs are not scorecard rows.
+
+**Logged, not started.** Widening DK's box to include Bornholm is separate
+work: the hourly data is already in the European files, so it is a bounding-box
+error and not a missing download. It produces a different DK row, so it needs
+its own configuration, its own scorecard row and a statement of what moved. It
+waits until this study reports.
