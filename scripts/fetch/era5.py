@@ -14,6 +14,19 @@ One script for every region: the bounding box comes from the region TOML
 (``[era5] bbox`` = [W, E, S, N]) and the year span from the training/test
 window (``train_years[0]`` .. ``test_years[-1]``), so there is nothing
 region-specific to hardcode here: a new region needs only its config file.
+
+A download need not belong to a region. ``--bbox``, ``--years``, ``--code``
+and ``--file-tag`` fetch a bare box, with no config at all, which is how the
+extended European box was fetched: it serves eleven regions and is not one:
+
+    python scripts/fetch/era5.py --code eu --file-tag EU_2026-09 \
+        --bbox -12 31.5 36 72 --years 2015 2016 2017 2018 2019 2020 2021 2022 2023
+
+The same options override a region config field by field, so a region can be
+re-fetched over a wider box without editing its TOML. Overriding leaves the
+config untouched, so a run from the config and a run from the override are not
+the same download; the directory names them apart.
+
 This replaced six near-identical ``fetch_era5_<code>.py`` scripts; each box's
 rationale now lives in the comments of its region TOML (e.g. why Chile stops
 at -44 and excludes Magallanes, why Argentina spans Patagonia + Pampas).
@@ -56,6 +69,7 @@ import argparse
 import os
 import sys
 import time
+from dataclasses import dataclass
 from itertools import groupby
 from pathlib import Path
 
@@ -82,6 +96,56 @@ def region_spec(code: str):
     if not path.is_file():
         sys.exit(f"no region config at {path}: is {code!r} a shipped region?")
     return load_region(path)
+
+
+@dataclass(frozen=True)
+class DownloadSpec:
+    """What a download needs: a name, a box and a directory to write into.
+
+    A region config supplies all three, but a box that serves several regions
+    belongs to none of them, so the fields can be given directly instead.
+    """
+
+    code: str
+    bbox: tuple[float, float, float, float]
+    file_tag: str
+
+
+def check_bbox(bbox) -> tuple[float, float, float, float]:
+    """Validate a [W, E, S, N] box, as ``RegionSpec`` does for a config."""
+    w, e, s, n = (float(v) for v in bbox)
+    if w >= e or s >= n:
+        sys.exit(f"bbox must be [W, E, S, N] with W < E and S < N, got {list(bbox)}")
+    if not (-180 <= w and e <= 360 and -90 <= s and n <= 90):
+        sys.exit(f"bbox is outside the globe: {list(bbox)}")
+    return (w, e, s, n)
+
+
+def resolve_spec(args) -> tuple[DownloadSpec, list[int]]:
+    """The box, tag and years to fetch, from a region config or from the flags.
+
+    With ``--region`` the config supplies the defaults and any flag given
+    replaces that one field. Without it the box is bare, so ``--code``,
+    ``--bbox`` and ``--years`` are all required: nothing can supply them.
+    """
+    if args.region is None:
+        missing = [n for n, v in
+                   (("--code", args.code), ("--bbox", args.bbox), ("--years", args.years))
+                   if not v]
+        if missing:
+            sys.exit(f"without --region these are required: {', '.join(missing)}")
+        code = args.code
+        return DownloadSpec(code, check_bbox(args.bbox),
+                            args.file_tag or code.upper()), sorted(args.years)
+
+    spec = region_spec(args.region)
+    years = sorted(args.years) if args.years else list(
+        range(spec.train_years[0], spec.test_years[-1] + 1))
+    return DownloadSpec(
+        args.code or spec.code,
+        check_bbox(args.bbox) if args.bbox else tuple(spec.bbox),
+        args.file_tag or spec.file_tag,
+    ), years
 
 
 def cds_area(bbox) -> list[float]:
@@ -159,9 +223,20 @@ def split_and_write(part_path: Path, chunk) -> list[Path]:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--region", required=True, help="Region code (e.g. cl, ar, nz)")
+    ap.add_argument("--region", default=None,
+                    help="Region code (e.g. cl, ar, nz). Omit to fetch a bare box, "
+                         "which then needs --code, --bbox and --years")
     ap.add_argument("--years", type=int, nargs="+", default=None,
                     help="Override the year span (default: train[0]..test[-1])")
+    ap.add_argument("--bbox", type=float, nargs=4, default=None,
+                    metavar=("W", "E", "S", "N"),
+                    help="Override the bounding box, in config order [W, E, S, N]")
+    ap.add_argument("--code", default=None,
+                    help="Override the region code. Files key on --file-tag, not on "
+                         "this, since a code may carry a hyphen (AU-NEM writes "
+                         "era5_au_*)")
+    ap.add_argument("--file-tag", default=None,
+                    help="Override the output directory under <input-root>/era5/")
     ap.add_argument("--months", type=int, nargs="+", default=list(range(1, 13)))
     ap.add_argument("--chunk-months", type=int, default=3,
                     help="Months per CDS request within a year (1-12, default 3, "
@@ -175,15 +250,14 @@ def main() -> None:
         sys.exit(f"--chunk-months must be 1..{MAX_CHUNK_MONTHS} "
                  f"(a full year is the largest request under the CDS field cap)")
 
-    spec = region_spec(args.region)
+    spec, years = resolve_spec(args)
     # Filenames key on file_tag, not the region code: AU-NEM writes era5_au_*.
     tag = spec.file_tag.lower()
-    years = args.years or list(range(spec.train_years[0], spec.test_years[-1] + 1))
     out_dir = output_dir(spec)
 
     plan = [
         (y, m, out_dir / f"era5_{tag}_{y}_{m:02d}.nc")
-        for y in sorted(years) for m in sorted(args.months)
+        for y in years for m in sorted(args.months)
     ]
     todo = [(y, m, p) for y, m, p in plan if not p.is_file()]
     chunks = plan_chunks(todo, args.chunk_months)
