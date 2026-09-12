@@ -119,7 +119,8 @@ Two consequences, and neither follows the split between the treatments:
 - **Some rows cannot show the treatment at all.** AU-NEM and BR give every unit
   a hub height of exactly 100 m, as do the BE and SE grids, so the factor is
   identically 1 and the roughness cancels. These rows are insensitive to the
-  question by construction, and two of them are in the hourly group.
+  question by construction, and two of them already apply the per-timestep
+  treatment.
 - **No country-level row can test it.** Every one gives its grid points a
   single uniform height between 80 and 100 m, where the whole span above is
   worth at most 1.3% of the speed. A null from such a row says the treatment

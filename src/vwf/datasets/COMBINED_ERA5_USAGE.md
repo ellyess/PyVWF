@@ -145,8 +145,14 @@ year. It is one static field per year, not a time series.
 **Corrected 2026-09-12.** This section said the field is derived from terrain
 data. It is not, and the code has no terrain option: `--roughness-source`
 accepts `pyvwf` (the shear method above) or `constant`. The field's own
-attributes record the shear method and the time averaging. Which temporal
-treatment is better is under test; see
+attributes record the shear method and the time averaging.
+
+**Updated 2026-09-12.** The per-timestep derivation was adopted as the method
+(`docs/findings/method-roughness-treatment.md`), so the annual mean these files
+carry is no longer what a new run should use. The files are kept, unchanged, so
+the rows published on them stay reproducible, and a run that reads them records
+the treatment it applied. New European downloads carry no roughness field at
+all, and `prep_era5` derives it per timestep. See
 `docs/design/roughness-temporal-treatment.md`.
 
 **Value ranges (shear-derived, annual mean):**

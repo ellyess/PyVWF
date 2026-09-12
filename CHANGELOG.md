@@ -214,8 +214,9 @@ a corrected variant lacks some values.
 - **Two design notes on surface roughness.**
   `docs/design/roughness-temporal-treatment.md` records that every region
   derives the roughness the same way but eleven rows apply an annual mean of it
-  and six apply an hourly one, what that does to comparisons between regions,
-  and that neither treatment is recommended while the two are under test.
+  and six apply it per timestep, by two different routes, what that does to
+  comparisons between regions, which treatment the method uses, and where the
+  hub-height geometry lets either treatment matter at all.
   `docs/design/undefined-roughness-in-complex-terrain.md` records where the
   shear-derived estimator has no value at all: with no shear or inverted shear,
   which in the Andes cells of the Brazilian box holds for every hour of a

@@ -182,8 +182,9 @@ question. That is what makes France's null uninformative rather than
 supporting, and it is a property of the grids, not of France.
 
 **The split between the treatments does not line up with which rows can show
-it.** AU-NEM and BR are in the hourly group and are inert; DK, which carries
-nearly all of the scorecard's exposure, is in the annual-mean group. Any
+it.** AU-NEM and BR already apply the per-timestep treatment and are inert;
+DK, which carries nearly all of the scorecard's exposure, is on the annual
+mean. Any
 attempt to read the scorecard for the effect of the treatment will therefore
 find nothing, whichever rows it compares.
 

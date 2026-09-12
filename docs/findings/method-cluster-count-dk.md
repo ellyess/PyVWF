@@ -15,7 +15,10 @@ paper in three ways that were not stated:
 - **Roughness treatment.** This run reads the European ERA5 files, which carry
   one annual mean of the derived roughness. The paper derives the roughness per
   timestep inside the simulation
-  (`docs/design/roughness-temporal-treatment.md`, `scorecard.md`).
+  (`docs/design/roughness-temporal-treatment.md`, `scorecard.md`). The
+  per-timestep derivation became the method on 2026-09-12
+  (`method-roughness-treatment.md`); this run predates that and is not re-run
+  here, so the difference from the paper stands as stated.
 - **Fleet size.** 4,866 onshore turbines reach the trainer here. The paper's
   preprocessing excluded about 35% of turbines, leaving 3,389 onshore in
   training and 4,834 in validation.

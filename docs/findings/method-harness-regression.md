@@ -90,7 +90,9 @@ Harness skill on the held-out year, real curves:
   purpose: the paper's preprocessing and fleet may differ, and so does the
   roughness treatment, since this run reads the European files' annual mean
   while the paper derives the roughness per timestep
-  (`docs/design/roughness-temporal-treatment.md`).
+  (`docs/design/roughness-temporal-treatment.md`). The per-timestep derivation
+  became the method on 2026-09-12 (`method-roughness-treatment.md`), after this
+  run; the caveat therefore describes the input this run had, not the method.
 
 ## Reproduction
 
