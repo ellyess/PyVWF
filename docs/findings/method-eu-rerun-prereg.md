@@ -22,11 +22,11 @@ them apart.
   one (12 W to 31.5 E, 36 to 72 N), which is what returns ES, IT and PT.
 
 Nothing else changes. Each new configuration differs from its scorecard
-configuration in exactly two lines, `path` and `file_tag` under `[era5]`, and
-`file_tag` is not read at run time: it names the download, and is changed so the
-configuration does not claim an input it no longer uses. Fleet, observations,
-training years, test year, cluster count, time slice, correction model, seasons
-and curve library are all held.
+configuration in exactly three lines under `[era5]`: `path`, `file_tag` and
+`roughness`. `file_tag` is not read at run time: it names the download, and is
+changed so the configuration does not claim an input it no longer uses. Fleet,
+observations, training years, test year, cluster count, time slice, correction
+model, seasons and curve library are all held.
 
 | Row | Scorecard config | New config | Extent changes for it |
 |---|---|---|---|
@@ -52,6 +52,43 @@ is the limit and not the data. So the new DK row sets
 `allow_extrapolation = true` exactly as its study runs did, carries § with its
 share, and differs from the published row in the treatment alone. Widening the
 box stays separate work, after this.
+
+## Deviations
+
+### D1, 2026-09-12: the new configurations set the roughness explicitly
+
+**What changed.** Each new configuration was to change two lines. It changes
+three: `roughness = "derived"` as well as `path` and `file_tag`.
+
+**Why.** The first downloaded chunk was loaded through `prep_era5` to check the
+file's structure before the other 35 requests ran. It carries the 10 m and
+100 m winds and no roughness field, so the derived path runs and the treatment
+applied is `derived`, which is what this plan wants. But with `roughness` left
+at its default the run *requests* `stored` and gets `derived`, and every
+manifest would read `requested: stored, applied: derived`. That record is
+accurate and misleading at once, which is the failure this whole sequence has
+been correcting. Setting it explicitly makes the request, the result and the
+configuration's stated intent agree.
+
+**When, relative to a result.** Before any re-run exists. No row has been
+re-run and no comparison has been computed.
+
+### D2, 2026-09-12: G0 was probed early, on one month
+
+**What happened.** While the download was still running, the first month of the
+new files (January 2015) was compared against `era5/EU` over Denmark's window,
+all 744 hours, read-only. The coordinates matched exactly and `u10`, `v10`,
+`u100` and `v100` were **bit-identical**, maximum absolute difference 0.000e+00
+rather than merely within float32 tolerance.
+
+**Why it was run early.** So that a reprocessed field would cost one request
+rather than thirty-six.
+
+**What it does not do.** It does not stand in for G0. The registered check
+covers three sample years and runs before any row is re-run, and it is recorded
+here, with its date, so that its result cannot later be read as having been
+shaped by a probe that came first. A one-month probe is evidence; the gate is
+the gate. The registered branches below are unchanged.
 
 ## G0: the inputs must agree where they overlap, before any row is re-run
 
