@@ -1,0 +1,32 @@
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "DE"
+name = "Germany"
+
+[observations]
+source = "european-turbine"
+obs_level = "turbine"
+obs_unit = "turbine"
+train_years = [2015, 2018]
+test_years = [2019]
+# Unit-metered observations, but geolocation is postcode-centroid only.
+location_resolution = "postcode"
+
+[era5]
+roughness = "derived"
+path = "era5/EU_2026-09"
+bbox = [5.0, 16.0, 47.0, 55.2]
+file_tag = "EU_2026-09"
+
+[correction]
+model = "affine-wind"
+cluster_list = [100]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
+time_slices = ["fixed"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

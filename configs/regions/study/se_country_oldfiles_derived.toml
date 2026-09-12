@@ -1,0 +1,41 @@
+# Study configuration: condition B of
+# docs/findings/method-eu-rerun-prereg.md, which separates the roughness
+# treatment from the loaded extent for the two rows where both change. It reads
+# the OLD European files, so the extent is the published row's, and derives the
+# roughness per timestep, so the treatment is the new one. B minus the published
+# row is therefore the treatment alone, and the new row minus B is the extent.
+# It opts in to extrapolation because this row has units outside the old extent,
+# which is exactly why it is in this class; the published row was produced
+# before the guard existed and extrapolated silently.
+# Not a scorecard row.
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "SE"
+name = "Sweden"
+
+[observations]
+source = "entsoe-country"
+obs_level = "country"
+obs_unit = "country"
+train_years = [2015, 2021]
+test_years = [2023]
+
+[era5]
+roughness = "derived"
+allow_extrapolation = true
+path = "era5/EU"
+bbox = [11.0, 24.2, 55.3, 69.0]
+file_tag = "EU"
+
+[correction]
+model = "affine-wind"
+cluster_list = [1, 4]  # 1 = identifiable national baseline; 4 = the grid points own clusters
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]
