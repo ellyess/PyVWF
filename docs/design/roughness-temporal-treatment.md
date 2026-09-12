@@ -14,7 +14,9 @@ formula. It is whether the result of the formula varies in time.
 | Hourly, then daily | The hourly z0 is computed and averaged to daily along with the winds, in `vwf.datasets.era5.prep_era5` or `scripts/era5/combine.py` | US, BR, AU-NEM, NZ, CL, AR |
 
 So eleven of the seventeen scorecard rows apply a climatological roughness, and
-six apply one that varies through the year.
+six apply one that varies through the year. The annual mean is the majority
+treatment, not the exception: it covers every European row, including the three
+turbine-level rows that carry the most units.
 
 ## Why they differ
 
