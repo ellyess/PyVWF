@@ -65,6 +65,8 @@ runbooks/tr
 :caption: Design
 
 design/harness
+design/roughness-temporal-treatment
+design/undefined-roughness-in-complex-terrain
 ```
 
 ```{toctree}
