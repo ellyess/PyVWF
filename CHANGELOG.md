@@ -192,6 +192,17 @@ a corrected variant lacks some values.
 
 ### Documentation
 
+- **The per-timestep roughness derivation is adopted as the method.** The two
+  temporal treatments were compared on Denmark and France under a
+  pre-registration, and the record (`docs/findings/method-roughness-treatment.md`)
+  states that the change rests on method fidelity and comparability, not on
+  accuracy: the measured effect is resolved by the registered gate and too
+  small to matter. No scorecard figure changes on the comparison; the European
+  rows are re-run only after the extended ERA5 download. Recording the
+  treatments turned up a third route that nobody had named, which a manifest
+  cannot yet tell apart from the annual mean, and the scorecard's tables gain a
+  roughness column carrying all three. Both consequences of that route are
+  logged as candidate work.
 - **The scorecard's Denmark row carries the § marker.** The extent check of
   2026-09-11 compared the European rows against the extent of the ERA5 files
   rather than against each row's bbox-sliced extent, which is what a run

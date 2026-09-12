@@ -1,4 +1,4 @@
-# Two temporal treatments of the same roughness
+# Three routes to the same roughness, and two treatments of it
 
 Every PyVWF region derives the surface roughness length z0 the same way, by
 inverting the log wind profile between the reanalysis 10 m and 100 m winds:
@@ -8,22 +8,53 @@ inverting the log wind profile between the reanalysis 10 m and 100 m winds:
 The regions do not agree on what happens next. The difference is not the
 formula. It is whether the result of the formula varies in time.
 
-| Treatment | How it is produced | Regions |
-|---|---|---|
-| One annual mean | The hourly z0 is computed, then averaged over the year into a single static field, in `src/vwf/datasets/combine_era5_files.py` | DE, DK, UK and the eight country-level regions, which all read the European files |
-| Hourly, then daily | The hourly z0 is computed and averaged to daily along with the winds, in `vwf.datasets.era5.prep_era5` or `scripts/era5/combine.py` | US, BR, AU-NEM, NZ, CL, AR |
+There are three routes, not two, and they produce two distinct treatments:
 
-So eleven of the seventeen scorecard rows apply a climatological roughness, and
+| Route | How it is produced | What the file carries | Rows |
+|---|---|---|---|
+| **A, annual mean** | The hourly z0 is computed, then averaged over the year into a single static field, in `src/vwf/datasets/combine_era5_files.py` | hourly winds and a stored `z0`, one field per year | DE, DK, UK and the eight country-level regions, which all read `era5/EU`: 11 |
+| **B, per timestep at load** | The hourly z0 is computed in `vwf.datasets.era5.prep_era5` when the file carries no roughness, then averaged to daily with the winds | hourly winds only | AU-NEM, NZ, CL, AR: 4 |
+| **C, per timestep, stored daily** | The hourly z0 is computed in `scripts/era5/combine.py` and averaged to daily there, so the file arrives with it | daily `wnd100m` and `roughness`, and **no 10 m winds** | US, BR: 2 |
+
+So eleven of the seventeen scorecard rows apply a climatological roughness and
 six apply one that varies through the year. The annual mean is the majority
 treatment, not the exception: it covers every European row, including the three
 turbine-level rows that carry the most units.
+
+**B and C are the same treatment, computed at different stages.** Both derive
+z0 hour by hour and average it to daily, with the same clipping. They differ
+only in where the backfill of undefined hours reaches: `prep_era5` backfills
+across the whole loaded record, `combine.py` within one month file, so an
+undefined hour at a month's end can be filled in B and not in C. That is an
+edge-level difference and has not been measured.
+
+**The record cannot tell A from C.** A run's manifest reports
+`era5_roughness.applied` as `stored` whenever the file carries a roughness
+field, so the US and Brazilian rows, which are on the per-timestep treatment,
+are labelled exactly as the European rows, which are not. Reading the manifest
+alone, C is indistinguishable from A.
+
+**Route C cannot answer the question at all.** `combine.py` drops the 10 m
+winds, so `roughness = "derived"` raises on those files: the only roughness
+they can supply is the one they carry. The comparison that decided the method
+could not have been run on the US or Brazil, whatever their hub heights.
+
+Two pieces of candidate work follow, and neither is started:
+
+- whether the manifest should record which kind of stored roughness a run
+  applied, rather than only that one was stored;
+- whether the US and Brazilian rows should move to the raw-monthly route, as
+  AU-NEM, NZ, CL and AR use, so that they can answer the question and carry an
+  unambiguous label. The cost is load time and memory on two continent-sized
+  boxes, which is why the daily pre-combine exists.
 
 ## Why they differ
 
 The European files were pre-combined into one file per year, and that step
 stored a single representative roughness field rather than an hourly one. The
-other regions kept the hourly derivation. There is no record of the annual mean
-being chosen over the alternative, and nothing in the method documents states
+other regions kept the hourly derivation, two of them pre-computed to daily
+because their boxes are too large to load hourly. There is no record of the
+annual mean being chosen over the alternative, and nothing in the method documents states
 which treatment a result used.
 
 ## The consequence for reading results
@@ -99,9 +130,18 @@ of all in DK, whose median unit stands at 45 m. That is why DK is the row the
 pre-registered comparison rests on
 (`../findings/method-roughness-treatment-prereg.md`, deviation D1).
 
-## Which is better is not known
+## Which treatment the method uses
 
-Neither treatment is recommended here.
+**The per-timestep derivation is the method, adopted on 2026-09-12**
+(`../findings/method-roughness-treatment.md`). It was adopted on method
+fidelity and comparability: it is what the published method describes, most
+rows cannot show any difference between the treatments at all, and a single
+treatment removes a split that confounds every comparison between regions. The
+measured accuracy effect, on Denmark, is 0.0002 in corrected RMSE, which is
+resolved and far too small to carry the change on its own.
+
+The two arguments that stood before the comparison are recorded, since neither
+was settled by it:
 
 - The hourly derivation follows the wind conditions and is the reading a
   reader would take from the equation.
@@ -110,9 +150,23 @@ Neither treatment is recommended here.
   months (`undefined-roughness-in-complex-terrain.md`). An average over a year
   is not exposed to a single bad hour.
 
-The two are being compared on Denmark, whose results also appear in a published
-paper, under a pre-registration that fixes the question, the conditions and the
-gate before the comparison runs. France was registered as a second row and is
-still run and reported, but for the reason in the section above it cannot show
-the treatment, so Denmark decides alone. Until that reports, no result changes
-and no treatment is called correct.
+Nothing in the comparison spoke to the second point: no row tested sits in
+complex terrain, and at Denmark the hourly derivation cost two unit-months out
+of a fleet of 5,410.
+
+## Which input carries which treatment
+
+The treatment follows the ERA5 directory a configuration reads, so a row's
+committed configuration names it:
+
+| Directory | Contents | Route |
+|---|---|---|
+| `era5/EU` | hourly winds plus a stored annual-mean `z0`, box 42 to 72 N, 12 W to 22 E | A |
+| `era5/EU_2026-09` | hourly winds only, no stored roughness, box 36 to 72 N, 12 W to 31.5 E | B |
+| `era5/AU`, `era5/NZ`, `era5/CL`, `era5/AR` | raw monthly hourly winds | B |
+| `era5/US_daily`, `era5/BR_daily` | daily `wnd100m` and `roughness`, no 10 m winds | C |
+
+`era5/EU` is kept so the rows published before the change stay reproducible
+against the input that produced them. The scorecard states the treatment per
+row, and every run's manifest records the treatment it applied, with the limit
+noted above that it cannot yet distinguish A from C.

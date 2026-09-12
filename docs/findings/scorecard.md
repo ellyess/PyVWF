@@ -213,10 +213,18 @@ mean of that quantity, computed once per year in
 `src/vwf/datasets/combine_era5_files.py`. Every other region derives z0 hour by
 hour and averages it to daily along with the winds.
 
-| Roughness applied | Rows |
-|---|---|
-| One annual mean per year | DE, DK, UK and the eight country-level rows: 11 of 17, all reading `era5/EU` |
-| Hourly, averaged to daily | US, BR, AU-NEM, NZ, CL, AR: 6 of 17 |
+| Roughness applied | Route | Rows |
+|---|---|---|
+| One annual mean per year | stored in the file | DE, DK, UK and the eight country-level rows: 11 of 17, all reading `era5/EU` |
+| Per timestep, averaged to daily | derived at load from the file's hourly winds | AU-NEM, NZ, CL, AR: 4 of 17 |
+| Per timestep, averaged to daily | derived and stored as a daily field by `scripts/era5/combine.py` | US, BR: 2 of 17 |
+
+The Roughness column of the tables below carries these three values per row.
+The last two are the same treatment computed at different stages, but a run's
+manifest cannot tell the third from the first: it reports `stored` whenever the
+file carries a roughness field, whatever that field is. The third route also
+drops the 10 m winds, so those two rows cannot derive a roughness at all
+(`docs/design/roughness-temporal-treatment.md`).
 
 **Cross-region comparison is confounded.** This table invites reading rows
 against each other, and the two halves differ in an input, not only in fleet,
@@ -224,12 +232,14 @@ observations and climate. Every statement in this repository that ranks or
 contrasts regions inherits that, including the transfer and physics-informed
 work. A reader cannot work this out from the rows.
 
-**Which treatment is better is not established.** The annual mean may be the
-more stable estimator, since shear-derived z0 is noisy and undefined in some
-hours by construction (`docs/design/roughness-temporal-treatment.md`,
-`docs/design/undefined-roughness-in-complex-terrain.md`). Neither treatment is
-recommended here. The two are being compared on Denmark under a
-pre-registration, and no figure in this document changes until that reports.
+**The per-timestep derivation was adopted as the method on 2026-09-12**
+(`method-roughness-treatment.md`), on method fidelity and comparability rather
+than on accuracy: the measured effect on Denmark is 0.0002 in corrected RMSE,
+resolved by the pre-registered gate and far too small to carry a method change
+on its own. **No figure in this document changes on that comparison.** The
+eleven rows above are re-run on the new treatment only after the extended ERA5
+download, each as a new row with its own configuration, and the re-run reports
+its own numbers.
 
 **What the dating evidence supports.** No PyVWF run output surviving in this
 repository predates the combined European files of 11 February 2026; the
@@ -330,17 +340,17 @@ column is the share of the evaluated fleet whose model key has no curve in
 Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 `affine-wind` row, fleet scope.
 
-| Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Other brand | Reference curve | Unverifiable |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.042 | +0.001 | 0.85 | k100 fixed | 40.0% | 8.9% | 0.0% |
-| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season | 11.6% | 0.6% | 23.0% |
-| Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | n/a | n/a | 100.0% |
-| United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | 48.3% | 22.0% | 1.1% |
-| Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | 2.8% | 84.5% | 4.5% |
-| United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.145 | **0.115** ‡ | +0.037 | -0.038 | 0.70 | k50 fixed | 21.8% | 7.5% | 0.0% |
-| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | 41.9% | 47.3% | 0.0% |
-| Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | 3.5% | 91.6% | 0.0% |
-| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.150 | **0.133** | +0.011 | +0.001 | 0.43 | k10 fixed † | 0.2% | 96.7% | 0.0% |
+| Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Roughness | Other brand | Reference curve | Unverifiable |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.042 | +0.001 | 0.85 | k100 fixed | annual mean | 40.0% | 8.9% | 0.0% |
+| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season | annual mean | 11.6% | 0.6% | 23.0% |
+| Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
+| United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
+| Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
+| United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.145 | **0.115** ‡ | +0.037 | -0.038 | 0.70 | k50 fixed | annual mean | 21.8% | 7.5% | 0.0% |
+| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
+| Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | per timestep | 3.5% | 91.6% | 0.0% |
+| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.150 | **0.133** | +0.011 | +0.001 | 0.43 | k10 fixed † | per timestep | 0.2% | 96.7% | 0.0% |
 
 **‡ Gain not distinguishable from zero when the test year's units are resampled;
 see the correction notices above.**
@@ -405,13 +415,13 @@ exports built from them carry a `degenerate` layer for exactly this reason.
 Capacity-weighted national monthly CF, held-out 2023, bundled open curve library
 throughout.
 
-| Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Substituted |
-|---|---|---|---|---|---|---|
-| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | 100% |
-| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | 100% |
-| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | 100% |
-| Sweden (SE) § 0.8% | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | 100% |
-| Norway (NO) § 4.4% | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | 100% |
+| Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
+|---|---|---|---|---|---|---|---|
+| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | annual mean | 100% |
+| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | annual mean | 100% |
+| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | annual mean | 100% |
+| Sweden (SE) § 0.8% | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | annual mean | 100% |
+| Norway (NO) § 4.4% | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | annual mean | 100% |
 
 **§ Part of the fleet lies outside the loaded ERA5 extent, and its winds were
 extrapolated; the share of capacity follows the marker** (suspension notice
@@ -425,11 +435,11 @@ rows, and return either clean or still marked.
 winds extrapolated beyond the ERA5 data (suspension notice above). The
 published figures are kept for the record only.
 
-| Region | Capacity outside the ERA5 data | Published uncorr RMSE | Published corr RMSE | Published uncorr MBE | Published corr MBE | Best cfg |
-|---|---|---|---|---|---|---|
-| Italy (IT) | 94.5% | 0.066 | 0.034 | +0.062 | -0.020 | N=3 season |
-| Portugal (PT) | 89.9% | 0.110 | 0.074 | -0.097 | +0.029 | N=1 season |
-| Spain (ES) | 50.3% | 0.135 | 0.026 | +0.130 | +0.016 | N=4 fixed |
+| Region | Capacity outside the ERA5 data | Published uncorr RMSE | Published corr RMSE | Published uncorr MBE | Published corr MBE | Best cfg | Roughness |
+|---|---|---|---|---|---|---|---|
+| Italy (IT) | 94.5% | 0.066 | 0.034 | +0.062 | -0.020 | N=3 season | annual mean |
+| Portugal (PT) | 89.9% | 0.110 | 0.074 | -0.097 | +0.029 | N=1 season | annual mean |
+| Spain (ES) | 50.3% | 0.135 | 0.026 | +0.130 | +0.016 | N=4 fixed | annual mean |
 
 The country-level fit removes very large mean biases (FR, BE and IE all from
 0.17-0.34 down to ~0.01-0.02). Two honest notes: NO is already close to

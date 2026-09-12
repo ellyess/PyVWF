@@ -98,8 +98,8 @@ At country level there is no absolute floor, as in the curve library study.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **G1** (DK) | The paired interval for the R1 minus R0 corrected RMSE difference. **Indistinguishable** if it includes zero and its width is at most 0.004. **Resolved** if it excludes zero; the sign names the better treatment. **Indeterminate** if it includes zero and is wider than 0.004. | |
-| **G2** (FR) | The same paired interval at country level, with no absolute floor. Reported as consistent or inconsistent with zero, with its width beside it, since a wide interval consistent with zero establishes nothing. | |
+| **G1** (DK) | The paired interval for the R1 minus R0 corrected RMSE difference. **Indistinguishable** if it includes zero and its width is at most 0.004. **Resolved** if it excludes zero; the sign names the better treatment. **Indeterminate** if it includes zero and is wider than 0.004. | **Resolved: R1 better.** -0.00019, interval -0.00031 to -0.00007, width 0.00024. |
+| **G2** (FR) | The same paired interval at country level, with no absolute floor. Reported as consistent or inconsistent with zero, with its width beside it, since a wide interval consistent with zero establishes nothing. | **Consistent with zero:** 0.0000, interval -0.0000 to 0.0001, width 0.0001. Narrow, and uninformative for the reason in D1. |
 | **G3** (both) | A method change needs G1 and G2 to resolve and agree in direction. Two ways of failing that are different results, and are separated below. | Withdrawn on 2026-09-12, before any DK result: see deviation D1. |
 
 **0.004 is a judgement, not a measurement.** It states how much imprecision is
@@ -128,10 +128,27 @@ data picks the value, and it should not be read as derived.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| P1 | DK's R1 minus R0 corrected RMSE difference is indistinguishable under G1. | |
-| P2 | FR's interval includes zero. | |
-| P3 | R1 loses steps that R0 does not, in both rows, because the hourly roughness is undefined in some hours. | |
-| P4 | The uncorrected difference between conditions is larger than the corrected one, because the fit absorbs part of the change. | |
+| P1 | DK's R1 minus R0 corrected RMSE difference is indistinguishable under G1. | **Refuted.** The interval excludes zero, so G1 resolved rather than returning indistinguishable. |
+| P2 | FR's interval includes zero. | **Held.** |
+| P3 | R1 loses steps that R0 does not, in both rows, because the hourly roughness is undefined in some hours. | **Held for DK for the wrong reason, failed for FR.** DK: 49 unit-months partly scored under R1 against 47 under R0, all of them in the uncorrected variant, with the corrected variant losing nothing. FR: identical counts in both conditions, and its losses are in the corrected variant instead, from the affine pair rather than from an undefined roughness. The number came out right and the mechanism did not. None wholly missing, no rows excluded anywhere. |
+| P4 | The uncorrected difference between conditions is larger than the corrected one, because the fit absorbs part of the change. | **Held, and the sign flips.** DK uncorrected +0.00149, corrected -0.00019: eight times larger, and in the opposite direction. The stated reason is wrong; see the finding. |
+
+## Outcome, 2026-09-12
+
+G1 resolved and named R1, the per-timestep treatment, the better one. **R1 is
+adopted**, which is the consequence registered in advance for that result.
+
+The reasons recorded for adopting it are wider than the gate, and the finding
+states them rather than the gate: method fidelity, the inability of most rows
+to show the effect at all, and the removal of a split that confounds every
+comparison between regions. The measured accuracy effect is 0.0002 in
+corrected RMSE, resolved by a paired design on 64,090 rows and far too small
+to carry a method change on its own. A reader must not take "resolved" for
+"material", and the finding says so in those words.
+
+Full results, the P4 mechanism and the consequences for the download and the
+European rows: `method-roughness-treatment.md`. Runs in
+`output/roughness_treatment_2026-09-12/`.
 
 ## Consequences, stated in advance
 
