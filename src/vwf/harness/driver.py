@@ -132,6 +132,20 @@ def _record_era5_extent(reanalysis, fleet: pd.DataFrame, spec: RegionSpec) -> di
     return record
 
 
+def _record_roughness(reanalysis, spec: RegionSpec) -> dict:
+    """Which temporal treatment of the roughness the run actually applied.
+
+    Requested and applied are both recorded, because they differ when a region
+    asks for a stored field and the ERA5 files carry none. The European files
+    carry one annual mean per year; every other region derives it per timestep
+    (``docs/design/roughness-temporal-treatment.md``).
+    """
+    return {
+        "requested": spec.roughness,
+        "applied": reanalysis.attrs.get("pyvwf_roughness_treatment"),
+    }
+
+
 def _era5_dir(spec: RegionSpec) -> Path:
     return PyVWFPaths.INPUT_ROOT / spec.era5_path
 
@@ -197,6 +211,7 @@ def run_train(
         era5_dir=_era5_dir(spec),
         bbox=spec.bbox,
         allow_extrapolation=spec.allow_extrapolation,
+        roughness=spec.roughness,
     )
 
     model = get_correction(spec.correction_model)
@@ -240,7 +255,8 @@ def run_train(
         run_dir,
         spec,
         extra={"run_mode": "train", "fleet_mode": mode, "curve_resolution": curves,
-               "era5_extent": era5_extent, "fit_diagnostics": fit_record},
+               "era5_extent": era5_extent, "fit_diagnostics": fit_record,
+               "era5_roughness": _record_roughness(reanalysis, spec)},
     )
     return run_dir
 
@@ -289,6 +305,7 @@ def run_evaluate(
         era5_dir=_era5_dir(spec),
         bbox=spec.bbox,
         allow_extrapolation=spec.allow_extrapolation,
+        roughness=spec.roughness,
     )
 
     model = get_correction(spec.correction_model)
@@ -403,6 +420,7 @@ def run_evaluate(
             "curve_resolution": curves,
             "common_row_scoring": scoring,
             "era5_extent": era5_extent,
+            "era5_roughness": _record_roughness(reanalysis, spec),
             "off_curve": off_curve,
         },
     )
@@ -731,6 +749,7 @@ def run_transfer(
         era5_dir=_era5_dir(target_spec),
         bbox=target_spec.bbox,
         allow_extrapolation=target_spec.allow_extrapolation,
+        roughness=target_spec.roughness,
     )
 
     model = get_correction(target_spec.correction_model)
@@ -802,6 +821,7 @@ def run_transfer(
             "evaluation_year": year,
             "common_row_scoring": scoring,
             "era5_extent": era5_extent,
+            "era5_roughness": _record_roughness(reanalysis, target_spec),
             "off_curve": off_curve,
         },
     )

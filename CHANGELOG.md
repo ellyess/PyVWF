@@ -23,6 +23,14 @@ a corrected variant lacks some values.
 
 ### Added
 
+- **A switch for the temporal treatment of the roughness.**
+  `[era5] roughness = "stored"` (the default, and what every existing run did)
+  or `"derived"`. `"derived"` ignores a stored roughness field and inverts the
+  log profile per timestep from the 10 m and 100 m winds. Every harness run
+  records both the requested and the applied treatment in an `era5_roughness`
+  manifest block, since the two differ when the files carry no stored field.
+  Which treatment is better is under test, and the comparison is
+  pre-registered; nothing changes until it reports.
 - **Fit diagnostics: what a fitted pair does to its own training speeds.**
   `fit_quality` bounds the scalar and checks each offset converged, but an
   affine pair with a negative offset sends every speed below

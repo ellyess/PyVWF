@@ -55,6 +55,7 @@ class RegionSpec:
     station_id_regex: str | None = None
     time_convention: str = "utc-monthly-bins"
     allow_extrapolation: bool = False
+    roughness: str = "stored"
 
 
 def season_of_month(spec: RegionSpec) -> dict[int, str]:
@@ -167,6 +168,10 @@ def load_region(path: str | Path) -> RegionSpec:
     if not era5_path or not file_tag:
         _fail(path, "[era5] path and file_tag must be non-empty")
 
+    roughness = str(era5.get("roughness", "stored")).strip()
+    if roughness not in ("stored", "derived"):
+        _fail(path, f"[era5] roughness must be \"stored\" or \"derived\", got {roughness!r}")
+
     allow_extrapolation = era5.get("allow_extrapolation", False)
     if not isinstance(allow_extrapolation, bool):
         _fail(path, f"[era5] allow_extrapolation must be true or false, got {allow_extrapolation!r}")
@@ -252,4 +257,5 @@ def load_region(path: str | Path) -> RegionSpec:
         station_id_regex=station_regex,
         time_convention=time_convention,
         allow_extrapolation=allow_extrapolation,
+        roughness=roughness,
     )

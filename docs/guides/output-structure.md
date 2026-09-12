@@ -89,7 +89,10 @@ the open or a licensed library was used), the `curve_resolution` summary, and,
 for evaluate runs, `evaluation_year` and `trained_from`. Design §6. Evaluate and
 transfer runs also carry the `common_row_scoring` summary and the `off_curve`
 record per variant. Every harness run carries the `era5_extent` block (see
-below).
+below) and an `era5_roughness` block, which records the temporal treatment of
+the roughness the run requested and the one it applied. The two differ when a
+region asks for a stored field and its ERA5 files carry none
+(`../design/roughness-temporal-treatment.md`).
 
 ## Curve resolution (`curve_resolution.csv`)
 

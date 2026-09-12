@@ -96,8 +96,11 @@ def _extent_shortfall(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -
     return {side: float(d) for side, d in short.items() if d > steps[side] + 1e-9}
 
 
+ROUGHNESS_TREATMENTS = ("stored", "derived")
+
+
 def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
-              resample_daily=True, allow_extrapolation=False):
+              resample_daily=True, allow_extrapolation=False, roughness="stored"):
     """Preprocess ERA5 reanalysis data.
 
     Args:
@@ -122,6 +125,16 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             loaded extent may have their winds extrapolated. Default False, so
             such units are refused. A region opts in with
             ``[era5] allow_extrapolation = true``.
+        roughness: Which temporal treatment of the roughness to apply.
+            ``"stored"`` (default) uses a roughness field the files already
+            carry, which for the European files is one annual mean per year;
+            ``"derived"`` ignores any stored field and inverts the log profile
+            per timestep from the 10 m and 100 m winds. Files with no stored
+            field are derived either way. Which treatment is better is under
+            test (``docs/findings/method-roughness-treatment-prereg.md``); the
+            default reproduces what every existing run did. The treatment
+            actually applied is attached to the returned dataset as
+            ``pyvwf_roughness_treatment``.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.
@@ -170,8 +183,26 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
     if "wnd100m" not in ds.data_vars:
         ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2)
 
+    if roughness not in ROUGHNESS_TREATMENTS:
+        raise ValueError(
+            f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}"
+        )
+
+    applied = None
     if calc_z0:
         ds = ds.drop_vars("fsr", errors="ignore")
+
+        if roughness == "derived":
+            # Asked for the per-timestep derivation, so a stored field is not
+            # used even when the files carry one.
+            missing = [v for v in ("u10", "v10") if v not in ds.data_vars]
+            if missing:
+                raise ValueError(
+                    f"roughness='derived' needs the 10 m wind components, and the ERA5 "
+                    f"files for {country} lack {missing}. The stored field is the only "
+                    "roughness those files can supply."
+                )
+            ds = ds.drop_vars(["z0", "roughness"], errors="ignore")
 
         # Check if roughness already exists (from preprocessing)
         if 'z0' in ds.data_vars or 'roughness' in ds.data_vars:
@@ -182,12 +213,14 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             else:
                 print("Using pre-calculated roughness from combined ERA5 files")
             
+            applied = "stored"
             # Drop unnecessary wind component variables
             ds = ds.drop_vars(
                 ["u100", "v100", "u10", "v10", "number", "expver"],
                 errors="ignore",
             )
         else:
+            applied = "derived"
             # Calculate roughness from wind shear (fallback if not preprocessed)
             print("Calculating surface roughness from 10m/100m wind shear...")
             
@@ -236,5 +269,8 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
     from vwf.wind import EXTRAPOLATION_ATTR
 
     ds.attrs[EXTRAPOLATION_ATTR] = bool(allow_extrapolation)
+    # What was applied, not what was asked for: a run that asks for the stored
+    # field and gets the derivation, because the files carry none, must say so.
+    ds.attrs["pyvwf_roughness_treatment"] = applied if applied else "reanalysis-field"
     print("ERA5 for " + country + " ready")
     return ds
