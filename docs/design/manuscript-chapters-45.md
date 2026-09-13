@@ -410,11 +410,19 @@ ranking.** IDW already beat kriging on scalar MAE by 3.4% and now beats it by
 4.6%; it already beat kriging on offset MAE and the margin widens; kriging keeps
 the scalar RMSE, 0.2272 against 0.2445.
 
-**So the Euclidean metric was handicapping the method that won, not flattering
-it.** That settles which of the two decisions this is. Keeping the chapter's
-arrangement is a reproduction choice and is conservative with respect to the
-chapter's own conclusion, rather than a known-wrong comparison carried into a
-new paper. It has to be stated, not silently inherited.
+**The chapter used a distorted metric, and the distortion worked against the
+method the chapter adopted.** IDW is the method it chose, IDW is the method the
+Euclidean metric penalised, and correcting the metric widens IDW's margin over
+kriging rather than narrowing it. **So the chapter's conclusion holds with a
+wider margin than it reported, and its error was conservative.**
+
+That is a rare shape and it should be stated rather than left for a reader to
+work out: a methods defect that understated the result it was used to reach.
+It is the opposite of the usual case and it is the reason this is a
+reproduction choice rather than a known-wrong comparison carried into a new
+paper. **The manuscript says it in those words**, because a reader who notices
+the two metrics and is not told the direction will reasonably assume the
+flattering one.
 
 **The proposed split, which needs a decision.** Reproduction keeps degrees,
 because that is what reproduces. **New work uses great circle**, because

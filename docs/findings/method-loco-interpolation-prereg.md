@@ -79,6 +79,19 @@ reported. The chapter-4 defect recorded in the manuscript decisions document is
 the reason: its prose specifies log and its code computes linear, and this
 study will not inherit that ambiguity silently.
 
+*[Amended 2026-09-13, before any fold was scored. **Distance is great-circle
+for this study, with Euclidean degrees reported beside it.** The chapter
+measures IDW, nearest neighbour and RBF in Euclidean degrees and kriging in
+great-circle, which stretches the first three east to west by about a factor of
+two at 60 degrees north, on the axis this study's country borders run across.
+Measured on the chapter's own folds before this was decided, great-circle
+improves IDW by 1.3% on both targets and changes no ranking (T7 of the
+manuscript decisions document). The split follows D1: reproduction keeps the
+chapter's metric, new work uses the defensible one, and this study is new work.
+RBF is the exception and is reported as one: `scipy`'s interpolator fits on
+coordinates directly and has no metric option, so it runs in degrees under both
+columns.]*
+
 ## What runs
 
 All twelve folds, for nearest neighbour, IDW, ordinary kriging and RBF.
