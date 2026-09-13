@@ -26,6 +26,12 @@ Run each file in its own process:
   its two copies are byte-identical, and every curve has a provenance row.
 - `tests/test_packaging.py`: `vwf.__version__`, the newest CHANGELOG release,
   its compare links and `CITATION.cff` agree.
+- `tests/test_scorecard_configs.py`: every configuration in
+  `configs/regions/scorecard/` loads, every scorecard row has one carrying its
+  region code, none is orphaned, and the configuration each row reports in its
+  Best cfg column is one its committed configuration can produce. This is what
+  makes "reproducible against a commit" a checked claim rather than a stated
+  one.
 
 A failure stops the release. Report it; do not work around it.
 
