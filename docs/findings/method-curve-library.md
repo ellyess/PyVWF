@@ -5,6 +5,46 @@
 document is in progress**: conditions C1 and C2 have run and are reported here.
 T1 and T2 have not. Terms follow `CONTEXT.md`.
 
+**[Correction notice, 2026-09-13. C2's corrected-RMSE results are withdrawn.
+The corrected values are not yet known.]**
+
+**What was claimed.** This document's headline, "curve error worth 20 to 28% of
+the fallback's effect on mean bias is indistinguishable from ERA5 bias to a
+correction fitted per cluster and season", and the section "C2 per tier, and
+P2b refuted", including P2b's refutation and every paired interval for
+corrected RMSE under C2.
+
+**What actually ran.** C2 overrides each unit's model key. The study driver
+applied that override to the fleet returned by `vwf.data.train_set`, and
+`train_set` simulates the fleet before it returns: it computes `gen_cf["sim"]`
+by `wind.simulate_wind(reanalysis, turb_info, power_curves)` and hands back the
+result. The correction's wind scalar is then fitted as `obs / sim` from that
+frame, so **the scalar was fitted on the unmodified curve assignment**, while
+the offset fit and the evaluation saw the overridden one. The C2 training fits
+are hybrids of two conditions and are not the condition that was registered.
+
+**How it was found, and the evidence.** The fitted scalar is bit-identical
+between C0 and C2 at all eight country rows, every digit, while offsets move by
+1.14 to 2.03 m/s. `calculate_scalar` computes `scalar = obs / sim`, so a scalar
+that does not move is a `sim` that did not move. C1, which changes the library
+rather than the keys, moves its scalars by 0.30 to 4.48, because
+`load_power_curves` is called inside `train_set` and is therefore ahead of the
+simulation.
+
+**What stands, and why.** The whole C1 half. C1's fit is sound for the reason
+just given, and the C1 results reported here are uncorrected mean-bias
+quantities or comparisons between C0 and C1: the mechanism table, the split
+across starting points, the C1 paired comparison, G1's failure at three of the
+seven scoreable countries, Spain's collapsed correction gain, and the
+open-library adequacy statement. C2's **uncorrected** figures also stand, since
+they use no factors; that includes the ratio table of what C2 recovers of the
+licensed library's effect on mean bias, 72 to 101%.
+
+**What follows.** The override is being moved ahead of the simulation, and C2's
+eight rows and the seven T conditions re-run. Corrected figures will replace
+the withdrawn ones here, with their own date. Until then this document states
+no corrected-RMSE result for C2, and none should be quoted from its history.
+
 **Giving each country grid point its own power curve lowers its simulated
 output everywhere, by 0.09 to 0.22 in mean bias, without exception. Whether
 that helps depends entirely on where the row started.** Three rows were
@@ -13,6 +53,10 @@ below and are pushed further wrong by the same change. G1 fails, at three of
 the seven scoreable countries against the four it required.
 
 ## What an affine correction absorbs, measured at country level
+
+*[Withdrawn 2026-09-13: this section's claim is a C2 corrected-RMSE result and
+is covered by the correction notice at the top. It is left in place, unedited,
+so that what was claimed can be read against what replaces it.]*
 
 **Curve error worth 20 to 28% of the fallback's effect on mean bias is
 indistinguishable from ERA5 bias to a correction fitted per cluster and
@@ -173,6 +217,9 @@ corrected RMSE moves by at most 0.037, and in five of eight the interval covers
 zero. Where it does not, C1 is worse, never better.
 
 ## C2 per tier, and P2b refuted
+
+*[Withdrawn 2026-09-13, with the section above: every corrected-RMSE figure
+below rests on a hybrid fit. The uncorrected figures and the distances stand.]*
 
 Every condition clean at `git_dirty: false`, open library `56314f39…` verified
 by sha256, substituted share 0.00: the open substitutes resolve, so no unit

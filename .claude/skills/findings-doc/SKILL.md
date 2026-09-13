@@ -114,6 +114,12 @@ unit its author has in mind.
   placed after the `**Scope:**` line. It states what actually ran and what was
   claimed. It names the figures it affects and the ones that stand.
 - A correction notice is never softened into a limitation.
+- **A notice is published as soon as the claim is known to be wrong, before the
+  corrected figure exists.** It says so: which values are withdrawn, that the
+  corrected ones are not yet known, and what will produce them. Waiting for the
+  right number is how a wrong one stays published for weeks. The withdrawn text
+  stays in place, marked, so that what was claimed can be read against what
+  replaces it.
 - A false claim in dated history, such as a CHANGELOG entry, is corrected in
   place with a dated bracket, not deleted.
 - A correction of a correction says so.
