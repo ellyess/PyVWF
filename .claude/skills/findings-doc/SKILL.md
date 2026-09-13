@@ -86,18 +86,29 @@ unit its author has in mind.
   the typical unit, and the rule does something different where the typical
   case's logic stops holding. The extremes are where that shows, and they are
   two rows to print.
-- **Choose the case to test before seeing which case favours the hypothesis,
-  or test them all.** A single row was picked to decide whether a whole tier of
-  control points was an artefact, and it was picked because its statistic was
-  the most artefact-like of the eight. It confirmed the hypothesis, as the most
-  confirming case will. Running the same test on every comparable row reversed
-  the conclusion: the one row said artefact at a ratio of 0.09, the four rows
-  with no other known defect said the opposite at 1.02. **Same data, opposite
-  answers, decided by which case was tested.** All six were free here, which is
-  the only reason it was recoverable; when they are not free, the case is named
-  in the pre-registration before the statistic that would choose it is
-  computed. An explanation for the cases set aside has to be independent of the
-  hypothesis, as an extrapolation defect recorded in another finding was.
+- **Distrust the reasoning, not the evidence that happens to support it.** A
+  measurement said one configuration of fourteen was the only one interpolated
+  from other data, and it was also the only one that failed. That was too tidy,
+  so it was withdrawn, and the withdrawal was wrong: **the discipline of
+  distrusting a tidy story was applied to the evidence instead of to the
+  reasoning.** The measurement was right and the story was true. When a result
+  looks too neat, the check goes on the inference that produced it, not on the
+  number: recompute the reasoning, name the step that would have to be wrong,
+  and test that step. Discarding the measurement feels like rigour and costs
+  the finding.
+
+  Its concrete form, from the same two incidents: **choose the case to test
+  before seeing which case favours the hypothesis, or test them all.** A single
+  row was picked to decide whether a whole tier of control points was an
+  artefact, and it was picked because its statistic was the most artefact-like
+  of the eight. It confirmed the hypothesis, as the most confirming case will,
+  and running the same test on every comparable row reversed the conclusion:
+  the one row said artefact at a ratio of 0.09, the four rows with no other
+  known defect said the opposite at 1.02. Same data, opposite answers, decided
+  by which case was tested. All six were free there, which is the only reason
+  it was recoverable; when they are not free, the case is named in the
+  pre-registration before the statistic that would choose it is computed. An
+  explanation for cases set aside has to be independent of the hypothesis.
 - **Verify that a condition changed what it was supposed to change, not only
   that it was applied.** The counterpart to the coverage rule below: that one
   checks the condition reached the fleet, this one checks it reached the
