@@ -86,13 +86,22 @@ unit its author has in mind.
   the typical unit, and the rule does something different where the typical
   case's logic stops holding. The extremes are where that shows, and they are
   two rows to print.
-- **Report a condition's coverage before its gate is fixed**, as a share of
-  capacity: how much of the fleet the rule actually reaches. A condition
-  reaching little cannot test much, and a gate written without knowing that is
-  a gate on nothing.
+- **Choose the case to test before seeing which case favours the hypothesis,
+  or test them all.** A single row was picked to decide whether a whole tier of
+  control points was an artefact, and it was picked because its statistic was
+  the most artefact-like of the eight. It confirmed the hypothesis, as the most
+  confirming case will. Running the same test on every comparable row reversed
+  the conclusion: the one row said artefact at a ratio of 0.09, the four rows
+  with no other known defect said the opposite at 1.02. **Same data, opposite
+  answers, decided by which case was tested.** All six were free here, which is
+  the only reason it was recoverable; when they are not free, the case is named
+  in the pre-registration before the statistic that would choose it is
+  computed. An explanation for the cases set aside has to be independent of the
+  hypothesis, as an extrapolation defect recorded in another finding was.
 - **Verify that a condition changed what it was supposed to change, not only
-  that it was applied.** The counterpart to the rule above: that one checks the
-  condition reached the fleet, this one checks it reached the result. A curve
+  that it was applied.** The counterpart to the coverage rule below: that one
+  checks the condition reached the fleet, this one checks it reached the
+  result. A curve
   study applied its overrides to the fleet a loader returned, one step after
   that loader had already simulated it, so every fitted wind scalar came out
   bit-identical to the baseline's while the offsets moved. The guard verified
@@ -105,8 +114,10 @@ unit its author has in mind.
   condition that worked and had no effect, which is what half these studies
   predict.
 - **Verify that a condition reaches what it claims, by a route independent of
-  how it was built.** Three defects in one study would each have produced a
-  clean null, which is what several of its predictions expect, and none was
+  how it was built, and report its coverage as a share of capacity before its
+  gate is fixed.** A condition reaching little cannot test much, and a gate
+  written without knowing that is a gate on nothing. Three defects in one study
+  would each have produced a clean null, which is what several of its predictions expect, and none was
   caught by the checks built into the condition itself: a matcher comparing a
   manufacturer against itself, an assignment moving small units onto a
   reference curve, and a coverage figure measured over the register rather

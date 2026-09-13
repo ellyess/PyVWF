@@ -158,10 +158,32 @@ themselves, but what is built on top of them.
   gap and does not close it, so the chapter's method choice stands on this
   evidence. The absolute figures come from the reimplementation below and are
   higher than the chapter's, which reports a 3% gap.
-- **A reimplementation of the chapter's spatial cross-validation matches it on
-  offset and not on scalar**: offset MAE 0.632 against the published 0.641,
-  scalar MAE 0.180 against 0.161. The likely cause is the onshore and offshore
-  separation the chapter's script performs and the reimplementation does not.
-  **If the manuscript reproduces any chapter 4 figure, this has to be resolved
-  first**, because it is the difference between reproducing a number and
-  producing a similar one.
+- **A reimplementation of the chapter's spatial cross-validation reproduces its
+  offset exactly and its scalar 13% high. Narrowed, not resolved, and still
+  blocking.** IDW with p = 2 on Euclidean degree distances over all 1,729
+  points in five longitude-sorted equal folds gives offset MAE 0.6407 against
+  the published 0.6410, which pins the fold construction, the weighting
+  exponent, the neighbour set and the distance metric. The same run gives
+  scalar MAE 0.1826 against 0.1610.
+
+  **Every variation that improves the scalar moves the offset away from its
+  match**, which says the missing step is specific to the scalar:
+
+  | Variation | Scalar MAE | Offset MAE |
+  |---|---|---|
+  | as above | 0.1826 | **0.6407** |
+  | onshore and offshore interpolated separately | 0.1766 | 0.6341 |
+  | the five degenerate points dropped | 0.1794 | 0.6288 |
+  | country points out of the test folds | 0.1755 | 0.6163 |
+  | 20 nearest neighbours only | 0.1704 | 0.5978 |
+  | scalar interpolated in log space | 0.1853 | 0.6407 |
+  | training scalars clipped to 0.2 to 3.0 | 0.1827 | 0.6407 |
+
+  So fold shape, distance metric, neighbour count, point selection and target
+  transform are all ruled out. The resolution is to read the chapter's own
+  cross-validation, which lives in
+  `development:scripts/pyvwf_to_grid/compare_unified_corrections_to_grid.py`,
+  and that is why the grid extension is early in the port rather than late.
+  **Until it is resolved, no chapter 4 figure is reproduced**, because the
+  difference between reproducing a number and producing a similar one is the
+  whole point of reproducing it.
