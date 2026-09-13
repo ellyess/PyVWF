@@ -323,10 +323,10 @@ its own evidence rather than being settled by a narrow reading.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **G1** (Q1) | Uses C0 and C1 only, which are not tiered: C1 gives every country its own curve, so the countries differ in fleet rather than in how near a substitute fell. For each country, the absorbed share is A = (uncorrected RMSE in C0 minus uncorrected RMSE in C1) divided by the correction gain in C0. **The scoreable set is fixed here, from C0, at seven:** BE, ES, FR, IE, IT, PT and SE. NO is excluded because its C0 correction gain is not positive, so there is no denominator to divide by. The fallback curve is a material part of the country-level correction if A is at least 0.5 in at least **4 of those 7**. **Indeterminate** if the interval on the C0-minus-C1 uncorrected RMSE difference includes zero in more than 3 of the 7, since A is then built on differences the design cannot resolve. | |
+| **G1** (Q1) | Uses C0 and C1 only, which are not tiered: C1 gives every country its own curve, so the countries differ in fleet rather than in how near a substitute fell. For each country, the absorbed share is A = (uncorrected RMSE in C0 minus uncorrected RMSE in C1) divided by the correction gain in C0. **The scoreable set is fixed here, from C0, at seven:** BE, ES, FR, IE, IT, PT and SE. NO is excluded because its C0 correction gain is not positive, so there is no denominator to divide by. The fallback curve is a material part of the country-level correction if A is at least 0.5 in at least **4 of those 7**. **Indeterminate** if the interval on the C0-minus-C1 uncorrected RMSE difference includes zero in more than 3 of the 7, since A is then built on differences the design cannot resolve. | **Fails.** A is at least 0.5 in 3 of the 7: FR 0.95, IE 0.84, BE 0.68, then SE -0.19, PT -1.48, IT -1.57, ES -22.38. Not indeterminate: every uncorrected difference resolves. |
 | **G2a** (Q2, T1) | **DK and UK only.** Specific power is sufficient for a region if the paired interval for corrected RMSE in T1 minus T0 includes zero, or excludes it by less than the 0.002 screen. It is insufficient if T1 beats T0 by more than the screen. **Precondition, measured before this record was fixed:** the gate applies only where T1 reassigns at least **10% of capacity**. DK (65.9% of the training fleet, 55.8% of the test fleet) and UK (47.1% and 49.2%) pass it; **DE is untestable at 0.0%**, for the reason above, and is reported as such rather than as a failure; **the US is ungated regardless of its coverage** (32.0% and 27.5%), which is reported as a finding about the licensed library's reach into the US fleet. **A T1 materially worse than T0 suspends this gate** pending a diagnosis of the matcher: a matcher that assigns a worse curve than specific power did is more likely to be wrong than specific power is to be right. | |
-| **G2b** (Q2, T2) | **All four regions, DE included.** The same test for T2 minus T0. Specific power survives other-brand matching in a region if the interval includes zero or excludes it by less than the screen. T2 reassigns by rating band and specific power and needs no register designation, so Germany's missing designations do not reach it. | |
-| **G3** (Q2) | Curve assignment is a larger error source than ERA5 bias for a region if the spread of uncorrected RMSE across T0, T1 and T2 exceeds that region's correction gain in T0. **Indeterminate** for a region whose T1 is suspended under G2a. | |
+| **G2b** (Q2, T2) | **All four regions, DE included.** The same test for T2 minus T0. Specific power survives other-brand matching in a region if the interval includes zero or excludes it by less than the screen. T2 reassigns by rating band and specific power and needs no register designation, so Germany's missing designations do not reach it. | **Passes, all four rows.** T2 minus T0: DE +0.00112, DK -0.00064, UK -0.00008, US -0.00049, every one inside the screen. DE and DK resolve, in opposite directions. |
+| **G3** (Q2) | Curve assignment is a larger error source than ERA5 bias for a region if the spread of uncorrected RMSE across T0, T1 and T2 exceeds that region's correction gain in T0. **Indeterminate** for a region whose T1 is suspended under G2a. | **Fails, all four rows.** Spread of uncorrected RMSE across the conditions against the T0 correction gain: DE 0.00068 vs 0.02897, DK 0.00164 vs 0.06294, UK 0.00122 vs 0.03114, US 0.00153 vs 0.01247. Curve assignment is 2.3% to 12.3% of the correction's worth. No region is indeterminate; G2a was not suspended. |
 
 *[Limitation, recorded 2026-09-13 after C1 ran and before any other condition:
 G1 divides by C0's correction gain. The rule anticipated a gain that is not
@@ -357,13 +357,13 @@ reported as such.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| P1 | In C1, uncorrected MBE falls in at least 6 of the 8 countries, because a 167 W/m2 curve overproduces at moderate wind speeds. | |
-| P2 | In at least 6 of the 8 countries, the paired interval for corrected RMSE in C1 minus C0 includes zero: the correction absorbs the curve error either way. | |
-| P2b | C2's corrected RMSE moves further from C0 in the far tier than in the near tier. The near tier's substitute sits 1.9 W/m2 away and the far tier's 70.6 W/m2, so a C2 result that does not order that way would say the distance in specific power is not what drives the difference. | |
-| P3 | G1 passes. | |
-| P4 | In T2, the paired interval for corrected RMSE minus T0 includes zero in DE, DK and UK: at monthly resolution the correction absorbs other-brand curve shape. T2 reaches all four regions, so this is a prediction about three of them and the US is reported beside it. | |
-| P5 | The paired interval for uncorrected RMSE excludes zero between at least two of T0, T1 and T2, in at least 2 of the 3 regions where all three conditions exist (DK, UK, US). Germany has T0 and T2 only. | |
-| P6 | No condition turns a clean fit degenerate. | |
+| P1 | In C1, uncorrected MBE falls in at least 6 of the 8 countries, because a 167 W/m2 curve overproduces at moderate wind speeds. | **Held**, 8 of 8, by 0.082 to 0.220. |
+| P2 | In at least 6 of the 8 countries, the paired interval for corrected RMSE in C1 minus C0 includes zero: the correction absorbs the curve error either way. | **Refuted**, 5 of 8. ES, FR and IT resolve, all worse under C1. |
+| P2b | C2's corrected RMSE moves further from C0 in the far tier than in the near tier. The near tier's substitute sits 1.9 W/m2 away and the far tier's 70.6 W/m2, so a C2 result that does not order that way would say the distance in specific power is not what drives the difference. | **Refuted**, and inverted: mean absolute difference is 0.0024 far, 0.0063 near, 0.0105 moderate. The distance does order the tiers in the uncorrected mean bias and does not reach the corrected RMSE. |
+| P3 | G1 passes. | **Refuted**: G1 fails at 3 of 7. |
+| P4 | In T2, the paired interval for corrected RMSE minus T0 includes zero in DE, DK and UK: at monthly resolution the correction absorbs other-brand curve shape. T2 reaches all four regions, so this is a prediction about three of them and the US is reported beside it. | **Refuted**, 1 of 3: UK covers zero, DE and DK resolve in opposite directions. US, reported beside it, covers zero. The differences are 0.0006 to 0.0011 against correction gains of 0.029 to 0.063, so the prediction's substance held and its arithmetic did not. |
+| P5 | The paired interval for uncorrected RMSE excludes zero between at least two of T0, T1 and T2, in at least 2 of the 3 regions where all three conditions exist (DK, UK, US). Germany has T0 and T2 only. | **Refuted**, 1 of 3: DK only, where T1 and T2 each differ from T0 but not from each other. |
+| P6 | No condition turns a clean fit degenerate. | **Refuted**: 6 conditions do. C1 at IT (0 to 8), PT (0 to 2), FR and NO (0 to 1); C2 at IT (0 to 6) and FR (0 to 1); T1 US 5 to 6. The registered consequence applies and is written up as the study's strongest result. |
 
 ## Consequences, stated in advance
 
@@ -557,3 +557,27 @@ first time. Every training side is byte-identical to the run it replaced:
 the preserved single-fleet runs under `T1_train_fleet_only/` and
 `T2_train_fleet_only/`. The prediction that the training side would not move
 therefore held, and the evaluation-side results are reported in the finding.
+
+## How these predictions were written, 2026-09-13, after all of them resolved
+
+Seven predictions, one held. Four of the six refutations share a shape, and it
+is a shape in the predictions rather than in the world.
+
+P2, P2b, P4 and P5 each predicted that a difference would be **indistinguishable
+from zero**. The differences they were about are 0.0006 to 0.014, against
+corrections worth 0.012 to 0.32 on the same rows: negligible by any standard a
+reader would apply. They are also resolvable, because the paired bootstrap draws
+1,000 times over thousands of units and can separate 0.0006 from zero without
+difficulty. **Negligible and indistinguishable are different claims, and every
+one of these four predicted the second while meaning the first.**
+
+P2b has its own version of the same error, already recorded under the
+conditions rules: it named corrected RMSE when its mechanism lived in the
+uncorrected mean bias.
+
+For the next study, a prediction about an effect being small states a size and
+a direction, not a hypothesis test: "the difference is under 0.002 in corrected
+RMSE", which the 0.002 screen in G2a and G2b did, and which is why both gates
+gave a usable answer where four predictions about the same numbers did not. A
+prediction that an interval covers zero is only worth registering where zero is
+genuinely the interesting value, which for a correction's residual it is not.

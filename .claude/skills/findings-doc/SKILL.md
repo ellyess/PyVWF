@@ -90,13 +90,20 @@ unit its author has in mind.
   capacity: how much of the fleet the rule actually reaches. A condition
   reaching little cannot test much, and a gate written without knowing that is
   a gate on nothing.
-- **A prediction names the quantity it is about, and the mechanism has to show
-  up in that quantity.** A curve library condition predicted that a worse
-  substitute would move corrected RMSE further. The mechanism was real, and it
-  lived in the uncorrected mean bias: the correction absorbed it before it
-  reached corrected RMSE, so the prediction failed while being right about the
-  world. Before registering one, ask which side of the correction the effect
-  sits on, and name that side.
+- **Verify that a condition changed what it was supposed to change, not only
+  that it was applied.** The counterpart to the rule above: that one checks the
+  condition reached the fleet, this one checks it reached the result. A curve
+  study applied its overrides to the fleet a loader returned, one step after
+  that loader had already simulated it, so every fitted wind scalar came out
+  bit-identical to the baseline's while the offsets moved. The guard verified
+  the fleet and passed. The evidence sat in published results for a day: eight
+  country rows, a column of exact zeroes where a changed curve must change a
+  scalar fitted as observed over simulated output. Name, before the run, the
+  fitted quantity the condition must move, and compare it against the baseline
+  afterwards. The check is cheap, it is independent of how the condition was
+  built, and a condition that changed nothing is indistinguishable from a
+  condition that worked and had no effect, which is what half these studies
+  predict.
 - **Verify that a condition reaches what it claims, by a route independent of
   how it was built.** Three defects in one study would each have produced a
   clean null, which is what several of its predictions expect, and none was
