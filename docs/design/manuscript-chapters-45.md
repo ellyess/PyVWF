@@ -278,6 +278,49 @@ energy system model, the IDW product neutralises about 35% of the European
 domain beyond 5 degrees from any control point, and none of that is tested by
 the method comparison the chapter uses to choose between IDW and kriging.
 
+### The deliverable's central open question: the 2-to-5-degree band
+
+**Thirty percent of the domain receives a correction that no holdout has tested
+and no mask neutralises. It is the largest single category in the product.**
+
+Every cell of the shipped IDW grid falls into one of four bands by its distance
+to the nearest control point, and the correction it receives:
+
+| Band | Cells | Share | Median scalar | Median \|1 - scalar\| | Median \|offset\| | Neutralised |
+|---|---|---|---|---|---|---|
+| within 1 degree | 4,375 | 18.2% | 0.910 | 0.122 | 0.429 | 0% |
+| 1 to 2 degrees | 4,143 | 17.3% | 0.898 | 0.108 | 0.375 | 0% |
+| **2 to 5 degrees** | **7,202** | **30.0%** | 0.876 | **0.125** | **0.486** | **0%** |
+| beyond 5 degrees | 8,269 | 34.5% | 1.000 | 0.000 | 0.000 | 100% |
+
+**The untested band is not receiving small corrections.** Its median scalar
+departs from unity by 0.125, which is larger than either of the two bands
+nearer the data, and **67.2% of its cells carry a correction that changes wind
+speed by more than 10%**. Its scalars run 0.794 to 1.184 and its offsets -0.301
+to 0.860 m/s.
+
+Two of the four bands are defensible on their own terms. The cells near control
+points are what the in-sample validation scores, and are what a user with local
+observations would deploy. The cells beyond 5 degrees are neutralised, which is
+an honest refusal to answer. **The band between is neither**: it is corrected as
+confidently as the validated cells, it is a third of the grid, and nothing in
+the chapter tests it.
+
+**The manuscript's generalisation result applies to that band directly**,
+because those cells are exactly the cross-border case: far enough from any
+control point that the correction is carried across from elsewhere, near enough
+that the product does not decline to answer. The country-holdout study found no
+within-country information transfers, with a negative R-squared in 41 of 48
+fold-by-method cells. If that survives the end-to-end Netherlands holdout, the
+implication for this band is direct and the product's masking threshold is the
+thing to revisit, not its interpolator.
+
+This is the deliverable's question and not the manuscript's, and it is recorded
+here separately for that reason. **It is answerable without resolving anything
+about IDW against kriging**, which is the point: a file feeding an energy system
+model is judged on where it declines to answer, and this one declines at 5
+degrees for a reason nobody has tested.
+
 ### Where it has gone, and the hold
 
 | Question | Answer |
