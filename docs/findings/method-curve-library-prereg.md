@@ -162,7 +162,17 @@ fallback the code reaches when designations are missing; it is the only
 assignment implemented. **T1 is not a variant of the method so much as the
 first use of a column the data already carries**, for the Danish and British
 registers that record one. So if T1 beats T0 on DK or UK, the remedy is not a
-better heuristic: it is reading a field that was already there. That changes
+better heuristic: it is reading a field that was already there.
+
+"Already there" is bounded, and the bound was checked rather than assumed. The
+Danish designation is a field of the register itself: the processing renames a
+`Model` column straight out of it and maps the Danish "Ukendt" to "Unknown".
+But PyVWF's own fleet metadata has carried it only since 2026-02-13, when the
+column entered `process_dk_raw_data.py` (`git log -S`, against a history
+reaching back to 2022-06-22). So it was in the data throughout and in this
+pipeline for seven months. The published method's description of the Danish
+metadata, which lists manufacturer, capacity, rotor diameter and hub height
+and no designation, was accurate when it was written. That changes
 what a G2a result implies without changing the gate, which is why it is
 recorded here and dated rather than written into the gate's text.]*
 
