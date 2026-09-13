@@ -54,6 +54,27 @@ from vwf.harness.regions import load_region  # noqa: E402
 SHOWN = 5
 
 
+def variant_root(base: Path, reference: Path, out: Path) -> Path:
+    """An input root that is ``base`` with a different curve library.
+
+    Everything is symlinked from ``base`` except ``reference/``, which points
+    at ``reference``. Nothing is copied, so a condition cannot read a stale
+    copy of an input, and the root is cheap enough to build per condition.
+
+    The library it resolves is still checked by sha256 after the run: a link
+    that pointed at the wrong place would otherwise be invisible in a result.
+    """
+    out.mkdir(parents=True, exist_ok=True)
+    for child in sorted(base.iterdir()):
+        link = out / child.name
+        if link.is_symlink() or link.exists():
+            link.unlink()
+        link.symlink_to(child.resolve() if child.name != "reference" else reference.resolve())
+    if not (out / "reference").exists():
+        (out / "reference").symlink_to(reference.resolve())
+    return out
+
+
 class OverrideError(RuntimeError):
     """A condition's fleet is not the one it asked for."""
 

@@ -104,3 +104,29 @@ def test_the_curve_library_is_checked_by_hash(tmp_path):
     with pytest.raises(study.OverrideError) as e:
         study.check_library(tmp_path, "def456")
     assert "not the def456" in str(e.value)
+
+
+def test_a_variant_root_links_everything_but_the_library(tmp_path):
+    base = tmp_path / "base"
+    (base / "era5").mkdir(parents=True)
+    (base / "observations").mkdir()
+    (base / "reference").mkdir()
+    (base / "reference" / "power_curves.csv").write_text("open")
+    other = tmp_path / "combined" / "reference"
+    other.mkdir(parents=True)
+    (other / "power_curves.csv").write_text("combined")
+
+    root = study.variant_root(base, other, tmp_path / "variant")
+    assert (root / "era5").resolve() == (base / "era5").resolve()
+    assert (root / "reference" / "power_curves.csv").read_text() == "combined"
+    assert all(p.is_symlink() for p in root.iterdir())
+
+
+def test_building_a_variant_root_twice_is_idempotent(tmp_path):
+    base = tmp_path / "base"
+    (base / "reference").mkdir(parents=True)
+    other = tmp_path / "other"
+    other.mkdir()
+    study.variant_root(base, other, tmp_path / "v")
+    root = study.variant_root(base, other, tmp_path / "v")
+    assert (root / "reference").resolve() == other.resolve()
