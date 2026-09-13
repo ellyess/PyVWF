@@ -216,13 +216,34 @@ fixed and unit-tested):
 | US | 32.0% | 309 of 1,091 | 34 | `uswtdb_model` | reported, ungated by rule |
 | DE | **0.0%** | 0 of 4,288 | 0 | nothing: none is recorded | **untestable** |
 
-*[Corrected 2026-09-13, before any run: an earlier version of this table gave
-DK 50.2% and UK 53.3%, measured over each register in full. The figures above
+*[Corrected twice on 2026-09-13. First, before any run: an earlier version of
+this table gave DK 50.2% and UK 53.3%, measured over each register in full. The figures above
 are over the training fleet each row actually fits, which is what a condition
 reaches and therefore what the precondition should be read against. Both still
 clear 10% and G2a's scope is unchanged. Germany's denominator changes with
 them, from the register's 11,433 units to the fleet's 4,288, and its coverage
-stays zero.]*
+stays zero. Those stale figures survived in G2a's own text until the second
+correction below, which is worth saying plainly: the table was fixed and the
+gate that reads it was not, so the precondition was stated against numbers the
+document had already withdrawn. Neither reading changes which regions G2a
+covers.
+
+Second, after the seven T conditions were re-run on tables covering both
+fleets (see the construction fix at the end of this document), the figures
+above are joined by the test-fleet ones, since the gate scores the test fleet:
+
+| Condition | Region | Training fleet | Test fleet |
+|---|---|---|---|
+| T1 | DK | 65.9%, 2,003 of 3,707 | 55.8%, 2,415 of 5,446 |
+| T1 | UK | 47.1%, 3,288 of 5,621 | 49.2%, 3,547 of 5,998 |
+| T1 | US | 32.0%, 309 of 1,091 | 27.5%, 339 of 1,276 |
+| T2 | DE | 51.1%, 2,211 of 4,288 | 44.4%, 2,241 of 4,814 |
+| T2 | DK | 64.7%, 1,844 of 3,707 | 56.3%, 2,276 of 5,446 |
+| T2 | UK | 70.7%, 3,736 of 5,621 | 71.3%, 4,017 of 5,998 |
+| T2 | US | 28.6%, 280 of 1,091 | 24.1%, 303 of 1,276 |
+
+Every row still clears the 10% precondition on both fleets, so no gate's scope
+moves.]*
 
 **G2a therefore covers DK and UK.** Unverifiable units cannot enter T1 or T2
 and keep T0.
@@ -303,7 +324,7 @@ its own evidence rather than being settled by a narrow reading.
 | Gate | Requirement | Outcome |
 |---|---|---|
 | **G1** (Q1) | Uses C0 and C1 only, which are not tiered: C1 gives every country its own curve, so the countries differ in fleet rather than in how near a substitute fell. For each country, the absorbed share is A = (uncorrected RMSE in C0 minus uncorrected RMSE in C1) divided by the correction gain in C0. **The scoreable set is fixed here, from C0, at seven:** BE, ES, FR, IE, IT, PT and SE. NO is excluded because its C0 correction gain is not positive, so there is no denominator to divide by. The fallback curve is a material part of the country-level correction if A is at least 0.5 in at least **4 of those 7**. **Indeterminate** if the interval on the C0-minus-C1 uncorrected RMSE difference includes zero in more than 3 of the 7, since A is then built on differences the design cannot resolve. | |
-| **G2a** (Q2, T1) | **DK and UK only.** Specific power is sufficient for a region if the paired interval for corrected RMSE in T1 minus T0 includes zero, or excludes it by less than the 0.002 screen. It is insufficient if T1 beats T0 by more than the screen. **Precondition, measured before this record was fixed:** the gate applies only where T1 reassigns at least **10% of capacity**. DK (50.2%) and UK (53.3%) pass it; **DE is untestable at 0.0%**, for the reason above, and is reported as such rather than as a failure; **the US is ungated regardless of its coverage** (32.0%), which is reported as a finding about the licensed library's reach into the US fleet. **A T1 materially worse than T0 suspends this gate** pending a diagnosis of the matcher: a matcher that assigns a worse curve than specific power did is more likely to be wrong than specific power is to be right. | |
+| **G2a** (Q2, T1) | **DK and UK only.** Specific power is sufficient for a region if the paired interval for corrected RMSE in T1 minus T0 includes zero, or excludes it by less than the 0.002 screen. It is insufficient if T1 beats T0 by more than the screen. **Precondition, measured before this record was fixed:** the gate applies only where T1 reassigns at least **10% of capacity**. DK (65.9% of the training fleet, 55.8% of the test fleet) and UK (47.1% and 49.2%) pass it; **DE is untestable at 0.0%**, for the reason above, and is reported as such rather than as a failure; **the US is ungated regardless of its coverage** (32.0% and 27.5%), which is reported as a finding about the licensed library's reach into the US fleet. **A T1 materially worse than T0 suspends this gate** pending a diagnosis of the matcher: a matcher that assigns a worse curve than specific power did is more likely to be wrong than specific power is to be right. | |
 | **G2b** (Q2, T2) | **All four regions, DE included.** The same test for T2 minus T0. Specific power survives other-brand matching in a region if the interval includes zero or excludes it by less than the screen. T2 reassigns by rating band and specific power and needs no register designation, so Germany's missing designations do not reach it. | |
 | **G3** (Q2) | Curve assignment is a larger error source than ERA5 bias for a region if the spread of uncorrected RMSE across T0, T1 and T2 exceeds that region's correction gain in T0. **Indeterminate** for a region whose T1 is suspended under G2a. | |
 
@@ -483,11 +504,23 @@ duplicate ID. So no tie-break rule exists, and none is needed. The builder
 refuses rather than picking: `load_fleets` compares the two fleets on the
 fields the condition's own rule reads and raises before any table is written.
 The field list is per condition because the rules differ, and that distinction
-is load-bearing: the country grids record capacity per year, so 14 Belgian
-grid points hold 0 MW in the training fleet and 11 to 18 MW in the test one.
-C2 maps one model key to a substitute and reads no capacity, so those are not
-conflicts for C2; the same difference in a turbine row would be a conflict for
-T2, which picks a rating band.
+is load-bearing.
+
+**The Belgian capacity case, recorded because it will matter later.** A country
+grid point records capacity per year, so the same point is a different object
+in the two fleets: 14 Belgian points hold 0 MW in the training fleet and 11 to
+18 MW in the test one. The union takes the training row. C2 maps one model key
+to a substitute and reads no capacity, so this never reaches C2, and the union
+construction is therefore safe at country level **by the shape of this
+condition rather than by anything the grids guarantee**. A later country-level
+condition that reads capacity, a rating band or a specific power will be
+refused by `load_fleets`, and that refusal is the correct behaviour: the two
+fleets genuinely disagree about the object, and whoever writes that condition
+has to say which year's capacity it means instead of inheriting the training
+year's by silence. Nothing is fixed here in anticipation, because there is no
+way to know now which answer such a condition would want. The same difference
+in a turbine row would be a conflict for T2, which picks a rating band, and
+would stop it.
 
 **What the fix is.** The table now covers the union of the two fleets and
 carries `in_train` and `in_test` per unit. The driver applies the rows the
@@ -516,3 +549,11 @@ US +23). So:
 fleets, unit for unit and key for key, so the C2 tables rebuild byte-identical
 in their mapping and every unit is flagged present in both. C1 and C2 stand as
 run; neither is re-run.
+
+**Outcome of the rerun, 2026-09-13.** All seven T conditions ran, T2 DE for the
+first time. Every training side is byte-identical to the run it replaced:
+`factors_*.csv`, `fit_diagnostics_*.csv`, `train_turb_info_*.csv` and
+`curve_resolution.csv` compare equal for all seven, 32 files in total, against
+the preserved single-fleet runs under `T1_train_fleet_only/` and
+`T2_train_fleet_only/`. The prediction that the training side would not move
+therefore held, and the evaluation-side results are reported in the finding.

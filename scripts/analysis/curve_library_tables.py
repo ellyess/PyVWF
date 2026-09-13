@@ -69,8 +69,23 @@ REFRESH = Path("output/validation/refresh_2026-08-24")
 #: keys, one per phase, which is not a condition anyone registered. The lists
 #: are per condition because they differ: C2 maps a model key to a substitute
 #: and reads nothing else, while T2 reads the rating and the rotor to pick a
-#: band and a specific power. Checked rather than assumed, and the check is
-#: what found that the country grids carry a per-year capacity.
+#: band and a specific power.
+#:
+#: **The per-condition list is load-bearing, and the country rows are where it
+#: bears.** A country grid point records capacity per year, so the same point
+#: is a different object in the two fleets: 14 Belgian points hold 0 MW in the
+#: training fleet and 11 to 18 MW in the test one. The union takes the training
+#: row, so a condition that read capacity there would read the wrong one. C2
+#: reads no capacity, so the union is safe for C2 by the condition's own
+#: shape and not by anything the country grids guarantee. **A later condition
+#: that reads capacity at country level will be refused here, and that is the
+#: correct behaviour**: the refusal says the two fleets disagree about the
+#: object, which is true, and whoever adds that condition has to decide which
+#: year's capacity it means rather than inheriting a silent choice. Nothing is
+#: fixed in anticipation, since there is no way to know which answer a
+#: condition that does not exist would want.
+#:
+#: Checked rather than assumed, and the check is what found the Belgian case.
 RULE_FIELDS = {
     "C1": ("model",),
     "C2": ("model",),
