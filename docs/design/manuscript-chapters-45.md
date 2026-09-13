@@ -195,6 +195,32 @@ these chapters can be reproduced on today's code and give the same answer. It
 also bounds what a re-run can be expected to change: not the corrections
 themselves, but what is built on top of them.
 
+## T0. Four places where the chapter's prose and its code disagree
+
+Four is a pattern about the chapter rather than four notes, and the manuscript
+has to decide which of them it inherits. All four were found by reading the code
+against the text rather than by any check firing.
+
+| # | The prose says | The code does | What a reader working from the paper gets |
+|---|---|---|---|
+| 1 | scalar error "evaluated in log space for symmetry around unity", with the equation | `np.abs(scalar_pred - scalar_true).mean()`, linear | Reproduces 13% high: 0.1826 against the published 0.1610. The stated justification was never applied. See T1. |
+| 2 | the shipped file is "standard kriging with variance-based masking" | it is the hybrid configuration the chapter evaluated and rejected, on an unsplit pool | Uses a file that is not the method they read about, for a purpose the tables never measured. See T3. |
+| 3 | "corrected wind speeds are clipped to physically admissible bounds before conversion" | the speed is not clipped; the resulting capacity factor is clipped to 0 and 1 | An over-corrected unit falls off the end of the curve table, returns missing, and drops out of the metrics without trace rather than being clipped into range. |
+| 4 | Germany and the United Kingdom are per-farm, Denmark per-turbine | Table 1 of the same chapter labels all three "Per-turbine capacity factors" | Misreads what a control point is in two of the three turbine-level rows. See D4. |
+
+**Three of the four are in the direction of making the method sound more
+careful than it was**: log space for symmetry, clipping to admissible bounds,
+and standard kriging rather than a rejected hybrid. That is worth stating
+plainly, because it is a pattern with a direction and not a scatter of
+typographical slips.
+
+**What the manuscript inherits.** Number 4 is settled from the data and simply
+stated correctly. Number 1 is a metric decision, taken in T2. Number 2 is the
+deliverable's and is resolved by regenerating rather than re-describing.
+Number 3 is behaviour, and the port reproduces it while counting the off-curve
+values it produces, so the manuscript can say how much of any result rests on
+units that fell off the curve.
+
 ## T1. A methods-section defect in chapter 4: log stated, linear computed
 
 **Chapter 4's methods section says the scalar error is evaluated in log space,
@@ -277,6 +303,18 @@ and neutral-value behaviour are the properties that matter for a file feeding an
 energy system model, the IDW product neutralises about 35% of the European
 domain beyond 5 degrees from any control point, and none of that is tested by
 the method comparison the chapter uses to choose between IDW and kriging.
+
+### The shipped files document nothing at the variable level
+
+Their `scalar` and `offset` variables carry **no attributes at all**: no long
+name, no description, and no units. **The offset is in metres per second and the
+files say so nowhere.** A consumer gets one `usage` string at dataset level and
+nothing on the variables they actually read, in a file whose whole purpose is to
+be read by other people's code.
+
+This is a defect in the artefact rather than in the chapter's code, which is why
+it sits here. The port writes both variables with a description and units, so
+anything regenerated carries them.
 
 ### The deliverable's central open question: the 2-to-5-degree band
 
@@ -369,11 +407,8 @@ that on its own, and this is the third of four defects found in the chapter's
 code that never reached a result, alongside the batch-boundary one (T5) and the
 spatial-join one (T4). Recording the distinction matters more than the count.
 
-**One real gap in the shipped files, found while checking.** Their `scalar` and
-`offset` variables carry **no attributes at all**: no long name, no description,
-and no units. The offset is in metres per second and the files do not say so
-anywhere. A consumer gets one usage string at dataset level and nothing on the
-variables they actually read. The port writes both, with units.
+**The gap this left in the shipped files belongs to the deliverable**, and is
+listed under T3 with the rest of that artefact's defects rather than here.
 
 ## T4. The spatial-join defect was latent, and where it could have bitten
 
