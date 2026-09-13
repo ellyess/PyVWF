@@ -307,6 +307,17 @@ its own evidence rather than being settled by a narrow reading.
 | **G2b** (Q2, T2) | **All four regions, DE included.** The same test for T2 minus T0. Specific power survives other-brand matching in a region if the interval includes zero or excludes it by less than the screen. T2 reassigns by rating band and specific power and needs no register designation, so Germany's missing designations do not reach it. | |
 | **G3** (Q2) | Curve assignment is a larger error source than ERA5 bias for a region if the spread of uncorrected RMSE across T0, T1 and T2 exceeds that region's correction gain in T0. **Indeterminate** for a region whose T1 is suspended under G2a. | |
 
+*[Limitation, recorded 2026-09-13 after C1 ran and before any other condition:
+G1 divides by C0's correction gain. The rule anticipated a gain that is not
+positive, which is why Norway is excluded; it did not anticipate one that is
+positive and negligible. Spain's is 0.0019, which makes its A a ratio to noise
+of arbitrary sign and size, and Italy's and Portugal's of about 0.05 carry the
+same weakness in milder form. **No floor is introduced**, since any floor
+chosen now is chosen knowing which countries it admits. A is reported with its
+denominator beside it instead, so a reader discounts those rows themselves
+rather than having them discounted invisibly. G1's arithmetic is unchanged and
+it fails at three of seven.]*
+
 **The scoreable set is determined from C0 alone, and does not move.** C0 exists
 today; C1 does not. Deciding scoreability from C1 would let the denominator set
 shrink after the results are seen, and a threshold of four would stop meaning
