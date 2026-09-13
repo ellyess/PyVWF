@@ -7,6 +7,13 @@ and ``docs/findings/method-offshore-pool-prereg.md``.
 
 Needs the ``grid`` extra for kriging: ``pip install -e '.[grid]'``.
 """
+from vwf.extensions.grid.evaluate import (
+    corrected_capacity_factors,
+    corrections_at,
+    country_skill,
+    skill,
+    turbine_skill,
+)
 from vwf.extensions.grid.geodataframes import (
     correction_geodataframe,
     country_correction_geodataframes,
@@ -52,13 +59,18 @@ __all__ = [
     "nearest_at",
     "rbf_at",
     "area_mask",
+    "corrected_capacity_factors",
     "correction_geodataframe",
+    "corrections_at",
     "correction_surface",
     "country_correction_geodataframes",
+    "country_skill",
     "cutout_lonlat",
     "declared_domains",
     "domain_disagreement",
     "export_correction_surface",
+    "skill",
     "spatial_bin_average",
     "to_grid",
+    "turbine_skill",
 ]
