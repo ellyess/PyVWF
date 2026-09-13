@@ -18,6 +18,18 @@ Per `findings-doc`, each condition also reports what its rule does to the
 smallest and the largest unit in the fleet, since that is where a rule written
 against the typical unit stops behaving as its author intended.
 
+**Both fleets, since 2026-09-13.** A table was first built from the training
+fleet alone, which is not the set a condition has to reach: a run fits the
+training fleet and is scored on the test fleet, and the two differ by every
+unit installed after the training window and every unit gone before the test
+year. Denmark and the United Kingdom passed that construction because their
+training fleets are strict subsets of their test fleets, so the table happened
+to apply in full to both; Germany, whose fleet also shrinks, was refused, and
+the United States passed with two units to spare. The table now covers the
+union of the two fleets, and declares per unit which fleet holds it, so the
+driver's check stays as strong as it was. Evidence for the subset claim is in
+``docs/findings/method-curve-library-prereg.md``.
+
 Read-only. It writes override tables and a report under ``<out_dir>``, and
 runs nothing.
 
@@ -28,13 +40,16 @@ Usage, from the repository root:
 """
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import baseline_bootstrap as bb  # noqa: E402
 import curve_library_assign as t2rule  # noqa: E402
 import curve_library_match as matcher  # noqa: E402
 import curve_match_audit as audit  # noqa: E402
+from vwf.harness.regions import load_region  # noqa: E402
 
 COUNTRY_ROWS = ("BE", "ES", "FR", "IE", "IT", "NO", "PT", "SE")
 #: T1 needs a register designation; DE records none, so it is not in this list
@@ -49,13 +64,110 @@ RERUN = Path("output/eu_rerun_2026-09-12/new")
 REFRESH = Path("output/validation/refresh_2026-08-24")
 
 
-def fleet_of(code: str) -> pd.DataFrame:
+#: The fleet fields each condition's rule reads, and therefore the fields a
+#: unit in both fleets has to agree on. Disagreement would give that unit two
+#: keys, one per phase, which is not a condition anyone registered. The lists
+#: are per condition because they differ: C2 maps a model key to a substitute
+#: and reads nothing else, while T2 reads the rating and the rotor to pick a
+#: band and a specific power. Checked rather than assumed, and the check is
+#: what found that the country grids carry a per-year capacity.
+RULE_FIELDS = {
+    "C1": ("model",),
+    "C2": ("model",),
+    "T1": ("uswtdb_model",),
+    "T2": ("model", "capacity", "diameter", "n_turbines", "uswtdb_model"),
+}
+
+
+def train_fleet_of(code: str) -> pd.DataFrame:
     """The training fleet a row fits, from the run standing in the scorecard."""
     root = RERUN if (RERUN / code).is_dir() else REFRESH
     files = sorted((root / code).glob("train-*/train_turb_info_*.csv"))
     if not files:
         raise SystemExit(f"{code}: no training fleet under {root}")
-    return pd.read_csv(files[0])
+    return pd.read_csv(files[0], low_memory=False)
+
+
+def test_fleet_of(code: str) -> pd.DataFrame:
+    """The fleet the row is scored on, by the route ``run_evaluate`` takes.
+
+    ``baseline_bootstrap.load_obs_and_fleet`` is ``val_set`` without the ERA5
+    load: the same ``prep_country`` call and the same narrowing to the units
+    the test year observes. Reusing it keeps one definition of the test fleet
+    rather than a second one written here that could drift from the first.
+
+    A country row's grid names its own model keys, so
+    ``prepare_country_fleet`` never reaches for a default curve and the fleet
+    does not depend on which input root is loaded. The agreement check in
+    :func:`load_fleets` tests that independently: the training fleet on disk
+    was written by a run under the row's own root.
+    """
+    spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
+    _, fleet = bb.load_obs_and_fleet(spec, int(spec.test_years[0]))
+    return fleet
+
+
+class Fleets(NamedTuple):
+    """Both fleets of one row, and the union a condition assigns over.
+
+    ``union`` carries the training row for a unit in both, which is the frame
+    the rules read. A per-fleet quantity is taken from ``train`` or ``test``
+    instead: the country grids record capacity per year, so a unit's share of
+    its fleet is not the same number on the two sides.
+    """
+
+    union: pd.DataFrame
+    train: pd.DataFrame
+    test: pd.DataFrame
+
+
+def load_fleets(code: str, condition: str) -> Fleets:
+    """Both fleets of a row, with the union the condition's rule assigns over.
+
+    Raises:
+        SystemExit: if a unit in both fleets carries different values for a
+            field this condition's rule reads. The table would then owe that
+            unit two keys, and which one applied would depend on the phase.
+    """
+    train, test = train_fleet_of(code), test_fleet_of(code)
+    train_ids = set(train["ID"].astype(str))
+    test_ids = set(test["ID"].astype(str))
+
+    a = train.assign(ID=train["ID"].astype(str)).drop_duplicates("ID").set_index("ID")
+    b = test.assign(ID=test["ID"].astype(str)).drop_duplicates("ID").set_index("ID")
+    shared = sorted(train_ids & test_ids)
+    for field in RULE_FIELDS[condition]:
+        if field not in a.columns or field not in b.columns:
+            continue
+        x, y = a.loc[shared, field], b.loc[shared, field]
+        if x.dtype.kind in "fciu" or y.dtype.kind in "fciu":
+            xn, yn = pd.to_numeric(x, errors="coerce"), pd.to_numeric(y, errors="coerce")
+            differ = ~((xn - yn).abs() < 1e-9) & ~(xn.isna() & yn.isna())
+        else:
+            differ = x.astype(str) != y.astype(str)
+        if bool(differ.any()):
+            examples = [(i, x[i], y[i]) for i in list(differ[differ].index)[:3]]
+            raise SystemExit(
+                f"{code}: {int(differ.sum())} units carry a different {field} in the "
+                f"training and test fleets, for example {examples}. {condition} reads "
+                "this field, so these units have no single key.")
+
+    extra = test[~test["ID"].astype(str).isin(train_ids)]
+    union = pd.concat([train, extra], ignore_index=True)
+    ids = union["ID"].astype(str)
+    union["in_train"] = ids.isin(train_ids)
+    union["in_test"] = ids.isin(test_ids)
+    return Fleets(union, train, test)
+
+
+def write_table(out_dir: Path, name: str, fleet: pd.DataFrame,
+                keys: pd.Series) -> pd.DataFrame:
+    """Write one override table, carrying which fleet holds each unit."""
+    table = pd.DataFrame({"ID": fleet["ID"].astype(str), "model": keys,
+                          "in_train": fleet["in_train"].to_numpy(),
+                          "in_test": fleet["in_test"].to_numpy()}).dropna(subset=["model"])
+    table.to_csv(out_dir / f"{name}.csv", index=False)
+    return table
 
 
 def per_turbine_rating(fleet: pd.DataFrame) -> pd.Series:
@@ -93,10 +205,27 @@ def extremes(fleet: pd.DataFrame, applied: pd.Series) -> list[dict]:
 
 
 def share(fleet: pd.DataFrame, ids) -> float:
+    """The capacity share the ids hold of ``fleet``, by that fleet's capacity."""
     cap = pd.to_numeric(fleet["capacity"], errors="coerce").fillna(0.0)
     total = float(cap.sum())
     hit = fleet["ID"].astype(str).isin({str(i) for i in ids})
     return float(cap[hit].sum()) / total if total else 0.0
+
+
+def coverage(fleets: Fleets, table: pd.DataFrame) -> dict:
+    """Units and capacity a table reaches, in each fleet separately.
+
+    A condition reaches a different share of the fleet it is fitted on and the
+    fleet it is scored on, and one number for both hides exactly the gap that
+    made the single-fleet construction look adequate.
+    """
+    ids = set(table["ID"].astype(str))
+    return {"units_union": int(len(fleets.union)),
+            "units_train": int(len(fleets.train)), "units_test": int(len(fleets.test)),
+            "reached_train": int(fleets.train["ID"].astype(str).isin(ids).sum()),
+            "reached_test": int(fleets.test["ID"].astype(str).isin(ids).sum()),
+            "capacity_share_train": share(fleets.train, ids),
+            "capacity_share_test": share(fleets.test, ids)}
 
 
 def build_c2(out_dir: Path) -> list[dict]:
@@ -106,7 +235,8 @@ def build_c2(out_dir: Path) -> list[dict]:
     catalogue = combined.set_index("model")
     report = []
     for code in COUNTRY_ROWS:
-        fleet = fleet_of(code)
+        fleets = load_fleets(code, "C2")
+        fleet = fleets.union
         mapping = {}
         for key in sorted(fleet["model"].astype(str).unique()):
             if key not in catalogue.index:
@@ -119,11 +249,12 @@ def build_c2(out_dir: Path) -> list[dict]:
             report.append({"condition": "C2", "region": code, "key": key,
                            "own_specific_power": float(catalogue.loc[key, "p_density"]),
                            "own_rating_kw": float(catalogue.loc[key, "capacity"]),
-                           **found, "capacity_share": share(fleet, units)})
-        table = pd.DataFrame({"ID": fleet["ID"].astype(str),
-                              "model": fleet["model"].astype(str).map(mapping)})
-        table = table.dropna(subset=["model"])
-        table.to_csv(out_dir / f"C2_{code}.csv", index=False)
+                           **found,
+                           "capacity_share_train": share(fleets.train, units),
+                           "capacity_share_test": share(fleets.test, units)})
+        table = write_table(out_dir, f"C2_{code}", fleet,
+                            fleet["model"].astype(str).map(mapping))
+        report.append({"condition": "C2", "region": code, **coverage(fleets, table)})
         for row in extremes(fleet, table.set_index("ID")["model"]):
             report.append({"condition": "C2", "region": code, **row})
     return report
@@ -168,18 +299,18 @@ def build_t1(out_dir: Path) -> list[dict]:
     index = matcher.build_index(licensed)
     report = []
     for code in T1_ROWS:
-        fleet = fleet_of(code)
+        fleets = load_fleets(code, "T1")
+        fleet = fleets.union
         maker, machine = designation_fields(code, fleet)
         if maker is None:
             maker = pd.Series([None] * len(fleet), index=fleet.index)
-        keys = [matcher.match(a, b, index) for a, b in zip(maker, machine)]
-        table = pd.DataFrame({"ID": fleet["ID"].astype(str), "model": keys}).dropna()
-        table.to_csv(out_dir / f"T1_{code}.csv", index=False)
+        keys = pd.Series([matcher.match(a, b, index) for a, b in zip(maker, machine)],
+                         index=fleet.index)
+        table = write_table(out_dir, f"T1_{code}", fleet, keys)
         report.append({"condition": "T1", "region": code,
                        "designation": "model column" if code == "DK"
                        else ("packed into manufacturer" if code == "UK" else "uswtdb_model"),
-                       "units_matched": int(len(table)), "units": int(len(fleet)),
-                       "capacity_share": share(fleet, table["ID"]),
+                       "units_matched": int(len(table)), **coverage(fleets, table),
                        "distinct_keys": int(table["model"].nunique())})
         for row in extremes(fleet, table.set_index("ID")["model"]):
             report.append({"condition": "T1", "region": code, **row})
@@ -192,14 +323,14 @@ def build_t2(out_dir: Path) -> list[dict]:
     catalogue = combined.set_index("model")
     report = []
     for code in T2_ROWS:
-        fleet = fleet_of(code)
+        fleets = load_fleets(code, "T2")
+        fleet = fleets.union
         own, source = audit.own_manufacturer(code, fleet)
         rating = per_turbine_rating(fleet)
         got = t2rule.other_brand_assignment(fleet, own, combined, rating_kw=rating)
         moved = got["t2_reason"] == "moved"
-        table = pd.DataFrame({"ID": fleet["ID"].astype(str)[moved],
-                              "model": got["t2_model"][moved]})
-        table.to_csv(out_dir / f"T2_{code}.csv", index=False)
+        table = write_table(out_dir, f"T2_{code}", fleet[moved],
+                            got["t2_model"][moved])
         distances = []
         for old, new in zip(fleet["model"].astype(str)[moved], got["t2_model"][moved]):
             if old in catalogue.index and new in catalogue.index:
@@ -209,8 +340,8 @@ def build_t2(out_dir: Path) -> list[dict]:
                                   - float(catalogue.loc[old, "capacity"])))
         d = pd.DataFrame(distances, columns=["d_specific_power", "d_rating_kw"])
         report.append({"condition": "T2", "region": code, "own_manufacturer": source,
-                       "units_moved": int(moved.sum()), "units": int(len(fleet)),
-                       "capacity_share": t2rule.moved_share(fleet, got),
+                       "units_moved": int(moved.sum()), **coverage(fleets, table),
+                       "moved_share_union": t2rule.moved_share(fleet, got),
                        **{f"reason_{k}": int(v) for k, v in
                           got["t2_reason"].value_counts().items()},
                        "median_d_specific_power": float(d["d_specific_power"].abs().median())
@@ -235,14 +366,17 @@ def build_c1() -> list[dict]:
     open_lib = set(pd.read_csv(OPEN_MODELS)["model"].astype(str))
     report = []
     for code in COUNTRY_ROWS:
-        fleet = fleet_of(code)
+        fleets = load_fleets(code, "C1")
+        fleet = fleets.union
         keys = fleet["model"].astype(str)
         report.append({"condition": "C1", "region": code,
                        "keys": ", ".join(sorted(keys.unique())),
+                       "units_train": int(len(fleets.train)),
+                       "units_test": int(len(fleets.test)),
                        "capacity_share_resolving_combined":
-                           share(fleet, fleet["ID"][keys.isin(combined)]),
+                           share(fleets.test, fleet["ID"][keys.isin(combined)]),
                        "capacity_share_resolving_open":
-                           share(fleet, fleet["ID"][keys.isin(open_lib)])})
+                           share(fleets.test, fleet["ID"][keys.isin(open_lib)])})
     return report
 
 

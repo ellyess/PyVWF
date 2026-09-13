@@ -130,3 +130,61 @@ def test_building_a_variant_root_twice_is_idempotent(tmp_path):
     study.variant_root(base, other, tmp_path / "v")
     root = study.variant_root(base, other, tmp_path / "v")
     assert (root / "reference").resolve() == other.resolve()
+
+
+def test_a_unit_declared_absent_from_this_phase_is_allowed():
+    """A table covers both fleets, and the two fleets are not the same set.
+    A unit the table declared this phase does not hold is not a miss."""
+    study.check_overrides(fleet(models=("P", "Y", "Z")),
+                          overrides({"a": "P", "gone": "Q"}), "evaluate",
+                          expected_absent=["gone"])
+
+
+def test_an_undeclared_miss_is_still_refused_when_others_are_declared():
+    """The declaration narrows the check, it does not switch it off: the
+    type-mismatch bug misses every unit and declares none of them."""
+    with pytest.raises(study.OverrideError) as e:
+        study.check_overrides(fleet(), overrides({"x": "P", "gone": "Q"}), "train",
+                              expected_absent=["gone"])
+    assert "1 of 2 requested units" in str(e.value)
+    assert "were not declared absent" in str(e.value)
+
+
+def test_a_unit_declared_absent_that_is_present_is_refused():
+    """The table's inventory is older than the fleet the run loads, so the two
+    disagreeing means the table was built against something else."""
+    with pytest.raises(study.OverrideError) as e:
+        study.check_overrides(fleet(models=("P", "Y", "Z")),
+                              overrides({"a": "P"}), "evaluate", expected_absent=["b"])
+    assert "declares absent from this fleet are in it" in str(e.value)
+
+
+def test_a_phase_the_table_reaches_nothing_in_is_refused():
+    with pytest.raises(study.OverrideError) as e:
+        study.check_overrides(fleet(), overrides({"x": "P", "y": "Q"}), "train",
+                              expected_absent=["x", "y"])
+    assert "reaches nothing here" in str(e.value)
+
+
+def test_a_table_with_membership_columns_declares_absences(tmp_path):
+    path = tmp_path / "T2_XX.csv"
+    path.write_text("ID,model,in_train,in_test\n"
+                    "a,P,True,True\nb,Q,True,False\nc,R,False,True\n")
+    table, absent = study.read_table(path)
+    assert list(table) == ["P", "Q", "R"]
+    assert absent == {"train": ["c"], "evaluate": ["b"]}
+
+
+def test_a_table_without_membership_columns_declares_nothing(tmp_path):
+    """The single-fleet tables of 2026-09-13 and earlier: every unit named is
+    expected in both fleets, which is the strict reading they were built for."""
+    path = tmp_path / "T2_XX.csv"
+    path.write_text("ID,model\na,P\nb,Q\n")
+    table, absent = study.read_table(path)
+    assert list(table) == ["P", "Q"] and absent == {}
+
+
+def test_the_recorded_overrides_say_which_of_them_applied_here(tmp_path):
+    study._write_overrides(tmp_path, overrides({"a": "P", "b": "Q"}), absent=["b"])
+    got = pd.read_csv(tmp_path / "curve_overrides.csv")
+    assert list(got["applied_here"]) == [True, False]

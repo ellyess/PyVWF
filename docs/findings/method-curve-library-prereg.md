@@ -438,3 +438,81 @@ post-hoc adjustment to a result; every change is dated and listed.
    materially worse than T0 suspending its gate; an indeterminate branch on
    every gate; P2 restated as an interval; and P6 added for the degeneracy
    outcome.
+
+## Construction fix, 2026-09-13: an override table covers both fleets
+
+This is a fix to the tooling, not a change to the design. The design says a
+condition reassigns the units a row's runs use, and a row uses two fleets: it
+fits the training fleet and is scored on the test fleet. The table builder
+read only the training fleet, so at evaluation every unit installed after the
+training window kept its T0 key. That is not the condition registered above,
+and it was the builder's defect rather than the design's.
+
+It surfaced because the driver's override check refused T2 DE: 223 of the
+2,211 units the table asked to move were not in the German test fleet. The
+refusal is the only reason this was found before the results were written; a
+check that recorded the mismatch instead would have left a condition reaching
+90% of its units looking like an ordinary result.
+
+**Why the other three rows passed, measured rather than reasoned.** Both
+fleets of all four turbine rows, taken from the run standing in the scorecard
+and from `val_set`'s own route:
+
+| Row | Training fleet | Test fleet | In training only | In test only | Train-only units the old table asked to move |
+|---|---|---|---|---|---|
+| DE | 4,288 | 4,814 | 333 | 859 | 223 |
+| DK | 3,707 | 5,446 | 0 | 1,739 | 0 |
+| UK | 5,621 | 5,998 | 0 | 377 | 0 |
+| US | 1,091 | 1,276 | 2 | 187 | 0 |
+
+Denmark's and the United Kingdom's training fleets are strict subsets of their
+test fleets, so a table built from the training fleet applied in full to both.
+That is a property of those two registers, not a property of the construction:
+their passes were structural luck. The United States is not even a subset, and
+passed on a margin of two units, neither of which the rule moved. Germany's
+fleet shrinks as well as grows, and it was refused. Had Germany run first, the
+defect would have been visible on the first condition.
+
+**The same-unit-assigned-differently case does not occur here, and is refused
+if it ever does.** A unit in both fleets could in principle carry different
+values on the two sides, and the rule would then give it two keys, one per
+phase. Measured across all four turbine rows and all eight country rows on
+2026-09-13: no unit in both fleets differs in `model`, `capacity`, `diameter`,
+`height`, `n_turbines`, `uswtdb_model`, `lon` or `lat`, and no fleet holds a
+duplicate ID. So no tie-break rule exists, and none is needed. The builder
+refuses rather than picking: `load_fleets` compares the two fleets on the
+fields the condition's own rule reads and raises before any table is written.
+The field list is per condition because the rules differ, and that distinction
+is load-bearing: the country grids record capacity per year, so 14 Belgian
+grid points hold 0 MW in the training fleet and 11 to 18 MW in the test one.
+C2 maps one model key to a substitute and reads no capacity, so those are not
+conflicts for C2; the same difference in a turbine row would be a conflict for
+T2, which picks a rating band.
+
+**What the fix is.** The table now covers the union of the two fleets and
+carries `in_train` and `in_test` per unit. The driver applies the rows the
+phase's fleet holds, and the check refuses on any unit missing that was not
+declared absent, on any unit declared absent that is in fact present, and on a
+phase the table reaches nothing in. The check is therefore no weaker than the
+one that caught Germany: a table keyed on the wrong type still misses every
+unit, and every one of those misses is undeclared.
+
+**Registered before the rerun.** The new tables differ from the old ones by
+addition only: no key changed and no unit was dropped, and every row added is
+a test-only unit (T1 DK +412, UK +259, US +30; T2 DE +253, DK +432, UK +281,
+US +23). So:
+
+- the **training** side of DK, UK and US is expected to be unchanged, to the
+  byte, in `factors_*.csv` and in the training fleet: the units the table
+  reaches there are exactly those it reached before;
+- the **evaluation** side of DK, UK and US is expected to move, because the
+  test fleet now carries the condition on the units that joined it. The
+  direction is not predicted. A result that did not move would mean the added
+  units are inert, which is a claim needing its own evidence;
+- **T2 DE becomes runnable** for the first time, with 2,464 movers, 2,241 of
+  them in the test fleet.
+
+**The country rows are untouched.** All eight have identical training and test
+fleets, unit for unit and key for key, so the C2 tables rebuild byte-identical
+in their mapping and every unit is flagged present in both. C1 and C2 stand as
+run; neither is re-run.
