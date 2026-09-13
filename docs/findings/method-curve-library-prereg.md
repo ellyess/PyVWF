@@ -30,8 +30,10 @@ cannot pass a gate.
 
 ## Germany cannot answer Q2's own-machine half: a finding, measured in advance
 
-T1 needs the register's own designation for a unit. **The German register has
-none.** `DE_md.csv` carries 82 columns: `Manufacturer`, `kW`, `Rotor..m.`,
+T1 needs the register's own designation for a unit, and the three registers
+that record one keep it in three different shapes: Denmark in a `model` column,
+the United Kingdom packed into the manufacturer field ("Vestas V90 3000"), the
+United States in `uswtdb_model`. **The German register has none.** `DE_md.csv` carries 82 columns: `Manufacturer`, `kW`, `Rotor..m.`,
 `Tower..m.`, `StartDate`, and 76 monthly generation columns. Its commonest
 entries are `Enercon`, `Vestas`, `Nordex` and `Tacke`, which are brands, not
 machines. Measured coverage for DE is **0.0% of capacity, 0 of 11,433 units**.
@@ -42,7 +44,13 @@ Gamesa curves, and read as the clearest example of specific-power matching
 going wrong. **It is not that.** There was nothing better to match against:
 `add_models` reads a manufacturer, a rating and a rotor diameter and nothing
 else, so with no designation recorded, the nearest specific power within a
-fuzzy manufacturer match is the only assignment the data permits. Germany is a
+fuzzy manufacturer match is the only assignment the data permits.
+
+**Denmark's designation is dropped a layer earlier still.**
+`load_turbine_metadata`'s column allowlist for DK keeps ID, manufacturer,
+capacity, diameter, height, lon, lat and location_type, and drops `model`. So
+the Danish designation does not merely go unread by the matching: it never
+enters the pipeline. T1 reads `dk_md.csv` directly to recover it. Germany is a
 data-availability limit, not a method limit, and the two carry different
 consequences: a method limit would argue for changing the matching, and this
 argues for a better register.
@@ -145,12 +153,20 @@ record was fixed, since it decides which regions the gate can reach and needs
 no simulation (`scripts/analysis/curve_library_match.py`, whose rules are
 fixed and unit-tested):
 
-| Region | T1 coverage, by capacity | Units matched | Library keys reached | G2a |
-|---|---|---|---|---|
-| UK | 53.3% | 4,076 of 6,618 | 62 | gated |
-| DK | 50.2% | 2,446 of 6,296 | 36 | gated |
-| US | 32.0% | 309 of 1,091 | 34 | reported, ungated by rule |
-| DE | **0.0%** | 0 of 11,433 | 0 | **untestable: no designation to match** |
+| Region | T1 coverage, by capacity | Units matched | Library keys reached | Designation read from | G2a |
+|---|---|---|---|---|---|
+| DK | 65.9% | 2,003 of 3,707 | 31 | the register's `model` column | gated |
+| UK | 47.1% | 3,288 of 5,621 | 60 | packed into the manufacturer field | gated |
+| US | 32.0% | 309 of 1,091 | 34 | `uswtdb_model` | reported, ungated by rule |
+| DE | **0.0%** | 0 of 4,288 | 0 | nothing: none is recorded | **untestable** |
+
+*[Corrected 2026-09-13, before any run: an earlier version of this table gave
+DK 50.2% and UK 53.3%, measured over each register in full. The figures above
+are over the training fleet each row actually fits, which is what a condition
+reaches and therefore what the precondition should be read against. Both still
+clear 10% and G2a's scope is unchanged. Germany's denominator changes with
+them, from the register's 11,433 units to the fleet's 4,288, and its coverage
+stays zero.]*
 
 **G2a therefore covers DK and UK.** Unverifiable units cannot enter T1 or T2
 and keep T0.
