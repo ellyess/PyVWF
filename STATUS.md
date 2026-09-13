@@ -69,6 +69,27 @@ One line each. None is started.
   Argentine denominators, which are estimates corrected by turbine research
   (`docs/runbooks/ar.md`), and the curated coordinate overrides.
 
+## How this repository is checked
+
+- **CI does not run on a branch push.** `.github/workflows/ci.yml` triggers on
+  `pull_request`, on a push to `main`, and on `workflow_dispatch`. So pushing a
+  feature branch is backup only, and the matrix has to be asked for by hand:
+
+  ```bash
+  gh workflow run CI --ref <branch>
+  gh run list --branch <branch> --limit 1
+  ```
+
+  This is worth knowing before assuming a green branch means anything. The
+  matrix has caught, in one afternoon, a segfault from writing netCDF in two
+  threads at once, a test broken by a rename, and a test that was flaky by
+  construction on one Python. None of the three failed locally.
+- **Local green is not CI green,** and `CLAUDE.md` lists why: pandas-stubs
+  absent here and present there, acquisition libraries present here and absent
+  there, and a pandas major version split across the matrix.
+- The full suite is 52 files and does not finish in one process on this
+  machine. Run it one file per process; `CLAUDE.md` has the loop.
+
 ## Settled, and not to be reopened
 
 - **Every scorecard row now applies the per-timestep roughness**, and no row
