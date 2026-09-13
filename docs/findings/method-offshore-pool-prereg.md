@@ -8,6 +8,30 @@ control points were defined. Terms follow `CONTEXT.md`.
 **Everything below is fixed before any number exists.** The outcome column is
 filled afterwards.
 
+## VOID, 2026-09-13, before any gate was read
+
+**This study's premise is false and it is withdrawn.** It assumed the chapter's
+Tables 6 and 7 were produced from surfaces split by the declared
+`cluster_mode`, so that P0 would reproduce the chapter and P1 would test an
+alternative. The chapter's script splits the pool and then concatenates it
+straight back together before interpolating, under a comment saying so, so
+**the tables use no split at all**. P0 therefore reproduced nothing: it gives
+0.0496 for Denmark offshore against the chapter's 0.1113, and misses the other
+three rows too. P1 against P0 compares two constructions the chapter never
+used.
+
+The run happened and its numbers are kept, in
+`output/offshore_pool_2026-09-13/`. What they showed, noted and not written up:
+P1 is worse than P0 in all four rows, against registered prediction O-P1. It is
+internally valid, both arms sharing every choice but the pool, and it is
+uninterpretable while neither arm reproduces the chapter.
+
+Nothing here was read as a gate. The replacement question is registered in
+`method-domain-split-prereg.md`, and it is larger and better founded than this
+one.
+
+The text below is left unedited, as the record of what was asked.
+
 ## Why this exists
 
 Chapter 4 reports that gridded kriging makes Denmark offshore worse than no
