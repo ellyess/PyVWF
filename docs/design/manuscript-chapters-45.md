@@ -239,24 +239,71 @@ it, so the comparison table is restated rather than quoted. If it uses linear,
 it says so and notes that the chapter's stated justification does not describe
 the chapter's numbers.
 
-## T3. The shipped kriging grid is not the configuration the chapter recommends
+## T3. The PyPSA-Eur deliverable's own defect: the shipped grids are not what the tables measured
 
-Chapter 4 evaluates a hybrid kriging, each target on its own
-cross-validation-optimal configuration, and rejects it: it improves on standard
-kriging in 4 of 14 cases and degrades in 9. It adopts "OK, exponential,
-geographic" as the standard, and describes the shipped file as "standard
-kriging with variance-based masking".
+**This is separate from the manuscript and it is the more serious of the two.**
+The chapter ships two NetCDF files for `atlite` and PyPSA-Eur, and they are not
+built the way the grids its tables evaluate are built.
 
-**The shipped file is the hybrid.** `europe_corrections_kriging_best.nc`
-carries `method: kriging_hybrid`, `scalar_variogram: spherical`,
-`scalar_coordinates: euclidean`, `offset_variogram: linear`,
-`offset_coordinates: geographic`, which is the rejected configuration, not the
-adopted one.
+`generate_best_correction_grids.py`, which produces the shipped files,
+interpolates **all 1,729 control points as one field with no onshore and
+offshore split**. Both files record `n_control_points: 1729` and neither
+carries a domain attribute. `compare_unified_corrections_to_grid.py`, which
+produces the grids behind Tables 6 and 7, splits the pool by `cluster_mode`
+first and interpolates each domain separately.
 
-This is the PyPSA-Eur deliverable, so it matters under the artefact's own
-standard rather than the method comparison's: whatever the manuscript concludes
-about which interpolator is better, the file that downstream work consumes has
-to be the file the text describes.
+So the artefact and the evaluation are different objects. **The shipped file was
+never the thing the tables measured**, and anyone regenerating from the shipped
+pipeline gets a third object again. The labelling problem below and the offshore
+pool question are both downstream of this one.
+
+**The labelling problem.** Chapter 4 evaluates a hybrid kriging, each target on
+its own cross-validation-optimal configuration, and rejects it at 4 improvements
+against 9 degradations. It adopts "OK, exponential, geographic", and describes
+the shipped file as "standard kriging with variance-based masking". The shipped
+file is the hybrid: `europe_corrections_kriging_best.nc` carries `method:
+kriging_hybrid`, `scalar_variogram: spherical`, `scalar_coordinates: euclidean`,
+`offset_variogram: linear`, `offset_coordinates: geographic`.
+
+**It is a prose defect and not a results defect**, which was worth establishing.
+Tables 6 and 7 match `grid_comparison/europe_corrections_kriging.nc`, the
+standard configuration, at Denmark offshore 0.1113 against a published 0.111.
+The hybrid tables match the shipped file at 0.1229 against a published 0.123. So
+the chapter's numbers are sound and its description of the file it ships is not.
+
+**Why this product needs its own standard.** A cross-validation score says
+nothing about whether a file is right everywhere it is read. Coverage, masking
+and neutral-value behaviour are the properties that matter for a file feeding an
+energy system model, the IDW product neutralises about 35% of the European
+domain beyond 5 degrees from any control point, and none of that is tested by
+the method comparison the chapter uses to choose between IDW and kriging.
+
+### Where it has gone, and the hold
+
+| Question | Answer |
+|---|---|
+| Committed or published | **No.** Untracked in every branch here and on `development`; `bias-extra/` is untracked in the consuming repository too. Not in the Zenodo deposit, which archives the git tree while `output/` is ignored. |
+| Copied | **Yes**, into `pypsa-eur-wind/bias-extra/` and `pypsa-eur-wind-archive/bias-extra/`, sha256 `f7165b26...`, byte-identical to the source. |
+| Wired in | **Yes.** A patched atlite maps the keyword `kriging` to it, and `config/scenarios-validation.yaml` selects `bias_corr: kriging` in four scenarios. |
+| Any result from it | **No.** Every bias-corrected result is `biasidw`. No `biaskriging` output exists. |
+| The IDW file | **Correctly described**: `method: idw`, `idw_power: 2.0`, `max_distance_deg: 5.0`, which is what the chapter adopts, and it is the file behind the thesis PyPSA-Eur results. |
+
+**No correction notice is issued.** Nothing is published, nothing has run from
+it, and the file that produced the thesis results is correctly described. The
+notice becomes due the moment either changes.
+
+**The four kriging scenarios must not be run before this is settled.** They are
+`base-s100000-biaskriging` and its siblings in
+`pypsa-eur-wind/config/scenarios-validation.yaml`, and running one would
+produce a result from a file that is neither the chapter's standard kriging nor
+the split pipeline its tables evaluate.
+
+**That config is shared.** It is tracked and its commit is contained in
+`origin/master` of `github.com/ellyess/pypsa-eur-wind`, which is **public**, a
+fork of PyPSA/pypsa-eur with no forks of its own. The mitigation is that
+`bias-extra/*.nc` is untracked, so a clone gets the scenario definition and not
+the grid, and the run fails on a missing file rather than silently using a
+mislabelled one. Nothing has been edited in that repository from here.
 
 ## T4. The spatial-join defect was latent, and where it could have bitten
 

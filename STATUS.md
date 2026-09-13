@@ -28,6 +28,18 @@ suspension.
 
 One line each. None is started.
 
+- **Four PyPSA-Eur scenarios must not be run before the shipped kriging grid is
+  settled.** `base-s100000-biaskriging` and its siblings in
+  `pypsa-eur-wind/config/scenarios-validation.yaml` select a grid file that is
+  neither the standard kriging the chapter adopts nor the split pipeline its
+  tables evaluate: it is the hybrid configuration the chapter rejected, built
+  from all 1,729 control points with no onshore and offshore split. No result
+  has been produced from it, the thesis PyPSA-Eur results all used the IDW file,
+  and that file is correctly described. The config is public on
+  `github.com/ellyess/pypsa-eur-wind`; the grid file itself is untracked, so a
+  clone fails on a missing path rather than using a mislabelled one. Details in
+  `docs/design/manuscript-chapters-45.md`, section T3. Nothing in that
+  repository has been edited from here.
 - **Six scorecard rows predate common-row scoring and would move if re-run:**
   US, BR, AU-NEM, NZ, CL and AR, the six still standing on the 2026-08-24
   refresh. The eleven European rows were re-run in September and are under the
