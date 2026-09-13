@@ -177,7 +177,9 @@ a corrected variant lacks some values.
   corrected with it: `COMBINED_ERA5_USAGE.md` called the European roughness
   terrain-derived, and `combine_era5_files.py` offered a `terrain` source that
   does not exist.
-- **The IT, PT and ES country-level rows are suspended.** The European ERA5
+- **The IT, PT and ES country-level rows are suspended.** *[Resolved
+  2026-09-13: the wider download covers them and they were re-run; see the
+  entry above.]* The European ERA5
   download never covered their southern grid points, and the harness
   extrapolated winds to them without a warning. In ES and IT the fit then
   drove offsets to values that push most of those days off the curve, and the
@@ -192,6 +194,22 @@ a corrected variant lacks some values.
 
 ### Documentation
 
+- **The eleven European rows were re-run on the per-timestep roughness and a
+  wider ERA5 box, and Spain, Italy and Portugal have returned from
+  suspension.** The plan was registered before the download completed and
+  measured the two changes apart: the treatment moved every row by a
+  negligible amount, and the returning rows improved because their winds are
+  real rather than extrapolated past the data, which the record locates rather
+  than assumes. None of the three carries a degenerate fit. One registered
+  prediction is refuted, and the record says its reasoning confused the
+  symptom for the cause. Published rows are superseded rather than deleted.
+  The re-run also found that an ordinary affine correction drops calm days
+  that `fit_quality` cannot see, which is logged as candidate work.
+  (`docs/findings/method-eu-rerun.md`.) Writing it up exercised the
+  `findings-doc` rule added the day before, that a changed decision means
+  re-reading whole documents rather than the edited part: four statements
+  elsewhere still described the three rows as suspended, including a caveat in
+  the scorecard itself quoting Norway's superseded figure.
 - **The per-timestep roughness derivation is adopted as the method.** The two
   temporal treatments were compared on Denmark and France under a
   pre-registration, and the record (`docs/findings/method-roughness-treatment.md`)

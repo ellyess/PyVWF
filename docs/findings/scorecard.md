@@ -185,6 +185,23 @@ is downloaded to cover their boxes and they are re-run. NO (4.4% of capacity,
 Script for the training-year figures: `scripts/analysis/training_objective_check.py`.
 Data: `output/curve_library_study_2026-09-11/training_objective_check/`.
 
+**Resolved, 2026-09-13.** The download was made and the three rows were
+re-run: `era5/EU_2026-09` covers 12 W to 31.5 E and 36 to 72 N, and every unit
+of all three fleets is now inside the extent its configuration loads. Their
+extrapolated shares are zero. They are back in the country-level table above,
+and none of them carries a dagger: no implausible scalar and no failed offset
+between them. Their figures improved, Italy's corrected RMSE halving and
+Portugal's falling by two thirds, because the winds are real rather than
+extrapolated; the evidence that it is the winds and not something else is in
+`method-eu-rerun.md`, which splits each fleet by whether a grid point lay
+outside the old extent. This resolves the input defect only. Italy's fit still
+sends 1.0% of its capacity-weighted steps off the curve on calm days, which is
+an ordinary property of the affine correction rather than a symptom of bad
+input, and is a finding in its own right in that document. Sweden and Norway
+were re-run in the same pass and are no longer marked either: the sentence
+above, that they stay in the table with their shares stated, describes what was
+true until this download.
+
 *[Correction, 2026-09-12: NO and SE are not the only rows left with
 extrapolated winds. DK is one too, 0.6% of capacity and 47 of 5,446 units, and
 now carries § in the turbine-level table above. This paragraph listed the
@@ -215,16 +232,22 @@ hour and averages it to daily along with the winds.
 
 | Roughness applied | Route | Rows |
 |---|---|---|
-| One annual mean per year | stored in the file | DE, DK, UK and the eight country-level rows: 11 of 17, all reading `era5/EU` |
-| Per timestep, averaged to daily | derived at load from the file's hourly winds | AU-NEM, NZ, CL, AR: 4 of 17 |
+| Per timestep, averaged to daily | derived at load from the file's hourly winds | DE, DK, UK, the eight country-level rows, AU-NEM, NZ, CL and AR: 15 of 17 |
 | Per timestep, averaged to daily | derived and stored as a daily field by `scripts/era5/combine.py` | US, BR: 2 of 17 |
 
-The Roughness column of the tables below carries these three values per row.
-The last two are the same treatment computed at different stages, but a run's
-manifest cannot tell the third from the first: it reports `stored` whenever the
-file carries a roughness field, whatever that field is. The third route also
-drops the 10 m winds, so those two rows cannot derive a roughness at all
-(`docs/design/roughness-temporal-treatment.md`).
+*[Updated 2026-09-13: the eleven European rows were re-run on the per-timestep
+treatment (`method-eu-rerun.md`), so no scorecard row applies an annual-mean
+roughness any more and the split this notice recorded is closed. The published
+rows that did are in the Superseded section below. The rows still differ by
+route, and a manifest still cannot tell the second route from a stored annual
+mean.]*
+
+The Roughness column of the tables below carries these two values per row.
+They are the same treatment computed at different stages. A run's manifest
+cannot tell the second from a stored annual mean: it reports `stored` whenever
+the file carries a roughness field, whatever that field is. The second route
+also drops the 10 m winds, so the US and Brazilian rows cannot derive a
+roughness at all (`docs/design/roughness-temporal-treatment.md`).
 
 **Cross-region comparison is confounded.** This table invites reading rows
 against each other, and the two halves differ in an input, not only in fleet,
@@ -236,10 +259,11 @@ work. A reader cannot work this out from the rows.
 (`method-roughness-treatment.md`), on method fidelity and comparability rather
 than on accuracy: the measured effect on Denmark is 0.0002 in corrected RMSE,
 resolved by the pre-registered gate and far too small to carry a method change
-on its own. **No figure in this document changes on that comparison.** The
-eleven rows above are re-run on the new treatment only after the extended ERA5
-download, each as a new row with its own configuration, and the re-run reports
-its own numbers.
+on its own. The eleven European rows were re-run on it on 2026-09-13, and the
+figures in the tables below are those re-runs. The treatment moved every one of
+them by less than 0.0002 in corrected RMSE, and only Denmark's difference
+excludes zero; what moved the returning rows was the wider box, not the
+treatment (`method-eu-rerun.md`).
 
 **What the dating evidence supports.** No PyVWF run output surviving in this
 repository predates the combined European files of 11 February 2026; the
@@ -342,12 +366,12 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 
 | Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Roughness | Other brand | Reference curve | Unverifiable |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.042 | +0.001 | 0.85 | k100 fixed | annual mean | 40.0% | 8.9% | 0.0% |
-| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.147 | **0.085** | +0.110 | +0.023 | 0.83 | k100 season | annual mean | 11.6% | 0.6% | 23.0% |
+| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed | per timestep | 40.0% | 8.9% | 0.0% |
+| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 11.6% | 0.6% | 23.0% |
 | Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
 | United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
-| United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.145 | **0.115** ‡ | +0.037 | -0.038 | 0.70 | k50 fixed | annual mean | 21.8% | 7.5% | 0.0% |
+| United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.146 | **0.115** ‡ | +0.038 | -0.038 | 0.70 | k50 fixed | per timestep | 21.8% | 7.5% | 0.0% |
 | New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
 | Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | per timestep | 3.5% | 91.6% | 0.0% |
 | Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.150 | **0.133** | +0.011 | +0.001 | 0.43 | k10 fixed † | per timestep | 0.2% | 96.7% | 0.0% |
@@ -360,14 +384,14 @@ extrapolated; the share of capacity follows the marker** (the rule is in
 `docs/README.md`). DK's box stops at 13.5°E and Bornholm lies near 14.9°E, so
 47 of the 5,446 units in its test fleet, 0.6% of capacity, sit up to 1.64°
 beyond the data, as do 15 of the 3,707 in the fleet the row was trained on,
-0.5% of that capacity and up to 1.55°. The share was
-measured by the extent audit of 2026-09-12, read-only, because the run behind
-this row predates `extrapolated_capacity_share`
-(`scripts/analysis/extent_audit.py`, data in
-`output/extent_audit_2026-09-12/`). Nothing else about the row
-changes: the figures are the ones published on 2026-08-24, and the marker says
-they were produced partly from winds that were extrapolated rather than
-interpolated. The data covering Bornholm is already in the European files, so
+0.5% of that capacity and up to 1.55°. The row's own run records the share in
+its `metrics.csv`, as the rule requires; the figure was first measured by the
+extent audit of 2026-09-12 (`scripts/analysis/extent_audit.py`, data in
+`output/extent_audit_2026-09-12/`), because the run published then predated
+`extrapolated_capacity_share`. The marker says the figures were produced partly
+from winds that were extrapolated rather than interpolated, and it survived the
+re-run because the extended download does not reach Bornholm: DK's own box
+stops first. The data covering Bornholm is already in the European files, so
 this is a bounding-box error and not a missing download; widening the box is
 logged as separate work, and produces a different DK row with its own
 configuration.
@@ -417,33 +441,50 @@ throughout.
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
-| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | annual mean | 100% |
-| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | annual mean | 100% |
-| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | annual mean | 100% |
-| Sweden (SE) § 0.8% | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | annual mean | 100% |
-| Norway (NO) § 4.4% | 0.034 | 0.039 | +0.024 | -0.030 | correction does not help | annual mean | 100% |
+| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | per timestep | 100% |
+| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | per timestep | 100% |
+| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | per timestep | 100% |
+| Sweden (SE) | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | per timestep | 100% |
+| Norway (NO) | 0.035 | 0.036 | +0.027 | -0.028 | correction does not help | per timestep | 100% |
+| Spain (ES) | 0.028 | **0.026** | +0.013 | +0.011 | N=4 fixed | per timestep | 100% |
+| Italy (IT) | 0.070 | **0.017** | -0.069 | -0.003 | N=3 season | per timestep | 100% |
+| Portugal (PT) | 0.089 | **0.027** | -0.085 | +0.018 | N=1 season | per timestep | 100% |
 
-**§ Part of the fleet lies outside the loaded ERA5 extent, and its winds were
-extrapolated; the share of capacity follows the marker** (suspension notice
-above; the rule is in `docs/README.md`, and the DK row above carries it too).
-These two rows were run before the harness recorded
-`extrapolated_capacity_share`, so their shares come from the extent check of
-2026-09-11, and the audit of 2026-09-12 reproduces both. They get the same ERA5 download as the suspended
-rows, and return either clean or still marked.
+**No country-level row carries § any more.** Sweden and Norway did, at 0.8%
+and 4.4% of capacity, and the wider download of 2026-09-12 covers both fleets;
+their re-runs record an extrapolated share of zero. Denmark is the only
+scorecard row still marked, because its own bounding box, not the data, stops
+short of Bornholm. The marker rule is in `docs/README.md`.
 
-**Suspended rows.** Not results: most of their capacity was simulated from
-winds extrapolated beyond the ERA5 data (suspension notice above). The
-published figures are kept for the record only.
+**Superseded rows, 2026-09-13.** The published figures of every European row,
+kept for the record and replaced in the tables above. All eleven ran on
+`era5/EU`, the annual-mean roughness, and the narrower ERA5 box; their
+configurations are in `configs/regions/scorecard/` under their original names.
+What moved, and why, is in `method-eu-rerun.md`.
 
-| Region | Capacity outside the ERA5 data | Published uncorr RMSE | Published corr RMSE | Published uncorr MBE | Published corr MBE | Best cfg | Roughness |
-|---|---|---|---|---|---|---|---|
-| Italy (IT) | 94.5% | 0.066 | 0.034 | +0.062 | -0.020 | N=3 season | annual mean |
-| Portugal (PT) | 89.9% | 0.110 | 0.074 | -0.097 | +0.029 | N=1 season | annual mean |
-| Spain (ES) | 50.3% | 0.135 | 0.026 | +0.130 | +0.016 | N=4 fixed | annual mean |
+| Region | Published uncorr RMSE | Published corr RMSE | Published uncorr MBE | Published corr MBE | Best cfg | Was |
+|---|---|---|---|---|---|---|
+| Germany (DE) | 0.086 | 0.057 | +0.042 | +0.001 | k100 fixed | in the table |
+| Denmark (DK) | 0.147 | 0.085 | +0.110 | +0.023 | k100 season | in the table, § 0.6% |
+| United Kingdom (UK) | 0.145 | 0.115 ‡ | +0.037 | -0.038 | k50 fixed | in the table |
+| France (FR) | 0.171 | 0.012 | +0.165 | +0.006 | N=10 fixed | in the table |
+| Belgium (BE) | 0.340 | 0.020 | +0.337 | -0.002 | N=3 season | in the table |
+| Ireland (IE) | 0.172 | 0.021 | +0.168 | +0.009 | N=1 season | in the table |
+| Sweden (SE) | 0.088 | 0.030 | +0.084 | -0.027 | N=4 fixed | in the table, § 0.8% |
+| Norway (NO) | 0.034 | 0.039 | +0.024 | -0.030 | N=4 fixed | in the table, § 4.4% |
+| Italy (IT) | 0.066 | 0.034 | +0.062 | -0.020 | N=3 season | suspended |
+| Portugal (PT) | 0.110 | 0.074 | -0.097 | +0.029 | N=1 season | suspended |
+| Spain (ES) | 0.135 | 0.026 | +0.130 | +0.016 | N=4 fixed | suspended |
+
+A superseded row is not withdrawn. It states what was published, on what
+input, and the date it was replaced. The three that were suspended were never
+results at all, and their figures are kept only so the correction can be
+checked.
 
 The country-level fit removes very large mean biases (FR, BE and IE all from
 0.17-0.34 down to ~0.01-0.02). Two honest notes: NO is already close to
-unbiased uncorrected (RMSE 0.034) and the correction makes it worse (0.039); and the country method
+unbiased uncorrected (RMSE 0.035) and the correction does not help (0.036, with
+the interval on the difference including zero); and the country method
 fits under-determined offsets against one national series per month, so the
 offsets largely repair the scalar's cube-law overshoot rather than a genuine
 additive spatial bias (`method-country-level.md`).

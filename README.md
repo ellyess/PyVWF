@@ -175,21 +175,26 @@ mismatch is not yet assessed.
 
 **National level** (ENTSO-E aggregate, held-out 2023): France 0.171 →
 **0.012**, Belgium 0.340 → **0.020**, Ireland 0.172 → **0.021**, Sweden 0.088 →
-**0.030** §. Italy, Portugal and Spain are suspended: half or more of their
-capacity lies outside the ERA5 data the harness was given, so their winds were
-extrapolated, not simulated. They return once ERA5 covers them (see the
-scorecard). All the
+**0.030**, Spain 0.028 → **0.026**, Italy 0.070 → **0.017**, Portugal 0.089 →
+**0.027**. Italy, Portugal and Spain were suspended until 2026-09-13: half or
+more of their capacity lay outside the ERA5 data the harness had been given, so
+their winds were extrapolated rather than simulated. A wider download covers
+them and they were re-run (see the scorecard). All the
 country rows were simulated on one fallback curve, a 100 kW
 distributed-wind turbine, because their grids name Vestas models the bundled
 open library does not contain, and how much of each reduction reflects that
 mismatch rather than ERA5 bias is not yet quantified.
 
 **§ Extrapolated winds.** Part of the fleet lies outside the ERA5 data the run
-loaded, and its winds were extrapolated past the grid: 0.8% of capacity in
-Sweden and 4.4% in Norway. The scorecard marks every such row with the share.
+loaded, and its winds were extrapolated past the grid. Sweden and Norway
+carried this until the wider download of 2026-09-12; Denmark is now the only
+marked row, at 0.6% of capacity, because its own bounding box rather than the
+data stops short of Bornholm. The scorecard marks every such row with the
+share.
 
-**Where it does not work.** Norway (§ 4.4%) is close to unbiased uncorrected
-and the correction makes it worse (0.034 → 0.039). The Netherlands is excluded: an
+**Where it does not work.** Norway is close to unbiased uncorrected and the
+correction does not help (0.035 → 0.036, and the interval on the difference
+includes zero). The Netherlands is excluded: an
 ENTSO-E coverage defect caps its reported capacity factor and no rescaling
 repairs it. Chile and Argentina remove the mean bias but add limited skill,
 because ERA5 exaggerates the north-south wind gradient in both. The United

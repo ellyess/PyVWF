@@ -49,12 +49,21 @@ them linearly and without a warning (`fill_value=None`), up to 5° beyond the
 data, giving uncorrected speeds as low as -57.7 m/s. Every simulated or fitted
 figure for those three countries rests on that input: the results in section
 6, the scalar and offset analysis in section 7, and the question in section 8
-of why PT gets worse under correction. They are suspended with the scorecard
+of why PT gets worse under correction. They were suspended with the scorecard
 rows (`scorecard.md`, suspension notice of the same date). ES's clusters 0 and
 3 lie wholly outside the data, and their offsets of -5.64 and -4.46 m/s were
 fitted to it. NO (4.4% of capacity) and SE (0.8%) are affected at those
 shares. As with the correction above, sections 2 and 3 depend only on the
 observations and the fleet register, and stand for all three.
+
+*[Resolved, 2026-09-13: ERA5 was downloaded over a box that covers all three,
+and the rows were re-run with no unit outside the extent they load
+(`method-eu-rerun.md`). The figures below are the ones that rested on
+extrapolated winds, and the re-run supersedes them; they are kept here because
+sections 6 to 8 were written about them. The re-run moved them substantially,
+Italy's corrected RMSE halving and Portugal's falling by two thirds, so
+section 8's question about why PT gets worse under correction has to be asked
+again against the new figures rather than answered from these.]*
 
 The country-level path is wired consistently with the turbine-level path but
 fits a different estimator under the same name, and its observations had never

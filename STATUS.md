@@ -1,39 +1,27 @@
 # Status
 
-**Current as of 2026-09-12**, on branch `agent-skills` at `0a989e2`. One page,
+**Current as of 2026-09-13**, on branch `agent-skills`. One page,
 kept short so that it stays true. It records what is running, what is queued,
 what is open and what is settled. Detail lives in the documents it names, not
 here.
 
 ## In flight
 
-**The extended European ERA5 download.** `era5/EU_2026-09`: hourly 10 m and
-100 m winds, no roughness field, box 12 W to 31.5 E and 36 to 72 N, 2015 to
-2023. 36 CDS requests, about 17 GB, four in flight at a time
-(`scripts/fetch/era5.py --workers 4`). Resumable: a month is done when its file
-exists, so an interrupted run picks up where it stopped.
-
-It blocks everything below it. The eleven European scorecard rows cannot move
-to the per-timestep roughness until it lands, and the three suspended rows
-cannot return until their fleets are inside the data.
+Nothing. The extended European download completed on 2026-09-12: 108 months,
+17.6 GB, no failures, in `era5/EU_2026-09`. The eleven European rows were
+re-run on it on 2026-09-13 (`docs/findings/method-eu-rerun.md`), and Spain,
+Italy and Portugal have returned from suspension.
 
 ## Queued, in order
 
-1. **The full G0 check.** Three sample years of overlapping cells, old files
-   against new. It decides whether the re-run measures the treatment alone,
-   the treatment plus a bounded data difference, or nothing about the
-   treatment at all. The three branches are fixed in
-   `docs/findings/method-eu-rerun-prereg.md`. A one-month probe was
-   bit-identical, which is evidence and not the gate.
-2. **The eleven-row re-run**, to the plan in that same document: eleven new
-   configurations, eleven new rows, the three suspended rows returning, old
-   rows superseded rather than deleted, and a paired comparison per row.
-3. **The curve library study.** Its pre-registration is an uncommitted draft
+1. **The curve library study.** Its pre-registration is an uncommitted draft
    **in `git stash@{0}`** ("curve-library prereg draft, stashed for the
    clean-tree roughness runs"), not in the working tree. Restore it before
    resuming. It still needs revising for the common-row scoring rule, the
    variant set as part of the registered design, the Chile marker and the
    roughness treatment.
+2. **A skill for re-running an existing row on changed input**, now that the
+   re-run has happened and its procedure is known. See Open.
 
 ## Open
 
@@ -41,7 +29,18 @@ One line each. None is started.
 
 - **Bornholm.** DK's box stops at 13.5 E and Bornholm lies near 14.9 E, so 47
   units, 0.6% of capacity, sit outside the extent the row loads. The data is in
-  the files: this is a box to widen, not a download. It makes a new DK row.
+  the files, old and new: this is a box to widen, not a download. DK is now the
+  only scorecard row carrying the section marker. It makes a new DK row.
+- **Whether `fit_quality` should bound the share of training steps a fitted
+  pair sends below zero.** Italy is the motivating case, and a better one than
+  anything the archive offered: an ordinary fit, no implausible scalar, no
+  failed offset, no dagger, on real winds, which still drops 1.0% of its
+  capacity-weighted steps on calm days because every one of its twelve pairs
+  has a negative offset. The loss also scales with configuration complexity, 1
+  unit-month at `fixed_1` to 69 at `season_3`, so any bound has to say what it
+  is a share of. Germany and the United Kingdom show the same mechanism.
+  Whoever picks this up should start from Italy's `season_3` factors in
+  `output/eu_rerun_2026-09-12/new/IT/train-new/`, not from a pathological fit.
 - **`run_transfer` has no end-to-end test,** and returns frames without a run
   directory, so nothing records its provenance.
 - **`scripts/era5/combine.py` back-fills undefined roughness within one month
@@ -52,15 +51,15 @@ One line each. None is started.
   stored daily roughness is recorded as `stored`, which a manifest cannot tell
   from an annual mean.
 - **`docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md` is git-ignored** yet
-  reports figures from the suspended ES row. Track it with a correction, or
-  retire it.
+  reports figures from the ES row as published under extrapolated winds, now
+  superseded. Track it with a correction, or retire it.
 - **Reproducing the published Denmark figures** needs onshore-only mode, a
   sweep to 3,300 clusters and three metric scales. Candidate work, out of scope
   where it has come up.
-- **A skill for re-running an existing row on changed input.** Three times now
-  the structure has been invented fresh. To be written after the re-run, from
-  what it actually needed, with the re-run plan as its specification. The three
-  `findings-doc` gaps go with it: superseding a row, a table-wide column
+- **A skill for re-running an existing row on changed input.** Four times now
+  the structure has been invented fresh, the last of them with a written plan.
+  Write it from what that plan actually needed, with it as the specification.
+  The three `findings-doc` gaps go with it: superseding a row, a table-wide column
   change, and a check that old and new were compared rather than assumed
   equivalent.
 - **The per-value provenance registry for capacity-factor denominators** is
@@ -72,6 +71,9 @@ One line each. None is started.
 
 ## Settled, and not to be reopened
 
+- **Every scorecard row now applies the per-timestep roughness**, and no row
+  applies an annual mean. The three suspended rows returned on 2026-09-13,
+  none daggered.
 - **The per-timestep roughness derivation is the method**, adopted 2026-09-12.
   It was adopted on method fidelity and comparability, **not** on accuracy: the
   measured effect on Denmark is 0.0002 in corrected RMSE, resolved by the
