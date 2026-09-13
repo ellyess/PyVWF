@@ -1,9 +1,14 @@
-"""The European re-run's per-row comparison: published against new. Read-only.
+"""Per-row paired comparison of two or three evaluate runs of one row. Read-only.
 
-One row at a time, this scores the published evaluate run and its re-run on the
-rows common to both, and reports the paired interval for the difference. It is
-the measurement the re-run plan (``docs/findings/method-eu-rerun-prereg.md``)
-requires, so that the treatment change is measured rather than asserted.
+One row at a time, this scores each condition on the rows common to all of
+them, and reports the paired interval for every difference. It was written for
+the European re-run (``docs/findings/method-eu-rerun-prereg.md``), so that the
+treatment change was measured rather than asserted, and it is the comparison
+driver the curve library study registered as well
+(``docs/findings/method-curve-library-prereg.md``, "Tooling this needs"): one
+definition of these numbers rather than a second that could drift from it. The
+conditions are named on the command line, so the module is not specific to
+either study; ``--tag`` names the output files.
 
 Two or three conditions, named on the command line, the first being the
 baseline every difference is taken against:
@@ -36,6 +41,10 @@ Usage, from the repository root, one region per process:
     PYTHONPATH=src:scripts/analysis python scripts/analysis/eu_rerun_compare.py \
         SE output/eu_rerun_2026-09-12/analysis \
         published=<dir> oldfiles_derived=<dir> new=<dir>
+
+    PYTHONPATH=src:scripts/analysis python scripts/analysis/eu_rerun_compare.py \
+        DK output/curve_library_study_2026-09-13/analysis --tag=T1 \
+        T0=<dir> T1=<dir>
 """
 import json
 import sys
@@ -63,7 +72,7 @@ def _conditions(argv) -> dict[str, Path]:
     return out
 
 
-def main(code: str, out_dir: str, argv) -> None:
+def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     runs = _conditions(argv)
@@ -155,8 +164,8 @@ def main(code: str, out_dir: str, argv) -> None:
         record(f"{label} correction gain", bu - bc, pu - pc, paired=True)
 
     frame = pd.DataFrame(rows)
-    frame.to_csv(out_dir / f"{code}_rerun_comparison.csv", index=False)
-    excluded.to_csv(out_dir / f"{code}_rerun_excluded_rows.csv", index=False)
+    frame.to_csv(out_dir / f"{code}_{tag}_comparison.csv", index=False)
+    excluded.to_csv(out_dir / f"{code}_{tag}_excluded_rows.csv", index=False)
 
     scored = len(common[f"{baseline}_corrected"])
     print(f"{code}: conditions {labels}, applied roughness {treatments}, "
@@ -166,6 +175,9 @@ def main(code: str, out_dir: str, argv) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    args = sys.argv[1:]
+    tags = [a for a in args if a.startswith("--tag=")]
+    args = [a for a in args if not a.startswith("--tag=")]
+    if len(args) < 3:
         raise SystemExit(__doc__)
-    main(sys.argv[1], sys.argv[2], sys.argv[3:])
+    main(args[0], args[1], args[2:], tag=tags[-1].split("=", 1)[1] if tags else "rerun")
