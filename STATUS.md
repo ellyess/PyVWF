@@ -28,6 +28,17 @@ suspension.
 
 One line each. None is started.
 
+- **Run chapter 5's models on all twelve country folds when port phase 3
+  lands**, reporting MAE beside R-squared. The country-holdout study's gate L1
+  is indeterminate because chapter 5 ran leave-one-country-out for Germany and
+  the United Kingdom only, and reported R-squared. On those two folds the
+  machine learning scores higher than every interpolator, +0.096 against -0.146
+  and +0.091 against -0.046, which is the only direct comparison in the study
+  and points against the chapter's conclusion. Settling it alone would not
+  justify porting `extensions/ml` and rebuilding 37 features over 1,729
+  centroids; phase 3 ports that module anyway, so this is a follow-on rather
+  than a decision. Registered design in
+  `docs/findings/method-loco-interpolation-prereg.md`.
 - **Four PyPSA-Eur scenarios must not be run before the shipped kriging grid is
   settled.** `base-s100000-biaskriging` and its siblings in
   `pypsa-eur-wind/config/scenarios-validation.yaml` select a grid file that is

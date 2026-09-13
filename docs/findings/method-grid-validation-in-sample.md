@@ -41,14 +41,27 @@ those same observations and then interpolated.
 
 ## How in-sample each configuration is, measured
 
-For each configuration, the share of the inverse-distance weight at its own
-footprint's grid cells that comes from its own control points, under the same
-domain split the tables used:
+**The two offshore configurations state it most clearly. A surface built
+entirely from a configuration's own control points is not validated by that
+surface in any sense**, and that is what these two are:
 
 | Configuration | Pool | Control points | Median self-weight | Minimum |
 |---|---|---|---|---|
-| UK offshore | offshore | 10 | **1.000** | 1.000 |
-| DK offshore | offshore | 2 | **0.999** | 0.998 |
+| **UK offshore** | offshore | 10 | **1.000** | 1.000 |
+| **DK offshore** | offshore | 2 | **0.999** | 0.998 |
+
+The offshore pool holds twelve points across the whole domain, so each
+configuration's own are the nearest by a wide margin and nothing else reaches
+them. Denmark offshore's grid correction is two numbers Denmark fitted,
+interpolated between themselves, scored against the observations they were
+fitted from.
+
+The rest follow the same pattern less completely. For each configuration, the
+share of the inverse-distance weight at its own footprint's grid cells that
+comes from its own control points, under the same domain split the tables used:
+
+| Configuration | Pool | Control points | Median self-weight | Minimum |
+|---|---|---|---|---|
 | DK onshore | onshore | 884 | 0.984 | 0.576 |
 | UK onshore | onshore | 293 | 0.971 | 0.855 |
 | PT | onshore | 3 | 0.962 | 0.961 |
@@ -62,10 +75,17 @@ domain split the tables used:
 | BE | onshore | 3 | 0.654 | 0.480 |
 | **NL** | onshore | 5 | **0.526** | 0.193 |
 
-**Fourteen of fourteen above 0.5. Seven above 0.9.** The two offshore
-configurations are effectively total, because the offshore pool holds twelve
-points across the whole domain and each configuration's own are the nearest by
-a wide margin.
+**Fourteen of fourteen above 0.5. Seven above 0.9.**
+
+**The measurement is split-pool, and the undivided-pool number is misleading.**
+Measured against the whole 1,729-point pool rather than the domain split the
+tables used, Denmark offshore reads 0.045, which looks like the one genuinely
+out-of-sample configuration and would support a tidy story: that the chapter's
+single documented failure was also its only honest test. That story is false.
+The tables were produced from domain-split surfaces, where Denmark offshore is
+0.999. The undivided figure describes the shipped files, which are built
+without a split (see `manuscript-chapters-45.md`, T3), and it is recorded here
+because the next person to measure this will get 0.045 first.
 
 ## The Netherlands, specifically
 
@@ -91,6 +111,30 @@ asks and what the phrase cross-border borrowing is normally taken to mean.
 measure, and an in-sample correction surface is a legitimate object: it is what
 a user with observations in their country would actually deploy. The defect is
 in what the numbers are taken to show.
+
+**That defence does not reach most of the product.** PyPSA-Eur consumes the
+surface across the whole domain, and most of the domain has no control point
+near it:
+
+| Distance from the nearest control point | Cells | Share of the 23,989 |
+|---|---|---|
+| within 1 degree | 4,375 | 18.2% |
+| beyond 2 degrees | 15,471 | 64.5% |
+| **beyond 5 degrees, the product's own mask** | **8,269** | **34.5%** |
+| beyond 10 degrees | 2,554 | 10.6% |
+
+The median cell is 3.13 degrees, about 260 km, from the nearest control point.
+**So the in-sample defence covers the cells the validation scores and not the
+cells the product mostly consists of.** For a cell with no observations behind
+it, the relevant evidence is the country-holdout study, and that found no
+within-country information transfers: a negative R-squared in 41 of 48
+fold-by-method cells.
+
+The shipped IDW file already concedes the far end of this, neutralising exactly
+those 8,269 cells to scalar 1 and offset 0, which is 34.5% of the grid handed to
+PyPSA-Eur as uncorrected. **What is neither validated nor neutralised is the
+band between**: the 30% of cells beyond 2 degrees and within 5, which receive a
+correction that no holdout has ever tested.
 
 **It does overturn the cross-border reading of them**, which is the reading the
 merged manuscript was going to be built on, and it removes the Netherlands as
