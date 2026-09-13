@@ -210,6 +210,8 @@ def rbf_at(control_points: pd.DataFrame, lons, lats, *,
 def kriging_at(control_points: pd.DataFrame, lons, lats, *,
                variogram_model: str = KRIGING_VARIOGRAM,
                coordinates_type: str = KRIGING_COORDINATES,
+               nlags: int = 6,
+               n_closest_points: int | None = None,
                with_variance: bool = False):
     """Ordinary kriging at arbitrary points, one fit per target field.
 
@@ -222,6 +224,12 @@ def kriging_at(control_points: pd.DataFrame, lons, lats, *,
             great-circle. **Note that this differs from the distance IDW and
             nearest neighbour use here**, which is Euclidean in degrees; the
             difference is the chapter's and is reproduced rather than resolved.
+        nlags: lags used to fit the variogram.
+        n_closest_points: fit each target from only its nearest control points,
+            a moving window. The gridded export uses this to avoid the global
+            cost at 23,989 cells, and it changes the answer: a local window is
+            a different estimator from global ordinary kriging, not an
+            approximation to it.
         with_variance: also return the kriging variance per target, which the
             variance mask needs.
 
@@ -246,10 +254,16 @@ def kriging_at(control_points: pd.DataFrame, lons, lats, *,
             control_points[column].to_numpy(dtype=float),
             variogram_model=variogram_model,
             coordinates_type=coordinates_type,
+            nlags=nlags,
             verbose=False,
             enable_plotting=False,
         )
-        z, var = model.execute("points", lon, lat)
+        # A moving window is unsupported by the vectorised backend, so pykrige
+        # needs the loop one. Stated rather than caught, since a silent backend
+        # change is a silent change of estimator.
+        extra = {"n_closest_points": int(n_closest_points), "backend": "loop"} \
+            if n_closest_points is not None else {}
+        z, var = model.execute("points", lon, lat, **extra)
         predictions.append(np.asarray(z).ravel())
         variances.append(np.asarray(var).ravel())
     if with_variance:
