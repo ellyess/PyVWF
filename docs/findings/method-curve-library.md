@@ -2,8 +2,8 @@
 
 **Date:** 2026-09-13
 **Scope:** the curve library study of `method-curve-library-prereg.md`. **This
-document is in progress**: condition C1 has run and is reported here. C2, T1
-and T2 have not. Terms follow `CONTEXT.md`.
+document is in progress**: conditions C1 and C2 have run and are reported here.
+T1 and T2 have not. Terms follow `CONTEXT.md`.
 
 **Giving each country grid point its own power curve lowers its simulated
 output everywhere, by 0.09 to 0.22 in mean bias, without exception. Whether
@@ -11,6 +11,59 @@ that helps depends entirely on where the row started.** Three rows were
 over-producing by +0.165 or more and are repaired by it; five sat at +0.085 or
 below and are pushed further wrong by the same change. G1 fails, at three of
 the seven scoreable countries against the four it required.
+
+## What an affine correction absorbs, measured at country level
+
+**Curve error worth 20 to 28% of the fallback's effect on mean bias is
+indistinguishable from ERA5 bias to a correction fitted per cluster and
+season.** C2 replaced each grid's Vestas key with the nearest open-library
+model, 1.9, 19.4 or 70.6 W/m2 away depending on the country. In the
+*uncorrected* bias those three gaps separate cleanly: the substitute recovers
+99 to 101% of the own-curve effect at 1.9 W/m2, 87 to 90% at 19.4, and 72 to
+80% at 70.6. In the *corrected* skill they do not separate at all: the
+corrected RMSE differences do not order by gap, and Norway, with the worst
+substitute in the study, shows the smallest corrected difference of the eight
+at 0.00018.
+
+So the residual the substitute leaves behind, a systematic offset of up to a
+quarter of the fallback's error, is absorbed by the fit. This is the question
+the study exists to ask, answered at country level and by accident, before Q2
+reaches it at turbine level. It is a measurement of what the correction
+absorbs, not a demonstration that the correction is robust: the same result
+says a real curve error of that size would be invisible in a scorecard row.
+
+| Tier | Gap | Row | ΔMBE under C1 | ΔMBE under C2 | C2 as a share of C1 |
+|---|---|---|---|---|---|
+| near | 1.9 W/m2 | ES | -0.0825 | -0.0837 | 1.014 |
+| near | 1.9 | IE | -0.1318 | -0.1309 | 0.993 |
+| moderate | 19.4 | FR | -0.1663 | -0.1498 | 0.901 |
+| moderate | 19.4 | IT | -0.0817 | -0.0711 | 0.871 |
+| moderate | 19.4 | PT | -0.0924 | -0.0806 | 0.872 |
+| far | 70.6 | NO | -0.1516 | -0.1148 | 0.757 |
+| far | 70.6 | SE | -0.1812 | -0.1450 | 0.800 |
+| far | 70.6 | BE | -0.2203 | -0.1582 | 0.718 |
+
+The two conditions' bias changes correlate at 0.942 across the eight.
+
+**What this supports, and what it does not.** Three gap values, two or three
+countries each, eight points: that supports **monotone across three levels with
+no overlap between tiers**, since the ratios are 0.99 to 1.01, then 0.87 to
+0.90, then 0.72 to 0.80. It does not support a dose-response curve, and none is
+claimed. Establishing that would need more gap values, or the same eight
+countries run against a range of substitutes rather than one each.
+
+## The Q1 answer, and what it rests on
+
+**The country-level result depends on the fallback being wrong, not on the
+replacement being right.** Any curve in the plausible range removes most of
+what the 167 W/m2 fallback was doing: even the worst substitute in the study
+recovers 72% of the effect, and the nearest recovers all of it.
+
+**For these rows the open library was adequate.** C2 uses only curves a third
+party has. It recovers 72 to 101% of the licensed library's effect on mean
+bias, and leaves corrected skill indistinguishable from C0 in six of the eight
+countries. Anyone running these rows without the licensed library loses little,
+which is the most useful thing here for a third party and arrived by accident.
 
 ## What ran
 
@@ -51,6 +104,17 @@ It is what the curves' specific powers predict. The fallback rates 167 W/m2
 and the machines the grids name rate 314, 398 and 472, so the fallback reaches
 rated output at a far lower wind speed and over-produces at moderate speeds by
 construction. Replacing it removes that over-production everywhere.
+
+*[Revised 2026-09-13, after C2 ran: this section was written when C1 was the
+only condition, and framed the mechanism as the real curve's fidelity. C2 does
+not support that framing. A substitute 70.6 W/m2 away from the machine the grid
+names still produces 72 to 80% of the same change, so the mechanism is that the
+fallback is extreme rather than that the replacement is accurate. The claim
+this document leads with is weakened accordingly, from "the real curve produces
+less" to "a curve that is not the fallback produces less, and how much less
+depends on how close it is". The section's own numbers are unchanged and its
+reasoning from specific power still holds: it is the size of the fallback's
+error that the reasoning explains, not the precision of its replacement.]*
 
 ## The split is that change landing on different starting points
 
@@ -107,6 +171,43 @@ none excluded, and each side reproduces its own `metrics.csv` to 1e-12.
 **The correction absorbs most of it.** Uncorrected RMSE moves by up to 0.217;
 corrected RMSE moves by at most 0.037, and in five of eight the interval covers
 zero. Where it does not, C1 is worse, never better.
+
+## C2 per tier, and P2b refuted
+
+Every condition clean at `git_dirty: false`, open library `56314f39…` verified
+by sha256, substituted share 0.00: the open substitutes resolve, so no unit
+fell back. Runs: `output/curve_library_study_2026-09-13/C2/`.
+
+| Tier | Row | Uncorr RMSE C0 to C2 | Corr RMSE C0 to C2 | Corrected difference | 95% interval | Excludes zero |
+|---|---|---|---|---|---|---|
+| near | ES | 0.0281 to 0.0723 | 0.0262 to 0.0214 | -0.00477 | -0.0065 to -0.0027 | yes |
+| near | IE | 0.1721 to 0.0485 | 0.0212 to 0.0182 | -0.00301 | -0.0062 to +0.0007 | no |
+| moderate | FR | 0.1711 to 0.0270 | 0.0122 to 0.0166 | +0.00436 | -0.0063 to +0.0145 | no |
+| moderate | IT | 0.0703 to 0.1435 | 0.0168 to 0.0127 | -0.00408 | -0.0078 to +0.0002 | no |
+| moderate | PT | 0.0893 to 0.1691 | 0.0274 to 0.0270 | -0.00042 | -0.0020 to +0.0008 | no |
+| far | BE | 0.3399 to 0.1862 | 0.0201 to 0.0274 | +0.00734 | +0.0014 to +0.0127 | yes |
+| far | NO | 0.0350 to 0.0915 | 0.0363 to 0.0364 | +0.00018 | -0.0016 to +0.0026 | no |
+| far | SE | 0.0876 to 0.0619 | 0.0298 to 0.0319 | +0.00211 | -0.0039 to +0.0067 | no |
+
+Two rows resolve and they disagree in direction: Spain improves by 0.0048,
+Belgium worsens by 0.0073.
+
+**P2b is refuted, and the reason is instructive.** It predicted the far tier
+would move further from C0 than the near tier in corrected RMSE. The far tier's
+absolute differences are 0.0073, 0.0021 and 0.0002 against the near tier's
+0.0048 and 0.0030, and Norway, with the study's worst substitute, moves least
+of all eight.
+
+The prediction's mechanism was real and it named the wrong quantity. The
+distance between a substitute and the machine it replaces does order the
+countries, monotonically across the three tiers, **in the uncorrected mean
+bias**. It does not reach the corrected RMSE, because the correction absorbs
+it. Written about the bias, P2b would have held.
+
+**The tiers earned their registration by being refuted.** Pooled across the
+eight countries this would have read as an unremarkable average, and neither
+the ordering in the bias nor its absence in the corrected skill would have been
+visible.
 
 ## G1 fails, and the reason to print its denominator
 
@@ -169,4 +270,7 @@ about "the curve library".**
   curve's shape from its rating.
 - The country rows fit under-determined offsets against one national series per
   month, which is a standing caveat on every figure here.
-- C2, T1 and T2 have not run. Nothing here is the study's conclusion.
+- T1 and T2 have not run. Nothing here is the study's conclusion.
+- What the correction absorbs is measured on eight country-level rows with one
+  test year each, at monthly resolution, and with offsets fitted against one
+  national series. It is not a general statement about affine corrections.

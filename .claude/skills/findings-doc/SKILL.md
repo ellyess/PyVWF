@@ -90,6 +90,13 @@ unit its author has in mind.
   capacity: how much of the fleet the rule actually reaches. A condition
   reaching little cannot test much, and a gate written without knowing that is
   a gate on nothing.
+- **A prediction names the quantity it is about, and the mechanism has to show
+  up in that quantity.** A curve library condition predicted that a worse
+  substitute would move corrected RMSE further. The mechanism was real, and it
+  lived in the uncorrected mean bias: the correction absorbed it before it
+  reached corrected RMSE, so the prediction failed while being right about the
+  world. Before registering one, ask which side of the correction the effect
+  sits on, and name that side.
 - **Verify that a condition reaches what it claims, by a route independent of
   how it was built.** Three defects in one study would each have produced a
   clean null, which is what several of its predictions expect, and none was
