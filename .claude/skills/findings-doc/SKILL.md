@@ -90,6 +90,16 @@ unit its author has in mind.
   capacity: how much of the fleet the rule actually reaches. A condition
   reaching little cannot test much, and a gate written without knowing that is
   a gate on nothing.
+- **Verify that a condition reaches what it claims, by a route independent of
+  how it was built.** Three defects in one study would each have produced a
+  clean null, which is what several of its predictions expect, and none was
+  caught by the checks built into the condition itself: a matcher comparing a
+  manufacturer against itself, an assignment moving small units onto a
+  reference curve, and a coverage figure measured over the register rather
+  than the fleet the run fits. An independent route is one whose failure mode
+  differs: the extremes above are one, and comparing a figure against the same
+  figure measured a different way is another, which is what caught a coverage
+  of 0.0% against 50.2% measured directly.
 
 ## Corrections
 
