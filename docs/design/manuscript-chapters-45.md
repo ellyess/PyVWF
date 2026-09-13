@@ -60,40 +60,75 @@ not cosmetic: the number of clusters sets the spatial density of the control
 points, which is the independent variable the whole interpolation argument
 rests on.
 
-## D4. Per-farm against per-turbine
+## D4. Per-farm against per-turbine: settled from the data
 
-Chapter 4 says in its text that Germany and the United Kingdom are per-farm and
-Denmark per-turbine, and its Table 1 labels all three "Per-turbine capacity
-factors". This is an internal contradiction in an accepted chapter. It should
-be settled from the data and stated once in the manuscript, whatever else is
-decided, because it changes what a "control point" is in two of the three
-turbine-level rows.
+Chapter 4's text says Germany and the United Kingdom are per-farm and Denmark
+per-turbine; its Table 1 labels all three "Per-turbine capacity factors". **The
+text is right and the table is wrong**, and the register settles it:
 
-## D5. The country-level tier is not comparable without more work
+| Row | Register rows | Distinct observation units | Turbines per unit | Median unit capacity |
+|---|---|---|---|---|
+| DK | 5,618 | 5,618 | 1 | 660 kW |
+| DE | 10,889 | **1,162 plants** | 5 (median) | 5,925 kW |
+| UK | 6,618 | **360 accreditations** | 11 (median) | 16,200 kW |
 
-Forty of the 1,729 control points are country-level, and they cover the largest
-areas. The concern was that they are fallback-curve artefacts: the curve
-library study established that a country row whose grid names a curve the
-library lacks has every unit simulated on a 167 W/m2 fallback, and that the
-fitted wind scalar then absorbs the mismatch while staying inside the plausible
-band, so no degeneracy rule catches it.
+German IDs are `<plant> <unit>` and British ones `<accreditation>-<index>`, so
+the metadata is per turbine in all three while the observations are per plant
+for Germany and per accreditation for the United Kingdom. Independent
+confirmation: the British evaluation scores 348 units against a fleet of 5,998,
+which is the accreditation count less those with no observation in the test
+year, and not a turbine count.
 
-**The evidence available today points away from that.** Placing the chapter's
-scalars on the axis between today's fallback fit (C0) and today's real-curve
-fit (C1), as `t = (chapter - C0) / (C1 - C0)`, gives a median `t` of 0.81 by
-means and 0.93 by medians across the eight rows. The chapter's country tier
-sits nearer the real-curve fit than the fallback fit, and in four of eight rows
-it falls outside the interval altogether. The likely explanation is dating:
-country-level runs have used the default input root only since July 2026, and
-the chapter's runs predate that, so their grid keys would have resolved in the
-licensed library.
+The manuscript should state this once, whatever else is decided.
 
-That is an inference, not a record. **The chapter-era outputs carry no
-manifests**, so the library cannot be read from provenance. Four things differ
-at once between those runs and today's: cluster count (BE 3 against 12, IT 3
-against 12), the ERA5 extent, the training years, and the curve library era.
-What would separate them is a single row re-run at the chapter's cluster count
-on today's code, which is a phase 2 decision and not free.
+## D5. The country-level tier is real-curve-shaped, not fallback-shaped
+
+The concern was that the 40 country-level control points are artefacts of the
+fallback curve: the curve library study established that a country row whose
+grid names a curve the library lacks has every unit simulated on a 167 W/m2
+fallback, and that the fitted wind scalar absorbs the mismatch while staying
+inside the plausible band, so no degeneracy rule catches it.
+
+**It is not what happened.** Comparing the chapter's mean scalar per row with
+today's two fits, at the same cluster count and the same fixed time slice:
+
+| Row | Chapter | C0, fallback | C1, real curves | chapter / C0 | chapter / C1 |
+|---|---|---|---|---|---|
+| BE | 0.934 | 0.450 | 0.826 | 2.08 | 1.13 |
+| FR | 1.357 | 0.807 | 1.520 | 1.68 | 0.89 |
+| IE | 1.220 | 0.677 | 0.929 | 1.80 | 1.31 |
+| SE | 1.234 | 0.659 | 1.342 | 1.87 | 0.92 |
+| ES | 0.957 | 1.037 | 1.586 | 0.92 | 0.60 |
+| IT | 1.665 | 1.523 | 3.083 | 1.09 | 0.54 |
+
+Across the four rows with no other known defect, **the chapter's scalars match
+today's real-curve fit to a median ratio of 1.02**, range 0.89 to 1.31, mean
+absolute deviation 0.158; against the fallback fit the median ratio is 1.84 and
+the deviation 0.858. Spain and Italy are the outliers in both directions, and
+they are two of the three rows whose published winds were extrapolated up to
+five degrees past the ERA5 data (`method-eu-rerun.md`), which is an independent
+reason for them to sit apart.
+
+Matching the cluster count and the time slice moved the figures by at most 0.10,
+so neither was a confound. Training years are identical, 2015 to 2021. What
+remains is the ERA5 extent and the roughness treatment, and for the four clean
+rows those leave a 2% median discrepancy, which is small enough that the tier
+should be treated as real-curve-shaped.
+
+**How this was got wrong first, and the correction.** Italy was chosen as the
+single test row because its statistic was the most fallback-like of the eight.
+That is selection on the outcome: the row most likely to confirm the hypothesis
+was tested, it did confirm it, and the conclusion would have been the opposite
+of the truth. Extending the same test to every comparable row, and then setting
+aside the two rows with an independent known defect, reverses it. Italy is also
+one of those two.
+
+**Nothing from the chapter era is attributable to a code state.** The
+chapter-era outputs carry no run manifests: no version, no commit, no
+`git_dirty`, no curve library sha256. So the library those runs used cannot be
+read from provenance, and the conclusion above is an inference from the
+numbers. Anything the manuscript says about how the chapter's figures were
+produced rests on that inference and should say so.
 
 ## D6. The turbine tier reruns cleanly, and that is a finding
 
@@ -116,11 +151,13 @@ themselves, but what is built on top of them.
 
 ## Open discrepancies that block specific claims
 
-- **The IDW-against-kriging contest is untested against the degenerate control
-  points.** `pykrige` is not installed here, so only IDW and nearest neighbour
-  were re-scored when the five degenerate points were dropped. IDW moved 1.8%
-  and the chapter decides the contest on a 3% gap in scalar MAE. Untested, not
-  unaffected.
+- **The IDW-against-kriging contest survives the degenerate points**, now
+  tested with `pykrige` 1.7.3 installed. On scalar MAE, IDW beats ordinary
+  kriging with an exponential variogram and geographic coordinates by 7.9% over
+  all 1,729 points and by 5.4% with the five dropped. Dropping them narrows the
+  gap and does not close it, so the chapter's method choice stands on this
+  evidence. The absolute figures come from the reimplementation below and are
+  higher than the chapter's, which reports a 3% gap.
 - **A reimplementation of the chapter's spatial cross-validation matches it on
   offset and not on scalar**: offset MAE 0.632 against the published 0.641,
   scalar MAE 0.180 against 0.161. The likely cause is the onshore and offshore
