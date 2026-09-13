@@ -234,6 +234,40 @@ Number 3 is behaviour, and the port reproduces it while counting the off-curve
 values it produces, so the manuscript can say how much of any result rests on
 units that fell off the curve.
 
+## A candidate framing for the manuscript, not a decision
+
+The merged manuscript's spine has been "does interpolation generalise across
+country borders". **There is a better-founded question available**, and it is
+recorded here as a candidate rather than a choice:
+
+> Does interpolating a correction from control points of a different kind cause
+> the failures, and does separating them fix it?
+
+What makes it stronger than the original question is that it comes with a
+mechanism, a documented failure, and a fix, where the original comes with a
+negative result.
+
+- **The mechanism.** The chapter's surfaces are undivided, so an offshore unit
+  takes a correction dominated by nearby onshore control points. Denmark
+  offshore's self-weight is 0.045: 95.5% of its correction is other
+  configurations' answers, mostly the 884 Danish onshore clusters a short
+  distance away.
+- **The documented failure.** Denmark offshore is the chapter's own reported
+  failure case, grid kriging 0.1113 against an uncorrected 0.0822, and it is
+  the only configuration of the fourteen that is not majority self-determined.
+  The in-sample finding and the failure finding are the same thing seen twice.
+- **The fix.** Splitting the pool by domain, which the chapter's own code
+  comment says it intended, moves Denmark offshore from 0.1113 to 0.0496,
+  better than uncorrected and near the two-cluster baseline of 0.0403. It makes
+  the other three rows worse by 0.0007 to 0.0104, which is why this is a
+  question and not an answer.
+- **The connection to the country holdouts.** Offshore units corrected from
+  onshore control points is the cross-domain version of the problem cross-border
+  interpolation has. It explains a leave-one-country-out result from the inside
+  rather than reporting it from the outside.
+
+Registered as a study in `docs/findings/method-domain-split-prereg.md`.
+
 ## T1. A methods-section defect in chapter 4: log stated, linear computed
 
 **Chapter 4's methods section says the scalar error is evaluated in log space,
@@ -284,17 +318,29 @@ the chapter's numbers.
 The chapter ships two NetCDF files for `atlite` and PyPSA-Eur, and they are not
 built the way the grids its tables evaluate are built.
 
-`generate_best_correction_grids.py`, which produces the shipped files,
-interpolates **all 1,729 control points as one field with no onshore and
-offshore split**. Both files record `n_control_points: 1729` and neither
-carries a domain attribute. `compare_unified_corrections_to_grid.py`, which
-produces the grids behind Tables 6 and 7, splits the pool by `cluster_mode`
-first and interpolates each domain separately.
+*[Corrected 2026-09-13. This section previously said the shipped files are
+built from an undivided pool while the grids behind Tables 6 and 7 are split by
+domain, and concluded that the artefact and the evaluation are different
+objects in that respect. **Both are undivided.**
+`compare_unified_corrections_to_grid.py` calls `prepare_control_points`, which
+splits the pool, and then discards the split:
+`all_points = pd.concat([onshore, offshore], ignore_index=True)`, under a
+comment reading "For now, combine onshore and offshore for interpolation". The
+error was mine, from reading the split function and not the line that undoes
+it. Confirmed by reproduction: a single undivided surface reproduces all four
+Danish and British grid kriging figures to four decimals.]*
 
-So the artefact and the evaluation are different objects. **The shipped file was
-never the thing the tables measured**, and anyone regenerating from the shipped
-pipeline gets a third object again. The labelling problem below and the offshore
-pool question are both downstream of this one.
+`generate_best_correction_grids.py`, which produces the shipped files,
+interpolates **all 1,729 control points as one field**, and so does
+`compare_unified_corrections_to_grid.py`, which produces the grids behind
+Tables 6 and 7. **The pool is the same.**
+
+**The artefact and the evaluation still differ, in configuration rather than in
+pool.** The tables come from ordinary kriging with an exponential variogram in
+geographic coordinates; the shipped file is the hybrid, a spherical Euclidean
+scalar with a linear geographic offset, which the chapter evaluated and
+rejected. So the shipped file is still not the object the tables measured, and
+the gap is narrower than this section first claimed.
 
 **The labelling problem.** Chapter 4 evaluates a hybrid kriging, each target on
 its own cross-validation-optimal configuration, and rejects it at 4 improvements

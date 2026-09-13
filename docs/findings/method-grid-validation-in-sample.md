@@ -6,6 +6,39 @@ chapter, and the Netherlands result the merged manuscript's case rests on. The
 chapter is accepted and outside this repository; nothing in it is edited. Terms
 follow `CONTEXT.md`.
 
+**[Correction notice, 2026-09-13. The self-weight table below was published
+with the wrong pool, and the warning attached to it pointed the wrong way.]**
+
+**What was claimed.** That the measurement had to be made on domain-split
+surfaces because "the tables were produced from domain-split surfaces", that
+Denmark offshore's self-weight is 0.999, and that the undivided-pool reading of
+0.045 is a misleading number a future reader should discount.
+
+**What is true.** The chapter's script splits the control points by domain and
+then concatenates them straight back together before interpolating:
+`all_points = pd.concat([onshore, offshore], ignore_index=True)`, under a
+comment reading "For now, combine onshore and offshore for interpolation". **So
+the tables use no domain split at all**, the undivided pool is the right one to
+measure against, **0.045 is the correct figure for Denmark offshore and 0.999
+describes nothing**, and the warning written for future readers is backwards.
+Confirmed by reproduction: a single undivided surface reproduces all four
+Danish and British grid kriging figures to four decimals, where the split
+construction reproduces none of them.
+
+**How it happened, on both sides.** The 0.045 reading was measured first and
+was right. It was then withdrawn on a reasoning error of mine, and the
+withdrawal was accepted rather than challenged, so neither of us caught it. The
+error was self-serving in a specific way: 0.045 supported a tidy story, that
+the chapter's one documented failure was also its only out-of-sample
+configuration, and the discipline of distrusting a tidy story was applied to
+the evidence instead of to the reasoning. **The story was true.**
+
+**What stands.** Everything else in this document. The validation is in-sample,
+the code path has no holdout, the Netherlands is the least self-determined of
+the fourteen, and the deployment bound on the 2-to-5-degree band are all
+unaffected: they rest on the absence of a fold, not on how the pool was split.
+The numbers below are corrected in place.
+
 **The chapter's end-to-end validation extracts gridded corrections at each
 configuration's own observation locations from a surface interpolated from a
 control-point pool that contains that configuration's own control points. There
@@ -41,51 +74,41 @@ those same observations and then interpolated.
 
 ## How in-sample each configuration is, measured
 
-**The two offshore configurations state it most clearly. A surface built
-entirely from a configuration's own control points is not validated by that
-surface in any sense**, and that is what these two are:
+**Thirteen of the fourteen configurations are majority self-determined. The one
+that is not is the one the chapter reports as a failure.**
 
-| Configuration | Pool | Control points | Median self-weight | Minimum |
-|---|---|---|---|---|
-| **UK offshore** | offshore | 10 | **1.000** | 1.000 |
-| **DK offshore** | offshore | 2 | **0.999** | 0.998 |
+The share of the inverse-distance weight at each configuration's own footprint's
+grid cells that comes from its own control points, over the undivided pool the
+chapter's surfaces are built from:
 
-The offshore pool holds twelve points across the whole domain, so each
-configuration's own are the nearest by a wide margin and nothing else reaches
-them. Denmark offshore's grid correction is two numbers Denmark fitted,
-interpolated between themselves, scored against the observations they were
-fitted from.
+| Configuration | Control points | Median self-weight | Minimum |
+|---|---|---|---|
+| DK onshore | 884 | 0.982 | 0.576 |
+| UK onshore | 293 | 0.969 | 0.840 |
+| PT | 3 | 0.962 | 0.960 |
+| ES | 4 | 0.943 | 0.916 |
+| SE | 4 | 0.913 | 0.751 |
+| IT | 3 | 0.894 | 0.786 |
+| DE onshore | 500 | 0.889 | 0.319 |
+| IE | 3 | 0.868 | 0.781 |
+| NO | 5 | 0.840 | 0.315 |
+| FR | 10 | 0.835 | 0.719 |
+| UK offshore | 10 | 0.750 | 0.548 |
+| BE | 3 | 0.647 | 0.479 |
+| NL | 5 | 0.523 | 0.193 |
+| **DK offshore** | 2 | **0.045** | 0.028 |
 
-The rest follow the same pattern less completely. For each configuration, the
-share of the inverse-distance weight at its own footprint's grid cells that
-comes from its own control points, under the same domain split the tables used:
+**The in-sample finding and the failure finding are one thing.** Denmark
+offshore's correction is 95.5% other configurations' answers, because the
+surface is undivided and its two offshore control points are swamped by 884
+Danish onshore ones a short distance away. It is the only configuration in that
+position and it is the only configuration the chapter reports as failing, at a
+grid kriging MAE of 0.1113 against an uncorrected 0.0822. The other thirteen
+are majority their own answers and all of them work.
 
-| Configuration | Pool | Control points | Median self-weight | Minimum |
-|---|---|---|---|---|
-| DK onshore | onshore | 884 | 0.984 | 0.576 |
-| UK onshore | onshore | 293 | 0.971 | 0.855 |
-| PT | onshore | 3 | 0.962 | 0.961 |
-| ES | onshore | 4 | 0.944 | 0.917 |
-| SE | onshore | 4 | 0.913 | 0.752 |
-| IT | onshore | 3 | 0.894 | 0.787 |
-| DE onshore | onshore | 500 | 0.890 | 0.319 |
-| IE | onshore | 3 | 0.870 | 0.785 |
-| NO | onshore | 5 | 0.841 | 0.315 |
-| FR | onshore | 10 | 0.838 | 0.720 |
-| BE | onshore | 3 | 0.654 | 0.480 |
-| **NL** | onshore | 5 | **0.526** | 0.193 |
-
-**Fourteen of fourteen above 0.5. Seven above 0.9.**
-
-**The measurement is split-pool, and the undivided-pool number is misleading.**
-Measured against the whole 1,729-point pool rather than the domain split the
-tables used, Denmark offshore reads 0.045, which looks like the one genuinely
-out-of-sample configuration and would support a tidy story: that the chapter's
-single documented failure was also its only honest test. That story is false.
-The tables were produced from domain-split surfaces, where Denmark offshore is
-0.999. The undivided figure describes the shipped files, which are built
-without a split (see `manuscript-chapters-45.md`, T3), and it is recorded here
-because the next person to measure this will get 0.045 first.
+So the thirteen are not evidence that the method generalises; they are thirteen
+measurements of a correction reproducing the observations it was fitted from.
+The fourteenth is the only one that asked the question, and it failed.
 
 ## The Netherlands, specifically
 
