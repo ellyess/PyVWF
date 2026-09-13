@@ -54,7 +54,10 @@ They live in `.claude/skills/`.
   from memory. Concretely: read `git status` before `git add`, name the paths
   you mean; after pushing, confirm the remote tip with `git ls-remote` and a
   dispatched run's `headSha` before reading its result; and count what you are
-  about to assert rather than recalling it.
+  about to assert rather than recalling it. Read a command's own output rather
+  than a filter of it: grepping a batch of runs for `DONE|Error|Traceback`
+  kept the exception and dropped the line that named its cause, and the
+  diagnosis then cost a rerun.
 - **Read the checks before the commit command, not after.** Run ruff, the test
   files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
   read the output; then write the message. A message that says a check passed
