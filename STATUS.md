@@ -41,6 +41,13 @@ One line each. None is started.
   is a share of. Germany and the United Kingdom show the same mechanism.
   Whoever picks this up should start from Italy's `season_3` factors in
   `output/eu_rerun_2026-09-12/new/IT/train-new/`, not from a pathological fit.
+- **`load_turbine_metadata` truncates the Danish manufacturer to its first
+  word** ("NEG Micon" to "NEG"), and drops the `model` column entirely. The
+  truncation mis-classified 19.9% of DK capacity in the curve-match audit,
+  corrected in the scorecard on 2026-09-13 by reading the full string.
+  Changing the loader alters an input to a published row, so it is separate
+  work: it needs the DK row re-run, or a statement that the row's own figures
+  do not depend on the manufacturer, which they may not.
 - **`run_transfer` has no end-to-end test,** and returns frames without a run
   directory, so nothing records its provenance.
 - **`scripts/era5/combine.py` back-fills undefined roughness within one month

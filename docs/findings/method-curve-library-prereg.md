@@ -23,7 +23,8 @@ cannot pass a gate.
 - **Q2, turbine level.** Is specific power a sufficient statistic for power
   curve shape? Every turbine-level row except BR is assigned curves by
   specific power, and a large share of capacity runs on other-brand curves:
-  DE 40.0%, US 48.3%, UK 21.8%, DK 11.6%. If held-out skill survives
+  DE 40.0%, US 48.3%, UK 21.8%, DK 15.0% (corrected from 11.6%; see the
+  reported-not-gated section). If held-out skill survives
   other-brand matching, the design choice is vindicated. If not, curve
   assignment is a larger error source than the ERA5 bias the correction exists
   to remove.
@@ -91,8 +92,13 @@ and is corrected separately, with this measurement as its evidence.
 Three facts belong in the write-up whatever the gates do, and none of them is
 a condition:
 
-- **DK has 23.0% of capacity with no recorded manufacturer**, so its curve
-  match cannot be verified in either direction for that share.
+- **DK has 3.1% of capacity with no recorded manufacturer**, so its curve
+  match cannot be verified in either direction for that share. *[Corrected
+  2026-09-13: this said 23.0%, the figure the scorecard published. That figure
+  counted every NEG Micon unit as unverifiable, because the loader truncates
+  the Danish manufacturer to its first word and "neg" is a stop word in the
+  audit. Denmark's manufacturers are recorded; part of each is discarded on the
+  way in. The scorecard's DK row is corrected with it.]*
 - **BR records no manufacturers at all.** It is excluded from Q2's conditions
   for that reason, not for its result.
 - **CL is the extreme case of the thing this study is about and is not in it.**

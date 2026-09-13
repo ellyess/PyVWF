@@ -35,6 +35,24 @@ Run each file in its own process:
 
 A failure stops the release. Report it; do not work around it.
 
+## 1a. Guards
+
+**A guard that has never been seen to fire is an assumption.** For each check
+that exists to catch a failure rather than to compute a number, confirm it has
+been proved to catch that failure, and record when it was. Proving one is
+cheap: point it at input you know is wrong and watch it refuse.
+
+Three are in play, and their state as of 2026-09-13:
+
+| Guard | What it refuses | Proved to fire |
+|---|---|---|
+| The ERA5 extent guard (`vwf.wind.ExtrapolationError`) | a unit outside the loaded extent | not deliberately; it fired on Denmark in the course of work |
+| The curve library study's override refusal | a fleet that is not the one a condition asked for | no |
+| The same study's library check | a run that resolved the wrong curve library | **yes, 2026-09-13**, by naming the open library's hash for a run on the combined one |
+
+A guard in the "no" column is not evidence that the failure it names has not
+happened. It is evidence that nobody has checked.
+
 ## 2. Scorecard reproducibility claims
 
 This check needs the local run tree under `output/`, so it cannot run in CI.

@@ -363,6 +363,26 @@ The rule is strict and names brands, not lineages. A Bonus turbine on a
 Siemens curve counts as other brand. A GE plant on the DOE reference curve of a
 GE 1.5 MW machine counts as a reference curve; that is 6.6% of US capacity.
 
+**Correction notice, 2026-09-13: Denmark's three audit shares were computed on
+truncated manufacturers.** `load_turbine_metadata` truncates the Danish
+manufacturer to its first word, so "NEG Micon" becomes "NEG", and the audit's
+stop-word list contains "neg", correctly, as a word that never identifies a
+brand on its own. Together they classify every NEG Micon unit as unverifiable:
+994 units in the register, 1,034 in the fitted fleet, 19.9% of its capacity.
+Read with the full manufacturer string the row reads:
+
+| | Published | Corrected |
+|---|---|---|
+| Other brand | 11.6% | **15.0%** |
+| Reference curve | 0.6% | **1.7%** |
+| Unverifiable | 23.0% | **3.1%** |
+
+The table above now carries the corrected figures. **The claim those numbers
+supported was wrong in kind, not only in size:** Denmark's manufacturers are
+recorded, and the pipeline discards part of each one. No other row is affected,
+because no other loader branch truncates. The truncation itself is not changed
+here: it is an input to a published row, and changing it is separate work.
+
 **`add_models` reads a manufacturer, a capacity, a rotor diameter and a hub
 height, and no model designation, for any region.** So the designations the
 Danish and British registers do record are unused by curve assignment as it
@@ -389,7 +409,7 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Roughness | Other brand | Reference curve | Unverifiable |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed | per timestep | 40.0% | 8.9% | 0.0% |
-| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 11.6% | 0.6% | 23.0% |
+| Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 15.0% | 1.7% | 3.1% |
 | Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
 | United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
