@@ -41,6 +41,17 @@ recommendation rests on anything.
 | **P0** | Declared: `cluster_mode == "offshore"`, 12 points. Reproduces the chapter. |
 | **P1** | Shape-classified: strictly inside `offshore_shapes.geojson`, 32 points. |
 
+**A study-scoped bounding box, decided before the run.** The chapter-era Danish
+onshore fleet reaches 15.139 degrees east and today's `configs/regions/dk.toml`
+stops at 13.5, so 47 of its 4,888 units, **0.82% of capacity**, would fall
+outside the loaded extent. `era5/EU` holds data to 22.0 east, so this is a box
+to widen and not an extrapolation to allow: the box is widened to 15.4 east
+**for this study only**, `dk.toml` is untouched, and no unit is simulated from
+extrapolated winds. Both conditions load the same extent, so the comparison is
+unaffected either way. Bornholm remains its own open item in `STATUS.md`, and
+the chapter-era fleet has proportionally more capacity out there than today's
+row does: 0.82% against 0.6%.
+
 Everything else is held: the same 1,729 control points, the same interpolation
 functions ported from the chapter's own script, the same variogram
 configuration the chapter adopted (ordinary kriging, exponential, geographic),
@@ -100,6 +111,32 @@ acted on. This study is where the choice is examined.
 |---|---|---|
 | **O1** | Denmark offshore's grid kriging MAE under P1 is below its uncorrected MAE of 0.0822. That is the minimum for the chapter's explanation to be the right one, since it says the failure is caused by having too few points. | |
 | **O2** | No row that the pool change does not touch moves by more than 0.001 in MAE. If untouched rows move, the two conditions differ in something other than the pool and the comparison is void. | |
+
+## A gate stated against another pipeline's number, 2026-09-13
+
+**Registered before any number of this study exists.** Several gates here are
+stated against figures published by thesis chapter 4, which were produced by a
+different pipeline: a different roughness treatment, no extent guard, and a
+codebase 315 commits behind. Re-running today cannot reproduce those conditions
+and is not trying to.
+
+The rule, which applies to every gate in this document and to any later one:
+
+**A gate stated against a figure from another pipeline is either verified
+against today's equivalent or restated against it. It is never read across
+pipelines silently.**
+
+In practice: today's equivalent of the published figure is computed first and
+reported beside it. If the two agree closely, the gate reads as registered and
+the agreement is the evidence that it may. If they diverge, the gate is read
+against today's figure and **the substitution is recorded as a dated
+deviation**, with both numbers, because a gate's substance is a comparison
+between two things measured the same way.
+
+The direction this protects against is specific: a gate like "the correction
+beats no correction" is meaningless if the correction is measured in one
+pipeline and the baseline quoted from another, since the difference then
+carries every change between the two.
 
 ## Registered predictions
 

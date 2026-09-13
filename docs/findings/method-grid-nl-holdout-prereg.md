@@ -64,6 +64,32 @@ and it does bound what the numbers mean about the Netherlands.
 | **H-G2** | H1's best gridded MAE is below the five-cluster country correction's 0.1162. This is the chapter's claim as the manuscript needs it: neighbours alone beat a sparse local fit. | |
 | **H-G3** | H0 reproduces the chapter's published 0.0563 for kriging and 0.1744 for IDW, to three decimals. **If it does not, the study is void** and the discrepancy is diagnosed before anything else is read, because H1 is only interpretable against an H0 that reproduces. | |
 
+## A gate stated against another pipeline's number, 2026-09-13
+
+**Registered before any number of this study exists.** Several gates here are
+stated against figures published by thesis chapter 4, which were produced by a
+different pipeline: a different roughness treatment, no extent guard, and a
+codebase 315 commits behind. Re-running today cannot reproduce those conditions
+and is not trying to.
+
+The rule, which applies to every gate in this document and to any later one:
+
+**A gate stated against a figure from another pipeline is either verified
+against today's equivalent or restated against it. It is never read across
+pipelines silently.**
+
+In practice: today's equivalent of the published figure is computed first and
+reported beside it. If the two agree closely, the gate reads as registered and
+the agreement is the evidence that it may. If they diverge, the gate is read
+against today's figure and **the substitution is recorded as a dated
+deviation**, with both numbers, because a gate's substance is a comparison
+between two things measured the same way.
+
+The direction this protects against is specific: a gate like "the correction
+beats no correction" is meaningless if the correction is measured in one
+pipeline and the baseline quoted from another, since the difference then
+carries every change between the two.
+
 ## Registered predictions
 
 | # | Prediction | Outcome |

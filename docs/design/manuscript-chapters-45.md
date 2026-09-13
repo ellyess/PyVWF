@@ -208,11 +208,24 @@ against the text rather than by any check firing.
 | 3 | "corrected wind speeds are clipped to physically admissible bounds before conversion" | the speed is not clipped; the resulting capacity factor is clipped to 0 and 1 | An over-corrected unit falls off the end of the curve table, returns missing, and drops out of the metrics without trace rather than being clipped into range. |
 | 4 | Germany and the United Kingdom are per-farm, Denmark per-turbine | Table 1 of the same chapter labels all three "Per-turbine capacity factors" | Misreads what a control point is in two of the three turbine-level rows. See D4. |
 
-**Three of the four are in the direction of making the method sound more
-careful than it was**: log space for symmetry, clipping to admissible bounds,
-and standard kriging rather than a rejected hybrid. That is worth stating
-plainly, because it is a pattern with a direction and not a scatter of
-typographical slips.
+**Three of the four make the method sound more careful than it was, and none
+runs the other way.** Log space for symmetry around unity, clipping to
+physically admissible bounds, and standard kriging rather than a rejected
+hybrid: each describes a more careful choice than the code makes. The fourth,
+the per-turbine label, is a plain error with no direction.
+
+One would be an error. **Three in the same direction with none opposing is a
+pattern in how the chapter was written**, and the consequence for a reader is
+specific and not an accusation: **a reader working from the prose consistently
+overestimates the rigour of the method.** They are not misled about the
+results, which reproduce; they are misled about how the results were obtained.
+
+**What it means for the manuscript: every method statement inherited from the
+chapters is checked against the code rather than carried over.** Not the
+results, which have held up wherever they have been checked, but the sentences
+describing how they were produced. Four of four checked so far have disagreed
+with the code, which makes carrying any of them across unexamined an unforced
+risk.
 
 **What the manuscript inherits.** Number 4 is settled from the data and simply
 stated correctly. Number 1 is a metric decision, taken in T2. Number 2 is the
