@@ -195,11 +195,11 @@ these chapters can be reproduced on today's code and give the same answer. It
 also bounds what a re-run can be expected to change: not the corrections
 themselves, but what is built on top of them.
 
-## Resolved: the chapter's prose and its code disagree about the scalar error
+## T1. A methods-section defect in chapter 4: log stated, linear computed
 
 **Chapter 4's methods section says the scalar error is evaluated in log space,
-"for symmetry around unity", and its code computes it in linear space.** The
-published figures are the linear ones:
+"for symmetry around unity", with the equation written out; its code computes
+it in linear space, and the published numbers are the linear ones.**
 
 ```python
 scalar_mae = np.abs(scalar_pred - scalar_true).mean()
@@ -215,30 +215,81 @@ own fold construction, matches every published IDW figure:
 | scalar RMSE | 0.2470 | 0.2470 | 0.2490 |
 | offset MAE | 0.6408 | 0.6410 | 0.6408 |
 
-So the chapter is reproducible and its stated method is not what it did. This
-matters for the manuscript in three ways. Anyone reproducing from the prose
-lands 13% high. The stated justification, symmetry around unity, was never
-applied, and the scalar distribution is asymmetric about 1, running from 0.216
-to 4.644, so linear absolute error weights the upper tail more heavily than the
-lower. And the merged manuscript has to say which space it uses and use it.
+This is a defect in an accepted chapter, and **nothing is fixed in the thesis**.
+It is recorded because the stated justification was never applied and anyone
+reproducing from the prose lands 13% high.
 
-It no longer blocks anything. It is a known, quantified difference.
+**Chapter 5 does not share it.** It makes no log-space claim anywhere, and the
+driver that produced its headline tables, `run_turbine_model_comparisons.py`,
+does not pass the `log_target` flag, which defaults to false. So chapter 5 is
+internally consistent and linear. **Both chapters' published scalar figures are
+therefore in the same space**, which is what makes their numbers comparable at
+all, and it is comparability the merged manuscript needs.
 
-## Live defect: the offshore shapes overlap each other
+## T2. The metric is the manuscript's decision, not an inheritance
 
-The spatial-join classification ported on 2026-09-13 had a defect where a point
-falls inside two overlapping polygons **of the same file** (see the commit for
-`src/vwf/geospatial.py`). That needs internally overlapping shapes to bite, and
-the project's shape files are not alike in this:
+Linear absolute error on a scalar running from 0.216 to 4.644 weights the upper
+tail, and the upper tail is where the country-level tier and all five
+degenerate points sit. Log error weights proportional departures from unity
+equally in both directions, which is what the chapter said it wanted.
+
+The paper has to state which it uses and why. **If it uses log, chapter 4's
+scalar figures move**: IDW from 0.161 to 0.183, and every method's figure with
+it, so the comparison table is restated rather than quoted. If it uses linear,
+it says so and notes that the chapter's stated justification does not describe
+the chapter's numbers.
+
+## T3. The shipped kriging grid is not the configuration the chapter recommends
+
+Chapter 4 evaluates a hybrid kriging, each target on its own
+cross-validation-optimal configuration, and rejects it: it improves on standard
+kriging in 4 of 14 cases and degrades in 9. It adopts "OK, exponential,
+geographic" as the standard, and describes the shipped file as "standard
+kriging with variance-based masking".
+
+**The shipped file is the hybrid.** `europe_corrections_kriging_best.nc`
+carries `method: kriging_hybrid`, `scalar_variogram: spherical`,
+`scalar_coordinates: euclidean`, `offset_variogram: linear`,
+`offset_coordinates: geographic`, which is the rejected configuration, not the
+adopted one.
+
+This is the PyPSA-Eur deliverable, so it matters under the artefact's own
+standard rather than the method comparison's: whatever the manuscript concludes
+about which interpolator is better, the file that downstream work consumes has
+to be the file the text describes.
+
+## T4. The spatial-join defect was latent, and where it could have bitten
+
+The defect fixed in the `src/vwf/geospatial.py` port needs polygons that
+overlap **within one file**, and the project's two files are not alike:
 
 | File | Polygons | Genuinely overlapping pairs |
 |---|---|---|
-| `country_shapes.geojson` | 25 | **0** (shared borders only) |
+| `country_shapes.geojson` | 25 | **0**, shared borders only |
 | `offshore_shapes.geojson` | 19 | **44** |
 
-So the onshore side was never exposed and the offshore side was. Where that
-reaches chapter 4's published numbers depends on what the grid export does with
-the classification, which is answered when `extensions/grid` lands.
+So it could only ever have reached the offshore side. That is **12 of the 1,729
+control points**, the turbine-level offshore clusters of Denmark and the United
+Kingdom, and not the 40-point country-level tier, whose points carry
+`cluster_mode = "all"` and which the chapter's own code assigns to onshore.
+
+**It reached nothing.** Run on the real 1,729 points with the project's shape
+files, the ported and original implementations agree on every one: 1,687
+onshore, 32 offshore, 10 unknown, zero disagreements. And the published grid
+files record `n_control_points: 1729` with no domain split at all, so
+`export_pyvwf_grid`, which is the only caller of the classification, is not
+behind any published figure. The defect is real, reproducible on constructed
+input, and latent on this one.
+
+**A separate disagreement is not latent.** The pool's declared `cluster_mode`
+and the shape classification differ on **30 of 1,729 points**: 19 clusters
+declared onshore fall inside offshore shapes (11 Danish, 8 British), one
+declared offshore falls onshore, and 10 fall outside both files and are
+unknown. Any code path that splits by shapes rather than by the declared mode
+therefore kriges a different offshore pool from the one the chapter describes:
+32 points rather than 12, and Denmark's offshore pool would not be the two
+points its documented failure case rests on. Which pool a ported
+`export_pyvwf_grid` should use is a decision, not a detail.
 
 ## Running leave-one-country-out for the interpolators
 
