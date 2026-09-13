@@ -53,11 +53,42 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-import baseline_bootstrap as bb
-import roughness_treatment_study as rts
-from vwf.harness import driver
-from vwf.harness.regions import load_region
-from vwf.harness.skill import restrict_to_common_rows
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import baseline_bootstrap as bb  # noqa: E402
+import roughness_treatment_study as rts  # noqa: E402
+from vwf.harness import driver  # noqa: E402
+from vwf.harness.regions import load_region  # noqa: E402
+from vwf.harness.skill import restrict_to_common_rows  # noqa: E402
+
+
+def drop_run_exclusions(frame: pd.DataFrame, ev: Path, keys: list[str],
+                        scope: str) -> pd.DataFrame:
+    """The frame without the rows the run itself excluded from its score.
+
+    A run scores every variant on the rows all of its variants can score, and
+    writes the rest to ``scoring_exclusions.csv``. Rebuilding a frame from
+    ``unc_cf.csv`` and ``cor_cf_*.csv`` reconstructs every row, including those,
+    so the rebuilt score reproduces ``metrics.csv`` only for a run that excluded
+    nothing. Every European row and every C1 and C2 run excluded nothing, which
+    is why this went unnoticed until the US, whose runs each exclude 11 rows at
+    0.019% of capacity.
+
+    Without this, the 1e-12 self-check compares a number scored on all rows
+    with one scored on the common rows and refuses a run that is perfectly
+    sound. With it, each side is checked against the convention it was written
+    under, and the cross-condition restriction that follows is unchanged.
+    """
+    path = ev / "scoring_exclusions.csv"
+    if not path.exists():
+        return frame
+    excluded = pd.read_csv(path)
+    excluded = excluded[excluded["scope"] == scope]
+    if excluded.empty or not set(keys) <= set(excluded.columns):
+        return frame
+    left = frame.assign(**{k: frame[k].astype(str) for k in keys})
+    right = excluded[keys].astype(str).drop_duplicates().assign(_excluded=True)
+    merged = left.merge(right, on=keys, how="left")
+    return frame[merged["_excluded"].isna().to_numpy()]
 
 
 def _conditions(argv) -> dict[str, Path]:
@@ -95,10 +126,14 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
                              f"differs from the baseline's {year}")
         treatments[label] = (manifest.get("era5_roughness") or {}).get("applied")
 
+    scope = "national" if is_country else "fleet"
+    keys, weight, _ = driver._SCOPE_KEYS[scope]
+
     frames, point = {}, {}
     for label, ev in runs.items():
         metrics = pd.read_csv(ev / "metrics.csv")
         for kind, frame in rts._frames(ev, spec, obs, turb_info, reported).items():
+            frame = drop_run_exclusions(frame, ev, keys, scope)
             frames[f"{label}_{kind}"] = frame
             got = rts._score(frame.dropna(subset=["cf_sim", "cf_obs"]), is_country)
             row = metrics[metrics["variant"] == "uncorrected"] if kind == "uncorrected" \
@@ -112,7 +147,6 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
                 raise SystemExit(f"{code} {label} {kind}: rebuilt RMSE {got['rmse']} differs "
                                  f"from metrics.csv {published}")
 
-    keys, weight, _ = driver._SCOPE_KEYS["national" if is_country else "fleet"]
     common, excluded = restrict_to_common_rows(frames, keys, weight=weight)
     rng = np.random.default_rng(bb.SEED)
     if is_country:
