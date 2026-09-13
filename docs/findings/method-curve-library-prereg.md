@@ -46,11 +46,35 @@ going wrong. **It is not that.** There was nothing better to match against:
 else, so with no designation recorded, the nearest specific power within a
 fuzzy manufacturer match is the only assignment the data permits.
 
-**Denmark's designation is dropped a layer earlier still.**
+**Denmark's designation is dropped a layer earlier still, and Denmark's alone.**
 `load_turbine_metadata`'s column allowlist for DK keeps ID, manufacturer,
 capacity, diameter, height, lon, lat and location_type, and drops `model`. So
-the Danish designation does not merely go unread by the matching: it never
-enters the pipeline. T1 reads `dk_md.csv` directly to recover it. Germany is a
+the Danish designation does not merely go unread by the matching: **it never
+enters the pipeline**, and nothing downstream could use it if it wanted to. T1
+reads `dk_md.csv` directly to recover it.
+
+Checked for the other two, since the claim is about a route rather than a
+register:
+
+| Register | Designation | Route | Reaches the fleet |
+|---|---|---|---|
+| DK | `model` column | `load_turbine_metadata`, whose DK allowlist omits it | **no** |
+| UK | packed into `manufacturer` | `load_turbine_metadata`, which keeps every column for UK | yes, inside the manufacturer field |
+| US | `uswtdb_model` | the plant metadata, which does not use that loader | yes, in its own column |
+| DE | none recorded | n/a | n/a |
+
+So the United Kingdom's and the United States' designations arrive intact and
+are simply never read; Denmark's is discarded on the way in. Three registers,
+three states, and one common consequence: no designation reaches curve
+assignment anywhere in PyVWF.
+
+**One more thing the DK route does.** The same branch truncates the
+manufacturer to its first word: "Vestas Wind Systems A/S" becomes "Vestas",
+"NEG Micon" becomes "NEG", "Solid Wind Power A/S" becomes "Solid". The
+curve-match audit and T2 read that truncated string, and for the brand
+comparison it is harmless, since a library brand word still matches. It is
+recorded because it is a silent alteration of source data on a path the study
+depends on, not because it changes a figure here. Germany is a
 data-availability limit, not a method limit, and the two carry different
 consequences: a method limit would argue for changing the matching, and this
 argues for a better register.
@@ -134,10 +158,36 @@ condition that changes any of them is a different experiment:
 |---|---|---|
 | C0, as reported | open | as in the grids; every unit substituted to the fallback curve |
 | C1, licensed | combined | as in the grids; each resolves to its own Vestas curve |
-| C2, open best match | open | each Vestas key replaced by the nearest-specific-power open model within the 0.5 to 2 times rating band (`assign_curves_from_library`'s rule) |
+| C2, open best match | open | each Vestas key replaced by the nearest-specific-power open model within the 0.5 to 2 times rating band (`assign_curves_from_library`'s rule), **reported in three tiers, never pooled** |
 
-C2 is limited by the open library: its nearest in-band match for V90-3.0 is
-`BAR_HighSP_5.0MW_134.9` at 350 W/m2, against 472 W/m2.
+### C2 is three experiments, not one, and the tiers are fixed here
+
+Each country grid names exactly one key, and the open library's nearest in-band
+match for those three keys is not equally near. The substitutes and their
+distances were computed before any run
+(`scripts/analysis/curve_library_tables.py`, tables in
+`output/curve_library_study_2026-09-13/tables/`):
+
+| Tier | Rows | Key | Substitute | Distance in specific power | Distance in rating |
+|---|---|---|---|---|---|
+| **near** | ES, IE | `Vestas.V90.2000`, 314 W/m2 | `VestasV82_1.65MW_82` | -1.9 W/m2 | -350 kW |
+| **moderate** | FR, IT, PT | `Vestas.V80.2000`, 398 W/m2 | `EWT_DW58_1MW_58` | -19.4 W/m2 | -1,000 kW |
+| **far** | BE, NO, SE | `Vestas.V90.3000`, 472 W/m2 | `NREL_Reference_5MW_126` | -70.6 W/m2 | +2,000 kW |
+
+**C2 is reported per tier, and any gate touching C2 is evaluated per tier and
+never across all eight countries.** Pooling them would average a swap of
+1.9 W/m2 against a 5 MW reference design standing in for a 3 MW machine, and
+the spread that produced would read as a finding about the open library when it
+is a finding about which substitute each country happened to land on. The tiers
+are fixed here, from the distances above, before any C2 run exists.
+
+*[Correction, 2026-09-13: this section predicted the nearest in-band open match
+for the V90-3.0 would be `BAR_HighSP_5.0MW_134.9` at 350 W/m2 against 472. The
+curve is wrong and the direction is right: the nearest is
+`NREL_Reference_5MW_126` at 401 W/m2, so the gap is 70.6 W/m2 rather than the
+122 predicted. The point the prediction was making, that the open library has
+no close match for the highest-specific-power key, stands with a smaller
+number.]*
 
 **Q2: the four turbine-level rows that depend on the licensed library** (DE,
 DK, UK, US):
@@ -246,7 +296,7 @@ its own evidence rather than being settled by a narrow reading.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **G1** (Q1) | For each country, the absorbed share is A = (uncorrected RMSE in C0 minus uncorrected RMSE in C1) divided by the correction gain in C0. **The scoreable set is fixed here, from C0, at seven:** BE, ES, FR, IE, IT, PT and SE. NO is excluded because its C0 correction gain is not positive, so there is no denominator to divide by. The fallback curve is a material part of the country-level correction if A is at least 0.5 in at least **4 of those 7**. **Indeterminate** if the interval on the C0-minus-C1 uncorrected RMSE difference includes zero in more than 3 of the 7, since A is then built on differences the design cannot resolve. | |
+| **G1** (Q1) | Uses C0 and C1 only, which are not tiered: C1 gives every country its own curve, so the countries differ in fleet rather than in how near a substitute fell. For each country, the absorbed share is A = (uncorrected RMSE in C0 minus uncorrected RMSE in C1) divided by the correction gain in C0. **The scoreable set is fixed here, from C0, at seven:** BE, ES, FR, IE, IT, PT and SE. NO is excluded because its C0 correction gain is not positive, so there is no denominator to divide by. The fallback curve is a material part of the country-level correction if A is at least 0.5 in at least **4 of those 7**. **Indeterminate** if the interval on the C0-minus-C1 uncorrected RMSE difference includes zero in more than 3 of the 7, since A is then built on differences the design cannot resolve. | |
 | **G2a** (Q2, T1) | **DK and UK only.** Specific power is sufficient for a region if the paired interval for corrected RMSE in T1 minus T0 includes zero, or excludes it by less than the 0.002 screen. It is insufficient if T1 beats T0 by more than the screen. **Precondition, measured before this record was fixed:** the gate applies only where T1 reassigns at least **10% of capacity**. DK (50.2%) and UK (53.3%) pass it; **DE is untestable at 0.0%**, for the reason above, and is reported as such rather than as a failure; **the US is ungated regardless of its coverage** (32.0%), which is reported as a finding about the licensed library's reach into the US fleet. **A T1 materially worse than T0 suspends this gate** pending a diagnosis of the matcher: a matcher that assigns a worse curve than specific power did is more likely to be wrong than specific power is to be right. | |
 | **G2b** (Q2, T2) | **All four regions, DE included.** The same test for T2 minus T0. Specific power survives other-brand matching in a region if the interval includes zero or excludes it by less than the screen. T2 reassigns by rating band and specific power and needs no register designation, so Germany's missing designations do not reach it. | |
 | **G3** (Q2) | Curve assignment is a larger error source than ERA5 bias for a region if the spread of uncorrected RMSE across T0, T1 and T2 exceeds that region's correction gain in T0. **Indeterminate** for a region whose T1 is suspended under G2a. | |
@@ -271,6 +321,7 @@ reported as such.
 |---|---|---|
 | P1 | In C1, uncorrected MBE falls in at least 6 of the 8 countries, because a 167 W/m2 curve overproduces at moderate wind speeds. | |
 | P2 | In at least 6 of the 8 countries, the paired interval for corrected RMSE in C1 minus C0 includes zero: the correction absorbs the curve error either way. | |
+| P2b | C2's corrected RMSE moves further from C0 in the far tier than in the near tier. The near tier's substitute sits 1.9 W/m2 away and the far tier's 70.6 W/m2, so a C2 result that does not order that way would say the distance in specific power is not what drives the difference. | |
 | P3 | G1 passes. | |
 | P4 | In T2, the paired interval for corrected RMSE minus T0 includes zero in DE, DK and UK: at monthly resolution the correction absorbs other-brand curve shape. T2 reaches all four regions, so this is a prediction about three of them and the US is reported beside it. | |
 | P5 | The paired interval for uncorrected RMSE excludes zero between at least two of T0, T1 and T2, in at least 2 of the 3 regions where all three conditions exist (DK, UK, US). Germany has T0 and T2 only. | |
