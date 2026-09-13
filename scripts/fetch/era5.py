@@ -100,6 +100,12 @@ would mean raising the cap buys little. That is at least consistent with ECMWF
 documenting no number while evidently applying one. Measure again before
 relying on any of it.
 
+**The split step is serialised.** Only the CDS request runs concurrently. The
+netCDF split that follows holds ``SPLIT_LOCK``, because netCDF4/HDF5 segfaults
+when two threads write at once unless the library was built thread-safe, which
+varies by machine. It costs nothing: a split is seconds against a queue wait of
+minutes.
+
 **The client is not shared between workers.** ``requests.Session`` is not
 thread-safe, so each worker builds its own client. That is enough on the path
 this key takes: a key without a colon routes ``cdsapi.Client`` to
@@ -149,6 +155,13 @@ MAX_CHUNK_MONTHS = 12
 # judgement about unmeasurable risk, not a published figure: see the docstring.
 MAX_WORKERS = 6
 RECOMMENDED_WORKERS = 4
+# netCDF4/HDF5 is not thread-safe unless the library was built for it, and
+# whether it was is a property of the machine, not of this code. Two workers
+# splitting their chunks at the same moment segfaulted the process on all three
+# CI Pythons while passing on the author's Mac. The download itself stays
+# concurrent, which is the whole point, since the queue is the cost; only the
+# split is serialised, and it takes seconds against a queue wait of minutes.
+SPLIT_LOCK = threading.Lock()
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
 
 
@@ -323,7 +336,8 @@ def fetch_chunk(clients, spec, out_dir: Path, tag: str, year: int, chunk) -> dic
     t0 = time.time()
     try:
         clients().retrieve(DATASET, chunk_request(spec, year, months), str(part))
-        written = split_and_write(part, chunk)
+        with SPLIT_LOCK:                       # netCDF is not thread-safe
+            written = split_and_write(part, chunk)
         result["written"] = written
         result["mb"] = sum(p.stat().st_size for p in written) / 1e6
     except Exception as exc:  # noqa: BLE001  (reported, not swallowed)

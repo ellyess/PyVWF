@@ -12,6 +12,8 @@ touches the network: ``cdsapi`` is imported inside ``main`` only when there is
 something to fetch.
 """
 import importlib.util
+import shutil
+import time
 from argparse import Namespace
 from pathlib import Path
 
@@ -131,18 +133,27 @@ def _months_file(path, year, months):
 
 
 class FakeClient:
-    """Writes the target file the way ``retrieve`` does, or refuses."""
+    """Writes the target file the way ``retrieve`` does, or refuses.
 
-    def __init__(self, year, months, refuse_months=()):
+    The real ``retrieve`` streams bytes to a path; it is not a netCDF writer.
+    So does this: a chunk's content is built once, serially, and copied. Having
+    the stand-in write netCDF from several threads would test the stand-in, and
+    on a machine whose HDF5 is not thread-safe it segfaults the process.
+    """
+
+    def __init__(self, year, months, refuse_months=(), source=None):
         self.year, self.months, self.refuse = year, months, set(refuse_months)
-        self.calls = []
+        self.source, self.calls = source, []
 
     def retrieve(self, dataset, request, target):
         got = [int(m) for m in request["month"]]
         self.calls.append(got)
         if self.refuse & set(got):
             raise RuntimeError("cost limits exceeded")
-        _months_file(target, int(request["year"][0]), got)
+        if self.source is not None:
+            shutil.copyfile(self.source[tuple(got)], target)
+        else:
+            _months_file(target, int(request["year"][0]), got)
 
 
 def test_a_worker_reports_a_refusal_instead_of_raising(tmp_path):
@@ -215,10 +226,15 @@ def test_one_refused_chunk_does_not_lose_the_others(tmp_path):
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     spec, _ = fetch.resolve_spec(args(code="eu", bbox=EU_BOX, years=[2015]))
-    chunks = [(2015, _chunk(tmp_path, 2015, ms))
-              for ms in ([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])]
+    groups = ([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])
+    chunks = [(2015, _chunk(tmp_path, 2015, ms)) for ms in groups]
+    source = {}
+    for ms in groups:                      # built serially: see FakeClient
+        source[tuple(ms)] = tmp_path / f"source_{ms[0]}.nc"
+        _months_file(source[tuple(ms)], 2015, ms)
     clients = fetch.thread_local_clients(
-        lambda: FakeClient(2015, list(range(1, 13)), refuse_months=[7, 8, 9]))
+        lambda: FakeClient(2015, list(range(1, 13)), refuse_months=[7, 8, 9],
+                           source=source))
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(fetch.fetch_chunk, clients, spec, tmp_path, "eu", y, c)
@@ -227,8 +243,47 @@ def test_one_refused_chunk_does_not_lose_the_others(tmp_path):
 
     failed = [r for r in results if r["error"]]
     assert len(failed) == 1 and failed[0]["months"] == [7, 8, 9]
-    assert len(sorted(tmp_path.glob("*.nc"))) == 9     # the other three chunks
+    written = [p for p in tmp_path.glob("era5_eu_*.nc")]
+    assert len(written) == 9                           # the other three chunks
     assert list(tmp_path.glob("*.part")) == []
+
+
+def test_the_split_step_never_runs_in_two_workers_at_once(tmp_path, monkeypatch):
+    """netCDF4/HDF5 is not thread-safe unless the library was built for it, and
+    two concurrent splits segfaulted the process on every CI Python while
+    passing locally. The download stays concurrent; the split holds a lock."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    spec, _ = fetch.resolve_spec(args(code="eu", bbox=EU_BOX, years=[2015]))
+    groups = ([1], [2], [3], [4])
+    source = {}
+    for ms in groups:
+        source[tuple(ms)] = tmp_path / f"src_{ms[0]}.nc"
+        _months_file(source[tuple(ms)], 2015, ms)
+
+    inside, overlaps = [], []
+    real_split = fetch.split_and_write
+
+    def watched(part_path, chunk):
+        inside.append(1)
+        if len(inside) > 1:
+            overlaps.append(len(inside))
+        time.sleep(0.05)                   # long enough for another to arrive
+        try:
+            return real_split(part_path, chunk)
+        finally:
+            inside.pop()
+
+    monkeypatch.setattr(fetch, "split_and_write", watched)
+    clients = fetch.thread_local_clients(
+        lambda: FakeClient(2015, [1, 2, 3, 4], source=source))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(fetch.fetch_chunk, clients, spec, tmp_path, "eu", 2015,
+                               _chunk(tmp_path, 2015, ms)) for ms in groups]
+        results = [f.result() for f in futures]
+
+    assert not overlaps, "two workers were inside the split step at once"
+    assert all(r["error"] is None for r in results)
 
 
 @pytest.mark.parametrize("workers", ["0", "7"])
