@@ -348,6 +348,33 @@ fork of PyPSA/pypsa-eur with no forks of its own. The mitigation is that
 the grid, and the run fails on a missing file rather than silently using a
 mislabelled one. Nothing has been edited in that repository from here.
 
+## T8. The wind-power metadata defect is latent, and the shipped files are correct
+
+The ported export writer stated, in the attributes it wrote onto every file,
+that the scalar is a "Multiplicative correction applied to wind power output".
+**It applies to wind speed, before the power curve**, and the whole method
+depends on that: applying it to output would skip the power curve's
+non-linearity, which is the reason the correction is fitted in speed space at
+all. It is the kind of claim a consumer of a file acts on without reading a
+paper.
+
+**It reached nothing.** Both shipped grids carry the correct statement at
+dataset level, `usage: v_corrected = v_ERA5 * scalar + offset`, because they
+are written by `generate_best_correction_grids.py` and not by the export path.
+No file anywhere under `output/` was produced by the export path at all: none
+carries its distinctive `is_onshore_aoi` or `scalar_onshore` variables.
+
+So this does **not** strengthen the case for regenerating the artefact. T3 does
+that on its own, and this is the third of four defects found in the chapter's
+code that never reached a result, alongside the batch-boundary one (T5) and the
+spatial-join one (T4). Recording the distinction matters more than the count.
+
+**One real gap in the shipped files, found while checking.** Their `scalar` and
+`offset` variables carry **no attributes at all**: no long name, no description,
+and no units. The offset is in metres per second and the files do not say so
+anywhere. A consumer gets one usage string at dataset level and nothing on the
+variables they actually read. The port writes both, with units.
+
 ## T4. The spatial-join defect was latent, and where it could have bitten
 
 The defect fixed in the `src/vwf/geospatial.py` port needs polygons that
@@ -438,6 +465,25 @@ degrees of latitude everywhere but the equator, by about a factor of two at 60
 degrees north, so the Euclidean metric stretches the weighting east to west,
 which is the axis most European borders run across and the axis the merged
 manuscript's question is about.
+
+**There are three inconsistencies, not one, and they compound.** The export
+writer kriged with a **spherical** variogram in **Euclidean degrees**, taking
+pykrige's defaults, while the cross-validation kriged with an **exponential**
+variogram in **great-circle**. So:
+
+| Number | Pool | Kriging configuration | Distance |
+|---|---|---|---|
+| Table 4, the cross-validation | split by domain, folded | exponential, geographic | great circle |
+| Tables 6 and 7, the evaluation | split by domain, whole | exponential, geographic | great circle |
+| The shipped grids | **not split** | **hybrid: spherical Euclidean scalar, linear geographic offset** | mixed |
+| The ported export path | split by domain | **spherical, Euclidean** | Euclidean degrees |
+
+**The shipped surfaces and the published scores came from different pools and
+different kriging configurations.** The manuscript has to state which
+configuration each number it quotes came from, and it cannot present them as
+one family without saying so. The port removes the fourth row by routing the
+export through the same `kriging_at` the cross-validation uses; the first three
+are the chapter's and are recorded, not changed.
 
 **Measured before deciding.** IDW on the chapter's own 1,729 control points and
 its own five longitude-sorted folds, the two metrics through one implementation:
