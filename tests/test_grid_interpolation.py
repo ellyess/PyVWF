@@ -140,3 +140,39 @@ def test_it_reproduces_the_chapter_s_published_cross_validation(tmp_path):
 
     assert np.mean(scalar_mae) == pytest.approx(published["scalar_mae_mean"], abs=1e-12)
     assert np.mean(offset_mae) == pytest.approx(published["offset_mae_mean"], abs=1e-12)
+
+
+def test_the_two_distance_metrics_differ_where_longitude_is_short():
+    """One degree of longitude is about half a degree of latitude in km at 60
+    north. Euclidean degrees cannot see that; great circle can."""
+    targets = np.array([[0.0, 60.0]])
+    coords = np.array([[1.0, 60.0], [0.0, 61.0]])
+    degrees = interp.degree_distances(targets, coords, "degrees")
+    km = interp.degree_distances(targets, coords, "great_circle")
+    assert degrees[0, 0] == pytest.approx(degrees[0, 1])
+    assert km[0, 0] == pytest.approx(55.6, abs=1.0)
+    assert km[0, 1] == pytest.approx(111.2, abs=1.0)
+
+
+def test_the_metric_defaults_to_the_chapter_s_and_must_be_asked_for():
+    assert interp.DEFAULT_METRIC == "degrees"
+    frame = points(lons=(0.0, 1.0), lats=(60.0, 60.0), scalar=(1.0, 2.0), offset=(0.0, 1.0))
+    same = interp.idw_at(frame, [0.5], [60.5])[0][0]
+    assert interp.idw_at(frame, [0.5], [60.5], metric="degrees")[0][0] == same
+
+
+def test_a_metric_that_is_not_offered_is_refused():
+    with pytest.raises(ValueError, match="unknown metric"):
+        interp.degree_distances(np.array([[0.0, 50.0]]), np.array([[1.0, 50.0]]), "manhattan")
+    with pytest.raises(ValueError, match="unknown metric"):
+        interp.idw_at(points(), [0.5], [50.0], metric="manhattan")
+
+
+def test_the_metric_reaches_nearest_neighbour_and_the_distance_report():
+    """At 60 north a point one degree east is nearer in km than one degree
+    north, and the two metrics disagree about which control point wins."""
+    frame = points(lons=(1.05, 0.0), lats=(60.0, 61.0), scalar=(1.0, 2.0), offset=(0.0, 1.0))
+    by_degrees = interp.nearest_at(frame, [0.0], [60.0], metric="degrees")[0][0]
+    by_km = interp.nearest_at(frame, [0.0], [60.0], metric="great_circle")[0][0]
+    assert by_degrees == 2.0 and by_km == 1.0
+    assert interp.distance_to_nearest(frame, [0.0], [60.0], metric="great_circle")[0] > 50

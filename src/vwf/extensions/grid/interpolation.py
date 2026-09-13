@@ -75,19 +75,49 @@ def _grid_targets(grid_lons, grid_lats) -> tuple[np.ndarray, tuple[int, int]]:
     return _targets(lon_grid, lat_grid), lon_grid.shape
 
 
-def degree_distances(targets: np.ndarray, coords: np.ndarray) -> np.ndarray:
-    """Euclidean distance in degrees between every target and control point.
+#: Mean Earth radius in km, for the great-circle option.
+EARTH_RADIUS_KM = 6371.0
 
-    Named rather than inlined so that the one place the chapter's metric is
-    decided is visible, and so a study that wants great-circle distance has to
-    say so rather than change a line in four functions.
+#: The chapter's metric. Changing the default would silently restate every
+#: figure this module reproduces.
+DEFAULT_METRIC = "degrees"
+
+
+def degree_distances(targets: np.ndarray, coords: np.ndarray,
+                     metric: str = DEFAULT_METRIC) -> np.ndarray:
+    """Distance between every target and every control point.
+
+    Named rather than inlined so that the one place the metric is decided is
+    visible, and so a study that wants great-circle distance says so.
+
+    Args:
+        targets: (n, 2) array of lon, lat.
+        coords: (m, 2) array of lon, lat.
+        metric: ``degrees`` for Euclidean in degrees, which is the chapter's
+            and the default, or ``great_circle`` for haversine in km.
+
+    Returns:
+        An (n, m) array. **The two metrics are not in the same units**, so a
+        distance threshold such as :data:`MAX_DISTANCE_DEG` belongs to
+        ``degrees`` and means nothing under ``great_circle``.
     """
-    diff = targets[:, None, :] - coords[None, :, :]
-    return np.sqrt((diff ** 2).sum(axis=-1))
+    if metric == "degrees":
+        diff = targets[:, None, :] - coords[None, :, :]
+        return np.sqrt((diff ** 2).sum(axis=-1))
+    if metric == "great_circle":
+        lon1, lat1 = np.radians(targets[:, 0]), np.radians(targets[:, 1])
+        lon2, lat2 = np.radians(coords[:, 0]), np.radians(coords[:, 1])
+        dlat = lat2[None, :] - lat1[:, None]
+        dlon = lon2[None, :] - lon1[:, None]
+        h = (np.sin(dlat / 2) ** 2
+             + np.cos(lat1)[:, None] * np.cos(lat2)[None, :] * np.sin(dlon / 2) ** 2)
+        return 2 * EARTH_RADIUS_KM * np.arcsin(np.sqrt(np.clip(h, 0, 1)))
+    raise ValueError(f"unknown metric {metric!r}; use 'degrees' or 'great_circle'")
 
 
 def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER,
-           k: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+           k: int | None = None,
+           metric: str = DEFAULT_METRIC) -> tuple[np.ndarray, np.ndarray]:
     """Inverse distance weighting at arbitrary points.
 
     This is the single definition: the grid-wise and point-wise entry points
@@ -101,6 +131,7 @@ def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER
         lats: target latitudes.
         power: the exponent on distance. The chapter uses 2.
         k: use only the k nearest control points, or all of them when None.
+        metric: see :func:`degree_distances`. The chapter's is ``degrees``.
 
     Returns:
         Interpolated ``scalar`` and ``offset``, one per target.
@@ -118,7 +149,7 @@ def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER
     batch = 10_000
     for start in range(0, len(targets), batch):
         chunk = targets[start:start + batch]
-        dist = degree_distances(chunk, coords)
+        dist = degree_distances(chunk, coords, metric)
         if k is not None and k < dist.shape[1]:
             nearest = np.argsort(dist, axis=1)[:, :k]
             dist_k = np.take_along_axis(dist, nearest, axis=1)
@@ -148,11 +179,12 @@ def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER
     return out["scalar"], out["offset"]
 
 
-def nearest_at(control_points: pd.DataFrame, lons, lats) -> tuple[np.ndarray, np.ndarray]:
+def nearest_at(control_points: pd.DataFrame, lons, lats, *,
+               metric: str = DEFAULT_METRIC) -> tuple[np.ndarray, np.ndarray]:
     """Nearest-neighbour assignment, equivalent to Voronoi cell membership."""
     _check(control_points)
     coords = control_points[["lon", "lat"]].to_numpy(dtype=float)
-    dist = degree_distances(_targets(lons, lats), coords)
+    dist = degree_distances(_targets(lons, lats), coords, metric)
     nearest = np.argmin(dist, axis=1)
     return (control_points["scalar"].to_numpy(dtype=float)[nearest],
             control_points["offset"].to_numpy(dtype=float)[nearest])
@@ -243,7 +275,8 @@ def to_grid(method, control_points: pd.DataFrame, grid_lons, grid_lats, **kwargs
     return np.asarray(scalar).reshape(shape), np.asarray(offset).reshape(shape)
 
 
-def distance_to_nearest(control_points: pd.DataFrame, lons, lats) -> np.ndarray:
+def distance_to_nearest(control_points: pd.DataFrame, lons, lats, *,
+                        metric: str = DEFAULT_METRIC) -> np.ndarray:
     """Degrees from each target to its nearest control point.
 
     The IDW product's mask reads this, and both registered studies report it
@@ -252,4 +285,4 @@ def distance_to_nearest(control_points: pd.DataFrame, lons, lats) -> np.ndarray:
     """
     _check(control_points)
     coords = control_points[["lon", "lat"]].to_numpy(dtype=float)
-    return degree_distances(_targets(lons, lats), coords).min(axis=1)
+    return degree_distances(_targets(lons, lats), coords, metric).min(axis=1)

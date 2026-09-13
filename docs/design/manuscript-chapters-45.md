@@ -385,25 +385,51 @@ It is recorded as a finding about the chapter rather than a port improvement,
 because a reader cannot tell from the paper that the surface and the score came
 from different code.
 
-## T7. Two distance metrics inside one study, and the manuscript must choose
+## T7. Two distance metrics inside one study: measured, and it handicapped IDW
 
 The chapter's IDW, nearest neighbour and RBF measure distance as **Euclidean in
 degrees**. Its kriging measures **great-circle**, through pykrige's
 `coordinates_type="geographic"`, which its own configuration search chose for
-being better on the offset target.
+being better on the offset target. Degrees of longitude are shorter than
+degrees of latitude everywhere but the equator, by about a factor of two at 60
+degrees north, so the Euclidean metric stretches the weighting east to west,
+which is the axis most European borders run across and the axis the merged
+manuscript's question is about.
 
-Degrees of longitude are shorter than degrees of latitude everywhere but the
-equator, by about a factor of two at 60 degrees north, so the Euclidean metric
-stretches the weighting east to west across the domain the study covers. The
-comparison that decides between IDW and kriging therefore compares two methods
-measuring distance differently, and the difference is largest exactly where the
-control points are densest, in Denmark and the North Sea.
+**Measured before deciding.** IDW on the chapter's own 1,729 control points and
+its own five longitude-sorted folds, the two metrics through one implementation:
 
-The port reproduces the arrangement rather than resolving it. **The manuscript
-decides**: keep the chapter's arrangement and state it, in which case the
-method comparison carries a caveat that one method was handicapped in a way the
-other was not; or put both on great-circle distance and restate every affected
-number, which is Table 4, Table 5, Tables 6 and 7, and both figures.
+| Metric | Scalar MAE | Scalar RMSE | Offset MAE | Offset RMSE |
+|---|---|---|---|---|
+| Euclidean degrees, the chapter's | 0.1607 | 0.2470 | 0.6408 | 0.9519 |
+| Great circle | **0.1587** | 0.2445 | **0.6323** | 0.9437 |
+| Published kriging, already great circle | 0.1663 | 0.2272 | 0.7870 | 1.0298 |
+
+**Great circle improves IDW by 1.3% on both targets, and it changes no
+ranking.** IDW already beat kriging on scalar MAE by 3.4% and now beats it by
+4.6%; it already beat kriging on offset MAE and the margin widens; kriging keeps
+the scalar RMSE, 0.2272 against 0.2445.
+
+**So the Euclidean metric was handicapping the method that won, not flattering
+it.** That settles which of the two decisions this is. Keeping the chapter's
+arrangement is a reproduction choice and is conservative with respect to the
+chapter's own conclusion, rather than a known-wrong comparison carried into a
+new paper. It has to be stated, not silently inherited.
+
+**The proposed split, which needs a decision.** Reproduction keeps degrees,
+because that is what reproduces. **New work uses great circle**, because
+nothing recommends the Euclidean metric on its merits and the new work is not
+bound to reproduce anything. That makes the metric the same kind of decision as
+D1: what the manuscript reproduces against what it supersedes.
+
+Concretely, that means the leave-one-country-out study runs on great circle,
+with degrees reported beside it for continuity with chapter 4. Its
+pre-registration already reports scalar error in two spaces for the same
+reason, so this doubles a table that was already doubled and settles the metric
+before any fold is scored rather than after.
+
+The implementation carries both: `degree_distances(..., metric=...)`, defaulting
+to the chapter's, so a study that wants great circle asks for it.
 
 ## Running leave-one-country-out for the interpolators
 
