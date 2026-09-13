@@ -13,6 +13,7 @@ something to fetch.
 """
 import importlib.util
 import shutil
+import threading
 import time
 from argparse import Namespace
 from pathlib import Path
@@ -209,10 +210,19 @@ def test_each_thread_builds_its_own_client():
         return built[-1]
 
     clients = fetch.thread_local_clients(factory)
+    # A barrier, so that three threads are provably alive at once: without it a
+    # pool can finish two dozen trivial tasks on the first thread it starts,
+    # which is what happened on CI's 3.12 while passing locally.
+    started = threading.Barrier(3, timeout=10)
+
+    def take_a_client(_):
+        got = id(clients())
+        started.wait()
+        return got
+
     with ThreadPoolExecutor(max_workers=3) as pool:
-        got = list(pool.map(lambda _: id(clients()), range(24)))
-    assert len(set(got)) == len(built) <= 3     # one per thread, not one per task
-    assert len(built) >= 2                      # and more than one thread ran
+        got = list(pool.map(take_a_client, range(24)))
+    assert len(set(got)) == len(built) == 3     # one per thread, not one per task
 
 
 def test_a_sequential_run_still_builds_exactly_one_client():

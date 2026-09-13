@@ -82,15 +82,39 @@ def test_an_unknown_treatment_is_refused(tmp_path):
 
 
 def test_region_config_parses_the_treatment(tmp_path):
+    """The three cases the setting has: absent, named, and named wrongly.
+
+    The configurations are built here rather than taken from a shipped row,
+    whose setting is a research decision that changes: this test asserted that
+    the Denmark row read "stored" and broke the day the European rows moved to
+    the per-timestep treatment. What a row is set to belongs in the tests that
+    check the shipped tree, not in one that checks a parser.
+    """
     base = open("configs/regions/scorecard/dk_k100.toml").read()
+    without = base.replace('roughness = "derived"\n', "")
+    (tmp_path / "absent.toml").write_text(without)
     (tmp_path / "derived.toml").write_text(
-        base.replace("[era5]\n", '[era5]\nroughness = "derived"\n', 1))
+        without.replace("[era5]\n", '[era5]\nroughness = "derived"\n', 1))
     (tmp_path / "bad.toml").write_text(
-        base.replace("[era5]\n", '[era5]\nroughness = "annual"\n', 1))
-    assert load_region("configs/regions/scorecard/dk_k100.toml").roughness == "stored"
+        without.replace("[era5]\n", '[era5]\nroughness = "annual"\n', 1))
+    assert load_region(tmp_path / "absent.toml").roughness == "stored"   # default
     assert load_region(tmp_path / "derived.toml").roughness == "derived"
     with pytest.raises(ValueError, match="roughness"):
         load_region(tmp_path / "bad.toml")
+
+
+def test_every_european_row_asks_for_the_per_timestep_treatment():
+    """What the shipped rows are set to, asserted where it belongs: the
+    European rows were re-run on the derived treatment on 2026-09-13
+    (docs/findings/method-eu-rerun.md), and a configuration that quietly went
+    back to the stored annual mean would be a silent method change."""
+    european = ["de_k100", "dk_k100", "uk_k50", "fr_country", "be_country",
+                "ie_country", "se_country", "no_country", "es_country",
+                "it_country", "pt_country"]
+    for stem in european:
+        spec = load_region(f"configs/regions/scorecard/{stem}.toml")
+        assert spec.roughness == "derived", stem
+        assert spec.era5_path == "era5/EU_2026-09", stem
 
 
 def test_a_run_records_what_it_asked_for_and_what_it_applied(synthetic_dk):  # noqa: F811
