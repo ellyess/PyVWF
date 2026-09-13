@@ -155,6 +155,17 @@ fixed and unit-tested):
 **G2a therefore covers DK and UK.** Unverifiable units cannot enter T1 or T2
 and keep T0.
 
+*[Added 2026-09-13, before any run: what a G2a result would mean. `add_models`
+reads a manufacturer, a capacity, a rotor diameter and a hub height, and no
+model designation, for any region. Specific-power matching is therefore not a
+fallback the code reaches when designations are missing; it is the only
+assignment implemented. **T1 is not a variant of the method so much as the
+first use of a column the data already carries**, for the Danish and British
+registers that record one. So if T1 beats T0 on DK or UK, the remedy is not a
+better heuristic: it is reading a field that was already there. That changes
+what a G2a result implies without changing the gate, which is why it is
+recorded here and dated rather than written into the gate's text.]*
+
 ## Scoring
 
 **Every comparison is on common rows, twice over.** Within a run, the harness

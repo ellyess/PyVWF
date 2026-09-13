@@ -327,11 +327,15 @@ checked in either direction. Unit counts and the largest mismatched pairs are in
 `output/validation/curve_resolution_backfill_2026-09-11/cross_manufacturer_audit.csv`,
 produced by `scripts/analysis/curve_match_audit.py`.
 
-Every turbine-level row except BR is matched on specific power, by one of three
+Every turbine-level row except BR is matched on specific power, by one of four
 routes:
 
-- **DE, DK and UK:** `add_models` at load time, a fuzzy manufacturer match then
-  nearest specific power.
+- **DK and UK:** `add_models` at load time, a fuzzy manufacturer match then
+  nearest specific power. Both registers also record a model designation, which
+  `add_models` does not read.
+- **DE:** the same `add_models` route, but its register carries no model
+  designation, so the fuzzy manufacturer tier is all it can use. Grouping DE
+  with DK and UK, as this list did until 2026-09-13, hid that difference.
 - **US, NZ, CL and AR:** `assign_curves_from_library` at processing time,
   nearest specific power within a rating band, with no manufacturer step.
 - **AU-NEM:** a specific-power class.
@@ -344,9 +348,27 @@ assumption that specific power fixes a curve's shape. Whether held-out skill
 survives that assumption is not assessed here. Largest case: 13.4% of DE
 capacity is Vestas turbines on Gamesa curves.
 
+*[Note, 2026-09-13: for Germany the columns measure something else. The German
+register records a manufacturer, a rating, a rotor diameter and a date, and no
+model designation at all, so no assignment better than the nearest specific
+power is available from it: a brand-and-spec matcher places **0.0% of DE
+capacity, 0 of 11,433 units** against the licensed library
+(`scripts/analysis/curve_library_match.py`, coverage in
+`method-curve-library-prereg.md`). The 13.4% above is therefore a limit of the
+register rather than of the matching, and the two argue for different things:
+one for a better register, the other for changing the method. The figure
+stands; what it is evidence of does not.]*
+
 The rule is strict and names brands, not lineages. A Bonus turbine on a
 Siemens curve counts as other brand. A GE plant on the DOE reference curve of a
 GE 1.5 MW machine counts as a reference curve; that is 6.6% of US capacity.
+
+**`add_models` reads a manufacturer, a capacity, a rotor diameter and a hub
+height, and no model designation, for any region.** So the designations the
+Danish and British registers do record are unused by curve assignment as it
+stands. Whether reading them would assign better curves is the T1 condition of
+the curve library study (`method-curve-library-prereg.md`), and it is untested
+here.
 
 Every model key in every turbine-level row has a curve in its
 `power_curves.csv`, so nothing there was substituted. That is a different table
