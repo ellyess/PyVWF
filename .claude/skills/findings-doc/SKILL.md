@@ -69,6 +69,28 @@ Review question, not a mechanical check: does any number mislead when read
 alone, with its real meaning left to a footnote? If so, restructure the table.
 A true statement that conceals is still wrong.
 
+## Conditions
+
+A condition is a rule applied to a fleet, and a rule is written against the
+unit its author has in mind.
+
+- **Before a condition runs, report what its rule does to the smallest and the
+  largest unit in the fleet.** Not a sample: those two, by capacity and by
+  rating. Twice now that check would have caught a condition testing something
+  other than its claim, and both times at the small end: an other-brand
+  condition moved 100 kW machines onto a distributed reference curve, because
+  nothing in its rule said a reference design is not a brand; and an off-curve
+  count treated a missing capacity factor as a zero, which only bites where the
+  wind is too low to produce.
+- The diagnosis is worth keeping with the rule. Conditions get written against
+  the typical unit, and the rule does something different where the typical
+  case's logic stops holding. The extremes are where that shows, and they are
+  two rows to print.
+- **Report a condition's coverage before its gate is fixed**, as a share of
+  capacity: how much of the fleet the rule actually reaches. A condition
+  reaching little cannot test much, and a gate written without knowing that is
+  a gate on nothing.
+
 ## Corrections
 
 - A published claim that was wrong gets a **correction notice**, dated and
