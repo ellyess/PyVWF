@@ -47,6 +47,14 @@ They live in `.claude/skills/`.
   repeat them. Write it outside the repository, or wait for the run to finish.
   The rule is scoped to its mechanism: work alongside something that records no
   git state, such as a download or a read-only audit, is not covered.
+- **Check the state you are about to act on, not the one you expect.** Three
+  failures in one day had this shape: a CI run dispatched in the same command
+  as the push tested the commit before it, `git add -A` swept an unrelated
+  untracked file into a commit, and a commit message stated a test-file count
+  from memory. Concretely: read `git status` before `git add`, name the paths
+  you mean; after pushing, confirm the remote tip with `git ls-remote` and a
+  dispatched run's `headSha` before reading its result; and count what you are
+  about to assert rather than recalling it.
 - **Read the checks before the commit command, not after.** Run ruff, the test
   files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
   read the output; then write the message. A message that says a check passed
