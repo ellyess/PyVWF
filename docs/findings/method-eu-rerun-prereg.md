@@ -46,6 +46,16 @@ The suffix is a placeholder for sign-off; `_ptz0` says per-timestep z0 and says
 nothing about the box, which also changed. A name carrying both would be
 unreadable, so the configuration comment carries the rest.
 
+*[Deviation D3, 2026-09-13, after the rows were run and reported: the suffix is
+gone. The eleven ran under the names in this table, and once they were
+published the canonical name has to point at the current row, or a reader
+reaching for `fr_country.toml` gets the row it replaced. The new
+configurations were renamed to the canonical stems and the eleven they
+supersede moved, unchanged, to
+`configs/regions/scorecard/superseded/2026-09-13/`. The file contents are
+untouched, so the runs in `output/eu_rerun_2026-09-12/` were made from what now
+sits at the canonical path.]*
+
 **DK keeps its bounding box and its opt-in.** Its box stops at 13.5 E while
 Bornholm lies near 14.9 E, which the new download does not fix, because the box
 is the limit and not the data. So the new DK row sets

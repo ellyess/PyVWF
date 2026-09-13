@@ -459,7 +459,9 @@ short of Bornholm. The marker rule is in `docs/README.md`.
 **Superseded rows, 2026-09-13.** The published figures of every European row,
 kept for the record and replaced in the tables above. All eleven ran on
 `era5/EU`, the annual-mean roughness, and the narrower ERA5 box; their
-configurations are in `configs/regions/scorecard/` under their original names.
+configurations are in `configs/regions/scorecard/superseded/2026-09-13/`, under
+their own names and unchanged. The canonical name in
+`configs/regions/scorecard/` points at the row standing today.
 What moved, and why, is in `method-eu-rerun.md`.
 
 | Region | Published uncorr RMSE | Published corr RMSE | Published uncorr MBE | Published corr MBE | Best cfg | Was |

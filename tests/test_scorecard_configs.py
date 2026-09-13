@@ -30,7 +30,12 @@ def scorecard_codes() -> set[str]:
 
 
 def committed_configs() -> list[Path]:
+    """The configurations of the rows standing today, not the superseded ones."""
     return sorted(CONFIG_DIR.glob("*.toml"))
+
+
+def superseded_configs() -> list[Path]:
+    return sorted(CONFIG_DIR.glob("superseded/*/*.toml"))
 
 
 def test_the_scorecard_tables_are_readable():
@@ -45,6 +50,24 @@ def test_every_committed_scorecard_config_loads():
     assert paths, "no scorecard configurations are committed"
     for path in paths:
         load_region(path)          # raises with the file named if it does not
+
+
+def test_every_superseded_config_still_loads():
+    """The Superseded section of the scorecard cites these by path, so they
+    have to keep resolving. They are records: never edited, only moved."""
+    for path in superseded_configs():
+        load_region(path)
+
+
+def test_one_current_configuration_per_region():
+    """The canonical name points at the row standing today. Two configurations
+    for one code in this directory is the trap this layout exists to avoid: a
+    reader reaching for a region gets whichever file they guess."""
+    seen: dict[str, list[str]] = {}
+    for path in committed_configs():
+        seen.setdefault(load_region(path).code, []).append(path.name)
+    duplicated = {code: names for code, names in seen.items() if len(names) > 1}
+    assert not duplicated, f"more than one current configuration: {duplicated}"
 
 
 def test_every_scorecard_row_has_a_committed_configuration():

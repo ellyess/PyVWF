@@ -2,8 +2,8 @@
 # Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
 
 [region]
-code = "IT"
-name = "Italy"
+code = "NO"
+name = "Norway"
 
 [observations]
 source = "entsoe-country"
@@ -13,14 +13,13 @@ train_years = [2015, 2021]
 test_years = [2023]
 
 [era5]
-roughness = "derived"
-path = "era5/EU_2026-09"
-bbox = [6.6, 18.5, 36.6, 47.1]
-file_tag = "EU_2026-09"
+path = "era5/EU"
+bbox = [4.0, 31.5, 57.5, 71.5]
+file_tag = "EU"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 3]  # 1 = identifiable national baseline; 3 = the grid points own clusters
+cluster_list = [1, 4]  # 1 = national baseline; 4 = one cluster per bidding zone (NO5 has no operating wind)
 time_slices = ["fixed", "season"]
 
 [seasons]
