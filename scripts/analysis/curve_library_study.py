@@ -5,6 +5,25 @@ changes the curve library a row runs on, or the model key each unit is
 assigned, or both, and holds everything else at the row's scorecard
 configuration.
 
+**Where the override is applied, and why it is not where it was.** The
+condition is applied in :func:`vwf.data.prep_country`, which is where a fleet
+enters the pipeline and is ahead of every simulation. It was first applied to
+the frame ``train_set`` returns, which is one step too late: ``train_set``
+simulates the fleet before it returns, so the correction's wind scalar, fitted
+as ``obs / sim`` from that frame, was fitted on the unmodified assignment while
+the offset fit and the evaluation saw the overridden one. Every such training
+fit was a hybrid of two conditions. The symptom was a scalar that did not move:
+bit-identical between C0 and C2 at all eight country rows while offsets moved
+by up to 2.03 m/s. Corrected 2026-09-13; the withdrawn results are named in
+``docs/findings/method-curve-library.md``.
+
+**The check stays on the frame the run returns**, which is what makes it a
+check rather than a second application: the fleet is narrowed after
+``prep_country`` to the units the observations cover, and that narrowed fleet
+is both what the run fits and what the table's declared absences were measured
+against. Applying early and checking late means the check tests that the early
+application worked.
+
 **Why the override check refuses rather than reports.** Two of this study's
 conditions are reassignments of model keys, and two of its registered
 predictions say the reassignment will change nothing measurable (P2 and P4).
@@ -59,6 +78,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import vwf.data as vwf_data  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
 
@@ -180,16 +200,32 @@ def apply_overrides(turb_info: pd.DataFrame, overrides: pd.Series) -> pd.DataFra
     return out
 
 
-def patched_fleet(overrides: pd.Series, phase: str, expected_absent: Iterable[str] = ()):
-    """A decorator for ``train_set`` or ``val_set`` that overrides and checks.
+def applied_fleet(overrides: pd.Series):
+    """A decorator for ``prep_country`` that puts the condition on the fleet.
 
-    The override is applied to the frame the run will actually fit, and checked
-    on the same frame, so nothing between the two can undo it.
+    This is the only place the override is applied, and it is ahead of every
+    simulation: ``train_set`` and ``val_set`` both call ``prep_country`` before
+    they do anything else.
+    """
+    def wrap(prep):
+        def prepped(*args, **kwargs):
+            obs, turb_info = prep(*args, **kwargs)
+            return obs, apply_overrides(turb_info, overrides)
+        return prepped
+    return wrap
+
+
+def checked_fleet(overrides: pd.Series, phase: str, expected_absent: Iterable[str] = ()):
+    """A decorator for ``train_set`` or ``val_set`` that checks, and only checks.
+
+    It applies nothing. If it did, it would hide the failure it exists to
+    catch: an override that did not reach ``prep_country`` would be repaired
+    here, after the simulation that the fit reads, and the run would look
+    correct while being the hybrid described above.
     """
     def wrap(loader):
         def loaded(*args, **kwargs):
             obs, turb_info, reanalysis, curves = loader(*args, **kwargs)
-            turb_info = apply_overrides(turb_info, overrides)
             check_overrides(turb_info, overrides, phase, expected_absent=expected_absent)
             return obs, turb_info, reanalysis, curves
         return loaded
@@ -212,8 +248,10 @@ def run_condition(code: str, condition: str, out_root: Path, overrides: pd.Serie
     out_root = Path(out_root)
     absent = absent or {}
     train_loader, val_loader = driver.train_set, driver.val_set
-    driver.train_set = patched_fleet(overrides, "train", absent.get("train", ()))(train_loader)
-    driver.val_set = patched_fleet(overrides, "evaluate", absent.get("evaluate", ()))(val_loader)
+    prep = vwf_data.prep_country
+    vwf_data.prep_country = applied_fleet(overrides)(prep)
+    driver.train_set = checked_fleet(overrides, "train", absent.get("train", ()))(train_loader)
+    driver.val_set = checked_fleet(overrides, "evaluate", absent.get("evaluate", ()))(val_loader)
     try:
         train_dir = driver.run_train(spec, out_root, mode=mode, run_name=condition)
         check_library(train_dir, library_sha256)
@@ -223,6 +261,7 @@ def run_condition(code: str, condition: str, out_root: Path, overrides: pd.Serie
         check_library(eval_dir, library_sha256)
         _write_overrides(eval_dir, overrides, absent.get("evaluate", ()))
     finally:
+        vwf_data.prep_country = prep
         driver.train_set, driver.val_set = train_loader, val_loader
     return train_dir, eval_dir
 

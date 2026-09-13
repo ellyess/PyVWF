@@ -9,6 +9,7 @@ condition runs on a fleet that is not the one it asked for.
 """
 import importlib.util
 import json
+import types
 from pathlib import Path
 
 import pandas as pd
@@ -75,25 +76,84 @@ def test_applying_an_override_leaves_other_units_alone():
     assert list(got["model"]) == ["X", "Q", "Z"]
 
 
-def test_the_wrapper_overrides_and_checks_the_frame_the_run_will_fit():
-    calls = {}
+def test_the_condition_is_applied_where_the_fleet_enters():
+    def prep(*args, **kwargs):
+        return "obs", fleet()
 
+    _, turb_info = study.applied_fleet(overrides({"a": "P"}))(prep)()
+    assert list(turb_info["model"]) == ["P", "Y", "Z"]
+
+
+def test_the_wrapper_on_the_loader_checks_and_does_not_apply():
+    """If it applied, it would repair an override that never reached
+    prep_country, after the simulation the scalar is fitted from, and the run
+    would look correct while being a hybrid of two conditions."""
     def loader(*args, **kwargs):
-        calls["called"] = True
         return "obs", fleet(), "reanalysis", "curves"
 
-    wrapped = study.patched_fleet(overrides({"a": "P"}), "train")(loader)
+    wrapped = study.checked_fleet(overrides({"a": "P"}), "train")(loader)
+    with pytest.raises(study.OverrideError) as e:
+        wrapped()
+    assert "'X' not 'P'" in str(e.value)
+
+
+def test_a_loader_whose_fleet_already_carries_the_condition_passes():
+    def loader(*args, **kwargs):
+        return "obs", fleet(models=("P", "Y", "Z")), "reanalysis", "curves"
+
+    wrapped = study.checked_fleet(overrides({"a": "P"}), "train")(loader)
     _, turb_info, _, _ = wrapped()
-    assert calls["called"] and list(turb_info["model"]) == ["P", "Y", "Z"]
+    assert list(turb_info["model"]) == ["P", "Y", "Z"]
 
 
 def test_a_wrapper_whose_override_cannot_apply_refuses():
     def loader(*args, **kwargs):
         return "obs", fleet(), "reanalysis", "curves"
 
-    wrapped = study.patched_fleet(overrides({"zz": "P"}), "train")(loader)
+    wrapped = study.checked_fleet(overrides({"zz": "P"}), "train")(loader)
     with pytest.raises(study.OverrideError):
         wrapped()
+
+
+def test_the_override_precedes_the_simulation_the_scalar_is_fitted_from(monkeypatch,
+                                                                       tmp_path):
+    """The defect this pins: train_set simulates the fleet before it returns,
+    and the scalar is fitted as obs/sim from that frame. An override applied to
+    the returned frame leaves the scalar on the old assignment. The keys the
+    simulation sees must already be the condition's."""
+    seen = {}
+
+    def prep_country(*args, **kwargs):
+        return "obs", fleet()
+
+    module = types.SimpleNamespace(prep_country=prep_country)
+
+    def train_set(*args, **kwargs):
+        _, turb_info = module.prep_country()          # what train_set does first
+        seen["at_simulation"] = list(turb_info["model"])   # then it simulates
+        return "gen_cf", turb_info, "reanalysis", "curves"
+
+    def run_train(spec, out_root, **kwargs):
+        fake_driver.train_set(spec)
+        (tmp_path / "train").mkdir(exist_ok=True)
+        return tmp_path / "train"
+
+    def run_evaluate(spec, train_dir, out_root, **kwargs):
+        fake_driver.val_set(spec)
+        (tmp_path / "evaluate").mkdir(exist_ok=True)
+        return tmp_path / "evaluate"
+
+    fake_driver = types.SimpleNamespace(
+        train_set=train_set, val_set=train_set,
+        run_train=run_train, run_evaluate=run_evaluate)
+    monkeypatch.setattr(study, "vwf_data", module)
+    monkeypatch.setattr(study, "driver", fake_driver)
+    monkeypatch.setattr(study, "load_region", lambda config: "spec")
+
+    study.run_condition("XX", "T1", tmp_path, overrides({"a": "P"}),
+                        config=Path("ignored.toml"))
+    assert seen["at_simulation"] == ["P", "Y", "Z"]
+    assert module.prep_country is prep_country          # restored afterwards
 
 
 def test_the_curve_library_is_checked_by_hash(tmp_path):
