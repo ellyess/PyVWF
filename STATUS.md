@@ -7,25 +7,37 @@ here.
 
 ## In flight
 
-Nothing. The extended European download completed on 2026-09-12: 108 months,
-17.6 GB, no failures, in `era5/EU_2026-09`. The eleven European rows were
-re-run on it on 2026-09-13 (`docs/findings/method-eu-rerun.md`), and Spain,
-Italy and Portugal have returned from suspension.
+Nothing. The curve library study closed on 2026-09-13, after fifteen conditions
+were re-run to correct a defect in its own tooling; see Settled. Before it, the
+extended European download completed on 2026-09-12 (108 months, 17.6 GB, no
+failures, in `era5/EU_2026-09`) and the eleven European rows were re-run on it
+(`docs/findings/method-eu-rerun.md`), returning Spain, Italy and Portugal from
+suspension.
 
 ## Queued, in order
 
-1. **The curve library study.** Its pre-registration is an uncommitted draft
-   **in `git stash@{0}`** ("curve-library prereg draft, stashed for the
-   clean-tree roughness runs"), not in the working tree. Restore it before
-   resuming. It still needs revising for the common-row scoring rule, the
-   variant set as part of the registered design, the Chile marker and the
-   roughness treatment.
+1. **Merging thesis chapters 4 and 5 into one manuscript**, co-authored, with
+   fresh results from the repository as it stands. The chapters are read-only
+   and outside this repository. Phase 0 is an inventory of what they did,
+   phase 1 a survey of whether the code still runs, phase 2 a statement of what
+   a re-run would change. No runs before phase 2 is read.
 2. **A skill for re-running an existing row on changed input**, now that the
-   re-run has happened and its procedure is known. See Open.
+   re-run has happened twice and its procedure is known. See Open.
 
 ## Open
 
 One line each. None is started.
+
+- **Six scorecard rows predate common-row scoring and would move if re-run:**
+  US, BR, AU-NEM, NZ, CL and AR, the six still standing on the 2026-08-24
+  refresh. The eleven European rows were re-run in September and are under the
+  convention. The spread in `n_samples` across a row's variants bounds what it
+  would cost: BR, AU-NEM and NZ have none, so they would not move on this
+  account; AR has 2 rows of 682; the US has 10 of 6,078 and was measured
+  directly at 0.00003 in corrected RMSE and 0.00004 uncorrected; **CL has 46 of
+  677, 6.8% of its rows, and is the one to look at.** Equal counts do not prove
+  identical row sets, so this bounds rather than settles it. Scope of any
+  correction is a scorecard decision, not a study one.
 
 - **Bornholm.** DK's box stops at 13.5 E and Bornholm lies near 14.9 E, so 47
   units, 0.6% of capacity, sit outside the extent the row loads. The data is in
@@ -94,10 +106,30 @@ One line each. None is started.
 - **Local green is not CI green,** and `CLAUDE.md` lists why: pandas-stubs
   absent here and present there, acquisition libraries present here and absent
   there, and a pandas major version split across the matrix.
-- The full suite is 52 files and does not finish in one process on this
-  machine. Run it one file per process; `CLAUDE.md` has the loop.
+- The full suite does not finish in one process on this machine. Run it one
+  file per process; `CLAUDE.md` has the loop. Count the files before asserting
+  how many there are.
 
 ## Settled, and not to be reopened
+
+- **The curve library study is closed**, all four conditions run and reported
+  (`docs/findings/method-curve-library.md`). Q1: giving a country grid its own
+  curves lowers simulated output in all eight rows by 0.082 to 0.220 in mean
+  bias, and whether that helps depends on where the row started; G1 fails at
+  three of seven. Q2: curve assignment at turbine level changes corrected RMSE
+  by at most 0.0012, G2a and G2b pass, G3 fails in all four rows, and ERA5 bias
+  is 8 to 43 times the larger error source. **The strongest result is P6's
+  refutation:** the wind scalar had been absorbing a systematic power-curve
+  mismatch, so a scalar inside the plausible band was evidence of absorbed
+  curve error rather than of a good fit. Seven predictions, one held.
+- **Two defects in the study's own tooling were found, fixed and measured**,
+  and both are recorded rather than tidied away. An override table built from
+  the training fleet alone left the test fleet partly unreassigned; an override
+  applied to the frame `train_set` returns arrived after the simulation the
+  wind scalar is fitted from, so every affected fit was a hybrid of two
+  conditions. The second was worth up to 0.018 in corrected RMSE at country
+  level and at most 0.0006 at turbine level. C2's corrected figures carried a
+  dated correction notice before the corrected values existed.
 
 - **Every scorecard row now applies the per-timestep roughness**, and no row
   applies an annual mean. The three suspended rows returned on 2026-09-13,
