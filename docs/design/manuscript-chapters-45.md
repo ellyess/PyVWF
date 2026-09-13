@@ -25,6 +25,45 @@ docstring, naming IDW as "a future refinement, not a claim this file makes".
 So this is a port, not a re-run, and the manuscript's first decision follows
 from that.
 
+## The two purposes, which must not be merged
+
+The chapters answer one question and deliver one artefact, and they are
+different things with different standards.
+
+**The question is whether correction factors generalise across country
+borders.** Interpolation was the first attempt and terrain-informed machine
+learning the second, so the merged manuscript's spine is cross-border
+generalisation tested the same way for both. A cross-validation score is the
+right evidence for it.
+
+**The artefact is a gridded correction field for `atlite` and PyPSA-Eur.** A
+file feeding an energy system model has to be right everywhere it is read, not
+on average: its coverage, its masking and its neutral-value behaviour are
+properties of the product, and no cross-validation score tests them. The IDW
+product neutralises about 35% of the European domain beyond 5 degrees from any
+control point, which is a headline property of that file rather than a
+footnote to a method comparison.
+
+Keeping these apart decides what evidence each part of the manuscript needs.
+
+## G1. Chapter 4 never ran a country holdout, and that is the gap
+
+Chapter 5 ran leave-one-country-out and reported collapse: Random Forest
+falls to an R-squared of 0.019 on the Germany holdout and -0.376 on the United
+Kingdom, where Ridge alone stays positive at 0.091. **Chapter 4 has no country
+holdout at all**, in its text or in its code: `spatial_cv_split` in
+`compare_unified_corrections_to_grid.py` sorts by longitude and cuts five
+contiguous bands, and nothing else is offered.
+
+So the two chapters answered the same question at different rigour, and the
+harder test is the one that destroyed the machine learning. **A merged
+manuscript whose spine is cross-border generalisation has to put IDW and
+kriging through the same country holdouts**, or it compares a method tested
+gently against one tested harshly and reports the difference as a finding.
+
+What that takes is in "Running leave-one-country-out for the interpolators"
+below. It is cheap.
+
 ## D1. Does the manuscript reproduce the chapters or supersede them?
 
 Reproducing means porting about 3,000 lines of library code and 5,200 lines of
@@ -37,18 +76,25 @@ Evidence that bears on it is in D5 and D6: the turbine-level half of the
 control-point pool is stable to almost everything that has changed, and the
 country-level half is not comparable without more work.
 
-## D2. The Netherlands
+## D2. The Netherlands is the existence proof, not an example
 
-Chapter 4 includes NL as one of nine country-level configurations, and NL is
-one of its two headline demonstrations of cross-border borrowing: kriging MAE
-0.056 against a cluster-based 0.116. **This project excludes the Netherlands.**
-`CLAUDE.md` records an ENTSO-E coverage defect that caps the Dutch capacity
-factor at 0.57, which no rescaling fixes.
+Chapter 4's Dutch result is the one cross-border generalisation result that has
+survived scrutiny here. With five national clusters of its own, the country-only
+correction reaches an MAE of 0.116; the kriging grid, borrowing from German and
+Belgian control points, reaches 0.056. Every Dutch centroid's five nearest
+control points are German onshore or Belgian, 15 to 153 km away, **and none of
+them is degenerate**, so the result does not rest on the five artefacts in the
+pool.
 
-Either the manuscript restores NL and states the defect beside the number, or
-it loses the cross-border example and needs another. Restoring it and stating
-it is the better option if the number survives the defect being named, which
-needs the numbers rather than a preference.
+If the manuscript's spine is cross-border generalisation, this is the central
+result and should be treated as such rather than listed among examples.
+
+**The coverage defect travels with it, everywhere it appears.** This project
+excludes the Netherlands: `CLAUDE.md` records an ENTSO-E coverage defect that
+caps the Dutch capacity factor at 0.57, which no rescaling fixes. A result built
+on observations that cannot exceed 0.57 is not disqualified by that, but it
+cannot be quoted without it, and the manuscript has to state it at each
+appearance rather than once in a limitations section.
 
 ## D3. Cluster counts
 
@@ -149,41 +195,79 @@ these chapters can be reproduced on today's code and give the same answer. It
 also bounds what a re-run can be expected to change: not the corrections
 themselves, but what is built on top of them.
 
-## Open discrepancies that block specific claims
+## Resolved: the chapter's prose and its code disagree about the scalar error
 
-- **The IDW-against-kriging contest survives the degenerate points**, now
-  tested with `pykrige` 1.7.3 installed. On scalar MAE, IDW beats ordinary
-  kriging with an exponential variogram and geographic coordinates by 7.9% over
-  all 1,729 points and by 5.4% with the five dropped. Dropping them narrows the
-  gap and does not close it, so the chapter's method choice stands on this
-  evidence. The absolute figures come from the reimplementation below and are
-  higher than the chapter's, which reports a 3% gap.
-- **A reimplementation of the chapter's spatial cross-validation reproduces its
-  offset exactly and its scalar 13% high. Narrowed, not resolved, and still
-  blocking.** IDW with p = 2 on Euclidean degree distances over all 1,729
-  points in five longitude-sorted equal folds gives offset MAE 0.6407 against
-  the published 0.6410, which pins the fold construction, the weighting
-  exponent, the neighbour set and the distance metric. The same run gives
-  scalar MAE 0.1826 against 0.1610.
+**Chapter 4's methods section says the scalar error is evaluated in log space,
+"for symmetry around unity", and its code computes it in linear space.** The
+published figures are the linear ones:
 
-  **Every variation that improves the scalar moves the offset away from its
-  match**, which says the missing step is specific to the scalar:
+```python
+scalar_mae = np.abs(scalar_pred - scalar_true).mean()
+```
 
-  | Variation | Scalar MAE | Offset MAE |
-  |---|---|---|
-  | as above | 0.1826 | **0.6407** |
-  | onshore and offshore interpolated separately | 0.1766 | 0.6341 |
-  | the five degenerate points dropped | 0.1794 | 0.6288 |
-  | country points out of the test folds | 0.1755 | 0.6163 |
-  | 20 nearest neighbours only | 0.1704 | 0.5978 |
-  | scalar interpolated in log space | 0.1853 | 0.6407 |
-  | training scalars clipped to 0.2 to 3.0 | 0.1827 | 0.6407 |
+Reproducing the chapter's arithmetic on its own control-point table, with its
+own fold construction, matches every published IDW figure:
 
-  So fold shape, distance metric, neighbour count, point selection and target
-  transform are all ruled out. The resolution is to read the chapter's own
-  cross-validation, which lives in
-  `development:scripts/pyvwf_to_grid/compare_unified_corrections_to_grid.py`,
-  and that is why the grid extension is early in the port rather than late.
-  **Until it is resolved, no chapter 4 figure is reproduced**, because the
-  difference between reproducing a number and producing a similar one is the
-  whole point of reproducing it.
+| Quantity | Reimplementation, linear | Published | Reimplementation, log |
+|---|---|---|---|
+| scalar MAE | 0.1607 | 0.1610 | 0.1826 |
+| scalar MAE, fold sd | 0.0610 | 0.0610 | 0.0547 |
+| scalar RMSE | 0.2470 | 0.2470 | 0.2490 |
+| offset MAE | 0.6408 | 0.6410 | 0.6408 |
+
+So the chapter is reproducible and its stated method is not what it did. This
+matters for the manuscript in three ways. Anyone reproducing from the prose
+lands 13% high. The stated justification, symmetry around unity, was never
+applied, and the scalar distribution is asymmetric about 1, running from 0.216
+to 4.644, so linear absolute error weights the upper tail more heavily than the
+lower. And the merged manuscript has to say which space it uses and use it.
+
+It no longer blocks anything. It is a known, quantified difference.
+
+## Live defect: the offshore shapes overlap each other
+
+The spatial-join classification ported on 2026-09-13 had a defect where a point
+falls inside two overlapping polygons **of the same file** (see the commit for
+`src/vwf/geospatial.py`). That needs internally overlapping shapes to bite, and
+the project's shape files are not alike in this:
+
+| File | Polygons | Genuinely overlapping pairs |
+|---|---|---|
+| `country_shapes.geojson` | 25 | **0** (shared borders only) |
+| `offshore_shapes.geojson` | 19 | **44** |
+
+So the onshore side was never exposed and the offshore side was. Where that
+reaches chapter 4's published numbers depends on what the grid export does with
+the classification, which is answered when `extensions/grid` lands.
+
+## Running leave-one-country-out for the interpolators
+
+Chapter 5's holdouts are defined by its own reported test-set sizes: Germany
+500 samples, which is the centroid count for DE onshore, and the United Kingdom
+303, which is UK onshore 293 plus UK offshore 10. So the folds are **by country
+with onshore and offshore combined, on the 1,729 centroid-level points**, which
+is directly comparable to chapter 4's control-point pool because it is the same
+pool.
+
+What it takes:
+
+- **Fold definition**: group the pool's `country_code` on its prefix, giving 12
+  folds (DE, DK, UK and the nine country-level rows). Two decisions inside it:
+  whether the Netherlands fold is scored at all, since NL is the existence
+  proof and holding it out is exactly the cross-border test; and what to do
+  with a fold whose own country supplies the only nearby control points, where
+  IDW falls back on whatever remains within its weighting range.
+- **Implementation**: none new. IDW and nearest neighbour are ten lines each,
+  kriging is `pykrige` 1.7.3, already installed. The chapter's own
+  `interpolate_idw_point`, `interpolate_kriging_points` and
+  `interpolate_rbf_points` arrive with the grid port and should be used instead
+  of a second implementation.
+- **Metric**: chapter 5 reports R-squared and chapter 4 reports MAE. Both have
+  to be computed on the same folds for the comparison to mean anything, and
+  R-squared on a 12-point fold is unstable, which is worth registering before
+  the numbers exist rather than after.
+- **Cost**: seconds to minutes for all methods and folds. It is cheap enough
+  that there is no reason to test a subset of countries, which is the mistake
+  recorded under D5.
+
+Not run.
