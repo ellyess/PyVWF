@@ -261,8 +261,19 @@ def kriging_at(control_points: pd.DataFrame, lons, lats, *,
         # A moving window is unsupported by the vectorised backend, so pykrige
         # needs the loop one. Stated rather than caught, since a silent backend
         # change is a silent change of estimator.
-        extra = {"n_closest_points": int(n_closest_points), "backend": "loop"} \
-            if n_closest_points is not None else {}
+        #
+        # A window wider than the pool is global kriging, and pykrige does not
+        # say so: asked for the 80 nearest of 12 points it indexes past the end
+        # and raises IndexError. The chapter's export carried exactly that
+        # combination, 80 for an offshore pool of 12, and never ran it. Capping
+        # to the pool is not an approximation: the two are the same estimator
+        # once the window covers everything, and dropping the window then also
+        # restores the vectorised backend.
+        window = None if n_closest_points is None else int(n_closest_points)
+        if window is not None and window >= len(control_points):
+            window = None
+        extra = {"n_closest_points": window, "backend": "loop"} \
+            if window is not None else {}
         z, var = model.execute("points", lon, lat, **extra)
         predictions.append(np.asarray(z).ravel())
         variances.append(np.asarray(var).ravel())

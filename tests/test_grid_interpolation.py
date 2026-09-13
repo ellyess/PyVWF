@@ -176,3 +176,26 @@ def test_the_metric_reaches_nearest_neighbour_and_the_distance_report():
     by_km = interp.nearest_at(frame, [0.0], [60.0], metric="great_circle")[0][0]
     assert by_degrees == 2.0 and by_km == 1.0
     assert interp.distance_to_nearest(frame, [0.0], [60.0], metric="great_circle")[0] > 50
+
+
+def test_a_moving_window_wider_than_the_pool_becomes_global_kriging():
+    """The chapter's export asked for the 80 nearest of an offshore pool of 12.
+    pykrige indexes past the end and raises IndexError rather than saying so,
+    and the combination was never run. A window covering everything is global
+    kriging, so capping to the pool is the same estimator, not an approximation."""
+    pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
+    frame = points(lons=(0.0, 1.0, 2.0, 3.0, 1.5, 2.5), lats=(50.0, 50.5, 51.0, 50.2, 50.8, 51.4),
+                   scalar=(1.0, 2.0, 3.0, 4.0, 2.5, 3.5), offset=(0.0, 1.0, 2.0, 3.0, 1.5, 2.5))
+    wide, = [interp.kriging_at(frame, [1.2], [50.4], n_closest_points=n)[0][0]
+             for n in (80,)]
+    globally = interp.kriging_at(frame, [1.2], [50.4])[0][0]
+    assert wide == pytest.approx(globally)
+
+
+def test_a_moving_window_inside_the_pool_is_kept():
+    pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
+    frame = points(lons=(0.0, 1.0, 2.0, 3.0, 1.5, 9.0), lats=(50.0, 50.5, 51.0, 50.2, 50.8, 59.0),
+                   scalar=(1.0, 2.0, 3.0, 4.0, 2.5, 99.0), offset=(0.0, 1.0, 2.0, 3.0, 1.5, 9.0))
+    local = interp.kriging_at(frame, [1.2], [50.4], n_closest_points=3)[0][0]
+    globally = interp.kriging_at(frame, [1.2], [50.4])[0][0]
+    assert local != pytest.approx(globally)
