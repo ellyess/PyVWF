@@ -338,6 +338,73 @@ therefore kriges a different offshore pool from the one the chapter describes:
 points its documented failure case rests on. Which pool a ported
 `export_pyvwf_grid` should use is a decision, not a detail.
 
+## T5. The batch-boundary defect reaches nothing, and is not in the shipped file
+
+The grid-wise IDW in `compare_unified_corrections_to_grid.py` corrected exact
+control-point matches only in its first batch of 10,000 targets, because it
+sliced a per-batch mask with the global offset. Fixed in the port. Its reach:
+
+- **It is not in the shipped grids at all.** `generate_best_correction_grids.py`
+  has its own IDW whose exact-match loop is correctly scoped to the batch. The
+  defect is confined to the script behind the `grid_comparison` surfaces, which
+  are what Tables 6 and 7 evaluate and what the figures draw.
+- **It never fires.** The branch only changes a target that coincides exactly
+  with a control point. The grid is a regular 0.25 degree lattice and the
+  control points are cluster centroids at arbitrary coordinates: **zero of the
+  1,729 land on a grid cell**, none matches even a grid longitude or a grid
+  latitude alone, the closest approach is 3.08e-03 degrees, about 340 metres,
+  and the median separation is 0.0994 degrees.
+- **It was latent by luck of coordinates rather than by design.** The first
+  batch covers 62 latitude rows, to 50.25 north, and 1,635 of the 1,729 control
+  points sit above that band. Had any coincided with a cell, most would have
+  been in the unprotected region.
+
+So this is not a third defect in the deliverable. It is a third defect in the
+chapter's code, and the distinction is the one worth keeping: two of the three
+found so far reached nothing, and the one that matters, T3, reached the shipped
+file.
+
+## T6. The chapter had two definitions of IDW, and the port has one
+
+The chapter implemented inverse distance weighting twice: a grid-wise routine
+for making surfaces and a point-wise one for cross-validation. They differ in
+two ways, an epsilon added to the denominator in one and not the other, and the
+handling of an exact match. **So a grid cell and a held-out control point at
+the same coordinates were not guaranteed the same number, and that is precisely
+the comparison the cross-validation performs.**
+
+**The published cross-validation numbers are unaffected.** The
+cross-validation used the point-wise route throughout for IDW, kriging and RBF;
+nearest neighbour is the only method wired to a grid-wise routine and it is
+excluded from the published table, with `cv_scores.csv` holding only IDW, RBF
+and kriging. The port confirms it from the other side: reproducing the
+published scores with the point-wise arithmetic, and no epsilon, matches to
+8.3e-17.
+
+It is recorded as a finding about the chapter rather than a port improvement,
+because a reader cannot tell from the paper that the surface and the score came
+from different code.
+
+## T7. Two distance metrics inside one study, and the manuscript must choose
+
+The chapter's IDW, nearest neighbour and RBF measure distance as **Euclidean in
+degrees**. Its kriging measures **great-circle**, through pykrige's
+`coordinates_type="geographic"`, which its own configuration search chose for
+being better on the offset target.
+
+Degrees of longitude are shorter than degrees of latitude everywhere but the
+equator, by about a factor of two at 60 degrees north, so the Euclidean metric
+stretches the weighting east to west across the domain the study covers. The
+comparison that decides between IDW and kriging therefore compares two methods
+measuring distance differently, and the difference is largest exactly where the
+control points are densest, in Denmark and the North Sea.
+
+The port reproduces the arrangement rather than resolving it. **The manuscript
+decides**: keep the chapter's arrangement and state it, in which case the
+method comparison carries a caveat that one method was handicapped in a way the
+other was not; or put both on great-circle distance and restate every affected
+number, which is Table 4, Table 5, Tables 6 and 7, and both figures.
+
 ## Running leave-one-country-out for the interpolators
 
 Chapter 5's holdouts are defined by its own reported test-set sizes: Germany
