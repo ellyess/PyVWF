@@ -26,6 +26,15 @@ import pandas as pd
 #: Capacity factor is a fraction of nameplate; above 1 the series is not a CF.
 MAX_CF = 1.0
 
+#: Severity tiers for capacity factors above 1, because one hour in seven years
+#: and 13.1% of hours are not the same defect and must not read the same. A
+#: warning that fires identically on both teaches a reader to ignore it.
+#: Ireland's preserved pre-repair series sets the bar for severe: 13.1% of
+#: hours above 1 and two calendar months whose MEAN exceeds 1. Belgium's single
+#: hour sits nowhere near it.
+WARN_SHARE_ABOVE_MAX_CF = 0.001
+FAIL_SHARE_ABOVE_MAX_CF = 0.01
+
 #: Ceiling applied by the ENTSO-E fetcher. Rows sitting on it are saturated,
 #: not merely high, so the true value is unknown.
 CLIP_CEILING = 1.5
@@ -46,10 +55,14 @@ MAX_STEP_HOURS_FOR_PEAK_CHECK = 6.0
 #: Below this many years a constant capacity register is unremarkable.
 FROZEN_CAPACITY_MIN_YEARS = 2.0
 
-#: ENTSO-E publishes installed capacity annually, so a healthy multi-year
-#: register has roughly one distinct value per year. Fewer than one per this
-#: many years means the register is not tracking the fleet.
-CAPACITY_YEARS_PER_UPDATE = 2.0
+#: Consecutive calendar years over which an unchanged register is a register
+#: that stopped tracking. A national wind fleet growing even slowly moves its
+#: register inside three years. **This replaces a test on total movement over
+#: the record**, which asked the wrong question: Portugal moves 15.5% and
+#: Sweden 19.9%, so both passed it, and both hold one number for five straight
+#: years while their fleets grew. When the register moves is the test; how far
+#: it moves in the end is not.
+MAX_UNCHANGED_YEARS = 3
 
 #: Ratio between the best and worst annual mean CF. Interannual wind
 #: variability is roughly plus or minus 15%, and even a fleet upgrading to
@@ -62,12 +75,46 @@ MAX_ANNUAL_CF_RATIO = 1.6
 #: Full years needed before the drift test means anything.
 DRIFT_MIN_YEARS = 3
 
-#: Total capacity movement over the record below which a coarse register is a
-#: register that stopped tracking rather than a genuinely flat fleet.
-MIN_CAPACITY_GROWTH = 0.05
 
 #: Fraction of missing capacity factors that stops being incidental.
 MAX_MISSING_FRACTION = 0.05
+
+
+def longest_unchanged_run(capacity: pd.Series, index: pd.DatetimeIndex
+                          ) -> tuple[int, tuple[int, int] | None]:
+    """The longest run of consecutive calendar years holding one capacity.
+
+    Args:
+        capacity: the register, one value per observation row.
+        index: the matching timestamps.
+
+    Returns:
+        The run length in years, and its first and last year, or ``None`` when
+        there is nothing to report.
+
+    A register is judged on whether it moved while the fleet did, not on how
+    far it moved in the end. Portugal holds 4486 MW from 2015 to 2019 and then
+    steps to 5181, so its total movement is 15.5% and its register tracked
+    nothing for five years.
+    """
+    if not len(capacity) or index is None or not len(index):
+        return 0, None
+    yearly = pd.Series(capacity.to_numpy(), index=index).groupby(index.year).median()
+    yearly = yearly.dropna()
+    if not len(yearly):
+        return 0, None
+    years = [int(y) for y in yearly.index]
+    values = yearly.to_numpy(dtype=float)
+    best, best_start = 1, years[0]
+    run, start = 1, years[0]
+    for i in range(1, len(values)):
+        if years[i] == years[i - 1] + 1 and abs(values[i] - values[i - 1]) < 1e-6:
+            run += 1
+        else:
+            run, start = 1, years[i]
+        if run > best:
+            best, best_start = run, start
+    return best, (best_start, best_start + best - 1)
 
 
 @dataclass
@@ -82,12 +129,28 @@ class CountryObsReport:
     peak_cf: float
     frac_clipped: float
     frac_missing: float
-    issues: list[str] = field(default_factory=list)
+    n_clipped: int = 0
+    longest_unchanged_years: int = 0
+    unchanged_span: str = ""
+    failures: list[str] = field(default_factory=list)
+    warnings_: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def issues(self) -> list[str]:
+        """Every finding, worst first. Kept so existing readers still work."""
+        return [*self.failures, *self.warnings_, *self.notes]
 
     @property
     def ok(self) -> bool:
-        """True when no gate failed."""
-        return not self.issues
+        """True when no gate FAILED.
+
+        Notes and warnings do not clear it to False. A series with one hour
+        above 1 in seven years and a series with 13.1% of hours above 1 both
+        used to come back not ok, with the same wording, which is how a reader
+        learns to ignore the message.
+        """
+        return not self.failures
 
     def as_row(self) -> dict:
         """Flat mapping for tabulating many regions together."""
@@ -99,10 +162,33 @@ class CountryObsReport:
             "mean_cf": self.mean_cf,
             "peak_cf": self.peak_cf,
             "frac_clipped": self.frac_clipped,
+            "n_clipped": self.n_clipped,
             "frac_missing": self.frac_missing,
+            "longest_unchanged_years": self.longest_unchanged_years,
+            "unchanged_span": self.unchanged_span,
             "ok": self.ok,
+            "n_failures": len(self.failures),
+            "n_warnings": len(self.warnings_),
+            "n_notes": len(self.notes),
             "issues": "; ".join(self.issues),
         }
+
+
+def _months_above_one(cf: pd.Series, index: pd.DatetimeIndex | None) -> list[str]:
+    """Calendar months whose MEAN capacity factor exceeds 1.
+
+    A single hour above 1 is what an annual register does to a growing fleet. A
+    whole month averaging above 1 is impossible under any correct denominator,
+    which makes it the unambiguous signal and the only one in the failure tier
+    on its own.
+    """
+    if index is None or not len(cf):
+        return []
+    stamps = pd.DatetimeIndex(index[: len(cf)])
+    # strftime rather than to_period: a tz-aware index warns that the
+    # conversion drops the timezone, and the month label is all this needs.
+    monthly = pd.Series(cf.to_numpy()).groupby(stamps.strftime("%Y-%m")).mean()
+    return [str(month) for month, value in monthly.items() if value > MAX_CF]
 
 
 def _as_datetime_index(index: pd.Index) -> pd.DatetimeIndex | None:
@@ -180,41 +266,70 @@ def check_country_cf(
         float((valid >= CLIP_CEILING - 1e-9).mean()) if len(valid) else float("nan")
     )
 
-    issues: list[str] = []
+    failures: list[str] = []
+    warnings_: list[str] = []
+    notes: list[str] = []
 
     if not len(valid):
-        issues.append("every capacity factor is missing")
+        failures.append("every capacity factor is missing")
     else:
         if frac_missing > MAX_MISSING_FRACTION:
-            issues.append(f"{frac_missing:.1%} of capacity factors are missing")
+            failures.append(f"{frac_missing:.1%} of capacity factors are missing")
 
-        if peak_cf > MAX_CF:
-            issues.append(
-                f"peak CF {peak_cf:.3f} exceeds 1; generation and capacity are "
-                "not on a consistent basis"
-            )
+        # Capacity factors above 1, tiered. The count and share travel in every
+        # tier's message, because the number is what separates one bad hour
+        # from a broken denominator.
+        above = valid > MAX_CF
+        n_above, share_above = int(above.sum()), float(above.mean())
+        monthly_over = _months_above_one(valid, index) if n_above else []
+        if n_above:
+            where = (f"{n_above} of {len(valid)} rows ({share_above:.3%}) "
+                     f"exceed 1, peak {peak_cf:.3f}")
+            if monthly_over or share_above > FAIL_SHARE_ABOVE_MAX_CF:
+                months = (f"; {len(monthly_over)} calendar month"
+                          f"{'' if len(monthly_over) == 1 else 's'} have a MEAN "
+                          f"above 1 ({', '.join(monthly_over[:4])}"
+                          f"{', ...' if len(monthly_over) > 4 else ''})"
+                          if monthly_over else "")
+                failures.append(
+                    f"{where}{months}; generation and capacity are not on a "
+                    "consistent basis"
+                )
+            elif share_above > WARN_SHARE_ABOVE_MAX_CF:
+                warnings_.append(
+                    f"{where}; the denominator does not track the fleet within "
+                    "the year"
+                )
+            else:
+                notes.append(
+                    f"{where}; an annual register cannot track within-year "
+                    "additions, so an isolated hour above 1 is expected"
+                )
 
         n_clipped = int((valid >= CLIP_CEILING - 1e-9).sum())
         if n_clipped:
-            issues.append(
+            message = (
                 f"{n_clipped} row{'' if n_clipped == 1 else 's'} "
                 f"({frac_clipped:.2%}) {'sits' if n_clipped == 1 else 'sit'} on "
-                f"the {CLIP_CEILING} clip ceiling, so the true value is unknown"
+                f"the {CLIP_CEILING} clip ceiling, so the true value is discarded "
+                "rather than wrong"
             )
+            (failures if frac_clipped > WARN_SHARE_ABOVE_MAX_CF
+             else notes).append(message)
 
         if (
             step_hours is not None
             and step_hours <= MAX_STEP_HOURS_FOR_PEAK_CHECK
             and peak_cf < MIN_PEAK_CF
         ):
-            issues.append(
+            failures.append(
                 f"peak CF {peak_cf:.3f} never reaches {MIN_PEAK_CF} over a "
                 f"{step_hours:g} h series; generation is understated relative "
                 "to capacity"
             )
 
         if np.isfinite(mean_cf) and not (MIN_MEAN_CF <= mean_cf <= MAX_MEAN_CF):
-            issues.append(
+            failures.append(
                 f"mean CF {mean_cf:.3f} is outside the plausible national band "
                 f"[{MIN_MEAN_CF}, {MAX_MEAN_CF}]"
             )
@@ -225,7 +340,7 @@ def check_country_cf(
         if len(annual) >= DRIFT_MIN_YEARS:
             lo, hi = float(annual.min()), float(annual.max())
             if lo > 0 and hi / lo > MAX_ANNUAL_CF_RATIO:
-                issues.append(
+                failures.append(
                     f"annual mean CF ranges {lo:.3f} to {hi:.3f} ({hi / lo:.1f}x) "
                     "across the record, which is more than weather; check "
                     "whether the fleet genuinely improved that much or the "
@@ -233,27 +348,33 @@ def check_country_cf(
                     "the capacity counts"
                 )
 
+    unchanged_years, unchanged_span = 0, None
     if "capacity_mw" in obs.columns:
         cap = pd.to_numeric(obs["capacity_mw"], errors="coerce").dropna()
         if len(cap) and span_years is not None and span_years >= FROZEN_CAPACITY_MIN_YEARS:
-            distinct = int(cap.nunique())
-            if distinct == 1:
-                issues.append(
+            if int(cap.nunique()) == 1:
+                failures.append(
                     f"installed capacity is constant at {cap.iloc[0]:.0f} MW over "
                     f"{span_years:.1f} years; the register did not update"
                 )
-            elif distinct * CAPACITY_YEARS_PER_UPDATE < span_years:
-                # Few distinct values is only damning when the total movement is
-                # also negligible. A genuinely flat fleet (PT grew 15% over
-                # seven years) can legitimately be described by two numbers; a
-                # register that stopped tracking (IE moved 0.6%) cannot.
-                growth = float(cap.max() / cap.min() - 1.0) if cap.min() > 0 else 0.0
-                if growth < MIN_CAPACITY_GROWTH:
-                    issues.append(
-                        f"installed capacity takes only {distinct} distinct "
-                        f"values over {span_years:.1f} years and moves "
-                        f"{growth:.1%} ({cap.min():.0f} to {cap.max():.0f} MW); "
-                        "the register is not tracking the fleet"
+            elif index is not None:
+                # When the register moved, not how far it moved in the end. The
+                # test this replaces asked for total movement over the record
+                # and so passed Portugal at 15.5% and Sweden at 19.9%, both of
+                # which hold one number for five straight years while their
+                # fleets grew.
+                kept = index[pd.to_numeric(obs["capacity_mw"], errors="coerce")
+                             .notna().to_numpy()]
+                unchanged_years, span = longest_unchanged_run(cap, kept)
+                unchanged_span = span
+                if unchanged_years >= MAX_UNCHANGED_YEARS and span is not None:
+                    held = float(pd.Series(cap.to_numpy(), index=kept)
+                                 .groupby(kept.year).median().loc[span[0]])
+                    failures.append(
+                        f"installed capacity is unchanged at {held:.0f} MW across "
+                        f"{unchanged_years} consecutive years ({span[0]} to "
+                        f"{span[1]}) of a {span_years:.1f} year record; the "
+                        "register is not tracking the fleet"
                     )
 
     report = CountryObsReport(
@@ -265,12 +386,18 @@ def check_country_cf(
         peak_cf=peak_cf,
         frac_clipped=frac_clipped,
         frac_missing=frac_missing,
-        issues=issues,
+        n_clipped=n_clipped if len(valid) else 0,
+        longest_unchanged_years=unchanged_years,
+        unchanged_span="" if unchanged_span is None
+                       else f"{unchanged_span[0]} to {unchanged_span[1]}",
+        failures=failures,
+        warnings_=warnings_,
+        notes=notes,
     )
 
-    if issues:
-        message = f"{label}: " + "; ".join(issues)
-        if strict:
+    if report.issues:
+        message = f"{label}: " + "; ".join(report.issues)
+        if strict and report.failures:
             raise ValueError(message)
         if warn:
             warnings.warn(message, UserWarning, stacklevel=2)

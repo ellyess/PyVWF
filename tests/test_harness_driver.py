@@ -1,6 +1,7 @@
 """Driver end-to-end on synthetic data: train, evaluate, country-level fit."""
 import json
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -173,3 +174,39 @@ def test_country_level_evaluate_saves_frames_and_metrics(synthetic_dk, tmp_path)
     unc = metrics[metrics["variant"] == "uncorrected"].iloc[0]
     cor = metrics[metrics["variant"] == "affine-wind"].iloc[0]
     assert abs(cor["mbe"]) < abs(unc["mbe"])  # correction shrinks country bias
+
+
+def test_a_source_with_no_observation_gate_records_nothing():
+    """Turbine-level sources run no country gate, and the recorder must not
+    invent a zero that reads as a measurement."""
+    from vwf.harness.driver import _record_observation_quality
+
+    class Bare:
+        pass
+
+    assert _record_observation_quality(Bare()) == {}
+
+
+def test_the_clipped_count_reaches_the_manifest_and_the_metrics(tmp_path):
+    """A row on the fetcher's 1.5 ceiling is a value that was discarded, so a
+    metric over the series is computed on fewer observations than it claims.
+    The count stopped at the audit script; it now travels with the run."""
+    import json
+
+    from vwf.harness.driver import _record_observation_quality
+    from vwf.loaders.country_obs_checks import CLIP_CEILING, check_country_cf
+
+    idx = pd.date_range("2015-01-01", periods=2000, freq="h", tz="UTC")
+    cf = np.full(2000, 0.25)
+    cf[0] = 0.93
+    cf[:3] = CLIP_CEILING
+    frame = pd.DataFrame({"capacity_factor": cf}, index=idx)
+
+    class WithReport:
+        obs_report = check_country_cf(frame, "XX", warn=False)
+
+    recorded = _record_observation_quality(WithReport())
+    assert recorded["n_clipped"] == 3
+    assert recorded["clipped_share"] == pytest.approx(3 / 2000)
+    # It has to survive json, since that is how a manifest stores it.
+    assert json.loads(json.dumps(recorded))["n_clipped"] == 3

@@ -21,7 +21,7 @@ from typing import ClassVar, Literal
 import pandas as pd
 
 from vwf.config import PyVWFPaths
-from vwf.loaders.country_obs_checks import check_country_cf
+from vwf.loaders.country_obs_checks import CountryObsReport, check_country_cf
 from vwf.sources.base import ObservationSource, ObsLevel
 from vwf.sources.registry import register
 
@@ -52,6 +52,9 @@ class EntsoeFileSource(ObservationSource):
         self.train_years = (int(train_years[0]), int(train_years[1]))
         self.test_year = int(test_year)
         self._base = Path(cl_data_dir) if cl_data_dir else PyVWFPaths.COUNTRY_LEVEL_DATA
+        #: The last report from :func:`check_country_cf`, set by
+        #: :meth:`load_observations`. None until observations are loaded.
+        self.obs_report: CountryObsReport | None = None
 
     @property
     def fleet_year(self) -> int:
@@ -148,5 +151,9 @@ class EntsoeFileSource(ObservationSource):
         obs = pd.read_csv(path, index_col=0, parse_dates=True)
         if "capacity_factor" not in obs.columns:
             raise ValueError(f"{path} has no 'capacity_factor' column")
-        check_country_cf(obs, f"{self.country} {self.split} ({path.name})")
+        # Kept, not discarded: the clipped-row count is the difference between
+        # a metric computed on every observation and one computed on the rows
+        # that survived a ceiling, and it has to travel with the number.
+        self.obs_report = check_country_cf(
+            obs, f"{self.country} {self.split} ({path.name})")
         return obs

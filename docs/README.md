@@ -48,6 +48,7 @@ anyone remembering:
 | † | The fit is degenerate: a scalar outside 0.2 to 3.0, or an offset that did not converge. | `fit_quality`, in the row's `metrics.csv` |
 | ‡ | The gain cannot be distinguished from zero when the test year's units are resampled. | the correction notice that set it |
 | § | `extrapolated_capacity_share` is above zero: part of the fleet lies outside the loaded ERA5 extent, and its winds were extrapolated. The share is stated beside the marker. | `extrapolated_capacity_share`, in the row's `metrics.csv` |
+| ¶ | `observations_clipped_share` is above zero: part of the observed series sits on the fetcher's 1.5 capacity-factor ceiling, so those values were **discarded rather than wrong** and the metric is computed over fewer observations than the row claims. The share is stated beside the marker. | `observations_clipped_share`, in the row's `metrics.csv` |
 
 `fit_quality` also reports, beside the dagger, the worst shares of training
 steps a fitted pair sends below 0 m/s or above the power curve

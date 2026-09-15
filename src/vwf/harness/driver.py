@@ -78,6 +78,36 @@ def resolve_source(
     return get_source(spec.source, spec.code)
 
 
+def _record_observation_quality(source) -> dict:
+    """What the country-level observation gates found, for the manifest.
+
+    A row sitting on the fetcher's clip ceiling is a value that was discarded,
+    not a value that is wrong, so a metric computed over the series is computed
+    over fewer observations than it appears to be. That count stopped at the
+    audit script; it now travels with the run, the way the substituted and
+    extrapolated shares do.
+
+    Returns an empty dict for a source that runs no such gate, which is every
+    turbine-level source.
+    """
+    report = getattr(source, "obs_report", None)
+    if report is None:
+        return {}
+    return {
+        "n_rows": report.n_rows,
+        "n_clipped": report.n_clipped,
+        "clipped_share": report.frac_clipped,
+        "peak_cf": report.peak_cf,
+        "mean_cf": report.mean_cf,
+        "longest_unchanged_capacity_years": report.longest_unchanged_years,
+        "unchanged_capacity_span": report.unchanged_span,
+        "ok": report.ok,
+        "failures": list(report.failures),
+        "warnings": list(report.warnings_),
+        "notes": list(report.notes),
+    }
+
+
 def _record_curve_resolution(
     run_dir: Path, fleet: pd.DataFrame, power_curves: pd.DataFrame, code: str
 ) -> dict:
@@ -256,6 +286,7 @@ def run_train(
         spec,
         extra={"run_mode": "train", "fleet_mode": mode, "curve_resolution": curves,
                "era5_extent": era5_extent, "fit_diagnostics": fit_record,
+               "observation_quality": _record_observation_quality(source),
                "era5_roughness": _record_roughness(reanalysis, spec)},
     )
     return run_dir
@@ -409,12 +440,15 @@ def run_evaluate(
         {scope: summary["excluded_share"] for scope, summary in scoring.items()}
     )
     metrics_df["extrapolated_capacity_share"] = era5_extent["capacity_share_outside_loaded_extent"]
+    observation_quality = _record_observation_quality(source)
+    metrics_df["observations_clipped_share"] = observation_quality.get("clipped_share", 0.0)
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
         spec,
         extra={
             "run_mode": "evaluate",
+            "observation_quality": observation_quality,
             "evaluation_year": year,
             "trained_from": str(train_run_dir),
             "curve_resolution": curves,

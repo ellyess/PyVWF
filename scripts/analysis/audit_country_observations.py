@@ -77,19 +77,28 @@ def main() -> int:
         print("No country-level regions found.")
         return 0
 
-    summary = table[
-        ["label", "step_hours", "mean_cf", "peak_cf", "frac_clipped", "ok"]
-    ].copy()
-    with pd.option_context("display.width", 200, "display.max_colwidth", 60):
-        print(summary.to_string(index=False))
+    columns = [c for c in ("label", "step_hours", "mean_cf", "peak_cf",
+                           "n_clipped", "frac_clipped", "longest_unchanged_years",
+                           "unchanged_span", "ok") if c in table.columns]
+    with pd.option_context("display.width", 220, "display.max_colwidth", 60):
+        print(table[columns].to_string(index=False))
 
     failures = table[~table["ok"].astype(bool)]
+    # Notes and warnings do not clear ``ok``, so they have to be counted here
+    # or the tiering hides them: a series that used to fail loudly for one bad
+    # hour now passes, and passing silently is not the intent.
+    noted = int(table.get("n_notes", pd.Series(dtype=int)).fillna(0).sum())
+    warned = int(table.get("n_warnings", pd.Series(dtype=int)).fillna(0).sum())
+    print(f"\n{len(failures)} of {len(table)} series failed a gate; "
+          f"{warned} warning{'' if warned == 1 else 's'} and "
+          f"{noted} note{'' if noted == 1 else 's'} on series that passed.")
     if len(failures):
-        print(f"\n{len(failures)} of {len(table)} series failed a gate:\n")
+        print()
         for _, row in failures.iterrows():
-            print(f"  {row['label']}: {row['issues']}")
-    else:
-        print("\nAll series passed.")
+            print(f"  FAIL {row['label']}: {row['issues']}")
+    for _, row in table[table["ok"].astype(bool)].iterrows():
+        if row.get("issues"):
+            print(f"  note {row['label']}: {row['issues']}")
 
     if args.csv:
         args.csv.parent.mkdir(parents=True, exist_ok=True)
