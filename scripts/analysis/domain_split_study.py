@@ -10,8 +10,7 @@ as failing.
 
 Three conditions, because the split as first tested changed two things at once:
 
-- **S0** undivided pool, distance mask. Reproduces the chapter, and the study is
-  void if it does not.
+- **S0** undivided pool, distance mask. The chapter's own arrangement.
 - **S1** split by declared ``cluster_mode``, distance mask. **Isolates the
   pool**, which is the question.
 - **S2** split, area-of-interest mask. What the port does; reported so the
@@ -20,6 +19,18 @@ Three conditions, because the split as first tested changed two things at once:
 All fourteen configurations are scored, not the four whose membership changes.
 A configuration whose pool does not change should not move, and checking that is
 how the comparison is verified rather than assumed.
+
+**Every row runs on real winds.** The 2026-09-15 amendment to the registration
+moved the study from ``era5/EU``, which stops at 42 north, to
+``era5/EU_2026-09``, which reaches 36 north and covers every unit of every
+configuration. Five rows could not otherwise be simulated without extrapolating
+past the data, and their published figures were produced that way. The two
+archives carry bit-identical winds where they overlap and differ in one other
+respect: the older files carry a stored annual-mean roughness and the newer ones
+carry none, so the newer route derives roughness per timestep, which is the
+method this project adopted on 2026-09-12. **The nine rows that need neither
+change therefore also run a fourth condition on the chapter's own archive**, so
+the roughness treatment is measured rather than assumed when S-G1 is read.
 
 Read-only with respect to the tree. Writes its results under ``<out_dir>``.
 
@@ -35,6 +46,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from vwf.config import BoundingBoxes
 from vwf.data import load_power_curves
 from vwf.datasets.era5 import prep_era5
 from vwf.extensions.grid import evaluate, interpolation as interp, surface
@@ -45,12 +57,21 @@ RUNS = Path("output/runs/turbine_grid")
 SHAPES = Path("input/reference/shapes")
 ONSHORE, OFFSHORE = SHAPES / "country_shapes.geojson", SHAPES / "offshore_shapes.geojson"
 
+#: The archive every row is simulated from: 36 to 72 north, 12 west to 31.5
+#: east, hourly components and no stored roughness.
+ERA5 = Path("input/era5/EU_2026-09")
+#: The chapter's archive, 42 to 72 north, carrying an annual-mean roughness.
+#: Used only for the reference condition on rows it covers.
+ERA5_CHAPTER = Path("input/era5/EU")
+
 GRID_LON = np.arange(-10.0, 30.01, 0.25)
 GRID_LAT = np.arange(35.0, 72.01, 0.25)
 
 #: Study-scoped box for Denmark, 15.4 east rather than dk.toml's 13.5, so the
-#: chapter-era fleet is simulated from real winds. See the registration.
-BBOX = {"DK": (7.5, 15.4, 54.0, 58.2), "UK": (-11.0, 3.0, 49.0, 61.0)}
+#: chapter-era fleet is simulated from real winds. Every other configuration
+#: uses its shipped box, which already covers its own units; what clipped the
+#: five southern and eastern rows was the archive, not the box.
+BBOX = {"DK": (7.5, 15.4, 54.0, 58.2)}
 
 #: code, mode, obs_level, test year, the cluster count the chapter reports, and
 #: the chapter's published grid kriging MAE, for gate S-G1.
@@ -63,6 +84,14 @@ CONFIGURATIONS = (
     ("PT", "all", "country", 2023, 3, 0.0392), ("SE", "all", "country", 2023, 4, 0.0357),
     ("UK", "offshore", "turbine", 2019, 10, 0.1338), ("UK", "onshore", "turbine", 2019, 300, 0.0616),
 )
+
+#: The share of each row's capacity that the chapter's archive does not reach,
+#: measured on the chapter-era fleets. These five rows' published figures were
+#: produced from winds extrapolated past the data, so S-G1 is reported for them
+#: as a difference and not as a pass or fail. The other nine are zero and are
+#: what the gate is read on.
+CHAPTER_EXTRAPOLATED = {"ES all": 0.4280, "IT all": 0.8935, "NO all": 0.3568,
+                        "PT all": 0.8492, "SE all": 0.0546}
 
 #: The declared pool's own name for a country-level control point.
 POOL_CODE = {("DK", "offshore"): "DK-offshore", ("DK", "onshore"): "DK-onshore",
@@ -136,6 +165,20 @@ def build_surfaces(pool: pd.DataFrame) -> dict[str, xr.Dataset]:
     return {"S0": distance_masked(s0_scalar, s0_offset, pool), "S1": s1, "S2": s2}
 
 
+def winds(code: str, box, year: int, fleet: pd.DataFrame, era5_dir: Path):
+    """Daily speeds at the fleet, and what the archive actually supplied.
+
+    ``allow_extrapolation`` is left at its default, so a unit outside the
+    loaded extent stops the study rather than being simulated from winds that
+    do not exist. The audit before the run says there are none.
+    """
+    reanalysis = prep_era5(code, False, True, bbox=box, era5_dir=era5_dir)
+    detail = {"roughness": reanalysis.attrs.get("pyvwf_roughness_treatment"),
+              "extent": (f"{float(reanalysis.lon.min()):g} to {float(reanalysis.lon.max()):g}, "
+                         f"{float(reanalysis.lat.min()):g} to {float(reanalysis.lat.max()):g}")}
+    return interpolate_wind(reanalysis.sel(time=str(year)), fleet), detail
+
+
 def main(out_dir: str) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -153,13 +196,15 @@ def main(out_dir: str) -> None:
         results = base / "results" / "capacity-factor"
         observed = pd.read_csv(results / f"{code}_{year}_obs_cf.csv")
         cluster_cf = pd.read_csv(results / f"{code}_{year}_fixed_{clusters}_cor_cf.csv")
+        box = BBOX.get(code, BoundingBoxes.get(code))
         weight = self_weight(pool, code, mode)
 
-        reanalysis = prep_era5(code, False, True, bbox=BBOX.get(code)).sel(time=str(year))
-        speed = interpolate_wind(reanalysis, fleet)
+        speed, detail = winds(code, box, year, fleet, ERA5)
         common = {"row": label, "obs_level": level, "year": year,
                   "units": len(fleet), "self_weight": weight,
-                  "published_grid_kriging": published}
+                  "published_grid_kriging": published,
+                  "chapter_extrapolated_share": CHAPTER_EXTRAPOLATED.get(label, 0.0),
+                  "bbox": str(box), "archive": ERA5.name, **detail}
 
         nothing = pd.DataFrame({"ID": fleet["ID"].astype(str), "scalar": 1.0,
                                 "offset": 0.0, "neutral": True})
@@ -180,19 +225,57 @@ def main(out_dir: str) -> None:
                   f"off curve {off['off_curve_share']:.1%}, MAE {got['mae']:.4f}",
                   flush=True)
 
+        # The reference condition. Only the nine rows the chapter's own archive
+        # covers can have one, and for them it separates the roughness
+        # treatment from the pipeline when S-G1 is read.
+        if label not in CHAPTER_EXTRAPOLATED:
+            del speed
+            chapter_speed, chapter_detail = winds(code, box, year, fleet, ERA5_CHAPTER)
+            corrections, summary = evaluate.corrections_at(surfaces["S0"], fleet)
+            cf, off = evaluate.corrected_capacity_factors(chapter_speed, corrections, curves)
+            got = evaluate.skill(cf, observed, fleet, level)
+            rows.append({**common, "archive": ERA5_CHAPTER.name, **chapter_detail,
+                         "condition": "S0 chapter archive", **got, **summary,
+                         "off_curve_share": off["off_curve_share"]})
+            print(f"  S0 chapter archive: MAE {got['mae']:.4f}", flush=True)
+            del chapter_speed
+
     frame = pd.DataFrame(rows)
     frame.to_csv(out / "domain_split_results.csv", index=False)
-    with pd.option_context("display.width", 240, "display.max_columns", 30):
-        grids = frame[frame["condition"].isin(["S0", "S1", "S2"])]
+    with pd.option_context("display.width", 250, "display.max_columns", 30):
+        print("\n=== what each row was simulated from")
+        print(frame.drop_duplicates(["row", "archive"])
+              [["row", "archive", "roughness", "bbox", "extent",
+                "chapter_extrapolated_share"]].to_string(index=False))
+        grids = frame[frame["condition"].isin(["S0", "S1", "S2", "S0 chapter archive"])]
         print("\n=== neutral fill and off curve, before any metric")
         print(grids[["row", "condition", "units", "n_neutral", "neutral_share",
                      "off_curve_share"]].round(4).to_string(index=False))
-        print("\n=== S-G1: does S0 reproduce the chapter?")
+
         s0 = frame[frame["condition"] == "S0"].copy()
         s0["difference"] = s0["mae"] - s0["published_grid_kriging"]
-        print(s0[["row", "mae", "published_grid_kriging", "difference"]]
+        gated = s0[s0["chapter_extrapolated_share"] == 0.0]
+        print("\n=== S-G1, read on the nine rows the archive change does not touch")
+        print(gated[["row", "mae", "published_grid_kriging", "difference"]]
               .round(4).to_string(index=False))
-        print(f"  worst absolute difference: {s0['difference'].abs().max():.5f}")
+        print(f"  worst absolute difference: {gated['difference'].abs().max():.5f}")
+
+        print("\n=== the five rows whose published figure rests on extrapolated winds")
+        print("    reported as a difference, not as a pass or fail")
+        moved = s0[s0["chapter_extrapolated_share"] > 0.0]
+        print(moved[["row", "chapter_extrapolated_share", "mae",
+                     "published_grid_kriging", "difference"]].round(4).to_string(index=False))
+
+        reference = frame[frame["condition"] == "S0 chapter archive"]
+        if not reference.empty:
+            pair = (s0.set_index("row")["mae"]
+                    .to_frame("S0 new archive")
+                    .join(reference.set_index("row")["mae"].rename("S0 chapter archive"))
+                    .dropna())
+            pair["roughness effect"] = pair["S0 new archive"] - pair["S0 chapter archive"]
+            print("\n=== the roughness treatment, measured on the nine")
+            print(pair.round(5).to_string())
+
         print("\n=== all conditions, with self-weight")
         print(frame[["row", "self_weight", "condition", "mae", "rmse", "bias"]]
               .round(4).to_string(index=False))
