@@ -7,6 +7,102 @@ the five turbine-level configurations only**; the nine country-level ones ask a
 different question and are registered in
 `method-national-single-cluster-prereg.md`. Terms follow `CONTEXT.md`.
 
+## Amendment, 2026-09-15: the curve shape is a reported result, not a means to a selection
+
+**Written before the four remaining rows landed.** Only Denmark offshore had
+run. Held outside the repository until the runs finished, because four
+manifest-writing runs were in flight and a file created in the tree would have
+stamped `git_dirty: true` into every manifest of all four.
+
+**The flat-curve concern that motivated this protocol does not generalise, and
+Denmark contradicts itself.** Denmark onshore moves 0.0857 to 0.0851 across a
+sixteenfold increase in cluster count, which is the flat curve that made
+minimum-picking look like noise-fitting and led to the one-standard-error rule.
+Denmark offshore, the same country, has a mean spread of **20.8% in RMSE and
+39.9% in MAE** across its grid, with `k=1` and `k=2` beating everything above
+them in every fold and a four-count plateau from `k=10`. Those are opposite
+shapes.
+
+So **"select per row" is not noise-fitting where the curve has real
+structure**, and whether it is noise-fitting is a property of the row, not of
+the method. The one-standard-error rule still applies everywhere, because it
+costs almost nothing on a structured curve and protects a flat one.
+
+**Each row therefore reports its curve shape as a result in its own right**,
+beside the selection it produced, on three statistics computed from the mean
+fold score per cluster count:
+
+- **spread**, the worst mean over the best mean, minus one;
+- **counts within 1% of the best**, which is how many choices are effectively
+  tied for first;
+- **the largest plateau**, the biggest group of counts lying within 1% of that
+  group's own floor.
+
+The label follows from them rather than from a reading: **flat** below 5%
+spread, **plateaued** where the largest plateau covers half the grid or more,
+and **structured** otherwise. A row may be both plateaued and structured, and
+Denmark offshore is: a sharp preference at the bottom and a plateau above
+`k=10`. The statistics are reported whatever the label, because the label is a
+convenience and the spread is the evidence.
+
+**This changes no gate.** C-G1, C-G2 and C-G3 stand as registered, and the
+curve shape is reported alongside them rather than feeding them.
+
+### Added 2026-09-15T16:0x, after Denmark offshore and before the other four
+
+Both additions are marked as later than the section above, which was fixed at
+sha256 `75e7044e533fdabf0614c940e3c0cf557d82c16eeae31aa13f6ec3accd3f7ee3` when
+only Denmark offshore had run.
+
+**Each row reports the one-standard-error rule's own cost.** On a curve with a
+clear top group and an unstable ordering inside it, the rule reliably takes the
+smaller of two near-equals: Denmark offshore's minimising count was `k=2`, the
+rule took `k=1`, and on the untouched test year `k=2` is better by 0.0019,
+inside the 0.002 screen. Nothing is wrong there, and it is only visible because
+the minimising count happened also to be the chapter's and so was already being
+evaluated.
+
+So the gap between the selection and the minimising count on the test year is
+**reported for every row**, not only where it coincides with a baseline. **If
+any row's gap exceeds 0.002 that is a finding about the rule, not about the
+row**, and it is reported as such.
+
+The final run of each row evaluates the selection and both baselines. Where the
+minimising count is not among those three it is not evaluated, so this quantity
+is obtained by one additional evaluation per affected row after the study
+completes. That adds a reported number and touches no gate.
+
+**The plateau above `k=3` has a candidate explanation, and it is testable.**
+Denmark has two offshore wind farms. `k=1` and `k=2` therefore ask for clusters
+that correspond to something; `k=3` and above do not. The step from `k=2` to
+`k=3` is a 20.8% jump in mean RMSE which then flattens across `k=10` to `k=100`
+into a four-count plateau, which is the shape of a partition that has stopped
+carrying information and is dividing the same units into ever smaller groups,
+each with too few to fit a stable scalar.
+
+**Counted rather than assumed, before the United Kingdom's curve was known.**
+Grouping each training fleet into spatial components linked at 5 km:
+
+| | units | groups | group sizes |
+|---|---|---|---|
+| DK offshore | 318 | **9** | 162, 111, then 10, 10, 8, 7, 5, 3, 2 |
+| UK offshore | 981 | **22** | 118, 116, 100, 80, 75, 60, 50, 43, 40, 36, 35, 32, 30, 30, and 8 more |
+
+So "Denmark has two offshore farms" is too simple: it has nine groups, of which
+**two hold 86% of the units** and seven hold 45 between them. The break at
+`k=3` sits exactly where the partition runs out of large groups to separate,
+which is a sharper version of the same claim.
+
+**The prediction, fixed before the result.** The United Kingdom's 22 groups are
+far more evenly sized, the largest holding 12% of units against Denmark's 51%.
+If the mechanism is that a cluster count stops paying once clusters no longer
+correspond to anything, **UK offshore should stay useful well past `k=3`, into
+the region of 10 to 22, and its plateau should begin near its own group count
+rather than near Denmark's.** If instead UK offshore also breaks at `k=3`, the
+mechanism is wrong and the break is a property of the method, not of the fleet.
+Either answer is worth more than the selection, because it would say what a
+cluster count means rather than which one scores best.
+
 ## Defect, 2026-09-15: two fleet modes wrote to one run directory
 
 **Found after the first run of all five rows, before any gate was read.**
