@@ -191,7 +191,21 @@ register (`scripts/region_tools/repair_country_capacity.py`) fixes it:
 
 Those annual peaks are what a national fleet looks like. GWPT undercounts
 Ireland before 2017 (peak CF 1.05 in 2015, 1.08 in 2016), so `ie.toml` trains on
-2017-2021. Evaluated on 2023 the effect is large: uncorrected RMSE 0.1967 to
+2017-2021.
+
+**The repair generalises only where GWPT is the better register, which is a
+per-country question.** A register that disagrees with GWPT says one of the two
+is wrong and does not say which. Sweden, added to this document on 2026-09-15,
+is the counter-case: its register is flat at 8354 MW for 2015 to 2019 and so is
+defective by the same test, but GWPT gives 4226 rising to 6270 over those years
+and repairing from it would put Sweden's 2015 national mean capacity factor at
+0.4481 against a current 0.2267. **0.4481 is not a national onshore fleet**, and
+`--from-year` cannot rescue it because the undercount covers most of the
+training window. Sweden needs a national register and GWPT is not it. Portugal,
+flat at 4486 MW over the same years, is the opposite: GWPT disagrees by at most
+5%, moves where the register does not, and every repaired year peaks between
+0.95 and 0.98. The test before running the repair is whether the repaired
+capacity factors are physically credible for that country. Evaluated on 2023 the effect is large: uncorrected RMSE 0.1967 to
 0.1721, and the N=1 fixed fit 0.1598 to **0.0230**. IE moves from the worst
 region to one of the best, and the earlier "correction barely helps IE" reading
 was an artefact of the denominator.

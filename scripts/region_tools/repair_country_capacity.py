@@ -14,6 +14,29 @@ national fleet looks like. GWPT undercounts Ireland before 2017 (peak CF still
 1.05 in 2015), so ``--from-year`` also writes a trimmed training file over the
 window where the register is trustworthy.
 
+**This tool is only correct where GWPT is the better source, and that has to be
+established per country rather than assumed.** A register that disagrees with
+GWPT is a reason to look, not a reason to rewrite: the disagreement says one of
+the two is wrong and does not say which.
+
+- **Ireland is the case where it held.** The register was frozen at 1907.13 MW
+  for seven years, GWPT tracked a fleet that nearly doubled, and the repaired
+  capacity factors land where a national fleet does.
+- **Sweden is the case where it does not.** The register is flat at 8354 MW for
+  2015 to 2019, so it is defective by the same test, but GWPT gives 4226 rising
+  to 6270 over those years, roughly half the register in 2015. Repairing from
+  GWPT would put Sweden's 2015 national mean capacity factor at 0.4481 against
+  a current 0.2267, and 0.4481 is not a national onshore fleet. GWPT undercounts
+  Sweden there as it undercounts Ireland before 2017, and ``--from-year`` cannot
+  rescue it because the undercount covers most of the training window. **Sweden
+  needs a national installed-capacity register and this tool is not it.**
+- **Portugal is a case where it holds.** The register is flat at 4486 MW for
+  2015 to 2019, GWPT disagrees by at most 5% and moves where the register does
+  not, and every repaired year peaks between 0.95 and 0.98.
+
+The check before running it is whether the repaired capacity factors are
+physically credible for that country, not whether the two registers differ.
+
 Check the result with scripts/analysis/audit_country_observations.py.
 
 Usage:

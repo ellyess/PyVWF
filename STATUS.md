@@ -28,6 +28,17 @@ suspension.
 
 One line each. None is started.
 
+- **Sweden needs a national installed-capacity register.** Its country-level
+  series holds 8354 MW flat for 2015 to 2019, which is a frozen register by any
+  reasonable test, and the Global Wind Power Tracker is not the repair: GWPT
+  gives 4226 rising to 6270 over those years and repairing from it would put
+  Sweden's 2015 national mean capacity factor at 0.4481 against a current
+  0.2267. Sweden is excluded from `method-national-single-cluster-prereg.md`
+  until it has a register, and the exclusion is declared before any result.
+  Portugal sits beside it for the opposite reason: same defect, and GWPT is the
+  repair (`scripts/region_tools/repair_country_capacity.py PT`). Not searched
+  for yet, deliberately.
+
 - **Run chapter 5's models on all twelve country folds when port phase 3
   lands**, reporting MAE beside R-squared. The country-holdout study's gate L1
   is indeterminate because chapter 5 ran leave-one-country-out for Germany and
