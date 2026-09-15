@@ -28,6 +28,18 @@ suspension.
 
 One line each. None is started.
 
+- **Denmark onshore's flat cluster-count curve may not be real, and it was the
+  motivation for an entire protocol.** `method-cluster-count-dk.md` reports the
+  curve moving 0.0857 to 0.0851 across a sixteenfold increase in `k`, a spread
+  of 0.7%, and that flatness is why `method-cluster-selection-prereg.md` adopted
+  nested selection with a one-standard-error rule rather than minimum-picking.
+  The same configuration swept on 2026-09-15 spreads **24.9%** across `k=1` to
+  `k=1000`. The two differ in fleet, in grid, and in whether the score comes
+  from forward-chained training folds or from a single scored test year, so
+  nothing is yet shown to be wrong. But if the published curve is flat only
+  because of how it was scored, the protocol was built on an artefact. Not
+  reconciled inside the selection study, deliberately.
+
 - **Sweden needs a real installed-capacity register, because its current one
   is derived from its own generation.** The four bidding zones each hold a
   capacity frozen across 2015 to 2019, each zonal series peaks at exactly

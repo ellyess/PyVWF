@@ -103,6 +103,32 @@ mechanism is wrong and the break is a property of the method, not of the fleet.
 Either answer is worth more than the selection, because it would say what a
 cluster count means rather than which one scores best.
 
+## Registered before it runs, 2026-09-15: the offshore rows are reproduced, not re-run
+
+**Denmark offshore's and United Kingdom offshore's run directories were
+deleted, and the deletion was a mistake.** Clearing the two contaminated
+regions, the whole of `output/cluster_selection_2026-09-15/DK/` and `UK/` was
+removed, and those directories also held the two **clean** offshore rows'
+manifests, factors and `metrics.csv`. Deleted by region rather than by run
+directory name, which is the same class of error as resolving a file by listing
+rather than by name (`AGENTS.md`). The rows' numbers survive in
+`final_DK_offshore.csv`, `final_UK_offshore.csv` and their logs; the provenance
+a manifest carries does not.
+
+**Both rows are re-run as a reproduction, and the expected outcome is fixed
+here before it runs.** Nothing in their inputs changed but the run name, so:
+
+- **Bit-identical numbers restore the provenance and the study is unaffected.**
+- **Any difference is a finding about determinism**, reported as such and
+  investigated before the selections are trusted, because a pipeline that does
+  not reproduce itself makes every figure in this document provisional.
+- **Nothing about either selection can change.** Both are already recorded, the
+  inputs did not move, and this is not an opportunity to re-select. If a
+  selection moved, that is the determinism finding, not a new selection.
+
+This is a reproduction and is **not part of the study**. It adds no row, reads
+no gate, and its only outcome is whether the two rows come back identical.
+
 ## Defect, 2026-09-15: two fleet modes wrote to one run directory
 
 **Found after the first run of all five rows, before any gate was read.**
