@@ -5,6 +5,47 @@
 control points at, when the control-point pool is rebuilt. Terms follow
 `CONTEXT.md`.
 
+## Amendment, 2026-09-15: the country-level grid registered above cannot run
+
+**Recorded, not resolved.** Belgium was run first to measure the cost and
+exercise the protocol, and it raised instead:
+
+> country-level run asked for 2 clusters but the grid points define 3. The
+> country path does not cluster, so the two must agree.
+
+`vwf.data.assign_country_clusters` accepts 1, or the number of clusters the
+grid points already carry, and refuses everything else. **No clustering step
+runs on the country path**: the grid points arrive with their `cluster` column
+set, and for the zonal countries it holds the bidding zones. So the registered
+country-level grid of 1 to 100 is not a grid this pipeline can fit, and each of
+the nine country-level configurations has a two-member candidate set:
+
+| BE | ES | FR | IE | IT | NL | NO | PT | SE |
+|---|---|---|---|---|---|---|---|---|
+| 1 or 3 | 1 or 4 | 1 or 10 | 1 or 3 | 1 or 3 | 1 or 5 | 1 or 5 | 1 or 3 | 1 or 4 |
+
+Genuine cluster-count selection therefore exists for the **five turbine-level
+configurations only**, where k-means runs: DE-onshore, DK-onshore, DK-offshore,
+UK-onshore and UK-offshore.
+
+What this does to the design:
+
+- The turbine-level grids, the fold structure, the one-standard-error rule, the
+  metric rule and both baselines are unaffected and stand.
+- **C-P4 becomes untestable as written.** Every country-level configuration
+  selects below 10 by construction, so the prediction can no longer be wrong.
+- The question the study asks of the nine country rows shrinks to whether one
+  national cluster beats the grid's own count, which is a narrower question
+  than the one registered and is not the same as choosing a cluster count.
+- Whether a country's count can be varied at all is a question about how the
+  grid-point files are built, not about `cluster_list`.
+  `scripts/region_tools/weight_country_grid_points.py` reweights an existing
+  grid and re-derives zones from their labels; it does not create clusters.
+  Nothing here investigates that further.
+
+**This amendment records the constraint and changes no gate.** What replaces
+the country-level half of the design is not decided in it.
+
 ## The question
 
 > Does choosing each configuration's cluster count from its own data beat one
@@ -153,16 +194,23 @@ and is reported with the same prominence.
 
 ## Cost
 
-Measured anchor: Denmark onshore, 4,866 turbines, 19 cluster counts by four
+**Measured, Belgium, 2026-09-15**, at commit `4af1ba4` from a clean tree, both
+legal cluster counts at the `fixed` slice on `era5/EU_2026-09` with the
+per-timestep roughness: **42.0 s to train** (21.0 s per cluster count) and
+**37.3 s to evaluate**, 79.3 s in total.
+Run: `output/cluster_sweep_cost_2026-09-15/BE/`.
+
+Earlier anchor: Denmark onshore, 4,866 turbines, 19 cluster counts by four
 time slices, `PYVWF_OFFSET_WORKERS=4`, **1.5 hours**
 (`method-cluster-count-dk.md`). The grids registered above are smaller and only
 one time slice is fitted, so the earlier estimate of 20 to 28 hours was for a
 larger design than this one.
 
-83 fold-fits plus fourteen refits and fourteen test-year evaluations. **The
-estimate is not reported here**, because one country row is run first for the
-express purpose of measuring it, and an estimate written beside a measurement
-that is about to arrive is an invitation to remember the wrong one.
+On the Belgian measurement the nine country rows cost roughly **1.6 hours** in
+total across their folds and refits. The five turbine-level rows are not
+covered by it: Belgium fits 44 grid points and Denmark onshore fits 4,866
+turbines, so their cost is estimated from the Denmark anchor at roughly **5
+hours**, and that figure is an extrapolation and not a measurement.
 
 ## Committed in advance
 
