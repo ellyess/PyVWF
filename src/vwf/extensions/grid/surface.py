@@ -51,6 +51,7 @@ import xarray as xr
 
 from vwf.extensions.grid import interpolation as interp
 from vwf.geospatial import categorize_points_spatial_join, union_geometries
+from vwf.harness.corrections import PLAUSIBLE_SCALAR
 
 #: Values a domain column may carry, and what each means.
 DOMAIN_ALIASES = {
@@ -64,9 +65,23 @@ DOMAIN_ALIASES = {
 #: pool, which is what the chapter's own ``prepare_control_points`` did.
 COUNTRY_MODE = "all"
 
-#: Outside every area of interest the surface is neutral: the correction
-#: declines to answer rather than extrapolating.
+#: What a cell holds where the surface is asked to decline to answer. Since
+#: 2026-09-15 it declines nowhere by default: see ``neutral_outside_areas``.
 NEUTRAL_SCALAR, NEUTRAL_OFFSET = 1.0, 0.0
+
+#: Beyond this many degrees from any control point, a kriged value has reverted
+#: to the pool mean and carries no information about the place it is applied to
+#: (``docs/findings/method-distance-mask.md``,
+#: ``docs/findings/method-loco-interpolation-prereg.md``). It is a statement
+#: about provenance, not about safety: the far cells hold the tamest values on
+#: the grid, and every unusable one measured sat inside this horizon.
+INFORMATION_HORIZON_DEG = interp.MAX_DISTANCE_DEG
+
+#: A correction whose offset is negative sends every speed below
+#: ``-offset / scalar`` to a negative corrected speed, which has no value on the
+#: power curve. Above this crossing the pair is refusing ordinary winds rather
+#: than correcting them. Same quantity as ``vwf.wind.fit_diagnostics``.
+MAX_ZERO_CROSSING_SPEED = 4.0
 
 
 def normalise_domain(series: pd.Series) -> pd.Series:
@@ -166,6 +181,59 @@ def spatial_bin_average(points: pd.DataFrame, *, ddeg: float,
             [["lon", "lat", *value_cols]].mean(numeric_only=True))
 
 
+def _on_grid(values, lon: np.ndarray, lat: np.ndarray) -> xr.DataArray:
+    """Wrap a (lat, lon) array as a DataArray on this grid.
+
+    A named helper rather than a dict of keyword arguments splatted into
+    ``xr.DataArray``: the splat form defeats the overloads in xarray's stubs,
+    so mypy cannot tell ``coords`` from ``dims`` and reports every call five
+    times.
+    """
+    return xr.DataArray(values, coords={"lat": lat, "lon": lon}, dims=("lat", "lon"))
+
+
+def control_support(control_points: pd.DataFrame, domain: pd.Series,
+                    lon: np.ndarray, lat: np.ndarray, *,
+                    horizon: float = INFORMATION_HORIZON_DEG) -> dict[str, xr.DataArray]:
+    """How much data each grid cell's correction rests on.
+
+    The chapter shipped a surface with no way to ask this of a cell, and its
+    distance mask answered the question by deleting the cells rather than
+    labelling them. These are the labels.
+
+    Args:
+        control_points: the interpolated set.
+        domain: each control point's domain, from :func:`declared_domains`.
+        lon: 1D grid longitudes.
+        lat: 1D grid latitudes.
+        horizon: the radius the support count is taken over, in degrees.
+
+    Returns:
+        ``distance_to_control_deg`` and ``distance_to_control_km``, which are
+        the same geometry in the two metrics and **are not interchangeable**;
+        ``n_control_within_horizon``, which separates a cell between two
+        clusters from one trailing off a single cluster; and
+        ``nearest_is_onshore``, which is how a cell outside every area of
+        interest chooses the domain surface it takes.
+    """
+    lon_grid, lat_grid = np.meshgrid(np.asarray(lon, float), np.asarray(lat, float))
+    targets = np.column_stack([lon_grid.ravel(), lat_grid.ravel()])
+    coords = control_points[["lon", "lat"]].to_numpy(float)
+    degrees = interp.degree_distances(targets, coords, "degrees")
+    nearest = degrees.argmin(axis=1)
+    onshore = (domain.to_numpy() == "onshore")[nearest]
+    shape = lon_grid.shape
+    x, y = np.asarray(lon, float), np.asarray(lat, float)
+    kilometres = interp.degree_distances(targets, coords, "great_circle")
+    return {
+        "distance_to_control_deg": _on_grid(degrees.min(axis=1).reshape(shape), x, y),
+        "distance_to_control_km": _on_grid(kilometres.min(axis=1).reshape(shape), x, y),
+        "n_control_within_horizon": _on_grid(
+            (degrees <= horizon).sum(axis=1).reshape(shape), x, y),
+        "nearest_is_onshore": _on_grid(onshore.reshape(shape), x, y),
+    }
+
+
 def correction_surface(
     control_points: pd.DataFrame,
     lon: np.ndarray,
@@ -181,6 +249,10 @@ def correction_surface(
     n_closest_offshore: int | None = 80,
     thin_onshore_above: int = 15_000,
     thin_bin_ddeg: float = 0.05,
+    neutral_outside_areas: bool = False,
+    information_horizon_deg: float = INFORMATION_HORIZON_DEG,
+    scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
+    max_zero_crossing_speed: float = MAX_ZERO_CROSSING_SPEED,
 ) -> xr.Dataset:
     """A gridded correction field from the control points it is given.
 
@@ -200,12 +272,31 @@ def correction_surface(
         n_closest_offshore: the same, offshore.
         thin_onshore_above: bin-average the onshore points above this count.
         thin_bin_ddeg: bin size for that thinning.
+        neutral_outside_areas: leave cells in neither area at scalar 1 and
+            offset 0. **Default False, which corrects every cell**, because a
+            cell filled with unity is indistinguishable in the file from a
+            cell whose correction happens to be the identity. A cell outside
+            both areas takes the domain surface of its nearest control point.
+        information_horizon_deg: the provenance horizon recorded in the
+            attributes and used for the support count.
+        scalar_bounds: inclusive range outside which a cell's scalar is a
+            degenerate fit by the project's own definition (``CONTEXT.md``).
+        max_zero_crossing_speed: a cell whose correction sends speeds below
+            this to a negative corrected speed is flagged implausible.
 
     Returns:
         A dataset of ``scalar`` and ``offset`` on the grid, with the two area
-        masks, the per-domain surfaces before combination, and attributes
-        recording every choice above. **Cells outside both areas are neutral**,
-        scalar 1 and offset 0, which is the correction declining to answer.
+        masks, the per-domain surfaces before combination, the support
+        variables from :func:`control_support`, the kriging variances where the
+        method supplies them, ``zero_crossing_speed`` and ``plausible``, and
+        attributes recording every choice above.
+
+        **``plausible`` is the guard, not the distance.** Measurement says
+        geometry does not select the cells holding unusable corrections: they
+        sit near the control points, not far from them, and a variance
+        threshold picks the same wrong cells
+        (``docs/findings/method-distance-mask.md``). A flag on the correction's
+        own behaviour picks the right ones.
 
     Raises:
         ValueError: if either domain has fewer than five points, which is too
@@ -237,30 +328,62 @@ def correction_surface(
              "offshore": area_mask(lon, lat, offshore_geojson, name="is_offshore_area")}
     windows = {"onshore": n_closest_onshore, "offshore": n_closest_offshore}
 
-    fields = {}
+    raw, fields, variances = {}, {}, {}
     for name, pool in pools.items():
         if method == "kriging":
-            scalar, offset = interp.to_grid(
+            scalar, offset, scalar_var, offset_var = interp.to_grid(
                 interp.kriging_at, pool, lon, lat, variogram_model=variogram_model,
-                coordinates_type=coordinates_type, n_closest_points=windows[name])
+                coordinates_type=coordinates_type, n_closest_points=windows[name],
+                with_variance=True)
+            variances[name] = {"scalar_variance": scalar_var,
+                               "offset_variance": offset_var}
         elif method == "idw":
             scalar, offset = interp.to_grid(interp.idw_at, pool, lon, lat)
         else:
             raise ValueError(f"unknown method {method!r}; use 'kriging' or 'idw'")
         for label, values in (("scalar", scalar), ("offset", offset)):
-            fields[f"{label}_{name}"] = xr.DataArray(
-                values, coords={"lat": lat, "lon": lon}, dims=("lat", "lon"),
-                name=f"{label}_{name}").where(masks[name])
+            raw[f"{label}_{name}"] = _on_grid(values, lon, lat)
+            fields[f"{label}_{name}"] = raw[f"{label}_{name}"].where(masks[name])
 
+    support = control_support(control_points, domain, lon, lat,
+                              horizon=information_horizon_deg)
     inside = masks["onshore"] | masks["offshore"]
+
     combined = {}
     for label, neutral in (("scalar", NEUTRAL_SCALAR), ("offset", NEUTRAL_OFFSET)):
-        joined = xr.where(masks["onshore"], fields[f"{label}_onshore"],
-                          xr.where(masks["offshore"], fields[f"{label}_offshore"], np.nan))
-        combined[label] = joined.where(inside, other=neutral).rename(label)
+        # Inside an area the cell takes that area's surface. Outside both it
+        # takes the surface of whichever domain its nearest control point
+        # belongs to, which is a choice: the alternative, filling with unity,
+        # is what this replaces.
+        outside = xr.where(support["nearest_is_onshore"],
+                           raw[f"{label}_onshore"], raw[f"{label}_offshore"])
+        joined = xr.where(masks["onshore"], raw[f"{label}_onshore"],
+                          xr.where(masks["offshore"], raw[f"{label}_offshore"], outside))
+        if neutral_outside_areas:
+            joined = joined.where(inside, other=neutral)
+        combined[label] = joined.rename(label)
+
+    low, high = scalar_bounds
+    crossing = xr.where(
+        (combined["offset"] < 0) & (combined["scalar"] > 0),
+        -combined["offset"] / combined["scalar"], np.nan).rename("zero_crossing_speed")
+    plausible = ((combined["scalar"] >= low) & (combined["scalar"] <= high)
+                 & (crossing.isnull() | (crossing <= max_zero_crossing_speed))
+                 ).rename("plausible")
+
+    variance_fields = {}
+    for name, pair in variances.items():
+        for label, values in pair.items():
+            variance_fields[f"{label}_{name}"] = _on_grid(values, lon, lat)
+    if variances:
+        for label in ("scalar_variance", "offset_variance"):
+            variance_fields[label] = xr.where(
+                support["nearest_is_onshore"], variance_fields[f"{label}_onshore"],
+                variance_fields[f"{label}_offshore"]).rename(label)
 
     out = xr.Dataset({f"is_{name}_area": mask for name, mask in masks.items()}
-                     | fields | combined)
+                     | fields | combined | support | variance_fields
+                     | {"zero_crossing_speed": crossing, "plausible": plausible})
     out["scalar"].attrs.update(
         long_name="PyVWF scalar correction",
         description="Multiplicative correction applied to WIND SPEED, before the power "
@@ -269,6 +392,32 @@ def correction_surface(
         long_name="PyVWF offset correction",
         units="m s-1",
         description="Additive correction applied to WIND SPEED, before the power curve.")
+    out["distance_to_control_deg"].attrs.update(
+        long_name="Euclidean distance to the nearest control point",
+        units="degree",
+        description="The metric the information horizon is stated in. NOT "
+                    "interchangeable with distance_to_control_km.")
+    out["distance_to_control_km"].attrs.update(
+        long_name="Great-circle distance to the nearest control point",
+        units="km",
+        description="Provided because degrees of longitude shorten toward the pole, "
+                    "so the two metrics order cells differently.")
+    out["n_control_within_horizon"].attrs.update(
+        long_name="Control points within the information horizon",
+        description="Separates a cell between several clusters from one trailing off "
+                    "a single cluster at the same distance.")
+    out["zero_crossing_speed"].attrs.update(
+        long_name="Speed below which the correction returns a negative speed",
+        units="m s-1",
+        description="-offset / scalar where the offset is negative, else missing. "
+                    "Below it the corrected speed has no value on the power curve.")
+    out["plausible"].attrs.update(
+        long_name="The correction at this cell is usable",
+        description=f"False where the scalar leaves [{low}, {high}], the project's "
+                    f"definition of a degenerate fit, or the zero crossing exceeds "
+                    f"{max_zero_crossing_speed} m/s. This is the guard: distance and "
+                    "kriging variance do not select the cells holding unusable "
+                    "corrections (docs/findings/method-distance-mask.md).")
     out.attrs.update(
         title="PyVWF gridded bias correction field",
         usage="v_corrected = v_ERA5 * scalar + offset, applied before the power curve",
@@ -279,8 +428,22 @@ def correction_surface(
         n_control_points_onshore=int(len(pools["onshore"])),
         n_control_points_offshore=int(len(pools["offshore"])),
         domain_split="declared cluster_mode; country-level points to onshore",
+        outside_areas=("neutral" if neutral_outside_areas
+                       else "corrected from the nearest control point's domain"),
         neutral_scalar=NEUTRAL_SCALAR,
         neutral_offset=NEUTRAL_OFFSET,
+        information_horizon_deg=float(information_horizon_deg),
+        information_horizon_meaning=(
+            "Beyond this distance the interpolated value has reverted to the pool mean "
+            "and carries no information about the place it is applied to. This is a "
+            "statement about provenance, not about safety: the far cells hold the "
+            "tamest values on the grid. See docs/findings/method-distance-mask.md and "
+            "the leave-one-country-out result it cites."),
+        recommended_filter=(
+            "Filter on is_onshore_area or is_offshore_area for cells a fleet could "
+            "occupy, and on plausible for cells whose correction is usable. Do not "
+            "filter on distance_to_control_deg for safety; use it to say how much "
+            "local information a value carries."),
         n_closest_onshore=str(n_closest_onshore),
         n_closest_offshore=str(n_closest_offshore),
         **{k: str(v) for k, v in thinned.items()},

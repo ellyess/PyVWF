@@ -63,12 +63,63 @@ def test_the_control_point_set_is_an_argument_so_a_holdout_is_the_same_call(tmp_
     assert not np.allclose(a["scalar"].values, b["scalar"].values)
 
 
-def test_cells_outside_every_area_are_neutral_rather_than_extrapolated(tmp_path):
+def test_every_cell_is_corrected_including_outside_every_area(tmp_path):
+    """Since 2026-09-15 the surface answers everywhere. A cell filled with unity
+    is indistinguishable in the file from a cell whose correction happens to be
+    the identity, which is what the support variables and the flag replace."""
     got = build(tmp_path)
     outside = ~(got["is_onshore_area"] | got["is_offshore_area"])
     assert outside.values.any()
+    values = got["scalar"].values[outside.values]
+    assert np.isfinite(values).all()
+    assert not (values == surface.NEUTRAL_SCALAR).all()
+    assert got.attrs["outside_areas"].startswith("corrected from the nearest")
+
+
+def test_the_old_neutral_fill_is_still_available_by_name(tmp_path):
+    got = build(tmp_path, neutral_outside_areas=True)
+    outside = ~(got["is_onshore_area"] | got["is_offshore_area"])
     assert (got["scalar"].values[outside.values] == surface.NEUTRAL_SCALAR).all()
     assert (got["offset"].values[outside.values] == surface.NEUTRAL_OFFSET).all()
+    assert got.attrs["outside_areas"] == "neutral"
+
+
+def test_a_cell_outside_both_areas_takes_its_nearest_control_point_domain(tmp_path):
+    """The two pools differ by 0.4 in scalar, so which surface a cell took is
+    visible. South of both shapes, the nearer pool is whichever is nearer in
+    longitude."""
+    got = build(tmp_path)
+    west = got.sel(lon=1.0, lat=49.0, method="nearest")   # below the onshore box
+    east = got.sel(lon=7.0, lat=49.0, method="nearest")   # below the offshore box
+    assert not bool(west["is_onshore_area"]) and not bool(west["is_offshore_area"])
+    assert bool(west["nearest_is_onshore"]) and not bool(east["nearest_is_onshore"])
+    assert float(west["scalar"]) < 1.0 and float(east["scalar"]) > 1.0
+
+
+def test_the_support_variables_say_how_much_data_a_cell_rests_on(tmp_path):
+    got = build(tmp_path)
+    for name in ("distance_to_control_deg", "distance_to_control_km",
+                 "n_control_within_horizon"):
+        assert name in got
+    near = got.sel(lon=2.0, lat=52.0, method="nearest")
+    far = got.sel(lon=9.0, lat=49.0, method="nearest")
+    assert float(near["distance_to_control_deg"]) < float(far["distance_to_control_deg"])
+    assert int(near["n_control_within_horizon"]) >= int(far["n_control_within_horizon"])
+    # The two metrics are not interchangeable and the file says so.
+    assert got["distance_to_control_km"].attrs["units"] == "km"
+    assert got["distance_to_control_deg"].attrs["units"] == "degree"
+    assert float(got["distance_to_control_km"].max()) > float(
+        got["distance_to_control_deg"].max())
+
+
+def test_the_horizon_is_recorded_as_provenance_not_as_safety(tmp_path):
+    got = build(tmp_path)
+    assert got.attrs["information_horizon_deg"] == 5.0
+    meaning = got.attrs["information_horizon_meaning"]
+    assert "carries no information" in meaning
+    assert "not about safety" in meaning
+    assert "method-distance-mask" in meaning
+    assert "plausible" in got.attrs["recommended_filter"]
 
 
 def test_each_domain_is_interpolated_from_its_own_points(tmp_path):
@@ -180,6 +231,58 @@ def test_a_written_surface_carries_the_axis_names_atlite_reads(tmp_path):
     written = xr.open_dataset(plain)
     assert set(written["scalar"].dims) == {"lat", "lon"}
     written.close()
+
+
+def test_the_flag_catches_what_distance_does_not(tmp_path):
+    """An offset of -5 against a scalar of 0.8 crosses zero at 6.25 m/s, so the
+    pair refuses ordinary winds rather than correcting them. It sits right on
+    top of its control points, where no distance or variance threshold looks."""
+    points = control()
+    points.loc[points["cluster_mode"] == "onshore", "offset"] = -5.0
+    points.loc[points["cluster_mode"] == "onshore", "scalar"] = 0.8
+    got = build(tmp_path, points)
+    onshore = got["is_onshore_area"].values
+    assert not got["plausible"].values[onshore].any()
+    assert float(got["zero_crossing_speed"].values[onshore].max()) > 4.0
+    # The cells the flag rejects are the close ones, which is the point.
+    rejected = ~got["plausible"].values
+    assert (got["distance_to_control_deg"].values[rejected].mean()
+            < got["distance_to_control_deg"].values[~rejected].mean())
+
+
+def test_a_degenerate_scalar_is_flagged_by_the_projects_own_bounds(tmp_path):
+    points = control(scalar_off=5.0)
+    got = build(tmp_path, points)
+    assert not got["plausible"].values[got["is_offshore_area"].values].all()
+    assert "degenerate fit" in got["plausible"].attrs["description"]
+
+
+def test_an_ordinary_surface_is_plausible_everywhere(tmp_path):
+    """The offshore pool's offsets are negative here, so crossings exist. A
+    crossing is not itself a defect: it is one below the operating range."""
+    got = build(tmp_path)
+    assert got["plausible"].values.all()
+    crossings = got["zero_crossing_speed"].values
+    assert np.isfinite(crossings).any()
+    assert np.nanmax(crossings) <= surface.MAX_ZERO_CROSSING_SPEED
+
+
+def test_kriging_carries_its_own_variance_onto_the_grid(tmp_path):
+    pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
+    got = build(tmp_path, method="kriging", n_closest_onshore=None,
+                n_closest_offshore=None)
+    assert "scalar_variance" in got and "offset_variance" in got
+    assert (got["scalar_variance"].values >= 0).all()
+    # Variance grows away from the points, which is why it is not the guard:
+    # it ranks cells the same way distance does.
+    near = float(got["scalar_variance"].sel(lon=2.0, lat=52.0, method="nearest"))
+    far = float(got["scalar_variance"].sel(lon=9.0, lat=49.0, method="nearest"))
+    assert far > near
+
+
+def test_idw_carries_no_variance_because_it_has_none(tmp_path):
+    got = build(tmp_path, method="idw")
+    assert "scalar_variance" not in got
 
 
 def test_the_declared_and_shape_splits_disagree_and_it_is_only_reported(tmp_path):

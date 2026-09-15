@@ -293,10 +293,18 @@ def to_grid(method, control_points: pd.DataFrame, grid_lons, grid_lats, **kwargs
         **kwargs: forwarded to the interpolator.
 
     Returns:
-        ``scalar`` and ``offset`` as 2D arrays shaped (lat, lon).
+        ``scalar`` and ``offset`` as 2D arrays shaped (lat, lon). With
+        ``with_variance=True``, which only :func:`kriging_at` accepts, four
+        arrays: the two fields then their two kriging variances.
     """
     targets, shape = _grid_targets(grid_lons, grid_lats)
-    scalar, offset = method(control_points, targets[:, 0], targets[:, 1], **kwargs)
+    result = method(control_points, targets[:, 0], targets[:, 1], **kwargs)
+    if kwargs.get("with_variance"):
+        (scalar, offset), (scalar_var, offset_var) = result
+        return (np.asarray(scalar).reshape(shape), np.asarray(offset).reshape(shape),
+                np.asarray(scalar_var).reshape(shape),
+                np.asarray(offset_var).reshape(shape))
+    scalar, offset = result
     return np.asarray(scalar).reshape(shape), np.asarray(offset).reshape(shape)
 
 
