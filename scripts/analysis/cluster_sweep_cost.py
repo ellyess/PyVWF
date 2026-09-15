@@ -6,6 +6,15 @@ measures the unit that cost is built from: one train run over the registered
 cluster-count grid at one time slice, plus one evaluation, on the archive and
 roughness treatment the rebuild uses.
 
+**A country-level configuration has no cluster count to select.** The first
+attempt asked Belgium for 2 clusters and
+``vwf.data.assign_country_clusters`` refused: the country path runs no
+clustering step, the grid points arrive with their cluster column already set,
+and only 1 or that count is legal. The registered country-level grid of 1 to
+100 cannot run, and the candidate set for each of the nine country rows has two
+members. That is a finding about the registration, recorded here because the
+script is what found it.
+
 **It is not a fold of the registered protocol.** It trains on the
 configuration's whole training window rather than on a fold of it, because the
 fold structure is blocked: ``train_years`` is an inclusive ``[start, end]``
@@ -31,10 +40,16 @@ import pandas as pd
 
 from vwf.harness import driver, regions
 
-#: The grids the registration fixes, by observation level and fleet mode.
-COUNTRY_GRID = (1, 2, 3, 4, 5, 7, 10, 15, 20, 30, 50, 75, 100)
+#: The turbine-level grids the registration fixes.
 ONSHORE_GRID = (1, 10, 25, 50, 100, 200, 500, 1000)
 OFFSHORE_GRID = (1, 2, 3, 5, 10, 25, 50, 100)
+
+#: Where a country-level configuration's cluster count comes from. It is not a
+#: fitting choice: ``vwf.data.assign_country_clusters`` accepts 1 or the count
+#: the grid points already carry and refuses everything else, because no
+#: clustering step runs on the country path. So the candidate set has two
+#: members and is read from the pool rather than declared.
+POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 
 #: Held constant by the registration.
 ERA5_PATH, ROUGHNESS, TIME_SLICE = "era5/EU_2026-09", "derived", "fixed"
@@ -42,7 +57,9 @@ ERA5_PATH, ROUGHNESS, TIME_SLICE = "era5/EU_2026-09", "derived", "fixed"
 
 def grid_for(spec: regions.RegionSpec, mode: str) -> tuple[int, ...]:
     if spec.obs_level == "country":
-        return COUNTRY_GRID
+        pool = pd.read_csv(POOL)
+        present = int((pool["country_code"] == spec.code).sum())
+        return (1, present)
     return OFFSHORE_GRID if mode == "offshore" else ONSHORE_GRID
 
 
