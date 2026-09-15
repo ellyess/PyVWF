@@ -76,15 +76,21 @@ and not repairable from anything currently held.
   factor between 0.95 and 0.98, and it changes 52 of 84 training months by more
   than 0.01. Portugal returns once its series is repaired by the route Ireland
   took.
-- **SE, excluded: the register is wrong and GWPT is not the fix.** It is flat
-  at 8,354 MW for 2015 through 2019, and GWPT gives 4,226 rising to 6,270, so
-  the file is nearly double GWPT in 2015. Repairing from GWPT would put
-  Sweden's 2015 national mean capacity factor at **0.4481**, which is not what
-  a national onshore fleet looks like, against a current 0.2267 which is. GWPT
-  undercounts Sweden over those years the way it undercounts Ireland before
-  2017. **Sweden needs a national installed-capacity register**, and that is
-  logged as an open item rather than searched for now. Sweden returns when it
-  has one.
+- **SE, excluded: the register is derived from the generation it divides.**
+  It is flat at 8,354 MW for 2015 through 2019. **Corrected 2026-09-15:** this
+  was first recorded as a case where the register is wrong and the Global Wind
+  Power Tracker is not the fix, on the grounds that repairing from GWPT puts
+  Sweden's 2015 national mean capacity factor at 0.4481 while the current
+  0.2267 looks like a real fleet. **The current value is not evidence**: the
+  four Swedish bidding zones each carry a capacity frozen across all five
+  training years, each series peaks at exactly 0.900, and the four sum to
+  8,354 MW exactly. 0.900 is the signature of the ENTSO-E fetcher's fallback,
+  `estimated_cap = gen.max() / 0.9`, so the denominator is back-derived from
+  the numerator and the series is constructed to look like a national fleet
+  whether or not it is one. Which register is right for Sweden is open, and
+  the current one has the weaker claim, not the stronger. **Sweden needs a
+  real installed-capacity register**, logged as an open item rather than
+  searched for now, and returns when it has one.
 
 **Neither exclusion is lifted by seeing a number.** Both are fixed here, before
 any result, which is what separates an exclusion from a convenience. Sweden

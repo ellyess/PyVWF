@@ -62,6 +62,20 @@ FROZEN_CAPACITY_MIN_YEARS = 2.0
 #: Sweden 19.9%, so both passed it, and both hold one number for five straight
 #: years while their fleets grew. When the register moves is the test; how far
 #: it moves in the end is not.
+#:
+#: **The threshold was set from Portugal and Sweden, and found Sweden's zonal
+#: series by itself.** SE-BZ was not among the cases it was tuned on: its four
+#: bidding zones each hold a frozen capacity over five years, each peaks at
+#: exactly 0.900, and the four sum to Sweden's national register exactly, which
+#: is the fetcher's ``gen.max() / 0.9`` fallback showing through. A rule that
+#: fires on a case it was not built for is the point of setting it on a
+#: statistic rather than on the cases.
+#:
+#: **It reports the wrong number on a stacked zonal frame.** Given one frame
+#: holding several zones it takes the median capacity across them, so SE-BZ is
+#: reported as 2158 MW unchanged for three years when the truth is four zones
+#: frozen for five. The finding is right and the figure is not; checking per
+#: zone is an open item.
 MAX_UNCHANGED_YEARS = 3
 
 #: Ratio between the best and worst annual mean CF. Interannual wind

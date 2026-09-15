@@ -28,16 +28,24 @@ suspension.
 
 One line each. None is started.
 
-- **Sweden needs a national installed-capacity register.** Its country-level
-  series holds 8354 MW flat for 2015 to 2019, which is a frozen register by any
-  reasonable test, and the Global Wind Power Tracker is not the repair: GWPT
-  gives 4226 rising to 6270 over those years and repairing from it would put
-  Sweden's 2015 national mean capacity factor at 0.4481 against a current
-  0.2267. Sweden is excluded from `method-national-single-cluster-prereg.md`
-  until it has a register, and the exclusion is declared before any result.
-  Portugal sits beside it for the opposite reason: same defect, and GWPT is the
-  repair (`scripts/region_tools/repair_country_capacity.py PT`). Not searched
-  for yet, deliberately.
+- **Sweden needs a real installed-capacity register, because its current one
+  is derived from its own generation.** The four bidding zones each hold a
+  capacity frozen across 2015 to 2019, each zonal series peaks at exactly
+  0.900, and the four sum to the national 8354 MW exactly. 0.900 is the
+  signature of the ENTSO-E fetcher's fallback for a country whose
+  installed-capacity endpoint returns nothing,
+  `estimated_cap = gen.max() / 0.9`. GWPT gives 4226 rising to 6270 over those
+  years, so the two disagree by a factor of two and neither is trustworthy;
+  the current file's plausible-looking capacity factors were constructed to
+  peak near 0.9. Sweden and SE-BZ are excluded from
+  `method-national-single-cluster-prereg.md` until Sweden has a register, and
+  the exclusion is declared before any result. Portugal sits beside it for a
+  different reason: same frozen register, and GWPT is the repair
+  (`scripts/region_tools/repair_country_capacity.py PT`). Not searched for
+  yet, deliberately.
+- **Which other regions use the fetcher's derived-capacity fallback.** The
+  0.900 peak is a searchable signature and only the Swedish zonal series has
+  been checked for it. Not looked for elsewhere.
 
 - **Run chapter 5's models on all twelve country folds when port phase 3
   lands**, reporting MAE beside R-squared. The country-holdout study's gate L1

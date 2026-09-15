@@ -22,14 +22,20 @@ the two is wrong and does not say which.
 - **Ireland is the case where it held.** The register was frozen at 1907.13 MW
   for seven years, GWPT tracked a fleet that nearly doubled, and the repaired
   capacity factors land where a national fleet does.
-- **Sweden is the case where it does not.** The register is flat at 8354 MW for
-  2015 to 2019, so it is defective by the same test, but GWPT gives 4226 rising
-  to 6270 over those years, roughly half the register in 2015. Repairing from
-  GWPT would put Sweden's 2015 national mean capacity factor at 0.4481 against
-  a current 0.2267, and 0.4481 is not a national onshore fleet. GWPT undercounts
-  Sweden there as it undercounts Ireland before 2017, and ``--from-year`` cannot
-  rescue it because the undercount covers most of the training window. **Sweden
-  needs a national installed-capacity register and this tool is not it.**
+- **Sweden is the case where neither source can be trusted.** The register is
+  flat at 8354 MW for 2015 to 2019, so it is defective by the same test, and
+  GWPT gives 4226 rising to 6270 over those years, roughly half of it.
+  Repairing from GWPT puts Sweden's 2015 national mean capacity factor at
+  0.4481 against a current 0.2267. **Neither number is evidence.** Sweden's
+  four bidding zones each hold a frozen capacity over those five years, each
+  zonal series peaks at exactly 0.900, and the four sum to 8354 MW exactly.
+  0.900 is the signature of the fetcher's own fallback in
+  ``vwf.datasets.fetch_entsoe_capacity_factors``,
+  ``estimated_cap = gen.max() / 0.9``, applied when ENTSO-E returns no
+  capacity at all. So the denominator is derived from the numerator and the
+  plausible-looking capacity factors are constructed, not observed. **Sweden
+  needs a real installed-capacity register and neither this tool nor the file
+  on disk is one.**
 - **Portugal is a case where it holds.** The register is flat at 4486 MW for
   2015 to 2019, GWPT disagrees by at most 5% and moves where the register does
   not, and every repaired year peaks between 0.95 and 0.98.
