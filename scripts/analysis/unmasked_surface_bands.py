@@ -19,6 +19,9 @@ shipped grid with **no mask at all**:
 - what those turn into at a reference wind speed, which is the form a user
   meets them in: a scalar and an offset are hard to read, and 8 m/s becoming
   2 m/s is not;
+- where the cells holding unusable corrections actually sit, and whether the
+  interpolation overshoots its own control points or faithfully reports a pool
+  that disagrees with itself;
 - how many cells of each band lie inside any region of interest at all. A cell
   over open ocean or the Sahara receives a correction that nothing will ever
   read, and separating those from the cells a user could plausibly sample is
@@ -58,6 +61,14 @@ REFERENCE_SPEED = 8.0
 #: The ends of the curve table, which is what a corrected speed has to land
 #: inside to produce a capacity factor at all.
 CURVE_MIN, CURVE_MAX = 0.0, 40.0
+
+#: A corrected speed at the reference outside these is on the curve but is not
+#: a credible value. Read as a screen, not as a threshold anything acts on.
+EXTREME_LOW, EXTREME_HIGH = 1.0, 20.0
+
+#: How many of a cell's nearest control points are read when asking whether the
+#: interpolation overshot them or reported them faithfully.
+NEIGHBOURS = 5
 
 
 def bands(distance: np.ndarray) -> pd.Categorical:
@@ -141,15 +152,16 @@ def main(out_dir: str) -> None:
         print(bad.round(4).to_string())
 
         print("\n=== does the kriging variance separate what distance does not?")
-        extreme = (cells["corrected_at_reference"] < 1.0) | \
-                  (cells["corrected_at_reference"] > 20.0)
+        extreme = ((cells["corrected_at_reference"] < EXTREME_LOW)
+                   | (cells["corrected_at_reference"] > EXTREME_HIGH))
         print(f"    cells whose corrected speed at {REFERENCE_SPEED} m/s is "
-              f"below 1 or above 20 m/s: {int(extreme.sum())}")
+              f"below {EXTREME_LOW:g} or above {EXTREME_HIGH:g} m/s: "
+              f"{int(extreme.sum())}")
         print(cells.groupby("band", observed=False).apply(
             lambda g: pd.Series({
                 "cells": len(g), "extreme": int(
-                    ((g["corrected_at_reference"] < 1.0)
-                     | (g["corrected_at_reference"] > 20.0)).sum()),
+                    ((g["corrected_at_reference"] < EXTREME_LOW)
+                     | (g["corrected_at_reference"] > EXTREME_HIGH)).sum()),
                 "median scalar variance": g["scalar_variance"].median()}),
             include_groups=False).round(4).to_string())
         print("\n    the same cells, by scalar-variance quintile:")
@@ -158,10 +170,28 @@ def main(out_dir: str) -> None:
         print(cells.assign(q=quintile).groupby("q", observed=False).apply(
             lambda g: pd.Series({
                 "cells": len(g), "extreme": int(
-                    ((g["corrected_at_reference"] < 1.0)
-                     | (g["corrected_at_reference"] > 20.0)).sum()),
+                    ((g["corrected_at_reference"] < EXTREME_LOW)
+                     | (g["corrected_at_reference"] > EXTREME_HIGH)).sum()),
                 "median distance degrees": g["distance_degrees"].median()}),
             include_groups=False).round(3).to_string())
+
+        print(f"\n=== do the {NEIGHBOURS} nearest control points explain the "
+              "extreme cells?")
+        near = cells[cells["distance_degrees"] < interp.MAX_DISTANCE_DEG].copy()
+        distances = interp.degree_distances(
+            near[["lon", "lat"]].to_numpy(float),
+            pool[["lon", "lat"]].to_numpy(float), "degrees")
+        nearest = np.argpartition(distances, NEIGHBOURS, axis=1)[:, :NEIGHBOURS]
+        neighbour_scalars = pool["scalar"].to_numpy(float)[nearest]
+        low, high = neighbour_scalars.min(axis=1), neighbour_scalars.max(axis=1)
+        near["neighbour_spread"] = high - low
+        near["outside_neighbours"] = (near["scalar"] > high) | (near["scalar"] < low)
+        near["extreme"] = extreme[near.index]
+        print(near.groupby("extreme").agg(
+            cells=("scalar", "size"),
+            median_neighbour_spread=("neighbour_spread", "median"),
+            share_outside_neighbour_range=("outside_neighbours", "mean"),
+            median_distance=("distance_degrees", "median")).round(3).to_string())
 
         print("\n=== the two metrics are not in the same units")
         print(cells.groupby("band", observed=False)["distance_great_circle_km"]
