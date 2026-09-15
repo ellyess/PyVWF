@@ -64,6 +64,53 @@ gently against one tested harshly and reports the difference as a finding.
 What that takes is in "Running leave-one-country-out for the interpolators"
 below. It is cheap.
 
+## D0. The maintained grids are the workstream's fleet, and the chapter is a historical baseline
+
+**Decided 2026-09-15. This is the founding assumption, not a note.** Every
+country-level result the manuscript produces is computed on the maintained,
+fleet-weighted grids. The chapter's figures were computed on the uniform grids
+and are a historical baseline the manuscript describes; they are not a target
+it reproduces, and no gate in this workstream requires reproducing them except
+where stated.
+
+**The evidence is that the uniform grid is a defect the project has already
+fixed, not a defensible alternative weighting.** A uniform grid gives every
+point the same synthetic capacity, so the simulated country is averaged by land
+area while the observation is national generation over national installed
+capacity, averaged by where the fleet is. Real fleets are concentrated and the
+gap is absorbed into the scalar and offset as if it were reanalysis bias.
+Measured against the GWPT fleet as of 2021:
+
+| Region | uniform points | carrying no fleet | largest cluster reweighting |
+|---|---|---|---|
+| NO | 338 | **313** | 66.4 pp |
+| BE | 105 | 64 | 38.5 pp |
+| PT | 60 | 34 | 35.6 pp |
+| IT | 110 | 83 | 25.6 pp |
+| FR | 468 | 302 | 24.7 pp |
+| IE | 70 | 34 | 23.5 pp |
+| SE | 72 | 35 | 23.4 pp |
+| NL | 165 | 116 | 19.7 pp |
+| ES | 84 | 33 | 13.3 pp |
+
+Half to nine tenths of every grid carried no wind capacity. **Norway simulated
+338 points of which 313 were empty, and two of its clusters contain no wind at
+all.** The uniform grid also cannot represent a fleet that grows, which is what
+broke the Netherlands when its fleet doubled between training and test.
+Reverting to it to keep the chapter comparable would be choosing an audit trail
+over a correct method.
+
+**What this costs, stated.** A rebuilt control-point pool is not the old pool
+refitted: BE 44 points against 105, IT 28 against 110, NO 26 against 338. Three
+registered studies compare against chapter figures and each is resolved
+separately, in its own document and dated the same day: the Netherlands holdout
+runs **both** grids, because its purpose is testing the chapter's cross-border
+claim and that claim lives on the uniform grid; the leave-one-country-out study
+**drops its reproduction gate** and re-runs on the rebuilt pool, its existing
+result standing as a finding about the chapter's pool and labelled so wherever
+it appears; the domain-split study **stays void**, and if it is ever re-founded
+it is on the maintained grids with no chapter gate.
+
 ## D1. Does the manuscript reproduce the chapters or supersede them?
 
 Reproducing means porting about 3,000 lines of library code and 5,200 lines of

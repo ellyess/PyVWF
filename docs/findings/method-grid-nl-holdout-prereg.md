@@ -62,7 +62,18 @@ and it does bound what the numbers mean about the Netherlands.
 |---|---|---|
 | **H-G1** | H1's best gridded MAE is below the uncorrected 0.2654. This is the minimum for cross-border prediction to be worth anything: below it, a correction learned entirely from other countries is worse than no correction. | |
 | **H-G2** | H1's best gridded MAE is below the five-cluster country correction's 0.1162. This is the chapter's claim as the manuscript needs it: neighbours alone beat a sparse local fit. | |
-| **H-G3** | H0 reproduces the chapter's published 0.0563 for kriging and 0.1744 for IDW, to three decimals. **If it does not, the study is void** and the discrepancy is diagnosed before anything else is read, because H1 is only interpretable against an H0 that reproduces. | |
+| **H-G3** | **Amended 2026-09-15: on the uniform grid only.** H0 reproduces the chapter's published 0.0563 for kriging and 0.1744 for IDW, to three decimals, when run on the uniform grid the chapter used. **If it does not, the study is void** and the discrepancy is diagnosed before anything else is read, because H1 is only interpretable against an H0 that reproduces. | |
+| **H-G4** | **Added 2026-09-15.** Every condition is also run on the maintained fleet-weighted grids, and the difference between the two grids is reported per condition as a measured quantity. It gates nothing. This study is the one place the workstream runs both grids, because its purpose is testing the chapter's cross-border claim and that claim lives on the uniform grid; running both is how the manuscript states what the grid change did rather than asserting it. | |
+
+## Amendment, 2026-09-15: both grids, and why only here
+
+The workstream's founding assumption (`../design/manuscript-chapters-45.md`,
+D0) is that country-level results are computed on the maintained fleet-weighted
+grids and the chapter is a historical baseline. That would ordinarily retire a
+reproduction gate. It does not here: this study exists to test the chapter's
+headline cross-border claim, and the claim was made on the uniform grid, so a
+run that cannot reproduce it cannot test it either. Both grids are run, H-G3
+gates the uniform arm, and the maintained arm is reported beside it under H-G4.
 
 ## A gate stated against another pipeline's number, 2026-09-13
 

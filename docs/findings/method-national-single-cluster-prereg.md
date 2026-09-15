@@ -21,7 +21,17 @@ no grid to search and no minimum to find. There are two candidates:
 
 | BE | ES | FR | IE | IT | NL | NO | ~~PT~~ | ~~SE~~ |
 |---|---|---|---|---|---|---|---|---|
-| 1 or 3 | 1 or 4 | 1 or 10 | 1 or 3 | 1 or 3 | 1 or 5 | 1 or 5 | excluded | excluded |
+| 1 or 3 | 1 or 4 | 1 or 10 | 1 or 3 | 1 or 3 | 1 or 5 | 1 or **4** | excluded | excluded |
+
+**Corrected 2026-09-15.** This table was first written from the control-point
+pool, which is built on the uniform grids. The candidate set is a property of
+the **maintained** grid each configuration actually loads, and two differ:
+Norway is 1 or 4, not 1 or 5, and Portugal is 1 or 2, not 1 or 3. The
+fleet-weighting step empties a cluster in each and
+`weight_country_grid_points.py` warns when it does. Portugal is excluded
+regardless, so only Norway's entry changes a runnable candidate set. The counts
+above are read by resolving each region the way `EntsoeFileSource` resolves it,
+not by listing files (`AGENTS.md`).
 
 Calling that a cluster-count selection would be a category error, and the
 prediction it produced in the parent registration (C-P4, every country row

@@ -8,6 +8,27 @@ machine learning. Terms follow `CONTEXT.md`.
 **Everything below is fixed before any number exists.** The outcome column is
 filled afterwards.
 
+## Amendment, 2026-09-15: the chapter comparison is dropped, and this re-runs on the rebuilt pool
+
+The workstream's founding assumption
+(`../design/manuscript-chapters-45.md`, D0) is that country-level results are
+computed on the maintained fleet-weighted grids, and that the chapter's
+figures, computed on the uniform grids, are a historical baseline rather than a
+target. This study reads the control-point pool, which is built from the
+uniform grids, so:
+
+- **The result already produced stands as a finding about the chapter's pool**,
+  and is labelled that way wherever it appears. It is not a statement about the
+  pool the manuscript will ship.
+- **L3's comparison against a chapter figure is retired**, not scored. It set
+  the Netherlands fold against the country-only cluster correction chapter 4
+  reports, which is a uniform-grid number, and the fold under a rebuilt pool
+  would be a maintained-grid one. Comparing them would be comparing two fleets.
+  The question L3 asked stays open and needs a within-grid form.
+- **The study re-runs on the rebuilt pool once it exists.** L1 and L2 carry
+  over unchanged: both are internal comparisons between methods, or between a
+  method and the pool's own mean, and neither reads a chapter figure.
+
 ## Why this exists
 
 The merged manuscript's question is whether correction factors generalise
@@ -113,7 +134,7 @@ be a second definition of the same number.
 |---|---|---|
 | **L1** | The interpolators survive the test the machine learning failed: at least one interpolation method has a lower MAE than the best machine-learning model on at least 8 of the 12 folds, scored on the same held-out points. | |
 | **L2** | Cross-border transfer works at all where a country has neighbours: for the folds whose held-out points have a remaining control point within 2 degrees, the best interpolator's MAE is below the MAE of predicting every held-out point at the pool's mean. Below that, distance-weighted interpolation is adding nothing over a constant. | |
-| **L3** | The Netherlands result survives its own holdout: NL's fold MAE under the best interpolator is lower than the MAE of the country-only cluster correction chapter 4 reports for it. **Indeterminate** if the two are not on the same observations, which is checked before the gate is read. | |
+| ~~**L3**~~ | **Retired 2026-09-15, not scored.** It set NL's fold MAE against the country-only cluster correction chapter 4 reports, which is a uniform-grid figure, while a rebuilt pool is maintained-grid. The two are different fleets and the comparison cannot be read. The question stays open and needs a within-grid form; see the amendment above. | |
 
 ## Registered predictions
 
@@ -122,7 +143,7 @@ be a second definition of the same number.
 | N1 | L1 passes. Interpolation degrades under country holdout, as the machine learning did, but less, because it has no region-specific decision boundaries to memorise. | |
 | N2 | Every method's MAE is worse under leave-one-country-out than under the longitude folds chapter 4 used, in at least 10 of the 12 folds. The longitude bands cut through countries, so they leave same-country neighbours in the training set. | |
 | N3 | The spread across methods narrows under this test relative to the longitude folds. With no same-country neighbours, the choice of weighting matters less than the absence of nearby data. | |
-| N4 | L3 holds: the Netherlands keeps its advantage, because its neighbours are the densest part of the pool. | |
+| ~~N4~~ | **Retired 2026-09-15 with L3**, which it predicted. | |
 
 ## Committed in advance
 

@@ -8,6 +8,26 @@ the domain split the chapter's own code comment says it intended fixes it.
 Terms follow `CONTEXT.md`. Replaces `method-offshore-pool-prereg.md`, which is
 void.
 
+## The study is void, and what re-founding it would take, 2026-09-15
+
+**S1 and S2 were run and have not been read, and the study stays void.** S-G1
+failed on Denmark offshore by 0.00175 against a 0.001 gate, and the diagnosis
+is complete: the reference condition on the chapter's own archive reproduced
+all nine covered rows to within 0.00005, so the miss is entirely the roughness
+treatment. Restating a gate after seeing which way the miss went is the error
+this registration was written to prevent, so it was not restated.
+
+**It is now void for a second and larger reason.** The workstream's founding
+assumption (`../design/manuscript-chapters-45.md`, D0) is that country-level
+results are computed on the maintained fleet-weighted grids, while every figure
+in this study, and the control-point pool it interpolates, is on the uniform
+grids. **If this study is ever re-founded it is on the maintained grids and
+with no gate against a chapter figure**, which means S-G1 does not carry over
+in any form. S-G2 and S-G3 are internal and would.
+
+The registration below is kept intact rather than edited, so that what was
+asked can be read against what happened.
+
 ## Amendment, 2026-09-15: real winds everywhere, and what that does to S-G1
 
 **Dated before the run it governs.** The study now reads
