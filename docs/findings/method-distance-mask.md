@@ -1,18 +1,40 @@
-# The 5-degree distance mask neutralises the safest cells on the grid
+# The 5-degree distance mask deletes far more good cells than bad
 
 **Date:** 2026-09-15
 **Scope:** whether the distance mask thesis chapter 4 applies to its gridded
 correction surface does what its rationale says it does. Terms follow
 `CONTEXT.md`.
 
-**The rationale is inverted by measurement.** The mask neutralises every grid
-cell more than 5 degrees from any control point, on the reasoning that an
-interpolated correction that far from data cannot be trusted. Beyond 5 degrees
-the kriged surface reverts to the pool mean and holds **the tamest values on
-the grid**. Every one of the 72 cells whose correction cannot produce a
-capacity factor at all lies **within** 5 degrees. So the mask neutralises 8,269
-safe cells and leaves 691 unsafe ones untouched, and the kriging variance,
-which is the principled form of the same idea, fails in the same direction.
+**Correction notice, 2026-09-15: the claim that unusable values are near the
+control points holds for one screen and fails for another, and the difference
+was visible in this document's own offset table.** The reading below tests a
+correction by where it sends 8 m/s: off the curve table, or to an incredible
+speed. On that screen the unusable cells are near the pool, which is what the
+tables show and what stands. A second screen, whether the correction's zero
+crossing (``-offset / scalar``) exceeds 4 m/s and so returns nothing for
+ordinary low winds, reverses the pattern on the same 23,989 cells: 4.34%
+implausible within 1 degree rising to **14.73% beyond 5**. The beyond-5 offsets
+tabulated below are negative in every cell, with a 5th percentile of -5.285,
+which is precisely that defect, and the reading called those cells tame.
+
+What stands: the band shares, the region shares, every distribution, the
+off-curve and extreme counts, and the conclusion that the mask is a poor
+instrument. What is withdrawn: **"geometry does not select the risky cells and
+no threshold on it will"**, which is true only of the first screen. Under the
+second, distance carries real signal and is still a bad threshold for a
+different reason, given below under Reading.
+
+**The mask is a blunt instrument that deletes far more good cells than bad.**
+It neutralises every grid cell more than 5 degrees from any control point, on
+the reasoning that an interpolated correction that far from data cannot be
+trusted. Beyond 5 degrees the kriged surface reverts to the pool mean, whose
+**scalars are the tamest on the grid** and whose offsets are negative in every
+cell. Cutting at 5 degrees deletes 8,269 cells to remove 1,218 of the 2,659
+whose correction is unusable, so it catches 45.8% of the defect and discards
+7,051 cells that are fine. Every one of the 72 cells whose correction cannot
+produce a capacity factor at 8 m/s lies **within** the horizon it keeps. The
+kriging variance is the principled form of the same idea and adds nothing to
+it, being nearly a monotone function of distance.
 
 ## What was measured
 
@@ -137,12 +159,14 @@ diverging from it.** The scalar's full range contracts from 0.234 to 4.323 in
 the nearest band to 0.669 to 1.534 in the farthest, and beyond 5 degrees the
 offset is negative in every single cell, its maximum being -0.328. That is
 ordinary kriging returning to the global mean where the variogram has no
-information left. It is the expected behaviour of the estimator, and it is the
-opposite of what a mask against untrustworthy extrapolation implies.
+information left. It is the expected behaviour of the estimator, and it is not
+what a mask against untrustworthy extrapolation implies. The pool mean is not
+neutral, though: its offset is negative everywhere, which is the defect the
+zero-crossing screen below finds in these same cells.
 
-**The unusable values are near the control points, not far from them.** All 72
-off-curve cells sit within 5 degrees, and 691 of the 707 extreme ones. They sit
-where the pool disagrees with itself. Taking the five nearest control points to
+**Under the off-curve screen, the unusable values are near the control points.**
+All 72 off-curve cells sit within 5 degrees, and 691 of the 707 extreme ones.
+They sit where the pool disagrees with itself. Taking the five nearest control points to
 each of the 15,720 cells within 5 degrees:
 
 | Cells within 5 degrees | Count | Median spread of the 5 nearest scalars | Share outside that range | Median distance, degrees |
@@ -158,17 +182,45 @@ points that are themselves extreme and mutually inconsistent. The defect is in
 the pool's fits, not in the interpolation that reads them, which is why no
 change to the interpolation or its masking addresses it.
 
-**The kriging variance does not rescue the idea.** It is nearly a monotone
-function of distance, with median 0.054, 0.159, 0.337 and 0.708 across the four
-bands, so a variance threshold selects almost the same cells a distance
-threshold does. Its highest quintile contains 13 of the 707 extreme cells and
-its lowest contains 129. Extremes concentrate in the fourth quintile, at 232,
+**The kriging variance does not rescue the idea either way.** Under the
+off-curve screen it picks the same wrong cells distance does, shown below.
+Under the zero-crossing screen it would pick much the same cells distance does,
+for the same reason: it is nearly a monotone function of it, so it adds nothing
+to either screen.
+
+Its medians across the four bands are 0.054, 0.159, 0.337 and 0.708, so a
+variance threshold selects almost the same cells a distance threshold does. Its
+highest quintile contains 13 of the 707 extreme cells and its lowest contains
+129. Extremes concentrate in the fourth quintile, at 232,
 and then collapse: the highest-variance cells are the far-field cells that have
 already reverted to the mean.
 
-**So geometry does not select the risky cells, and no threshold on it will.**
-A guard on the correction's own behaviour does, which is what a per-cell
-plausibility flag is for. That is a design consequence and is recorded in
+**Which cells count as risky depends on the screen, and the two screens
+disagree about where they are.** Applying the zero-crossing screen to the same
+23,989 cells:
+
+| Band | Cells | Implausible | Share | Of which, scalar out of 0.2 to 3.0 |
+|---|---|---|---|---|
+| 0 to 1 | 4,375 | 190 | 4.34% | 89 |
+| 1 to 2 | 4,143 | 322 | 7.77% | 20 |
+| 2 to 5 | 7,202 | 929 | 12.90% | 0 |
+| beyond 5 | 8,269 | 1,218 | 14.73% | 0 |
+
+The two screens catch two different failures. A correction that sends 8 m/s off
+the curve is one that disagrees violently with its neighbours, and those sit
+where the pool is dense. A correction whose zero crossing exceeds 4 m/s is one
+whose offset quietly removes the low winds, and beyond 5 degrees the pool-mean
+offset does exactly that in every cell. The far cells are tame in their scalar
+and are not tame in their offset, and this document's first reading took the
+scalar for the whole picture.
+
+**Distance is weakly informative and is still a bad threshold.** A cut at 5
+degrees would delete 8,269 cells to remove 1,218 of the 2,659 implausible ones,
+so it catches 45.8% of the defect while discarding 7,051 cells that are fine.
+That is the case against the mask, and it does not need the stronger claim the
+notice above withdraws. A guard on the correction's own behaviour removes the
+2,659 and keeps the 21,330, which is what a per-cell plausibility flag is for.
+That is a design consequence and is recorded in
 `../design/manuscript-chapters-45.md`.
 
 **What the mask does support is a claim about provenance, not safety.** Beyond

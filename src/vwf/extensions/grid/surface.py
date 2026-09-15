@@ -73,8 +73,9 @@ NEUTRAL_SCALAR, NEUTRAL_OFFSET = 1.0, 0.0
 #: to the pool mean and carries no information about the place it is applied to
 #: (``docs/findings/method-distance-mask.md``,
 #: ``docs/findings/method-loco-interpolation-prereg.md``). It is a statement
-#: about provenance, not about safety: the far cells hold the tamest values on
-#: the grid, and every unusable one measured sat inside this horizon.
+#: about provenance, not about safety. Cutting the grid here would delete 8,269
+#: cells to remove 1,218 of the 2,659 whose correction is unusable, so it
+#: catches under half the defect and discards 7,051 cells that are fine.
 INFORMATION_HORIZON_DEG = interp.MAX_DISTANCE_DEG
 
 #: A correction whose offset is negative sends every speed below
@@ -291,12 +292,16 @@ def correction_surface(
         method supplies them, ``zero_crossing_speed`` and ``plausible``, and
         attributes recording every choice above.
 
-        **``plausible`` is the guard, not the distance.** Measurement says
-        geometry does not select the cells holding unusable corrections: they
-        sit near the control points, not far from them, and a variance
-        threshold picks the same wrong cells
+        **``plausible`` is the guard, not the distance.** Distance carries
+        some signal, 4.3% of cells within a degree being unusable against 14.7%
+        beyond five, but a threshold on it is a poor classifier: cutting at
+        five degrees catches 45.8% of the defect and discards 7,051 sound cells
+        to do it. Kriging variance adds nothing, being nearly a monotone
+        function of distance. Which cells count as unusable also depends on the
+        screen, and the two screens measured disagree about where they live
         (``docs/findings/method-distance-mask.md``). A flag on the correction's
-        own behaviour picks the right ones.
+        own behaviour needs neither a threshold on geometry nor a choice
+        between the screens.
 
     Raises:
         ValueError: if either domain has fewer than five points, which is too
@@ -415,9 +420,10 @@ def correction_surface(
         long_name="The correction at this cell is usable",
         description=f"False where the scalar leaves [{low}, {high}], the project's "
                     f"definition of a degenerate fit, or the zero crossing exceeds "
-                    f"{max_zero_crossing_speed} m/s. This is the guard: distance and "
-                    "kriging variance do not select the cells holding unusable "
-                    "corrections (docs/findings/method-distance-mask.md).")
+                    f"{max_zero_crossing_speed} m/s. Filter on this rather than on "
+                    "distance: a 5 degree cut catches under half the unusable cells "
+                    "and discards thousands of sound ones "
+                    "(docs/findings/method-distance-mask.md).")
     out.attrs.update(
         title="PyVWF gridded bias correction field",
         usage="v_corrected = v_ERA5 * scalar + offset, applied before the power curve",
@@ -436,9 +442,10 @@ def correction_surface(
         information_horizon_meaning=(
             "Beyond this distance the interpolated value has reverted to the pool mean "
             "and carries no information about the place it is applied to. This is a "
-            "statement about provenance, not about safety: the far cells hold the "
-            "tamest values on the grid. See docs/findings/method-distance-mask.md and "
-            "the leave-one-country-out result it cites."),
+            "statement about provenance, not about safety: use `plausible` for safety, "
+            "since a cut here removes under half the unusable cells and thousands of "
+            "sound ones. See docs/findings/method-distance-mask.md and the "
+            "leave-one-country-out result it cites."),
         recommended_filter=(
             "Filter on is_onshore_area or is_offshore_area for cells a fleet could "
             "occupy, and on plausible for cells whose correction is usable. Do not "

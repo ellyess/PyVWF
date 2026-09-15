@@ -233,7 +233,7 @@ def test_a_written_surface_carries_the_axis_names_atlite_reads(tmp_path):
     written.close()
 
 
-def test_the_flag_catches_what_distance_does_not(tmp_path):
+def test_the_flag_catches_a_defect_sitting_on_top_of_the_control_points(tmp_path):
     """An offset of -5 against a scalar of 0.8 crosses zero at 6.25 m/s, so the
     pair refuses ordinary winds rather than correcting them. It sits right on
     top of its control points, where no distance or variance threshold looks."""
