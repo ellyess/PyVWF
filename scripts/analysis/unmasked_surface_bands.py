@@ -9,10 +9,13 @@ within-country information. So the values have to be read before they ship.
 This measures, for the undivided pool of 1,729 control points kriged over the
 shipped grid with **no mask at all**:
 
-- how the cells divide into distance bands, on both metrics, since the
-  chapter's 5-degree threshold is stated in Euclidean degrees and new work uses
-  great-circle distance;
-- what scalar and offset each band holds;
+- how the cells divide into distance bands. The chapter's 5-degree threshold
+  is Euclidean in degrees, and the great-circle metric this project adopted for
+  new work returns kilometres, so the two cannot share a threshold. Both are
+  carried per cell and the bands are cut on the chapter's;
+- what scalar and offset each band holds, and **the kriging variance**, which
+  is what the chapter's distance threshold is a proxy for and which the
+  estimator already computes;
 - what those turn into at a reference wind speed, which is the form a user
   meets them in: a scalar and an offset are hard to read, and 8 m/s becoming
   2 m/s is not;
@@ -68,27 +71,31 @@ def main(out_dir: str) -> None:
     out.mkdir(parents=True, exist_ok=True)
     pool = pd.read_csv(POOL)
 
-    print(f"kriging {len(pool)} control points over "
-          f"{len(GRID_LON)} by {len(GRID_LAT)} cells, unmasked ...", flush=True)
-    scalar, offset = interp.to_grid(
-        interp.kriging_at, pool, GRID_LON, GRID_LAT,
-        variogram_model=interp.KRIGING_VARIOGRAM,
-        coordinates_type=interp.KRIGING_COORDINATES)
-
     lon_grid, lat_grid = np.meshgrid(GRID_LON, GRID_LAT)
     flat_lon, flat_lat = lon_grid.ravel(), lat_grid.ravel()
+
+    print(f"kriging {len(pool)} control points over "
+          f"{len(GRID_LON)} by {len(GRID_LAT)} cells, unmasked ...", flush=True)
+    # Called directly rather than through to_grid, because the variance is the
+    # point: the estimator computes it either way and the chapter threw it away.
+    (scalar, offset), (scalar_var, offset_var) = interp.kriging_at(
+        pool, flat_lon, flat_lat,
+        variogram_model=interp.KRIGING_VARIOGRAM,
+        coordinates_type=interp.KRIGING_COORDINATES, with_variance=True)
+
     degrees = interp.distance_to_nearest(pool, flat_lon, flat_lat, metric="degrees")
-    great_circle = interp.distance_to_nearest(pool, flat_lon, flat_lat,
-                                              metric="great_circle")
+    great_circle_km = interp.distance_to_nearest(pool, flat_lon, flat_lat,
+                                                 metric="great_circle")
 
     on_area = surface.area_mask(GRID_LON, GRID_LAT, ONSHORE, name="on").values.ravel()
     off_area = surface.area_mask(GRID_LON, GRID_LAT, OFFSHORE, name="off").values.ravel()
 
-    corrected = REFERENCE_SPEED * scalar.ravel() + offset.ravel()
+    corrected = REFERENCE_SPEED * scalar + offset
     cells = pd.DataFrame({
         "lon": flat_lon, "lat": flat_lat,
-        "scalar": scalar.ravel(), "offset": offset.ravel(),
-        "distance_degrees": degrees, "distance_great_circle_degrees": great_circle,
+        "scalar": scalar, "offset": offset,
+        "scalar_variance": scalar_var, "offset_variance": offset_var,
+        "distance_degrees": degrees, "distance_great_circle_km": great_circle_km,
         "in_region": on_area | off_area,
         "corrected_at_reference": corrected,
         "off_curve_at_reference": (corrected < CURVE_MIN) | (corrected > CURVE_MAX),
@@ -109,7 +116,8 @@ def main(out_dir: str) -> None:
         print(split.round(4).to_string())
 
         print("\n=== what each band holds")
-        for column in ("scalar", "offset", "corrected_at_reference"):
+        for column in ("scalar", "offset", "corrected_at_reference",
+                       "scalar_variance"):
             stat = cells.groupby("band", observed=False)[column].describe(
                 percentiles=[0.05, 0.5, 0.95])
             print(f"\n{column}:")
@@ -132,9 +140,32 @@ def main(out_dir: str) -> None:
         bad["share of band"] = bad["off_curve"] / split["cells"]
         print(bad.round(4).to_string())
 
-        print("\n=== the two metrics disagree on which cells are beyond 5")
-        both = pd.crosstab(bands(degrees), bands(great_circle))
-        print(both.to_string())
+        print("\n=== does the kriging variance separate what distance does not?")
+        extreme = (cells["corrected_at_reference"] < 1.0) | \
+                  (cells["corrected_at_reference"] > 20.0)
+        print(f"    cells whose corrected speed at {REFERENCE_SPEED} m/s is "
+              f"below 1 or above 20 m/s: {int(extreme.sum())}")
+        print(cells.groupby("band", observed=False).apply(
+            lambda g: pd.Series({
+                "cells": len(g), "extreme": int(
+                    ((g["corrected_at_reference"] < 1.0)
+                     | (g["corrected_at_reference"] > 20.0)).sum()),
+                "median scalar variance": g["scalar_variance"].median()}),
+            include_groups=False).round(4).to_string())
+        print("\n    the same cells, by scalar-variance quintile:")
+        quintile = pd.qcut(cells["scalar_variance"], 5,
+                           labels=["lowest", "2nd", "3rd", "4th", "highest"])
+        print(cells.assign(q=quintile).groupby("q", observed=False).apply(
+            lambda g: pd.Series({
+                "cells": len(g), "extreme": int(
+                    ((g["corrected_at_reference"] < 1.0)
+                     | (g["corrected_at_reference"] > 20.0)).sum()),
+                "median distance degrees": g["distance_degrees"].median()}),
+            include_groups=False).round(3).to_string())
+
+        print("\n=== the two metrics are not in the same units")
+        print(cells.groupby("band", observed=False)["distance_great_circle_km"]
+              .describe(percentiles=[0.5])[["min", "50%", "max"]].round(1).to_string())
 
     print(f"\nwritten: {out / 'unmasked_surface_cells.csv'}")
 
