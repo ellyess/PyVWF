@@ -43,9 +43,25 @@ One line each. None is started.
   different reason: same frozen register, and GWPT is the repair
   (`scripts/region_tools/repair_country_capacity.py PT`). Not searched for
   yet, deliberately.
-- **Which other regions use the fetcher's derived-capacity fallback.** The
-  0.900 peak is a searchable signature and only the Swedish zonal series has
-  been checked for it. Not looked for elsewhere.
+- **Per-zone observation checks, and what the derived-capacity audit could not
+  see.** One investigation, two halves. The exact-0.900 signature of
+  `estimated_cap = gen.max() / 0.9` was searched across all 88 country-level
+  observation files on 2026-09-15 and finds exactly sixteen, the Swedish zonal
+  files `se_1` to `se_4` in every split. **The signature is not sufficient**:
+  Sweden's national aggregated register is the sum of those four and is
+  therefore derived too, while its own peak is 0.876, so a series built by
+  aggregating derived ones passes the test. Norway aggregates the same way and
+  its zones are not derived, so aggregation alone is not the defect. A
+  provenance field on the capacity column would settle it; the signature
+  cannot. The other half is that `check_country_cf` takes the median capacity
+  across zones when handed one stacked frame, which is how SE-BZ came back as
+  2158 MW unchanged for three years when the truth is four zones frozen for
+  five: right finding, wrong figure.
+- **Sweden has two national series that disagree.**
+  `se_train_2015_2018.csv` carries 6247 MW and
+  `se_train_2015_2018_aggregated.csv` carries 7034 MW for the same window. The
+  aggregated one is the zone sum and is derived; the other's provenance has not
+  been established.
 
 - **Run chapter 5's models on all twelve country folds when port phase 3
   lands**, reporting MAE beside R-squared. The country-holdout study's gate L1

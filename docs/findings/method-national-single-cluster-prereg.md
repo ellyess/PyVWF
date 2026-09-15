@@ -98,7 +98,14 @@ and not repairable from anything currently held.
   `estimated_cap = gen.max() / 0.9`, so the denominator is back-derived from
   the numerator and the series is constructed to look like a national fleet
   whether or not it is one. Which register is right for Sweden is open, and
-  the current one has the weaker claim, not the stronger. **Sweden needs a
+  the current one has the weaker claim, not the stronger. **Both of us reasoned
+  from the construction**: the argument that 0.2267 looks like a real fleet
+  while 0.4481 does not was made here and accepted, and it was circular on both
+  sides, because a series whose denominator is set to make the peak 0.900 will
+  look like a real fleet whatever the fleet is. The exact-0.900 test has since
+  been run across all 88 country-level observation files and finds the sixteen
+  Swedish zonal ones and no others, so **no included configuration is
+  affected**. **Sweden needs a
   real installed-capacity register**, logged as an open item rather than
   searched for now, and returns when it has one.
 

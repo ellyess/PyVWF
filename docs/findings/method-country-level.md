@@ -319,6 +319,35 @@ the joint optimiser. `country_obs_is_per_cluster` decides by reading whether the
 observations actually differ across clusters within a period, which is precisely
 the condition under which per-cluster offsets are estimable.
 
+**Correction notice, 2026-09-15: the per-zone figures below are not errors
+against observed capacity factors.** Each Swedish bidding zone's capacity is
+back-derived from its own generation. `vwf.datasets.fetch_entsoe_capacity_factors`
+falls back to `estimated_cap = gen["generation_mw"].max() / 0.9` when ENTSO-E's
+installed-capacity endpoint returns nothing, and all sixteen Swedish zonal
+files, `se_1` through `se_4` across every split, peak at **exactly 0.900**,
+which is that fallback's signature. The four zonal registers sum to 8354.4 MW,
+which is the national aggregated register for 2015 to 2019 exactly, so the
+national denominator inherits the derivation as well.
+
+What survives and what does not:
+
+- **The ranking survives.** All five rows below share the same constructed
+  observation series, so a comparison between fits on it is still a comparison
+  between fits.
+- **The per-zone RMSEs do not survive as errors against observation.** Each
+  zone's denominator moves with the extremes of its own numerator, and by a
+  different factor per zone between training and test: zone 1 by 2.36, zone 2
+  by 2.07, zone 3 by 1.42, zone 4 by 1.39. A scalar fitted on training is
+  applied to a test series rescaled by a different amount.
+- **Read no per-zone figure below as an error against observation.** The
+  comparison is between fits on a constructed series, and the levels are
+  properties of that construction.
+
+The national series is affected through the sum and the zonal series directly.
+Sweden is excluded from `method-national-single-cluster-prereg.md` for the same
+reason. Nothing here is repaired, and the exact-0.900 test was run across all
+88 country-level observation files: it finds these sixteen and no others.
+
 Sweden, trained 2015-2019, evaluated 2023, `fixed` slice:
 
 | | national RMSE | per-zone RMSE | per-zone r |
