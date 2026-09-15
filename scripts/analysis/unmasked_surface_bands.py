@@ -19,6 +19,9 @@ shipped grid with **no mask at all**:
 - what those turn into at a reference wind speed, which is the form a user
   meets them in: a scalar and an offset are hard to read, and 8 m/s becoming
   2 m/s is not;
+- where the cells holding unusable corrections sit under **two** screens, which
+  disagree: whether 8 m/s corrects off the curve table, and whether the
+  correction's zero crossing removes ordinary low winds;
 - where the cells holding unusable corrections actually sit, and whether the
   interpolation overshoots its own control points or faithfully reports a pool
   that disagrees with itself;
@@ -41,6 +44,7 @@ import numpy as np
 import pandas as pd
 
 from vwf.extensions.grid import interpolation as interp, surface
+from vwf.extensions.grid.surface import MAX_ZERO_CROSSING_SPEED, PLAUSIBLE_SCALAR
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 SHAPES = Path("input/reference/shapes")
@@ -192,6 +196,28 @@ def main(out_dir: str) -> None:
             median_neighbour_spread=("neighbour_spread", "median"),
             share_outside_neighbour_range=("outside_neighbours", "mean"),
             median_distance=("distance_degrees", "median")).round(3).to_string())
+
+        print("\n=== the second screen: does the correction refuse ordinary "
+              "low winds?")
+        crossing = np.where((cells["offset"] < 0) & (cells["scalar"] > 0),
+                            -cells["offset"] / cells["scalar"], np.nan)
+        cells["zero_crossing_speed"] = crossing
+        low_bound, high_bound = PLAUSIBLE_SCALAR
+        cells["implausible"] = (
+            (cells["scalar"] < low_bound) | (cells["scalar"] > high_bound)
+            | (cells["zero_crossing_speed"] > MAX_ZERO_CROSSING_SPEED))
+        screen = cells.groupby("band", observed=False).agg(
+            cells=("scalar", "size"), implausible=("implausible", "sum"),
+            scalar_out_of_bounds=("scalar", lambda s: int(
+                ((s < low_bound) | (s > high_bound)).sum())))
+        screen["share"] = screen["implausible"] / screen["cells"]
+        print(screen.round(4).to_string())
+        caught = int(cells.loc[cells["band"] == "beyond 5", "implausible"].sum())
+        total_bad = int(cells["implausible"].sum())
+        beyond = int((cells["band"] == "beyond 5").sum())
+        print(f"    a 5-degree cut deletes {beyond} cells to remove {caught} of "
+              f"{total_bad} implausible ones: {caught / total_bad:.1%} of the defect, "
+              f"and {beyond - caught} good cells discarded")
 
         print("\n=== the two metrics are not in the same units")
         print(cells.groupby("band", observed=False)["distance_great_circle_km"]
