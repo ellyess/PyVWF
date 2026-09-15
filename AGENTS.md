@@ -58,6 +58,15 @@ They live in `.claude/skills/`.
   than a filter of it: grepping a batch of runs for `DONE|Error|Traceback`
   kept the exception and dropped the line that named its cause, and the
   diagnosis then cost a rerun.
+- **Resolve a file the way the code under test resolves it, never by listing
+  and picking.** Sorting a glob and taking the last entry is how a backup file
+  becomes live. Asking which grid a region uses by globbing
+  `no_grid_points_20*.csv` and taking `[-1]` returned
+  `no_grid_points_2024.zonemixed.bak.csv`, because `.zonemixed.bak.csv` sorts
+  after `.csv`; the loader resolves by exact name and never sees it. Two
+  retractions came from that one glob: a claim that a backup was in production
+  use, and a wrong point count for another region. Call the resolver, or
+  construct the exact name the resolver constructs.
 - **Read the checks before the commit command, not after.** Run ruff, the test
   files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
   read the output; then write the message. A message that says a check passed

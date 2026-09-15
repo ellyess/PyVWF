@@ -228,8 +228,11 @@ and is reported with the same prominence.
 
 **Measured, Belgium, 2026-09-15**, at commit `4af1ba4` from a clean tree, both
 legal cluster counts at the `fixed` slice on `era5/EU_2026-09` with the
-per-timestep roughness: **42.0 s to train** (21.0 s per cluster count) and
-**37.3 s to evaluate**, 79.3 s in total.
+per-timestep roughness, **on the maintained fleet-weighted grid of 44 points**
+(not the uniform 105-point grid the control-point pool was built from): **42.0 s
+to train** (21.0 s per cluster count) and **37.3 s to evaluate**, 79.3 s in
+total. The run's skill figures are on that grid too and are recorded in
+`../design/manuscript-chapters-45.md` under T9.
 Run: `output/cluster_sweep_cost_2026-09-15/BE/`.
 
 Earlier anchor: Denmark onshore, 4,866 turbines, 19 cluster counts by four

@@ -653,3 +653,33 @@ What it takes:
   recorded under D5.
 
 Not run.
+
+## T9. Two Belgium figures were reported without their grid, 2026-09-15
+
+**Correction, dated.** Two uncorrected Belgian capacity-factor MAEs were
+reported on 2026-09-15 without naming the grid each was computed on, and they
+are not comparable:
+
+| Figure | Grid | Points | Source |
+|---|---|---|---|
+| uncorrected MAE **0.1164** | maintained, fleet-weighted | **44** | `output/cluster_sweep_cost_2026-09-15/BE/evaluate-2023-sweep-cost/metrics.csv` |
+| uncorrected MAE **0.0522** | uniform | **105** | the domain-split study's console output, `scripts/analysis/domain_split_study.py` |
+
+Both stand as numbers. Neither is a correction of the other, and the gap
+between them is mostly the grid: the uniform grid averages Belgium over 105
+points of which 64 carry no wind fleet, and the maintained grid drops those.
+Every country-level figure from here on names its grid.
+
+**The related retraction is now complete.** The refit of Belgium's control
+points was run as a control for the Italian one and it failed: cluster 0 came
+back at 0.598 against the pool's 0.877. That was reported as "the refit differs
+from the pool for reasons unrelated to the archive", which was right and did not
+name the reason. **The reason is the fleet.** The pool was fitted on the uniform
+105-point grid and the refit ran on the maintained 44-point grid, so the fleet
+was the largest of the three changes, ahead of the pipeline and the archive.
+
+That does not restore the Italian reading. Italy's refit still returns two
+scalars outside 0.2 to 3.0 on the archive the rebuild will use, and the cause
+is still unattributed, because the same three changes apply to it. What changes
+is that the archive is now the least likely of the three rather than merely one
+of three.
