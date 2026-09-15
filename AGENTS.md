@@ -67,6 +67,14 @@ They live in `.claude/skills/`.
   retractions came from that one glob: a claim that a backup was in production
   use, and a wrong point count for another region. Call the resolver, or
   construct the exact name the resolver constructs.
+- **Before trusting a detector's negative, run it against a case you know is
+  positive.** Three clean answers in two days were artefacts of a check that
+  never ran: a glob that resolved a backup file, a column named for degrees
+  holding kilometres, and an audit reading `cluster_list` at the manifest's top
+  level when it lives under `correction`, which reported 224 runs as declaring
+  nothing and therefore flagged none. The last had a known positive available,
+  nine already-diagnosed contaminated runs, and validating against them first
+  would have failed in one line.
 - **Read the checks before the commit command, not after.** Run ruff, the test
   files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
   read the output; then write the message. A message that says a check passed

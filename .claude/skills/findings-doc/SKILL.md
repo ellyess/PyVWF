@@ -124,6 +124,24 @@ unit its author has in mind.
   built, and a condition that changed nothing is indistinguishable from a
   condition that worked and had no effect, which is what half these studies
   predict.
+- **Whatever a study varies must appear in the run directory path.** A run
+  directory is keyed on the region code and the run name, and on nothing else,
+  so two configurations of one region collide silently. Every earlier study in
+  this repository is clean because it put its varying dimension in the path:
+  the roughness study used `train-R0` and `train-R1`, the curve-library and
+  EU re-run studies used a condition directory above the region. A cluster
+  study that varied the fleet mode, which the path does not carry, wrote
+  onshore and offshore factors into one directory and scored an eleven-count
+  grid where eight were registered.
+
+  Two things made that dangerous rather than merely untidy. **`run_evaluate`
+  scores every `factors_*.csv` it finds in the training directory**, so a path
+  collision becomes a contaminated candidate grid rather than an error. And
+  **a per-process loop satisfies the memory isolation rule without preventing a
+  path collision**: the rule is about processes and the collision is in the
+  path, so obeying one says nothing about the other. Check the path, not the
+  process.
+
 - **Verify that a condition reaches what it claims, by a route independent of
   how it was built, and report its coverage as a share of capacity before its
   gate is fixed.** A condition reaching little cannot test much, and a gate

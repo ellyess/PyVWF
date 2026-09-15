@@ -7,6 +7,40 @@ the five turbine-level configurations only**; the nine country-level ones ask a
 different question and are registered in
 `method-national-single-cluster-prereg.md`. Terms follow `CONTEXT.md`.
 
+## Defect, 2026-09-15: two fleet modes wrote to one run directory
+
+**Found after the first run of all five rows, before any gate was read.**
+`vwf.harness.driver._run_dir` keys a run directory on the region code and the
+run name and on nothing else. This study varies the **fleet mode**, which the
+path does not carry, and the runner's run name held only the fold year. So
+`DK onshore` and `DK offshore` both wrote to `.../DK/train-fold-2016`, and the
+same for the United Kingdom.
+
+Two things turned that into a contaminated result rather than an error.
+**`run_evaluate` scores every `factors_*.csv` it finds in the training
+directory**, so the onshore folds scored their own eight counts plus the
+offshore run's `k=2`, `3` and `5`, which are offshore factors applied to an
+onshore fleet. And **running one row per process, which the memory rule asks
+for, prevents none of this**: the rule is about processes and the collision is
+in the path.
+
+Nine runs hold factors they did not declare, all from this study: the four
+Denmark onshore folds, the three United Kingdom onshore folds, and **both
+`train-final` runs**, so the contaminated rows' test-year numbers are affected
+as well as their fold scores. An audit of all 224 train runs in `output/`
+against the `cluster_list` each manifest declares found **no earlier study
+affected**: every one of them varied something it also put in the path, by run
+name or by a condition directory above the region.
+
+**UK onshore and DK onshore are re-run in full. DK offshore, UK offshore and DE
+onshore are not**, being clean and registered to run once; re-running them for
+uniformity would be re-running because results have been seen.
+
+Fixed in the runner: the fleet mode goes in the run name, each row writes its
+own score and selection files rather than one that a per-process loop
+overwrites, and the evaluation refuses a metrics table holding counts the run
+did not fit.
+
 ## Amendment, 2026-09-15: forward chaining replaces leave-one-year-out
 
 **Dated before the run it governs.** The protocol below holds out one training
@@ -241,10 +275,23 @@ time slices, `PYVWF_OFFSET_WORKERS=4`, **1.5 hours**
 one time slice is fitted, so the earlier estimate of 20 to 28 hours was for a
 larger design than this one.
 
-The five turbine-level rows this document now covers are not costed by the
-Belgian measurement: Belgium fits 44 grid points and Denmark onshore fits 4,866
-turbines. From the Denmark anchor they are roughly **5 hours**, and that figure
-is an extrapolation and not a measurement. The nine country rows cost roughly
+**Measured, all five rows, 2026-09-15: 2 hours 6 minutes**, against the 5-hour
+extrapolation, which was 2.4 times too high.
+
+| Row | units | grid | folds | minutes |
+|---|---|---|---|---|
+| DK offshore | 318 | to k=100 | 4 | 15.1 |
+| UK offshore | 981 | to k=100 | 3 | 16.8 |
+| DK onshore | ~4,900 | to k=1000 | 4 | 25.3 |
+| UK onshore | ~4,800 | to k=1000 | 3 | 33.2 |
+| DE onshore | ~4,800 | to k=1000 | 3 | 35.8 |
+
+**Fixed cost dominates, not fleet size**, and the next study should estimate on
+that basis. United Kingdom offshore at 981 units took 16.8 minutes against
+Denmark offshore's 15.1 at 318, a threefold fleet for 11% more time, because
+each fold pays for an ERA5 preparation and a wind interpolation whatever the
+fleet. The onshore rows cost more for their grids reaching `k=1000`, not for
+their fleets. The nine country rows cost roughly
 **1.6 hours** on the Belgian measurement, and they belong to
 `method-national-single-cluster-prereg.md`.
 

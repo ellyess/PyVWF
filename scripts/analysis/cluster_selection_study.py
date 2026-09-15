@@ -96,6 +96,22 @@ def one_standard_error(scores: pd.DataFrame, metric: str) -> tuple[int, int, flo
     return int(min(within)), best, threshold
 
 
+def run_tag(mode: str, name: str) -> str:
+    """The run name, carrying the fleet mode.
+
+    ``vwf.harness.driver._run_dir`` keys a run directory on the region code and
+    the run name and on nothing else, so two configurations of one region
+    collide. This study varies the fleet mode, which the path does not carry:
+    without the mode here, ``DK onshore`` and ``DK offshore`` wrote factors
+    into one directory and ``run_evaluate``, which scores every
+    ``factors_*.csv`` it finds, scored an eleven-count grid where eight were
+    registered. Running one row per process satisfies the memory isolation
+    rule and does nothing about this, because the rule is about processes and
+    the collision is in the path.
+    """
+    return f"{mode}-{name}"
+
+
 def evaluate_at(spec, out: Path, mode: str, clusters: tuple[int, ...],
                 train_years: tuple[int, int], year: int, name: str) -> pd.DataFrame:
     """Train at every count and score the given year. Returns metrics.csv."""
@@ -104,10 +120,23 @@ def evaluate_at(spec, out: Path, mode: str, clusters: tuple[int, ...],
         era5_path=ERA5_PATH, roughness=ROUGHNESS,
         train_years=train_years, test_years=(year,),
         bbox=BBOX.get(spec.code.lower(), spec.bbox))
-    train_dir = driver.run_train(fold_spec, out, mode=mode, run_name=name)
+    tag = run_tag(mode, name)
+    train_dir = driver.run_train(fold_spec, out, mode=mode, run_name=tag)
     evaluate_dir = driver.run_evaluate(fold_spec, train_dir, out, mode=mode,
-                                       run_name=name)
-    return pd.read_csv(evaluate_dir / "metrics.csv")
+                                       run_name=tag)
+    metrics = pd.read_csv(evaluate_dir / "metrics.csv")
+    # The path fix above should make this impossible. Checked anyway, because a
+    # contaminated grid scores as an ordinary result and the first run of this
+    # study did exactly that.
+    scored = set(metrics.loc[metrics["variant"] != "uncorrected", "num_clu"]
+                 .astype(int))
+    unexpected = sorted(scored - set(clusters))
+    if unexpected:
+        raise RuntimeError(
+            f"{train_dir} holds factors for {unexpected}, which this run did not "
+            f"fit; it asked for {list(clusters)}. Another configuration has "
+            "written to the same run directory.")
+    return metrics
 
 
 def main(out_dir: str, *only: str) -> None:
@@ -169,9 +198,15 @@ def main(out_dir: str, *only: str) -> None:
         })
         print(f"  {label} done in {selections[-1]['minutes']} minutes", flush=True)
 
-    pd.DataFrame(fold_rows).to_csv(out / "fold_scores.csv", index=False)
+    # Per row, not one file per invocation. A shell loop running one row per
+    # process, which the memory rule asks for, made each invocation overwrite
+    # the last and left only the final row's scores on disk.
     frame = pd.DataFrame(selections)
-    frame.to_csv(out / "selections.csv", index=False)
+    for label in frame["row"]:
+        stem = label.replace(" ", "_")
+        scores = pd.DataFrame([r for r in fold_rows if r["row"] == label])
+        scores.to_csv(out / f"fold_scores_{stem}.csv", index=False)
+        frame[frame["row"] == label].to_csv(out / f"selection_{stem}.csv", index=False)
 
     with pd.option_context("display.width", 250, "display.max_columns", 30):
         print("\n=== every fold score, before any rule")
@@ -192,7 +227,7 @@ def main(out_dir: str, *only: str) -> None:
     print("\nForward chaining and the one-standard-error rule both favour fewer "
           "clusters, so a selection at the bottom of its grid is not evidence "
           "that the bottom is best.")
-    print(f"written: {out / 'selections.csv'}")
+    print(f"written: {len(frame)} per-row score and selection files under {out}")
 
 
 if __name__ == "__main__":
