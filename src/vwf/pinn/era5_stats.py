@@ -23,6 +23,7 @@ import pandas as pd
 import xarray as xr
 
 from vwf.datasets.era5 import (
+    ROUGHNESS_TREATMENTS,
     unify_time_coordinate,
     _normalise_longitudes,
     _slice_bbox,
@@ -45,7 +46,9 @@ def _open_normalised(path: Path, bbox) -> xr.Dataset:
     return ds.load()
 
 
-def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray]:
+def _hourly_fields(
+    ds: xr.Dataset, roughness: str = "stored"
+) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, str]:
     """Hourly 100 m wind, the roughness the incumbent uses, and the shear exponent.
 
     Three distinct things, because the archive is not uniform. The pre-combined
@@ -61,7 +64,17 @@ def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataA
     informative quantity: ``w(h) = w100 * (h/100)**shear`` is the power-law
     profile, and the exponent responds to atmospheric stability as well as to
     surface roughness, which a static roughness cannot.
+
+    ``roughness`` follows ``prep_era5`` exactly: ``"stored"`` uses a field the
+    file carries and derives only when it carries none, ``"derived"`` ignores
+    any stored field and inverts the profile per timestep. The treatment
+    actually applied is returned as the fourth element, because the two differ
+    whenever a region requests a stored field from files that have none.
     """
+    if roughness not in ROUGHNESS_TREATMENTS:
+        raise ValueError(
+            f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}"
+        )
     # cast: numpy's stubs type np.sqrt on a DataArray as ndarray, while at
     # runtime xarray returns a DataArray. Using ** 0.5 instead would type
     # cleanly but is not guaranteed to round identically to sqrt, and this
@@ -79,13 +92,22 @@ def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataA
     else:
         shear = xr.zeros_like(wnd100) + np.nan
 
-    if "roughness" in ds.data_vars or "z0" in ds.data_vars:
+    has_stored = "roughness" in ds.data_vars or "z0" in ds.data_vars
+    if roughness == "stored" and has_stored:
+        applied = "stored"
         z0 = ds["roughness"] if "roughness" in ds.data_vars else ds["z0"]
         if "time" not in z0.dims:
             # Static climatological field: broadcast so the daily reduction is
             # a no-op that still returns a (time, lat, lon) array.
             z0 = z0.broadcast_like(wnd100)
     else:
+        missing = [v for v in ("u10", "v10") if v not in ds.data_vars]
+        if missing:
+            raise ValueError(
+                f"deriving the roughness needs the 10 m wind components, and the "
+                f"ERA5 file lacks {missing}"
+            )
+        applied = "derived"
         # The same inversion of the neutral log profile prep_era5 falls back to.
         wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(min=1e-4)
         w100 = wnd100.clip(min=1e-4)
@@ -96,7 +118,7 @@ def _hourly_fields(ds: xr.Dataset) -> tuple[xr.DataArray, xr.DataArray, xr.DataA
         z0_log = z0_log.bfill("time").clip(min=np.log(1e-6), max=np.log(_Z0_MAX))
         z0 = np.exp(z0_log)
 
-    return wnd100, z0.clip(min=_Z0_MIN, max=_Z0_MAX), cast(xr.DataArray, shear)
+    return wnd100, z0.clip(min=_Z0_MIN, max=_Z0_MAX), cast(xr.DataArray, shear), applied
 
 
 def daily_stats_at_points(
@@ -105,7 +127,8 @@ def daily_stats_at_points(
     lon: np.ndarray,
     lat: np.ndarray,
     years: range | list[int],
-) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    roughness: str = "stored",
+) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
     """Daily mean wind, within-day wind spread, and daily mean roughness.
 
     Each ERA5 file is reduced to daily statistics and interpolated onto the
@@ -118,13 +141,19 @@ def daily_stats_at_points(
         lon: Point longitudes.
         lat: Point latitudes.
         years: Years to include; files whose data falls outside are skipped.
+        roughness: ``"stored"`` or ``"derived"``, as in ``prep_era5``.
 
     Returns:
-        ``(dates, w_mean, w_std, z0_mean, shear)``. The four arrays are
+        ``(dates, w_mean, w_std, z0_mean, shear, record)``. The four arrays are
         ``(n_days, n_points)`` float32: the daily mean 100 m wind speed, the
         standard deviation of the hourly wind speed WITHIN each day, the daily
         mean roughness as the incumbent pipeline would see it, and the daily
-        mean power-law shear exponent between 10 m and 100 m.
+        mean power-law shear exponent between 10 m and 100 m. ``record`` holds
+        the directory read, the number of files, the roughness treatment
+        requested and applied, and the loaded extent: the lon/lat range of the
+        grid after the bbox slice, over every file read. A point outside it
+        gets no wind here at all, because the interpolation never
+        extrapolates.
 
     Raises:
         FileNotFoundError: If the directory holds no NetCDF files.
@@ -141,6 +170,9 @@ def daily_stats_at_points(
     chunks: list[
         tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     ] = []
+    applied: set[str] = set()
+    lon_seen: list[float] = []
+    lat_seen: list[float] = []
     for path in files:
         with xr.open_dataset(path) as probe:
             probe = unify_time_coordinate(probe)
@@ -149,7 +181,7 @@ def daily_stats_at_points(
             continue
 
         ds = _open_normalised(path, bbox)
-        wnd100, z0, shear = _hourly_fields(ds)
+        wnd100, z0, shear, treatment = _hourly_fields(ds, roughness)
         daily = xr.Dataset(
             {
                 "w_mean": wnd100.resample(time="1D").mean(),
@@ -168,6 +200,9 @@ def daily_stats_at_points(
             lon=np.round(daily.lon.astype(float), 5),
             lat=np.round(daily.lat.astype(float), 5),
         )
+        applied.add(treatment)
+        lon_seen += [float(daily.lon.min()), float(daily.lon.max())]
+        lat_seen += [float(daily.lat.min()), float(daily.lat.max())]
         at = daily.interp(lon=plon, lat=plat)
         chunks.append((
             pd.DatetimeIndex(at.time.values),
@@ -191,4 +226,16 @@ def daily_stats_at_points(
 
     keep = ~dates.duplicated()
     out_w, out_sd, out_z0, out_shear = (a[keep] for a in stacked)
-    return dates[keep], out_w, out_sd, out_z0, out_shear
+    record = {
+        "era5_dir": str(hourly_dir),
+        "n_files_read": len(chunks),
+        # One treatment per archive is the expectation. An archive mixing
+        # files with and without a stored field would change the treatment
+        # part-way through the record, so that is recorded rather than hidden.
+        "roughness": {
+            "requested": roughness,
+            "applied": applied.pop() if len(applied) == 1 else "mixed",
+        },
+        "loaded_extent": [min(lon_seen), max(lon_seen), min(lat_seen), max(lat_seen)],
+    }
+    return dates[keep], out_w, out_sd, out_z0, out_shear, record

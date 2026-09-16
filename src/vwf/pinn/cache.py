@@ -13,11 +13,14 @@ spread and the shear exponent, which the daily-mean pipeline discards.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from vwf.config import PyVWFPaths
 from vwf.data import clean_obs_data, load_power_curves, prep_country
@@ -25,8 +28,10 @@ from vwf.harness.driver import resolve_source
 from vwf.harness.regions import RegionSpec
 from vwf.pinn.era5_stats import daily_stats_at_points
 from vwf.pinn.terrain import terrain_descriptors
+from vwf.wind import loaded_extent_coverage
 
 OBS_COLS = [f"obs_{m}" for m in range(1, 13)]
+ERA5_RECORD_NAME = "era5_record.json"
 
 
 @dataclass
@@ -46,6 +51,9 @@ class RegionCache:
     curve_cf: np.ndarray             # (M, S) capacity factor per model
     curve_names: list[str]           # (M,) model names, index-aligned to curve_cf
     turbine_curve: np.ndarray        # (N,) index into curve_cf for each turbine
+    # What the ERA5 reduction read and applied, and where the fleet lies against
+    # the loaded extent. Empty for caches written before it was recorded.
+    era5_record: dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:       # pragma: no cover - convenience only
         return (f"RegionCache({self.code}/{self.split}: {len(self.meta)} units, "
@@ -149,9 +157,10 @@ def build_cache(spec: RegionSpec, split: str = "train") -> RegionCache:
     lon = turb_info["lon"].to_numpy(dtype=float)
     lat = turb_info["lat"].to_numpy(dtype=float)
 
-    dates, w_mean, w_std, z0, shear = daily_stats_at_points(
-        _hourly_dir(spec), spec.bbox, lon, lat, years
+    dates, w_mean, w_std, z0, shear, reduction = daily_stats_at_points(
+        _hourly_dir(spec), spec.bbox, lon, lat, years, roughness=spec.roughness
     )
+    era5_record = era5_record_for(reduction, turb_info, spec)
     terr = terrain_descriptors(
         lon, lat, PyVWFPaths.INPUT_ROOT / "reference" / "terrain" / "etopo_global.nc"
     )
@@ -162,8 +171,39 @@ def build_cache(spec: RegionSpec, split: str = "train") -> RegionCache:
         code=spec.code, split=split, dates=dates, meta=meta, obs=obs,
         w_mean=w_mean, w_std=w_std, z0=z0, shear=shear,
         curve_speeds=speeds, curve_cf=cf, curve_names=names,
-        turbine_curve=turbine_curve,
+        turbine_curve=turbine_curve, era5_record=era5_record,
     )
+
+
+def era5_record_for(
+    reduction: dict[str, Any], turb_info: pd.DataFrame, spec: RegionSpec
+) -> dict[str, Any]:
+    """The run record's ERA5 entries, in the harness manifest's own format.
+
+    ``era5_roughness`` and ``era5_extent`` carry the same keys as a harness
+    manifest, so a physics-informed run and a scorecard row can be compared
+    field by field. One difference is stated in the record itself: the
+    harness extrapolates winds to units outside the loaded extent when a
+    region opts in, and this path never does. Those units get no wind, and
+    :func:`vwf.pinn.train.RegionTensors.from_cache` drops them.
+    """
+    lon_min, lon_max, lat_min, lat_max = reduction["loaded_extent"]
+    grid = xr.Dataset(coords={"lon": [lon_min, lon_max], "lat": [lat_min, lat_max]})
+    coverage = loaded_extent_coverage(grid, turb_info)
+    return {
+        "era5_dir": reduction["era5_dir"],
+        "n_files_read": reduction["n_files_read"],
+        "era5_roughness": reduction["roughness"],
+        "era5_extent": {
+            **coverage,
+            "requested_bbox": list(spec.bbox),
+            "allow_extrapolation": bool(spec.allow_extrapolation),
+            "meaning": (
+                "units outside the loaded ERA5 extent are not simulated by vwf.pinn: "
+                "they are dropped, never extrapolated, whatever allow_extrapolation says"
+            ),
+        },
+    }
 
 
 def save_cache(cache: RegionCache, root: str | Path) -> Path:
@@ -180,6 +220,9 @@ def save_cache(cache: RegionCache, root: str | Path) -> Path:
         curve_names=np.array(cache.curve_names, dtype=object),
         turbine_curve=cache.turbine_curve,
     )
+    with open(d / ERA5_RECORD_NAME, "w", encoding="utf-8") as fh:
+        json.dump(cache.era5_record, fh, indent=2)
+        fh.write("\n")
     return d
 
 
@@ -187,6 +230,9 @@ def load_cache(code: str, split: str, root: str | Path) -> RegionCache:
     """Load a cache written by :func:`save_cache`."""
     d = Path(root) / f"{code}_{split}"
     z = np.load(d / "fields.npz", allow_pickle=True)
+    record_path = d / ERA5_RECORD_NAME
+    era5_record = (json.loads(record_path.read_text(encoding="utf-8"))
+                   if record_path.is_file() else {})
     return RegionCache(
         code=code, split=split,
         dates=pd.DatetimeIndex(z["dates"].astype("datetime64[ns]")),
@@ -195,4 +241,5 @@ def load_cache(code: str, split: str, root: str | Path) -> RegionCache:
         w_mean=z["w_mean"], w_std=z["w_std"], z0=z["z0"], shear=z["shear"],
         curve_speeds=z["curve_speeds"], curve_cf=z["curve_cf"],
         curve_names=list(z["curve_names"]), turbine_curve=z["turbine_curve"],
+        era5_record=era5_record,
     )
