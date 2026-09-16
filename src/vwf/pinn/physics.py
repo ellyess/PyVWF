@@ -52,6 +52,10 @@ class PowerCurveBank:
         self.v0 = float(speeds[0])
         self.dv = float(step[0])
         self.n = len(speeds)
+        # The table's speed range. Outside it the bank returns the end value
+        # rather than a missing one, so callers count those speeds themselves.
+        self.v_min = float(speeds[0])
+        self.v_max = float(speeds[-1])
         self.curves = torch.as_tensor(np.asarray(curves), dtype=dtype, device=device)
 
     def __call__(self, u: torch.Tensor, curve_idx: torch.Tensor) -> torch.Tensor:

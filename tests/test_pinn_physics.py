@@ -507,3 +507,65 @@ def test_bound_scale_one_is_exactly_the_unconstrained_model():
     m = PhysicsCorrection(14, 4, bound_scale=1.0)
     assert m._bounds(GAMMA_BOUNDS, 0.0) == GAMMA_BOUNDS
     assert m._bounds(ETA_BOUNDS, 0.90) == ETA_BOUNDS
+
+
+# ------------------------------------------------------------- run records ---
+def test_off_curve_tally_counts_what_the_bank_clamps(bank):
+    """The bank returns an end value outside its table where the harness
+    returns nothing, so the tally is the only record that it happened."""
+    from vwf.pinn.train import count_off_curve, off_curve_shares
+    u = torch.tensor([[-1.0, 5.0], [41.0, 12.0], [8.0, 45.0]])   # (days, units)
+    capacity = torch.tensor([1000.0, 3000.0])
+    tally: dict = {}
+    count_off_curve(u, capacity, bank, tally)
+    shares = off_curve_shares(tally)
+    assert shares["unit_days"] == 6
+    assert shares["off_curve_below_days"] == 1
+    assert shares["off_curve_above_days"] == 2
+    # Capacity-weighted over unit-days: 3 x (1000 + 3000) = 12000 in all.
+    assert shares["off_curve_below_share"] == pytest.approx(1000.0 / 12000.0)
+    assert shares["off_curve_above_share"] == pytest.approx(4000.0 / 12000.0)
+
+    inside: dict = {}
+    count_off_curve(torch.full((3, 2), 7.0), capacity, bank, inside)
+    assert off_curve_shares(inside)["off_curve_below_share"] == 0.0
+    assert off_curve_shares(inside)["off_curve_above_share"] == 0.0
+
+
+def test_a_unit_with_no_wind_is_dropped_and_recorded(fine_curve):
+    """A unit outside the loaded extent has no wind at all. It is dropped, and
+    the tensors say which unit and how much capacity went with it."""
+    from vwf.pinn.cache import RegionCache
+    from vwf.pinn.terrain import FEATURES
+    from vwf.pinn.train import RegionTensors
+
+    days = pd.date_range("2015-01-01", periods=31, freq="D")
+    meta = pd.DataFrame({
+        "ID": ["a", "b", "c"], "lon": [8.0, 8.1, 14.9], "lat": [55.0, 55.1, 55.1],
+        "capacity": [2000.0, 1000.0, 1000.0], "height": [80.0, 80.0, 80.0],
+        "type": ["onshore"] * 3, "model": ["GE.1.5sle"] * 3,
+        **{f: [1.0, 2.0, 3.0] for f in FEATURES},
+    })
+    w = np.full((31, 3), 8.0, dtype="float32")
+    w[:, 2] = np.nan
+    obs = pd.DataFrame({"ID": ["a", "b", "c"], "year": 2015, "month": 1,
+                        "obs": [0.3, 0.3, 0.3]})
+    cache = RegionCache(
+        code="ZZ", split="test", dates=days, meta=meta, obs=obs,
+        w_mean=w, w_std=np.ones_like(w), z0=np.full_like(w, 0.05),
+        shear=np.full_like(w, 0.14),
+        curve_speeds=fine_curve["data$speed"].to_numpy(),
+        curve_cf=fine_curve["GE.1.5sle"].to_numpy()[None, :],
+        curve_names=["GE.1.5sle"], turbine_curve=np.zeros(3, dtype="int64"),
+        era5_record={"era5_roughness": {"requested": "derived", "applied": "derived"}},
+    )
+    r = RegionTensors.from_cache(cache, quiet=True)
+    assert list(r.ids) == ["a", "b"]
+    assert r.dropped_ids == ["c"]
+    assert r.dropped_capacity_share == pytest.approx(0.25)
+    assert r.era5_record["era5_roughness"]["applied"] == "derived"
+
+    kept = RegionTensors.from_cache(
+        RegionCache(**{**cache.__dict__, "w_mean": np.full((31, 3), 8.0, dtype="float32")}),
+        quiet=True)
+    assert kept.dropped_ids == [] and kept.dropped_capacity_share == 0.0

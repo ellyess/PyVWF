@@ -13,8 +13,9 @@ a region, rows are capacity-weighted, matching how the harness scores skill.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -120,7 +121,7 @@ def _drop_unsimulable(cache: RegionCache, *, quiet: bool = False):
               f"cell(s) with the unit's median")
 
     arrs["keep"] = keep
-    return cache.meta.reset_index(drop=True).loc[keep].reset_index(drop=True), arrs
+    return cache.meta.reset_index(drop=True).loc[keep].reset_index(drop=True), arrs, filled
 
 
 @dataclass
@@ -148,6 +149,12 @@ class RegionTensors:
     obs: torch.Tensor          # (M, N), NaN where unobserved
     months: list[tuple[int, int]]
     bank: PowerCurveBank
+    # The run record: units dropped for having no wind at all, their share of
+    # the cache's capacity, isolated cells filled, and the cache's ERA5 record.
+    dropped_ids: list[str] = field(default_factory=list)
+    dropped_capacity_share: float = 0.0
+    filled_cells: int = 0
+    era5_record: dict[str, Any] = field(default_factory=dict)
 
     @property
     def n_units(self) -> int:
@@ -155,7 +162,7 @@ class RegionTensors:
 
     @classmethod
     def from_cache(cls, cache: RegionCache, *, quiet: bool = False) -> "RegionTensors":
-        meta, fields = _drop_unsimulable(cache, quiet=quiet)
+        meta, fields, filled = _drop_unsimulable(cache, quiet=quiet)
         ids = meta["ID"].astype(str).to_numpy()
         id_pos = {i: k for k, i in enumerate(ids)}
 
@@ -173,6 +180,13 @@ class RegionTensors:
         cols = np.array([id_pos.get(str(i), -1) for i in o.ID])
         ok = (rows >= 0) & (cols >= 0)
         obs[rows[ok], cols[ok]] = o["obs"].to_numpy(dtype="float32")[ok]
+
+        keep = fields["keep"]
+        all_meta = cache.meta.reset_index(drop=True)
+        all_capacity = all_meta["capacity"].to_numpy(dtype=float)
+        total_capacity = float(np.nansum(all_capacity))
+        dropped_share = (float(np.nansum(all_capacity[~keep])) / total_capacity
+                         if total_capacity > 0 else 0.0)
 
         t = lambda a, d=torch.float32: torch.as_tensor(np.asarray(a), dtype=d)  # noqa: E731
         return cls(
@@ -194,6 +208,10 @@ class RegionTensors:
             month_id=t(month_id, torch.long),
             obs=t(obs), months=months,
             bank=PowerCurveBank(cache.curve_speeds, cache.curve_cf),
+            dropped_ids=[str(i) for i in all_meta.loc[~keep, "ID"]],
+            dropped_capacity_share=dropped_share,
+            filled_cells=int(filled),
+            era5_record=dict(cache.era5_record),
         )
 
 
@@ -273,6 +291,48 @@ def coverage_weight(
     return torch.exp(-(excess ** 2) / (d0 ** 2).clamp(min=1e-6))
 
 
+def count_off_curve(
+    u: torch.Tensor, capacity: torch.Tensor, bank: PowerCurveBank, acc: dict
+) -> None:
+    """Add a batch's off-curve speeds to a running tally.
+
+    The harness returns no capacity factor for a speed outside the speed range
+    of ``power_curves.csv``, so such a value is missing and the row drops out of
+    a score. The curve bank here clamps to the end values instead, which is a
+    capacity factor of zero above cut-out and below cut-in. Nothing goes
+    missing, so nothing would otherwise say how often it happened. The tally is
+    kept in unit-days and in capacity-weighted unit-days.
+
+    Args:
+        u: Speeds entering the curve, ``(T, N)``.
+        capacity: Unit capacities, ``(N,)``.
+        bank: The curve bank the speeds are evaluated on.
+        acc: Running tally, updated in place.
+    """
+    with torch.no_grad():
+        below = u < bank.v_min
+        above = u > bank.v_max
+        w = capacity.unsqueeze(0).expand_as(u)
+        acc["unit_days"] = acc.get("unit_days", 0) + int(u.numel())
+        acc["below"] = acc.get("below", 0) + int(below.sum())
+        acc["above"] = acc.get("above", 0) + int(above.sum())
+        acc["capacity_days"] = acc.get("capacity_days", 0.0) + float(w.sum())
+        acc["capacity_below"] = acc.get("capacity_below", 0.0) + float(w[below].sum())
+        acc["capacity_above"] = acc.get("capacity_above", 0.0) + float(w[above].sum())
+
+
+def off_curve_shares(acc: dict) -> dict[str, float | int]:
+    """Reduce a :func:`count_off_curve` tally to capacity-weighted shares."""
+    total = acc.get("capacity_days", 0.0)
+    return {
+        "unit_days": int(acc.get("unit_days", 0)),
+        "off_curve_below_days": int(acc.get("below", 0)),
+        "off_curve_above_days": int(acc.get("above", 0)),
+        "off_curve_below_share": acc.get("capacity_below", 0.0) / total if total else 0.0,
+        "off_curve_above_share": acc.get("capacity_above", 0.0) / total if total else 0.0,
+    }
+
+
 def simulate_monthly(
     r: RegionTensors,
     model: PhysicsCorrection | None,
@@ -283,15 +343,21 @@ def simulate_monthly(
     density: bool = False,
     damp: torch.Tensor | None = None,
     quad=None,
+    off_curve: dict | None = None,
 ) -> torch.Tensor:
     """Monthly capacity factor for a slice of units.
 
     With ``model=None`` this is the incumbent simulation: neutral log profile on
     the pipeline roughness, power curve at the daily mean wind, no losses.
+    Pass ``off_curve`` to have the speeds entering the curve tallied by
+    :func:`count_off_curve`.
     """
     if model is None:
         ratio = hub_wind_ratio(r.height[sl], z0=r.z0[:, sl], profile="log")
-        cf = expected_cf(r.w[:, sl] * ratio, None, r.curve_idx[sl], r.bank, None)
+        u0 = r.w[:, sl] * ratio
+        if off_curve is not None:
+            count_off_curve(u0, r.capacity[sl], r.bank, off_curve)
+        cf = expected_cf(u0, None, r.curve_idx[sl], r.bank, None)
         return monthly_mean(cf, r.month_id, len(r.months))
 
     # A model always arrives with the standardiser it was fitted against; the
@@ -325,6 +391,8 @@ def simulate_monthly(
         # air is thinner, the wind is not slower.
         scale = scale * density_speed_factor(r.elevation[sl])
     u = r.w[:, sl] * scale
+    if off_curve is not None:
+        count_off_curve(u, r.capacity[sl], r.bank, off_curve)
     sigma = (kappa * r.s[:, sl] * scale).clamp(min=1e-3)
     cf = expected_cf(u, sigma, r.curve_idx[sl], r.bank, quad)
     return monthly_mean(cf * eta, r.month_id, len(r.months))
@@ -412,14 +480,20 @@ def predict_frame(
     profile: str = "power",
     density: bool = False,
     damp: torch.Tensor | None = None,
+    off_curve: dict | None = None,
 ) -> pd.DataFrame:
-    """Tidy (ID, year, month, cf_sim, cf_obs, capacity) frame for the harness."""
+    """Tidy (ID, year, month, cf_sim, cf_obs, capacity) frame for the harness.
+
+    Pass ``off_curve`` to collect the daily speeds, at the daily mean, that lie
+    outside the speed range of ``power_curves.csv`` (:func:`count_off_curve`).
+    """
     quad = gauss_hermite(N_QUAD)
     preds = []
     for start in range(0, r.n_units, UNIT_BATCH):
         sl = torch.arange(start, min(start + UNIT_BATCH, r.n_units))
         preds.append(simulate_monthly(r, model, std, sl, profile=profile,
-                                      density=density, damp=damp, quad=quad))
+                                      density=density, damp=damp, quad=quad,
+                                      off_curve=off_curve))
     pred = torch.cat(preds, dim=1).numpy()
 
     years = np.array([y for y, _ in r.months])
