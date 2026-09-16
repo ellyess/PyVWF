@@ -103,25 +103,34 @@ def main(out_dir: str) -> None:
 
     print("\n=== 2. Label quality across the pool")
     pool = pd.read_csv(POOL)
+    # Country rows carry cluster membership in the fleet file, so their unit
+    # counts join exactly. Turbine rows do not: the chapter-era runs stored no
+    # per-cluster membership, so their cluster sizes are taken from the
+    # selection study's run at the SAME cluster count, which is the chapter's
+    # count in every case because it was evaluated as baseline B1. That is a
+    # current training fleet rather than the chapter-era one, so the
+    # distribution is indicative and the join is by size, not by identity.
     units = []
-    for code, mode, level, year in (("BE","all","country",2023),("DE","onshore","turbine",2019),
-                                    ("DK","offshore","turbine",2020),("DK","onshore","turbine",2020),
-                                    ("ES","all","country",2023),("FR","all","country",2023),
-                                    ("IE","all","country",2023),("IT","all","country",2023),
-                                    ("NL","all","country",2023),("NO","all","country",2023),
-                                    ("PT","all","country",2023),("SE","all","country",2023),
-                                    ("UK","offshore","turbine",2019),("UK","onshore","turbine",2019)):
-        f = RUNS / f"{code}-{mode}-obs_{level}-corrected-calc_z0" / "training" / \
-            "simulated-turbines" / f"{code}_{year}_turb_info.csv"
-        info = pd.read_csv(f)
-        pool_code = {"DE": "DE-onshore", "DK": f"DK-{mode}", "UK": f"UK-{mode}"}.get(code, code)
-        if code in ("DK", "UK"):
-            pool_code = f"{code}-{mode}"
+    for code, year in (("BE",2023),("ES",2023),("FR",2023),("IE",2023),("IT",2023),
+                       ("NL",2023),("NO",2023),("PT",2023),("SE",2023)):
+        info = pd.read_csv(RUNS / f"{code}-all-obs_country-corrected-calc_z0" /
+                           "training" / "simulated-turbines" / f"{code}_{year}_turb_info.csv")
         n = info.groupby("cluster").size().rename("units").reset_index()
-        n["country_code"] = pool_code
+        n["country_code"] = code
         units.append(n)
     counts = pd.concat(units, ignore_index=True)
     merged = pool.merge(counts, on=["country_code", "cluster"], how="left")
+
+    SEL = REPO / "output/cluster_selection_2026-09-15"
+    turbine_sizes = {}
+    for pool_code, region, mode, k in (("DE-onshore","DE","onshore",500),
+                                       ("DK-offshore","DK","offshore",2),
+                                       ("DK-onshore","DK","onshore",884),
+                                       ("UK-offshore","UK","offshore",10),
+                                       ("UK-onshore","UK","onshore",300)):
+        f = SEL / region / f"train-{mode}-final" / f"train_turb_info_{k}.csv"
+        if f.is_file():
+            turbine_sizes[pool_code] = pd.read_csv(f).groupby("cluster").size()
 
     low, high = 0.2, 3.0
     merged["crossing"] = np.where((merged.offset < 0) & (merged.scalar > 0),
@@ -132,13 +141,26 @@ def main(out_dir: str) -> None:
     merged["single_unit"] = merged["units"].fillna(0) <= 1
     merged.to_csv(out / "pool_label_quality.csv", index=False)
 
-    print(f"  points: {len(merged)}, with a unit count: {int(merged.units.notna().sum())}")
+    print(f"  points: {len(merged)}")
     print(f"  out of bounds (the visible seven): {int(merged.out_of_bounds.sum())}")
-    print(f"  fitted on a single unit: {int(merged.single_unit.sum())}")
-    print(f"  fitted on fewer than three units: {int(merged.few_units.sum())}")
-    print("\n  units per control point, by row:")
-    by = merged.groupby("country_code")["units"].describe()[["count","min","25%","50%","max"]]
+    print("\n  country rows, exact units per control point:")
+    by = merged.dropna(subset=["units"]).groupby("country_code")["units"].describe()[
+        ["count","min","25%","50%","max"]]
     print(by.round(1).to_string())
+    c = merged.dropna(subset=["units"])
+    print(f"    of {len(c)} country points: {int((c.units <= 1).sum())} on one grid point, "
+          f"{int((c.units < 3).sum())} on fewer than three")
+
+    print("\n  turbine rows, cluster sizes at the pool's own count, from the")
+    print("  selection study's run at the same count (indicative, see the code):")
+    rows = []
+    for name, sizes in turbine_sizes.items():
+        rows.append({"row": name, "clusters": len(sizes), "min": int(sizes.min()),
+                     "median": float(sizes.median()), "max": int(sizes.max()),
+                     "singletons": int((sizes <= 1).sum()),
+                     "under_three": int((sizes < 3).sum()),
+                     "share_under_three": round(float((sizes < 3).mean()), 3)})
+    print(pd.DataFrame(rows).to_string(index=False))
 
     print("\n  the scalar and offset trade off against each other, by row")
     print("  (a strong negative correlation means the pair is under-determined:")
