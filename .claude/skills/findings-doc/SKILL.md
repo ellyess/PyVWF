@@ -136,7 +136,14 @@ unit its author has in mind.
   threshold that names a quantity without naming its statistic**: a gate
   restricting to folds "within 2 degrees" left three recorded distances to
   choose from, and choosing after the scores exist is choosing with them in
-  view.
+  view. **It also covers a comparator named by a label rather than by its
+  files.** "The uniform grid the chapter used" meant a lattice to one document
+  and a weighting to another: the chapter's lattice was uniform and its
+  capacities were a radius sum of the Global Wind Power Tracker, while files
+  named `.uniform.bak.csv` held the same lattice at constant capacity. A gate
+  run against the second would have voided a study on a mismatch it created.
+  Name the comparator's files, and when the comparator is another pipeline's
+  output, check the values it carried rather than how it was described.
 - **A study is not finished until its own gates are read, and citing its result
   elsewhere first is how that gets skipped.** The same study's scores were
   reported in a synthesis document three days before anyone tried to read its
