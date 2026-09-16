@@ -124,6 +124,14 @@ unit its author has in mind.
   built, and a condition that changed nothing is indistinguishable from a
   condition that worked and had no effect, which is what half these studies
   predict.
+- **Ask whether a condition can differ analytically before spending a run on
+  it.** Two bases of one target were compared by a twelve-fold study, and the
+  answer followed in three lines from the estimator being a weighted sum with
+  coordinate-only weights: any such predictor commutes with a linear
+  reparameterisation, so three of the four methods could not have differed and
+  did not, to the floating-point digit. The run was still worth having for the
+  fourth method and for the raw table, but the invariance should have been
+  derived first and the study framed around the one case that could move.
 - **Whatever a study varies must appear in the run directory path.** A run
   directory is keyed on the region code and the run name, and on nothing else,
   so two configurations of one region collide silently. Every earlier study in

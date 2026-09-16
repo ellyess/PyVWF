@@ -193,6 +193,103 @@ unidentified direction.
 **Neither chapter is wrong in its own terms**, and both report their results
 honestly. The defect is upstream of both, in what the fitted pair means.
 
+## Reparameterising cannot change what an interpolator predicts, 2026-09-16
+
+**The general statement, which is why the test could not have gone
+otherwise.** Let a target be reparameterised by any invertible linear map. Any
+interpolator whose prediction is a weighted sum of the training values, with
+weights that depend only on the coordinates, commutes with that map: predicting
+in one basis and converting gives exactly the prediction made in the other.
+
+    predicted = sum_i w_i y_i,   y_i' = M y_i
+    => sum_i w_i y_i' = M sum_i w_i y_i
+
+**That covers inverse distance weighting, nearest neighbour, radial basis
+functions, and anything else whose weights are fixed by geometry.** Choosing
+between the coefficient basis and the corrected-speed basis is then a
+relabelling, not a modelling choice, and no accuracy can follow from it.
+
+**Ordinary kriging is the exception, and the only one.** Its weights solve a
+system built from a variogram **fitted to the values**, so a different basis
+gives a different variogram and different weights. There the basis is a
+modelling choice.
+
+Measured on the twelve country holdouts, as the largest disagreement at 8 m/s
+between predicting the coefficients and converting, and predicting the
+reference-wind target directly:
+
+| method | largest disagreement, m/s |
+|---|---|
+| inverse distance weighting | **0.0, exactly** |
+| nearest neighbour | **0.0, exactly** |
+| radial basis function | 2.3e-8, floating point |
+| ordinary kriging | **0.209** |
+
+**The lesson is the order of work, not the result.** This was derivable in
+three lines and was instead measured by a run. Whether a condition can differ
+analytically is worth asking before a run is spent on it.
+
+### What it does and does not settle
+
+Interpolating two coefficients whose split is set by a tie-break is still
+wrong, and interpolating the identified quantity is still the right thing to
+do. **It simply buys no accuracy, and cannot.**
+
+### The variance control worked, and returned null
+
+The study was registered to report the target's own within-row and between-row
+variance beside every score, so that an improvement attributable to a flatter
+target could not be read as transfer working:
+
+| target | within-row share of variance | between-row |
+|---|---|---|
+| corrected speed at 8 m/s | 0.732 | 0.268 |
+| corrected speed at 12 m/s | 0.740 | 0.260 |
+| scalar | 0.749 | 0.251 |
+| offset | 0.758 | 0.242 |
+
+The reparameterised target is no flatter than the coefficients, so no
+improvement could have been attributed to that, and none appeared. **A control
+that returns null is the control working**, and it is reported rather than
+dropped for being uninformative.
+
+### The holdout result, raw
+
+Inverse distance weighting, the best method, corrected speed at 8 m/s,
+great-circle distance. Data: `output/loco_reference_2026-09-16/`.
+
+| fold | points | MAE, m/s | R-squared |
+|---|---|---|---|
+| BE | 3 | 0.201 | **+0.378** |
+| DE | 500 | 0.717 | -0.143 |
+| DK | 886 | 0.503 | -0.208 |
+| UK | 303 | 1.010 | -0.142 |
+| IE | 3 | 1.598 | -4.367 |
+| NO | 5 | 2.843 | -0.484 |
+| ES | 4 | 2.906 | -1.667 |
+| SE | 4 | 3.231 | -0.198 |
+| NL | 5 | 4.124 | **-41.040** |
+| FR | 10 | 4.483 | -0.141 |
+| IT | 3 | 8.755 | +0.010 |
+| PT | 3 | **13.811** | -1.488 |
+
+One fold of twelve has a positive R-squared worth the name. Median MAE across
+folds is 2.87 m/s for this method and 2.57 for kriging, against a mean
+corrected speed of 7.49 m/s. The three dense folds score best on MAE and are
+still negative on R-squared: a fold's own mean beats the interpolation.
+
+## Where the two chapters now stand together
+
+**Interpolation collapses across borders. Machine learning collapses across
+borders. The identifiability problem explains neither.** It is real, it makes
+both chapters operate on a coordinate set by a tie-break, and correcting it
+changes no prediction that any geometry-weighted interpolator makes.
+
+What is left standing is the constraint `method-ml-transfer.md` named before
+any of this ran: **regime coverage, not sample count and not target
+conditioning**. It was one hypothesis among several; it is now the standing
+one, because the alternatives have been tested and eliminated.
+
 ## Caveats
 
 - **This is a property of this estimator**, not of affine corrections in
