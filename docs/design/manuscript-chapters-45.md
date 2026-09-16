@@ -801,3 +801,48 @@ scalars outside 0.2 to 3.0 on the archive the rebuild will use, and the cause
 is still unattributed, because the same three changes apply to it. What changes
 is that the archive is now the least likely of the three rather than merely one
 of three.
+
+## P1. Refitting the chapter pool's structure on today's pipeline: costed, not done, 2026-09-16
+
+**Decided 2026-09-16: the chapter pool is sent alone, and no refit is built
+now.** The question was whether the pool could be refitted at the chapter's own
+cluster counts on the current pipeline (the September archive, per-timestep
+roughness, the extent guard and the residual-tested offset search), giving a
+current pool directly comparable to the chapter's without claiming the
+selection question is solved. **It returns when the target is settled**, so
+the costing is recorded here.
+
+**The turbine tier is nearly free.** The cluster selection study already fitted
+all five rows at the chapter's counts on the current pipeline: DE onshore 500,
+DK onshore 884, DK offshore 2, UK onshore 300, UK offshore 10, each with no
+unit outside the loaded extent, the combined library with nothing substituted,
+and a clean tree (`output/cluster_selection_2026-09-15/*/train-*final`). They
+predate the offset search fix of 2026-09-16 by about ten hours, so a refit
+repeats five fits at one count each. Two choices remain, both small:
+
+- **The chapter's counts are not its point counts.** It fitted DK onshore at
+  1,000 and UK onshore at 300, and its pool builder dropped the clusters whose
+  polygons came out empty, 116 and 7, leaving 884 and 293. A refit either fits
+  884 and 293, matching the pool's size, or fits 1,000 and 300 and drops by the
+  same rule, matching its construction.
+- **The chapter placed each control point at its cluster polygon's centroid**;
+  the harness records the mean of member coordinates.
+
+**The country tier forces six choices the chapter's counts do not fix:**
+
+| Choice | Why the chapter does not settle it |
+|---|---|
+| Grid | The chapter's lattice carries the radius-sum weights and their four defects (D0's correction notice); the maintained grids change the point sets, BE 44 points against 105 |
+| Cluster count | On the maintained grids the harness accepts only 1 or the grid's own count: NO 4 against the chapter's 5, PT 2 against 3 |
+| Netherlands | The chapter pool holds five Dutch points; the project excludes NL on its coverage defect |
+| Curves | The European re-run's country fits substituted the fallback curve for their whole fleet; only the curve library study's C1 runs used each grid's named curves, and the chapter's own library is inferred, not recorded (D5) |
+| Denominators | Sweden's register is derived from its own generation and has no replacement; Portugal's is frozen with a repair available and unapplied; Ireland's repair moves its training years to 2017 to 2021 |
+| Centroids | Country clusters need polygons for the chapter's centroid rule, and the maintained grids have none built |
+
+**So a refit becomes viable the moment the country tier has an answer**, which
+means a settled grid, registers for Sweden and Portugal, and a decision on
+NL and on curves. The national single cluster study's unblocking sequence
+(settle registers, then provenance, then training windows) covers the
+denominators and nothing else. A turbine-only refit of 1,689 points is
+defensible on its own terms and was not sent, because half a pool beside the
+whole one invites a comparison neither supports.
