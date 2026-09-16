@@ -10,7 +10,8 @@ mean the same thing in every region.
 Gates were fixed before any model was fitted; the record of what was registered
 and how each prediction turned out is in
 `method-physics-informed-prespecification.md`. Code: `src/vwf/pinn/`, drivers in
-`scripts/pinn/`, 51 tests in `tests/test_pinn_physics.py`.
+`scripts/pinn/`, 53 tests in `tests/test_pinn_physics.py` and 7 in
+`tests/test_pinn_era5_record.py`.
 
 **Correction notice, 2026-09-11: the UK's in-region affine drop is not
 resolved.** Section 3 reports the UK's affine correction in region at 0.1146
@@ -30,6 +31,36 @@ scored on 55 plants, while its uncorrected 0.1225 covers 59 (`scorecard.md`,
 daggered-rows notice of the same date). On the same rows, the affine figure
 is 0.104 against an uncorrected 0.110. The zero-shot and MLP columns come from
 this document's own pipeline and were not rescored.
+
+**Reproduction note, 2026-09-16: section 3's leave-one-region-out figures
+reproduce from a commit.** Until this date no figure in this document could be
+tied to a code state. The primary run's log named commit `bd1c721`, which no
+branch contains, and every later run recorded none. The primary comparison was
+re-run at `9faa192`, from a clean tree with a manifest, under
+`method-physics-informed-rerun-prereg.md`, and all five of its gates passed.
+Data: `output/pinn_rerun_2026-09-16/e1/`.
+
+- **What reproduced.** The zero-shot, ablation and in-region physics columns
+  of section 3's first table, for all five holdouts. Every seed's RMSE is
+  identical to the published one, on the same rows. Those columns now rest on
+  the rerun.
+- **What moved.** The uncorrected column, for the European holdouts only,
+  because they now use the per-timestep roughness: DK 0.14640 to 0.14750, DE
+  0.08597 to 0.08605, UK 0.14509 to 0.14560. US and BR are unchanged. Skill against
+  uncorrected moves by at most 0.006, in DK (+0.544 to +0.550) and the UK
+  (+0.031 to +0.037). P1 still holds at 5 of 5. The smallest margin is now the
+  US at 0.0025, with the UK next at 0.0027, and neither has been resampled.
+- **What the rerun does not cover.** The RF transfer column and gate P2, the
+  affine in-region column, the table of four fresh regions with Q1 and Q2, and
+  the diagnostics and sensitivities of sections 1, 4 and 5. Those figures are
+  still not tied to a commit.
+- **How to read the ablation column.** The unconstrained model sends a mean of
+  32% to 35% of capacity-weighted unit-days in the UK, US and BR past the top
+  of the power curves, and up to 72% for a single seed. The curve bank scores
+  those days as zero output, where the harness would give them no value. P3's
+  margins therefore measure a model that also produces speeds beyond any power
+  curve, not only a model without constraints. The rerun's registration
+  records the shares per holdout.
 
 ## 1. Why the incumbent does not transfer
 

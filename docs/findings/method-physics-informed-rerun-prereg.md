@@ -146,11 +146,11 @@ Read in order. A gate is not read until the one before it has been.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **R0** records | Both manifests, cache and E1, record `git_dirty: false` and the same `git_commit`, and that commit contains this document. The curve library's `power_curves_sha256` is `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d` and `models_sha256` is `eefec036426d4f8ea88e6d4afa64e771af66f99eb8c86dfbdc86875522f0b961`, the licensed library the five scorecard rows record. Every region and split records `era5_roughness.applied` as `derived`. No cache build failed. **A failure here means no metric is read until it is explained.** | |
-| **R1** inputs | From `g0_cache_reproduction.csv`, per region and split: no unit only in one cache, no observation row only in one cache, observation values identical, no mismatch in `lon`, `lat`, `capacity`, `height` or `model`, and for `w_mean`, `w_std` and `shear` no finite-value mismatch and a largest absolute difference of at most 1e-5. `z0` meets the same tolerance for US and BR; for DK, DE and UK it is reported, not gated. | |
-| **R2** reproduction | Per holdout, the `pinn` and `pinn-in-region` five-seed mean RMSE are each within 0.002 of the published mean in the table above, on the same number of rows scored. The `uncorrected` RMSE for US and BR, whose treatment does not change, is within 0.0005 of the published value. `pinn-ablation` is reported, not gated, because its published seed spread is 0.03 to 0.11. | |
-| **R3** transfer, as P1 | On common rows: `pinn` mean RMSE below `uncorrected` in at least 3 of 5 holdouts, and no holdout where it exceeds `uncorrected` by more than 10% relative. | |
-| **R4** ablation, as P3 | `pinn-ablation` mean RMSE exceeds `pinn` mean RMSE by more than 0.005 in at least 3 of 5 holdouts. Otherwise the constraints are not shown to do the work on today's pipeline. | |
+| **R0** records | Both manifests, cache and E1, record `git_dirty: false` and the same `git_commit`, and that commit contains this document. The curve library's `power_curves_sha256` is `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d` and `models_sha256` is `eefec036426d4f8ea88e6d4afa64e771af66f99eb8c86dfbdc86875522f0b961`, the licensed library the five scorecard rows record. Every region and split records `era5_roughness.applied` as `derived`. No cache build failed. **A failure here means no metric is read until it is explained.** | **Pass.** Both manifests record `9faa192` and `git_dirty: false`. Both library hashes match. `derived` is applied in all ten region-splits, requested as `derived` for DK, DE and UK and as `stored` for US and BR. No build failed. |
+| **R1** inputs | From `g0_cache_reproduction.csv`, per region and split: no unit only in one cache, no observation row only in one cache, observation values identical, no mismatch in `lon`, `lat`, `capacity`, `height` or `model`, and for `w_mean`, `w_std` and `shear` no finite-value mismatch and a largest absolute difference of at most 1e-5. `z0` meets the same tolerance for US and BR; for DK, DE and UK it is reported, not gated. | **Pass, first branch.** Every count is zero, and observations, `w_mean`, `w_std` and `shear` differ by 0.0 exactly in all ten. `z0` is identical for US and BR and differs by up to 0.640 for DK, DE and UK. The UK caches have missing `z0` cells, reported below. |
+| **R2** reproduction | Per holdout, the `pinn` and `pinn-in-region` five-seed mean RMSE are each within 0.002 of the published mean in the table above, on the same number of rows scored. The `uncorrected` RMSE for US and BR, whose treatment does not change, is within 0.0005 of the published value. `pinn-ablation` is reported, not gated, because its published seed spread is 0.03 to 0.11. | **Pass in 5 of 5.** `pinn` and `pinn-in-region` differ from the published means by 0.00000, and every seed's RMSE is identical to the published seed's. Rows scored are equal in every holdout. `uncorrected` differs by 0.0 for US and BR. `pinn-ablation` is also identical per seed. |
+| **R3** transfer, as P1 | On common rows: `pinn` mean RMSE below `uncorrected` in at least 3 of 5 holdouts, and no holdout where it exceeds `uncorrected` by more than 10% relative. | **Pass, 5 of 5**, and no holdout above `uncorrected`. Margins: DK 0.04859, DE 0.00708, UK 0.00274, US 0.00254, BR 0.03240. |
+| **R4** ablation, as P3 | `pinn-ablation` mean RMSE exceeds `pinn` mean RMSE by more than 0.005 in at least 3 of 5 holdouts. Otherwise the constraints are not shown to do the work on today's pipeline. | **Pass, 5 of 5.** `pinn-ablation` minus `pinn`: DK 0.131, DE 0.090, UK 0.182, US 0.245, BR 0.156. Read the off-curve record below before citing the size of these margins. |
 
 ### What each outcome does
 
@@ -185,13 +185,70 @@ longer separates from the constrained model on today's pipeline.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| 1 | R1 takes its first branch in all ten region-splits. `z0` differs in DK, DE and UK and nowhere else. | |
-| 2 | R2 passes in all five holdouts, for both gated arms, and the US and BR `uncorrected` figures reproduce. The mechanism is that none of the fitted arms reads the roughness. | |
-| 3 | The `uncorrected` RMSE for DK, DE and UK moves by less than 0.005 each. No direction is predicted. | |
-| 4 | R3 passes at 5 of 5, as published. UK is the holdout nearest to failing: its published margin is 0.0022, the smallest of the five. | |
-| 5 | The common-row restriction excludes no row in any holdout, because every arm simulates the same tensors and the curve bank never returns a missing value. | |
-| 6 | No condition has an off-curve value below the table. For `pinn` and `pinn-in-region`, the capacity-weighted share above the table is under 0.1% in every holdout. | |
-| 7 | DK drops units for having no wind, and no other region does. DK's scorecard manifests record 15 training units and 47 test units outside the loaded extent, 0.6% of test capacity. The drops here match those counts. | |
+| 1 | R1 takes its first branch in all ten region-splits. `z0` differs in DK, DE and UK and nowhere else. | **Held.** |
+| 2 | R2 passes in all five holdouts, for both gated arms, and the US and BR `uncorrected` figures reproduce. The mechanism is that none of the fitted arms reads the roughness. | **Held**, exactly: the difference is 0.0 for every seed. |
+| 3 | The `uncorrected` RMSE for DK, DE and UK moves by less than 0.005 each. No direction is predicted. | **Held.** DK +0.00110, DE +0.00008, UK +0.00051. |
+| 4 | R3 passes at 5 of 5, as published. UK is the holdout nearest to failing: its published margin is 0.0022, the smallest of the five. | **Half held.** R3 passes at 5 of 5, but US, not UK, is nearest to failing: US 0.00254 against UK 0.00274. UK's `uncorrected` rose by 0.00051 and US's did not move. |
+| 5 | The common-row restriction excludes no row in any holdout, because every arm simulates the same tensors and the curve bank never returns a missing value. | **Held.** No row is excluded in any holdout. |
+| 6 | No condition has an off-curve value below the table. For `pinn` and `pinn-in-region`, the capacity-weighted share above the table is under 0.1% in every holdout. | **Held.** No condition has a value below the table, and the share above it is 0.0 for `pinn` and `pinn-in-region` in every holdout. The prediction did not cover `pinn-ablation`, whose share is far from zero (below). |
+| 7 | DK drops units for having no wind, and no other region does. DK's scorecard manifests record 15 training units and 47 test units outside the loaded extent, 0.6% of test capacity. The drops here match those counts. | **Held.** DK drops 15 training units and 47 test units, 0.52% and 0.60% of capacity. No other region drops a unit. |
+
+## Run record, 2026-09-16
+
+Filled in after the run. Nothing in this section changes a gate or a
+prediction.
+
+**Data.** Caches: `output/pinn_rerun_2026-09-16/cache/`. Input comparison:
+`output/pinn_rerun_2026-09-16/g0/g0_cache_reproduction.csv`, sha256
+`77e44d516cc6a2597d0a76df0c8bd9dc9b9c3ed70e6f7d9e4143e90133391f09`. E1:
+`output/pinn_rerun_2026-09-16/e1/`, with `e1_primary_raw.csv` at sha256
+`8d792c534a471f94885f626ece528098a5fd8e67f042f741abd22a13f17e98cf`.
+
+**Full metrics table.** Capacity-weighted RMSE on each test year, mean over five
+seeds, with the published value in brackets where it differs.
+
+| Holdout | Rows scored | uncorrected | pinn | pinn-in-region | pinn-ablation |
+|---|---|---|---|---|---|
+| DK | 63,577 | 0.14750 (0.14640) | 0.09891 ± 0.00024 | 0.08234 ± 0.00020 | 0.22980 ± 0.10588 |
+| DE | 54,188 | 0.08605 (0.08597) | 0.07897 ± 0.00022 | 0.05970 ± 0.00009 | 0.16925 ± 0.06211 |
+| UK | 4,159 | 0.14560 (0.14509) | 0.14286 ± 0.00058 | 0.12667 ± 0.00005 | 0.32520 ± 0.02967 |
+| US | 6,078 | 0.10979 | 0.10725 ± 0.00031 | 0.09090 ± 0.00003 | 0.35215 ± 0.05780 |
+| BR | 389 | 0.13860 | 0.10619 ± 0.00115 | 0.09537 ± 0.00026 | 0.26237 ± 0.08249 |
+
+**The first launch was interrupted and repeated in full, as committed above.**
+It stopped when the session that launched it ended, part-way through the DK
+holdout and before any metric was written. Its manifest and log are kept in
+`output/pinn_rerun_2026-09-16/e1_interrupted_2026-09-16T1216/`. The repeat ran
+the registered command unchanged, from the repository root on the same clean
+tree, detached from the session with `nohup` through a one-line launcher kept
+outside the repository. The manifest's `argv` records the command.
+
+**The ablation drives speeds past the power curves, and the curve bank scores
+them as zero output.** The capacity-weighted share of unit-days whose speed is
+above the curves' range, per `pinn-ablation` condition:
+
+| Holdout | lowest seed | mean over seeds | highest seed |
+|---|---|---|---|
+| DK | 0.0% | 0.5% | 2.3% |
+| DE | 0.05% | 4.4% | 11.2% |
+| UK | 0.04% | 34.8% | 62.6% |
+| US | 4.0% | 35.2% | 72.3% |
+| BR | 0.04% | 32.0% | 72.0% |
+
+`pinn`, `pinn-in-region` and `uncorrected` have none. The harness gives such a
+speed no capacity factor, and common-row scoring would then drop that row from
+every arm. Here the bank returns the end of the curve, which is zero, so the
+ablation's RMSE counts those days as producing nothing. R4 passes on its
+registered definition. Its margins measure a model without constraints that
+also sends speeds past any power curve, not the absence of constraints alone.
+
+**Missing input cells were filled with each unit's median.** The UK caches
+miss `z0` in 126 training cells, all on 2016-11-30, and 54 test cells, all on
+2019-12-31: the last day of a monthly file, where a backward fill within one
+file has no later hour to draw on. The per-timestep derivation in `prep_era5`
+fills across the whole record and would not have these gaps. Only the
+`uncorrected` arm reads `z0`. The US caches have 3 filled training cells and 38
+filled test cells, in fields identical to the published caches.
 
 ## Cost
 
