@@ -52,8 +52,13 @@ SEL = REPO / "output/cluster_selection_2026-09-15"
 #: was found.
 CUT_IN = 4.0
 
-#: Initial steps to re-solve from. 10.0 is the shipped default.
-INITIAL_STEPS = (10.0, 4.0, 1.0, 0.25)
+#: Initial steps to re-solve from. 10.0 is the shipped default and 3.0 was the
+#: default until 2026-02-14, so both are tested. 0.25 is below the natural step
+#: size and is included to show where the schedule starts to throttle.
+INITIAL_STEPS = (10.0, 4.0, 3.0, 1.0, 0.5, 0.25)
+
+#: Iteration caps. 100 is shipped; 30 was the cap alongside the 3.0 default.
+MAX_ITERS = (100, 30)
 
 #: row label, config stem, fleet mode, the run's cluster count, its train dir.
 ROWS = {
@@ -123,32 +128,33 @@ def main(out_dir: str, *only: str) -> None:
             target = fast_simulate_cf(arrays, float(f["scalar"]), float(f["offset"]))
             row = {"cluster": cl, "scalar": float(f["scalar"]),
                    "offset_shipped": float(f["offset"])}
+            uncorrected = fast_simulate_cf(arrays, 1.0, 0.0)
             for step in INITIAL_STEPS:
-                probe = pd.Series({"obs": target, "sim": target,
-                                   "scalar": float(f["scalar"])})
-                # sign(obs - sim) is zero at the shipped optimum, so the search
-                # is started deliberately off it by using the uncorrected mean
-                # as sim, which is what the real fit had.
-                probe["sim"] = fast_simulate_cf(arrays, 1.0, 0.0)
-                row[f"offset_from_{step:g}"] = _find_offset_iterative(
-                    probe, arrays, initial_step=step)
+                for cap in MAX_ITERS:
+                    # sign(obs - sim) is zero at the shipped optimum, so the
+                    # search is started off it by using the uncorrected mean as
+                    # sim, which is what the real fit had.
+                    probe = pd.Series({"obs": target, "sim": uncorrected,
+                                       "scalar": float(f["scalar"])})
+                    key = (f"offset_from_{step:g}" if cap == 100
+                           else f"offset_from_{step:g}_iter{cap}")
+                    row[key] = _find_offset_iterative(
+                        probe, arrays, max_iter=cap, initial_step=step)
             rows.append(row)
         frame = pd.DataFrame(rows)
         frame["row"] = label
         per_cluster.append(frame)
         elapsed = (time.monotonic() - started) / 60
 
+        variants = [c for c in frame.columns if c.startswith("offset_from_")]
         piv = {"shipped": pivot(frame["scalar"].to_numpy(),
                                 frame["offset_shipped"].to_numpy())}
-        for step in INITIAL_STEPS:
-            col = frame[f"offset_from_{step:g}"]
-            piv[f"from_{step:g}"] = pivot(frame["scalar"].to_numpy(),
-                                          col.to_numpy())
-        worst = max(float(np.nanmax(np.abs(frame[f"offset_from_{s:g}"]
-                                           - frame["offset_shipped"])))
-                    for s in INITIAL_STEPS)
-        failed = int(sum(frame[f"offset_from_{s:g}"].isna().sum()
-                         for s in INITIAL_STEPS))
+        for col in variants:
+            piv[col.replace("offset_from_", "")] = pivot(
+                frame["scalar"].to_numpy(), frame[col].to_numpy())
+        worst = max(float(np.nanmax(np.abs(frame[c] - frame["offset_shipped"])))
+                    for c in variants)
+        failed = int(sum(frame[c].isna().sum() for c in variants))
         summary.append({"row": label, "clusters": len(frame),
                         "days_below_cut_in": round(share_days, 4),
                         "cf_mass_below_cut_in": round(share_mass, 5),
