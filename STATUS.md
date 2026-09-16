@@ -1,28 +1,116 @@
 # Status
 
-**Current as of 2026-09-13**, on branch `agent-skills`. One page,
-kept short so that it stays true. It records what is running, what is queued,
-what is open and what is settled. Detail lives in the documents it names, not
-here.
+**Current as of 2026-09-16**, on branch `manuscript-chapters-45`, at the close
+of a session. One page, kept short so that it stays true. It records what is
+running, what is queued, what is open and what is settled. Detail lives in the
+documents it names, not here.
 
 ## In flight
 
-Nothing. The curve library study closed on 2026-09-13, after fifteen conditions
-were re-run to correct a defect in its own tooling; see Settled. Before it, the
-extended European download completed on 2026-09-12 (108 months, 17.6 GB, no
-failures, in `era5/EU_2026-09`) and the eleven European rows were re-run on it
-(`docs/findings/method-eu-rerun.md`), returning Spain, Italy and Portugal from
-suspension.
+Nothing. No run is in progress and the tree is clean.
+
+## Where the manuscript stands
+
+Thesis chapters 4 (gridded interpolation) and 5 (machine-learning transfer) are
+being merged into one manuscript with fresh results. The chapters are read-only
+and outside this repository.
+
+**The spine of the paper is
+`docs/findings/method-why-corrections-do-not-transfer.md`.** A bias correction
+fitted in some countries does not predict the correction in an unseen one, by
+interpolation or by a learned model, and four candidate explanations have been
+tested and eliminated: sample count, target conditioning, the identifiability
+defect, and regime coverage, the last ruled out in the wrong direction. **One
+explanation survives**: the correction is substantially a
+reanalysis-resolution artefact rather than a transferable physical property,
+supported by over 80% of its variance being within-region and by the four
+eliminations.
+
+- **Its falsification test** is named: refit on a finer wind product, CERRA at
+  5.5 km or the New European Wind Atlas at 3 km, and see whether the extreme
+  scalars disappear at source.
+- **Its weakest link** is named: the coverage elimination used terrain features
+  only, so a regime differing climatically but not topographically is invisible
+  to it, and the Netherlands, best covered and among the worst predicted, is
+  where that would bite.
+
+The workstream's founding assumption is D0 in
+`docs/design/manuscript-chapters-45.md`: country-level results are computed on
+the maintained fleet-weighted grids, and the chapter's uniform-grid figures are
+a historical baseline, not a target.
+
+### Unrun and unblocked
+
+- **The Netherlands holdout, on both grids**
+  (`method-grid-nl-holdout-prereg.md`). Both modules it was waiting on are
+  ported. H-G3 gates the uniform arm against the chapter's published figures;
+  H-G4 reports the maintained arm beside it as a measured difference.
+
+### Waiting on port phase 3, the machine-learning module
+
+- **The ML module itself**, `extensions/ml/correction.py`, unported.
+- **Leave-one-country-out's L1**, which needs a machine-learning score on the
+  twelve country folds.
+- **The candidate-pool study**, if still wanted: which pool gives the best
+  leave-one-country-out prediction, varied on count and on label quality.
+  Deliberately not registered, since the transfer synthesis makes the pool
+  question a weaker one than it was.
+
+### Void or blocked, one line each
+
+- **Domain split**: void, S-G1 failed on the roughness treatment and the study
+  is now on a construction the workstream replaced
+  (`method-domain-split-prereg.md`).
+- **Offshore pool**: void, replaced by the domain split
+  (`method-offshore-pool-prereg.md`).
+- **Leave-one-country-out**: void, three gates written against comparators
+  that did not exist and a fourth ambiguous (`method-loco-interpolation-prereg.md`).
+- **National single cluster**: blocked on observation files, one
+  forward-chaining fold per country (`method-national-single-cluster-prereg.md`).
+
+### Two decisions not yet made
+
+1. **Whether to pursue a finer wind product.** It is the only test of the
+   surviving explanation and the largest single piece of work the repository
+   has left. Named, not costed in hours.
+2. **Whether the country tier's pool question is worth reopening.** The
+   selection study's counts are not adopted for the pool, and the transfer
+   synthesis says count is not the binding constraint, so it may not be.
+
+### Deferred to the next session
+
+- **Three skills from `K-Dense-AI/scientific-agent-skills`**:
+  `statistical-power`, `uncertainty-units`, `experimental-design`. Read each
+  SKILL.md, report what it would change, and write nothing into the tree first.
+  **Licence constraint:** `.claude/skills/` is checked in and the repository is
+  public, so installing means vendoring third-party files under their licence;
+  if a licence is awkward, take the idea and write our own. Also read
+  `Galaxy-Dawn/claude-scholar`'s `research-contract.md` for ideas only, without
+  installing it. `pubfig` and `pubtab` are logged as later candidates for the
+  manuscript figures.
+
+## Reading order for the findings
+
+Start with **`method-why-corrections-do-not-transfer.md`**, which is the
+argument and cites everything else. Then
+**`method-correction-identifiability.md`** for why the fitted scalar and offset
+are not separately identified, the pivot probe, and the invariance that makes
+reparameterisation unable to change an interpolator's prediction. Then
+**`method-cluster-selection.md`** for the one registered study that ran to
+completion this week, and **`method-distance-mask.md`** for why the chapter's
+5-degree mask was a poor instrument. For the country-level data that sits under
+all of it, read **`method-country-level.md`**, including its correction notice
+on Sweden's derived capacity register. The registrations named in the void and
+blocked lines above explain why each stopped, and
+**`docs/design/manuscript-chapters-45.md`** records the decisions, D0 first.
 
 ## Queued, in order
 
-1. **Merging thesis chapters 4 and 5 into one manuscript**, co-authored, with
-   fresh results from the repository as it stands. The chapters are read-only
-   and outside this repository. Phase 0 is an inventory of what they did,
-   phase 1 a survey of whether the code still runs, phase 2 a statement of what
-   a re-run would change. No runs before phase 2 is read.
-2. **A skill for re-running an existing row on changed input**, now that the
-   re-run has happened twice and its procedure is known. See Open.
+1. **Decide the two open decisions above.** Nothing further on the manuscript is
+   well defined until the finer-wind question is settled.
+2. **Port phase 3**, the machine-learning module, which unblocks L1 and any
+   candidate-pool study.
+3. **A skill for re-running an existing row on changed input.** See Open.
 
 ## Open
 
