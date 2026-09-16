@@ -569,3 +569,145 @@ def test_a_unit_with_no_wind_is_dropped_and_recorded(fine_curve):
         RegionCache(**{**cache.__dict__, "w_mean": np.full((31, 3), 8.0, dtype="float32")}),
         quiet=True)
     assert kept.dropped_ids == [] and kept.dropped_capacity_share == 0.0
+
+
+# ------------------------------------------------------- country-level tier ---
+def _country_cache(fine_curve, *, years=(2015, 2016), capacity_years=None):
+    """Two grid points over two Januaries, with capacity changing by year."""
+    from vwf.pinn.cache import NATIONAL_ID, RegionCache
+    from vwf.pinn.terrain import FEATURES
+
+    days = pd.DatetimeIndex(
+        [d for y in years for d in pd.date_range(f"{y}-01-01", periods=31, freq="D")])
+    meta = pd.DataFrame({
+        "ID": ["p1", "p2"], "lon": [4.0, 5.0], "lat": [50.0, 51.0],
+        "capacity": [1000.0, 3000.0], "height": [100.0, 100.0],
+        "type": ["onshore"] * 2, "model": ["GE.1.5sle"] * 2,
+        **{f: [0.0, 500.0] if f == "relief_28km" else [1.0, 2.0] for f in FEATURES},
+    })
+    w = np.empty((len(days), 2), dtype="float32")
+    w[:, 0], w[:, 1] = 6.0, 10.0
+    obs = pd.DataFrame({"ID": NATIONAL_ID, "year": list(years), "month": 1,
+                        "obs": [0.30, 0.40][: len(years)]})
+    capacity_years = list(years) if capacity_years is None else capacity_years
+    capacity = np.array([[1000.0, 3000.0], [3000.0, 1000.0]])[: len(capacity_years)]
+    return RegionCache(
+        code="ZZ", split="train", dates=days, meta=meta, obs=obs, w_mean=w,
+        w_std=np.ones_like(w), z0=np.full_like(w, 0.05), shear=np.full_like(w, 0.14),
+        curve_speeds=fine_curve["data$speed"].to_numpy(),
+        curve_cf=fine_curve["GE.1.5sle"].to_numpy()[None, :],
+        curve_names=["GE.1.5sle"], turbine_curve=np.zeros(2, dtype="int64"),
+        level="country", capacity_years=np.array(capacity_years),
+        capacity_by_year=capacity,
+    )
+
+
+def test_country_months_are_weighted_by_their_own_years_capacity(fine_curve):
+    from vwf.pinn.train import RegionTensors
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    assert r.level == "country"
+    assert r.months == [(2015, 1), (2016, 1)]
+    assert r.cap_weights.tolist() == [[1000.0, 3000.0], [3000.0, 1000.0]]
+    assert r.obs_national.tolist() == pytest.approx([0.30, 0.40])
+    assert bool(torch.isnan(r.obs).all())
+
+
+def test_a_country_month_without_capacities_is_refused(fine_curve):
+    from vwf.pinn.train import RegionTensors
+    with pytest.raises(ValueError, match="no grid capacities"):
+        RegionTensors.from_cache(_country_cache(fine_curve, capacity_years=[2015]), quiet=True)
+
+
+def test_the_country_loss_is_the_national_series_error(fine_curve):
+    """Checked by hand: aggregate each month with that year's capacities."""
+    from vwf.pinn.physics import gauss_hermite
+    from vwf.pinn.train import (
+        N_QUAD, RegionTensors, Standardiser, predict_national, region_loss, simulate_monthly,
+    )
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    model = PhysicsCorrection(14, 4, init_scale=0.0)
+    std = Standardiser.fit([r])
+    with torch.no_grad():
+        per_unit = simulate_monthly(r, model, std, slice(None), quad=gauss_hermite(N_QUAD)).numpy()
+        loss = float(region_loss(r, model, std, profile="power", quad=gauss_hermite(N_QUAD)))
+    w = np.array([[1000.0, 3000.0], [3000.0, 1000.0]])
+    national = (per_unit * w).sum(1) / w.sum(1)
+    assert loss == pytest.approx(float(np.mean((national - [0.30, 0.40]) ** 2)), rel=1e-5)
+
+    frame = predict_national(r, model, std)
+    assert frame["cf_sim"].to_numpy() == pytest.approx(national, rel=1e-5)
+    assert frame["cf_obs"].to_numpy() == pytest.approx([0.30, 0.40])
+
+
+def test_a_turbine_national_series_uses_only_the_units_observed(fine_curve):
+    from vwf.pinn.cache import RegionCache
+    from vwf.pinn.terrain import FEATURES
+    from vwf.pinn.train import RegionTensors, _predict_matrix, predict_national
+
+    days = pd.date_range("2015-01-01", periods=59, freq="D")   # January and February
+    meta = pd.DataFrame({
+        "ID": ["a", "b"], "lon": [8.0, 9.0], "lat": [55.0, 56.0],
+        "capacity": [1000.0, 3000.0], "height": [80.0, 80.0],
+        "type": ["onshore"] * 2, "model": ["GE.1.5sle"] * 2,
+        **{f: [1.0, 2.0] for f in FEATURES},
+    })
+    w = np.full((59, 2), 8.0, dtype="float32")
+    w[:, 1] = 11.0
+    # Unit b is unobserved in February.
+    obs = pd.DataFrame({"ID": ["a", "b", "a"], "year": 2015, "month": [1, 1, 2],
+                        "obs": [0.2, 0.6, 0.3]})
+    cache = RegionCache(
+        code="ZZ", split="test", dates=days, meta=meta, obs=obs, w_mean=w,
+        w_std=np.ones_like(w), z0=np.full_like(w, 0.05), shear=np.full_like(w, 0.14),
+        curve_speeds=fine_curve["data$speed"].to_numpy(),
+        curve_cf=fine_curve["GE.1.5sle"].to_numpy()[None, :],
+        curve_names=["GE.1.5sle"], turbine_curve=np.zeros(2, dtype="int64"),
+    )
+    r = RegionTensors.from_cache(cache, quiet=True)
+    frame = predict_national(r, None, None)
+    sim = _predict_matrix(r, None, None, profile="power", density=False, damp=None, off_curve=None)
+    assert frame["cf_obs"].tolist() == pytest.approx([(0.2 * 1000 + 0.6 * 3000) / 4000, 0.3])
+    assert frame["cf_sim"].tolist() == pytest.approx(
+        [(sim[0, 0] * 1000 + sim[0, 1] * 3000) / 4000, sim[1, 0]], rel=1e-6)
+
+
+def test_predict_frame_refuses_a_country_region(fine_curve):
+    from vwf.pinn.train import RegionTensors, predict_frame
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    with pytest.raises(ValueError, match="predict_national"):
+        predict_frame(r, None, None)
+
+
+def test_features_off_makes_heads_global_and_keeps_the_relief_pin(fine_curve):
+    from vwf.pinn.train import RegionTensors, Standardiser
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    std = Standardiser.fit([r], features_off=True)
+    assert bool((std.terrain(r) == 0).all()) and bool((std.fleet(r) == 0).all())
+    torch.manual_seed(0)
+    model = PhysicsCorrection(14, 4)
+    with torch.no_grad():
+        for p in model.parameters():
+            p.add_(torch.randn_like(p))
+        gamma, delta, eta, _ = model(std.terrain(r), std.fleet(r), r.relief, r.capdens)
+    # Point p1 sits on flat ground and p2 on 500 m of relief.
+    assert float(gamma[0]) == 0.0 and float(gamma[1]) != 0.0
+    assert float(delta[0]) == pytest.approx(float(delta[1]))
+    assert float(eta[0]) == pytest.approx(float(eta[1]))
+
+
+def test_fleet_columns_select_the_efficiency_heads_inputs(fine_curve):
+    from vwf.pinn.train import FLEET_FEATURES, RegionTensors, Standardiser, fit
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    default = Standardiser.fit([r])
+    explicit = Standardiser.fit([r], fleet_columns=FLEET_FEATURES)
+    assert torch.equal(default.fleet(r), explicit.fleet(r))
+    three = ("log_capdens_50km", "is_offshore", "log_height")
+    selected = Standardiser.fit([r], fleet_columns=three)
+    assert selected.fleet(r).shape == (2, 3)
+    assert torch.equal(selected.fleet(r), default.fleet(r)[:, [1, 2, 3]])
+    model, std, _ = fit([r], fleet_columns=three, epochs=1, verbose=False)
+    assert model.eta.net.in_features == 3
+    with pytest.raises(ValueError, match="subset"):
+        Standardiser.fit([r], fleet_columns=("capacity",))
+    with pytest.raises(ValueError, match="wake"):
+        fit([r], fleet_columns=three, wake=True, epochs=1, verbose=False)

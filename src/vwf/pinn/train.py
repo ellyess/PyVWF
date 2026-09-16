@@ -22,7 +22,7 @@ import pandas as pd
 import torch
 from sklearn.neighbors import BallTree
 
-from vwf.pinn.cache import RegionCache, load_cache
+from vwf.pinn.cache import NATIONAL_ID, RegionCache, load_cache
 from vwf.pinn.model import PhysicsCorrection
 from vwf.pinn.physics import (
     PowerCurveBank, density_speed_factor, expected_cf, gauss_hermite,
@@ -155,6 +155,14 @@ class RegionTensors:
     dropped_capacity_share: float = 0.0
     filled_cells: int = 0
     era5_record: dict[str, Any] = field(default_factory=dict)
+    # "turbine": ``obs`` holds one series per unit. "country": ``obs`` is all
+    # missing, the target is ``obs_national`` (M,), and a month's national
+    # prediction weights each unit by ``cap_weights`` (M, N), its capacity in
+    # that month's year.
+    level: str = "turbine"
+    obs_national: torch.Tensor | None = None
+    cap_weights: torch.Tensor | None = None
+    fleet_record: dict[str, Any] = field(default_factory=dict)
 
     @property
     def n_units(self) -> int:
@@ -174,10 +182,30 @@ class RegionTensors:
             [month_pos[(int(d.year), int(d.month))] for d in cache.dates], dtype="int64")
 
         obs = np.full((len(months), len(ids)), np.nan, dtype="float32")
-        o = cache.obs.dropna(subset=["obs"])
+        obs_national = cap_weights = None
+        if cache.level == "country":
+            national = np.full(len(months), np.nan, dtype="float32")
+            o = cache.obs[cache.obs["ID"].astype(str) == NATIONAL_ID].dropna(subset=["obs"])
+            for y, m, v in zip(o.year, o.month, o.obs):
+                k = month_pos.get((int(y), int(m)))
+                if k is not None:
+                    national[k] = float(v)
+            year_pos = {int(y): i for i, y in enumerate(cache.capacity_years)}
+            absent = sorted({y for y, _ in months if y not in year_pos})
+            if absent:
+                raise ValueError(
+                    f"{cache.code}/{cache.split}: no grid capacities for year(s) {absent}")
+            by_year = np.asarray(cache.capacity_by_year, dtype="float64")[:, fields["keep"]]
+            cap_weights = np.stack([by_year[year_pos[y]] for y, _ in months])
+            obs_national = national
+            # No per-unit observation exists, so the per-unit target stays
+            # missing and the turbine-level loss and frame see nothing.
+            o = cache.obs.iloc[0:0]
+        else:
+            o = cache.obs.dropna(subset=["obs"])
         rows = np.array([month_pos.get((int(y), int(m)), -1)
-                         for y, m in zip(o.year, o.month)])
-        cols = np.array([id_pos.get(str(i), -1) for i in o.ID])
+                         for y, m in zip(o.year, o.month)], dtype="int64")
+        cols = np.array([id_pos.get(str(i), -1) for i in o.ID], dtype="int64")
         ok = (rows >= 0) & (cols >= 0)
         obs[rows[ok], cols[ok]] = o["obs"].to_numpy(dtype="float32")[ok]
 
@@ -212,30 +240,53 @@ class RegionTensors:
             dropped_capacity_share=dropped_share,
             filled_cells=int(filled),
             era5_record=dict(cache.era5_record),
+            level=cache.level,
+            obs_national=None if obs_national is None else t(obs_national),
+            cap_weights=None if cap_weights is None else t(cap_weights),
+            fleet_record=dict(cache.fleet_record),
         )
 
 
 @dataclass
 class Standardiser:
-    """Feature centring and scaling, fitted on training regions only."""
+    """Feature centring and scaling, fitted on training regions only.
+
+    It also decides what the heads see. ``fleet_idx`` selects fleet features by
+    position in :data:`FLEET_FEATURES`; all four, in order, reproduces the
+    published model exactly. ``features_off`` hands every head zeros instead,
+    which makes each learned quantity a single global constant, apart from the
+    speed-up's relief pin, which is structural and stays.
+    """
 
     t_mean: torch.Tensor
     t_std: torch.Tensor
     f_mean: torch.Tensor
     f_std: torch.Tensor
+    fleet_idx: tuple[int, ...] = tuple(range(len(FLEET_FEATURES)))
+    features_off: bool = False
 
     @classmethod
-    def fit(cls, regions: list[RegionTensors]) -> "Standardiser":
+    def fit(cls, regions: list[RegionTensors], *,
+            fleet_columns: tuple[str, ...] = FLEET_FEATURES,
+            features_off: bool = False) -> "Standardiser":
+        unknown = [c for c in fleet_columns if c not in FLEET_FEATURES]
+        if unknown or not fleet_columns:
+            raise ValueError(f"fleet_columns must be a non-empty subset of "
+                             f"{FLEET_FEATURES}, got {fleet_columns}")
+        idx = tuple(FLEET_FEATURES.index(c) for c in fleet_columns)
         T = torch.cat([r.terrain_raw for r in regions])
-        F = torch.cat([r.fleet_raw for r in regions])
+        F = torch.cat([r.fleet_raw for r in regions])[:, list(idx)]
         return cls(T.mean(0), T.std(0).clamp(min=1e-6),
-                   F.mean(0), F.std(0).clamp(min=1e-6))
+                   F.mean(0), F.std(0).clamp(min=1e-6),
+                   fleet_idx=idx, features_off=features_off)
 
     def terrain(self, r: RegionTensors, sl=slice(None)) -> torch.Tensor:
-        return (r.terrain_raw[sl] - self.t_mean) / self.t_std
+        z = (r.terrain_raw[sl] - self.t_mean) / self.t_std
+        return torch.zeros_like(z) if self.features_off else z
 
     def fleet(self, r: RegionTensors, sl=slice(None)) -> torch.Tensor:
-        return (r.fleet_raw[sl] - self.f_mean) / self.f_std
+        z = (r.fleet_raw[sl][:, list(self.fleet_idx)] - self.f_mean) / self.f_std
+        return torch.zeros_like(z) if self.features_off else z
 
 
 def _nn_distance(query: torch.Tensor, reference: torch.Tensor,
@@ -398,8 +449,36 @@ def simulate_monthly(
     return monthly_mean(cf * eta, r.month_id, len(r.months))
 
 
+def national_series(pred: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
+    """Capacity-weighted national series from per-unit monthly predictions.
+
+    Args:
+        pred: Monthly capacity factor per unit, (M, N).
+        weights: Capacity per unit per month, (M, N).
+
+    Returns:
+        (M,) national capacity factor, ``sum(w * cf) / sum(w)`` each month.
+    """
+    return (pred * weights).sum(dim=1) / weights.sum(dim=1).clamp(min=1e-9)
+
+
 def region_loss(r, model, std, *, profile, quad, density=False, generator=None):
-    """Capacity-weighted mean squared monthly CF error, over unit minibatches."""
+    """Mean squared monthly CF error for one region.
+
+    Turbine level: capacity-weighted over unit-months, in unit minibatches.
+    Country level: the national series against the national observation,
+    unweighted over months, in one batch, since a country grid holds a few
+    hundred points at most.
+    """
+    if r.level == "country":
+        pred = simulate_monthly(r, model, std, slice(None), profile=profile,
+                                density=density, quad=quad)
+        national = national_series(pred, r.cap_weights)
+        mask = torch.isfinite(r.obs_national)
+        if not mask.any():
+            return torch.zeros((), dtype=torch.float32)
+        return ((national[mask] - r.obs_national[mask]) ** 2).mean()
+
     n = r.n_units
     order = (torch.randperm(n, generator=generator) if generator is not None
              else torch.arange(n))
@@ -436,12 +515,23 @@ def fit(
     bound_scale: float = 1.0,
     seed: int = 0,
     verbose: bool = True,
+    fleet_columns: tuple[str, ...] = FLEET_FEATURES,
+    features_off: bool = False,
 ) -> tuple[PhysicsCorrection, Standardiser, list[float]]:
-    """Fit one model on a list of training regions, weighting regions equally."""
+    """Fit one model on a list of training regions, weighting regions equally.
+
+    ``fleet_columns`` chooses the efficiency head's inputs, and
+    ``features_off`` replaces every head's inputs with zeros; both defaults
+    reproduce the published model.
+    """
+    if wake and "log_capdens_10km" not in fleet_columns:
+        raise ValueError("the wake term withholds log_capdens_10km from the "
+                         "efficiency head, so it needs that column selected")
     torch.manual_seed(seed)
     gen = torch.Generator().manual_seed(seed)
-    std = Standardiser.fit(regions)
-    model = PhysicsCorrection(len(TERRAIN_FEATURES), len(FLEET_FEATURES),
+    std = Standardiser.fit(regions, fleet_columns=tuple(fleet_columns),
+                           features_off=features_off)
+    model = PhysicsCorrection(len(TERRAIN_FEATURES), len(fleet_columns),
                               hidden=hidden, physics=physics,
                               init_scale=init_scale, wake=wake,
                               bound_scale=bound_scale,
@@ -472,6 +562,19 @@ def fit(
 
 
 @torch.no_grad()
+def _predict_matrix(r, model, std, *, profile, density, damp, off_curve) -> np.ndarray:
+    """Monthly capacity factor per unit, (M, N), in unit batches."""
+    quad = gauss_hermite(N_QUAD)
+    preds = []
+    for start in range(0, r.n_units, UNIT_BATCH):
+        sl = torch.arange(start, min(start + UNIT_BATCH, r.n_units))
+        preds.append(simulate_monthly(r, model, std, sl, profile=profile,
+                                      density=density, damp=damp, quad=quad,
+                                      off_curve=off_curve))
+    return torch.cat(preds, dim=1).numpy()
+
+
+@torch.no_grad()
 def predict_frame(
     r: RegionTensors,
     model: PhysicsCorrection | None,
@@ -484,17 +587,16 @@ def predict_frame(
 ) -> pd.DataFrame:
     """Tidy (ID, year, month, cf_sim, cf_obs, capacity) frame for the harness.
 
-    Pass ``off_curve`` to collect the daily speeds, at the daily mean, that lie
-    outside the speed range of ``power_curves.csv`` (:func:`count_off_curve`).
+    Turbine level only: a country-level region has no per-unit observation,
+    and is scored with :func:`predict_national`. Pass ``off_curve`` to collect
+    the daily speeds, at the daily mean, that lie outside the speed range of
+    ``power_curves.csv`` (:func:`count_off_curve`).
     """
-    quad = gauss_hermite(N_QUAD)
-    preds = []
-    for start in range(0, r.n_units, UNIT_BATCH):
-        sl = torch.arange(start, min(start + UNIT_BATCH, r.n_units))
-        preds.append(simulate_monthly(r, model, std, sl, profile=profile,
-                                      density=density, damp=damp, quad=quad,
-                                      off_curve=off_curve))
-    pred = torch.cat(preds, dim=1).numpy()
+    if r.level != "turbine":
+        raise ValueError(f"{r.code}: predict_frame needs per-unit observations; "
+                         "use predict_national for a country-level region")
+    pred = _predict_matrix(r, model, std, profile=profile, density=density,
+                           damp=damp, off_curve=off_curve)
 
     years = np.array([y for y, _ in r.months])
     months = np.array([m for _, m in r.months])
@@ -507,6 +609,45 @@ def predict_frame(
         "cf_obs": r.obs.numpy().ravel(),
         "capacity": np.repeat(r.capacity.numpy()[None, :], M, axis=0).ravel(),
     })
+    return frame.dropna(subset=["cf_obs"]).reset_index(drop=True)
+
+
+@torch.no_grad()
+def predict_national(
+    r: RegionTensors,
+    model: PhysicsCorrection | None,
+    std: Standardiser | None,
+    *,
+    profile: str = "power",
+    density: bool = False,
+    off_curve: dict | None = None,
+) -> pd.DataFrame:
+    """National monthly (year, month, cf_sim, cf_obs) for either tier.
+
+    Country level: the capacity-weighted aggregate of the grid points, each
+    month weighted by that year's capacities, against the national series.
+    Turbine level: the capacity-weighted mean over the units observed in that
+    month, of both the simulation and the observation, so the two describe the
+    same units. Months with no observation are dropped.
+    """
+    pred = _predict_matrix(r, model, std, profile=profile, density=density,
+                           damp=None, off_curve=off_curve)
+    years = np.array([y for y, _ in r.months])
+    months = np.array([m for _, m in r.months])
+    if r.level == "country":
+        assert r.cap_weights is not None and r.obs_national is not None
+        w = r.cap_weights.numpy().astype("float64")
+        sim = (pred * w).sum(axis=1) / np.clip(w.sum(axis=1), 1e-9, None)
+        obs = r.obs_national.numpy().astype("float64")
+    else:
+        o = r.obs.numpy().astype("float64")
+        seen = np.isfinite(o)
+        w = np.where(seen, r.capacity.numpy().astype("float64")[None, :], 0.0)
+        total = w.sum(axis=1)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            sim = np.where(total > 0, (np.where(seen, pred, 0.0) * w).sum(axis=1) / total, np.nan)
+            obs = np.where(total > 0, (np.where(seen, o, 0.0) * w).sum(axis=1) / total, np.nan)
+    frame = pd.DataFrame({"year": years, "month": months, "cf_sim": sim, "cf_obs": obs})
     return frame.dropna(subset=["cf_obs"]).reset_index(drop=True)
 
 

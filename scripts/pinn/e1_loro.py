@@ -36,7 +36,6 @@ Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sys
 import time
@@ -54,11 +53,11 @@ from sklearn.ensemble import RandomForestRegressor  # noqa: E402
 
 from vwf.harness.provenance import build_manifest, write_manifest  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
-from vwf.harness.skill import (  # noqa: E402
-    collapse_pseudo_replicates, restrict_to_common_rows, skill_metrics,
-    summarise_exclusions,
-)
 from vwf.pinn.physics import expected_cf, hub_wind_ratio, monthly_mean  # noqa: E402
+from vwf.pinn.runs import (  # noqa: E402
+    UNIT_KEYS as KEYS, config_record, region_record, resolve_configs,
+    score_on_common_rows,
+)
 from vwf.pinn.train import (  # noqa: E402
     UNIT_BATCH, count_off_curve, coverage_weight, fit, load_regions,
     off_curve_shares, predict_frame,
@@ -189,61 +188,6 @@ def affine_frame(r, scalar: np.ndarray, offset: np.ndarray,
     return frame.dropna(subset=["cf_obs"]).reset_index(drop=True)
 
 
-KEYS = ["ID", "year", "month"]
-
-
-def score_on_common_rows(conditions: dict, spec) -> tuple[dict, pd.DataFrame, dict]:
-    """Score every condition of one holdout on the rows all of them can score.
-
-    Pseudo-replicates are collapsed first, as the harness does before it
-    restricts, so the common rows are stations rather than turbine-shaped rows.
-
-    Args:
-        conditions: Label to ``(arm, seed, frame)``.
-        spec: The holdout's region config.
-
-    Returns:
-        Metrics per label, the excluded rows, and the exclusion summary.
-    """
-    pairs = {label: collapse_pseudo_replicates(frame, spec)
-             for label, (_, _, frame) in conditions.items()}
-    restricted, excluded = restrict_to_common_rows(pairs, KEYS, weight="capacity")
-    summary = summarise_exclusions(pairs, excluded, KEYS, weight="capacity", unit="ID")
-    metrics = {label: skill_metrics(frame) for label, frame in restricted.items()}
-    return metrics, excluded, summary
-
-
-def resolve_configs(codes, overrides: list[str]) -> dict[str, Path]:
-    """Config path per region: ``--config CODE=PATH`` where given, else maintained."""
-    named = {}
-    for item in overrides:
-        code, sep, path = item.partition("=")
-        if not sep or not path:
-            raise SystemExit(f"--config expects CODE=PATH, got {item!r}")
-        named[code] = Path(path)
-    return {c: named.get(c, CONFIGS / f"{c.lower().replace('-', '_')}.toml")
-            for c in codes}
-
-
-def config_record(paths: dict[str, Path]) -> dict:
-    """Each config's path and sha256, so the manifest names the exact file."""
-    return {c: {"path": str(p),
-                "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
-            for c, p in paths.items()}
-
-
-def region_record(r) -> dict:
-    """What one region/split's tensors were built from and what was dropped."""
-    return {
-        **r.era5_record,
-        "units_simulated": int(r.n_units),
-        "units_dropped_no_wind": len(r.dropped_ids),
-        "capacity_share_dropped_no_wind": float(r.dropped_capacity_share),
-        "ids_dropped_no_wind": list(r.dropped_ids[:10]),
-        "isolated_cells_filled": int(r.filled_cells),
-    }
-
-
 def main():
     global RF_FEATURES
     ap = argparse.ArgumentParser()
@@ -300,7 +244,7 @@ def main():
 
     out.mkdir(parents=True, exist_ok=True)
     pool = list(dict.fromkeys([*args.train_pool, *args.regions]))
-    config_paths = resolve_configs(pool, args.config)
+    config_paths = resolve_configs(pool, args.config, CONFIGS)
     specs = {c: load_region(config_paths[c]) for c in pool}
     for c, spec in specs.items():
         if spec.code != c:
