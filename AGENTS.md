@@ -68,13 +68,25 @@ They live in `.claude/skills/`.
   use, and a wrong point count for another region. Call the resolver, or
   construct the exact name the resolver constructs.
 - **Before trusting a detector's negative, run it against a case you know is
-  positive.** Three clean answers in two days were artefacts of a check that
-  never ran: a glob that resolved a backup file, a column named for degrees
-  holding kilometres, and an audit reading `cluster_list` at the manifest's top
-  level when it lives under `correction`, which reported 224 runs as declaring
+  positive, and before trusting its positive, show it can return negative.**
+  Three clean answers in two days were artefacts of a check that never ran: a
+  glob that resolved a backup file, a column named for degrees holding
+  kilometres, and an audit reading `cluster_list` at the manifest's top level
+  when it lives under `correction`, which reported 224 runs as declaring
   nothing and therefore flagged none. The last had a known positive available,
   nine already-diagnosed contaminated runs, and validating against them first
-  would have failed in one line.
+  would have failed in one line. The mirror cost the same day: a reproduction
+  check reported every value as differing, because it compared full-precision
+  reruns against originals recorded to five decimal places at a tolerance of
+  5e-7. Both directions, same sentence.
+- **Before a destructive or overwriting operation, list what the path holds,
+  and copy aside anything the operation is meant to verify against.** Two
+  losses in one study had that shape. Clearing two contaminated regions deleted
+  `output/.../DK/` and `UK/` whole, which also held two clean rows' manifests.
+  Then the reproduction meant to restore them wrote `final_<row>.csv` over the
+  full-precision originals it was going to be checked against, leaving only a
+  log rounded to five decimals, so bit-identity became unverifiable. Both are
+  the same error: acting on a path without checking what else is under it.
 - **Read the checks before the commit command, not after.** Run ruff, the test
   files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
   read the output; then write the message. A message that says a check passed

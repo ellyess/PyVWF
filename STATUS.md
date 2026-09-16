@@ -28,6 +28,15 @@ suspension.
 
 One line each. None is started.
 
+- **The cluster grid excluded two of the counts it was asked to beat, and
+  widening it now would be selection on the outcome.**
+  `method-cluster-selection.md` reports C-G3 failing in three of five rows, and
+  in two of those the chapter's count, `k=300` for UK onshore and `k=884` for
+  DK onshore, is not in the registered grid of 1, 10, 25, 50, 100, 200, 500,
+  1000. Denmark onshore's `k=884` beats every count the grid holds. A future
+  study may register a grid that contains the comparators, before seeing which
+  ones matter; this one records the limitation instead.
+
 - **Denmark onshore's flat cluster-count curve may not be real, and it was the
   motivation for an entire protocol.** `method-cluster-count-dk.md` reports the
   curve moving 0.0857 to 0.0851 across a sixteenfold increase in `k`, a spread

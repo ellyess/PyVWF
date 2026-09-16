@@ -129,6 +129,24 @@ here before it runs.** Nothing in their inputs changed but the run name, so:
 This is a reproduction and is **not part of the study**. It adds no row, reads
 no gate, and its only outcome is whether the two rows come back identical.
 
+**Outcome, 2026-09-16: both rows agree on every value, and bit-identity is
+unverifiable because the verification destroyed its own comparison.** Denmark
+offshore's 32 fold scores and United Kingdom offshore's 24 are identical to the
+original, as are all eight test-year values across the two rows, and neither
+selection moved. But the reproduction writes `final_<row>.csv`, so it
+**overwrote the full-precision originals it was meant to be checked against**,
+leaving only the log tables, which are printed rounded to five decimal places.
+So the agreement is demonstrated to 5 dp across 56 fold scores and 8 test
+values, with no counter-evidence, and cannot be demonstrated further. The two
+rows should have been copied aside before the reproduction started. That is the
+same error as deleting by region rather than by run directory name, and both
+are now a rule in `AGENTS.md`.
+
+A separate near-miss in checking it: the first comparison reported every value
+as differing, because it tested full-precision reruns against five-decimal
+originals at a tolerance of 5e-7. A detector's positive is as worthless as its
+negative until it has been shown able to return the other.
+
 ## Defect, 2026-09-15: two fleet modes wrote to one run directory
 
 **Found after the first run of all five rows, before any gate was read.**
@@ -362,9 +380,9 @@ scoring the single test year.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **C-G1** | The protocol completes for all five turbine-level configurations under both metrics, with no configuration failing to produce a selected count. A configuration that cannot be fitted at some cluster count has that count dropped from its grid, recorded, and the rule applied to what remains. | |
-| **C-G2** | Per-configuration selection beats **B2** on test-year MAE, by more than 0.002, in at least three of the five turbine-level configurations. 0.002 is the screen this project already uses for a difference that is negligible in a capacity factor, and three of five is a simple majority. | |
-| **C-G3** | Per-configuration selection beats **B1** on test-year MAE in at least three of the five. This is the weaker question, since B1 was not chosen by any protocol. | |
+| **C-G1** | The protocol completes for all five turbine-level configurations under both metrics, with no configuration failing to produce a selected count. A configuration that cannot be fitted at some cluster count has that count dropped from its grid, recorded, and the rule applied to what remains. | **PASSED.** All five completed on the registered eight-count grids, under both metrics. No count was dropped. |
+| **C-G2** | Per-configuration selection beats **B2** on test-year MAE, by more than 0.002, in at least three of the five turbine-level configurations. 0.002 is the screen this project already uses for a difference that is negligible in a capacity factor, and three of five is a simple majority. | **PASSED, narrowly, at exactly the threshold: 3 of 5.** DK offshore +0.02291, DE onshore +0.00254, DK onshore +0.00222. Two of the three margins sit just over the screen. UK offshore ties B2 exactly, both being on a plateau where 25, 50 and 100 give the same number, and UK onshore is worse by 0.00203. Read once and not re-read. |
+| **C-G3** | Per-configuration selection beats **B1** on test-year MAE in at least three of the five. This is the weaker question, since B1 was not chosen by any protocol. | **FAILED: 1 of 5.** Only UK offshore beats the chapter's count, by 0.02071. DE onshore ties. DK offshore, UK onshore and DK onshore are worse by 0.00191, 0.00408 and 0.00107. **The failure decomposes into three different causes and is the study's most useful finding about its own design; see the outcome section.** |
 
 **If C-G2 fails, per-configuration selection is not adopted**, and the finding is
 that one fixed rule is as good, which is worth the same as the opposite result
@@ -374,11 +392,11 @@ and is reported with the same prominence.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| C-P1 | The one-standard-error rule selects a cluster count well below the minimising one in most configurations, because the curves are flat. Stated as: the selected count is below `k*` in at least three of the five. | |
-| C-P2 | **C-G2 fails.** I expect per-configuration selection not to beat B2 by 0.002 in three of the five, on the Denmark evidence that the curve is flat over a factor of sixteen. This is the prediction that the rebuild is unnecessary, and it is stated so that it can be refuted. | |
-| C-P3 | RMSE and MAE select the same cluster count in a majority of configurations, and where they disagree the test-year MAE difference between the two choices is below 0.002. | |
+| C-P1 | The one-standard-error rule selects a cluster count well below the minimising one in most configurations, because the curves are flat. Stated as: the selected count is below `k*` in at least three of the five. | **HELD, 5 of 5.** The selection is below the minimising count in every row. |
+| C-P2 | **C-G2 fails.** I expect per-configuration selection not to beat B2 by 0.002 in three of the five, on the Denmark evidence that the curve is flat over a factor of sixteen. This is the prediction that the rebuild is unnecessary, and it is stated so that it can be refuted. | **REFUTED.** C-G2 passed, at exactly 3 of 5. The premise was also wrong: no row's curve is flat on this grid, every one spreading at least 20.8%. |
+| C-P3 | RMSE and MAE select the same cluster count in a majority of configurations, and where they disagree the test-year MAE difference between the two choices is below 0.002. | **FIRST HALF HELD, SECOND HALF FAILED.** They agree in 3 of 5, a majority. Where they disagree: DK onshore 0.00003, inside the screen, and **UK onshore 0.00333, outside it**. |
 | ~~C-P4~~ | **Retired, 2026-09-15, not answered.** It predicted that every country-level configuration selects below 10. The country path admits only two counts, so the prediction became true by construction rather than by evidence, and a prediction that cannot be wrong is not one. The question it was reaching for is registered separately in `method-national-single-cluster-prereg.md`. | |
-| C-P5 | The two offshore configurations select the smallest counts in their grids, having the fewest units and the least spatial spread. | |
+| C-P5 | The two offshore configurations select the smallest counts in their grids, having the fewest units and the least spatial spread. | **REFUTED.** DK offshore took the smallest count in its grid; UK offshore took 25 of eight available, its fleet having 22 spatial groups against Denmark's two dominant ones. |
 
 ## Cost
 
