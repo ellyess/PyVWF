@@ -77,19 +77,39 @@ def calculate_scalar(gen_cf, time_res):
         
     return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
     
+#: Largest capacity-factor residual a returned offset may leave. The step-size
+#: test alone cannot see this: the step shrinks whether or not the error did,
+#: so a search that never reached the root still passes it. A genuine
+#: convergence leaves a residual near ``tolerance ** 3``, about 8e-9, because
+#: the step is the cube root of the error; a throttled one leaves a residual
+#: orders of magnitude larger. Anything between those separates them, and this
+#: is set loose enough not to reject a working fit.
+MAX_OFFSET_RESIDUAL = 1e-4
+
+
 def _find_offset_iterative(row, offset_arrays,
-                           max_iter=100, tolerance=0.002, initial_step=10.0):
+                           max_iter=100, tolerance=0.002, initial_step=10.0,
+                           residual_tolerance=MAX_OFFSET_RESIDUAL):
     """Fast iterative optimization using cube root step sizing.
 
     Args:
         row: Row with year, cluster, time_slice, obs, sim, scalar
         offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
         max_iter: Maximum iterations (default: 100)
-        tolerance: Convergence tolerance
+        tolerance: Convergence tolerance on the STEP, in m/s
         initial_step: Initial step size (default: 10.0 m/s)
+        residual_tolerance: Largest capacity-factor residual a returned offset
+            may leave. See :data:`MAX_OFFSET_RESIDUAL`.
 
     Returns:
-        float: Optimized offset (or np.nan if failed)
+        float: Optimized offset, or np.nan when the step converged without the
+        residual doing so. **The step-size test is not sufficient on its own.**
+        Each proposed step is clamped to the previous magnitude, so a search
+        started below the natural step size, which is the cube root of a
+        capacity-factor error and never exceeds about 0.7 m/s, halves its way
+        to the tolerance without ever reaching the root. Probed at
+        ``initial_step=0.25`` that returns offsets wrong by up to 7.2 m/s while
+        reporting success (``docs/findings/method-correction-identifiability.md``).
     """
     step = np.sign(row.obs - row.sim) * initial_step
     step_prev = step
@@ -98,6 +118,9 @@ def _find_offset_iterative(row, offset_arrays,
     for _ in range(max_iter):
         # Check convergence
         if np.abs(step) <= tolerance:
+            residual = row.obs - fast_simulate_cf(offset_arrays, row.scalar, offset)
+            if np.abs(residual) > residual_tolerance:
+                return np.nan
             return offset
 
         # Simulate with current offset using fast numpy path
@@ -121,16 +144,22 @@ def _find_offset_iterative(row, offset_arrays,
     return np.nan
 
 
-def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3)):
+def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3),
+                       residual_tolerance=MAX_OFFSET_RESIDUAL):
     """Robust scipy optimization fallback.
 
     Args:
         row: Row with correction factors
         offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
         bounds: Offset search bounds
+        residual_tolerance: Largest capacity-factor residual a returned offset
+            may leave. See :data:`MAX_OFFSET_RESIDUAL`.
 
     Returns:
-        float: Optimized offset (or np.nan if failed)
+        float: Optimized offset, or np.nan when the minimiser succeeded without
+        reaching the root. ``minimize_scalar`` reports success for finding a
+        minimum of the squared error, which on a bounded interval can be an
+        endpoint rather than a zero, so the residual is checked as well.
     """
     def objective(offset):
         """Squared error between observed and simulated CF."""
@@ -145,10 +174,11 @@ def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3)):
             options={'xatol': 0.001}
         )
 
-        if result.success:
-            return result.x
-        else:
+        if not result.success:
             return np.nan
+        if np.sqrt(max(float(result.fun), 0.0)) > residual_tolerance:
+            return np.nan
+        return result.x
 
     except Exception:
         return np.nan

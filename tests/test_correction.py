@@ -9,6 +9,9 @@ from vwf.correction import (
     _find_offset_iterative,
     _find_offset_scipy,
 )
+from scipy import interpolate as interp
+
+import vwf.correction as correction
 from vwf.wind import interpolate_wind, prepare_offset_arrays, fast_simulate_cf
 
 
@@ -178,3 +181,65 @@ def test_find_offset_empty_cluster_returns_nan(offset_setup, power_curve):
     row = pd.Series({"obs": 0.4, "sim": 0.3, "scalar": 1.0,
                      "year": 2020, "cluster": 99, "time_slice": "1/1"})
     assert np.isnan(find_offset(row, turb, ds, power_curve))
+
+
+# --------------------------------------------------- residual convergence ----
+# The step-size test alone cannot see a search that never reached the root:
+# each proposed step is clamped to the previous magnitude, so one started below
+# the natural step size halves its way to the tolerance while the residual
+# stays large. Probed at initial_step=0.25 that returned offsets wrong by up to
+# 7.2 m/s while reporting success
+# (docs/findings/method-correction-identifiability.md).
+
+def _arrays(speeds, capacity=(1.0,)):
+    """Offset arrays with one linear curve, so the root is analytic."""
+    grid = np.arange(0.0, 30.01, 0.5)
+    curve = interp.Akima1DInterpolator(grid, np.clip(grid / 20.0, 0, 1))
+    ws = np.asarray(speeds, dtype=float).reshape(-1, 1)
+    return {"ws_data": ws,
+            "model_groups": [(curve, np.array([True]))],
+            "capacities": np.asarray(capacity, dtype=float)}
+
+
+def _row(obs, sim, scalar=1.0):
+    return pd.Series({"obs": obs, "sim": sim, "scalar": scalar,
+                      "cluster": 0, "year": 2020, "time_slice": "1/1"})
+
+
+def test_the_iterative_search_returns_the_root_at_the_shipped_step():
+    arrays = _arrays([8.0, 10.0, 12.0])
+    target = fast_simulate_cf(arrays, 1.0, 2.0)
+    got = correction._find_offset_iterative(
+        _row(target, fast_simulate_cf(arrays, 1.0, 0.0)), arrays)
+    assert got == pytest.approx(2.0, abs=0.01)
+
+
+def test_a_throttled_search_refuses_rather_than_returning_a_non_root():
+    """initial_step below the natural step size makes the clamp bind on every
+    move, so the search halves to the tolerance far from the root. It used to
+    return that point and report success."""
+    arrays = _arrays([8.0, 10.0, 12.0])
+    target = fast_simulate_cf(arrays, 1.0, 2.0)
+    row = _row(target, fast_simulate_cf(arrays, 1.0, 0.0))
+    assert np.isnan(correction._find_offset_iterative(row, arrays, initial_step=0.25))
+
+
+def test_the_residual_tolerance_is_what_decides_and_can_be_loosened():
+    arrays = _arrays([8.0, 10.0, 12.0])
+    target = fast_simulate_cf(arrays, 1.0, 2.0)
+    row = _row(target, fast_simulate_cf(arrays, 1.0, 0.0))
+    loose = correction._find_offset_iterative(row, arrays, initial_step=0.25,
+                                              residual_tolerance=1.0)
+    assert not np.isnan(loose) and abs(loose - 2.0) > 0.5, (
+        "a loose tolerance must return the non-root the tight one refuses")
+
+
+def test_the_scipy_fallback_refuses_a_minimum_that_is_not_a_root():
+    """minimize_scalar reports success for finding a minimum, which on a
+    bounded interval can be an endpoint. The root here is outside the bounds."""
+    arrays = _arrays([8.0, 10.0, 12.0])
+    target = fast_simulate_cf(arrays, 1.0, 8.0)
+    row = _row(target, fast_simulate_cf(arrays, 1.0, 0.0))
+    assert np.isnan(correction._find_offset_scipy(row, arrays, bounds=(-3, 3)))
+    inside = correction._find_offset_scipy(row, arrays, bounds=(-3, 12))
+    assert inside == pytest.approx(8.0, abs=0.05)
