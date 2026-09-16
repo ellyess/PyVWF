@@ -128,9 +128,18 @@ def main(out_dir: str) -> None:
                                        ("DK-onshore","DK","onshore",884),
                                        ("UK-offshore","UK","offshore",10),
                                        ("UK-onshore","UK","onshore",300)):
-        f = SEL / region / f"train-{mode}-final" / f"train_turb_info_{k}.csv"
-        if f.is_file():
-            turbine_sizes[pool_code] = pd.read_csv(f).groupby("cluster").size()
+        # Two spellings: rows re-run after the run-path fix carry the fleet
+        # mode, the three clean rows predate it. Missing is reported, not
+        # skipped: a row that quietly vanishes from a table is the same defect
+        # as a detector that never fires.
+        candidates = [SEL / region / f"train-{mode}-final" / f"train_turb_info_{k}.csv",
+                      SEL / region / "train-final" / f"train_turb_info_{k}.csv"]
+        found = next((c for c in candidates if c.is_file()), None)
+        if found is None:
+            raise FileNotFoundError(
+                f"no clustering at k={k} for {pool_code}; tried "
+                + ", ".join(str(c) for c in candidates))
+        turbine_sizes[pool_code] = pd.read_csv(found).groupby("cluster").size()
 
     low, high = 0.2, 3.0
     merged["crossing"] = np.where((merged.offset < 0) & (merged.scalar > 0),
