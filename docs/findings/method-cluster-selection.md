@@ -177,6 +177,12 @@ count as an inherited property, not as this study's answer, and
 binding constraint on transfer, so selecting a count cannot be expected to help
 the thing the pool exists for.
 
+*[Parked 2026-09-16: no rebuilt pool is being built. "The rebuilt pool" above
+describes a plan. The one pool is the chapter's 1,729, the country tier cannot
+be selected while the national study is blocked on training windows, and how
+to build a defensible pool is an open question. See the dated note under D0 in
+`../design/manuscript-chapters-45.md`.]*
+
 Two of the selections would also have been poor choices for a pool on their own
 terms. **Denmark onshore at 200 against the chapter's 884 drops 684 control
 points**, and **United Kingdom onshore at 50 against 300 drops 243**, the

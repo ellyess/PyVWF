@@ -161,6 +161,16 @@ result standing as a finding about the chapter's pool and labelled so wherever
 it appears; the domain-split study **stays void**, and if it is ever re-founded
 it is on the maintained grids with no chapter gate.
 
+*[Parked 2026-09-16: no rebuilt pool is being built, and the sentences above
+that assume one describe a plan, not a pending deliverable. The one pool is
+the chapter's 1,729. The cluster selection study's counts are not adopted for
+a pool, because they optimise each row's own corrected skill, which is a
+different objective (`../findings/method-cluster-selection.md`); the country
+tier cannot be selected while `method-national-single-cluster-prereg.md` is
+blocked on training windows; and the four eliminations in
+`method-why-corrections-do-not-transfer.md` removed the pool as the leading
+suspect for non-transfer. How to build a defensible pool is an open question.]*
+
 ## D1. Does the manuscript reproduce the chapters or supersede them?
 
 Reproducing means porting about 3,000 lines of library code and 5,200 lines of

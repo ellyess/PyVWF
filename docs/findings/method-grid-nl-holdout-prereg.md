@@ -75,6 +75,26 @@ headline cross-border claim, and the claim was made on the uniform grid, so a
 run that cannot reproduce it cannot test it either. Both grids are run, H-G3
 gates the uniform arm, and the maintained arm is reported beside it under H-G4.
 
+## Amendment, 2026-09-16: "the uniform grid" names files, not a weighting
+
+**Written before any number of this study exists; the study has not run.**
+H-G3's "the uniform grid the chapter used" was ambiguous, and one reading
+would void the study on a mismatch of its own making. The chapter's grid is
+the uniform lattice **with capacities that vary by point**: a Global Wind Power
+Tracker radius sum at 2015, reproduced exactly from the chapter's run
+directories (`../design/manuscript-chapters-45.md`, D0's correction notice of
+this date). The files named `nl_grid_points.uniform.bak.csv` carry the same
+lattice at uniform capacity, and are **not** the chapter's grid.
+
+So H-G3's uniform arm is defined as follows, and nothing else changes:
+
+- **The fleet is `NL_2023_turb_info.csv` from the chapter's run directory**,
+  named below, with its capacities as they stand. Not the `.uniform.bak.csv`
+  file, and not the lattice with capacities reset to a constant.
+- **H-G3's thresholds and its voiding rule are unchanged.**
+- **H-G4's maintained arm is unchanged**, and the difference it reports is now
+  stated to be lattice and weights together, not point count alone.
+
 ## A gate stated against another pipeline's number, 2026-09-13
 
 **Registered before any number of this study exists.** Several gates here are

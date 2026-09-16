@@ -6,6 +6,8 @@ when the control-point pool is rebuilt. **Since the 2026-09-15 amendment below,
 the five turbine-level configurations only**; the nine country-level ones ask a
 different question and are registered in
 `method-national-single-cluster-prereg.md`. Terms follow `CONTEXT.md`.
+*[Parked 2026-09-16: the pool rebuild this scope names is not being done, and
+the selections are not adopted for a pool (`method-cluster-selection.md`).]*
 
 ## Amendment, 2026-09-15: the curve shape is a reported result, not a means to a selection
 

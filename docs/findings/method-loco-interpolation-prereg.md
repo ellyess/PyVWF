@@ -85,6 +85,14 @@ uniform grids, so:
   over unchanged: both are internal comparisons between methods, or between a
   method and the pool's own mean, and neither reads a chapter figure.
 
+  *[Parked 2026-09-16: no rebuilt pool is being built, so this re-run has no
+  pool to run on. The selection study's counts are not adopted for a pool, the
+  country tier cannot be selected while the national study is blocked on
+  training windows, and the transfer synthesis removed the pool as the leading
+  suspect. See the dated note under D0 in
+  `../design/manuscript-chapters-45.md`. The study is also void on its own
+  gates, above.]*
+
 ## Why this exists
 
 The merged manuscript's question is whether correction factors generalise
