@@ -5,6 +5,54 @@
 Portugal and Sweden are excluded before any result; see the data-quality
 section. Terms follow `CONTEXT.md`.
 
+## Blocked on data, 2026-09-16
+
+**The registered protocol cannot run against the observation files that
+exist.** The ENTSO-E country source resolves a split by file name,
+`<code>_train_<first>_<last>.csv` and `<code>_test_<year>.csv`, and only three
+training windows were ever generated for each country, 2015-2018, 2015-2019
+and 2015-2021, with test years 2019 and 2023. Ireland also has 2017-2018,
+2017-2019 and 2017-2021.
+
+A forward-chaining fold needs a training window ending in Y-1 and a test file
+for Y. **Exactly one such pair exists per country**: train 2015 to 2018,
+validate 2019. Ireland has two, and both validate 2019.
+
+So the protocol degenerates to a single inner holdout: **one fold, no standard
+error, and the one-standard-error rule inert**, since a sample standard
+deviation is undefined on one observation. What would run is "fit on 2015 to
+2018, score 2019, take the winner", which is not the protocol this document
+registers and could not be compared with the turbine-level rows, which had
+three and four folds.
+
+**The study is not run, and is not amended to fit the data.** Generating the
+missing windows was considered and rejected on sequence rather than on
+principle: it means regenerating the same country series whose capacity
+registers are under correction, Portugal's stale, Sweden's derived from its own
+generation, the Swedish zonal registers frozen, and the provenance field costed
+but unbuilt. New files would bake those defects in and need regenerating again.
+
+**The order that unblocks it**, in sequence:
+
+1. The capacity registers are settled: Portugal repaired from the Global Wind
+   Power Tracker, Sweden given a real register, the zonal series resolved.
+2. The `capacity_source` provenance field is built, so a regenerated file says
+   where its denominator came from.
+3. The training windows and test years are generated, giving the six folds this
+   document registers.
+4. The study runs as registered, with no amendment to its protocol.
+
+**An asymmetry worth knowing, because it will surprise someone.** The
+turbine-level rows of `method-cluster-selection-prereg.md` ran the same
+forward-chaining protocol without difficulty. `european-turbine` resolves
+observations by region and year, so any training window is expressible; the
+ENTSO-E country path resolves by a pre-generated window file, so only the
+windows someone once generated exist. The limitation is specific to the country
+path and is invisible from the protocol.
+
+**Everything else in this document stands unchanged**: the candidate table, the
+exclusions of Portugal and Sweden, the gates and the predictions.
+
 ## The question
 
 > For a country fitted against one national generation series, does giving each

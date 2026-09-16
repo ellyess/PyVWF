@@ -28,6 +28,18 @@ suspension.
 
 One line each. None is started.
 
+- **The national single cluster study is blocked on data, and the order that
+  unblocks it is fixed.** `method-national-single-cluster-prereg.md` needs
+  forward-chaining folds, each wanting a training window ending in Y-1 and a
+  test file for Y, and exactly one such pair exists per country because only
+  three training windows were ever generated. Generating more means
+  regenerating the same series whose registers are under correction, so the
+  sequence is: settle the capacity registers, build the `capacity_source`
+  provenance field, generate the windows, then run as registered. The
+  turbine-level rows were unaffected because `european-turbine` resolves
+  observations by region and year while the ENTSO-E country path resolves by a
+  pre-generated window file.
+
 - **The cluster grid excluded two of the counts it was asked to beat, and
   widening it now would be selection on the outcome.**
   `method-cluster-selection.md` reports C-G3 failing in three of five rows, and
