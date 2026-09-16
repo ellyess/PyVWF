@@ -44,6 +44,13 @@ the undivided pool of 1,729 control points in
 longitude -10 to 30 and latitude 35 to 72 at 0.25 degrees, 161 by 149 cells,
 **23,989 in total**. No mask of any kind is applied.
 
+**The grid, added 2026-09-16.** The 1,729 control points are on the
+**uniform** grids, which is what the chapter used. The maintained
+fleet-weighted grids that replaced them hold far fewer points per country and
+are the workstream's fleet from `../design/manuscript-chapters-45.md` D0
+onward, so every band, count and distribution here describes the chapter's pool
+rather than the current one.
+
 Data: `output/unmasked_bands_2026-09-15/unmasked_surface_cells.csv`, one row
 per cell, and `run.log` beside it. Produced by
 `scripts/analysis/unmasked_surface_bands.py` at commit `bdb5f66` from a clean

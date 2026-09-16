@@ -15,8 +15,10 @@ change.
 
 Every region derives the roughness length by inverting the log wind profile
 between the 10 m and 100 m winds. The difference between the rows is not the
-formula, it is whether the result varies in time. Eleven rows apply a single
-annual mean of it and six apply it hour by hour.
+formula, it is whether the result varies in time. **At the time of this
+comparison** eleven rows applied a single annual mean of it and six applied it
+hour by hour. That split is history: the per-timestep derivation was adopted
+below and rolled out, and every scorecard row now reads `per timestep`.
 
 | Condition | Roughness applied |
 |---|---|

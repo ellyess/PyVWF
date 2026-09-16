@@ -298,11 +298,13 @@ one, because the alternatives have been tested and eliminated.
 - **The pivot is measured on fitted values, not on uncertainties.** No
   per-fit confidence region exists, so the width of each individual ridge is
   unmeasured; what is measured is that the ensemble of fits lies on one.
-- **The offset search's step schedule throttles below about 1 m/s**, which is
-  a latent defect in the estimator recorded separately in `../../STATUS.md`.
-  It does not affect any fit in this repository: the shipped initial step is
-  10.0 and the only other value it has ever had is 3.0, and the two give
-  identical results.
+- **The offset search's step schedule throttled below about 1 m/s**, and the
+  convergence test could not see it because it tested the step size rather
+  than the residual. **Fixed 2026-09-16 in `724ab1b`**: both the iterative
+  search and its scipy fallback now check the residual and refuse rather than
+  return a non-root. It affected no fit in this repository, the shipped initial
+  step being 10.0 and the only other value it has ever had 3.0, which give
+  identical results, and the golden regression test did not move.
 - **Rows with three to five points** are reported for completeness and support
   no statistic. Denmark offshore has two and is omitted.
 - **Every result rests on the chapter-era pool**, built on the uniform grids,

@@ -124,6 +124,25 @@ unit its author has in mind.
   built, and a condition that changed nothing is indistinguishable from a
   condition that worked and had no effect, which is what half these studies
   predict.
+- **Before registering a gate against an external comparator, confirm the
+  comparator exists and is on the same units, folds and grid. If it does not
+  exist, the gate is not registrable.** A leave-one-country-out study
+  registered three gates against comparators it never checked, ran, and could
+  not be read: one needed a machine-learning score on its own twelve country
+  folds when the only such result held out eight regions, four of them on
+  another continent, from a different pool; two compared against longitude
+  bands, which have no per-country figure and whose published numbers were on
+  a grid the workstream had since made historical. **The same clause covers a
+  threshold that names a quantity without naming its statistic**: a gate
+  restricting to folds "within 2 degrees" left three recorded distances to
+  choose from, and choosing after the scores exist is choosing with them in
+  view.
+- **A study is not finished until its own gates are read, and citing its result
+  elsewhere first is how that gets skipped.** The same study's scores were
+  reported in a synthesis document three days before anyone tried to read its
+  gates, and the synthesis then looked like the place the result lived. Close a
+  registration before its numbers are quoted anywhere else, even in a document
+  that cites it properly.
 - **Ask whether a condition can differ analytically before spending a run on
   it.** Two bases of one target were compared by a twelve-fold study, and the
   answer followed in three lines from the estimator being a weighted sum with

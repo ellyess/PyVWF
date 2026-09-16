@@ -21,6 +21,27 @@ variants of a run are now compared on the same rows (see Fixed). Every
 scorecard row reproduces exactly on this code except CL, AR and the US, where
 a corrected variant lacks some values.
 
+Since 2026-09-15 two behaviour changes join them. The offset search now tests
+the residual it leaves rather than the size of its last step, so a search that
+never reaches the root refuses instead of reporting success; the golden
+regression test is unmoved, so no fit in this repository was affected. And the
+gridded correction surface answers at every cell instead of filling some with
+the identity, carrying per-cell distance, support count, kriging variance and a
+plausibility flag so that a user can tell a correction that declined to answer
+from one that happens to be the identity.
+
+The country-level observation gates gain a register test that asks when the
+capacity moved rather than how far it moved in the end, tiered severities so
+that one bad hour and a broken denominator no longer read alike, and clipped
+rows that travel into the manifest and the metrics table.
+
+The research record grew faster than the code. The affine fit is shown to solve
+one equation in two unknowns, so its two parameters are not separately
+identified, and four candidate explanations of why corrections do not transfer
+across borders are tested and eliminated. Two registered studies are closed
+without results, one blocked on observation files that do not exist and one
+void because its gates were written against comparators that did not.
+
 ### Added
 
 - **A switch for the temporal treatment of the roughness.**

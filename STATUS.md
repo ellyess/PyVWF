@@ -44,13 +44,13 @@ One line each. None is started.
   `max_iter = 30`, and probing three dense rows at 10, 4, 3 and 1 with both
   iteration caps gives pivots identical to three decimals
   (`method-correction-identifiability.md`).
-  **Proposed, not implemented:** test convergence on the residual rather than
-  the step, and refuse rather than return when the residual is still above
-  tolerance at `max_iter`. It touches `_find_offset_iterative` and the
-  `_find_offset_scipy` fallback beside it, and it can change a number only
-  where a fit is currently returning a non-root, which the probe found none
-  of; the golden regression test pins the delegation and would catch any
-  movement.
+  **Fixed 2026-09-16 in `724ab1b`**, as proposed: both
+  `_find_offset_iterative` and the `_find_offset_scipy` fallback now test the
+  residual rather than the step and return NaN instead of a non-root, with
+  `MAX_OFFSET_RESIDUAL` at 1e-4 in capacity factor. Four tests on an analytic
+  curve, and **the golden regression test did not move**, so no fit in this
+  repository had been returning a non-root. Kept here as the record of what it
+  was; nothing remains to do.
 
 - **The national single cluster study is blocked on data, and the order that
   unblocks it is fixed.** `method-national-single-cluster-prereg.md` needs
@@ -110,7 +110,9 @@ One line each. None is started.
   aggregating derived ones passes the test. Norway aggregates the same way and
   its zones are not derived, so aggregation alone is not the defect. A
   provenance field on the capacity column would settle it; the signature
-  cannot. The other half is that `check_country_cf` takes the median capacity
+  cannot. **That field is the per-value provenance registry already open
+  below**, which is blocked on the licence query, a constraint the costing of a
+  `capacity_source` column on 2026-09-16 did not account for. The other half is that `check_country_cf` takes the median capacity
   across zones when handed one stacked frame, which is how SE-BZ came back as
   2158 MW unchanged for three years when the truth is four zones frozen for
   five: right finding, wrong figure.
@@ -197,7 +199,11 @@ One line each. None is started.
   change, and a check that old and new were compared rather than assumed
   equivalent.
 - **The per-value provenance registry for capacity-factor denominators** is
-  blocked on the licence query below.
+  blocked on the licence query below. It is the same thing as the
+  `capacity_source` column costed on 2026-09-16 against the derived-capacity
+  audit above: per-row values of `entsoe`, `gwpt`, `derived`, `aggregated`,
+  `curated` or `unknown`, roughly half backfillable from evidence and half
+  honestly unknown.
 - **The licence query itself:** whether values derived from the licensed
   turbine database may be named in the public repository. It reaches the
   Argentine denominators, which are estimates corrected by turbine research

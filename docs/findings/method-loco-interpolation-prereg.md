@@ -8,6 +8,62 @@ machine learning. Terms follow `CONTEXT.md`.
 **Everything below is fixed before any number exists.** The outcome column is
 filled afterwards.
 
+## VOID, 2026-09-16: the study ran and its gates cannot be read
+
+**The run happened and its scores stand. The gates do not, and they were
+unreadable from the day they were registered.** Scores:
+`output/loco_2026-09-13/loco_scores.csv` and `loco_fold_geometry.csv`, twelve
+country folds by four interpolators by two distance metrics.
+
+Per gate:
+
+- **L1 is unreadable: the comparator does not exist.** It requires the best
+  machine-learning model's mean absolute error **on the same held-out points**.
+  The only machine-learning result on disk,
+  `output/ml_retest/expanded_loro_scalar.csv`, holds out eight **regions**,
+  four of them non-European, against this study's twelve European
+  **countries**. Only DE, DK and UK appear in both, and even there the held-out
+  sets differ: the machine-learning work used 100 centroids per region while
+  this holds out the pool's own 500, 886 and 303. No score on these folds can
+  be produced until the machine-learning module is ported, which is phase 3 and
+  has not started.
+- **N1 is contingent on L1** and goes with it.
+- **N2 and N3 are unreadable: the comparator has no matching unit.** Both
+  compare against the longitude folds chapter 4 used. Those are longitude
+  bands, not countries, so "in at least 10 of the 12 folds" does not map onto
+  them, no per-country figure exists to compare with, and the chapter's
+  published longitude-band numbers are uniform-grid baselines, which
+  `../design/manuscript-chapters-45.md` D0 has since made historical. No
+  longitude-band run exists under `output/`.
+- **L2 is readable and its restriction is ambiguous.** The pool-mean baseline
+  needs no choice. But the gate restricts to the folds "whose held-out points
+  have a remaining control point within 2 degrees" without saying whether that
+  means every held-out point, the median one or any one, and
+  `loco_fold_geometry.csv` records `km_to_nearest_min`, `median` and `max` plus
+  `deg_to_nearest_median`, so all three readings are available and select
+  different fold sets. **Choosing now is choosing with the scores in view**, so
+  it is not chosen.
+- **L3 and N4 stay retired** with their dated reason, below.
+
+**The scores stand as a measurement.** The same twelve folds were rerun on the
+reference-wind target and every number is reported in
+`method-why-corrections-do-not-transfer.md`, which is where this result now
+lives. Nothing is lost except the gated reading.
+
+### What a re-registration would need, not done here
+
+- **L1** waits on port phase 3, so that a machine-learning model can be scored
+  on these folds and these held-out points.
+- **N2 and N3** need longitude-band runs on the maintained grids, so the
+  comparison is within one grid and one fold definition.
+- **L2** needs its statistic fixed in advance: which distance, over which
+  points.
+
+Whether these questions are still worth asking is for a later session, after
+the machine-learning module exists. **They are not re-registered now**, because
+re-registering a gate whose comparator still does not exist would repeat the
+error that voided this one.
+
 ## Amendment, 2026-09-15: the chapter comparison is dropped, and this re-runs on the rebuilt pool
 
 The workstream's founding assumption
@@ -132,17 +188,17 @@ be a second definition of the same number.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **L1** | The interpolators survive the test the machine learning failed: at least one interpolation method has a lower MAE than the best machine-learning model on at least 8 of the 12 folds, scored on the same held-out points. | |
-| **L2** | Cross-border transfer works at all where a country has neighbours: for the folds whose held-out points have a remaining control point within 2 degrees, the best interpolator's MAE is below the MAE of predicting every held-out point at the pool's mean. Below that, distance-weighted interpolation is adding nothing over a constant. | |
+| ~~**L1**~~ | **VOID 2026-09-16, unreadable.** No machine-learning score exists on these folds and none can be produced until port phase 3. See the void notice. | |
+| ~~**L2**~~ | **VOID 2026-09-16, not chosen.** Readable, but the 2-degree restriction never said which statistic it applies to and three were recorded, so choosing now would be choosing with the scores in view. See the void notice. | |
 | ~~**L3**~~ | **Retired 2026-09-15, not scored.** It set NL's fold MAE against the country-only cluster correction chapter 4 reports, which is a uniform-grid figure, while a rebuilt pool is maintained-grid. The two are different fleets and the comparison cannot be read. The question stays open and needs a within-grid form; see the amendment above. | |
 
 ## Registered predictions
 
 | # | Prediction | Outcome |
 |---|---|---|
-| N1 | L1 passes. Interpolation degrades under country holdout, as the machine learning did, but less, because it has no region-specific decision boundaries to memorise. | |
-| N2 | Every method's MAE is worse under leave-one-country-out than under the longitude folds chapter 4 used, in at least 10 of the 12 folds. The longitude bands cut through countries, so they leave same-country neighbours in the training set. | |
-| N3 | The spread across methods narrows under this test relative to the longitude folds. With no same-country neighbours, the choice of weighting matters less than the absence of nearby data. | |
+| ~~N1~~ | **VOID 2026-09-16**, contingent on L1. | |
+| ~~N2~~ | **VOID 2026-09-16, unreadable.** Longitude bands have no per-country figure to compare against. | |
+| ~~N3~~ | **VOID 2026-09-16, unreadable.** Same comparator as N2. | |
 | ~~N4~~ | **Retired 2026-09-15 with L3**, which it predicted. | |
 
 ## Committed in advance

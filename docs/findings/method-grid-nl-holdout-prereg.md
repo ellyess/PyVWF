@@ -145,7 +145,15 @@ provenance gap in the inputs is shared by every condition and cannot favour one.
 H-G3 is the guard, since an H0 that reproduces the chapter's published number
 is evidence that the inputs are the ones the chapter used.
 
-Still blocked on the port:
+**Unblocked 2026-09-16. Both modules are ported and the study has not run.**
+`atlite_export.py` is `vwf.extensions.grid.surface`, whose
+`correction_surface` builds a surface from a given control-point set, and
+`evaluate_grid_corrections.py` is `vwf.extensions.grid.evaluate`, whose
+`corrections_at` and `corrected_capacity_factors` extract at observation
+locations and simulate corrected capacity factors. Both carry tests. The
+paragraph below described the position on 2026-09-13 and is kept as history.
+
+Was blocked on the port:
 
 - **a masked surface built from a given control-point set**, which is
   `atlite_export.py`, the next port phase. It is the only genuinely missing

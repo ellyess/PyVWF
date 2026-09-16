@@ -50,7 +50,7 @@ someone reads it.
 | roughness treatment | How a run's roughness varies in time: an annual mean, or per timestep. It names the temporal behaviour, not where the value is computed. | roughness method, roughness mode |
 | annual-mean roughness | The treatment that applies one static field per year, computed by `src/vwf/datasets/combine_era5_files.py` and carried by `era5/EU`. | climatological roughness, static roughness |
 | per-timestep roughness | The treatment that derives z0 for every timestep and averages it to daily with the winds. The method since 2026-09-12 (`docs/findings/method-roughness-treatment.md`). | hourly roughness (for the treatment), derived roughness (for the treatment) |
-| roughness route | Where a per-timestep roughness is computed and whether the file carries it: at load in `prep_era5`, or ahead of time in `scripts/era5/combine.py`. Two routes, one treatment. | roughness source, roughness pipeline |
+| roughness route | Where a run's roughness comes from. **Three routes, 2026-09-16:** a stored annual-mean field the file carries, which `prep_era5` uses when present; a per-timestep derivation at load in `prep_era5`, used when no stored field exists; and a per-timestep derivation ahead of time in `scripts/era5/combine.py`, which the file then carries. The first route produces the annual-mean treatment and the other two the per-timestep one, so three routes give two treatments. This row previously said two routes and one treatment, counting only the per-timestep ones. | roughness source, roughness pipeline |
 
 ## Regions and observations
 

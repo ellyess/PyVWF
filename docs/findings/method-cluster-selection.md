@@ -166,6 +166,26 @@ component and 1 km fragments it into 1,719 groups with 756 singletons. There is
 no threshold at which a group is a farm onshore, so the grouping measures
 settlement density and the mechanism is not tested there.
 
+## The selections are not adopted for the pool, 2026-09-16
+
+**This study selected cluster counts and the control-point pool does not use
+them.** A pool is a training set for the transfer problem, not an accuracy
+target, and this study selected for out-of-sample skill on one held-out year,
+which is a different objective. The rebuilt pool takes each configuration's
+count as an inherited property, not as this study's answer, and
+`method-why-corrections-do-not-transfer.md` is why: sample count is not the
+binding constraint on transfer, so selecting a count cannot be expected to help
+the thing the pool exists for.
+
+Two of the selections would also have been poor choices for a pool on their own
+terms. **Denmark onshore at 200 against the chapter's 884 drops 684 control
+points**, and **United Kingdom onshore at 50 against 300 drops 243**, the
+latter being the row whose one-standard-error gap exceeded the screen at
+0.00333. Together they would have more than halved the pool, from 1,729 points
+to 814.
+
+The selections stand as this study's result. They are not the pool's.
+
 ## Caveats
 
 - **Every result rests on a single held-out test year** and is
