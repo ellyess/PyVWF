@@ -28,6 +28,30 @@ suspension.
 
 One line each. None is started.
 
+- **The offset search cannot fail loudly, and throttles silently below about
+  1 m/s.** `vwf.correction._find_offset_iterative` tests convergence on the
+  step size, `abs(step) <= tolerance`, not on the residual, and the step
+  shrinks whether or not the error did, so a search that never reaches the
+  root still returns a number and reports success. It also clamps each
+  proposed step to the previous magnitude, which binds only when the initial
+  step is below the natural step size: a proposed step is the cube root of a
+  capacity-factor error and so never exceeds about 0.7 m/s, so at the shipped
+  `initial_step = 10.0` the clamp never binds, and at 0.25 it binds
+  immediately and the offsets come back wrong by up to 7.2 m/s with zero
+  reported non-convergences.
+  **No result in this repository is affected.** The only other value the
+  constant has ever had is 3.0, the default until 2026-02-14 alongside
+  `max_iter = 30`, and probing three dense rows at 10, 4, 3 and 1 with both
+  iteration caps gives pivots identical to three decimals
+  (`method-correction-identifiability.md`).
+  **Proposed, not implemented:** test convergence on the residual rather than
+  the step, and refuse rather than return when the residual is still above
+  tolerance at `max_iter`. It touches `_find_offset_iterative` and the
+  `_find_offset_scipy` fallback beside it, and it can change a number only
+  where a fit is currently returning a non-root, which the probe found none
+  of; the golden regression test pins the delegation and would catch any
+  movement.
+
 - **The national single cluster study is blocked on data, and the order that
   unblocks it is fixed.** `method-national-single-cluster-prereg.md` needs
   forward-chaining folds, each wanting a training window ending in Y-1 and a

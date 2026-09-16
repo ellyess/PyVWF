@@ -108,6 +108,71 @@ the objective cannot see that region and the tie-break defaults to a common
 value. The second would make the pivot an artefact of the estimator. What would
 distinguish them is a fit whose objective uses more than one statistic.
 
+## The pivot probed, 2026-09-16: well conditioned because unconstrained
+
+**The pivot is not an artefact of where the offset search starts, and it is
+not evidence about physics either.** Probed by re-solving every cluster's
+offset from six initial steps and two iteration caps, on the selection study's
+own factors, which are a current fleet on `era5/EU_2026-09` rather than the
+chapter-era pool. Data: `output/pivot_probe_2026-09-16/`, produced by
+`scripts/analysis/pivot_probe.py`.
+
+| Row | clusters | shipped | from 10 | from 4 | from 3 | from 1 | from 0.5 | from 0.25 |
+|---|---|---|---|---|---|---|---|---|
+| DE onshore | 500 | 3.912 | 3.765 | 3.765 | 3.765 | 3.765 | 2.197 | 0.540 |
+| DK onshore | 884 | 3.912 | **3.912** | **3.912** | **3.912** | **3.912** | 3.131 | 0.324 |
+| UK onshore | 300 | 4.011 | **4.011** | **4.011** | **4.011** | **4.011** | 2.156 | 0.568 |
+
+Identical to three decimals for every initial step at or above 1 m/s, and
+unchanged by capping iterations at 30 instead of 100. **So the search is
+finding a root rather than stopping where it started**, and the pivot belongs
+to the scalar rule and the data. It also reproduces across fleet and archive:
+3.91 to 4.01 here against 3.97 to 4.06 on the chapter-era pool.
+
+**Germany's re-solve is not a reproduction and Denmark's and the United
+Kingdom's are.** The probe reconstructs each cluster's target from its shipped
+pair rather than from the original observation, which for Germany shifts the
+pivot by 0.15. The other two return their shipped pivot exactly, and that is
+what makes them worth quoting.
+
+### The objective cannot see where the lines cross
+
+The fit matches one capacity-weighted mean capacity factor, so what it sees is
+energy:
+
+| Row | days below 4 m/s | **share of capacity-factor mass below 4 m/s** |
+|---|---|---|
+| DE onshore | 16.6% | **2.47%** |
+| DK onshore | 9.7% | **0.82%** |
+| UK onshore | 13.6% | **1.74%** |
+
+**Under 2.5% of the quantity being matched comes from below the pivot.** The
+lines cross where the data have almost no leverage, so the crossing is an
+extrapolation of the fitted relationship rather than a measurement.
+
+### The misreading, twice in one finding
+
+A pencil of lines has a crossing point by construction, and the spread of its
+members is smallest there by definition. **So the corrected speed at the pivot
+is well conditioned because it is unconstrained, not because the clusters
+agree.** Reading its coefficient of variation of 0.02 as agreement between
+clusters is the same error as reading r = -0.867 as compensatory behaviour:
+both take a property of the fitting geometry for a property of the wind.
+
+The first reading is the chapter's and the second was this document's own
+proposal, made in the section above before the probe ran. That is why this is
+worth writing rather than recording: **the same misreading appeared twice in
+one finding, once from the chapter and once from the correction to it.**
+
+### What this fixes about the reference wind
+
+The pivot is rejected as a reference wind, for the reason it first looked
+attractive. A target should be informative, and one whose variation is
+suppressed by construction is not. **A reference wind is taken inside the range
+the objective can see, 8 to 12 m/s**, where the corrected speed's within-row
+spread is 0.08 to 0.21 rather than 0.02. That spread is the evidence the target
+is carrying something, and the pivot's absence of it is the evidence it is not.
+
 ## What this says about the two chapters
 
 **Chapter 4.** Interpolating the scalar and the offset independently across
@@ -136,6 +201,11 @@ honestly. The defect is upstream of both, in what the fitted pair means.
 - **The pivot is measured on fitted values, not on uncertainties.** No
   per-fit confidence region exists, so the width of each individual ridge is
   unmeasured; what is measured is that the ensemble of fits lies on one.
+- **The offset search's step schedule throttles below about 1 m/s**, which is
+  a latent defect in the estimator recorded separately in `../../STATUS.md`.
+  It does not affect any fit in this repository: the shipped initial step is
+  10.0 and the only other value it has ever had is 3.0, and the two give
+  identical results.
 - **Rows with three to five points** are reported for completeness and support
   no statistic. Denmark offshore has two and is omitted.
 - **Every result rests on the chapter-era pool**, built on the uniform grids,
