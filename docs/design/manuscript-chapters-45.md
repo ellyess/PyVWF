@@ -73,8 +73,55 @@ and are a historical baseline the manuscript describes; they are not a target
 it reproduces, and no gate in this workstream requires reproducing them except
 where stated.
 
+**[Correction notice, 2026-09-16. The chapter's country grids did not carry
+uniform capacity, and the evidence below describes weights the chapter never
+ran.]**
+
+**What was claimed.** That the chapter's grids gave every point the same
+synthetic capacity, so its simulated country was averaged by land area, and
+that Norway simulated 338 points of which 313 were empty.
+
+**What ran.** The chapter's country-level run directories,
+`output/runs/turbine_grid/*-obs_country-*` of 2026-02-13, hold capacities that
+vary by point. In all nine countries they are reproduced exactly by the rule in
+`development:scripts/regenerate_grid_points_with_gwpt.py` at `--year 2015
+--radius 50`, against the Global Wind Power Tracker of February 2026, and
+neither 2016 nor a 25 km radius reproduces them. **The point set is the uniform
+lattice. The weights are a GWPT radius sum**, and they carry four defects:
+
+| Defect | What it does | Measured, across the nine |
+|---|---|---|
+| No status filter | A project counts in 2015 if its start year is 2015 or earlier **or blank**, and most announced, pre-construction, shelved and cancelled projects have a blank start year | non-operating projects carry **37% (PT) to 97% (SE)** of the summed weight |
+| Overlapping radii | Each point sums every counted project within 50 km, so one project counts at every point in range | summed weight is 0.54 to 9.63 times the counted fleet, so it is a relative weight, not a capacity |
+| 3 MW floor | Points with no project in range are kept at 3 MW rather than dropped | 258 of Norway's 338 points; at most 1.2% of any country's weight |
+| One fleet for every year | The 2015 weights are used for training and for the 2023 test year | train and test capacities identical in all nine |
+
+Data: `output/chapter_capacity_weights_2026-09-16/`, produced by
+`scripts/analysis/chapter_capacity_weights.py`, which also runs the two wrong
+parameters as controls.
+
+**Where the error came from.** Uniform synthetic capacity did exist: the grid
+files backed up on 2026-07-23 as `*_grid_points.uniform.bak.csv` carry it, and
+those are what `method-country-level.md` section 3 measured. The error was
+reading that section as a description of the chapter, which ran five months
+earlier on different weights. The script writes `<c>_grid_points_2015.csv` when
+given a year and leaves the undated file alone, which would explain uniform and
+weighted files coexisting; that is consistent with the evidence, not shown by
+it, since the chapter's runs carry no manifest naming the file they read.
+
+**What stands.** The decision, and the reason it rests on: the maintained grids
+count operating projects once, at their nearest point, per year. The table
+below measures the lattice against the operating fleet and stands as a
+statement about the point set; it does not describe the chapter's weights. The
+fleet-growth sentence stands, since one 2015 fleet was applied to 2023.
+**Withdrawn**: the land-area sentence and "313 were empty", marked below.
+**"Uniform grid" in this workstream, applied to the chapter, means this lattice
+with these weights**, and a run on uniform capacity is not a reproduction of
+the chapter.
+
 **The evidence is that the uniform grid is a defect the project has already
-fixed, not a defensible alternative weighting.** A uniform grid gives every
+fixed, not a defensible alternative weighting.** *[Withdrawn 2026-09-16 for the
+chapter's runs, see the notice above:]* A uniform grid gives every
 point the same synthetic capacity, so the simulated country is averaged by land
 area while the observation is national generation over national installed
 capacity, averaged by where the fleet is. Real fleets are concentrated and the
@@ -93,7 +140,10 @@ Measured against the GWPT fleet as of 2021:
 | NL | 165 | 116 | 19.7 pp |
 | ES | 84 | 33 | 13.3 pp |
 
-Half to nine tenths of every grid carried no wind capacity. **Norway simulated
+Half to nine tenths of every grid carried no wind capacity. *[Withdrawn
+2026-09-16 as a description of what the chapter simulated: its Norway run held
+258 points at the 3 MW floor and weighted the other 80 by a radius sum dominated
+by non-operating projects. See the notice above.]* **Norway simulated
 338 points of which 313 were empty, and two of its clusters contain no wind at
 all.** The uniform grid also cannot represent a fleet that grows, which is what
 broke the Netherlands when its fleet doubled between training and test.
@@ -716,6 +766,17 @@ Both stand as numbers. Neither is a correction of the other, and the gap
 between them is mostly the grid: the uniform grid averages Belgium over 105
 points of which 64 carry no wind fleet, and the maintained grid drops those.
 Every country-level figure from here on names its grid.
+
+*[Corrected 2026-09-16: the 0.0522 figure is not on uniform capacity.
+`domain_split_study.py` reads the chapter's own `BE_2023_turb_info.csv`, which
+carries the GWPT radius-sum weights described in D0's correction notice: 9 of
+its 105 points sit at the 3 MW floor, and 76% of its summed weight comes from
+non-operating projects. So "64 carry no wind fleet" is a property of the lattice
+and not of what was simulated, and the mechanism given for the gap is withdrawn.
+The two figures remain on different grids and remain not comparable; how much
+of the gap is the lattice, the weights or the curves is not measured. The same
+applies to "the uniform 105-point grid" below, which means that lattice with
+those weights.]*
 
 **The related retraction is now complete.** The refit of Belgium's control
 points was run as a control for the Italian one and it failed: cluster 0 came

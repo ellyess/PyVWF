@@ -168,6 +168,25 @@ country average was mostly an average over empty countryside. In France one
 cluster holds 34.9% of the fleet on 10.3% of the area while another holds 0.1%
 of the fleet on 10.5%. In Norway two entire clusters contain no wind at all.
 
+*[Scope notice, 2026-09-16. This section describes the grid files the harness
+loaded in July 2026, and is correct about them: the files backed up on
+2026-07-23 as `*_grid_points.uniform.bak.csv` carry one capacity per country at
+every point. **It does not describe thesis chapter 4's country-level runs**, and
+it was later read as though it did (`../design/manuscript-chapters-45.md`, D0,
+which carries the correction notice). The chapter's runs,
+`output/runs/turbine_grid/*-obs_country-*` of 2026-02-13, used the same point
+sets with weights that vary by point: for each point, the summed capacity of
+every Global Wind Power Tracker project within 50 km that counts as present in
+2015, floored at 3 MW. A project counts if its start year is 2015 or earlier or
+blank, with no filter on status, so non-operating projects carry 37% to 97% of
+the summed weight; overlapping radii count one project at several points; and
+the 2015 weights are used for the 2023 test year. Reproduced exactly in all nine
+countries, with a wrong year and a wrong radius both failing:
+`output/chapter_capacity_weights_2026-09-16/`, from
+`scripts/analysis/chapter_capacity_weights.py`. So "land-area weighted" and "an
+average over empty countryside" are true of the July files and are not true of
+the chapter: its weights are fleet-shaped, but on the wrong fleet.]*
+
 ## 4. NL and IE: what they need
 
 Both are fetch-side, and neither is repairable by rescaling what is on disk.
