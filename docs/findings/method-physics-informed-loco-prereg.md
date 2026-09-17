@@ -122,10 +122,10 @@ Read in order. A gate is not read until the one before it has been.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **G0** records | The cache and study manifests record `git_dirty: false` and the same commit, which contains this document. The library has `power_curves_sha256` `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. Every cache records zero substituted units and `era5_roughness.applied` of `derived`. Every country cache resolves each year's grid by its own name. **A failure means no metric is read until it is explained.** | |
-| **G1** floor | `transfer` national RMSE below `uncorrected` in at least 7 of the 9 gated folds, and in no gated fold above `uncorrected` by more than 10% relative. | |
-| **G2** recovery | The recovery ratio is at least 0.5 in more than half of the gated folds where it is defined. Not readable, and reported as such, if fewer than 5 are defined. | |
-| **G3** place | `transfer` national RMSE is below `features-off` by more than max(0.002, twice the square root of the mean of the two arms' seed variances) in at least 5 of 9 gated folds. | |
+| **G0** records | The cache and study manifests record `git_dirty: false` and the same commit, which contains this document. The library has `power_curves_sha256` `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. Every cache records zero substituted units and `era5_roughness.applied` of `derived`. Every country cache resolves each year's grid by its own name. **A failure means no metric is read until it is explained.** | **Pass.** Cache and study manifests: `5960efd`, `git_dirty: false`, and the commit contains this document. Library hash matches. No substituted unit, `derived` in all 36 caches, every per-year grid resolved by its own name. |
+| **G1** floor | `transfer` national RMSE below `uncorrected` in at least 7 of the 9 gated folds, and in no gated fold above `uncorrected` by more than 10% relative. | **Fail.** Below in 8 of 9; FR above by 78% (0.0362 against 0.0204). |
+| **G2** recovery | The recovery ratio is at least 0.5 in more than half of the gated folds where it is defined. Not readable, and reported as such, if fewer than 5 are defined. | **Pass.** Defined in 9 of 9, at least 0.5 in 7 (not UK, FR). |
+| **G3** place | `transfer` national RMSE is below `features-off` by more than max(0.002, twice the square root of the mean of the two arms' seed variances) in at least 5 of 9 gated folds. | **Pass.** 7 of 9 (not FR, UK). |
 
 ### What each outcome means
 
@@ -149,7 +149,7 @@ Read in order. A gate is not read until the one before it has been.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **W1** more climates | B's `transfer` national RMSE is below A's by more than max(0.002, twice the square root of the mean of the two runs' seed variances) in at least 5 of 9 gated folds. | |
+| **W1** more climates | B's `transfer` national RMSE is below A's by more than max(0.002, twice the square root of the mean of the two runs' seed variances) in at least 5 of 9 gated folds. | Pending: Study B. |
 
 B's G1 to G3 are computed and reported, not gated.
 
@@ -157,11 +157,11 @@ B's G1 to G3 are computed and reported, not gated.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| 1 | G1 passes. | |
-| 2 | G2 fails: in most defined folds, transfer recovers less than half of the in-country gain. | |
-| 3 | G3 fails: `features-off` is within the margin of `transfer` in at least 5 of 9 gated folds. | |
-| 4 | Across gated folds, the transfer arm's national RMSE reduction from `uncorrected` rises with the uncorrected arm's absolute national MBE (Spearman above 0). | |
-| 5 | W1 fails, as the regime-coverage elimination predicts. | |
+| 1 | G1 passes. | **Failed**, on FR alone. |
+| 2 | G2 fails: in most defined folds, transfer recovers less than half of the in-country gain. | **Failed.** G2 passed. |
+| 3 | G3 fails: `features-off` is within the margin of `transfer` in at least 5 of 9 gated folds. | **Failed.** G3 passed, 7 of 9. |
+| 4 | Across gated folds, the transfer arm's national RMSE reduction from `uncorrected` rises with the uncorrected arm's absolute national MBE (Spearman above 0). | **Held.** Spearman +0.92 across the nine gated folds. |
+| 5 | W1 fails, as the regime-coverage elimination predicts. | Pending: Study B. |
 
 ## What this does not compare against, and why
 
@@ -276,6 +276,41 @@ PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
 | Study A, 12 folds | about six hours, detached |
 | Study B | about eight hours, detached |
 | Reading the gates and the full tables | the larger share, and not compute |
+
+## Study A run record, 2026-09-17
+
+Filled in after the run. The table and its interpretation are in
+`method-physics-informed-loco.md`.
+
+**Data.** `output/pinn_loco_2026-09-16/europe/`: `loco_europe_raw.csv` sha256
+`86ae858f4eb9120c33c9b7b867038eb275fc652a50a4fced10e3650edc9d59b9`,
+`loco_europe_national.csv` sha256
+`fae6f99ef85176ece5b1e96687c01ad94cb85d799cc9f15e2cc42bedce9b43bf`,
+`loco_europe_gates.json` sha256
+`d8e1cf48e77f1c0bf04187e6542dd45e276ebed05bffc9913b61434f34098c32`. The gates
+were recomputed independently of the script from the raw table and agree.
+
+**One earlier launch was stopped before the run that counts, and produced no
+fold result.** It was stopped at the maintainer's request 6 minutes in, during
+the DK fold. Its manifest and log are kept in
+`output/pinn_loco_2026-09-16/europe_interrupted_2026-09-16T1717/`. The run that
+counts started at 22:05 BST on 2026-09-16 with the registered command and
+finished with exit 0 about 7 hours later.
+
+**Deviation: the features-off arm's seed spread is 6.2e-6 at most, not zero.**
+Its heads see zeros, but the seed also orders the turbine regions' unit
+minibatches, so floating-point sums run in a different order. It changes no
+gate: G3's margin has a floor of 0.002.
+
+**Not in any gate, recorded.**
+- **UK transfer, seed 1:** national RMSE 0.101 against 0.012 to 0.030 for the
+  other four seeds, mean speed-up 1.54 against 0.99 to 1.12, at a similar
+  training loss. That seed alone sets the UK's seed spread of 0.036 and its G3
+  margin of 0.051.
+- **Common-month scoring** excluded no month in any fold.
+- **Off-curve shares** are at most 0.002% of capacity-weighted unit-days.
+- **Units with no wind:** DK drops 15 training units and 47 test units, and no
+  other country drops any.
 
 ## Seen before registration
 

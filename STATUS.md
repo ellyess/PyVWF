@@ -7,7 +7,10 @@ documents it names, not here.
 
 ## In flight
 
-Nothing. No run is in progress and the tree is clean.
+- **Study B of the physics-informed leave-one-country-out**, the world pool,
+  launched 2026-09-17 (`method-physics-informed-loco-prereg.md`). Study A is
+  done: transfer corrects national capacity factor in 8 of 9 gated countries
+  and fails its floor gate on France (`method-physics-informed-loco.md`).
 
 ## Where the manuscript stands
 
