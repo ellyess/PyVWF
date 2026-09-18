@@ -47,14 +47,19 @@ CASES = {
 
 
 class FakeFetcher:
-    """Deterministic stand-in for ``ENTSOEWindDataFetcher``."""
+    """Deterministic stand-in for ``ENTSOEWindDataFetcher``.
+
+    Built from integer arithmetic and exact divisions only. A first version
+    used ``np.sin`` and ``np.cos``, whose last bit differs between the macOS
+    and Linux maths libraries, so its hashes held locally and failed in CI.
+    """
 
     def calculate_capacity_factor(self, country, start, end, psr_type="all"):
         index = pd.date_range(start, end, freq="h")
         seed = sum(ord(c) for c in f"{country}{psr_type}")
-        t = np.arange(len(index), dtype=float)
-        capacity = 800.0 + (seed % 97) * 10.0 + 0.001 * t
-        cf = 0.3 + 0.15 * np.sin(2 * np.pi * t / 24.0 + seed) + 0.05 * np.cos(2 * np.pi * t / 8760.0)
+        t = np.arange(len(index), dtype=np.int64)
+        capacity = 800.0 + (seed % 97) * 10.0 + (t // 720) * 2.0
+        cf = 0.15 + ((t * 7 + seed) % 24) / 64.0 + ((t // 24 + seed) % 9) / 128.0
         frame = pd.DataFrame({"generation_mw": capacity * cf, "capacity_mw": capacity}, index=index)
         frame["capacity_factor"] = frame["generation_mw"] / frame["capacity_mw"]
         return frame
