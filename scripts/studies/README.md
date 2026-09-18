@@ -84,3 +84,5 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/unmasked_surface_bands.py` | `scripts/studies/method-distance-mask/unmasked_surface_bands.py` | `171f530` |
 | `scripts/analysis/chapter_capacity_weights.py` | `scripts/studies/method-country-level/chapter_capacity_weights.py` | `bff4467` |
 | `scripts/analysis/refit_control_points.py` | `scripts/studies/manuscript-chapters-45/refit_control_points.py` | `3930f26` |
+| `scripts/region_tools/export_au_grid_netcdf.py` | `scripts/studies/method-generalisation/export_au_grid_netcdf.py` | `6effe0e` |
+| `examples/notebooks/au_nem_validation.ipynb` | `scripts/studies/method-generalisation/au_nem_validation.ipynb` | `6effe0e` |

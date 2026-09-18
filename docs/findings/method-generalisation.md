@@ -1,5 +1,16 @@
 # Australia/NEM synthesis: what generalises, what doesn't, and what a global method needs
 
+**Reproduction record, added 2026-09-18.** Drivers:
+`scripts/studies/method-generalisation/export_au_grid_netcdf.py`,
+`scripts/studies/method-generalisation/au_nem_validation.ipynb`. Until
+2026-09-18 they were in `examples/notebooks/` and `scripts/region_tools/`, the
+paths any command below uses; `scripts/studies/README.md` maps each old path to
+its new one. Numbers: the gridded export,
+`output/validation/AU-NEM/au_nem_grid.nc`, records commit `8da53a6` in its
+attributes. The notebook records none: its outputs are stripped, and the
+harness runs it makes write their own manifests. The notebook's bundled inputs
+moved with it, to `data/` beside it.
+
 **Date:** 2026-07-16
 **Scope:** what the Australia/NEM validation says generalises across regions, what does
 not, and what a global method would need. The closing document for that work.

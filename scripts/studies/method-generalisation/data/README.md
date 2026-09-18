@@ -1,6 +1,6 @@
 # AU-NEM derived data (bundled for the validation notebook)
 
-Small DERIVED datasets so `examples/notebooks/au_nem_validation.ipynb` runs
+Small DERIVED datasets so `scripts/studies/method-generalisation/au_nem_validation.ipynb` runs
 without re-downloading the raw AEMO archives. Raw 5-minute SCADA is not
 redistributed; these are monthly aggregates and metadata.
 

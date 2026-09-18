@@ -20,7 +20,7 @@ licensed curve content is included, so the artifact is redistributable subject
 only to the ERA5/Copernicus and observation-source attributions carried in the
 attributes.
 
-Generalises the one-off ``scripts/region_tools/export_au_grid_netcdf.py`` to any
+Generalises the one-off ``scripts/studies/method-generalisation/export_au_grid_netcdf.py`` to any
 region config and any of the four time slices, and (unlike that demo, which
 emitted a full applied time series) exports the compact static factor field that
 is the actual drop-in product.
