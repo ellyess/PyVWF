@@ -1146,3 +1146,34 @@ Phase 3 (2026-09-18), in the order the maintainer set:
    scripts' input-root defaults (a539319). No pin output changed.
 4. The generator split (91232e1).
 
+Phase 3b (2026-09-18), one unit per commit, each pinned first:
+
+1. The AR and CL fleet exclusions moved to `configs/curation/` (c7d3465).
+2. `vwf.time_utils.month_days`, at the nine sites that count days in a month
+   (the audit's twelve was a miscount), after exact pins (222fe46, d76220a,
+   496933d).
+3. `log_roughness_from_shear` (c891ef1) and the plausibility screen
+   (aad3080), byte-identical on the DK and FR R1 reproductions.
+4. `load_region_by_code` (f5defd3), which also made hyphenated codes resolve,
+   and `val_obs_and_fleet` with the harness `load_obs_and_fleet` (9595bbc).
+5. Public names for the private harness helpers scripts called (19d7d87),
+   with a test that fails on any new private use.
+6. `argparse` for every driver and tool (9c6cb42, 2a9fae0, f131437), each
+   recorded command line pinned in `tests/test_script_command_lines.py`.
+
+After the gate: `external_grid_points` and `external_obs_data` removed
+(b4f2130), `se_zonal.toml` renamed to `se_bz.toml` (4244305), and issues #14,
+#15 and #16 opened for three scorecard drivers that no longer reproduce their
+ES records against the repointed scorecard configs.
+
+Phase 4 (2026-09-18): `CONTEXT.md` moved to `docs/` with the study and driver
+terms (41376d9); the extension guides for a region, an adapter and a study
+(83c00aa); the Diataxis rule and the home of each repeated fact in
+`docs/README.md`, with the copies that disagreed corrected (e316d98); the
+paper to `paper/` (8d98753); the EPIAS credentials file route removed
+(53395d1); `scripts/README.md` rewritten against the tree (2cf15f8); the
+compose, `viz_demo` and citation defects (2fb1018); and the API reference
+extended to the harness and every adapter (58ad75c). Still open from section
+11: `method-harness-regression.md` names a never-tracked file in a code span,
+which is findings content; and the local `CLAUDE.md` test count, which is
+not tracked.
