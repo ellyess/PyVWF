@@ -66,7 +66,7 @@ def load_year_specific_grid_points(
         raise FileNotFoundError(
             f"No year-specific grid point files found in {grid_points_dir}\n"
             f"Expected files like: {country.lower()}_grid_points_YYYY.csv\n"
-            f"Generate with: python vwf/datasets/generate_country_level_training_data.py"
+            "Generate with: python -m vwf.datasets.generate_country_level_training_data"
         )
 
     # For missing years, try to use base grid points or nearest available year

@@ -120,7 +120,7 @@ To run a batch:
    `[data]` extra.
 
    ```bash
-   ENTSOE_API_KEY=<key> python src/vwf/datasets/generate_country_level_training_data.py
+   ENTSOE_API_KEY=<key> PYTHONPATH=src python -m vwf.datasets.generate_country_level_training_data
    ```
 
    This writes the observations, the grid points and

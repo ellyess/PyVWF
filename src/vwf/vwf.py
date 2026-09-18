@@ -59,7 +59,7 @@ class PyVWF:
         obs_data_test: Optional test observations DataFrame (for country-level workflows).
 
     Country-Level Workflow Example:
-        >>> # Generate data first using scripts/generate_country_level_training_data.py
+        >>> # Generate data first: python -m vwf.datasets.generate_country_level_training_data
         >>> from vwf.vwf import PyVWF
         >>> import sys, pandas as pd
         >>> sys.path.insert(0, "input/observations/country")
