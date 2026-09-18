@@ -278,7 +278,7 @@ Nothing in the thesis changes. Any paper drawn from those chapters has to state
 the temporal treatment that actually ran.
 
 **Two documentation errors, corrected on 2026-09-12.** They are not the
-finding. `src/vwf/datasets/COMBINED_ERA5_USAGE.md` said the European z0 is
+finding. [`src/vwf/datasets/COMBINED_ERA5_USAGE.md`](https://github.com/ellyess/PyVWF/blob/ecf0cc3172a875b27ef4a2fe2d9c2e2a25a42621/src/vwf/datasets/COMBINED_ERA5_USAGE.md) said the European z0 is
 derived from terrain data; it is not, and the code has no terrain option. The
 usage line in `combine_era5_files.py` offered `--roughness-source terrain`,
 which does not exist.

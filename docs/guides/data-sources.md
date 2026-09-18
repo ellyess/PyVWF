@@ -128,6 +128,25 @@ the box and years from the region TOML, batches 3 months per CDS request (the
 cost-limit ceiling), and writes per-month `era5_<tag>_<YYYY>_<MM>.nc`. Big boxes
 (US, BR) are reduced to yearly daily means by `scripts/era5/combine.py`.
 
+**The `era5/EU` archive (annual-mean roughness).** The European rows published
+before 2026-09-13 read `era5/EU`. It holds one hourly file per year, 2015 to
+2023, named `era5_combined_<YYYY>_EU.nc`. Each file merges the 10 m and 100 m
+winds and carries `z0`, one static field per year. That field is the annual
+mean of the roughness derived from the 10 m to 100 m shear, so a run on it
+applies the annual-mean treatment. `src/vwf/datasets/combine_era5_files.py`
+built the archive from the per-year `era5_u10_v10_<YYYY>_months01-12_EU.nc` and
+`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads:
+
+```bash
+python src/vwf/datasets/combine_era5_files.py --all-years --add-roughness \
+    --roughness-source pyvwf
+```
+
+The archive is kept unchanged, so the rows published on it stay reproducible.
+New work uses `era5/EU_2026-09`, which carries no roughness field, so
+`prep_era5` derives it per timestep. The reasons are in
+[`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
+
 **Coordinates and capacity: Global Wind Power Tracker (GWPT).** Global Energy
 Monitor, CC-BY-4.0, at `input/reference/gwpt/`. Supplies coordinates (CL, AR,
 ES-WS) and per-phase capacity (AR). Also supplies capacity weights for every
