@@ -228,6 +228,11 @@ consumers and go without a deprecation period.
   rather than over it. An extra argument, which the positional parsers
   ignored, is now an error. `scripts/pinn/` and the two machine-learning
   transfer scripts are deferred with it.
+- **`scripts/fetch/epias_tr.py` reads its credentials from the environment
+  only.** It also read a plaintext `input/.epias_credentials` file, and its
+  docstring recommended that route, against the rule that no credential is
+  written into a file. Pass `EPIAS_USERNAME` and `EPIAS_PASSWORD` for the one
+  command.
 - **`CONTEXT.md` moved to `docs/CONTEXT.md`**, and the site publishes it
   under Reference. `AGENTS.md` imports it from there. It defines two new terms,
   study and driver.

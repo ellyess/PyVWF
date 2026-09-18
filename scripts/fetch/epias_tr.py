@@ -6,25 +6,15 @@ hourly generation and a national turbine register (TÜREB) carrying turbine
 models, so hub heights become derivable per plant; see
 docs/runbooks/tr.md and docs/findings/dataset-survey.md.
 
-WHERE TO PUT YOUR CREDENTIALS
------------------------------
-Two options; pick either. Both keep the password out of the shell history,
-out of this repository, and out of any log.
+CREDENTIALS
+-----------
+Pass them in the environment, for the one command, never in a file
+(AGENTS.md: "Write no credential into a file"):
 
-1. A credentials file (easiest). Create `input/.epias_credentials`:
+    EPIAS_USERNAME='your@email' EPIAS_PASSWORD='your-password' \
+        python scripts/fetch/epias_tr.py --probe
 
-       {"username": "your@email", "password": "your-password"}
-
-   `input/` is git-ignored in its entirety (.gitignore line 90), so the file
-   cannot be committed by accident. The script reads it with no other setup.
-   Optionally `chmod 600 input/.epias_credentials`.
-
-2. Environment variables, if you prefer nothing on disk:
-
-       export EPIAS_USERNAME='your@email'
-       export EPIAS_PASSWORD='your-password'
-
-Environment variables win when both are present.
+A credentials file under input/ was read until 2026-09-18. It is no longer.
 
     python scripts/fetch/epias_tr.py --probe      # verification, writes nothing
     python scripts/fetch/epias_tr.py --years 2021 2024
@@ -56,7 +46,6 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 
 CAS = "https://giris.epias.com.tr/cas/v1/tickets"
 BASE = "https://seffaflik.epias.com.tr/electricity-service/v1"
@@ -74,11 +63,8 @@ GENERATION_PATHS = (
     "/generation/data/realtime-generation",       # operational
 )
 
-CRED_FILE = "input/.epias_credentials"
-
-
 def credentials() -> tuple[str, str]:
-    """Username and password, from the environment or the credentials file.
+    """Username and password, from the environment only.
 
     Never printed, never placed on a command line, never written anywhere.
     """
@@ -86,34 +72,10 @@ def credentials() -> tuple[str, str]:
     pwd = os.environ.get("EPIAS_PASSWORD", "")
     if user and pwd:
         return user, pwd
-
-    path = Path(os.environ.get("PYVWF_INPUT", "input")) / ".epias_credentials"
-    if not path.is_file():
-        path = Path(CRED_FILE)
-    if path.is_file():
-        try:
-            blob = json.loads(path.read_text())
-            user = str(blob.get("username", "")).strip()
-            pwd = str(blob.get("password", ""))
-        except json.JSONDecodeError:
-            # tolerate key=value lines
-            blob = {}
-            for line in path.read_text().splitlines():
-                if "=" in line and not line.strip().startswith("#"):
-                    k, v = line.split("=", 1)
-                    blob[k.strip().lower()] = v.strip().strip("'\"")
-            user, pwd = blob.get("username", ""), blob.get("password", "")
-        if user and pwd:
-            return user, pwd
-
     sys.exit(
-        "No EPİAŞ credentials found.\n\n"
-        f"  Either create {CRED_FILE} containing:\n"
-        '      {"username": "your@email", "password": "your-password"}\n'
-        "  (input/ is git-ignored, so it cannot be committed)\n\n"
-        "  Or export them:\n"
-        "      export EPIAS_USERNAME='your@email'\n"
-        "      export EPIAS_PASSWORD='your-password'\n"
+        "No EPİAŞ credentials found. Pass them in the environment for this command:\n\n"
+        "      EPIAS_USERNAME='your@email' EPIAS_PASSWORD='your-password' \\\n"
+        "          python scripts/fetch/epias_tr.py --probe\n"
     )
 
 
