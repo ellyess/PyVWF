@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""CLI: export a region's gridded correction-factor field (offer 103 artifact).
+"""CLI: export a region's gridded correction-factor field.
 
 Thin wrapper over :func:`vwf.harness.export.export_correction_field`.
 

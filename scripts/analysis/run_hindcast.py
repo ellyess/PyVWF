@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""CLI: national monthly CF hindcast in historical context (offers 068 / 015).
+"""CLI: national monthly CF hindcast in historical context.
 
 Applies a trained correction over every ERA5 year on disk for the region and
 writes a tidy monthly series with each month ranked against its own calendar
