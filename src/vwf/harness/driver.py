@@ -879,3 +879,61 @@ def run_transfer(
         },
     )
     return run_dir
+
+
+# ---------------------------------------------------------------------------
+# Public entry points for analyses that re-score recorded runs. Each is the
+# function run_train or run_evaluate itself calls, so a study scores exactly as
+# the harness does. The private names stay the harness's own.
+# ---------------------------------------------------------------------------
+
+#: Per scope: the columns that identify a row across variants, the weight
+#: column (None for the unweighted monthly aggregates) and the unit column.
+SCOPE_KEYS = _SCOPE_KEYS
+
+
+def era5_dir(spec: RegionSpec) -> Path:
+    """The ERA5 directory a region's runs load: its ``era5_path`` under the input root."""
+    return _era5_dir(spec)
+
+
+def tidy_eval_frame(
+    sim_cf: pd.DataFrame, obs_cf: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Simulated and observed monthly CFs per unit, as ``run_evaluate`` scores them."""
+    return _tidy_eval_frame(sim_cf, obs_cf, turb_info)
+
+
+def country_pairs(
+    sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Monthly national simulated and observed CF, one row per month (``ym``).
+
+    A missing side stays NaN, so several conditions can be scored on the same
+    months (``restrict_to_common_rows``).
+    """
+    return _country_pairs(sim_cf, obs_country, turb_info)
+
+
+def country_skill(
+    sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame
+) -> dict:
+    """Capacity-weighted national CF against the observed series, as monthly means."""
+    return _country_skill(sim_cf, obs_country, turb_info)
+
+
+def error_metrics(merged: pd.DataFrame) -> dict:
+    """MBE, MAE, RMSE and correlation over paired ``cf_sim`` and ``cf_obs`` columns."""
+    return _error_metrics(merged)
+
+
+def score_on_common_rows(
+    variants: list[dict], code: str, run_dir: Path
+) -> tuple[list[dict], dict]:
+    """Score every variant of one run on the rows all of them can score.
+
+    As ``run_evaluate`` does: each scope is restricted to its common complete
+    rows before any metric is computed, and the rows excluded are written to
+    ``scoring_exclusions.csv`` under ``run_dir``.
+    """
+    return _score_on_common_rows(variants, code, run_dir)

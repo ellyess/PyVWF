@@ -6,7 +6,7 @@ at one speed is exactly the shape of a result that looks like physics and is
 arithmetic, so this probes it before anything is built on it.
 
 **The condition, fixed here before the probe runs.** The offset search
-`vwf.correction._find_offset_iterative` starts at ``offset = 0`` with a step of
+`vwf.correction.find_offset_iterative` starts at ``offset = 0`` with a step of
 ``sign(obs - sim) * 10.0`` m/s and halves whenever a proposed step exceeds the
 last. If the fitted offset depends on that schedule, the pivot is where the
 tie-break lands and is an artefact. **If re-solving from several different
@@ -39,7 +39,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.correction import _find_offset_iterative
+from vwf.correction import find_offset_iterative
 from vwf.data import load_power_curves
 from vwf.datasets.era5 import prep_era5
 from vwf.harness import regions
@@ -138,7 +138,7 @@ def main(out_dir: str, *only: str) -> None:
                                        "scalar": float(f["scalar"])})
                     key = (f"offset_from_{step:g}" if cap == 100
                            else f"offset_from_{step:g}_iter{cap}")
-                    row[key] = _find_offset_iterative(
+                    row[key] = find_offset_iterative(
                         probe, arrays, max_iter=cap, initial_step=step)
             rows.append(row)
         frame = pd.DataFrame(rows)

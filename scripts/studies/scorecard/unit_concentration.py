@@ -59,7 +59,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the
 import baseline_bootstrap as bb
 from vwf.harness.driver import load_obs_and_fleet
 from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
-from vwf.harness.driver import _tidy_eval_frame
+from vwf.harness.driver import tidy_eval_frame
 from vwf.harness.regions import load_region
 from vwf.harness.skill import collapse_pseudo_replicates
 
@@ -72,7 +72,7 @@ def main(code, out_dir):
     names = {"unc": "unc_cf.csv", "cor": f"cor_cf_{bb.REPORTED[code]}.csv"}
     per_unit = {}
     for k, f in names.items():
-        t = collapse_pseudo_replicates(_tidy_eval_frame(pd.read_csv(ev / f), obs, turb_info), spec)
+        t = collapse_pseudo_replicates(tidy_eval_frame(pd.read_csv(ev / f), obs, turb_info), spec)
         t = t.dropna(subset=["cf_sim", "cf_obs", "capacity"])
         d = t.cf_sim - t.cf_obs
         t = t.assign(w=t.capacity, e=t.capacity * d**2, a=t.capacity * d.abs())

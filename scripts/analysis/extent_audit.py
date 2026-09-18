@@ -38,7 +38,7 @@ import pandas as pd
 import baseline_bootstrap as bb
 from vwf.harness.driver import load_obs_and_fleet
 from vwf.datasets.era5 import prep_era5
-from vwf.harness.driver import _era5_dir
+from vwf.harness.driver import era5_dir
 from vwf.harness.regions import load_region
 from vwf.wind import loaded_extent_coverage
 
@@ -52,7 +52,7 @@ def audit(code: str) -> dict:
     # the roughness, so the wind fields are loaded without deriving z0.
     reanalysis = prep_era5(
         spec.code, train=False, calc_z0=False, bbox=spec.bbox,
-        era5_dir=_era5_dir(spec), allow_extrapolation=True,
+        era5_dir=era5_dir(spec), allow_extrapolation=True,
     )
     record = loaded_extent_coverage(reanalysis, turb_info)
     lon_min, lon_max, lat_min, lat_max = record["loaded_extent"]

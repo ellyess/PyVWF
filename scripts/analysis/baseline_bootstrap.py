@@ -22,7 +22,7 @@ Fixed before any interval was computed, on 2026-09-11:
 
 - 1,000 draws, seed 20260911, 95% percentile intervals;
 - the resampling unit: months for country-level rows (the 12 paired monthly
-  means ``_country_skill`` scores), and units for turbine-level rows, after
+  means ``country_skill`` scores), and units for turbine-level rows, after
   the pseudo-replicate collapse;
 - paired draws: the same indices for every condition of a row;
 - a reproduction check: the rebuilt point metrics must equal the row's
@@ -83,7 +83,7 @@ from vwf.harness.bootstrap import (
     rmse_over_rows,
     weighted_rmse,
 )
-from vwf.harness.driver import _country_skill, _tidy_eval_frame, load_obs_and_fleet
+from vwf.harness.driver import country_skill, tidy_eval_frame, load_obs_and_fleet
 from vwf.harness.regions import load_region
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
 
@@ -107,7 +107,7 @@ REPORTED = {
 
 
 def country_monthly(sim_cf, obs, turb_info):
-    """The 12 paired monthly means _country_skill scores, as arrays."""
+    """The 12 paired monthly means country_skill scores, as arrays."""
     grid = [c for c in sim_cf.columns if c != "time"]
     cap = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
     valid = [c for c in grid if str(c) in cap.index]
@@ -145,9 +145,9 @@ def main(code, out_dir):
             row = metrics[(metrics.time_res == ts) & (metrics.num_clu == int(k))
                           & (metrics.variant != "uncorrected")].iloc[0]
         if spec.obs_level == "country":
-            got = _country_skill(sim, obs, turb_info)
+            got = country_skill(sim, obs, turb_info)
         else:
-            got = skill_metrics(collapse_pseudo_replicates(_tidy_eval_frame(sim, obs, turb_info), spec))
+            got = skill_metrics(collapse_pseudo_replicates(tidy_eval_frame(sim, obs, turb_info), spec))
         for m in ("rmse", "mbe"):
             repro.append({"variant": name, "metric": m, "metrics_csv": row[m], "rebuilt": got[m],
                           "abs_diff": abs(row[m] - got[m])})
@@ -169,7 +169,7 @@ def main(code, out_dir):
             return rmse_over_rows(d, idx), np.sqrt((d ** 2).mean())
         n_resampled = n
     else:
-        tidy = {nm: collapse_pseudo_replicates(_tidy_eval_frame(s, obs, turb_info), spec)
+        tidy = {nm: collapse_pseudo_replicates(tidy_eval_frame(s, obs, turb_info), spec)
                 .dropna(subset=["cf_sim", "cf_obs", "capacity"]) for nm, s in frames.items()}
         units = np.array(sorted(tidy["uncorrected"].ID.unique()))
         n = len(units)

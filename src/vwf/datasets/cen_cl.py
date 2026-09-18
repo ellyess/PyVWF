@@ -56,6 +56,11 @@ WIND = "eólica"
 DEFAULT_MIN_COVERAGE = 0.9
 
 
+def local_to_utc(timestamps: pd.Series) -> pd.Series:
+    """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC, as the adapter does."""
+    return _local_to_utc(timestamps)
+
+
 def _local_to_utc(timestamps: pd.Series) -> pd.Series:
     """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC."""
     ts = pd.to_datetime(timestamps)

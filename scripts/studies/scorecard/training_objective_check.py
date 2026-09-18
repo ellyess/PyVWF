@@ -45,7 +45,7 @@ import baseline_bootstrap as bb
 from vwf.data import cluster_train_set, load_power_curves, train_set
 from vwf.harness import driver
 from vwf.harness.regions import load_region
-from vwf.wind import _get_power_curve_cache, interpolate_wind
+from vwf.wind import power_curve_arrays, interpolate_wind
 
 
 def main(code, time_res, k, out_dir):
@@ -57,7 +57,7 @@ def main(code, time_res, k, out_dir):
         raise SystemExit("only the fixed slice is implemented: one objective per training year")
     gen_cf, turb_info, reanalysis, power_curves = train_set(
         spec.code, True, "all", obs_level=spec.obs_level,
-        source=driver.resolve_source(spec), era5_dir=driver._era5_dir(spec), bbox=spec.bbox,
+        source=driver.resolve_source(spec), era5_dir=driver.era5_dir(spec), bbox=spec.bbox,
     )
     fitted = pd.read_csv(train_dir / f"train_turb_info_{k}.csv")
     fitted["ID"] = fitted["ID"].astype(str)
@@ -68,7 +68,7 @@ def main(code, time_res, k, out_dir):
     obs_by_year = bias.groupby("year")["obs"].first()
 
     top = float(load_power_curves().iloc[:, 0].max())
-    _, curves = _get_power_curve_cache(power_curves)
+    _, curves = power_curve_arrays(power_curves)
     ws = interpolate_wind(reanalysis, turb_info)            # (time, turbine)
     ws = ws.transpose("time", "turbine")
     years = pd.DatetimeIndex(ws["time"].values).year

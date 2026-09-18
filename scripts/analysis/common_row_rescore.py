@@ -5,7 +5,7 @@ complete rows. A corrected variant with no value for some units was therefore
 compared with the uncorrected one on a different set of rows. This takes a
 row's saved evaluate frames (``unc_cf.csv``, ``cor_cf_*.csv`` under
 ``output/validation/curve_resolution_backfill_2026-09-11/``) and scores every
-variant through the fixed harness's own ``_score_on_common_rows``. It then
+variant through the fixed harness's own ``score_on_common_rows``. It then
 compares the result, variant by variant, with the row's ``metrics.csv``.
 
 Fixed before any row was rescored, on 2026-09-11:
@@ -81,9 +81,9 @@ def main(code, out_dir):
 
     def pairs(sim_cf):
         if spec.obs_level == "country":
-            return {"national": driver._country_pairs(sim_cf, obs, turb_info)}
+            return {"national": driver.country_pairs(sim_cf, obs, turb_info)}
         return {"fleet": collapse_pseudo_replicates(
-            driver._tidy_eval_frame(sim_cf, obs, turb_info), spec)}
+            driver.tidy_eval_frame(sim_cf, obs, turb_info), spec)}
 
     variants = [{
         "label": "uncorrected",
@@ -105,7 +105,7 @@ def main(code, out_dir):
     region_dir.mkdir(parents=True, exist_ok=True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        rows, scoring = driver._score_on_common_rows(variants, code, region_dir)
+        rows, scoring = driver.score_on_common_rows(variants, code, region_dir)
     new = pd.DataFrame(rows)
 
     key = ["variant", "num_clu", "time_res", "scope"]
@@ -188,7 +188,7 @@ def joint(code, out_dir, eval_dirs):
 
     def pairs(sim_cf):
         return {"fleet": collapse_pseudo_replicates(
-            driver._tidy_eval_frame(sim_cf, obs, turb_info), spec)}
+            driver.tidy_eval_frame(sim_cf, obs, turb_info), spec)}
 
     unc = pd.read_csv(eval_dirs[0] / "unc_cf.csv")
     for d in eval_dirs[1:]:
@@ -219,7 +219,7 @@ def joint(code, out_dir, eval_dirs):
         warnings.simplefilter("ignore")
         for name, variants in per_run.items():
             (scratch / name).mkdir(parents=True, exist_ok=True)
-            scored, summary = driver._score_on_common_rows([unc_variant, *variants], code, scratch / name)
+            scored, summary = driver.score_on_common_rows([unc_variant, *variants], code, scratch / name)
             old = pd.read_csv(Path([d for d in eval_dirs if d.name == name][0]) / "metrics.csv")
             for row in scored:
                 ref = old[(old["variant"] == row["variant"]) & (old["num_clu"] == row["num_clu"])
@@ -230,7 +230,7 @@ def joint(code, out_dir, eval_dirs):
                              "excluded_share": summary["fleet"]["excluded_share"]})
         pooled = [unc_variant] + [v for vs in per_run.values() for v in vs]
         (scratch / "all").mkdir(parents=True, exist_ok=True)
-        scored, summary = driver._score_on_common_rows(pooled, code, scratch / "all")
+        scored, summary = driver.score_on_common_rows(pooled, code, scratch / "all")
         for row in scored:
             rows.append({"basis": "joint", **row, "excluded_share": summary["fleet"]["excluded_share"]})
     report = pd.DataFrame(rows)

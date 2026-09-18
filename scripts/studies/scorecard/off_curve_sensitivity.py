@@ -88,7 +88,7 @@ def main(code, out_dir):
 
     obs_cf, turb_info, reanalysis, power_curves = val_set(
         spec.code, True, "all", year_test=year, obs_level=spec.obs_level,
-        source=driver.resolve_source(spec, "test"), era5_dir=driver._era5_dir(spec),
+        source=driver.resolve_source(spec, "test"), era5_dir=driver.era5_dir(spec),
         bbox=spec.bbox,
     )
     top_speed = float(load_power_curves().iloc[:, 0].max())
@@ -96,9 +96,9 @@ def main(code, out_dir):
 
     def pairs(sim_cf):
         if is_country:
-            return {"national": driver._country_pairs(sim_cf, obs_cf, turb_info)}
+            return {"national": driver.country_pairs(sim_cf, obs_cf, turb_info)}
         return {"fleet": collapse_pseudo_replicates(
-            driver._tidy_eval_frame(sim_cf, obs_cf, turb_info), spec)}
+            driver.tidy_eval_frame(sim_cf, obs_cf, turb_info), spec)}
 
     unc = pd.read_csv(ev / "unc_cf.csv", parse_dates=["time"])
     ucols = [c for c in unc.columns if c != "time"]
@@ -183,11 +183,11 @@ def main(code, out_dir):
         scratch.mkdir(exist_ok=True)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            scored, _ = driver._score_on_common_rows([base_variant, *variants], code, scratch)
+            scored, _ = driver.score_on_common_rows([base_variant, *variants], code, scratch)
         frames = {v["label"]: v["pairs"] for v in [base_variant, *variants]}
         scope = "national" if is_country else "fleet"
-        # Mean CFs over the rows scored, which _score_on_common_rows does not return.
-        keys, weight, _ = driver._SCOPE_KEYS[scope]
+        # Mean CFs over the rows scored, which score_on_common_rows does not return.
+        keys, weight, _ = driver.SCOPE_KEYS[scope]
         restricted, _ = restrict_to_common_rows(
             {k: f[scope] for k, f in frames.items()}, keys, weight=weight)
         for row, label in zip(scored, frames):

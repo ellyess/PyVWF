@@ -137,7 +137,7 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
         treatments[label] = (manifest.get("era5_roughness") or {}).get("applied")
 
     scope = "national" if is_country else "fleet"
-    keys, weight, _ = driver._SCOPE_KEYS[scope]
+    keys, weight, _ = driver.SCOPE_KEYS[scope]
 
     frames, point = {}, {}
     for label, ev in runs.items():

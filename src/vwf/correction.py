@@ -87,6 +87,18 @@ def calculate_scalar(gen_cf, time_res):
 MAX_OFFSET_RESIDUAL = 1e-4
 
 
+def find_offset_iterative(row, offset_arrays, max_iter=100, tolerance=0.002,
+                          initial_step=10.0, residual_tolerance=MAX_OFFSET_RESIDUAL):
+    """The offset search the correction fits with, for one row.
+
+    Public entry to :func:`_find_offset_iterative`, for studies that probe the
+    search itself; arguments and result are the same.
+    """
+    return _find_offset_iterative(row, offset_arrays, max_iter=max_iter, tolerance=tolerance,
+                                  initial_step=initial_step,
+                                  residual_tolerance=residual_tolerance)
+
+
 def _find_offset_iterative(row, offset_arrays,
                            max_iter=100, tolerance=0.002, initial_step=10.0,
                            residual_tolerance=MAX_OFFSET_RESIDUAL):

@@ -56,7 +56,7 @@ import baseline_bootstrap as bb
 from vwf.clustering import cluster_turbines
 from vwf.data import assign_country_clusters, load_power_curves, val_set
 from vwf.harness.corrections import fit_quality, get_correction
-from vwf.harness.driver import _era5_dir, resolve_source
+from vwf.harness.driver import era5_dir, resolve_source
 from vwf.harness.regions import load_region
 from vwf.wind import add_time_resolution_columns
 
@@ -75,7 +75,7 @@ def main(code, out_dir):
 
     _, turb_info, reanalysis, power_curves = val_set(
         spec.code, True, "all", year_test=year, obs_level=spec.obs_level,
-        source=resolve_source(spec, "test"), era5_dir=_era5_dir(spec), bbox=spec.bbox,
+        source=resolve_source(spec, "test"), era5_dir=era5_dir(spec), bbox=spec.bbox,
     )
     top_speed = float(load_power_curves().iloc[:, 0].max())
     model = get_correction(spec.correction_model)

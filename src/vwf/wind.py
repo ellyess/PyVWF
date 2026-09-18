@@ -267,6 +267,15 @@ class _CurveByModel(dict):
         return self[default]
 
 
+def power_curve_arrays(power_curves):
+    """The speeds and per-model curve arrays the simulation interpolates on.
+
+    Returns ``(speeds, curve_by_model)``, from the same cache the simulation
+    uses, so a study reads the curves exactly as they are applied.
+    """
+    return _get_power_curve_cache(power_curves)
+
+
 def _get_power_curve_cache(powerCurveFile):
     """Return cached power curve arrays for a given power curve table."""
     cache_key = id(powerCurveFile)

@@ -61,9 +61,9 @@ def _frames(ev: Path, spec, obs, turb_info, reported):
     """The uncorrected and reported-corrected paired frames of one run."""
     def pairs(sim_cf):
         if spec.obs_level == "country":
-            return driver._country_pairs(sim_cf, obs, turb_info)
+            return driver.country_pairs(sim_cf, obs, turb_info)
         return collapse_pseudo_replicates(
-            driver._tidy_eval_frame(sim_cf, obs, turb_info), spec)
+            driver.tidy_eval_frame(sim_cf, obs, turb_info), spec)
     return {
         "uncorrected": pairs(pd.read_csv(ev / "unc_cf.csv")),
         "corrected": pairs(pd.read_csv(ev / f"cor_cf_{reported}.csv")),
@@ -72,7 +72,7 @@ def _frames(ev: Path, spec, obs, turb_info, reported):
 
 def _score(frame, is_country):
     if is_country:
-        return driver._error_metrics(frame)
+        return driver.error_metrics(frame)
     return skill_metrics(frame)
 
 
@@ -113,7 +113,7 @@ def main(code, r0_dir, r1_dir, out_dir):
                     f"metrics.csv {published[f'{name}_{label}']}"
                 )
 
-    keys, weight, _ = driver._SCOPE_KEYS["national" if is_country else "fleet"]
+    keys, weight, _ = driver.SCOPE_KEYS["national" if is_country else "fleet"]
     common, excluded = restrict_to_common_rows(frames, keys, weight=weight)
     if is_country:
         n = len(common["R0_corrected"])

@@ -72,7 +72,7 @@ import vwf.wind as wind  # noqa: E402
 from vwf.clustering import cluster_turbines  # noqa: E402
 from vwf.config import PyVWFPaths  # noqa: E402
 from vwf.data import load_power_curves  # noqa: E402
-from vwf.datasets.cen_cl import _local_to_utc, wind_rows  # noqa: E402
+from vwf.datasets.cen_cl import local_to_utc, wind_rows  # noqa: E402
 from vwf.datasets.era5 import prep_era5  # noqa: E402
 from vwf.harness.corrections import get_correction  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
@@ -151,7 +151,7 @@ def _hourly_observations() -> pd.DataFrame:
     w = w[(cap > 0) & mw.notna()].copy()
     w["obs"] = (mw[w.index] / cap[w.index]).clip(lower=0.0)
     w["ID"] = w["id_central"].astype(str).str.strip()
-    w["time"] = _local_to_utc(pd.to_datetime(w["fecha_hora"]))
+    w["time"] = local_to_utc(pd.to_datetime(w["fecha_hora"]))
     return w[["ID", "time", "obs"]]
 
 
