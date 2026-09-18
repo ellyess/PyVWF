@@ -1,5 +1,12 @@
 # Leave-one-country-out for the interpolators: registered design
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-loco-interpolation/loco_interpolation.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+output under `output/loco_2026-09-13/` records no commit; the driver's last
+commit before it was written is `4a1fd79`.
+
 **Date:** 2026-09-13, committed before any fold is scored.
 **Scope:** whether IDW, ordinary kriging, RBF and nearest neighbour generalise
 across country borders, tested on the same holdouts chapter 5 used for its

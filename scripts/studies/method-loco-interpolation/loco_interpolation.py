@@ -22,7 +22,7 @@ say so.
 
 Usage, from the repository root:
 
-    PYTHONPATH=src python scripts/analysis/loco_interpolation.py <out_dir>
+    PYTHONPATH=src python scripts/studies/method-loco-interpolation/loco_interpolation.py <out_dir>
 """
 import sys
 from pathlib import Path
