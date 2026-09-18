@@ -74,3 +74,5 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/correction_identifiability.py` | `scripts/studies/method-correction-identifiability/correction_identifiability.py` | `074f648` |
 | `scripts/analysis/loco_reference_wind.py` | `scripts/studies/method-correction-identifiability/loco_reference_wind.py` | `fdb7101` |
 | `scripts/analysis/pivot_probe.py` | `scripts/studies/method-correction-identifiability/pivot_probe.py` | `1051a6c` |
+| `scripts/analysis/pool_as_training_set.py` | `scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py` | `6b0afc3` |
+| `scripts/analysis/regime_coverage.py` | `scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py` | `8a7bcb8` |

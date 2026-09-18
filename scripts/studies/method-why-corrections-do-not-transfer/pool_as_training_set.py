@@ -23,7 +23,7 @@ Read-only. Writes its tables under ``<out_dir>``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/pool_as_training_set.py <out_dir>
+        scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py <out_dir>
 """
 import importlib.util
 import sys
@@ -32,7 +32,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
     "ml_transfer_retest", REPO / "scripts" / "analysis" / "ml_transfer_retest.py")
 _ml = importlib.util.module_from_spec(_spec)

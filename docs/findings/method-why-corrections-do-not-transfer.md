@@ -1,5 +1,14 @@
 # Why correction factors do not transfer: four eliminations and one survivor
 
+**Reproduction record, added 2026-09-18.** Drivers:
+`scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py`,
+`scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py`.
+Until 2026-09-18 they were in `scripts/analysis/`, the path any command below
+uses; `scripts/studies/README.md` maps each old path to its new one. Numbers:
+neither output records a commit. The drivers' last commits before each was
+written are `6b0afc3` (`output/pool_training_2026-09-16/`, the sample-count
+elimination) and `8a7bcb8` (`output/regime_coverage_2026-09-16/`).
+
 **Date:** 2026-09-16
 **Scope:** why a bias correction fitted in some countries fails to predict the
 correction in an unseen one, whether by spatial interpolation (thesis chapter
