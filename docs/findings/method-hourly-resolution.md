@@ -1,5 +1,13 @@
 # Does the correction survive at hourly resolution? (Chile, 2024)
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-hourly-resolution/hourly_resolution_test.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+output, `output/hourly_test/cl_2024_by_aggregation.csv`, records no commit and
+was written on 2026-08-12 before the driver's first commit, `d2017f3`, that
+afternoon, so the exact producing code is not recorded.
+
 **Date:** 2026-08-12
 **Question:** every validated result in this repo scores monthly capacity
 factors. Any use of the correction inside a forecasting system would score it

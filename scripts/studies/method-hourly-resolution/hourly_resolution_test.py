@@ -51,7 +51,7 @@ misalignment that inflates hourly error and invalidates the test. The repo's own
 converter is used.
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/hourly_resolution_test.py
+        scripts/studies/method-hourly-resolution/hourly_resolution_test.py
 """
 from __future__ import annotations
 

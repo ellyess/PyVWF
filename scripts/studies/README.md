@@ -77,3 +77,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/pool_as_training_set.py` | `scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py` | `6b0afc3` |
 | `scripts/analysis/regime_coverage.py` | `scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py` | `8a7bcb8` |
 | `scripts/analysis/era5_overlap_check.py` | `scripts/studies/method-eu-rerun/era5_overlap_check.py` | `3898bdc` |
+| `scripts/analysis/hourly_resolution_test.py` | `scripts/studies/method-hourly-resolution/hourly_resolution_test.py` | `d2017f3` |
