@@ -93,6 +93,14 @@ ml = [
     "lightgbm>=4.0.0",
 ]
 
+# The TouchDesigner export (scripts/analysis/export_voronoi_frames.py) only:
+# earcut triangulates the clipped Voronoi cells, because TouchDesigner's own
+# Python has numpy but no scipy or shapely, so every polygon has to arrive as
+# flat triangles. Nothing in the package imports it.
+touchdesigner = [
+    "mapbox-earcut>=2.0.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

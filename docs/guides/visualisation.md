@@ -99,3 +99,42 @@ plot_error_vs_clusters(metrics[metrics["country"] == "DK"]).savefig("error_vs_cl
 
 Bear in mind that with one held-out test year per region, the shape of this
 curve is more informative than its exact minimum.
+
+## Animated cluster maps in TouchDesigner
+
+`scripts/analysis/export_voronoi_frames.py` exports a cluster sweep for
+[TouchDesigner](https://derivative.ca/). The output is one `.npz` file with a
+frame for every cluster count. Each frame holds the Voronoi cells of the
+cluster centroids, clipped to the region and coloured by the fitted scalar.
+
+These cells reproduce the clusters exactly. Training clusters turbines by
+k-means in longitude and latitude, so each unit belongs to its nearest
+centroid.
+
+TouchDesigner's Python has numpy but not scipy or shapely. The script
+therefore does all the geometry, and writes flat float32 triangles.
+
+1. Install the extra:
+
+   ```bash
+   pip install -e ".[touchdesigner]"
+   ```
+
+2. Train a cluster sweep with the harness. The export reads the
+   `train-k<N>/` directories under `<sweep>/<CODE>/`.
+3. Run the export:
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/export_voronoi_frames.py \
+       --sweep output/validation/<sweep> --region DK \
+       --out output/viz/dk_voronoi_frames.npz
+   ```
+
+4. Point the TouchDesigner component's file parameter at the `.npz`.
+
+The script also writes a `.json` file beside the `.npz`, with the colour
+limits and the cluster counts. The region outline comes from
+`input/reference/shapes/country_shapes.geojson`. Some islands are missing
+from that outline. A coastline file recovers them, at
+`input/reference/terrain/coastlines.geojson` by default. To skip the repair,
+pass a `--coastline` path that does not exist.

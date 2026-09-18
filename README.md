@@ -56,6 +56,7 @@ pip install -e ".[data]"    # + ENTSO-E client and Excel/Parquet readers
 pip install -e ".[dev]"     # + pytest, ruff, mypy
 pip install -e ".[docs]"    # + sphinx, myst-parser
 pip install -e ".[pinn]"    # + torch, for the experimental physics-informed correction
+pip install -e ".[touchdesigner]"  # + mapbox-earcut, for animated cluster maps
 ```
 
 PyVWF reads inputs from `input/` in the working directory; set `PYVWF_INPUT` to
