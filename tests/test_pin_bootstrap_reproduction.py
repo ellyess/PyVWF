@@ -17,6 +17,12 @@ cases skip where they are absent, which includes CI.
 Before this file was written, every case was run at 51807f8 and every file
 matched. The eu_rerun_compare invocation is not recorded anywhere; the one
 below is the one that reproduces all eight recorded comparisons exactly.
+
+The files were recorded under pandas 2.3.3, and under pandas 2 the comparison
+is byte for byte. Under pandas 3 the turbine-level rows, whose sums run over
+units, round differently in the last place (differences near 1e-17, such as a
+confidence bound of ...835 against ...834), so under pandas 3 each file is
+compared as a table: non-numeric columns exactly, numeric ones to 1e-15.
 """
 from __future__ import annotations
 
@@ -26,6 +32,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,9 +61,17 @@ def _run(script: str, args: list[str], code: str, *, extra_path: str = "") -> No
     assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
 
 
+PANDAS_MAJOR = int(pd.__version__.split(".")[0])
+
+
 def _same(produced: Path, recorded: Path, names: list[str]) -> None:
     for name in names:
-        assert filecmp.cmp(produced / name, recorded / name, shallow=False), name
+        if PANDAS_MAJOR < 3:
+            assert filecmp.cmp(produced / name, recorded / name, shallow=False), name
+            continue
+        got, want = pd.read_csv(produced / name), pd.read_csv(recorded / name)
+        pd.testing.assert_frame_equal(got, want, check_exact=False, rtol=0, atol=1e-15,
+                                      obj=name)
 
 
 def _need(*paths: Path) -> None:
