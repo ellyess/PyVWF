@@ -357,6 +357,14 @@ consumers and go without a deprecation period.
 
 ### Documentation
 
+- **Three defects found by the repository audit.** The documented
+  `docker compose` command wrote its results inside the container, where
+  `--rm` deleted them; it now passes `--out /data/output/validation`.
+  `examples/viz_demo.py` rewrote the six figures committed under `docs/img/`
+  on every run; it now writes to `output/viz_demo/` unless given
+  `--out docs/img`. The method citation on the documentation site omitted two
+  of its six authors.
+
 - **One home per fact.** `docs/README.md` states the Diataxis placement rule
   and names the home of each fact documents most often repeat; the others now
   link to it. The training guide gains "Choose the input root", the one

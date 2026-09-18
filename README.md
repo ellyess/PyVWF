@@ -103,7 +103,8 @@ the [training guide](docs/guides/training.md).
 `vwf.viz` turns a run into diagnostic figures, from distribution and QQ plots to
 maps of what the correction learned per cluster. See the
 [visualisation guide](docs/guides/visualisation.md), or run
-`python examples/viz_demo.py` for a data-free reproduction of all six.
+`python examples/viz_demo.py` for a data-free reproduction of all six, written
+to `output/viz_demo/` (`--out docs/img` regenerates the committed figures).
 
 ![Correction factor map](docs/img/viz_factor_map.png)
 
@@ -131,8 +132,13 @@ driven by tens of gigabytes of user-supplied data. `docker-compose.yml` wires
 
 ```bash
 docker compose run --rm pyvwf \
-    python scripts/analysis/validate_region.py train --region configs/regions/nz.toml
+    python scripts/analysis/validate_region.py train --region configs/regions/nz.toml \
+    --out /data/output/validation
 ```
+
+Pass `--out` under `/data/output`, the mounted path. The container's working
+directory is `/app`, so the default `output/` lands inside the container, and
+`--rm` deletes it with the container.
 
 The container runs as a non-root user (uid 1000). Bind mounts keep host
 ownership, so if your host uid differs, run as yourself with

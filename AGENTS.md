@@ -7,13 +7,17 @@ any agent working in this repository.
 ## Where to start
 
 - `README.md`: what the package does, and how to install and run it.
-- `docs/README.md`: how the documentation is organised, how findings documents
-  are named, and the writing rules for procedural documents.
+- `docs/README.md`: how the documentation is organised, where a new document
+  goes, the home of each repeated fact, how findings documents are named, and
+  the writing rules for procedural documents. State a fact in its home and
+  link to it from elsewhere.
 - `CONTRIBUTING.md`: development setup, tests and continuous integration.
 - `docs/CONTEXT.md`: the controlled vocabulary. Use its approved terms.
 - For new work, use the harness: `scripts/analysis/validate_region.py` and
   `docs/guides/training.md`. The older batch path is the last section of that
   guide.
+- To extend the project: `docs/guides/adding-a-region.md`,
+  `adding-an-adapter.md` and `adding-a-study.md`.
 
 ## Skills
 

@@ -8,10 +8,15 @@ correction factors, and the error-vs-clusters model-selection plot. No
 external data required.
 
 Run:
-    python examples/viz_demo.py
+    python examples/viz_demo.py                  # writes output/viz_demo/
+    python examples/viz_demo.py --out docs/img   # regenerates the committed figures
+
+The default keeps a demo run from rewriting the six figures committed under
+``docs/img/``, which would leave the tree dirty.
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -39,7 +44,7 @@ def _power_curve(speed: np.ndarray) -> np.ndarray:
     return np.clip(cf, 0.0, 1.0)
 
 
-def main() -> None:
+def main(out_dir: Path = Path("output/viz_demo")) -> None:
     rng = np.random.default_rng(2024)
     n = 8760
 
@@ -63,7 +68,7 @@ def main() -> None:
     }
     obs_cf = _power_curve(obs_wind_test)
 
-    out_dir = Path(__file__).resolve().parent.parent / "docs" / "img"
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     fig1 = plot_cf_distribution(obs_cf, series)
@@ -146,4 +151,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--out", type=Path, default=Path("output/viz_demo"),
+                        help="Directory for the six figures (default: output/viz_demo)")
+    main(parser.parse_args().out)
