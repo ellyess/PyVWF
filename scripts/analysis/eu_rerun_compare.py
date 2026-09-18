@@ -58,6 +58,7 @@ sys.path[:0] = [str(_HERE), str(_HERE.parent / "studies" / "method-roughness-tre
 import baseline_bootstrap as bb  # noqa: E402
 from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
 import roughness_treatment_study as rts  # noqa: E402
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.bootstrap import (  # noqa: E402
     percentile_interval,
@@ -212,10 +213,21 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
         print(frame.round(6).to_string(index=False))
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line and run :func:`main`.
+
+    ``<CODE> <out_dir> [--tag=TAG] NAME=DIR...``, with ``--tag`` anywhere.
+    """
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. SE")
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("conditions", nargs="+", metavar="NAME=DIR",
+                        help="Each condition's evaluate run, the first being the baseline")
+    parser.add_argument("--tag", default="rerun",
+                        help="Names the output files (default: rerun)")
+    args = parser.parse_intermixed_args(argv)
+    main(args.code, args.out_dir, args.conditions, tag=args.tag)
+
+
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    tags = [a for a in args if a.startswith("--tag=")]
-    args = [a for a in args if not a.startswith("--tag=")]
-    if len(args) < 3:
-        raise SystemExit(__doc__)
-    main(args[0], args[1], args[2:], tag=tags[-1].split("=", 1)[1] if tags else "rerun")
+    cli()

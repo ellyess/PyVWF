@@ -70,12 +70,12 @@ UK, US, BR, AU-NEM and NZ; the default for the others):
     PYTHONPATH=src python scripts/analysis/baseline_bootstrap.py <CODE> <out_dir>
 """
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.harness.bootstrap import (
     percentile_interval,
     resample_counts,
@@ -123,9 +123,9 @@ def country_monthly(sim_cf, obs, turb_info):
     return both
 
 
-def main(code, out_dir):
+def main(code, out_dir, backfill=BACKFILL):
     spec = load_region(Path("configs/regions/scorecard") / f"{CONFIGS[code]}.toml")
-    ev = next((BACKFILL / code).glob("evaluate-*-backfill"))
+    ev = next((Path(backfill) / code).glob("evaluate-*-backfill"))
     manifest = json.loads((ev / "run_manifest.json").read_text())
     year = int(manifest["evaluation_year"])
     metrics = pd.read_csv(ev / "metrics.csv")
@@ -226,5 +226,16 @@ def main(code, out_dir):
           f"reported {reported}; resampled {n_resampled}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<CODE> <out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--backfill", type=Path, default=BACKFILL,
+                        help=f"The rows' evaluate runs (default: {BACKFILL})")
+    args = parser.parse_args(argv)
+    main(args.code, args.out_dir, backfill=args.backfill)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    cli()

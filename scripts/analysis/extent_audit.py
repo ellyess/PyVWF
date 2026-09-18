@@ -30,13 +30,13 @@ Usage, from the repository root:
 
 With no codes it audits every row in ``baseline_bootstrap.CONFIGS``.
 """
-import sys
 from pathlib import Path
 
 import pandas as pd
 
 import baseline_bootstrap as bb
 from vwf.harness.driver import load_obs_and_fleet
+from vwf.cli.common import make_parser
 from vwf.datasets.era5 import prep_era5
 from vwf.harness.driver import era5_dir
 from vwf.harness.regions import load_region
@@ -87,7 +87,15 @@ def main(out_dir: str, codes: list[str]) -> None:
           f"{', '.join(outside) if outside else 'none'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir> [CODE ...]``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("codes", nargs="*", metavar="CODE",
+                        help="Scorecard rows to audit (default: every row in CONFIGS)")
+    args = parser.parse_args(argv)
+    main(args.out_dir, args.codes)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1], sys.argv[2:])
+    cli()

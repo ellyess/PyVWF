@@ -54,7 +54,6 @@ as in the row's manifest:
     PYTHONPATH=src python scripts/analysis/common_row_rescore.py <CODE> <out_dir> --joint DIR...
 """
 import json
-import sys
 import warnings
 from pathlib import Path
 
@@ -63,6 +62,7 @@ import pandas as pd
 
 import baseline_bootstrap as bb
 from vwf.harness.driver import load_obs_and_fleet
+from vwf.cli.common import make_parser
 from vwf.harness import driver
 from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
 from vwf.harness.regions import load_region
@@ -71,9 +71,9 @@ from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_row
 COMPARED = ("rmse", "mbe", "mae", "n_units", "n_samples", "n_months")
 
 
-def main(code, out_dir):
+def main(code, out_dir, backfill=bb.BACKFILL):
     spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
-    ev = next((bb.BACKFILL / code).glob("evaluate-*-backfill"))
+    ev = next((Path(backfill) / code).glob("evaluate-*-backfill"))
     manifest = json.loads((ev / "run_manifest.json").read_text())
     year = int(manifest["evaluation_year"])
     old = pd.read_csv(ev / "metrics.csv")
@@ -240,8 +240,25 @@ def joint(code, out_dir, eval_dirs):
                       "rmse_old", "n_units_old", "excluded_share"]].round(4).to_string(index=False))
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 3 and sys.argv[3] == "--joint":
-        joint(sys.argv[1], sys.argv[2], sys.argv[4:])
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command lines and run :func:`main` or :func:`joint`.
+
+    ``<CODE> <out_dir>`` rescores the row's backfill run;
+    ``<CODE> <out_dir> --joint DIR...`` rescores the named evaluate runs.
+    """
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. CL")
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--joint", nargs="*", metavar="DIR", default=None,
+                        help="Evaluate runs of the row to rescore alone and together")
+    parser.add_argument("--backfill", type=Path, default=bb.BACKFILL,
+                        help=f"The rows' evaluate runs, without --joint (default: {bb.BACKFILL})")
+    args = parser.parse_args(argv)
+    if args.joint is not None:
+        joint(args.code, args.out_dir, args.joint)
     else:
-        main(sys.argv[1], sys.argv[2])
+        main(args.code, args.out_dir, backfill=args.backfill)
+
+
+if __name__ == "__main__":
+    cli()
