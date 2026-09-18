@@ -38,8 +38,7 @@ docs/_build/
 # Not needed at runtime. The docs are published to Read the Docs and the
 # findings are a research record; neither belongs in a runtime image.
 docs/
-paper.md
-paper.bib
+paper/
 CHANGELOG.md
 CODE_OF_CONDUCT.md
 CONTRIBUTING.md
