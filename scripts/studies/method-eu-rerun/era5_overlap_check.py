@@ -31,7 +31,7 @@ needs a cause before the re-run proceeds.
 
 Usage, from the repository root:
 
-    PYTHONPATH=src python scripts/analysis/era5_overlap_check.py <out_dir>
+    PYTHONPATH=src python scripts/studies/method-eu-rerun/era5_overlap_check.py <out_dir>
 """
 import sys
 from pathlib import Path

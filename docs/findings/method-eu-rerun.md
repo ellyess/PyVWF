@@ -1,5 +1,16 @@
 # The eleven European rows on the per-timestep roughness and the wider ERA5 box
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-eu-rerun/era5_overlap_check.py`. Until 2026-09-18 it
+was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+re-run manifests under `output/eu_rerun_2026-09-12/` record commit `b5d47d0`,
+all 26 with a clean tree. The overlap check's output under
+`output/era5_overlap_2026-09-12/` records no commit; the driver's last commit
+before it was written is `3898bdc". The paired comparisons come from
+`scripts/analysis/eu_rerun_compare.py`, a tool that stays in place and
+reproduces them byte for byte.
+
 **Date:** 2026-09-13
 **Scope:** what changed when the eleven scorecard rows reading `era5/EU` were
 re-run on `era5/EU_2026-09`. Pre-registered in `method-eu-rerun-prereg.md`; the
