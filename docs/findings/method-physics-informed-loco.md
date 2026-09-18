@@ -1,6 +1,6 @@
-# Leaving one country out: the physics-informed model corrects national capacity factor in eight of nine countries, and fails its floor on France
+# Leaving one country out: the physics-informed model corrects national capacity factor in most European countries, and its answer depends on the training pool
 
-**Date:** 2026-09-17
+**Date:** 2026-09-17, Study B added 2026-09-18
 **Scope:** whether the physics-informed model simulates accurate monthly
 capacity factors in European countries it was never trained on, scored as the
 national monthly capacity factor on each country's single test year. Registered
@@ -12,11 +12,22 @@ national capacity-factor RMSE in eight of nine gated countries, to a median of
 29% of the uncorrected error, and recovers a median 94% of what fitting inside
 the country achieves.** It fails the registered floor gate, because in France,
 the one country whose uncorrected series was already unbiased, it imposes a
-bias and makes the error 78% worse. Terrain and fleet features beat a
-constants-only control in seven of nine countries, against the registered
-prediction. The registration requires Study B and a finer wind product before
-that is claimed as a transferable property of place, and one feature is a data
-convention that can identify a country, so it is not claimed here.
+bias and makes the error 78% worse.
+
+**Adding six non-European regions to the training pool does not help.** It
+beats the Europe-only pool in one of nine countries and is worse, beyond noise,
+in four (Study B, gate W1 fails, as predicted). It moves the answer in both
+directions: it repairs France, so no country is made worse, and it corrects
+Italy and Norway, the two most biased, less. Italy's error is 0.043 with the
+European pool and 0.076 with the world pool. For a country with no
+observations, the choice of training pool moves the national error by up to
+0.049 (Norway).
+
+Terrain and fleet features beat a constants-only control in seven of nine
+countries in both studies, against the registered prediction. One of those
+features is a data convention that can identify a country, and no finer wind
+product has been tried, so it is not claimed as a transferable property of
+place.
 
 ## Results, Study A (Europe pool)
 
@@ -93,7 +104,7 @@ ES 0.99, IE 1.00, IT 0.94, NO 1.36.
 Three of five predictions failed, and all three in the direction of the model
 doing better than predicted. They are reported as failed predictions.
 
-## What the results show
+## What Study A shows
 
 **The error being corrected is a level, not a shape.** Uncorrected ERA5 already
 tracks each country's months: Pearson r is 0.97 to 0.996 in every gated fold.
@@ -116,8 +127,10 @@ beats uncorrected in eight of nine gated folds on its own. With terrain and
 fleet features, transfer beats that control by more than the margin in seven
 of nine. The registered reading of a G3 pass is that something tied to place
 transfers across borders, which the coefficient-space studies never found.
-Two things stop it being claimed yet:
-- **The registration requires Study B and a finer wind product first.**
+Study B repeats it, 7 of 9 on a different pool (not UK, not NO). Two things
+still stop it being claimed:
+- **The registration requires a finer wind product first,** and none has been
+  tried.
 - **Hub height identifies a country on the country tier.** Every grid point in
   a country carries the same height: 80 m in IT, NO and PT, 85 m in IE, 90 m in
   FR and ES, and 100 m in BE, NL and SE. The efficiency head sees log hub height.
@@ -168,7 +181,13 @@ correction that is mostly a level shift can transfer as a level shift, while
 the local split between scalar and offset stays unpredictable. Whether the
 feature-borne part is physical is the question G3 raised and did not settle.
 
-## Deviation, recorded 2026-09-17, after the run
+**Study B agrees with the coefficient-space result where they overlap.**
+`method-why-corrections-do-not-transfer.md` eliminated regime coverage: more
+diverse training regions do not predict better transfer. Here, six regions from
+three other continents made European transfer worse in four countries and better
+in one.
+
+## Deviation, recorded 2026-09-17, after Study A ran
 
 **The features-off arm is not exactly identical across seeds.** The
 registration said its seed spread would be zero by construction. The largest
@@ -176,11 +195,92 @@ spread across folds is 6.2e-6. The seed also orders the turbine regions' unit
 minibatches, so floating-point sums differ in order. It changes no gate: G3's
 margin has a floor of 0.002.
 
-## Study B
+## Results, Study B (world pool)
 
-The world pool adds US, BR, AR, AU-NEM, CL and NZ to every fold's pool, and W1
-asks whether that beats this study's transfer arm. It was registered with this
-study and launched on 2026-09-17 after this table was shown.
+The same twelve folds and arms, with US, BR, AR, AU-NEM, CL and NZ added to every
+fold's pool. Run at `9d1767c`, clean tree, same caches as Study A. Data:
+`output/pinn_loco_2026-09-16/world/loco_world_raw.csv`, sha256
+`ffc67e4ffcf106ee400edfef2959d263f6e904091ffc1ded56ba74e304e94974`. The
+`uncorrected` and `in-country` arms do not use the pool and match Study A
+exactly.
+
+National monthly RMSE, mean over five seeds:
+
+| Fold | uncorrected | transfer, Europe (A) | transfer, world (B) | W1 margin | features-off (B) | in-country |
+|---|---|---|---|---|---|---|
+| DK | 0.1175 | 0.0198 ± 0.0016 | 0.0185 ± 0.0007 | 0.0025 | 0.0465 | 0.0298 |
+| DE | 0.0504 | 0.0145 ± 0.0009 | 0.0269 ± 0.0007 | 0.0020 | 0.0510 | 0.0073 |
+| UK | 0.0429 | 0.0375 ± 0.0363 | 0.0373 ± 0.0087 | 0.0528 | 0.0365 | 0.0307 |
+| FR | 0.0204 | 0.0362 ± 0.0004 | 0.0131 ± 0.0012 | 0.0020 | 0.0217 | 0.0115 |
+| BE | 0.1226 | 0.0343 ± 0.0054 | 0.0423 ± 0.0042 | 0.0097 | 0.0830 | 0.0163 |
+| ES | 0.0710 | 0.0188 ± 0.0026 | 0.0152 ± 0.0029 | 0.0055 | 0.0294 | 0.0173 |
+| IE | 0.0452 | 0.0190 ± 0.0019 | 0.0326 ± 0.0032 | 0.0052 | 0.0495 | 0.0191 |
+| IT | 0.1544 | 0.0432 ± 0.0025 | 0.0764 ± 0.0028 | 0.0053 | 0.1136 | 0.0188 |
+| NO | 0.1286 | 0.0513 ± 0.0021 | 0.0996 ± 0.0049 | 0.0075 | 0.1050 | 0.0794 |
+| SE, flagged | 0.0984 | 0.1132 ± 0.0008 | 0.0782 ± 0.0032 | 0.0047 | 0.0562 | 0.0182 |
+| PT, flagged | 0.1808 | 0.1112 ± 0.0028 | 0.0999 ± 0.0012 | 0.0043 | 0.1311 | 0.0271 |
+| NL, flagged | 0.2140 | 0.0918 ± 0.0025 | 0.0811 ± 0.0034 | 0.0059 | 0.1100 | 0.0182 |
+
+National monthly MBE of the transfer arm:
+
+| Fold | uncorrected | transfer, Europe (A) | transfer, world (B) |
+|---|---|---|---|
+| DK | +0.1107 | -0.0086 | +0.0017 |
+| DE | +0.0426 | +0.0125 | +0.0255 |
+| UK | +0.0370 | +0.0075 | +0.0362 |
+| FR | -0.0015 | -0.0343 | -0.0047 |
+| BE | +0.1164 | +0.0309 | +0.0394 |
+| ES | -0.0698 | -0.0138 | +0.0079 |
+| IE | +0.0353 | +0.0103 | +0.0269 |
+| IT | -0.1512 | -0.0419 | -0.0745 |
+| NO | -0.1245 | -0.0422 | -0.0929 |
+| SE, flagged | -0.0967 | -0.1104 | -0.0754 |
+| PT, flagged | -0.1771 | -0.1075 | -0.0958 |
+| NL, flagged | +0.2017 | +0.0857 | +0.0767 |
+
+Per-unit RMSE of the transfer arm for the turbine folds, world pool: DK 0.0944,
+DE 0.0709, UK 0.1328, against uncorrected 0.1475, 0.0860 and 0.1456.
+
+### Gate and prediction
+
+| Gate | Requirement | Outcome |
+|---|---|---|
+| W1 more climates | B's transfer below A's by more than the margin in at least 5 of 9 | **Fail.** 1 of 9 (FR); B worse beyond the margin in 4 (DE, IE, IT, NO) |
+
+Prediction 5, that W1 fails, **held**.
+
+Study B's own G1 to G3 are reported, not gated:
+- **G1:** transfer below uncorrected in 9 of 9, none worse by more than 10%.
+- **G2:** recovery at least 0.5 in 8 of 9, median 0.77, against A's 0.94.
+- **G3:** transfer beats features-off in 7 of 9, not the UK or Norway.
+
+### What Study B shows
+
+**Other climates do not improve European transfer.** Across the gated folds the
+median transfer error is 53% of uncorrected with the world pool, against 29%
+with Europe alone. B is worse in DE, IE, IT and NO. Italy and Norway are the
+two most negatively biased folds, and the world pool removes less of their
+bias: 0.077 of Italy's -0.151 against 0.109 with Europe alone, and 0.032 of
+Norway's -0.125 against 0.082. Germany and Ireland are biased by about +0.04,
+and the world pool leaves two to three times as much of it in place.
+
+**The pool sets the level.** Where the Europe pool over-corrected, the world pool
+lands closer: France's bias goes from -0.034 to -0.005, and the three flagged
+folds improve. Where the Europe pool corrected well, the world pool
+under-corrects. That is what a transferred correction that is mostly a pooled
+level would do when the pool changes. The features-off control moves with the
+pool too, DK from 0.035 to 0.047 and ES from 0.037 to 0.029, so the pool shifts
+even the global constants.
+
+**Neither pool is safe everywhere, and the uncorrected series cannot choose
+between them.** The European pool damages France, and the world pool leaves
+Italy and Norway with nearly twice the error. No gated fold is made worse by the world
+pool, and B's G1 passes where A's failed. That is a gain in safety bought with
+accuracy, not a better model.
+
+**The UK became stable.** The five seeds span 0.026 to 0.046, against 0.012 to
+0.101 in Study A. Per unit, transfer now beats uncorrected in the UK, 0.133
+against 0.146, where in Study A it was worse in every seed.
 
 ## Caveats
 

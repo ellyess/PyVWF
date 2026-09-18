@@ -7,10 +7,10 @@ documents it names, not here.
 
 ## In flight
 
-- **Study B of the physics-informed leave-one-country-out**, the world pool,
-  launched 2026-09-17 (`method-physics-informed-loco-prereg.md`). Study A is
-  done: transfer corrects national capacity factor in 8 of 9 gated countries
-  and fails its floor gate on France (`method-physics-informed-loco.md`).
+Nothing. The physics-informed leave-one-country-out finished on 2026-09-18,
+both studies (`method-physics-informed-loco.md`): transfer corrects national
+capacity factor in most European countries, fails its floor on France with a
+European pool, and adding non-European regions does not help (W1 fails).
 
 ## Where the manuscript stands
 

@@ -149,7 +149,7 @@ Read in order. A gate is not read until the one before it has been.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **W1** more climates | B's `transfer` national RMSE is below A's by more than max(0.002, twice the square root of the mean of the two runs' seed variances) in at least 5 of 9 gated folds. | Pending: Study B. |
+| **W1** more climates | B's `transfer` national RMSE is below A's by more than max(0.002, twice the square root of the mean of the two runs' seed variances) in at least 5 of 9 gated folds. | **Fail.** 1 of 9 (FR); B worse beyond the margin in 4 (DE, IE, IT, NO). |
 
 B's G1 to G3 are computed and reported, not gated.
 
@@ -161,7 +161,7 @@ B's G1 to G3 are computed and reported, not gated.
 | 2 | G2 fails: in most defined folds, transfer recovers less than half of the in-country gain. | **Failed.** G2 passed. |
 | 3 | G3 fails: `features-off` is within the margin of `transfer` in at least 5 of 9 gated folds. | **Failed.** G3 passed, 7 of 9. |
 | 4 | Across gated folds, the transfer arm's national RMSE reduction from `uncorrected` rises with the uncorrected arm's absolute national MBE (Spearman above 0). | **Held.** Spearman +0.92 across the nine gated folds. |
-| 5 | W1 fails, as the regime-coverage elimination predicts. | Pending: Study B. |
+| 5 | W1 fails, as the regime-coverage elimination predicts. | **Held.** W1 failed, 1 of 9. |
 
 ## What this does not compare against, and why
 
@@ -311,6 +311,35 @@ gate: G3's margin has a floor of 0.002.
 - **Off-curve shares** are at most 0.002% of capacity-weighted unit-days.
 - **Units with no wind:** DK drops 15 training units and 47 test units, and no
   other country drops any.
+
+## Study B run record, 2026-09-18
+
+Filled in after the run. The table and its interpretation are in
+`method-physics-informed-loco.md`.
+
+**Data.** `output/pinn_loco_2026-09-16/world/`: `loco_world_raw.csv` sha256
+`ffc67e4ffcf106ee400edfef2959d263f6e904091ffc1ded56ba74e304e94974`,
+`loco_world_gates.json` sha256
+`495ec1772a395b01c2196e3834d2e38679c7c2ceeda0afb1341728e09d5a8134`. W1 was
+computed from the two raw tables, independently of the script.
+
+**The first launch died part-way and was repeated in full, as committed.** It
+started at 12:35 BST on 2026-09-17 from `9d1767c`. It completed the DK, DE, UK and
+FR folds and was killed during BE, some time after 14:53, with no traceback and
+no exit line. The system log shows no memory kill and no sleep, so the cause is
+not established. Its outputs are kept, unused, in
+`output/pinn_loco_2026-09-16/world_interrupted_2026-09-17T1235/`. The run that
+counts started at 23:55 BST from the same commit, with the registered command,
+and finished with exit 0.
+
+**Records.** G0's fields hold for Study B: its manifest records `9d1767c` and
+`git_dirty: false`, the library hash matches, and there is no substituted unit.
+Roughness is `derived` in every cache. The `uncorrected` and `in-country` arms
+match Study A exactly, as they must, since neither uses the pool. No month was
+excluded, and the off-curve share is zero.
+
+**Study B's own G1 to G3, reported and not gated:** G1 9 of 9 below uncorrected
+and none worse by more than 10%; G2 8 of 9; G3 7 of 9.
 
 ## Seen before registration
 
