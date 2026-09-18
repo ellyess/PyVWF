@@ -147,6 +147,11 @@ consumers and go without a deprecation period.
   the one dependency the script imported without declaring, and the
   visualisation guide now documents the export.
 
+- **Every run manifest records its environment**: the Python version and the
+  installed versions of the scientific stack (numpy, pandas, scipy,
+  scikit-learn, xarray and the rest), in an `environment` block, with an
+  absent optional package recorded as missing. Numbers have been shown to move
+  with these versions, and until now a manifest could not say which were used.
 - **`pyvwf-validate`**, a console entry for the validation harness: train,
   evaluate or transfer one region from its config. An installed PyVWF exposed
   only `pyvwf-train`, the legacy path. `scripts/analysis/validate_region.py`

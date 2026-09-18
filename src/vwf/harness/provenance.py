@@ -1,7 +1,8 @@
 """Run provenance: make every harness output self-describing.
 
 Every run directory gets a ``run_manifest.json`` recording the package
-version, git state, region config, observation granularity caveats, and
+version, git state, Python and library versions, region config, observation
+granularity caveats, and
 (the reason this module exists) the identity of the curve library that
 produced the numbers. Any result that turns on real rather than bundled
 curves is only reportable from a manifest whose ``curve_library.library`` is
@@ -16,6 +17,8 @@ import functools
 import hashlib
 import json
 import platform
+import sys
+from importlib import metadata
 import subprocess
 import warnings
 from datetime import datetime, timezone
@@ -32,6 +35,16 @@ from vwf.harness.regions import RegionSpec
 from vwf.wind import default_curve_key
 
 MANIFEST_NAME = "run_manifest.json"
+
+#: Distributions whose versions every manifest records. The numbers depend on
+#: them: a random forest's scores moved in the third decimal between
+#: scikit-learn 1.7.2 and 1.9.1, and pandas 3 changed the last digit of
+#: unit-level sums. Optional extras are recorded when installed.
+ENVIRONMENT_PACKAGES = (
+    "numpy", "pandas", "scipy", "scikit-learn", "xarray", "dask", "netCDF4",
+    "bottleneck", "geopandas", "shapely", "pyproj", "matplotlib",
+    "torch", "pykrige", "rasterio",
+)
 
 
 def _sha256(path: Path) -> str:
@@ -244,6 +257,21 @@ def _git_state() -> dict[str, Any]:
         return {"git_commit": None, "git_dirty": None}
 
 
+def environment() -> dict[str, Any]:
+    """The Python version and the installed versions of the scientific stack.
+
+    A distribution that is not installed is recorded as None, so a manifest
+    says what was absent as well as what was present.
+    """
+    packages: dict[str, str | None] = {}
+    for name in ENVIRONMENT_PACKAGES:
+        try:
+            packages[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            packages[name] = None
+    return {"python": sys.version.split()[0], "packages": packages}
+
+
 def build_manifest(
     spec: RegionSpec | None = None,
     *,
@@ -264,6 +292,7 @@ def build_manifest(
         **_git_state(),
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "platform": platform.platform(),
+        "environment": environment(),
         "curve_library": curve_library_identity(),
     }
 
