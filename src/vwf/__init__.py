@@ -58,10 +58,6 @@ from vwf.viz import (
     plot_sim_vs_obs,
 )
 
-#: Retained for backwards compatibility; always True now that the
-#: visualisation layer's dependencies are core.
-HAS_VIZ = True
-
 # ============================================================================
 # PUBLIC API
 # ============================================================================
@@ -95,5 +91,4 @@ __all__ = [
     "plot_factor_joint",
     "plot_qq",
     "plot_sim_vs_obs",
-    "HAS_VIZ",
 ]

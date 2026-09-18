@@ -62,6 +62,11 @@ consumers and go without a deprecation period.
   `COUNTRY_LEVEL_DIR`.** Use `vwf.config.PyVWFPaths`.
 - **Removed `vwf.clustering.HAS_SHAPELY` and `HAS_GEOPANDAS`.** Both
   libraries are core dependencies.
+- **Removed `vwf.HAS_VIZ`**, always true since the visualisation
+  dependencies became core, and **the re-exports of `load_turbine_metadata`
+  and `load_turbine_observations` from `vwf.data`**. Import them from `vwf` or
+  `vwf.loaders`. **Removed the alias `vwf.data.add_time_res`**; the function is
+  `vwf.time_utils.add_time_resolution_columns`.
 
 ### Added
 

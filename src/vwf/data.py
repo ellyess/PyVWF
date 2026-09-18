@@ -13,10 +13,6 @@ Observation Sources (see vwf.sources):
     ObservationSource adapters. prep_country dispatches to one, resolved from the
     country code and obs_level unless an explicit source is passed.
 
-Data Loaders (re-exported from vwf.loaders):
-    load_turbine_metadata: Load turbine metadata for DK, DE, UK
-    load_turbine_observations: Load turbine-level generation data
-
 Supporting Functions:
     prep_country: Load observations and metadata via an ObservationSource
     clean_obs_data: Filter and clean observation data
@@ -61,10 +57,6 @@ import vwf.correction as correction
 # Import from new utility modules
 from vwf.config import PyVWFPaths
 from vwf.time_utils import add_time_resolution_columns
-from vwf.loaders import (  # noqa: F401  (re-exported for backward compatibility)
-    load_turbine_metadata,
-    load_turbine_observations,
-)
 from vwf.sources import InMemoryCountrySource, ObservationSource, resolve
 from vwf.sources.base import ObsLevel
 
@@ -101,13 +93,6 @@ def _default_power_curve(power_curves: pd.DataFrame) -> str:
         raise ValueError("power_curves has no turbine model columns.")
     return key
 
-
-# ============================================================================
-# DATA LOADING (Re-exported from vwf.loaders for backward compatibility)
-# ============================================================================
-# The following functions are now imported from vwf.loaders:
-# - load_turbine_metadata
-# - load_turbine_observations
 
 # ============================================================================
 # DATA PREPROCESSING AND ORCHESTRATION
@@ -487,7 +472,7 @@ def train_set(
         else:
             # Merge with country-wide observations (same obs for all grid points)
             gen_cf = sim_long.merge(obs_country, on=["year", "month"], how="inner")
-        gen_cf = add_time_res(gen_cf)
+        gen_cf = add_time_resolution_columns(gen_cf)
 
         return gen_cf.reset_index(drop=True), turb_info, reanalysis, power_curves
 
@@ -530,7 +515,7 @@ def train_set(
     sim_cf = sim_cf.groupby(pd.Grouper(key="time", freq="ME")).mean().reset_index()
     sim_cf = sim_cf.melt(id_vars=["time"], var_name="ID", value_name="sim")
     sim_cf = add_times(sim_cf)
-    sim_cf = add_time_res(sim_cf)
+    sim_cf = add_time_resolution_columns(sim_cf)
     sim_cf["ID"] = sim_cf["ID"].astype(str)
     obs_cf["ID"] = obs_cf["ID"].astype(str)
 
@@ -1003,6 +988,3 @@ def add_times(df):
     df["year"] = df["year"].astype(int)
     return df
 
-
-# Backward compatibility alias for add_time_res (now in vwf.time_utils)
-add_time_res = add_time_resolution_columns
