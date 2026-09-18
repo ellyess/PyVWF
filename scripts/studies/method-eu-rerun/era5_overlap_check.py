@@ -38,6 +38,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from vwf.cli.common import make_parser
 import xarray as xr
 
 OLD_DIR = Path("input/era5/EU")
@@ -57,18 +59,19 @@ def _standardise(ds: xr.Dataset) -> xr.Dataset:
     return ds.rename({k: v for k, v in renames.items() if k in ds.coords or k in ds.dims})
 
 
-def _old_year(year: int) -> xr.Dataset:
-    return _standardise(xr.open_dataset(OLD_DIR / f"era5_combined_{year}_EU.nc"))
+def _old_year(year: int, old_dir: Path = OLD_DIR) -> xr.Dataset:
+    return _standardise(xr.open_dataset(Path(old_dir) / f"era5_combined_{year}_EU.nc"))
 
 
-def _new_month(year: int, month: int) -> xr.Dataset:
-    return _standardise(xr.open_dataset(NEW_DIR / f"era5_eu_2026-09_{year}_{month:02d}.nc"))
+def _new_month(year: int, month: int, new_dir: Path = NEW_DIR) -> xr.Dataset:
+    return _standardise(xr.open_dataset(Path(new_dir) / f"era5_eu_2026-09_{year}_{month:02d}.nc"))
 
 
-def compare_month(year: int, month: int) -> dict:
+def compare_month(year: int, month: int, old_dir: Path = OLD_DIR,
+                  new_dir: Path = NEW_DIR) -> dict:
     """One month of one year, on the sampled cells of the overlap."""
-    old = _old_year(year)
-    new = _new_month(year, month)
+    old = _old_year(year, old_dir)
+    new = _new_month(year, month, new_dir)
     # The overlap is the old extent; sample it the same way on both sides by
     # selecting the old coordinates after the stride, so a grid registration
     # difference shows up as a missing label rather than as a silent shift.
@@ -98,13 +101,13 @@ def compare_month(year: int, month: int) -> dict:
     return row
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, old_dir: Path = OLD_DIR, new_dir: Path = NEW_DIR) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     rows = []
     for year in YEARS:
         for month in MONTHS:
-            rows.append(compare_month(year, month))
+            rows.append(compare_month(year, month, old_dir, new_dir))
             r = rows[-1]
             worst = max(r[f"{v}_max_abs_diff"] for v in VARIABLES)
             print(f"{year}-{month:02d}: {r['cells']} cells x {r['hours']} hours, "
@@ -129,7 +132,17 @@ def main(out_dir: str) -> None:
         sys.exit(1)
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--old-dir", type=Path, default=OLD_DIR,
+                        help=f"The annual combined ERA5 files (default: {OLD_DIR})")
+    parser.add_argument("--new-dir", type=Path, default=NEW_DIR,
+                        help=f"The 2026-09 monthly ERA5 files (default: {NEW_DIR})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, old_dir=args.old_dir, new_dir=args.new_dir)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

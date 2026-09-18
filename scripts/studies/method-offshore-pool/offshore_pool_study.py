@@ -33,12 +33,12 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-offshore-pool/offshore_pool_study.py <out_dir>
 """
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.datasets.era5 import prep_era5
 from vwf.data import load_power_curves
 from vwf.extensions.grid import evaluate, surface
@@ -48,7 +48,6 @@ from vwf.wind import interpolate_wind
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 RUNS = Path("output/runs/turbine_grid")
 SHAPES = Path("input/reference/shapes")
-ONSHORE, OFFSHORE = SHAPES / "country_shapes.geojson", SHAPES / "offshore_shapes.geojson"
 
 #: The chapter's target grid.
 GRID_LON = np.arange(-10.0, 30.01, 0.25)
@@ -68,13 +67,13 @@ PUBLISHED_UNCORRECTED = {"DK offshore": 0.0822, "DK onshore": 0.129,
                          "UK offshore": 0.160, "UK onshore": 0.081}
 
 
-def run_dir(code: str, mode: str) -> Path:
-    return RUNS / f"{code}-{mode}-obs_turbine-corrected-calc_z0"
+def run_dir(code: str, mode: str, runs: Path = RUNS) -> Path:
+    return Path(runs) / f"{code}-{mode}-obs_turbine-corrected-calc_z0"
 
 
-def load_row(code: str, mode: str, year: int, clusters: int) -> dict:
+def load_row(code: str, mode: str, year: int, clusters: int, runs: Path = RUNS) -> dict:
     """The chapter-era fleet, observations and cluster-based comparison."""
-    base = run_dir(code, mode)
+    base = run_dir(code, mode, runs)
     fleet = pd.read_csv(base / "training" / "simulated-turbines" /
                         f"{code}_{year}_turb_info.csv")
     results = base / "results" / "capacity-factor"
@@ -84,24 +83,27 @@ def load_row(code: str, mode: str, year: int, clusters: int) -> dict:
             "uncorrected_cf": pd.read_csv(results / f"{code}_{year}_unc_cf.csv")}
 
 
-def pools(pool: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def pools(pool: pd.DataFrame, shapes: Path = SHAPES) -> dict[str, pd.DataFrame]:
     """The two conditions, as two frames differing only in their domain column.
 
     P1's ``unknown`` points, which the shapes place in neither domain, join
     onshore. The declared rule does the same with country-level points.
     """
     p0 = pool.assign(domain=surface.declared_domains(pool, domain_col="cluster_mode"))
-    shapes = categorize_points_spatial_join(
-        pool, onshore_geojson=ONSHORE, offshore_geojson=OFFSHORE)
-    p1 = pool.assign(domain=np.where(shapes.to_numpy() == "offshore", "offshore", "onshore"))
+    by_shape = categorize_points_spatial_join(
+        pool, onshore_geojson=Path(shapes) / "country_shapes.geojson",
+        offshore_geojson=Path(shapes) / "offshore_shapes.geojson")
+    p1 = pool.assign(domain=np.where(by_shape.to_numpy() == "offshore", "offshore", "onshore"))
     return {"P0": p0, "P1": p1}
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL, runs: Path = RUNS, shapes: Path = SHAPES) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
-    conditions = pools(pool)
+    onshore = Path(shapes) / "country_shapes.geojson"
+    offshore = Path(shapes) / "offshore_shapes.geojson"
+    pool = pd.read_csv(pool_path)
+    conditions = pools(pool, shapes)
     for name, frame in conditions.items():
         counts = frame["domain"].value_counts().to_dict()
         print(f"{name}: onshore {counts.get('onshore', 0)}, "
@@ -111,8 +113,8 @@ def main(out_dir: str) -> None:
     for name, frame in conditions.items():
         print(f"\nbuilding the {name} surface ...", flush=True)
         surfaces[name] = surface.correction_surface(
-            frame, GRID_LON, GRID_LAT, onshore_geojson=ONSHORE,
-            offshore_geojson=OFFSHORE, domain_col="domain", method="kriging")
+            frame, GRID_LON, GRID_LAT, onshore_geojson=onshore,
+            offshore_geojson=offshore, domain_col="domain", method="kriging")
         print(f"  {name}: {surfaces[name].attrs['n_control_points_onshore']} onshore, "
               f"{surfaces[name].attrs['n_control_points_offshore']} offshore", flush=True)
 
@@ -121,7 +123,7 @@ def main(out_dir: str) -> None:
     for code, mode, year, clusters in ROWS:
         label = f"{code} {mode}"
         print(f"\n=== {label}", flush=True)
-        data = load_row(code, mode, year, clusters)
+        data = load_row(code, mode, year, clusters, runs)
         fleet = data["fleet"]
         reanalysis = prep_era5(code, False, True, bbox=BBOX[code], era5_dir=None)
         reanalysis = reanalysis.sel(time=str(year))
@@ -166,7 +168,19 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out / 'offshore_pool_results.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument("--runs", type=Path, default=RUNS,
+                        help=f"The chapter's thesis-era runs (default: {RUNS})")
+    parser.add_argument("--shapes", type=Path, default=SHAPES,
+                        help=f"The onshore and offshore GeoJSON directory (default: {SHAPES})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool, runs=args.runs, shapes=args.shapes)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

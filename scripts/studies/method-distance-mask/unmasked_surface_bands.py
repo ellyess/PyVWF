@@ -37,18 +37,17 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-distance-mask/unmasked_surface_bands.py <out_dir>
 """
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.extensions.grid import interpolation as interp, surface
 from vwf.extensions.grid.surface import PLAUSIBLE_SCALAR, flag_implausible, zero_crossing_speed
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 SHAPES = Path("input/reference/shapes")
-ONSHORE, OFFSHORE = SHAPES / "country_shapes.geojson", SHAPES / "offshore_shapes.geojson"
 
 GRID_LON = np.arange(-10.0, 30.01, 0.25)
 GRID_LAT = np.arange(35.0, 72.01, 0.25)
@@ -81,10 +80,12 @@ def bands(distance: np.ndarray) -> pd.Categorical:
                   include_lowest=True)
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL, shapes: Path = SHAPES) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
+    onshore = Path(shapes) / "country_shapes.geojson"
+    offshore = Path(shapes) / "offshore_shapes.geojson"
 
     lon_grid, lat_grid = np.meshgrid(GRID_LON, GRID_LAT)
     flat_lon, flat_lat = lon_grid.ravel(), lat_grid.ravel()
@@ -102,8 +103,8 @@ def main(out_dir: str) -> None:
     great_circle_km = interp.distance_to_nearest(pool, flat_lon, flat_lat,
                                                  metric="great_circle")
 
-    on_area = surface.area_mask(GRID_LON, GRID_LAT, ONSHORE, name="on").values.ravel()
-    off_area = surface.area_mask(GRID_LON, GRID_LAT, OFFSHORE, name="off").values.ravel()
+    on_area = surface.area_mask(GRID_LON, GRID_LAT, onshore, name="on").values.ravel()
+    off_area = surface.area_mask(GRID_LON, GRID_LAT, offshore, name="off").values.ravel()
 
     corrected = REFERENCE_SPEED * scalar + offset
     cells = pd.DataFrame({
@@ -222,7 +223,17 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out / 'unmasked_surface_cells.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument("--shapes", type=Path, default=SHAPES,
+                        help=f"The onshore and offshore GeoJSON directory (default: {SHAPES})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool, shapes=args.shapes)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

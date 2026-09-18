@@ -26,11 +26,11 @@ Usage, from the repository root:
         scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py <out_dir>
 """
 import importlib.util
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.extensions.grid.surface import flag_implausible, zero_crossing_speed  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
@@ -41,7 +41,7 @@ _spec.loader.exec_module(_ml)
 
 POOL = REPO / "output/pyvwf_to_grid/all_corrections_centroids.csv"
 RUNS = REPO / "output/runs/turbine_grid"
-DK_FINAL = REPO / "output/cluster_selection_2026-09-15/DK/train-onshore-final"
+SEL = REPO / "output/cluster_selection_2026-09-15"
 
 #: The terrain features the ML transfer work used, so coverage is measured in
 #: the space the model actually sees.
@@ -86,14 +86,15 @@ def coverage(frame: pd.DataFrame, reference: pd.DataFrame) -> dict:
             "5pct_nn_distance": round(float(np.percentile(d.min(1), 5)), 4)}
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL, runs: Path = RUNS,
+         selection: Path = SEL) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
     print("=== 1. Feature-space coverage: Denmark onshore at 884 against 200")
     frames = {}
     for k in (884, 200, 100):
-        info = pd.read_csv(DK_FINAL / f"train_turb_info_{k}.csv")
+        info = pd.read_csv(Path(selection) / "DK" / "train-onshore-final" / f"train_turb_info_{k}.csv")
         c = centroids(info).assign(region="DK")
         frames[k] = _ml.terrain_features(c)
     rows = [{"clustering": f"k={k}", **coverage(f, frames[884])}
@@ -103,7 +104,7 @@ def main(out_dir: str) -> None:
     table.to_csv(out / "dk_onshore_coverage.csv", index=False)
 
     print("\n=== 2. Label quality across the pool")
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
     # Country rows carry cluster membership in the fleet file, so their unit
     # counts join exactly. Turbine rows do not: the chapter-era runs stored no
     # per-cluster membership, so their cluster sizes are taken from the
@@ -114,7 +115,7 @@ def main(out_dir: str) -> None:
     units = []
     for code, year in (("BE",2023),("ES",2023),("FR",2023),("IE",2023),("IT",2023),
                        ("NL",2023),("NO",2023),("PT",2023),("SE",2023)):
-        info = pd.read_csv(RUNS / f"{code}-all-obs_country-corrected-calc_z0" /
+        info = pd.read_csv(Path(runs) / f"{code}-all-obs_country-corrected-calc_z0" /
                            "training" / "simulated-turbines" / f"{code}_{year}_turb_info.csv")
         n = info.groupby("cluster").size().rename("units").reset_index()
         n["country_code"] = code
@@ -122,7 +123,7 @@ def main(out_dir: str) -> None:
     counts = pd.concat(units, ignore_index=True)
     merged = pool.merge(counts, on=["country_code", "cluster"], how="left")
 
-    SEL = REPO / "output/cluster_selection_2026-09-15"
+    sel = Path(selection)
     turbine_sizes = {}
     for pool_code, region, mode, k in (("DE-onshore","DE","onshore",500),
                                        ("DK-offshore","DK","offshore",2),
@@ -133,8 +134,8 @@ def main(out_dir: str) -> None:
         # mode, the three clean rows predate it. Missing is reported, not
         # skipped: a row that quietly vanishes from a table is the same defect
         # as a detector that never fires.
-        candidates = [SEL / region / f"train-{mode}-final" / f"train_turb_info_{k}.csv",
-                      SEL / region / "train-final" / f"train_turb_info_{k}.csv"]
+        candidates = [sel / region / f"train-{mode}-final" / f"train_turb_info_{k}.csv",
+                      sel / region / "train-final" / f"train_turb_info_{k}.csv"]
         found = next((c for c in candidates if c.is_file()), None)
         if found is None:
             raise FileNotFoundError(
@@ -180,7 +181,19 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument("--runs", type=Path, default=RUNS,
+                        help=f"The chapter's thesis-era runs (default: {RUNS})")
+    parser.add_argument("--selection", type=Path, default=SEL,
+                        help=f"The cluster selection runs (default: {SEL})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool, runs=args.runs, selection=args.selection)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

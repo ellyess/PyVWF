@@ -37,6 +37,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb  # noqa: E402
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.bootstrap import (  # noqa: E402
@@ -187,5 +188,16 @@ def main(code, r0_dir, r1_dir, out_dir):
         print(out.to_string(index=False))
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<CODE> <R0 dir> <R1 dir> <out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
+    parser.add_argument("r0_dir", help="The R0 evaluate run (annual-mean roughness)")
+    parser.add_argument("r1_dir", help="The R1 evaluate run (per-timestep roughness)")
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    args = parser.parse_args(argv)
+    main(args.code, args.r0_dir, args.r1_dir, args.out_dir)
+
+
 if __name__ == "__main__":
-    main(*sys.argv[1:5])
+    cli()

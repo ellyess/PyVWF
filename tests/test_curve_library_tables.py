@@ -29,7 +29,7 @@ def frame(ids, models, capacity=None, diameter=None):
 
 
 def fleets(monkeypatch, train, test):
-    monkeypatch.setattr(tables, "train_fleet_of", lambda code: train)
+    monkeypatch.setattr(tables, "train_fleet_of", lambda code, inputs=None: train)
     monkeypatch.setattr(tables, "test_fleet_of", lambda code: test)
 
 

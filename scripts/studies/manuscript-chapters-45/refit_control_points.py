@@ -35,11 +35,11 @@ Usage, from the repository root:
         scripts/studies/manuscript-chapters-45/refit_control_points.py <out_dir> [stem ...]
 """
 import dataclasses
-import sys
 from pathlib import Path
 
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.extensions.grid.surface import (
     MAX_ZERO_CROSSING_SPEED,
     PLAUSIBLE_SCALAR,
@@ -66,9 +66,9 @@ def screen(frame: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def main(out_dir: str, *stems: str) -> None:
+def main(out_dir: str, *stems: str, pool_path: Path = POOL) -> None:
     out = Path(out_dir)
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
     results = []
 
     for stem in (stems or DEFAULT_STEMS):
@@ -106,7 +106,17 @@ def main(out_dir: str, *stems: str) -> None:
     print(f"\nwritten: {out / 'refit_control_points.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir> [stem ...]``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the run directories, under output/")
+    parser.add_argument("stems", nargs="*", metavar="stem",
+                        help="Region stems to refit (default: all)")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, *args.stems, pool_path=args.pool)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1], *sys.argv[2:])
+    cli()

@@ -28,11 +28,12 @@ Usage, from the repository root:
         scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py <out_dir>
 """
 import importlib.util
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from vwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
@@ -66,10 +67,11 @@ def cells(z: np.ndarray) -> set:
                                         for i in range(z.shape[1])], 1)}
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL, loco_path: Path = LOCO,
+         refresh: Path = REFRESH) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
     pool = pd.concat([featurise(g, code) for code, g in pool.groupby("country_code")])
     pool["fold"] = pool["country_code"].map(FOLD_OF).fillna(pool["country_code"])
 
@@ -86,7 +88,7 @@ def main(out_dir: str) -> None:
     rows = []
     base = cells(z_pool)
     for region, k in CANDIDATES.items():
-        f = REFRESH / region / "train-refresh" / f"train_turb_info_{k}.csv"
+        f = Path(refresh) / region / "train-refresh" / f"train_turb_info_{k}.csv"
         if not f.is_file():
             raise FileNotFoundError(f"no fleet for {region} at {f}")
         other = featurise(pd.read_csv(f), region)
@@ -102,7 +104,7 @@ def main(out_dir: str) -> None:
     added.to_csv(out / "candidate_regions.csv", index=False)
 
     print("\n=== 3. does coverage explain the holdouts?")
-    loco = pd.read_csv(LOCO)
+    loco = pd.read_csv(loco_path)
     loco = loco[(loco.metric == "great_circle") & (loco.method == "idw")]
     rows = []
     for fold, held in pool.groupby("fold"):
@@ -137,7 +139,19 @@ def main(out_dir: str) -> None:
           "either, and that is the result.")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument("--loco", type=Path, default=LOCO,
+                        help=f"The LOCO reference-wind scores (default: {LOCO})")
+    parser.add_argument("--refresh", type=Path, default=REFRESH,
+                        help=f"The refresh runs holding each region's fleet (default: {REFRESH})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool, loco_path=args.loco, refresh=args.refresh)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

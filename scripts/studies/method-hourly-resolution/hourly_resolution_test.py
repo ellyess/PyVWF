@@ -69,6 +69,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 import vwf.wind as wind  # noqa: E402
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.clustering import cluster_turbines  # noqa: E402
 from vwf.config import PyVWFPaths  # noqa: E402
 from vwf.data import load_power_curves  # noqa: E402
@@ -85,6 +86,7 @@ NUM_CLU = 10
 TIME_RES = "fixed"
 TRAIN_RUN = Path("output/validation/cl_matched_2026-07-24/CL/train-matched")
 RAW_CEN = Path("input/raw/cen")
+OUT = Path("output/hourly_test")
 MONTHLY_REFERENCE = (0.12271, 0.10398)  # known CL monthly uncorrected -> corrected
 
 
@@ -135,11 +137,11 @@ def _simulate_year(spec, clus_info, power_curves, factors, model, *, daily: bool
             pd.concat(cor_parts, ignore_index=True))
 
 
-def _hourly_observations() -> pd.DataFrame:
+def _hourly_observations(raw_cen: Path = RAW_CEN) -> pd.DataFrame:
     """CEN hourly wind capacity factors for YEAR, on naive UTC timestamps."""
     frames = []
     for month in range(1, 13):
-        path = RAW_CEN / f"cen_gen_{YEAR}_{month:02d}.json"
+        path = Path(raw_cen) / f"cen_gen_{YEAR}_{month:02d}.json"
         if not path.exists():
             continue
         frames.append(pd.DataFrame(json.load(open(path))))
@@ -162,14 +164,14 @@ def _long(cf: pd.DataFrame, name: str) -> pd.DataFrame:
     return out
 
 
-def main() -> int:
+def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) -> int:
     spec = load_region(Path("configs/regions/cl.toml"))
     source = get_source(spec.source, spec.code)
 
     turb_info = source.load_metadata()
     power_curves = load_power_curves()
-    train_fleet = pd.read_csv(TRAIN_RUN / f"train_turb_info_{NUM_CLU}.csv")
-    factors = pd.read_csv(TRAIN_RUN / f"factors_{TIME_RES}_{NUM_CLU}.csv")
+    train_fleet = pd.read_csv(Path(train_run) / f"train_turb_info_{NUM_CLU}.csv")
+    factors = pd.read_csv(Path(train_run) / f"factors_{TIME_RES}_{NUM_CLU}.csv")
     clus_info = cluster_turbines(NUM_CLU, train_fleet, False, turb_info)
     model = get_correction(spec.correction_model)
 
@@ -181,7 +183,7 @@ def main() -> int:
     unc_d, cor_d = _simulate_year(
         spec, clus_info, power_curves, factors, model, daily=True)
 
-    obs = _hourly_observations()
+    obs = _hourly_observations(raw_cen)
     print(f"CEN hourly rows: {len(obs):,} across {obs['ID'].nunique()} plants")
 
     hourly = (
@@ -281,12 +283,29 @@ def main() -> int:
     print(f"  G3 bias reduced:       |{h['cor_mbe']:+.4f}| < |{h['unc_mbe']:+.4f}|"
           f"   [{'PASS' if g3 else 'FAIL'}]")
 
-    out = Path("output/hourly_test")
+    out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     table.to_csv(out / "cl_2024_by_aggregation.csv", index=False)
     print(f"\nwrote {out/'cl_2024_by_aggregation.csv'}")
     return 0
 
 
+def cli(argv: list[str] | None = None) -> int:
+    """Parse the recorded command line, which has no arguments, and run :func:`main`.
+
+    ``--out`` exists so a re-run can be written beside the record rather than
+    over it; its default is the recorded directory.
+    """
+    parser = make_parser(__doc__)
+    parser.add_argument("--out", type=Path, default=OUT,
+                        help=f"Directory for the table (default: {OUT})")
+    parser.add_argument("--train-run", type=Path, default=TRAIN_RUN,
+                        help=f"The training run whose factors are applied (default: {TRAIN_RUN})")
+    parser.add_argument("--raw-cen", type=Path, default=RAW_CEN,
+                        help=f"The CEN hourly downloads (default: {RAW_CEN})")
+    args = parser.parse_args(argv)
+    return main(out=args.out, train_run=args.train_run, raw_cen=args.raw_cen)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(cli())

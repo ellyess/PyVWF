@@ -24,12 +24,12 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/method-loco-interpolation/loco_interpolation.py <out_dir>
 """
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.extensions.grid import interpolation as interp
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
@@ -86,10 +86,10 @@ def predict(method: str, train: pd.DataFrame, test: pd.DataFrame, metric: str):
     raise ValueError(f"unknown method {method!r}")
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
     rows, geometry = [], []
 
     for name, index in folds(pool).items():
@@ -151,7 +151,15 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out / 'loco_scores.csv'}, {out / 'loco_fold_geometry.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

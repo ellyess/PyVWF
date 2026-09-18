@@ -68,7 +68,8 @@ the mechanism.
 Usage, from the repository root, one region per process:
 
     PYVWF_INPUT=<root> PYTHONPATH=src:scripts/analysis python \\
-        scripts/studies/method-curve-library/curve_library_study.py <CODE> <condition> <out_dir>
+        scripts/studies/method-curve-library/curve_library_study.py <CODE> <condition> <out_dir> \\
+        <overrides_csv>
 """
 import os
 import sys
@@ -80,6 +81,7 @@ import pandas as pd
 _HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
 import vwf.data as vwf_data  # noqa: E402
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
 
@@ -300,10 +302,7 @@ def read_table(path: str | Path) -> tuple[pd.Series, dict[str, list[str]]]:
     return table, absent
 
 
-def main() -> None:
-    if len(sys.argv) != 5:
-        raise SystemExit(__doc__)
-    code, condition, out_dir, overrides_csv = sys.argv[1:]
+def main(code: str, condition: str, out_dir: str, overrides_csv: str) -> None:
     table, absent = read_table(overrides_csv)
     config = Path("configs/regions/scorecard") / f"{_stem(code)}.toml"
     train_dir, eval_dir = run_condition(
@@ -317,5 +316,16 @@ def _stem(code: str) -> str:
     return bb.CONFIGS[code]
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the command line, ``<CODE> <condition> <out_dir> <overrides_csv>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
+    parser.add_argument("condition", help="The condition's name, e.g. T1")
+    parser.add_argument("out_dir", help="Directory for the condition's runs, under output/")
+    parser.add_argument("overrides_csv", help="The condition's override table (curve_library_tables.py)")
+    args = parser.parse_args(argv)
+    main(args.code, args.condition, args.out_dir, args.overrides_csv)
+
+
 if __name__ == "__main__":
-    main()
+    cli()

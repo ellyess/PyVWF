@@ -39,13 +39,13 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-domain-split/domain_split_study.py <out_dir>
 """
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
+from vwf.cli.common import make_parser
 from vwf.config import BoundingBoxes
 from vwf.data import load_power_curves
 from vwf.datasets.era5 import prep_era5
@@ -55,7 +55,6 @@ from vwf.wind import interpolate_wind
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 RUNS = Path("output/runs/turbine_grid")
 SHAPES = Path("input/reference/shapes")
-ONSHORE, OFFSHORE = SHAPES / "country_shapes.geojson", SHAPES / "offshore_shapes.geojson"
 
 #: The archive every row is simulated from: 36 to 72 north, 12 west to 31.5
 #: east, hourly components and no stored roughness.
@@ -135,7 +134,7 @@ def kriged(points: pd.DataFrame):
                           coordinates_type=interp.KRIGING_COORDINATES)
 
 
-def build_surfaces(pool: pd.DataFrame) -> dict[str, xr.Dataset]:
+def build_surfaces(pool: pd.DataFrame, shapes: Path = SHAPES) -> dict[str, xr.Dataset]:
     """S0, S1 and S2. S1 and S2 share their interpolation and differ in mask."""
     domain = surface.declared_domains(pool, domain_col="cluster_mode")
     on, off = pool[domain == "onshore"], pool[domain == "offshore"]
@@ -151,8 +150,8 @@ def build_surfaces(pool: pd.DataFrame) -> dict[str, xr.Dataset]:
     # uses, then masks by distance instead. Without a rule for which surface a
     # cell takes, a split pool has no combined field at all; the mask is what
     # differs between the two conditions.
-    on_area = surface.area_mask(GRID_LON, GRID_LAT, ONSHORE, name="on").values
-    off_area = surface.area_mask(GRID_LON, GRID_LAT, OFFSHORE, name="off").values
+    on_area = surface.area_mask(GRID_LON, GRID_LAT, Path(shapes) / "country_shapes.geojson", name="on").values
+    off_area = surface.area_mask(GRID_LON, GRID_LAT, Path(shapes) / "offshore_shapes.geojson", name="off").values
     split_scalar = np.where(on_area, on_scalar, np.where(off_area, off_scalar, np.nan))
     split_offset = np.where(on_area, on_offset, np.where(off_area, off_offset, np.nan))
 
@@ -179,18 +178,20 @@ def winds(code: str, box, year: int, fleet: pd.DataFrame, era5_dir: Path):
     return interpolate_wind(reanalysis.sel(time=str(year)), fleet), detail
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL, runs: Path = RUNS, shapes: Path = SHAPES,
+         era5: Path = ERA5, era5_chapter: Path = ERA5_CHAPTER) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
-    surfaces = build_surfaces(pool)
+    era5, era5_chapter = Path(era5), Path(era5_chapter)
+    pool = pd.read_csv(pool_path)
+    surfaces = build_surfaces(pool, shapes)
     curves = load_power_curves()
     rows = []
 
     for code, mode, level, year, clusters, published in CONFIGURATIONS:
         label = f"{code} {mode}"
         print(f"\n=== {label}", flush=True)
-        base = RUNS / f"{code}-{mode}-obs_{level}-corrected-calc_z0"
+        base = Path(runs) / f"{code}-{mode}-obs_{level}-corrected-calc_z0"
         fleet = pd.read_csv(base / "training" / "simulated-turbines" /
                             f"{code}_{year}_turb_info.csv")
         results = base / "results" / "capacity-factor"
@@ -199,12 +200,12 @@ def main(out_dir: str) -> None:
         box = BBOX.get(code, BoundingBoxes.get(code))
         weight = self_weight(pool, code, mode)
 
-        speed, detail = winds(code, box, year, fleet, ERA5)
+        speed, detail = winds(code, box, year, fleet, era5)
         common = {"row": label, "obs_level": level, "year": year,
                   "units": len(fleet), "self_weight": weight,
                   "published_grid_kriging": published,
                   "chapter_extrapolated_share": CHAPTER_EXTRAPOLATED.get(label, 0.0),
-                  "bbox": str(box), "archive": ERA5.name, **detail}
+                  "bbox": str(box), "archive": era5.name, **detail}
 
         nothing = pd.DataFrame({"ID": fleet["ID"].astype(str), "scalar": 1.0,
                                 "offset": 0.0, "neutral": True})
@@ -230,11 +231,11 @@ def main(out_dir: str) -> None:
         # treatment from the pipeline when S-G1 is read.
         if label not in CHAPTER_EXTRAPOLATED:
             del speed
-            chapter_speed, chapter_detail = winds(code, box, year, fleet, ERA5_CHAPTER)
+            chapter_speed, chapter_detail = winds(code, box, year, fleet, era5_chapter)
             corrections, summary = evaluate.corrections_at(surfaces["S0"], fleet)
             cf, off = evaluate.corrected_capacity_factors(chapter_speed, corrections, curves)
             got = evaluate.skill(cf, observed, fleet, level)
-            rows.append({**common, "archive": ERA5_CHAPTER.name, **chapter_detail,
+            rows.append({**common, "archive": era5_chapter.name, **chapter_detail,
                          "condition": "S0 chapter archive", **got, **summary,
                          "off_curve_share": off["off_curve_share"]})
             print(f"  S0 chapter archive: MAE {got['mae']:.4f}", flush=True)
@@ -282,7 +283,24 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out / 'domain_split_results.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument("--runs", type=Path, default=RUNS,
+                        help=f"The chapter's thesis-era runs (default: {RUNS})")
+    parser.add_argument("--shapes", type=Path, default=SHAPES,
+                        help=f"The onshore and offshore GeoJSON directory (default: {SHAPES})")
+    parser.add_argument("--era5", type=Path, default=ERA5,
+                        help=f"The ERA5 the surfaces are applied to (default: {ERA5})")
+    parser.add_argument("--era5-chapter", type=Path, default=ERA5_CHAPTER,
+                        help=f"The chapter's own ERA5, for the archive comparison (default: {ERA5_CHAPTER})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool, runs=args.runs, shapes=args.shapes,
+         era5=args.era5, era5_chapter=args.era5_chapter)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

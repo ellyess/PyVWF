@@ -36,7 +36,6 @@ Usage, from the repository root:
         scripts/studies/method-national-single-cluster/national_single_cluster_study.py <out_dir> [CODE ...]
 """
 import importlib.util
-import sys
 import time
 from pathlib import Path
 
@@ -48,6 +47,7 @@ _spec = importlib.util.spec_from_file_location(
 study = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(study)
 
+from vwf.cli.common import make_parser               # noqa: E402
 from vwf.harness import regions                      # noqa: E402
 from vwf.harness.driver import resolve_source        # noqa: E402
 
@@ -139,7 +139,15 @@ def main(out_dir: str, *only: str) -> None:
           "not by itself evidence that one is right.")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir> [CODE ...]``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the run directories, under output/")
+    parser.add_argument("only", nargs="*", metavar="CODE",
+                        help="Stems of INCLUDED to run (default: all)")
+    args = parser.parse_args(argv)
+    main(args.out_dir, *args.only)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1], *sys.argv[2:])
+    cli()

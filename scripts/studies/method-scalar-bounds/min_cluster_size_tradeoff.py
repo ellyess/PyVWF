@@ -49,6 +49,7 @@ sys.path.insert(0, "src")
 
 import pandas as pd  # noqa: E402
 
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.harness.corrections import fit_quality  # noqa: E402
 from vwf.harness.driver import run_evaluate, run_train  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
@@ -62,7 +63,8 @@ SIZES = (1, 3, 5)
 OUT = Path("output/min_cluster_size")
 
 
-def main() -> int:
+def main(out: Path = OUT) -> int:
+    out = Path(out)
     base = load_region(Path("configs/regions/cl.toml"))
     rows = []
 
@@ -73,9 +75,9 @@ def main() -> int:
         )
         tag = f"min{m}"
         print(f"=== min_cluster_size={m} ===", flush=True)
-        train_dir = run_train(spec, OUT, source=get_source(spec.source, spec.code),
+        train_dir = run_train(spec, out, source=get_source(spec.source, spec.code),
                               run_name=tag)
-        eval_dir = run_evaluate(spec, train_dir, OUT,
+        eval_dir = run_evaluate(spec, train_dir, out,
                                 source=get_source(spec.source, spec.code),
                                 run_name=tag)
 
@@ -122,11 +124,24 @@ def main() -> int:
     print(f"  G3 within 10% of baseline:    {best['cor_rmse']:.4f} vs "
           f"{base_row['cor_rmse'] * 1.10:.4f} allowed   [{'PASS' if g3 else 'FAIL'}]")
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    t.to_csv(OUT / "cl_tradeoff.csv", index=False)
-    print(f"\nwrote {OUT/'cl_tradeoff.csv'}")
+    out.mkdir(parents=True, exist_ok=True)
+    t.to_csv(out / "cl_tradeoff.csv", index=False)
+    print(f"\nwrote {out/'cl_tradeoff.csv'}")
     return 0
 
 
+def cli(argv: list[str] | None = None) -> int:
+    """Parse the recorded command line, which has no arguments, and run :func:`main`.
+
+    ``--out`` exists so a re-run can be written beside the record rather than
+    over it; its default is the recorded directory.
+    """
+    parser = make_parser(__doc__)
+    parser.add_argument("--out", type=Path, default=OUT,
+                        help=f"Directory for the runs and the table (default: {OUT})")
+    args = parser.parse_args(argv)
+    return main(out=args.out)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(cli())

@@ -51,6 +51,7 @@ from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
 import curve_library_assign as t2rule  # noqa: E402
 import curve_library_match as matcher  # noqa: E402
 import curve_match_audit as audit  # noqa: E402
+from vwf.cli.common import make_parser  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
 
 COUNTRY_ROWS = ("BE", "ES", "FR", "IE", "IT", "NO", "PT", "SE")
@@ -64,6 +65,18 @@ OPEN_MODELS = Path("input/reference/models.csv")
 COMBINED_MODELS = Path("input/combined/reference/models_with_library.csv")
 RERUN = Path("output/eu_rerun_2026-09-12/new")
 REFRESH = Path("output/validation/refresh_2026-08-24")
+
+
+class Inputs(NamedTuple):
+    """The files the tables are built from, each a flag defaulting to the recorded path."""
+
+    open_models: Path = OPEN_MODELS
+    combined_models: Path = COMBINED_MODELS
+    rerun: Path = RERUN
+    refresh: Path = REFRESH
+
+
+INPUTS = Inputs()
 
 
 #: The fleet fields each condition's rule reads, and therefore the fields a
@@ -96,9 +109,10 @@ RULE_FIELDS = {
 }
 
 
-def train_fleet_of(code: str) -> pd.DataFrame:
+def train_fleet_of(code: str, inputs: Inputs = INPUTS) -> pd.DataFrame:
     """The training fleet a row fits, from the run standing in the scorecard."""
-    root = RERUN if (RERUN / code).is_dir() else REFRESH
+    rerun, refresh = Path(inputs.rerun), Path(inputs.refresh)
+    root = rerun if (rerun / code).is_dir() else refresh
     files = sorted((root / code).glob("train-*/train_turb_info_*.csv"))
     if not files:
         raise SystemExit(f"{code}: no training fleet under {root}")
@@ -139,7 +153,7 @@ class Fleets(NamedTuple):
     test: pd.DataFrame
 
 
-def load_fleets(code: str, condition: str) -> Fleets:
+def load_fleets(code: str, condition: str, inputs: Inputs = INPUTS) -> Fleets:
     """Both fleets of a row, with the union the condition's rule assigns over.
 
     Raises:
@@ -147,7 +161,7 @@ def load_fleets(code: str, condition: str) -> Fleets:
             field this condition's rule reads. The table would then owe that
             unit two keys, and which one applied would depend on the phase.
     """
-    train, test = train_fleet_of(code), test_fleet_of(code)
+    train, test = train_fleet_of(code, inputs), test_fleet_of(code)
     train_ids = set(train["ID"].astype(str))
     test_ids = set(test["ID"].astype(str))
 
@@ -246,14 +260,14 @@ def coverage(fleets: Fleets, table: pd.DataFrame) -> dict:
             "capacity_share_test": share(fleets.test, ids)}
 
 
-def build_c2(out_dir: Path) -> list[dict]:
+def build_c2(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
     """C2: each country grid key replaced by the nearest in-band open model."""
-    combined = pd.read_csv(COMBINED_MODELS)
+    combined = pd.read_csv(inputs.combined_models)
     open_lib = combined[combined["library"] == "open"].reset_index(drop=True)
     catalogue = combined.set_index("model")
     report = []
     for code in COUNTRY_ROWS:
-        fleets = load_fleets(code, "C2")
+        fleets = load_fleets(code, "C2", inputs)
         fleet = fleets.union
         mapping = {}
         for key in sorted(fleet["model"].astype(str).unique()):
@@ -310,14 +324,14 @@ def designation_fields(code: str, fleet: pd.DataFrame) -> tuple[pd.Series | None
     raise SystemExit(f"{code}: no designation field is known for this register")
 
 
-def build_t1(out_dir: Path) -> list[dict]:
+def build_t1(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
     """T1: the brand-and-spec match, for the rows whose register names machines."""
-    combined = pd.read_csv(COMBINED_MODELS)
+    combined = pd.read_csv(inputs.combined_models)
     licensed = combined[combined["library"] == "real"]
     index = matcher.build_index(licensed)
     report = []
     for code in T1_ROWS:
-        fleets = load_fleets(code, "T1")
+        fleets = load_fleets(code, "T1", inputs)
         fleet = fleets.union
         maker, machine = designation_fields(code, fleet)
         if maker is None:
@@ -335,13 +349,13 @@ def build_t1(out_dir: Path) -> list[dict]:
     return report
 
 
-def build_t2(out_dir: Path) -> list[dict]:
+def build_t2(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
     """T2: same-brand units moved to the nearest in-band other-brand model."""
-    combined = pd.read_csv(COMBINED_MODELS)
+    combined = pd.read_csv(inputs.combined_models)
     catalogue = combined.set_index("model")
     report = []
     for code in T2_ROWS:
-        fleets = load_fleets(code, "T2")
+        fleets = load_fleets(code, "T2", inputs)
         fleet = fleets.union
         own, source = audit.own_manufacturer(code, fleet)
         rating = per_turbine_rating(fleet)
@@ -373,18 +387,18 @@ def build_t2(out_dir: Path) -> list[dict]:
     return report
 
 
-def build_c1() -> list[dict]:
+def build_c1(inputs: Inputs = INPUTS) -> list[dict]:
     """C1 has no override table: it changes the library, not the keys.
 
     What it needs reporting is whether the keys the grids name resolve in the
     combined library, since that is the whole condition: under the open library
     they do not, and every unit falls back.
     """
-    combined = set(pd.read_csv(COMBINED_MODELS)["model"].astype(str))
-    open_lib = set(pd.read_csv(OPEN_MODELS)["model"].astype(str))
+    combined = set(pd.read_csv(inputs.combined_models)["model"].astype(str))
+    open_lib = set(pd.read_csv(inputs.open_models)["model"].astype(str))
     report = []
     for code in COUNTRY_ROWS:
-        fleets = load_fleets(code, "C1")
+        fleets = load_fleets(code, "C1", inputs)
         fleet = fleets.union
         keys = fleet["model"].astype(str)
         report.append({"condition": "C1", "region": code,
@@ -398,12 +412,11 @@ def build_c1() -> list[dict]:
     return report
 
 
-def main() -> None:
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    out_dir = Path(sys.argv[1])
+def main(out_dir: str | Path, inputs: Inputs = INPUTS) -> None:
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    rows = build_c1() + build_c2(out_dir) + build_t1(out_dir) + build_t2(out_dir)
+    rows = (build_c1(inputs) + build_c2(out_dir, inputs) + build_t1(out_dir, inputs)
+            + build_t2(out_dir, inputs))
     report = pd.DataFrame(rows)
     report.to_csv(out_dir / "override_report.csv", index=False)
     with pd.option_context("display.width", 250, "display.max_columns", 30):
@@ -413,5 +426,19 @@ def main() -> None:
             print(part.to_string(index=False))
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the tables and report, under output/")
+    for name, default, text in (
+            ("--open-models", OPEN_MODELS, "The open library's models.csv"),
+            ("--combined-models", COMBINED_MODELS, "The combined library's model catalogue"),
+            ("--rerun", RERUN, "The European re-run, whose training fleets stand first"),
+            ("--refresh", REFRESH, "The refresh runs, for rows the re-run does not hold")):
+        parser.add_argument(name, type=Path, default=default, help=f"{text} (default: {default})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, Inputs(args.open_models, args.combined_models, args.rerun, args.refresh))
+
+
 if __name__ == "__main__":
-    main()
+    cli()
