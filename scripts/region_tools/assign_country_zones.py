@@ -59,7 +59,7 @@ def load_zones(country: str) -> dict[int, "gpd.GeoSeries"]:
     for path in paths:
         suffix = path.stem.split("_", 1)[1]
         if not suffix.isdigit():
-            continue  # named zones (Italy's IT_NORD etc.) are not numbered
+            continue  # only numbered zones map to a cluster index
         zones[int(suffix) - 1] = gpd.read_file(path).geometry.union_all()
     if not zones:
         raise ValueError(f"{country}: zone files exist but none are numbered")
