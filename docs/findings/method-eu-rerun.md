@@ -7,7 +7,7 @@ was in `scripts/analysis/`, the path any command below uses;
 re-run manifests under `output/eu_rerun_2026-09-12/` record commit `b5d47d0`,
 all 26 with a clean tree. The overlap check's output under
 `output/era5_overlap_2026-09-12/` records no commit; the driver's last commit
-before it was written is `3898bdc". The paired comparisons come from
+before it was written is `3898bdc`. The paired comparisons come from
 `scripts/analysis/eu_rerun_compare.py`, a tool that stays in place and
 reproduces them byte for byte.
 
