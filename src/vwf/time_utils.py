@@ -5,6 +5,9 @@ This module provides functions for:
 - Adding temporal resolution columns to DataFrames
 - Time period definitions and mappings
 """
+from calendar import monthrange
+from collections.abc import Iterable
+
 import pandas as pd
 
 
@@ -119,3 +122,26 @@ def add_time_resolution_columns(df: pd.DataFrame, seasons=None) -> pd.DataFrame:
     df["fixed"] = "1/1"
 
     return df
+
+
+def month_days(years, months) -> pd.Series:
+    """Days in each calendar month, row by row.
+
+    The one definition behind every conversion of monthly energy to a
+    capacity factor: hours are these days times 24 (48 for half-hours).
+
+    Args:
+        years: Years, as a Series; its index is kept.
+        months: Months, as a Series aligned with ``years``, or one month for
+            every row.
+
+    Returns:
+        Integer Series of 28 to 31, indexed like ``years``.
+    """
+    years = pd.Series(years)
+    if isinstance(months, pd.Series):
+        pairs: Iterable[tuple] = zip(years, months)
+    else:
+        pairs = ((y, months) for y in years)
+    return pd.Series([monthrange(int(y), int(m))[1] for y, m in pairs],
+                     index=years.index, dtype="int64")

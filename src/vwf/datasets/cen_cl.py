@@ -35,13 +35,13 @@ Two facts about the CEN series shape the design, verified against the real
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from datetime import timedelta, timezone
 from collections.abc import Sequence
 
 import pandas as pd
 
 from vwf.datasets.gwpt import DROP_CL, plant_key
+from vwf.time_utils import month_days
 
 #: CEN generation timestamps are fixed Chilean standard time (UTC-4), with NO
 #: daylight saving applied (verified on the 2024 spring-forward day). Adding
@@ -149,9 +149,7 @@ def monthly_cf_from_generation(
         .agg(cf=("cf", "mean"), n=("cf", "count"))
         .reset_index()
     )
-    expected = agg.apply(
-        lambda r: monthrange(int(r["year"]), int(r["month"]))[1] * 24.0, axis=1
-    )
+    expected = month_days(agg["year"], agg["month"]) * 24.0
     agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
 
     wide = (

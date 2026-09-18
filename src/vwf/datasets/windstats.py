@@ -26,10 +26,11 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from calendar import monthrange
 from collections.abc import Sequence
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 #: Per-country WindStats column layout. ``id`` is the metadata key column;
 #: ``link`` is the metadata column the geolocate ``ws`` matches (the id itself,
@@ -113,7 +114,7 @@ def windstats_monthly_cf(
     df = df[(df["year"] >= int(year_start)) & (df["year"] <= int(year_end))]
     if df.empty:
         return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
-    days = df.apply(lambda r: monthrange(int(r["year"]), int(r["month"]))[1], axis=1)
+    days = month_days(df["year"], df["month"])
     df["cf"] = df["output"] / (df["capacity"] * days * 24.0)
     wide = (df.pivot_table(index=["ID", "year"], columns="month", values="cf",
                            aggfunc="mean")

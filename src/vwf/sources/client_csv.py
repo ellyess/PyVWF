@@ -24,11 +24,12 @@ column contract.
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from pathlib import Path
 from typing import ClassVar
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 from vwf.sources.base import ObservationSource, ObsLevel
 from vwf.sources.registry import register
@@ -171,8 +172,7 @@ class ClientCsvTurbineSource(ObservationSource):
         else:
             cap = self.load_metadata().set_index("ID")["capacity"]  # kW
             cap_kw = gen["ID"].map(cap)
-            days = [monthrange(int(y), int(m))[1] for y, m in zip(gen["year"], gen["month"])]
-            hours = pd.Series(days, index=gen.index) * 24.0
+            hours = month_days(gen["year"], gen["month"]) * 24.0
             # energy unit matches capacity basis; if capacity is kW, energy is kWh.
             energy = val * (1000.0 if self._capacity_unit == "mw" else 1.0)
             gen["cf"] = energy / (hours * cap_kw)

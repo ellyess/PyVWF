@@ -29,10 +29,11 @@ here.
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from typing import ClassVar
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 from vwf.config import PyVWFPaths
 from vwf.sources.base import ObservationSource, ObsLevel
@@ -99,9 +100,7 @@ def netgen_to_monthly_cf(
     meta["ID"] = meta["ID"].astype(str)
     monthly = monthly.merge(meta[["ID", "capacity"]], on="ID", how="inner")
 
-    hours = monthly.apply(
-        lambda r: monthrange(int(r["year"]), int(r["month"]))[1] * 24.0, axis=1
-    )
+    hours = month_days(monthly["year"], monthly["month"]) * 24.0
     # capacity is kW (source contract); net_gen is MWh: align units.
     monthly["cf"] = (monthly["net_gen_mwh"] * 1000.0) / (
         hours * monthly["capacity"].astype(float)

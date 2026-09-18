@@ -25,12 +25,12 @@ GWPT capacity and must be re-curated, not trusted).
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from collections.abc import Sequence
 
 import pandas as pd
 
 from vwf.datasets.gwpt import DROP_AR, plant_key
+from vwf.time_utils import month_days
 
 #: Months with a monthly CF below this are treated as pre-operational when they
 #: form a plant's leading run (the static-nameplate ramp trap; see
@@ -79,7 +79,7 @@ def monthly_cf_from_gwh(
     if df.empty:
         return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
 
-    days = df.apply(lambda r: monthrange(int(r["year"]), int(r["month"]))[1], axis=1)
+    days = month_days(df["year"], df["month"])
     df["cf"] = df["gwh"] * 1000.0 / (df["capacity_mw"] * days * 24.0)
 
     wide = (

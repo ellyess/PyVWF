@@ -101,3 +101,15 @@ def test_explicit_nh_seasons_match_default_exactly():
         assert set(parse_time_slice(name, seasons=nh_explicit)) == set(
             parse_time_slice(name)
         )
+
+
+def test_month_days_rows_and_a_single_month():
+    import pandas as pd
+
+    from vwf.time_utils import month_days
+    years = pd.Series([2019, 2020, 2021, 2024], index=[10, 11, 12, 13])
+    months = pd.Series([2, 2, 12, 4], index=[10, 11, 12, 13])
+    got = month_days(years, months)
+    assert got.tolist() == [28, 29, 31, 30] and got.index.tolist() == [10, 11, 12, 13]
+    assert month_days(years, 2).tolist() == [28, 29, 28, 29]
+    assert str(got.dtype) == "int64"

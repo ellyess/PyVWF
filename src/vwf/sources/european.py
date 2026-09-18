@@ -6,10 +6,11 @@ and reproduces the metadata and capacity-factor preparation that
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from typing import ClassVar
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 from vwf.loaders.turbine_loaders import load_turbine_metadata, load_turbine_observations
 from vwf.sources.base import ObservationSource, ObsLevel
@@ -119,12 +120,7 @@ class EuropeanTurbineSource(ObservationSource):
             col = f"obs_{m}"
             if col not in obs_gen.columns:
                 continue
-            days = (
-                obs_gen["year"]
-                .astype(int)
-                .map(lambda y, month=m: monthrange(int(y), int(month))[1])
-                .astype(float)
-            )
+            days = month_days(obs_gen["year"].astype(int), m).astype(float)
             obs_gen[col] = pd.to_numeric(obs_gen[col], errors="coerce") / (
                 days * 24.0 * obs_gen["capacity"].astype(float)
             )

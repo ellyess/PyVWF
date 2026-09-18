@@ -40,12 +40,13 @@ Two NZ-specific facts shape the design:
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from collections.abc import Iterable
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 #: New Zealand civil time. EMI trading dates and periods are defined in this
 #: zone (NZST/NZDT); the zone database handles the DST transitions.
@@ -283,9 +284,7 @@ def monthly_cf(
         .agg(cf=("cf", "mean"), n=("cf", "count"))
         .reset_index()
     )
-    expected = agg.apply(
-        lambda r: monthrange(int(r["year"]), int(r["month"]))[1] * 48.0, axis=1
-    )
+    expected = month_days(agg["year"], agg["month"]) * 48.0
     agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
 
     wide = (
