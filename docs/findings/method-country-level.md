@@ -1,5 +1,15 @@
 # Country-level method review
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-country-level/chapter_capacity_weights.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: for
+`chapter_capacity_weights.py`, the output under
+`output/chapter_capacity_weights_2026-09-16/` records no commit and was written
+minutes before the driver's first commit, `bff4467`, so the exact producing
+code is not recorded. The document's other numbers come from harness runs with
+their own manifests.
+
 **Date:** 2026-07-23
 **Scope:** the `obs_level = "country"` path against the turbine-level path, plus
 an audit of the nine ENTSO-E observation series on disk.

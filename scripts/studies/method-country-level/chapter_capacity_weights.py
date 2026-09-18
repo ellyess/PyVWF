@@ -20,7 +20,7 @@ Read-only. Writes under ``<out_dir>``.
 
 Usage, from the repository root:
 
-    PYTHONPATH=src python scripts/analysis/chapter_capacity_weights.py <out_dir>
+    PYTHONPATH=src python scripts/studies/method-country-level/chapter_capacity_weights.py <out_dir>
 """
 import sys
 from pathlib import Path
@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 RUNS = REPO / "output/runs/turbine_grid"
 GWPT = REPO / "input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx"
 

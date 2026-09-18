@@ -82,3 +82,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/offshore_pool_study.py` | `scripts/studies/method-offshore-pool/offshore_pool_study.py` | `bd09937` |
 | `scripts/analysis/domain_split_study.py` | `scripts/studies/method-domain-split/domain_split_study.py` | `f305b28` |
 | `scripts/analysis/unmasked_surface_bands.py` | `scripts/studies/method-distance-mask/unmasked_surface_bands.py` | `171f530` |
+| `scripts/analysis/chapter_capacity_weights.py` | `scripts/studies/method-country-level/chapter_capacity_weights.py` | `bff4467` |
