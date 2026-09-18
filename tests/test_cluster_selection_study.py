@@ -1,4 +1,4 @@
-"""The cluster selection runner (scripts/analysis/cluster_selection_study.py).
+"""The cluster selection runner (scripts/studies/method-cluster-selection/cluster_selection_study.py).
 
 The two tests that matter pin the defect that contaminated its first run: a run
 directory keyed on the region code alone, so two fleet modes of one region
@@ -12,7 +12,7 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    "cluster_selection_study", REPO / "scripts" / "analysis" / "cluster_selection_study.py")
+    "cluster_selection_study", REPO / "scripts" / "studies" / "method-cluster-selection" / "cluster_selection_study.py")
 study = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(study)
 

@@ -28,7 +28,7 @@ Read-only apart from the run directories under ``<out_dir>``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYVWF_OFFSET_WORKERS=4 PYTHONPATH=src python \\
-        scripts/analysis/cluster_selection_study.py <out_dir> [label ...]
+        scripts/studies/method-cluster-selection/cluster_selection_study.py <out_dir> [label ...]
 """
 import dataclasses
 import sys

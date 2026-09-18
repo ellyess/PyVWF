@@ -44,7 +44,7 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[2]
 _spec = importlib.util.spec_from_file_location(
-    "cluster_selection_study", REPO / "scripts" / "analysis" / "cluster_selection_study.py")
+    "cluster_selection_study", REPO / "scripts" / "studies" / "method-cluster-selection" / "cluster_selection_study.py")
 study = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(study)
 

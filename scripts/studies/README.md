@@ -66,3 +66,6 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/off_curve_sensitivity.py` | `scripts/studies/scorecard/off_curve_sensitivity.py` | `56a78d2` |
 | `scripts/analysis/training_objective_check.py` | `scripts/studies/scorecard/training_objective_check.py` | `b7826d3` |
 | `scripts/analysis/unit_concentration.py` | `scripts/studies/scorecard/unit_concentration.py` | `4b6d143` |
+| `scripts/analysis/cluster_selection_study.py` | `scripts/studies/method-cluster-selection/cluster_selection_study.py` | `cc9fc14` |
+| `scripts/analysis/cluster_selection_gaps.py` | `scripts/studies/method-cluster-selection/cluster_selection_gaps.py` | `1ae99a3` |
+| `scripts/analysis/cluster_sweep_cost.py` | `scripts/studies/method-cluster-selection/cluster_sweep_cost.py` | `4af1ba4` |

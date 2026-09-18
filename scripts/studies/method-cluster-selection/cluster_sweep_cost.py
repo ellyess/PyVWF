@@ -29,7 +29,7 @@ under ``<out_dir>``, which is under ``output/``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/cluster_sweep_cost.py <region-stem> <out_dir>
+        scripts/studies/method-cluster-selection/cluster_sweep_cost.py <region-stem> <out_dir>
 """
 import dataclasses
 import sys

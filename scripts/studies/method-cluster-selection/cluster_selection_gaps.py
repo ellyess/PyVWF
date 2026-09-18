@@ -17,7 +17,7 @@ The counts come from the recorded fold scores, and are passed explicitly rather
 than recomputed, so what was evaluated is visible in the invocation:
 
     PYVWF_INPUT=input/combined PYVWF_OFFSET_WORKERS=4 PYTHONPATH=src python \\
-        scripts/analysis/cluster_selection_gaps.py <out_dir> "UK offshore" 50
+        scripts/studies/method-cluster-selection/cluster_selection_gaps.py <out_dir> "UK offshore" 50
 """
 import importlib.util
 import sys
@@ -26,9 +26,9 @@ from pathlib import Path
 
 import pandas as pd
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    "cluster_selection_study", REPO / "scripts" / "analysis" / "cluster_selection_study.py")
+    "cluster_selection_study", Path(__file__).resolve().parent / "cluster_selection_study.py")
 study = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(study)
 

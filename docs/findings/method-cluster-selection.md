@@ -1,5 +1,15 @@
 # Selecting a cluster count without leakage: what it cost and what it could not reach
 
+**Reproduction record, added 2026-09-18.** Drivers:
+`scripts/studies/method-cluster-selection/cluster_selection_study.py`,
+`scripts/studies/method-cluster-selection/cluster_selection_gaps.py`,
+`scripts/studies/method-cluster-selection/cluster_sweep_cost.py`. Until
+2026-09-18 they were in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the run
+manifests under `output/cluster_selection_2026-09-15/` record commits
+`40317ee`, `cc9fc14` and `1ae99a3`, and those under
+`output/cluster_sweep_cost_2026-09-15/` record `4af1ba4`, all clean trees.
+
 **Date:** 2026-09-16
 **Scope:** the five turbine-level configurations that contribute control points
 to the pool: DE onshore, DK onshore, DK offshore, UK onshore, UK offshore.
