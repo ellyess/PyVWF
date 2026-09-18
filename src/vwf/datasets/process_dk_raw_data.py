@@ -1,11 +1,12 @@
 """
 Process raw Denmark wind turbine data from Danish Energy Agency.
 
-This script processes:
+Pure transforms for the two ens.dk workbooks:
+
 1. anlaeg.xlsx -> dk_md.csv (turbine metadata)
 2. maanedsdata_2002_2020.xlsx -> dk_obs_2002_2020.csv (monthly observations)
 
-Output files are compatible with PyVWF format.
+The command-line entry point is ``scripts/process/dk.py``.
 """
 
 import pandas as pd
@@ -281,94 +282,3 @@ def process_dk_monthly_observations(
         print(year_summary.to_string())
 
     return df_long
-
-
-def main():
-    """Main processing function."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Process raw Denmark wind turbine data"
-    )
-    parser.add_argument(
-        "--input-dir",
-        type=Path,
-        default=Path("input/observations/turbine/DK"),
-        help="Input directory containing raw data files"
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("input/observations/turbine/DK"),
-        help="Output directory for processed CSV files"
-    )
-    parser.add_argument(
-        "--metadata-only",
-        action="store_true",
-        help="Only process metadata file"
-    )
-    parser.add_argument(
-        "--observations-only",
-        action="store_true",
-        help="Only process observations file"
-    )
-
-    args = parser.parse_args()
-
-    print("="*80)
-    print("DENMARK WIND TURBINE DATA PROCESSOR")
-    print("="*80)
-    print(f"Input directory:  {args.input_dir}")
-    print(f"Output directory: {args.output_dir}")
-    print()
-
-    # Define file paths
-    metadata_input = args.input_dir / "anlaeg.xlsx"
-    observations_input = args.input_dir / "maanedsdata_2002_2020.xlsx"
-    metadata_output = args.output_dir / "dk_md.csv"
-    observations_output = args.output_dir / "dk_obs_2002_2020.csv"
-
-    # Process metadata
-    if not args.observations_only:
-        if metadata_input.exists():
-            try:
-                process_dk_metadata(
-                    metadata_input,
-                    metadata_output,
-                    verbose=True
-                )
-            except Exception as e:
-                print(f"\n✗ Error processing metadata: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            print(f"✗ Metadata file not found: {metadata_input}")
-
-    # Process observations
-    if not args.metadata_only:
-        if observations_input.exists():
-            try:
-                process_dk_monthly_observations(
-                    observations_input,
-                    observations_output,
-                    verbose=True
-                )
-            except Exception as e:
-                print(f"\n✗ Error processing observations: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            print(f"✗ Observations file not found: {observations_input}")
-
-    print("\n" + "="*80)
-    print("✓ PROCESSING COMPLETE")
-    print("="*80)
-    print("\nOutput files:")
-    if metadata_output.exists():
-        print(f"  ✓ {metadata_output}")
-    if observations_output.exists():
-        print(f"  ✓ {observations_output}")
-
-
-if __name__ == "__main__":
-    main()
