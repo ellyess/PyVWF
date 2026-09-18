@@ -25,6 +25,8 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
+from vwf.datasets.era5 import log_roughness_from_shear
+
 
 def find_available_years(era5_dir):
     """Find all available years in ERA5 directory.
@@ -100,23 +102,9 @@ def calculate_roughness_from_winds(combined_ds):
     wnd10m = wnd10m.clip(min=1e-4)
     wnd100m = wnd100m.clip(min=1e-4)
 
-    # Calculate z0 from logarithmic profile
-    num = wnd100m * np.log(10) - wnd10m * np.log(100)
-    denom = wnd100m - wnd10m
-
-    # Mask near-zero shear (avoid divide-by-zero)
-    denom = denom.where(np.abs(denom) > 1e-4)
-
-    z0_log = num / denom
-
-    # Physical constraint: log(z0) < 0  →  z0 < 1 m
-    z0_log = z0_log.where(z0_log < 0)
-
-    # Backward fill missing values in time
-    z0_log = z0_log.bfill("time")
-
-    # Clip to realistic roughness range [1e-6 m, 2.0 m]
-    z0_log = z0_log.clip(min=np.log(1e-6), max=np.log(2.0))
+    # Calculate z0 from the logarithmic profile, masked, back-filled in time
+    # and clipped to the realistic range [1e-6 m, 2.0 m]
+    z0_log = log_roughness_from_shear(wnd10m, wnd100m)
 
     # Convert from log space
     z0 = np.exp(z0_log)

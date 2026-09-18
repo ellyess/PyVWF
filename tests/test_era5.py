@@ -139,3 +139,19 @@ def test_prep_era5_reads_from_era5_dir_and_normalises(tmp_path):
     # sqrt(7^2 + 7^2) ~ 9.9 m/s, daily-resampled
     assert ds["wnd100m"].to_numpy() == pytest.approx(np.hypot(7.0, 7.0))
     assert ds.sizes["time"] == 2  # 48 hourly steps -> 2 daily means
+
+
+def test_log_roughness_inverts_the_log_profile_and_masks_what_it_cannot():
+    from vwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear
+
+    def profile(z0, ustar=1.0):
+        return ustar * np.log(10 / z0), ustar * np.log(100 / z0)
+
+    # t0 a known profile; t1 no shear, so missing and back-filled from t2;
+    # t2 another profile; t3 so smooth that z0 falls below the lower bound.
+    w10, w100 = zip(profile(0.03), (5.0, 5.0), profile(0.2), profile(1e-9))
+    da = lambda v: xr.DataArray(np.array(v, dtype=float), dims="time")  # noqa: E731
+    z0 = np.exp(log_roughness_from_shear(da(w10), da(w100)).values)
+    np.testing.assert_allclose(z0[[0, 2]], [0.03, 0.2], rtol=1e-12)
+    assert z0[1] == z0[2]
+    assert z0[3] == pytest.approx(Z0_BOUNDS[0], rel=1e-12)

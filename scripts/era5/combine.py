@@ -31,9 +31,9 @@ import numpy as np
 import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from vwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
 
-Z0_CLIP = (1e-6, 2.0)
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
 
 
@@ -67,11 +67,8 @@ def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:
         w100 = np.hypot(ds["u100"], ds["v100"])
         w10 = np.hypot(ds["u10"], ds["v10"]).clip(min=1e-4)
         w100c = w100.clip(min=1e-4)
-        num = w100c * np.log(10) - w10 * np.log(100)
-        den = (w100c - w10).where(lambda x: np.abs(x) > 1e-4)
-        z0log = (num / den).where(lambda x: x < 0)
-        z0log = z0log.bfill("time").clip(min=np.log(Z0_CLIP[0]), max=np.log(Z0_CLIP[1]))
-        rough = np.exp(z0log).clip(min=Z0_CLIP[0])
+        z0log = log_roughness_from_shear(w10, w100c)
+        rough = np.exp(z0log).clip(min=Z0_BOUNDS[0])
         daily = xr.Dataset({"wnd100m": w100, "roughness": rough}).resample(time="1D").mean()
         days.append(daily.astype("float32"))
         ds.close()

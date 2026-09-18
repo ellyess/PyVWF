@@ -98,6 +98,41 @@ def _extent_shortfall(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -
 
 ROUGHNESS_TREATMENTS = ("stored", "derived")
 
+#: The roughness lengths the inversion may return, in metres.
+Z0_BOUNDS = (1e-6, 2.0)
+
+
+def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.DataArray:
+    """The log of the roughness length z0, from the 10 m and 100 m wind speeds.
+
+    Inverts the log wind profile between the two heights:
+    ``ln z0 = (w100 ln 10 - w10 ln 100) / (w100 - w10)``. The one definition
+    all three roughness routes use (``CONTEXT.md``, roughness route): the
+    derivation at load in :func:`prep_era5`, the annual-mean field of
+    ``combine_era5_files.py`` and the daily files of
+    ``scripts/era5/combine.py``.
+
+    Where the shear is near zero (``|w100 - w10| <= 1e-4``) or the result would
+    give z0 of 1 m or more, the value is missing, then back-filled along time.
+    The result is clipped to the logs of :data:`Z0_BOUNDS`. The caller clips
+    the speeds first and takes the exponential, because the routes differ
+    there.
+
+    Args:
+        wind10: 10 m wind speed, m/s, already clipped away from zero.
+        wind100: 100 m wind speed, m/s, already clipped away from zero.
+    """
+    num = wind100 * np.log(10) - wind10 * np.log(100)
+    denom = wind100 - wind10
+    # mask near-zero shear (this is what avoids divide-by-zero)
+    denom = denom.where(np.abs(denom) > 1e-4)
+    z0_log = num / denom
+    # physically: log(z0) < 0  ->  z0 < 1 m
+    z0_log = z0_log.where(z0_log < 0)
+    z0_log = z0_log.bfill("time")
+    # avoid insane roughness lengths
+    return z0_log.clip(min=np.log(Z0_BOUNDS[0]), max=np.log(Z0_BOUNDS[1]))
+
 
 def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
               resample_daily=True, allow_extrapolation=False, roughness="stored"):
@@ -229,20 +264,7 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             wnd10m  = wnd10m.clip(min=1e-4)
             ds["wnd100m"] = ds["wnd100m"].clip(min=1e-4)
 
-            num = ds["wnd100m"] * np.log(10) - wnd10m * np.log(100)
-            denom = ds["wnd100m"] - wnd10m
-
-            # mask near-zero shear (this is what avoids divide-by-zero)
-            denom = denom.where(np.abs(denom) > 1e-4)
-
-            z0_log = (num / denom)
-
-            # physically: log(z0) < 0  →  z0 < 1 m
-            z0_log = z0_log.where(z0_log < 0)
-            z0_log = z0_log.bfill("time")
-
-            # avoid insane roughness lengths
-            z0_log = z0_log.clip(min=np.log(1e-6), max=np.log(2.0))
+            z0_log = log_roughness_from_shear(wnd10m, ds["wnd100m"])
 
             ds["roughness"] = np.exp(z0_log)
             ds["roughness"] = ds["roughness"].clip(min=1e-6)  # prevents log(0) later
