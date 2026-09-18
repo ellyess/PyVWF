@@ -42,6 +42,11 @@ across borders are tested and eliminated. Two registered studies are closed
 without results, one blocked on observation files that do not exist and one
 void because its gates were written against comparators that did not.
 
+The repository is being restructured so that each file has one purpose and a
+newcomer can add a region, a data source or a study without reading the whole
+tree. The audit behind it is `docs/design/repo-audit.md`. None of it changes a
+number: the golden regression test and every test file pass at each step.
+
 ### Added
 
 - **A switch for the temporal treatment of the roughness.**
@@ -121,6 +126,11 @@ void because its gates were written against comparators that did not.
   "fallback" and "curve table" meaning two different files. Procedural
   documents use only its terms. Nothing loads it automatically yet.
 
+- **A `touchdesigner` extra** for `scripts/analysis/export_voronoi_frames.py`,
+  which exports a cluster sweep as Voronoi cells for animated maps. It declares
+  the one dependency the script imported without declaring, and the
+  visualisation guide now documents the export.
+
 ### Changed
 
 - **A unit outside the loaded ERA5 extent stops the run.** `interpolate_wind`
@@ -134,6 +144,11 @@ void because its gates were written against comparators that did not.
   permission travels with the loaded dataset, so every path that simulates is
   covered. Passing the check means the units lie inside the loaded extent. It
   does not verify the data in those cells.
+
+- **`vwf.clustering` imports shapely and geopandas directly.** Both became core
+  dependencies long ago, so the fallbacks for a missing geopandas could not
+  run. `HAS_SHAPELY` and `HAS_GEOPANDAS` remain, always true, for anyone who
+  imports them.
 
 ### Deprecated
 
@@ -149,6 +164,22 @@ void because its gates were written against comparators that did not.
     `COUNTRY_LEVEL_DIR`. Use `vwf.config.PyVWFPaths` instead. They are now
     read when accessed, so they no longer go stale when the input root
     changes after import.
+
+### Removed
+
+- **`PIPELINE.md`.** Its true content is now the "Legacy batch path" section of
+  `docs/guides/training.md`. Its table of configuration sets was stale; the
+  guide sends the reader to `train_all_bias_corrections.py --list` instead.
+- **`STATUS.md` from version control.** It is a session log and stays local.
+  The findings that cite it link to its last tracked version.
+- **`src/vwf/datasets/COMBINED_ERA5_USAGE.md`.** Its durable facts about the
+  `era5/EU` archive are now in `docs/guides/data-sources.md`.
+- **The command-line `main` of `vwf.datasets.process_dk_raw_data`.** It
+  duplicated `scripts/process/dk.py` and hid its errors.
+- **Two notebooks that could not run without local data**, `dk_raw_vs_corrected`
+  and `northsea_data`, and **the Italian bidding-zone polygons**, which no zone
+  loader could read.
+- **`scripts/analysis/surface_flag_report.py`**, whose output no finding uses.
 
 ### Fixed
 
@@ -227,6 +258,13 @@ void because its gates were written against comparators that did not.
   re-run. NO and SE keep their rows, with their smaller extrapolated shares
   stated. `method-country-level.md` carries the notice, and the README drops
   the three from its national-level line.
+
+- **`mypy` passes again under the current pandas stubs.** A stubs release on
+  2026-09-14 typed `groupby(...).apply` more widely, and one return needed a
+  cast. No runtime change.
+- **The docs build passes with warnings as errors.** The manuscript decision
+  register in `docs/design/` was in no toctree. It and the repository audit are
+  working documents, so both are now excluded from the site.
 
 ### Documentation
 
