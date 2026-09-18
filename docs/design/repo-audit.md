@@ -1,7 +1,3 @@
----
-orphan: true
----
-
 # Repository audit, 2026-09-18
 
 Phase 1 of the extensibility restructure. It records what every tracked file
@@ -79,9 +75,8 @@ report both on a pull request from this branch. The venv is a scratch
 Python 3.11 environment with `pip install -e ".[dev,docs]"`, which matches
 the pandas-3 side of the CI matrix.
 
-This document carries `orphan: true` front matter, so it adds no second
-toctree warning. Whether it belongs on the published site at all is
-question Q9.
+This document is excluded from the site build (`docs/conf.py`), as the
+maintainer decided for Q9.
 
 ## 2. File table
 

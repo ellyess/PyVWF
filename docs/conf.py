@@ -44,6 +44,12 @@ exclude_patterns = [
     # reasoning rather than the number. The maintained documentation is
     # guides/, runbooks/ and design/, all of which are in the toctree.
     "findings/**",
+    # Working plans kept in design/ for their history, but not explanation
+    # for a reader new to the project: the open decision register for the
+    # thesis chapters 4 and 5 manuscript, and the repository audit that
+    # scaffolds the 2026-09 restructure (deleted when that finishes).
+    "design/manuscript-chapters-45.md",
+    "design/repo-audit.md",
 ]
 
 autosummary_generate = True
