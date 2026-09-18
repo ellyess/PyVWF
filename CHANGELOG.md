@@ -357,6 +357,10 @@ consumers and go without a deprecation period.
 
 ### Documentation
 
+- **The API reference covers the harness and every adapter.** It documented
+  the legacy `PyVWF` class as "the entry point", nothing of `vwf.harness`,
+  and four of the fourteen `vwf.sources` modules.
+
 - **Three defects found by the repository audit.** The documented
   `docker compose` command wrote its results inside the container, where
   `--rm` deleted them; it now passes `--out /data/output/validation`.
