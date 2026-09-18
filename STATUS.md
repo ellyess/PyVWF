@@ -1,16 +1,61 @@
 # Status
 
-**Current as of 2026-09-16**, on branch `manuscript-chapters-45`, at the close
+**Current as of 2026-09-18**, on branch `manuscript-chapters-45`, at the close
 of a session. One page, kept short so that it stays true. It records what is
 running, what is queued, what is open and what is settled. Detail lives in the
 documents it names, not here.
 
 ## In flight
 
-Nothing. The physics-informed leave-one-country-out finished on 2026-09-18,
-both studies (`method-physics-informed-loco.md`): transfer corrects national
-capacity factor in most European countries, fails its floor on France with a
-European pool, and adding non-European regions does not help (W1 fails).
+- **The MaStR download**: the German unit register, 3,196,523,593 bytes, into
+  `input/raw/mastr/` (README there). It runs detached and is resumable with
+  `curl -C -` from the URL in the README. Check the file size before use.
+
+## Next, in order: the turbine-only terrain study
+
+Registered in `docs/findings/method-physics-informed-turbine-prereg.md`
+(`4d671c7`), with its code in `00a99d7`. Nothing has been fitted.
+1. **When MaStR is complete:** parse `EinheitenWind` (coordinates, hub height,
+   model, capacity, postcode) and match it to the DE turbine fleet on
+   postcode, capacity, commissioning date and model.
+2. **If the match holds:** rebuild the DE caches with MaStR coordinates and hub
+   heights into a new cache directory. Record the rebuild and the match rate
+   as a dated deviation in the registration, and update its commands, before
+   any fit.
+3. **Run it:** the GWA ratio script, then `scripts/pinn/turbine_loro.py`
+   overnight, about 12 hours, detached with `nohup caffeinate -i`, from a clean
+   tree.
+4. **Read the gates:** T0 first, then T1 to T5. Stop at the full table.
+
+**Supporting material** (git-ignored, under
+`output/pinn_turbine_2026-09-18/notes/`):
+- a literature review of 49 papers, with a novelty assessment;
+- a survey of data sources;
+- the text of Peña-Sánchez et al. 2026 and Nayak et al. 2025. Neither has any
+  of the model's six distinguishing features.
+
+**Downloaded 2026-09-18:**
+- Global Wind Atlas v4 for the nine regions, in `input/raw/gwa4/`.
+- NVE Norwegian plant metadata, in `input/raw/nve/`.
+
+**Norway is not a fold.** NVE's hourly per-plant file is modelled, not
+measured: every plant has production from 2003, including plants commissioned
+in 2018 and 2021, and production scatters around its own wind column by the
+same amount before and after commissioning. Measured options, all unchecked:
+- the annual per-plant tables in NVE's reports, 2007 to 2021;
+- ENTSO-E per-unit data for plants of 100 MW and above;
+- a request to NVE.
+
+**Queued after:**
+- **The hub-height confound in Study A:** rerun without hub height in the
+  efficiency head.
+- **The finer-wind falsification test:** CERRA (5.5 km, 100 m wind, via the
+  CDS), plus US PLUSWIND with HRRR at 3 km.
+
+The physics-informed leave-one-country-out finished on 2026-09-18
+(`method-physics-informed-loco.md`). Transfer corrects national capacity
+factor in most European countries and fails its floor on France with a
+European pool. Adding non-European regions does not help (W1 fails).
 
 ## Where the manuscript stands
 
