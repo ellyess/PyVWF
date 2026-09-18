@@ -228,6 +228,10 @@ consumers and go without a deprecation period.
   rather than over it. An extra argument, which the positional parsers
   ignored, is now an error. `scripts/pinn/` and the two machine-learning
   transfer scripts are deferred with it.
+- **`configs/regions/se_zonal.toml` is now `se_bz.toml`**, the stem of its
+  code `SE-BZ`, so `load_region_by_code("SE-BZ")` finds it. Its content is
+  unchanged. A run manifest that names the old path still identifies the
+  config by its sha256.
 - **The Argentina and Chile fleet exclusions are data, not code.** The
   units `scripts/process/cammesa_ar.py` and `cen_cl.py` drop, with the reason
   for each, are read from `configs/curation/`, and `--exclusions` names

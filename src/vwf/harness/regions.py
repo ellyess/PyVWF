@@ -78,8 +78,8 @@ def load_region_by_code(code: str, config_dir: str | Path = REGIONS_DIR) -> Regi
 
     The file is ``<config_dir>/<region stem>.toml``, and the config it holds
     must declare that code, so a code is never answered with another region's
-    config. ``se_zonal.toml`` (code ``SE-BZ``) is the one maintained config
-    whose name is not its code's stem; load it by path.
+    config. Every maintained config is named for its code's stem, and a test
+    holds that.
 
     Raises:
         FileNotFoundError: If no config has that stem.

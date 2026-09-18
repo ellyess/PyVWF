@@ -188,3 +188,12 @@ def test_load_region_by_code_resolves_the_stem_and_checks_the_code(tmp_path):
     (tmp_path / "zz.toml").write_text((CONFIG_DIR / "nz.toml").read_text())
     with pytest.raises(ValueError, match="declares code 'NZ', not 'zz'"):
         load_region_by_code("zz", config_dir=tmp_path)
+
+
+def test_every_maintained_config_is_named_for_its_code():
+    """load_region_by_code finds a config by its file name, so the name is a contract."""
+    from vwf.harness.regions import load_region_by_code, region_stem
+    for path in sorted(CONFIG_DIR.glob("*.toml")):
+        spec = load_region(path)
+        assert path.stem == region_stem(spec.code), (path.name, spec.code)
+        assert load_region_by_code(spec.code) == spec
