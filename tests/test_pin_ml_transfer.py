@@ -4,9 +4,10 @@
 ``docs/findings/method-ml-transfer.md`` and, in practice, a library: seven
 ``scripts/pinn/`` drivers and three analysis scripts import its
 ``build_centroids``, ``terrain_features``, ``rf_eval``, ``loro``,
-``random_cv`` and ``variance_decomposition``. Those six move to
-``vwf.extensions.ml``; the run list and the gate stay in the script. Before
-the move, their output is pinned.
+``random_cv`` and ``variance_decomposition``. Those six moved to
+``vwf.extensions.ml.transfer``; the run list and the gate stayed in the
+script, which re-exports the six. Their output was pinned before the move, and
+the tests call them through the script as the importers do.
 
 Two layers:
 

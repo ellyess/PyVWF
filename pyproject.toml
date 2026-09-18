@@ -85,9 +85,9 @@ grid = [
     "rasterio>=1.3.0",
 ]
 
-# The machine-learning extension (vwf.extensions.ml) only: the gradient
-# boosting libraries its model comparison spans. scikit-learn is already a core
-# dependency, so the linear models and the random forest need nothing here.
+# Gradient boosting for the machine-learning model comparison, which is not
+# yet ported. vwf.extensions.ml itself needs nothing here: its random forest
+# comes from scikit-learn, a core dependency.
 ml = [
     "xgboost>=2.0.0",
     "lightgbm>=4.0.0",
