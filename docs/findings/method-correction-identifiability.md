@@ -1,5 +1,16 @@
 # The scalar and offset are not separately identified, and both chapters act as if they were
 
+**Reproduction record, added 2026-09-18.** Drivers:
+`scripts/studies/method-correction-identifiability/correction_identifiability.py`,
+`scripts/studies/method-correction-identifiability/loco_reference_wind.py`,
+`scripts/studies/method-correction-identifiability/pivot_probe.py`. Until
+2026-09-18 they were in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: none of
+the three outputs records a commit. The drivers' last commits before each was
+written are `074f648` (`output/identifiability_2026-09-16/`), `a284d4d`
+(`output/loco_reference_2026-09-16/`) and `1051a6c`
+(`output/pivot_probe_2026-09-16/`).
+
 **Date:** 2026-09-16
 **Scope:** whether the affine correction's two parameters are determined by the
 data they are fitted to, and what follows for thesis chapters 4 and 5. Terms

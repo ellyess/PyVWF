@@ -30,7 +30,7 @@ Read-only with respect to the tree. Writes under ``<out_dir>``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/pivot_probe.py <out_dir> [DE|DK|UK]
+        scripts/studies/method-correction-identifiability/pivot_probe.py <out_dir> [DE|DK|UK]
 """
 import sys
 import time
@@ -45,7 +45,7 @@ from vwf.datasets.era5 import prep_era5
 from vwf.harness import regions
 from vwf.wind import fast_simulate_cf, interpolate_wind, prepare_offset_arrays
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 SEL = REPO / "output/cluster_selection_2026-09-15"
 
 #: The wind below which a turbine produces almost nothing, and where the pivot

@@ -71,3 +71,6 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/cluster_sweep_cost.py` | `scripts/studies/method-cluster-selection/cluster_sweep_cost.py` | `4af1ba4` |
 | `scripts/analysis/national_single_cluster_study.py` | `scripts/studies/method-national-single-cluster/national_single_cluster_study.py` | `8144934` |
 | `scripts/analysis/loco_interpolation.py` | `scripts/studies/method-loco-interpolation/loco_interpolation.py` | `4a1fd79` |
+| `scripts/analysis/correction_identifiability.py` | `scripts/studies/method-correction-identifiability/correction_identifiability.py` | `074f648` |
+| `scripts/analysis/loco_reference_wind.py` | `scripts/studies/method-correction-identifiability/loco_reference_wind.py` | `fdb7101` |
+| `scripts/analysis/pivot_probe.py` | `scripts/studies/method-correction-identifiability/pivot_probe.py` | `1051a6c` |

@@ -34,7 +34,7 @@ Read-only. Writes its tables under ``<out_dir>``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/correction_identifiability.py <out_dir>
+        scripts/studies/method-correction-identifiability/correction_identifiability.py <out_dir>
 """
 import sys
 from pathlib import Path

@@ -26,7 +26,7 @@ Read-only. Writes under ``<out_dir>``.
 
 Usage, from the repository root:
 
-    PYTHONPATH=src python scripts/analysis/loco_reference_wind.py <out_dir>
+    PYTHONPATH=src python scripts/studies/method-correction-identifiability/loco_reference_wind.py <out_dir>
 """
 import importlib.util
 import sys
@@ -36,7 +36,7 @@ import numpy as np
 import pandas as pd
 
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
     "loco_interpolation", REPO / "scripts" / "studies" / "method-loco-interpolation" / "loco_interpolation.py")
 _loco = importlib.util.module_from_spec(_spec)
