@@ -37,7 +37,7 @@ Read-only with respect to the tree. Writes its results under ``<out_dir>``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/domain_split_study.py <out_dir>
+        scripts/studies/method-domain-split/domain_split_study.py <out_dir>
 """
 import sys
 from pathlib import Path

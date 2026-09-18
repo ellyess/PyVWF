@@ -1,5 +1,14 @@
 # Correcting a unit from control points of a different kind: registered design
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-domain-split/domain_split_study.py`. Until 2026-09-18
+it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+output under `output/domain_split_2026-09-15/` records no commit; the driver's
+last commit before it was written is `f305b28`. The study is void, as this
+registration records; the S1 and S2 figures are cited in
+`docs/design/manuscript-chapters-45.md`.
+
 **Date:** 2026-09-13. Registered before the study runs, with the four figures
 already in hand declared below.
 **Scope:** whether thesis chapter 4's one documented interpolation failure is

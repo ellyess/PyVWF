@@ -80,3 +80,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/hourly_resolution_test.py` | `scripts/studies/method-hourly-resolution/hourly_resolution_test.py` | `d2017f3` |
 | `scripts/analysis/min_cluster_size_tradeoff.py` | `scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py` | `6effe0e` |
 | `scripts/analysis/offshore_pool_study.py` | `scripts/studies/method-offshore-pool/offshore_pool_study.py` | `bd09937` |
+| `scripts/analysis/domain_split_study.py` | `scripts/studies/method-domain-split/domain_split_study.py` | `f305b28` |
