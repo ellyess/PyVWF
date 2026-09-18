@@ -124,6 +124,7 @@ Repository = "https://github.com/ellyess/PyVWF"
 
 [project.scripts]
 pyvwf-train = "vwf.cli.train:main"
+pyvwf-validate = "vwf.cli.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
