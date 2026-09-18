@@ -69,3 +69,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/cluster_selection_study.py` | `scripts/studies/method-cluster-selection/cluster_selection_study.py` | `cc9fc14` |
 | `scripts/analysis/cluster_selection_gaps.py` | `scripts/studies/method-cluster-selection/cluster_selection_gaps.py` | `1ae99a3` |
 | `scripts/analysis/cluster_sweep_cost.py` | `scripts/studies/method-cluster-selection/cluster_sweep_cost.py` | `4af1ba4` |
+| `scripts/analysis/national_single_cluster_study.py` | `scripts/studies/method-national-single-cluster/national_single_cluster_study.py` | `8144934` |

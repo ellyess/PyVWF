@@ -33,7 +33,7 @@ carries that beside it.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYVWF_OFFSET_WORKERS=4 PYTHONPATH=src python \\
-        scripts/analysis/national_single_cluster_study.py <out_dir> [CODE ...]
+        scripts/studies/method-national-single-cluster/national_single_cluster_study.py <out_dir> [CODE ...]
 """
 import importlib.util
 import sys
@@ -42,7 +42,7 @@ from pathlib import Path
 
 import pandas as pd
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
     "cluster_selection_study", REPO / "scripts" / "studies" / "method-cluster-selection" / "cluster_selection_study.py")
 study = importlib.util.module_from_spec(_spec)

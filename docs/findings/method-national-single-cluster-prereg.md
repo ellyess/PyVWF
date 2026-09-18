@@ -1,5 +1,12 @@
 # Does a single national fit lose anything against the grid's own structure?
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-national-single-cluster/national_single_cluster_study.py`.
+Until 2026-09-18 it was in `scripts/analysis/`, the path any command below
+uses; `scripts/studies/README.md` maps each old path to its new one. Numbers:
+none. The study has not run: it is blocked on data, as this registration
+records, and `output/national_single_cluster_2026-09-16/` is empty.
+
 **Date:** 2026-09-15. Registered before any run.
 **Scope:** the country-level configurations BE, ES, FR, IE, IT, NL and NO.
 Portugal and Sweden are excluded before any result; see the data-quality
