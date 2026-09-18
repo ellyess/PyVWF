@@ -85,6 +85,45 @@ INFORMATION_HORIZON_DEG = interp.MAX_DISTANCE_DEG
 MAX_ZERO_CROSSING_SPEED = 4.0
 
 
+def zero_crossing_speed(scalar, offset):
+    """The wind speed below which an affine pair returns no power, per value.
+
+    ``-offset / scalar`` where the offset is negative and the scalar positive;
+    missing elsewhere, since such a pair never crosses zero at a positive
+    speed. Works on pandas Series and xarray DataArrays alike.
+    """
+    return (-offset / scalar).where((offset < 0) & (scalar > 0))
+
+
+def within_plausible_bounds(scalar, offset, *,
+                            scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
+                            max_crossing: float = MAX_ZERO_CROSSING_SPEED):
+    """True where a pair is plausible: the surface's screen.
+
+    Plausible means a scalar inside ``scalar_bounds`` and no zero crossing
+    above ``max_crossing``. A missing scalar is not plausible.
+    """
+    low, high = scalar_bounds
+    crossing = zero_crossing_speed(scalar, offset)
+    return (scalar >= low) & (scalar <= high) & (crossing.isnull() | (crossing <= max_crossing))
+
+
+def flag_implausible(scalar, offset, *,
+                     scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
+                     max_crossing: float = MAX_ZERO_CROSSING_SPEED):
+    """True where a pair is implausible: the study scripts' screen.
+
+    Implausible means a scalar outside ``scalar_bounds`` or a zero crossing
+    above ``max_crossing``. It is the complement of
+    :func:`within_plausible_bounds` except for a missing scalar, which is not
+    flagged here. The two are kept apart because recorded results used each.
+    """
+    low, high = scalar_bounds
+    crossing = zero_crossing_speed(scalar, offset)
+    return (scalar < low) | (scalar > high) | (crossing > max_crossing)
+
+
+
 def normalise_domain(series: pd.Series) -> pd.Series:
     """Map a domain column's many encodings onto onshore and offshore."""
     if series.dtype == bool:
@@ -369,12 +408,11 @@ def correction_surface(
         combined[label] = joined.rename(label)
 
     low, high = scalar_bounds
-    crossing = xr.where(
-        (combined["offset"] < 0) & (combined["scalar"] > 0),
-        -combined["offset"] / combined["scalar"], np.nan).rename("zero_crossing_speed")
-    plausible = ((combined["scalar"] >= low) & (combined["scalar"] <= high)
-                 & (crossing.isnull() | (crossing <= max_zero_crossing_speed))
-                 ).rename("plausible")
+    crossing = zero_crossing_speed(combined["scalar"], combined["offset"]).rename(
+        "zero_crossing_speed")
+    plausible = within_plausible_bounds(
+        combined["scalar"], combined["offset"], scalar_bounds=scalar_bounds,
+        max_crossing=max_zero_crossing_speed).rename("plausible")
 
     variance_fields = {}
     for name, pair in variances.items():

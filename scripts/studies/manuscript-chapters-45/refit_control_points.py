@@ -38,10 +38,14 @@ import dataclasses
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
-from vwf.extensions.grid.surface import MAX_ZERO_CROSSING_SPEED, PLAUSIBLE_SCALAR
+from vwf.extensions.grid.surface import (
+    MAX_ZERO_CROSSING_SPEED,
+    PLAUSIBLE_SCALAR,
+    flag_implausible,
+    zero_crossing_speed,
+)
 from vwf.harness import driver, regions
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
@@ -55,11 +59,10 @@ def screen(frame: pd.DataFrame) -> pd.DataFrame:
     """The plausibility screen correction_surface applies, on fitted pairs."""
     low, high = PLAUSIBLE_SCALAR
     out = frame.copy()
-    out["crossing"] = np.where((out["offset"] < 0) & (out["scalar"] > 0),
-                               -out["offset"] / out["scalar"], np.nan)
+    out["crossing"] = zero_crossing_speed(out["scalar"], out["offset"])
     out["scalar_bad"] = (out["scalar"] < low) | (out["scalar"] > high)
     out["crossing_bad"] = out["crossing"] > MAX_ZERO_CROSSING_SPEED
-    out["implausible"] = out["scalar_bad"] | out["crossing_bad"]
+    out["implausible"] = flag_implausible(out["scalar"], out["offset"])
     return out
 
 

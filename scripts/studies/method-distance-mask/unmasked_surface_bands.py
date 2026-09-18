@@ -44,7 +44,7 @@ import numpy as np
 import pandas as pd
 
 from vwf.extensions.grid import interpolation as interp, surface
-from vwf.extensions.grid.surface import MAX_ZERO_CROSSING_SPEED, PLAUSIBLE_SCALAR
+from vwf.extensions.grid.surface import PLAUSIBLE_SCALAR, flag_implausible, zero_crossing_speed
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 SHAPES = Path("input/reference/shapes")
@@ -199,13 +199,9 @@ def main(out_dir: str) -> None:
 
         print("\n=== the second screen: does the correction refuse ordinary "
               "low winds?")
-        crossing = np.where((cells["offset"] < 0) & (cells["scalar"] > 0),
-                            -cells["offset"] / cells["scalar"], np.nan)
-        cells["zero_crossing_speed"] = crossing
+        cells["zero_crossing_speed"] = zero_crossing_speed(cells["scalar"], cells["offset"])
+        cells["implausible"] = flag_implausible(cells["scalar"], cells["offset"])
         low_bound, high_bound = PLAUSIBLE_SCALAR
-        cells["implausible"] = (
-            (cells["scalar"] < low_bound) | (cells["scalar"] > high_bound)
-            | (cells["zero_crossing_speed"] > MAX_ZERO_CROSSING_SPEED))
         screen = cells.groupby("band", observed=False).agg(
             cells=("scalar", "size"), implausible=("implausible", "sum"),
             scalar_out_of_bounds=("scalar", lambda s: int(

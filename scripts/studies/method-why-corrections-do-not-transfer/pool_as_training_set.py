@@ -31,6 +31,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from vwf.extensions.grid.surface import flag_implausible, zero_crossing_speed  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
@@ -141,11 +142,8 @@ def main(out_dir: str) -> None:
                 + ", ".join(str(c) for c in candidates))
         turbine_sizes[pool_code] = pd.read_csv(found).groupby("cluster").size()
 
-    low, high = 0.2, 3.0
-    merged["crossing"] = np.where((merged.offset < 0) & (merged.scalar > 0),
-                                  -merged.offset / merged.scalar, np.nan)
-    merged["out_of_bounds"] = (merged.scalar < low) | (merged.scalar > high) | \
-                              (merged.crossing > 4.0)
+    merged["crossing"] = zero_crossing_speed(merged["scalar"], merged["offset"])
+    merged["out_of_bounds"] = flag_implausible(merged["scalar"], merged["offset"])
     merged["few_units"] = merged["units"].fillna(0) < 3
     merged["single_unit"] = merged["units"].fillna(0) <= 1
     merged.to_csv(out / "pool_label_quality.csv", index=False)

@@ -298,3 +298,17 @@ def test_the_declared_and_shape_splits_disagree_and_it_is_only_reported(tmp_path
     got = surface.correction_surface(points, GRID_LON, GRID_LAT, onshore_geojson=on,
                                      offshore_geojson=off, method="idw")
     assert got.attrs["n_control_points_onshore"] == 8
+
+
+def test_the_two_screens_differ_only_on_a_missing_scalar():
+    # plausible; scalar too low; scalar too high; crossing too fast (6 m/s);
+    # crossing within bounds (2 m/s); missing scalar.
+    scalar = pd.Series([1.0, 0.1, 3.5, 1.0, 1.0, np.nan])
+    offset = pd.Series([0.5, 0.0, 0.0, -6.0, -2.0, 0.0])
+    crossing = surface.zero_crossing_speed(scalar, offset)
+    assert crossing.isna().tolist() == [True, True, True, False, False, True]
+    assert crossing[3] == 6.0 and crossing[4] == 2.0
+    plausible = surface.within_plausible_bounds(scalar, offset)
+    flagged = surface.flag_implausible(scalar, offset)
+    assert plausible.tolist() == [True, False, False, False, True, False]
+    assert flagged.tolist() == [False, True, True, True, False, False]
