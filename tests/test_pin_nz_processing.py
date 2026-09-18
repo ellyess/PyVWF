@@ -59,7 +59,11 @@ import vwf.datasets.emi_nz as emi  # noqa: E402  (the promoted helpers)
 
 
 def _read(name: str) -> pd.DataFrame:
-    return pd.read_csv(PINS / name, dtype={"ID": str})
+    return pd.read_csv(PINS / name, dtype={"ID": str}, float_precision="round_trip")
+
+
+def _exact(got: pd.DataFrame, want: pd.DataFrame, **kw) -> None:
+    pd.testing.assert_frame_equal(got, want, check_exact=True, **kw)
 
 
 # --------------------------------------------------------------------------
@@ -69,7 +73,7 @@ def _read(name: str) -> pd.DataFrame:
 def test_gen_code_map_on_the_curated_farms():
     farms, _, _ = emi.load_curated_tables(CURATION)
     got = pd.DataFrame(sorted(emi.gen_code_map(farms).items()), columns=["gen_code", "ID"])
-    pd.testing.assert_frame_equal(got, _read("gen_code_map.csv"))
+    _exact(got, _read("gen_code_map.csv"))
 
 
 def test_capacity_history_on_the_curated_tables():
@@ -77,13 +81,13 @@ def test_capacity_history_on_the_curated_tables():
     got = emi.capacity_history_from_curation(farms, stages)
     want = _read("capacity_history.csv")
     want["effective_from"] = pd.to_datetime(want["effective_from"])
-    pd.testing.assert_frame_equal(got, want, check_dtype=False)
+    _exact(got, want, check_dtype=False)
     assert got["capacity"].dtype.kind in "if"
 
 
 def test_mask_from_windows_on_the_curated_windows():
     _, _, windows = emi.load_curated_tables(CURATION)
-    pd.testing.assert_frame_equal(emi.mask_from_windows(windows), _read("mask_from_windows.csv"))
+    _exact(emi.mask_from_windows(windows), _read("mask_from_windows.csv"))
 
 
 # --------------------------------------------------------------------------
@@ -145,15 +149,14 @@ def test_script_on_synthetic_generation_md(tmp_path):
     _run_script(["--raw", str(raw), "--configs", str(CURATION),
                  "--years", "2021", "2021", "--out", str(out)])
 
-    pd.testing.assert_frame_equal(
-        pd.read_csv(out / "nz_obs.csv", dtype={"ID": str}), _read("synthetic_nz_obs.csv"))
-    pd.testing.assert_frame_equal(
-        pd.read_csv(out / "nz_build_mask.csv", dtype={"ID": str}), _read("mask_from_windows.csv"))
+    _exact(pd.read_csv(out / "nz_obs.csv", dtype={"ID": str}, float_precision="round_trip"),
+           _read("synthetic_nz_obs.csv"))
+    _exact(pd.read_csv(out / "nz_build_mask.csv", dtype={"ID": str}), _read("mask_from_windows.csv"))
 
     # The metadata contract, minus the curve keys, which depend on the input
     # root's curve library rather than on the NZ logic.
-    md = pd.read_csv(out / "nz_md.csv", dtype={"ID": str}).drop(columns=["model", "model_source"])
-    pd.testing.assert_frame_equal(md, _read("synthetic_nz_md.csv"))
+    md = pd.read_csv(out / "nz_md.csv", dtype={"ID": str}, float_precision="round_trip")
+    _exact(md.drop(columns=["model", "model_source"]), _read("synthetic_nz_md.csv"))
 
 
 def test_script_refuses_an_unmapped_wind_gen_code(tmp_path):
