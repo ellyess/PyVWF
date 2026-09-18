@@ -22,11 +22,12 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/method-country-level/chapter_capacity_weights.py <out_dir>
 """
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from vwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 RUNS = REPO / "output/runs/turbine_grid"
@@ -62,17 +63,17 @@ def weights(points: pd.DataFrame, projects: pd.DataFrame, radius: float) -> np.n
     return np.maximum(summed, FLOOR_MW)
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, runs: Path = RUNS, gwpt: Path = GWPT) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    tracker = pd.read_excel(GWPT, sheet_name="Data")
+    tracker = pd.read_excel(gwpt, sheet_name="Data")
     for col in ("Start year", "Retired year"):
         tracker[col] = pd.to_numeric(tracker[col], errors="coerce")
     tracker = tracker.dropna(subset=["Latitude", "Longitude", "Capacity (MW)"])
 
     rows = []
     for code, name in COUNTRY.items():
-        info = RUNS / f"{code}-all-obs_country-corrected-calc_z0/training/simulated-turbines"
+        info = Path(runs) / f"{code}-all-obs_country-corrected-calc_z0/training/simulated-turbines"
         train = pd.read_csv(info / f"{code}_train_turb_info.csv")
         test = pd.read_csv(info / f"{code}_2023_turb_info.csv")
         projects = tracker[tracker["Country/Area"] == name]
@@ -126,5 +127,17 @@ def main(out_dir: str) -> None:
     print(f"\nreproduced in all nine: {reproduced}; every wrong parameter fails: {controls_fail}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--runs", type=Path, default=RUNS,
+                        help=f"The chapter's thesis-era runs (default: {RUNS})")
+    parser.add_argument("--gwpt", type=Path, default=GWPT,
+                        help=f"The Global Wind Power Tracker workbook (default: {GWPT})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, runs=args.runs, gwpt=args.gwpt)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1])
+    cli()

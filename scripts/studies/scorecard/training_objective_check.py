@@ -42,17 +42,22 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
+from vwf.cli.common import make_parser
 from vwf.data import cluster_train_set, load_power_curves, train_set
 from vwf.harness import driver
 from vwf.harness.regions import load_region
 from vwf.wind import power_curve_arrays, interpolate_wind
 
 
-def main(code, time_res, k, out_dir):
+#: The refresh runs whose fits the check was recorded on.
+REFRESH = Path("output/validation/refresh_2026-08-24")
+
+
+def main(code, time_res, k, out_dir, refresh=REFRESH):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
-    train_dir = Path(f"output/validation/refresh_2026-08-24/{code}/train-refresh")
+    train_dir = Path(refresh) / code / "train-refresh"
     if time_res != "fixed":
         raise SystemExit("only the fixed slice is implemented: one objective per training year")
     gen_cf, turb_info, reanalysis, power_curves = train_set(
@@ -130,5 +135,19 @@ def main(code, time_res, k, out_dir):
         print(nat.round(4).to_string(index=False))
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<CODE> <time_res> <k> <out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
+    parser.add_argument("time_res", help="Time slice; only fixed is implemented")
+    parser.add_argument("k", help="Cluster count of the fit to check")
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--refresh", type=Path, default=REFRESH,
+                        help="Runs holding <CODE>/train-refresh, whose fits are checked "
+                             f"(default: {REFRESH})")
+    args = parser.parse_args(argv)
+    main(args.code, args.time_res, args.k, args.out_dir, refresh=args.refresh)
+
+
 if __name__ == "__main__":
-    main(*sys.argv[1:5])
+    cli()

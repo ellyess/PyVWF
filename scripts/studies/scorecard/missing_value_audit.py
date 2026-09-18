@@ -53,6 +53,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
+from vwf.cli.common import make_parser
 from vwf.clustering import cluster_turbines
 from vwf.data import assign_country_clusters, load_power_curves, val_set
 from vwf.harness.corrections import fit_quality, get_correction
@@ -63,11 +64,11 @@ from vwf.wind import add_time_resolution_columns
 ROUTES = ("input", "failed_factor", "above_curve", "below_curve", "unexplained")
 
 
-def main(code, out_dir):
+def main(code, out_dir, backfill=bb.BACKFILL):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
-    ev = next((bb.BACKFILL / code).glob("evaluate-*-backfill"))
+    ev = next((Path(backfill) / code).glob("evaluate-*-backfill"))
     manifest = json.loads((ev / "run_manifest.json").read_text())
     year = int(manifest["evaluation_year"])
     train_dir = Path(manifest["trained_from"])
@@ -193,5 +194,16 @@ def main(code, out_dir):
     pd.DataFrame(by_unit).to_csv(out_dir / f"{code}_missing_by_unit.csv", index=False)
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<CODE> <out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--backfill", type=Path, default=bb.BACKFILL,
+                        help=f"The rows' evaluate runs (default: {bb.BACKFILL})")
+    args = parser.parse_args(argv)
+    main(args.code, args.out_dir, backfill=args.backfill)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    cli()

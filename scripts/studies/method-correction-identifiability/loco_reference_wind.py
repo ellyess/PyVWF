@@ -29,11 +29,12 @@ Usage, from the repository root:
     PYTHONPATH=src python scripts/studies/method-correction-identifiability/loco_reference_wind.py <out_dir>
 """
 import importlib.util
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from vwf.cli.common import make_parser
 
 
 REPO = Path(__file__).resolve().parents[3]
@@ -61,10 +62,10 @@ def as_reference(frame: pd.DataFrame) -> pd.DataFrame:
                         offset=frame["scalar"] * v2 + frame["offset"])
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
     v1, v2 = REFERENCE_WINDS
 
     print(f"=== the target, at {v1:g} and {v2:g} m/s")
@@ -135,7 +136,15 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out / 'loco_reference_wind.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

@@ -36,11 +36,12 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-correction-identifiability/correction_identifiability.py <out_dir>
 """
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from vwf.cli.common import make_parser
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 
@@ -57,10 +58,10 @@ def pivot(a: np.ndarray, b: np.ndarray) -> float:
     return float(-np.cov(a, b, ddof=1)[0, 1] / va)
 
 
-def main(out_dir: str) -> None:
+def main(out_dir: str, pool_path: Path = POOL) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    pool = pd.read_csv(POOL)
+    pool = pd.read_csv(pool_path)
 
     pooled_r = float(pool["scalar"].corr(pool["offset"]))
     print(f"=== pooled across all {len(pool)} control points: r = {pooled_r:.3f}")
@@ -113,7 +114,15 @@ def main(out_dir: str) -> None:
     print(f"\nwritten: {out / 'identifiability_by_row.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the tables, under output/")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool (default: {POOL})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, pool_path=args.pool)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1])
+    cli()

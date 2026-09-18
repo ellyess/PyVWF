@@ -22,6 +22,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 ANALYSIS = ROOT / "scripts" / "analysis"
 BACKFILL = Path("output/validation/curve_resolution_backfill_2026-09-11")
+POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 
 # script: [(argv, (entry function, positional args, keyword args)), ...]
 RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
@@ -52,6 +53,66 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         (["output/extent_audit_2026-09-12"], ("main", ("output/extent_audit_2026-09-12", []), {})),
         (["output/extent_audit_2026-09-12", "DK", "FR"],
          ("main", ("output/extent_audit_2026-09-12", ["DK", "FR"]), {})),
+    ],
+    "scripts/studies/scorecard/missing_value_audit.py": [
+        (["DK", "output/curve_library_study_2026-09-11/missing_value_audit"],
+         ("main", ("DK", "output/curve_library_study_2026-09-11/missing_value_audit"),
+          {"backfill": BACKFILL})),
+    ],
+    "scripts/studies/scorecard/off_curve_sensitivity.py": [
+        (["DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"],
+         ("main", ("DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"),
+          {"backfill": BACKFILL})),
+    ],
+    "scripts/studies/scorecard/unit_concentration.py": [
+        (["DK", "output/curve_library_study_2026-09-11/unit_concentration"],
+         ("main", ("DK", "output/curve_library_study_2026-09-11/unit_concentration"),
+          {"backfill": BACKFILL})),
+    ],
+    "scripts/studies/scorecard/training_objective_check.py": [
+        (["ES", "fixed", "4", "output/curve_library_study_2026-09-11/training_objective_check"],
+         ("main", ("ES", "fixed", "4", "output/curve_library_study_2026-09-11/training_objective_check"),
+          {"refresh": Path("output/validation/refresh_2026-08-24")})),
+    ],
+    "scripts/studies/method-cluster-selection/cluster_selection_study.py": [
+        (["output/cluster_selection_2026-09-15"], ("main", ("output/cluster_selection_2026-09-15",), {})),
+        (["output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"],
+         ("main", ("output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"), {})),
+    ],
+    "scripts/studies/method-cluster-selection/cluster_selection_gaps.py": [
+        (["output/cluster_selection_2026-09-15", "UK offshore", "50"],
+         ("main", ("output/cluster_selection_2026-09-15", "UK offshore", "50"), {})),
+    ],
+    "scripts/studies/method-cluster-selection/cluster_sweep_cost.py": [
+        # The mode is now passed explicitly; "all" is main's own default.
+        (["be", "output/cluster_sweep_cost_2026-09-15"],
+         ("main", ("be", "output/cluster_sweep_cost_2026-09-15", "all"), {"pool": POOL})),
+        (["dk", "output/cluster_sweep_cost_2026-09-15", "onshore"],
+         ("main", ("dk", "output/cluster_sweep_cost_2026-09-15", "onshore"), {"pool": POOL})),
+    ],
+    "scripts/studies/method-correction-identifiability/correction_identifiability.py": [
+        (["output/identifiability_2026-09-16"],
+         ("main", ("output/identifiability_2026-09-16",), {"pool_path": POOL})),
+    ],
+    "scripts/studies/method-correction-identifiability/loco_reference_wind.py": [
+        (["output/loco_reference_2026-09-16"],
+         ("main", ("output/loco_reference_2026-09-16",), {"pool_path": ROOT / POOL})),
+    ],
+    "scripts/studies/method-correction-identifiability/pivot_probe.py": [
+        (["output/pivot_probe_2026-09-16"],
+         ("main", ("output/pivot_probe_2026-09-16",),
+          {"selection": ROOT / "output/cluster_selection_2026-09-15",
+           "era5_dir": ROOT / "input/era5/EU_2026-09"})),
+        (["output/pivot_probe_2026-09-16", "DK", "UK"],
+         ("main", ("output/pivot_probe_2026-09-16", "DK", "UK"),
+          {"selection": ROOT / "output/cluster_selection_2026-09-15",
+           "era5_dir": ROOT / "input/era5/EU_2026-09"})),
+    ],
+    "scripts/studies/method-country-level/chapter_capacity_weights.py": [
+        (["output/chapter_capacity_weights_2026-09-16"],
+         ("main", ("output/chapter_capacity_weights_2026-09-16",),
+          {"runs": ROOT / "output/runs/turbine_grid",
+           "gwpt": ROOT / "input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx"})),
     ],
 }
 
@@ -104,13 +165,6 @@ def test_every_driver_without_a_parser_is_listed():
 # Still read sys.argv by position; converted one study directory per commit.
 NOT_YET_CONVERTED: list[str] = [
     "scripts/studies/manuscript-chapters-45/refit_control_points.py",
-    "scripts/studies/method-cluster-selection/cluster_selection_gaps.py",
-    "scripts/studies/method-cluster-selection/cluster_selection_study.py",
-    "scripts/studies/method-cluster-selection/cluster_sweep_cost.py",
-    "scripts/studies/method-correction-identifiability/correction_identifiability.py",
-    "scripts/studies/method-correction-identifiability/loco_reference_wind.py",
-    "scripts/studies/method-correction-identifiability/pivot_probe.py",
-    "scripts/studies/method-country-level/chapter_capacity_weights.py",
     "scripts/studies/method-curve-library/curve_library_study.py",
     "scripts/studies/method-curve-library/curve_library_tables.py",
     "scripts/studies/method-distance-mask/unmasked_surface_bands.py",
@@ -122,8 +176,4 @@ NOT_YET_CONVERTED: list[str] = [
     "scripts/studies/method-roughness-treatment/roughness_treatment_study.py",
     "scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py",
     "scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py",
-    "scripts/studies/scorecard/missing_value_audit.py",
-    "scripts/studies/scorecard/off_curve_sensitivity.py",
-    "scripts/studies/scorecard/training_objective_check.py",
-    "scripts/studies/scorecard/unit_concentration.py",
 ]

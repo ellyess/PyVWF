@@ -32,12 +32,12 @@ Usage, from the repository root:
         scripts/studies/method-cluster-selection/cluster_sweep_cost.py <region-stem> <out_dir>
 """
 import dataclasses
-import sys
 import time
 from pathlib import Path
 
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.harness import driver, regions
 
 #: The turbine-level grids the registration fixes.
@@ -55,18 +55,18 @@ POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 ERA5_PATH, ROUGHNESS, TIME_SLICE = "era5/EU_2026-09", "derived", "fixed"
 
 
-def grid_for(spec: regions.RegionSpec, mode: str) -> tuple[int, ...]:
+def grid_for(spec: regions.RegionSpec, mode: str, pool: Path = POOL) -> tuple[int, ...]:
     if spec.obs_level == "country":
-        pool = pd.read_csv(POOL)
-        present = int((pool["country_code"] == spec.code).sum())
+        points = pd.read_csv(pool)
+        present = int((points["country_code"] == spec.code).sum())
         return (1, present)
     return OFFSHORE_GRID if mode == "offshore" else ONSHORE_GRID
 
 
-def main(stem: str, out_dir: str, mode: str = "all") -> None:
+def main(stem: str, out_dir: str, mode: str = "all", pool: Path = POOL) -> None:
     out = Path(out_dir)
     spec = regions.load_region(Path("configs/regions") / f"{stem}.toml")
-    grid = grid_for(spec, mode)
+    grid = grid_for(spec, mode, pool)
 
     swept = dataclasses.replace(
         spec, cluster_list=grid, time_slices=(TIME_SLICE,),
@@ -102,7 +102,18 @@ def main(stem: str, out_dir: str, mode: str = "all") -> None:
     print(f"\ntrain: {train_dir}\nevaluate: {evaluate_dir}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<region-stem> <out_dir> [mode]``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("stem", metavar="region-stem", help="A maintained config, e.g. be")
+    parser.add_argument("out_dir", help="Directory for the runs, under output/")
+    parser.add_argument("mode", nargs="?", default="all", choices=("all", "onshore", "offshore"),
+                        help="Fleet mode (default: all)")
+    parser.add_argument("--pool", type=Path, default=POOL,
+                        help=f"The control-point pool, for a country-level grid (default: {POOL})")
+    args = parser.parse_args(argv)
+    main(args.stem, args.out_dir, args.mode, pool=args.pool)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) not in (3, 4):
-        raise SystemExit(__doc__)
-    main(sys.argv[1], sys.argv[2], *sys.argv[3:])
+    cli()

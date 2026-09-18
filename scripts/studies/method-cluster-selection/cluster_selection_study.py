@@ -31,13 +31,13 @@ Usage, from the repository root:
         scripts/studies/method-cluster-selection/cluster_selection_study.py <out_dir> [label ...]
 """
 import dataclasses
-import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.harness import driver, regions
 
 ONSHORE_GRID = (1, 10, 25, 50, 100, 200, 500, 1000)
@@ -230,7 +230,15 @@ def main(out_dir: str, *only: str) -> None:
     print(f"written: {len(frame)} per-row score and selection files under {out}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir> [label ...]``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the run directories, under output/")
+    parser.add_argument("only", nargs="*", metavar="label",
+                        help="Rows of CONFIGURATIONS to run (default: all)")
+    args = parser.parse_args(argv)
+    main(args.out_dir, *args.only)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1], *sys.argv[2:])
+    cli()

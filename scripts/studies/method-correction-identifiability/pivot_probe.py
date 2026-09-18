@@ -32,13 +32,13 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-correction-identifiability/pivot_probe.py <out_dir> [DE|DK|UK]
 """
-import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from vwf.cli.common import make_parser
 from vwf.correction import find_offset_iterative
 from vwf.data import load_power_curves
 from vwf.datasets.era5 import prep_era5
@@ -47,6 +47,7 @@ from vwf.wind import fast_simulate_cf, interpolate_wind, prepare_offset_arrays
 
 REPO = Path(__file__).resolve().parents[3]
 SEL = REPO / "output/cluster_selection_2026-09-15"
+ERA5_DIR = REPO / "input" / "era5" / "EU_2026-09"
 
 #: The wind below which a turbine produces almost nothing, and where the pivot
 #: was found.
@@ -74,7 +75,7 @@ def pivot(a: np.ndarray, b: np.ndarray) -> float:
     return float("nan") if va <= 0 else float(-np.cov(a, b, ddof=1)[0, 1] / va)
 
 
-def main(out_dir: str, *only: str) -> None:
+def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_DIR) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     curves = load_power_curves()
@@ -83,7 +84,7 @@ def main(out_dir: str, *only: str) -> None:
     for label in (only or ROWS):
         stem, mode, k, train_dir = ROWS[label]
         spec = regions.load_region(REPO / "configs" / "regions" / f"{stem}.toml")
-        base = SEL / label / train_dir
+        base = Path(selection) / label / train_dir
         factors = pd.read_csv(base / f"factors_fixed_{k}.csv")
         fleet = pd.read_csv(base / f"train_turb_info_{k}.csv")
         print(f"\n=== {label}: {len(fleet)} units, {len(factors)} clusters, "
@@ -91,7 +92,7 @@ def main(out_dir: str, *only: str) -> None:
 
         reanalysis = prep_era5(spec.code, True, True,
                                bbox=BBOX.get(stem, spec.bbox),
-                               era5_dir=REPO / "input" / "era5" / "EU_2026-09",
+                               era5_dir=Path(era5_dir),
                                roughness="derived")
         first, last = spec.train_years
         years = pd.DatetimeIndex(reanalysis.time.values).year
@@ -178,7 +179,18 @@ def main(out_dir: str, *only: str) -> None:
           "found a root and the pivot is not an artefact of where it started.")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir> [DE|DK|UK]``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="Directory for the outputs, under output/")
+    parser.add_argument("only", nargs="*", metavar="row", help="Rows of ROWS to probe (default: all)")
+    parser.add_argument("--selection", type=Path, default=SEL,
+                        help=f"The cluster selection runs whose factors are probed (default: {SEL})")
+    parser.add_argument("--era5-dir", type=Path, default=ERA5_DIR,
+                        help=f"The ERA5 the fits were trained on (default: {ERA5_DIR})")
+    args = parser.parse_args(argv)
+    main(args.out_dir, *args.only, selection=args.selection, era5_dir=args.era5_dir)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise SystemExit(__doc__)
-    main(sys.argv[1], *sys.argv[2:])
+    cli()

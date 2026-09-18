@@ -20,11 +20,12 @@ than recomputed, so what was evaluated is visible in the invocation:
         scripts/studies/method-cluster-selection/cluster_selection_gaps.py <out_dir> "UK offshore" 50
 """
 import importlib.util
-import sys
 import time
 from pathlib import Path
 
 import pandas as pd
+
+from vwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
@@ -58,7 +59,16 @@ def main(out_dir: str, label: str, *counts: str) -> None:
     print(f"written: {out / f'gaps_{stem_label}.csv'}")
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """Parse the recorded command line, ``<out_dir> <label> <count> ...``, and run :func:`main`."""
+    parser = make_parser(__doc__)
+    parser.add_argument("out_dir", help="The study's output directory, under output/")
+    parser.add_argument("label", help='A row of CONFIGURATIONS, e.g. "UK offshore"')
+    parser.add_argument("counts", nargs="+", metavar="count",
+                        help="Cluster counts to fill in")
+    args = parser.parse_args(argv)
+    main(args.out_dir, args.label, *args.counts)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        raise SystemExit(__doc__)
-    main(sys.argv[1], sys.argv[2], *sys.argv[3:])
+    cli()
