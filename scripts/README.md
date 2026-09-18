@@ -1,7 +1,8 @@
 # Scripts
 
 Data acquisition, processing, and analysis for the bias-correction workflow.
-See [PIPELINE.md](../PIPELINE.md) for execution order. All data-download
+The older `PyVWF` batch order is in
+[the training guide](../docs/guides/training.md#legacy-batch-path). All data-download
 scripts are **user-executed** (they use your credentials / CDS key); none of
 the raw or derived data is committed (`input/` is git-ignored).
 

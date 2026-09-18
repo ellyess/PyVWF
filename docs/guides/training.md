@@ -98,3 +98,57 @@ pipeline changes. See
 [`adding-an-observation-source.md`](adding-an-observation-source.md). For where
 each region's data comes from and how it is preprocessed, see
 [`data-sources.md`](data-sources.md).
+
+## Legacy batch path
+
+The harness is the path for new work. The legacy path is the `PyVWF` class in
+`src/vwf/vwf.py`. It produced the thesis-era runs under `output/runs/`, and it
+stays so that they can be reproduced. The harness affine correction delegates
+to its correction code.
+
+Two entry points use it:
+
+- `pyvwf-train` runs `PyVWF.train` and then `simulate_cf`, for one country and
+  one test year. Run `pyvwf-train --help` for its options.
+- `scripts/analysis/train_all_bias_corrections.py` runs named configuration
+  sets in batch.
+
+To run a batch:
+
+1. For a country-level set, generate the training data first. Pass the ENTSO-E
+   key in the environment for this one command. The script also needs the
+   `[data]` extra.
+
+   ```bash
+   ENTSOE_API_KEY=<key> python src/vwf/datasets/generate_country_level_training_data.py
+   ```
+
+   This writes the observations, the grid points and
+   `input/observations/country/pyvwf_config.py`. The batch script reads that
+   file. A turbine-level set (DK, DE, UK) needs no such step.
+2. List the configuration sets. The script defines them, so its list is the
+   only current record.
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/train_all_bias_corrections.py --list
+   ```
+
+3. Run one or more sets.
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/train_all_bias_corrections.py \
+       --sets turbine_grid country_grid_2015_2021_2023
+   ```
+
+   Each run writes to `output/runs/<prefix>/<country-run>/`. Its factors are
+   under `training/correction-factors/`. `--outdir` changes the base directory.
+4. Score the runs of one set.
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid
+   ```
+
+   This writes `output/runs/<prefix>/pyvwf_evaluation_metrics.csv`, with MAE,
+   RMSE and bias for each run. Its `r2` column is always empty.
+   `vwf.viz.plot_error_vs_clusters` plots this file (see
+   [`visualisation.md`](visualisation.md)).

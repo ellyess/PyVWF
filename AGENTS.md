@@ -11,8 +11,9 @@ any agent working in this repository.
   are named, and the writing rules for procedural documents.
 - `CONTRIBUTING.md`: development setup, tests and continuous integration.
 - `CONTEXT.md`: the controlled vocabulary. Use its approved terms.
-- `PIPELINE.md` describes the older batch path. For new work, use the harness:
-  `scripts/analysis/validate_region.py` and `docs/guides/training.md`.
+- For new work, use the harness: `scripts/analysis/validate_region.py` and
+  `docs/guides/training.md`. The older batch path is the last section of that
+  guide.
 
 ## Skills
 

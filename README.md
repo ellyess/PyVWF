@@ -216,7 +216,7 @@ plain Markdown in [`docs/`](docs/README.md).
 - [Region runbooks](docs/runbooks/): acquisition and processing per region.
 - [Harness design](docs/design/harness.md): why the seams are where they are.
 - [Findings](docs/findings/): the validation results, including the negative ones.
-- [PIPELINE.md](PIPELINE.md): script execution order.
+- [Legacy batch path](docs/guides/training.md#legacy-batch-path): the older `PyVWF` batch scripts.
 
 ## Physics-informed correction (experimental)
 
