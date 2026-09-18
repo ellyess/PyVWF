@@ -1,5 +1,13 @@
 # Which points are offshore: registered design
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-offshore-pool/offshore_pool_study.py`. Until 2026-09-18
+it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+output under `output/offshore_pool_2026-09-13/` records no commit; the driver's
+last commit before it was written is `bd09937`. The study is void, as this
+registration records, and its numbers are kept but not reported.
+
 **Date:** 2026-09-13, committed before either pool is interpolated.
 **Scope:** whether chapter 4's one documented interpolation failure, Denmark
 offshore, is a property of the correction surface or of how the offshore
