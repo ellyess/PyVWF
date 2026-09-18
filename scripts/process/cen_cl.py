@@ -27,21 +27,20 @@ loudly on any plant still lacking a coordinate.
 import argparse
 import glob
 import json
-import re
 import sys
-import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
+from vwf.datasets.gwpt import load_gwpt, projects_with_keys
 from vwf.datasets.cen_cl import (
     build_cl_metadata,
+    cl_plant_key,
+    match_coordinates,
     monthly_cf_from_generation,
     strip_commissioning_prefix,
     wind_fleet_from_generation,
 )
-
-CAP_TOL = 0.35  # fractional capacity agreement required to confirm a name match
 
 #: Plants dropped from the fleet, with the reason. The four tiny PMGD plants
 #: (5-9 MW each, ~30 MW total = <1% of the ~3.4 GW fleet) are real and report
@@ -52,17 +51,6 @@ CAP_TOL = 0.35  # fractional capacity agreement required to confirm a name match
 #: would also live here; none are in the SEN wind fleet today.)
 EXCLUDE: tuple[str, ...] = ("334", "350", "414", "436")  # Raki, Huajache, Las Peñas, Lebu III
 
-_DROP = {"PARQUE", "EOLICO", "EOLICA", "PMGD", "PE", "WIND", "FARM",
-         "CHILE", "ENEL", "DEL", "DE", "LA", "LOS", "LAS", "EL"}
-
-
-def norm(s: str) -> str:
-    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode()
-    s = re.sub(r"[^A-Za-z0-9 ]", " ", s.upper())
-    toks = [t for t in s.split() if t not in _DROP]
-    return " ".join(toks).strip()
-
-
 def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
     paths = sorted(glob.glob(str(raw_dir / "cen_gen_*.json")))
     paths = [p for p in paths if y0 <= int(Path(p).stem.split("_")[-2]) <= y1]
@@ -71,52 +59,6 @@ def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
                  "scripts/fetch/cen_cl.py --years first.")
     return pd.concat([pd.DataFrame(json.load(open(p))) for p in paths],
                      ignore_index=True)
-
-
-def gwpt_chile(xlsx: Path) -> pd.DataFrame:
-    g = pd.read_excel(xlsx, sheet_name="Data")
-    g = g[(g["Country/Area"].astype(str).str.strip() == "Chile")
-          & (g["Status"].astype(str).str.lower() == "operating")].copy()
-    g["norm"] = g["Project Name"].map(norm)
-    g["cap"] = pd.to_numeric(g["Capacity (MW)"], errors="coerce")
-    return g[["Project Name", "norm", "cap", "Latitude", "Longitude"]]
-
-
-def match(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFrame):
-    """Return (coords_df[ID,lon,lat,gwpt_name], residual_df)."""
-    # Explicit column access, NOT itertuples: with extra provenance columns
-    # present, itertuples attribute access shifted r.ID onto the lon value and
-    # silently produced longitude-keyed entries that matched no plant. Only
-    # ID/lon/lat are used from `overrides`.
-    ov = (dict(zip(overrides["ID"].astype(str),
-                   zip(overrides["lon"].astype(float), overrides["lat"].astype(float))))
-          if len(overrides) else {})
-    rows, residual = [], []
-    for f in fleet.itertuples():
-        fid, cap, nm = str(f.ID), f.capacity_mw, norm(f.site_name)
-        if fid in ov:
-            rows.append((fid, ov[fid][0], ov[fid][1], "override"))
-            continue
-        cand = g[g["norm"] == nm]
-        if not len(cand):  # substring either direction (phase splits)
-            cand = g[g["norm"].apply(lambda x: bool(x) and (x in nm or nm in x))]
-        if len(cand) and pd.notna(cap):
-            cand = cand.assign(dcap=(cand["cap"] - cap).abs() / cap)
-            best = cand.nsmallest(1, "dcap").iloc[0]
-            if best["dcap"] <= CAP_TOL:
-                rows.append((fid, best["Longitude"], best["Latitude"],
-                             best["Project Name"]))
-                continue
-        top = g.assign(dcap=(g["cap"] - cap).abs()).nsmallest(3, "dcap") \
-            if pd.notna(cap) else g.head(3)
-        residual.append({
-            "ID": fid, "site_name": f.site_name, "capacity_mw": cap,
-            "candidates": "; ".join(
-                f"{r['Project Name']} ({r['cap']}MW @{r['Latitude']:.3f},{r['Longitude']:.3f})"
-                for _, r in top.iterrows()),
-        })
-    coords = pd.DataFrame(rows, columns=["ID", "lon", "lat", "gwpt_name"])
-    return coords, pd.DataFrame(residual)
 
 
 def main() -> None:
@@ -138,10 +80,10 @@ def main() -> None:
     fleet = wind_fleet_from_generation(gen)
     obs = strip_commissioning_prefix(monthly_cf_from_generation(gen, y0, y1))
 
-    g = gwpt_chile(Path(args.gwpt))
+    g = projects_with_keys(load_gwpt(Path(args.gwpt)), "Chile", cl_plant_key)
     ov_path = Path(args.overrides)
     overrides = pd.read_csv(ov_path) if ov_path.is_file() else pd.DataFrame(columns=["ID", "lon", "lat"])
-    coords, residual = match(fleet, g, overrides)
+    coords, residual = match_coordinates(fleet, g, overrides)
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

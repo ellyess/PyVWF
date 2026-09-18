@@ -59,11 +59,13 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vwf.config import PyVWFPaths  # noqa: E402
 from vwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
-from weight_country_grid_points import GWPT_PATH, fleet_for, load_gwpt  # noqa: E402
+from vwf.datasets.gwpt import default_path, fleet_for, load_exclusions, load_gwpt  # noqa: E402
+
+GWPT_PATH = default_path()
+EXCLUSIONS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_exclusions.csv"
 
 #: Matches the ceiling applied by the ENTSO-E fetcher.
 CLIP = 1.5
@@ -73,7 +75,8 @@ BACKUP_SUFFIX = ".entsoe-capacity.bak.csv"
 
 def annual_capacity(gwpt: pd.DataFrame, country: str, years) -> dict[int, float]:
     """Installed capacity in MW as of each year, from the tracker."""
-    return {int(y): float(fleet_for(gwpt, country, int(y))["mw"].sum()) for y in years}
+    excluded = load_exclusions(EXCLUSIONS_PATH)
+    return {int(y): float(fleet_for(gwpt, country, int(y), excluded)["mw"].sum()) for y in years}
 
 
 def repair(path: Path, gwpt: pd.DataFrame, country: str, *, dry_run: bool) -> pd.DataFrame:

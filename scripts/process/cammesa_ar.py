@@ -27,16 +27,17 @@ a capacity.
     python scripts/process/cammesa_ar.py --years 2021 2024
 """
 import argparse
-import re
 import sys
-import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
+from vwf.datasets.gwpt import load_gwpt, projects_with_keys
 from vwf.datasets.cammesa_ar import (
+    ar_plant_key,
     build_ar_metadata,
     capacity_suspect_ids,
+    join_coords_caps,
     monthly_cf_from_gwh,
     strip_commissioning_prefix,
 )
@@ -68,52 +69,6 @@ EXCLUDE: tuple[str, ...] = (
     "Parque Eólico La Castellana II",         # steady CF ~0.07 vs windy Bahia Blanca siblings at ~0.45; capacity or curtailment anomaly
 )
 
-_DROP = {"PARQUE", "EOLICO", "EOLICA", "PE", "WIND", "FARM", "DEL", "DE",
-         "LA", "LOS", "LAS", "EL", "GENNEIA", "SA", "S", "P", "AG"}
-
-
-def norm(s: str) -> str:
-    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode()
-    s = re.sub(r"[^A-Za-z0-9 ]", " ", s.upper())
-    toks = [t for t in s.split() if t not in _DROP and not re.fullmatch(r"I{1,3}V?|IV", t)]
-    return " ".join(toks).strip()
-
-
-def gwpt_argentina(xlsx: Path) -> pd.DataFrame:
-    g = pd.read_excel(xlsx, sheet_name="Data")
-    g = g[(g["Country/Area"].astype(str).str.strip() == "Argentina")
-          & (g["Status"].astype(str).str.lower() == "operating")].copy()
-    g["norm"] = g["Project Name"].map(norm)
-    g["cap"] = pd.to_numeric(g["Capacity (MW)"], errors="coerce")
-    return g[["Project Name", "norm", "cap", "Latitude", "Longitude"]]
-
-
-def join_coords_caps(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFrame):
-    """Return join_df[ID,lon,lat,capacity_mw,gwpt_name] and unmatched IDs."""
-    ov = ({str(i): (lo, la, c) for i, lo, la, c in zip(
-        overrides["ID"].astype(str), overrides["lon"].astype(float),
-        overrides["lat"].astype(float), overrides["capacity_mw"].astype(float))}
-        if len(overrides) else {})
-    rows, unmatched = [], []
-    for f in fleet.itertuples():
-        fid, nm = str(f.ID), norm(f.site_name)
-        if fid in ov:
-            lo, la, c = ov[fid]
-            rows.append((fid, lo, la, c, "override"))
-            continue
-        cand = g[g["norm"] == nm]
-        if not len(cand):
-            cand = g[g["norm"].apply(lambda x: bool(x) and (x in nm or nm in x))]
-        if len(cand):
-            best = cand.nlargest(1, "cap").iloc[0]  # phase-split: take full-farm cap
-            rows.append((fid, best["Longitude"], best["Latitude"], best["cap"],
-                         best["Project Name"]))
-        else:
-            unmatched.append(fid)
-    join = pd.DataFrame(rows, columns=["ID", "lon", "lat", "capacity_mw", "gwpt_name"])
-    return join, unmatched
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--monthly", default="input/raw/cammesa/ar_wind_monthly.csv")
@@ -141,7 +96,7 @@ def main() -> None:
     # yet are unrepresentative), so the drop is applied here to the fleet itself.
     fleet = fleet[~fleet["ID"].isin(EXCLUDE)].reset_index(drop=True)
 
-    g = gwpt_argentina(Path(args.gwpt))
+    g = projects_with_keys(load_gwpt(Path(args.gwpt)), "Argentina", ar_plant_key)
     ov_path = Path(args.overrides)
     overrides = pd.read_csv(ov_path) if ov_path.is_file() else \
         pd.DataFrame(columns=["ID", "lon", "lat", "capacity_mw"])

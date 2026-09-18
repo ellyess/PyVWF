@@ -30,6 +30,8 @@ from collections.abc import Sequence
 
 import pandas as pd
 
+from vwf.datasets.gwpt import DROP_AR, plant_key
+
 #: Months with a monthly CF below this are treated as pre-operational when they
 #: form a plant's leading run (the static-nameplate ramp trap; see
 #: :func:`strip_commissioning_prefix`).
@@ -205,3 +207,50 @@ def build_ar_metadata(
         ["ID", "site_name", "lon", "lat", "height", "capacity", "model",
          "type", "height_source", "model_source", "region", "provincia"]
     ].reset_index(drop=True)
+
+
+def ar_plant_key(name: str) -> str:
+    """The Argentina join key: :func:`vwf.datasets.gwpt.plant_key` with
+    :data:`vwf.datasets.gwpt.DROP_AR`, stage numerals dropped."""
+    return plant_key(name, DROP_AR, drop_roman=True)
+
+
+def join_coords_caps(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFrame):
+    """Join each central to a GWPT farm for coordinates and capacity.
+
+    An override row wins. Otherwise an exact key match, then a substring match
+    either way; where a farm is split into phases, the largest capacity is
+    taken, which is the full farm.
+
+    Args:
+        fleet: Centrals with ``ID`` and ``site_name``.
+        g: :func:`vwf.datasets.gwpt.projects_with_keys` for Argentina with
+            :func:`ar_plant_key`.
+        overrides: Curated ``ID``, ``lon``, ``lat``, ``capacity_mw``.
+
+    Returns:
+        ``(join, unmatched)``: a frame with ``ID``, ``lon``, ``lat``,
+        ``capacity_mw`` and ``gwpt_name``, and the IDs with no match.
+    """
+    ov = ({str(i): (lo, la, c) for i, lo, la, c in zip(
+        overrides["ID"].astype(str), overrides["lon"].astype(float),
+        overrides["lat"].astype(float), overrides["capacity_mw"].astype(float))}
+        if len(overrides) else {})
+    rows, unmatched = [], []
+    for f in fleet.itertuples():
+        fid, nm = str(f.ID), ar_plant_key(f.site_name)
+        if fid in ov:
+            lo, la, c = ov[fid]
+            rows.append((fid, lo, la, c, "override"))
+            continue
+        cand = g[g["norm"] == nm]
+        if not len(cand):
+            cand = g[g["norm"].apply(lambda x: bool(x) and (x in nm or nm in x))]
+        if len(cand):
+            best = cand.nlargest(1, "cap").iloc[0]  # phase-split: take full-farm cap
+            rows.append((fid, best["Longitude"], best["Latitude"], best["cap"],
+                         best["Project Name"]))
+        else:
+            unmatched.append(fid)
+    join = pd.DataFrame(rows, columns=["ID", "lon", "lat", "capacity_mw", "gwpt_name"])
+    return join, unmatched

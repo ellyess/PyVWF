@@ -41,6 +41,8 @@ from collections.abc import Sequence
 
 import pandas as pd
 
+from vwf.datasets.gwpt import DROP_CL, plant_key
+
 #: CEN generation timestamps are fixed Chilean standard time (UTC-4), with NO
 #: daylight saving applied (verified on the 2024 spring-forward day). Adding
 #: four hours takes them to UTC, matching the ERA5/simulation convention.
@@ -265,3 +267,60 @@ def build_cl_metadata(
         ["ID", "site_name", "lon", "lat", "height", "capacity", "model",
          "type", "height_source", "model_source", "propietario"]
     ].reset_index(drop=True)
+
+
+#: Fractional capacity agreement required to confirm a name match.
+CAP_TOL = 0.35
+
+
+def cl_plant_key(name: str) -> str:
+    """The Chile join key: :func:`vwf.datasets.gwpt.plant_key` with
+    :data:`vwf.datasets.gwpt.DROP_CL`."""
+    return plant_key(name, DROP_CL)
+
+
+def match_coordinates(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFrame):
+    """Match each plant to a GWPT farm for coordinates, confirmed by capacity.
+
+    An override row wins. Otherwise an exact key match, then a substring match
+    either way (phase splits), accepted only when the capacities agree within
+    :data:`CAP_TOL`. Unmatched plants go to the residual with the three GWPT
+    farms nearest in capacity.
+
+    Returns:
+        ``(coords, residual)``: ``ID``, ``lon``, ``lat``, ``gwpt_name``; and
+        ``ID``, ``site_name``, ``capacity_mw``, ``candidates``.
+    """
+    # Explicit column access, NOT itertuples: with extra provenance columns
+    # present, itertuples attribute access shifted r.ID onto the lon value and
+    # silently produced longitude-keyed entries that matched no plant. Only
+    # ID/lon/lat are used from `overrides`.
+    ov = (dict(zip(overrides["ID"].astype(str),
+                   zip(overrides["lon"].astype(float), overrides["lat"].astype(float))))
+          if len(overrides) else {})
+    rows, residual = [], []
+    for f in fleet.itertuples():
+        fid, cap, nm = str(f.ID), f.capacity_mw, cl_plant_key(f.site_name)
+        if fid in ov:
+            rows.append((fid, ov[fid][0], ov[fid][1], "override"))
+            continue
+        cand = g[g["norm"] == nm]
+        if not len(cand):  # substring either direction (phase splits)
+            cand = g[g["norm"].apply(lambda x: bool(x) and (x in nm or nm in x))]
+        if len(cand) and pd.notna(cap):
+            cand = cand.assign(dcap=(cand["cap"] - cap).abs() / cap)
+            best = cand.nsmallest(1, "dcap").iloc[0]
+            if best["dcap"] <= CAP_TOL:
+                rows.append((fid, best["Longitude"], best["Latitude"],
+                             best["Project Name"]))
+                continue
+        top = g.assign(dcap=(g["cap"] - cap).abs()).nsmallest(3, "dcap") \
+            if pd.notna(cap) else g.head(3)
+        residual.append({
+            "ID": fid, "site_name": f.site_name, "capacity_mw": cap,
+            "candidates": "; ".join(
+                f"{r['Project Name']} ({r['cap']}MW @{r['Latitude']:.3f},{r['Longitude']:.3f})"
+                for _, r in top.iterrows()),
+        })
+    coords = pd.DataFrame(rows, columns=["ID", "lon", "lat", "gwpt_name"])
+    return coords, pd.DataFrame(residual)

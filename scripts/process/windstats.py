@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from vwf.datasets.gwpt import load_gwpt, operating_projects
 from vwf.datasets.windstats import (
     build_windstats_metadata,
     match_twp_to_coords,
@@ -58,9 +59,7 @@ def main() -> None:
     md_raw = pd.read_csv(src / f"{cc}_md.csv", encoding="latin-1")
     data = pd.read_csv(src / f"{cc}_data.csv")
     geo = pd.read_csv(src / f"geolocate.{GEO_NAME[cc]}.csv", encoding="latin-1")
-    g = pd.read_excel(args.gwpt, sheet_name="Data")
-    gsub = g[(g["Country/Area"].astype(str).str.strip() == GWPT_COUNTRY[cc])
-             & (g["Status"].astype(str).str.lower() == "operating")]
+    gsub = operating_projects(load_gwpt(Path(args.gwpt)), GWPT_COUNTRY[cc])
 
     smd = windstats_metadata(md_raw, cc)
     coords = match_twp_to_coords(geo, gsub)

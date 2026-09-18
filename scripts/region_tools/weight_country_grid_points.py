@@ -37,36 +37,21 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from vwf.config import PyVWFPaths  # noqa: E402
-
-GWPT_PATH = PyVWFPaths.INPUT_ROOT / "reference" / "gwpt" / (
-    "Global-Wind-Power-Tracker-February-2026.xlsx"
+from vwf.datasets.gwpt import (  # noqa: E402
+    COUNTRY_NAME,
+    fleet_for,
+    load_exclusions,
+    load_gwpt,
 )
+from vwf.datasets.gwpt import default_path as gwpt_default_path  # noqa: E402
 
-#: Region code to the GWPT's ``Country/Area`` spelling.
-GWPT_COUNTRY = {
-    "BE": "Belgium",
-    "ES": "Spain",
-    "FR": "France",
-    "IE": "Ireland",
-    "IT": "Italy",
-    "NL": "Netherlands",
-    "NO": "Norway",
-    "PT": "Portugal",
-    "SE": "Sweden",
-}
+GWPT_PATH = gwpt_default_path()
 
 BACKUP_SUFFIX = ".uniform.bak.csv"
 
 #: Records the tracker marks operating that independent registers contradict.
 #: Each row states its evidence; see the file.
 EXCLUSIONS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_exclusions.csv"
-
-
-def load_exclusions(path: Path = EXCLUSIONS_PATH) -> set[str]:
-    """GEM phase IDs to drop, keyed so a renamed project stays excluded."""
-    if not path.is_file():
-        return set()
-    return set(pd.read_csv(path)["gem_phase_id"].astype(str))
 
 
 def tag_zones(frame: pd.DataFrame, country: str) -> pd.DataFrame:
@@ -96,46 +81,6 @@ def tag_zones(frame: pd.DataFrame, country: str) -> pd.DataFrame:
     out = frame.copy()
     out["zone"] = [zone_of(r.lon, r.lat) for r in out.itertuples()]
     return out
-
-
-def load_gwpt(path: Path = GWPT_PATH) -> pd.DataFrame:
-    """Read the tracker's Data sheet."""
-    if not path.is_file():
-        raise FileNotFoundError(
-            f"Global Wind Power Tracker not found at {path}. "
-            "See docs/guides/data-sources.md for where to download it."
-        )
-    return pd.read_excel(path, sheet_name="Data")
-
-
-def fleet_for(gwpt: pd.DataFrame, country: str, year: int | None) -> pd.DataFrame:
-    """Operating, geolocated projects for one country, optionally as of a year."""
-    name = GWPT_COUNTRY.get(country.upper())
-    if name is None:
-        raise KeyError(f"No GWPT country name mapped for {country!r}")
-
-    fleet = gwpt[gwpt["Country/Area"] == name].copy()
-    fleet = fleet[fleet["Status"].astype(str).str.lower() == "operating"]
-    fleet = fleet.dropna(subset=["Latitude", "Longitude", "Capacity (MW)"])
-
-    excluded = load_exclusions()
-    if excluded and "GEM phase ID" in fleet.columns:
-        drop = fleet["GEM phase ID"].astype(str).isin(excluded)
-        if drop.any():
-            names = ", ".join(fleet.loc[drop, "Project Name"].astype(str))
-            print(f"  excluding {int(drop.sum())} curated GWPT record(s): {names}")
-            fleet = fleet[~drop]
-
-    if year is not None:
-        start = pd.to_numeric(fleet["Start year"], errors="coerce")
-        retired = pd.to_numeric(fleet["Retired year"], errors="coerce")
-        # Projects with no start year are kept: the tracker often omits it for
-        # older sites, and dropping them would understate the historic fleet.
-        fleet = fleet[(start.isna() | (start <= year)) & (retired.isna() | (retired > year))]
-
-    return fleet[["Latitude", "Longitude", "Capacity (MW)"]].rename(
-        columns={"Latitude": "lat", "Longitude": "lon", "Capacity (MW)": "mw"}
-    )
 
 
 def assign_to_grid(
@@ -255,7 +200,7 @@ def process_per_year(
         grid["cluster"] = grid["zone"].str.rsplit("_", n=1).str[-1].astype(int) - 1
 
     def weights_for(year: int) -> pd.Series:
-        fleet = fleet_for(gwpt, code, year)
+        fleet = fleet_for(gwpt, code, year, load_exclusions(EXCLUSIONS_PATH))
         if zone_aware and not fleet.empty:
             fleet = tag_zones(fleet, code)
         return assign_to_grid(grid, fleet, zone_aware=zone_aware)
@@ -304,7 +249,7 @@ def process(
         return
 
     grid = pd.read_csv(grid_path)
-    fleet = fleet_for(gwpt, code, year)
+    fleet = fleet_for(gwpt, code, year, load_exclusions(EXCLUSIONS_PATH))
     weights = assign_to_grid(grid, fleet)
 
     table = report(code, grid, weights)
@@ -369,7 +314,7 @@ def main() -> int:
     parser.add_argument("--gwpt", type=Path, default=GWPT_PATH)
     args = parser.parse_args()
 
-    countries = sorted(GWPT_COUNTRY) if args.all else [c.upper() for c in args.countries]
+    countries = sorted(COUNTRY_NAME) if args.all else [c.upper() for c in args.countries]
     if not countries:
         parser.error("give at least one country code, or --all")
 

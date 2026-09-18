@@ -1,6 +1,6 @@
 """Pin the GWPT loading and the plant-name normalisers before they are promoted.
 
-The Global Wind Power Tracker (GWPT) is read, filtered and joined in several
+The Global Wind Power Tracker (GWPT) was read, filtered and joined in several
 places: ``scripts/process/cammesa_ar.py`` and ``cen_cl.py`` (each with its own
 ``norm`` and country filter), ``scripts/process/windstats.py`` (an inline
 filter), and ``scripts/region_tools/weight_country_grid_points.py``
@@ -9,7 +9,9 @@ through ``sys.path``). ``vwf.datasets.windstats._norm`` and
 ``vwf.datasets.aemo_au.normalise_farm_name`` normalise names too. These are
 not one function: the filters differ in whether they strip the country string,
 and the normalisers drop different words. Promotion must keep each variant, so
-each is pinned as it behaves today.
+each was pinned as it behaved before the move into ``vwf.datasets.gwpt``,
+``vwf.datasets.cammesa_ar`` and ``vwf.datasets.cen_cl``. The recorded
+fixtures and hashes did not change with the move; the calls did.
 
 Two layers:
 
@@ -21,10 +23,10 @@ Two layers:
   workbook, the raw downloads and openpyxl are local, so this layer skips in
   CI.
 
-The windstats filter is inline in that script's ``main``, and the WindStats
-source it runs on is confidential and not on this machine. Its pin is the
-script's own expression, copied into ``_windstats_filter`` below and hashed on
-the workbook at 51807f8. A promoted filter must reproduce that hash.
+The windstats filter was inline in that script's ``main``, and the WindStats
+source it runs on is confidential and not on this machine. Its hashes were
+recorded from that expression on the workbook at 51807f8;
+``gwpt.operating_projects``, which replaced it, reproduces them.
 """
 from __future__ import annotations
 
@@ -39,7 +41,10 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from vwf.datasets import gwpt
 from vwf.datasets.aemo_au import normalise_farm_name
+from vwf.datasets.cammesa_ar import ar_plant_key
+from vwf.datasets.cen_cl import cl_plant_key
 from vwf.datasets.windstats import _norm as windstats_norm
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,24 +54,9 @@ GWPT = ROOT / "input" / "reference" / "gwpt" / "Global-Wind-Power-Tracker-Februa
 PRODUCTION = ROOT / "input" / "observations" / "turbine"
 
 
-def _load(relpath: str, name: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / relpath)
-    module = importlib.util.module_from_spec(spec)
-    sys.path.insert(0, str((ROOT / relpath).parent))
-    try:
-        spec.loader.exec_module(module)
-    finally:
-        sys.path.pop(0)
-    return module
-
-
-ar = _load("scripts/process/cammesa_ar.py", "process_cammesa_ar")
-cl = _load("scripts/process/cen_cl.py", "process_cen_cl")
-weights = _load("scripts/region_tools/weight_country_grid_points.py", "weight_country_grid_points")
-
 NORMALISERS = {
-    "cammesa_ar": ar.norm,
-    "cen_cl": cl.norm,
+    "cammesa_ar": ar_plant_key,
+    "cen_cl": cl_plant_key,
     "windstats": windstats_norm,
     "aemo_au": normalise_farm_name,
 }
@@ -115,35 +105,30 @@ def _digest(frame: pd.DataFrame) -> str:
     return hashlib.sha256(frame.to_csv().encode()).hexdigest()
 
 
-def _windstats_filter(g: pd.DataFrame, country: str) -> pd.DataFrame:
-    # Verbatim from scripts/process/windstats.py main() at 51807f8.
-    return g[(g["Country/Area"].astype(str).str.strip() == country)
-             & (g["Status"].astype(str).str.lower() == "operating")]
-
-
 def _filter_pins() -> dict[str, str]:
     table = pd.read_csv(PINS / "filter_sha256.csv")
     return dict(zip(table["case"], table["sha256"]))
 
 
-def filter_results(gwpt: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def filter_results(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """Every filtered frame the pins cover, keyed by case name."""
     out = {
-        "gwpt_argentina": ar.gwpt_argentina(GWPT),
-        "gwpt_chile": cl.gwpt_chile(GWPT),
+        "gwpt_argentina": gwpt.projects_with_keys(frame, "Argentina", ar_plant_key),
+        "gwpt_chile": gwpt.projects_with_keys(frame, "Chile", cl_plant_key),
     }
     for cc, country in (("ES", "Spain"), ("SE", "Sweden"), ("FI", "Finland")):
-        out[f"windstats_{cc}"] = _windstats_filter(gwpt, country)
-    for code in sorted(weights.GWPT_COUNTRY):
+        out[f"windstats_{cc}"] = gwpt.operating_projects(frame, country)
+    excluded = gwpt.load_exclusions(CURATION / "gwpt_exclusions.csv")
+    for code in sorted(gwpt.COUNTRY_NAME):
         for year in (None, 2015, 2019, 2023):
-            out[f"fleet_for_{code}_{year}"] = weights.fleet_for(gwpt, code, year)
+            out[f"fleet_for_{code}_{year}"] = gwpt.fleet_for(frame, code, year, excluded)
     return out
 
 
 @needs_gwpt
 def test_gwpt_filters_on_the_real_workbook():
     pins = _filter_pins()
-    got = {k: _digest(v) for k, v in filter_results(weights.load_gwpt(GWPT)).items()}
+    got = {k: _digest(v) for k, v in filter_results(gwpt.load_gwpt(GWPT)).items()}
     assert set(got) == set(pins)
     changed = sorted(k for k in pins if got[k] != pins[k])
     assert not changed, changed
