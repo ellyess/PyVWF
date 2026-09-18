@@ -11,6 +11,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from vwf.harness.driver import _error_metrics
@@ -97,3 +98,47 @@ def score_national_on_common_months(conditions: dict) -> tuple[dict, pd.DataFram
     summary = summarise_exclusions(frames, excluded, MONTH_KEYS, weight=None, unit=None)
     metrics = {label: _error_metrics(frame) for label, frame in restricted.items()}
     return metrics, excluded, summary
+
+
+def level_spatial(frame: pd.DataFrame) -> dict[str, float | int]:
+    """Split one fleet's per-unit monthly error into a level and a spatial part.
+
+    A national or fleet-wide series keeps only the level, so it cannot show
+    whether a correction improved the differences between units, which is the
+    part terrain could explain. With ``e`` the simulated minus observed monthly
+    capacity factor:
+
+    - the level ``L_m`` is the capacity-weighted mean of ``e`` over the units
+      observed in month ``m``;
+    - a unit's spatial error ``s_i`` is the mean of ``e - L_m`` over its
+      observed months;
+    - spatial RMSE is the root of the mean of ``s_i`` squared, each unit
+      weighted by capacity times its number of observed months;
+    - level RMSE is the root of the capacity-weighted mean of ``L_m`` squared
+      over unit-months.
+
+    Args:
+        frame: Paired per-unit frame with ``ID``, ``year``, ``month``,
+            ``cf_sim``, ``cf_obs`` and ``capacity``, already restricted to the
+            rows every compared condition can score.
+
+    Returns:
+        ``spatial_rmse``, ``level_rmse``, ``rmse`` (per-unit, capacity-weighted
+        over unit-months), ``n_units`` and ``n_samples``.
+    """
+    f = frame.dropna(subset=["cf_sim", "cf_obs", "capacity"]).copy()
+    if f.empty:
+        raise ValueError("level_spatial needs at least one complete row")
+    f["e"] = f["cf_sim"] - f["cf_obs"]
+    f["we"] = f["e"] * f["capacity"]
+    month = f.groupby(["year", "month"])[["we", "capacity"]].sum()
+    level = (month["we"] / month["capacity"]).rename("level")
+    f = f.join(level, on=["year", "month"])
+    f["dev"] = f["e"] - f["level"]
+    unit = f.groupby("ID").agg(s=("dev", "mean"), cap=("capacity", "mean"), n=("dev", "size"))
+    w_unit = unit["cap"] * unit["n"]
+    spatial = float(np.sqrt((w_unit * unit["s"] ** 2).sum() / w_unit.sum()))
+    level_rmse = float(np.sqrt(np.average(f["level"] ** 2, weights=f["capacity"])))
+    rmse = float(np.sqrt(np.average(f["e"] ** 2, weights=f["capacity"])))
+    return {"spatial_rmse": spatial, "level_rmse": level_rmse, "rmse": rmse,
+            "n_units": int(len(unit)), "n_samples": int(len(f))}

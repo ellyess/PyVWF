@@ -711,3 +711,63 @@ def test_fleet_columns_select_the_efficiency_heads_inputs(fine_curve):
         Standardiser.fit([r], fleet_columns=("capacity",))
     with pytest.raises(ValueError, match="wake"):
         fit([r], fleet_columns=three, wake=True, epochs=1, verbose=False)
+
+
+# ------------------------------------------------------- terrain switches ---
+def test_relief_off_fixes_the_speedup_at_zero(fine_curve):
+    from vwf.pinn.train import RegionTensors, Standardiser
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    std = Standardiser.fit([r], relief_off=True)
+    assert bool((std.relief(r) == 0).all())
+    torch.manual_seed(0)
+    model = PhysicsCorrection(14, 4)
+    with torch.no_grad():
+        for p in model.parameters():
+            p.add_(torch.randn_like(p))
+        gamma, *_ = model(std.terrain(r), std.fleet(r), std.relief(r), r.capdens)
+    assert torch.equal(gamma, torch.zeros_like(gamma))
+
+
+def test_terrain_off_leaves_the_fleet_head_working(fine_curve):
+    """The pin still sees relief; only the strength and shear go global."""
+    from vwf.pinn.train import RegionTensors, Standardiser
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    r.fleet_raw = torch.tensor([[0.0, 0.0, 0.0, 1.0], [2.0, 2.0, 1.0, 2.0]])
+    std = Standardiser.fit([r], terrain_off=True)
+    assert bool((std.terrain(r) == 0).all())
+    assert not bool((std.fleet(r) == 0).all())
+    torch.manual_seed(0)
+    model = PhysicsCorrection(14, 4)
+    with torch.no_grad():
+        for p in model.parameters():
+            p.add_(torch.randn_like(p))
+        gamma, delta, eta, _ = model(std.terrain(r), std.fleet(r), std.relief(r), r.capdens)
+    assert float(delta[0]) == pytest.approx(float(delta[1]))
+    assert float(eta[0]) != pytest.approx(float(eta[1]))
+    # Point p1 is flat and p2 has relief, so the pin still separates them.
+    assert float(gamma[0]) == 0.0 and float(gamma[1]) != 0.0
+
+
+def test_a_fixed_speedup_replaces_the_learned_one(fine_curve):
+    from vwf.pinn.physics import gauss_hermite
+    from vwf.pinn.train import (
+        N_QUAD, RegionTensors, Standardiser, attach_fixed_speedup, simulate_monthly,
+    )
+    r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
+    model = PhysicsCorrection(14, 4, init_scale=0.0)
+    quad = gauss_hermite(N_QUAD)
+    zero = Standardiser.fit([r], terrain_off=True, relief_off=True)
+    fixed = Standardiser.fit([r], terrain_off=True, relief_off=True, fixed_speedup=True)
+    with pytest.raises(ValueError, match="attach_fixed_speedup"):
+        simulate_monthly(r, model, fixed, slice(None), quad=quad)
+    with pytest.raises(ValueError, match="no fixed speed-up"):
+        attach_fixed_speedup(r, pd.Series({"p1": 1.0}))
+    attach_fixed_speedup(r, pd.Series({"p1": 1.0, "p2": 1.0}))
+    with torch.no_grad():
+        base = simulate_monthly(r, model, zero, slice(None), quad=quad)
+        same = simulate_monthly(r, model, fixed, slice(None), quad=quad)
+        attach_fixed_speedup(r, pd.Series({"p1": 1.3, "p2": 1.0}))
+        moved = simulate_monthly(r, model, fixed, slice(None), quad=quad)
+    assert torch.equal(base, same)
+    assert not torch.allclose(moved[:, 0], base[:, 0])
+    assert torch.equal(moved[:, 1], base[:, 1])

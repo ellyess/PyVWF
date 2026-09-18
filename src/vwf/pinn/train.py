@@ -163,6 +163,10 @@ class RegionTensors:
     obs_national: torch.Tensor | None = None
     cap_weights: torch.Tensor | None = None
     fleet_record: dict[str, Any] = field(default_factory=dict)
+    # A speed-up fixed per unit from outside the model, as a natural log, for
+    # an arm whose terrain correction is not learned (a wind-atlas ratio).
+    # None unless attached with :func:`attach_fixed_speedup`.
+    fixed_log_speedup: torch.Tensor | None = None
 
     @property
     def n_units(self) -> int:
@@ -256,6 +260,14 @@ class Standardiser:
     published model exactly. ``features_off`` hands every head zeros instead,
     which makes each learned quantity a single global constant, apart from the
     speed-up's relief pin, which is structural and stays.
+
+    Three switches isolate terrain while leaving the fleet head alone.
+    ``terrain_off`` hands only the terrain heads zeros, so the speed-up's
+    strength and the shear offset become global constants. ``relief_off``
+    passes zero relief, which the pin turns into a speed-up of exactly zero.
+    ``fixed_speedup`` replaces the model's speed-up with one attached to the
+    tensors (:func:`attach_fixed_speedup`), so it is not learned at all. All
+    default off, which reproduces the published model.
     """
 
     t_mean: torch.Tensor
@@ -264,11 +276,15 @@ class Standardiser:
     f_std: torch.Tensor
     fleet_idx: tuple[int, ...] = tuple(range(len(FLEET_FEATURES)))
     features_off: bool = False
+    terrain_off: bool = False
+    relief_off: bool = False
+    fixed_speedup: bool = False
 
     @classmethod
     def fit(cls, regions: list[RegionTensors], *,
             fleet_columns: tuple[str, ...] = FLEET_FEATURES,
-            features_off: bool = False) -> "Standardiser":
+            features_off: bool = False, terrain_off: bool = False,
+            relief_off: bool = False, fixed_speedup: bool = False) -> "Standardiser":
         unknown = [c for c in fleet_columns if c not in FLEET_FEATURES]
         if unknown or not fleet_columns:
             raise ValueError(f"fleet_columns must be a non-empty subset of "
@@ -278,11 +294,17 @@ class Standardiser:
         F = torch.cat([r.fleet_raw for r in regions])[:, list(idx)]
         return cls(T.mean(0), T.std(0).clamp(min=1e-6),
                    F.mean(0), F.std(0).clamp(min=1e-6),
-                   fleet_idx=idx, features_off=features_off)
+                   fleet_idx=idx, features_off=features_off,
+                   terrain_off=terrain_off, relief_off=relief_off,
+                   fixed_speedup=fixed_speedup)
 
     def terrain(self, r: RegionTensors, sl=slice(None)) -> torch.Tensor:
         z = (r.terrain_raw[sl] - self.t_mean) / self.t_std
-        return torch.zeros_like(z) if self.features_off else z
+        return torch.zeros_like(z) if (self.features_off or self.terrain_off) else z
+
+    def relief(self, r: RegionTensors, sl=slice(None)) -> torch.Tensor:
+        """Relief as the speed-up's pin sees it: zero when ``relief_off``."""
+        return torch.zeros_like(r.relief[sl]) if self.relief_off else r.relief[sl]
 
     def fleet(self, r: RegionTensors, sl=slice(None)) -> torch.Tensor:
         z = (r.fleet_raw[sl][:, list(self.fleet_idx)] - self.f_mean) / self.f_std
@@ -415,8 +437,13 @@ def simulate_monthly(
     # None case is the uncorrected branch above, which has already returned.
     assert std is not None, "simulate_monthly needs a standardiser alongside a model"
     gamma, delta, eta, kappa = model(
-        std.terrain(r, sl), std.fleet(r, sl), r.relief[sl], r.capdens[sl]
+        std.terrain(r, sl), std.fleet(r, sl), std.relief(r, sl), r.capdens[sl]
     )
+    if std.fixed_speedup:
+        if r.fixed_log_speedup is None:
+            raise ValueError(f"{r.code}: a fixed speed-up was requested and none "
+                             "is attached; see attach_fixed_speedup")
+        gamma = r.fixed_log_speedup[sl]
     if damp is not None:
         # Only the TERRAIN terms are damped outside the training envelope.
         # Conversion losses and thin air do not stop existing because the
@@ -517,12 +544,16 @@ def fit(
     verbose: bool = True,
     fleet_columns: tuple[str, ...] = FLEET_FEATURES,
     features_off: bool = False,
+    terrain_off: bool = False,
+    relief_off: bool = False,
+    fixed_speedup: bool = False,
 ) -> tuple[PhysicsCorrection, Standardiser, list[float]]:
     """Fit one model on a list of training regions, weighting regions equally.
 
     ``fleet_columns`` chooses the efficiency head's inputs, and
-    ``features_off`` replaces every head's inputs with zeros; both defaults
-    reproduce the published model.
+    ``features_off`` replaces every head's inputs with zeros. ``terrain_off``,
+    ``relief_off`` and ``fixed_speedup`` isolate the terrain terms
+    (:class:`Standardiser`). Every default reproduces the published model.
     """
     if wake and "log_capdens_10km" not in fleet_columns:
         raise ValueError("the wake term withholds log_capdens_10km from the "
@@ -530,7 +561,8 @@ def fit(
     torch.manual_seed(seed)
     gen = torch.Generator().manual_seed(seed)
     std = Standardiser.fit(regions, fleet_columns=tuple(fleet_columns),
-                           features_off=features_off)
+                           features_off=features_off, terrain_off=terrain_off,
+                           relief_off=relief_off, fixed_speedup=fixed_speedup)
     model = PhysicsCorrection(len(TERRAIN_FEATURES), len(fleet_columns),
                               hidden=hidden, physics=physics,
                               init_scale=init_scale, wake=wake,
@@ -649,6 +681,31 @@ def predict_national(
             obs = np.where(total > 0, (np.where(seen, o, 0.0) * w).sum(axis=1) / total, np.nan)
     frame = pd.DataFrame({"year": years, "month": months, "cf_sim": sim, "cf_obs": obs})
     return frame.dropna(subset=["cf_obs"]).reset_index(drop=True)
+
+
+def attach_fixed_speedup(r: RegionTensors, ratio: pd.Series) -> RegionTensors:
+    """Attach a per-unit speed-up ratio, stored as its natural log.
+
+    Args:
+        r: The region's tensors.
+        ratio: Speed-up ratio indexed by unit ID. Every unit the tensors hold
+            must have one, so a unit dropped or added upstream is caught here
+            rather than silently given no correction.
+
+    Returns:
+        The same tensors, with ``fixed_log_speedup`` set.
+    """
+    ratio = pd.Series(ratio)
+    ratio.index = ratio.index.astype(str)
+    missing = [i for i in r.ids if i not in ratio.index]
+    if missing:
+        raise ValueError(f"{r.code}: no fixed speed-up for {len(missing)} unit(s), "
+                         f"first {missing[:3]}")
+    values = ratio.loc[list(r.ids)].to_numpy(dtype=float)
+    if not np.all(np.isfinite(values)) or np.any(values <= 0):
+        raise ValueError(f"{r.code}: a fixed speed-up must be finite and positive")
+    r.fixed_log_speedup = torch.as_tensor(np.log(values), dtype=torch.float32)
+    return r
 
 
 def load_regions(codes, split, root: str | Path, *, quiet: bool = False) -> list[RegionTensors]:
