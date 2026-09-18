@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import cast
 
+import warnings
+
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -55,6 +57,10 @@ def country_gen_to_cf(
 ) -> pd.DataFrame:
     """Convert country-level monthly generation to capacity factor.
 
+    .. deprecated:: 0.6.0
+        Nothing in PyVWF calls this function; the country-level paths read
+        capacity factors directly. It will be removed in a future release.
+
     Args:
         obs_country_gen: DataFrame with columns ``year``, ``month``, and ``output_col``.
         turb_info: Turbine metadata with a ``capacity`` column.
@@ -73,6 +79,12 @@ def country_gen_to_cf(
         >>> cf = country_gen_to_cf(obs_gen, turb_info)
         >>> print(cf['obs'].iloc[0])  # Should be generation / (total_capacity * hours)
     """
+    warnings.warn(
+        "vwf.loaders.country_level_loaders.country_gen_to_cf is deprecated and "
+        "will be removed in a future release; nothing in PyVWF calls it.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if "capacity" not in turb_info.columns:
         raise ValueError("turb_info must contain a 'capacity' column.")
 

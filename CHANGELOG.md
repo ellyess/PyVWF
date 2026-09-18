@@ -135,6 +135,21 @@ void because its gates were written against comparators that did not.
   covered. Passing the check means the units lie inside the loaded extent. It
   does not verify the data in those cells.
 
+### Deprecated
+
+- **Four documented names that nothing in PyVWF uses.** Each still works and
+  now raises a `DeprecationWarning`; each will be removed in a future
+  release.
+  - `vwf.data.sim_turbines_to_country_cf`.
+  - `vwf.loaders.country_level_loaders.country_gen_to_cf`.
+  - `PyVWF.from_config`, which imported generated code by inserting a
+    directory into `sys.path`. Use the `entsoe-country` adapter with a region
+    config instead.
+  - The module constants `vwf.data.COUNTRY_DIR`, `TURBINE_DIR` and
+    `COUNTRY_LEVEL_DIR`. Use `vwf.config.PyVWFPaths` instead. They are now
+    read when accessed, so they no longer go stale when the input root
+    changes after import.
+
 ### Fixed
 
 - **The variants of a run are compared on the same rows.** `run_evaluate` and
