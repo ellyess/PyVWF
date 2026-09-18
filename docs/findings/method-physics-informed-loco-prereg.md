@@ -45,7 +45,7 @@ count.** Each carries a defect in its observations that would teach every other
 fold something false:
 
 - **SE:** its capacity register is derived from its own generation
-  (`STATUS.md`).
+  ([`STATUS.md`](https://github.com/ellyess/PyVWF/blob/3dbb83b54355290b8a25727847fcca0640909706/STATUS.md)).
 - **PT:** its training register is frozen for five years.
 - **NL:** its observations never exceed a capacity factor of 0.57, and it has no
   scorecard row. Its study config is `nl.toml` moved to the `EU_2026-09`

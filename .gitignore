@@ -117,6 +117,12 @@ docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
 # not shipped -- CONTRIBUTING.md is the public contributor guide.
 /CLAUDE.md
 
+# Session state: what is running, queued and open at the close of a session.
+# It goes stale by design, so it stays local. Tracked until 3dbb83b; findings
+# that cite it link to that version. Queued work that must outlive a session
+# goes in a GitHub issue.
+/STATUS.md
+
 # Commercial / career material never belongs in this public repo. The working
 # copies live outside the repository entirely (../../Career/); these patterns are
 # a safety net in case anything is ever dropped in here by mistake.

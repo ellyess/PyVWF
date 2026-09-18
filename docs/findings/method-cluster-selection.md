@@ -132,7 +132,7 @@ across a sixteenfold range, and the same configuration here spreads 24.9%. The
 two differ in fleet, in grid, and in whether the score comes from
 forward-chained training folds or one scored test year. **Nothing is yet shown
 to be wrong with the published curve**, and the discrepancy is logged as its
-own question in `../../STATUS.md` rather than reconciled here.
+own question in [`STATUS.md`](https://github.com/ellyess/PyVWF/blob/3dbb83b54355290b8a25727847fcca0640909706/STATUS.md) rather than reconciled here.
 
 ## The plateau has a mechanism, predicted before the curve existed
 

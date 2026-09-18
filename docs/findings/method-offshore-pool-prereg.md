@@ -72,7 +72,7 @@ outside the loaded extent. `era5/EU` holds data to 22.0 east, so this is a box
 to widen and not an extrapolation to allow: the box is widened to 15.4 east
 **for this study only**, `dk.toml` is untouched, and no unit is simulated from
 extrapolated winds. Both conditions load the same extent, so the comparison is
-unaffected either way. Bornholm remains its own open item in `STATUS.md`, and
+unaffected either way. Bornholm remains its own open item in [`STATUS.md`](https://github.com/ellyess/PyVWF/blob/3dbb83b54355290b8a25727847fcca0640909706/STATUS.md), and
 the chapter-era fleet has proportionally more capacity out there than today's
 row does: 0.82% against 0.6%.
 
