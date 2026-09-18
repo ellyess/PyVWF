@@ -83,6 +83,13 @@ from vwf.data import (
     prep_country,
     prepare_country_fleet,
 )
+from vwf.harness.bootstrap import (
+    percentile_interval,
+    resample_counts,
+    resample_indices,
+    rmse_over_rows,
+    weighted_rmse,
+)
 from vwf.harness.driver import _country_skill, _tidy_eval_frame, resolve_source
 from vwf.harness.regions import load_region
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
@@ -150,11 +157,6 @@ def country_monthly(sim_cf, obs, turb_info):
     return both
 
 
-def ci(x):
-    lo, hi = np.percentile(x, [2.5, 97.5])
-    return float(lo), float(hi)
-
-
 def main(code, out_dir):
     spec = load_region(Path("configs/regions/scorecard") / f"{CONFIGS[code]}.toml")
     ev = next((BACKFILL / code).glob("evaluate-*-backfill"))
@@ -190,24 +192,22 @@ def main(code, out_dir):
 
     reported = REPORTED[code]
 
-    rng = np.random.default_rng(SEED)
     rows = []
     if spec.obs_level == "country":
         series = {n: country_monthly(s, obs, turb_info) for n, s in frames.items()}
         n = len(series["uncorrected"])
-        idx = rng.integers(0, n, size=(N_DRAWS, n))
+        idx = resample_indices(n, seed=SEED, n_draws=N_DRAWS)
 
         def boot_rmse(name):
             d = (series[name].cf_sim - series[name].cf_obs).to_numpy()
-            return np.sqrt((d[idx] ** 2).mean(axis=1)), np.sqrt((d ** 2).mean())
+            return rmse_over_rows(d, idx), np.sqrt((d ** 2).mean())
         n_resampled = n
     else:
         tidy = {nm: collapse_pseudo_replicates(_tidy_eval_frame(s, obs, turb_info), spec)
                 .dropna(subset=["cf_sim", "cf_obs", "capacity"]) for nm, s in frames.items()}
         units = np.array(sorted(tidy["uncorrected"].ID.unique()))
         n = len(units)
-        draws = rng.integers(0, n, size=(N_DRAWS, n))
-        counts = np.stack([np.bincount(r, minlength=n) for r in draws]).astype(float)
+        counts = resample_counts(n, seed=SEED, n_draws=N_DRAWS)
 
         def boot_rmse(name):
             t = tidy[name].assign(w=lambda f: f.capacity, e=lambda f: f.capacity * (f.cf_sim - f.cf_obs) ** 2)
@@ -223,7 +223,7 @@ def main(code, out_dir):
                 print(f"{code} {name}: {missing} unit(s) with no complete rows, weight 0")
             g = g.reindex(units, fill_value=0.0)
             w, e = g.w.to_numpy(), g.e.to_numpy()
-            return np.sqrt((counts @ e) / (counts @ w)), np.sqrt(e.sum() / w.sum())
+            return weighted_rmse(counts, e, w), np.sqrt(e.sum() / w.sum())
         n_resampled = n
 
     boot = {nm: boot_rmse(nm) for nm in frames}
@@ -232,7 +232,7 @@ def main(code, out_dir):
             raise SystemExit(f"{code} {nm}: bootstrap point estimate {pt} != {point[nm]['rmse']}")
 
     def add(quantity, draws_, est):
-        lo, hi = ci(draws_)
+        lo, hi = percentile_interval(draws_)
         rows.append({"region": code, "level": spec.obs_level, "resampled": n_resampled,
                      "quantity": quantity, "estimate": est, "ci_lo": lo, "ci_hi": hi,
                      "width": hi - lo, "sd": float(np.std(draws_, ddof=1)),

@@ -57,6 +57,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
+from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
 from vwf.harness.driver import _tidy_eval_frame
 from vwf.harness.regions import load_region
 from vwf.harness.skill import collapse_pseudo_replicates
@@ -112,15 +113,13 @@ def main(code, out_dir):
     out["gain_rmse_without_top_cor_unit"] = float(loo_rmse[list(units).index(top_c)])
 
     # Same draws as baseline_bootstrap.py: units sorted, same seed, same order.
-    rng = np.random.default_rng(bb.SEED)
     order = np.argsort(np.array(units.astype(str)))
-    draws = rng.integers(0, n, size=(bb.N_DRAWS, n))
-    counts = np.stack([np.bincount(r, minlength=n) for r in draws]).astype(float)
+    counts = resample_counts(n, seed=bb.SEED, n_draws=bb.N_DRAWS)
     uu, cc = u.iloc[order], c.iloc[order]
-    g_rmse = np.sqrt(counts @ uu.e.values / (counts @ uu.w.values)) - np.sqrt(counts @ cc.e.values / (counts @ cc.w.values))
-    g_mae = counts @ uu.a.values / (counts @ uu.w.values) - counts @ cc.a.values / (counts @ cc.w.values)
-    out["rmse_gain_ci_lo"], out["rmse_gain_ci_hi"] = bb.ci(g_rmse)
-    out["mae_gain_ci_lo"], out["mae_gain_ci_hi"] = bb.ci(g_mae)
+    g_rmse = weighted_rmse(counts, uu.e.values, uu.w.values) - weighted_rmse(counts, cc.e.values, cc.w.values)
+    g_mae = weighted_mean(counts, uu.a.values, uu.w.values) - weighted_mean(counts, cc.a.values, cc.w.values)
+    out["rmse_gain_ci_lo"], out["rmse_gain_ci_hi"] = percentile_interval(g_rmse)
+    out["mae_gain_ci_lo"], out["mae_gain_ci_hi"] = percentile_interval(g_mae)
 
     top5 = (c.e / c.e.sum()).sort_values(ascending=False).head(5).index
     detail = pd.DataFrame({

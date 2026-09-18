@@ -58,6 +58,14 @@ sys.path[:0] = [str(_HERE), str(_HERE.parent / "studies" / "method-roughness-tre
 import baseline_bootstrap as bb  # noqa: E402
 import roughness_treatment_study as rts  # noqa: E402
 from vwf.harness import driver  # noqa: E402
+from vwf.harness.bootstrap import (  # noqa: E402
+    percentile_interval,
+    resample_counts,
+    resample_indices,
+    rmse_over_rows,
+    unit_sums,
+    weighted_rmse,
+)
 from vwf.harness.regions import load_region  # noqa: E402
 from vwf.harness.skill import restrict_to_common_rows  # noqa: E402
 
@@ -149,33 +157,27 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
                                  f"from metrics.csv {published}")
 
     common, excluded = restrict_to_common_rows(frames, keys, weight=weight)
-    rng = np.random.default_rng(bb.SEED)
     if is_country:
         n = len(common[f"{baseline}_corrected"])
-        idx = rng.integers(0, n, size=(bb.N_DRAWS, n))
+        idx = resample_indices(n, seed=bb.SEED, n_draws=bb.N_DRAWS)
 
         def boot(label):
             d = (common[label]["cf_sim"] - common[label]["cf_obs"]).to_numpy()
-            return np.sqrt((d[idx] ** 2).mean(axis=1)), np.sqrt((d ** 2).mean())
+            return rmse_over_rows(d, idx), np.sqrt((d ** 2).mean())
     else:
         units = np.array(sorted(common[f"{baseline}_corrected"]["ID"].unique()))
-        counts = np.stack([
-            np.bincount(r, minlength=len(units))
-            for r in rng.integers(0, len(units), size=(bb.N_DRAWS, len(units)))
-        ]).astype(float)
+        counts = resample_counts(len(units), seed=bb.SEED, n_draws=bb.N_DRAWS)
 
         def boot(label):
-            t = common[label]
-            g = t.assign(w=t["capacity"], e=t["capacity"] * (t["cf_sim"] - t["cf_obs"]) ** 2)
-            g = g.groupby("ID")[["w", "e"]].sum().reindex(units, fill_value=0.0)
+            g = unit_sums(common[label], units)
             w, e = g["w"].to_numpy(), g["e"].to_numpy()
-            return np.sqrt((counts @ e) / (counts @ w)), np.sqrt(e.sum() / w.sum())
+            return weighted_rmse(counts, e, w), np.sqrt(e.sum() / w.sum())
 
     draws = {label: boot(label) for label in frames}
     rows = []
 
     def record(quantity, b, pt, paired=False):
-        lo, hi = bb.ci(b)
+        lo, hi = percentile_interval(b)
         rows.append({"region": code, "quantity": quantity, "estimate": pt,
                      "ci_lo": lo, "ci_hi": hi, "width": hi - lo,
                      "consistent_with_zero": bool(lo <= 0 <= hi) if paired else None})

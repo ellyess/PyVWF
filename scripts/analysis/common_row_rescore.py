@@ -63,6 +63,7 @@ import pandas as pd
 
 import baseline_bootstrap as bb
 from vwf.harness import driver
+from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
 from vwf.harness.regions import load_region
 from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
 
@@ -146,16 +147,13 @@ def common_rows_bootstrap(code, restricted, reported, out_dir):
     if not u.index.equals(c.index):
         raise SystemExit(f"{code}: common rows give different unit sets")
     n = len(u)
-    rng = np.random.default_rng(bb.SEED)
-    counts = np.stack(
-        [np.bincount(r, minlength=n) for r in rng.integers(0, n, size=(bb.N_DRAWS, n))]
-    ).astype(float)
+    counts = resample_counts(n, seed=bb.SEED, n_draws=bb.N_DRAWS)
 
     def rmse(g):
-        return np.sqrt(counts @ g.e.values / (counts @ g.w.values))
+        return weighted_rmse(counts, g.e.values, g.w.values)
 
     def mae(g):
-        return counts @ g.a.values / (counts @ g.w.values)
+        return weighted_mean(counts, g.a.values, g.w.values)
 
     w = u.w.to_numpy()
     shares = (c.e / c.e.sum()).sort_values(ascending=False)
@@ -171,9 +169,9 @@ def common_rows_bootstrap(code, restricted, reported, out_dir):
         "cor_sse_top1": float(shares.iloc[0]), "cor_sse_top5": float(shares.head(5).sum()),
     }
     out["rmse_gain"] = out["uncorrected_rmse"] - out["corrected_rmse"]
-    out["rmse_gain_ci_lo"], out["rmse_gain_ci_hi"] = bb.ci(rmse(u) - rmse(c))
+    out["rmse_gain_ci_lo"], out["rmse_gain_ci_hi"] = percentile_interval(rmse(u) - rmse(c))
     out["mae_gain"] = float(u.a.sum() / u.w.sum() - c.a.sum() / c.w.sum())
-    out["mae_gain_ci_lo"], out["mae_gain_ci_hi"] = bb.ci(mae(u) - mae(c))
+    out["mae_gain_ci_lo"], out["mae_gain_ci_hi"] = percentile_interval(mae(u) - mae(c))
     pd.DataFrame([out]).to_csv(out_dir / f"{code}_common_rows_bootstrap.csv", index=False)
     print(pd.Series(out).to_string())
 
