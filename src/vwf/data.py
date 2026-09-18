@@ -192,7 +192,9 @@ def sim_turbines_to_country_cf(sim_cf_long: pd.DataFrame, turb_info: pd.DataFram
             .apply(lambda g: pd.Series({"sim": (g["sim"] * g["capacity"]).sum() / g["capacity"].sum()}))
             .reset_index(drop=True)
     )
-    return sim_country
+    # groupby.apply returning a Series per group builds a DataFrame at runtime;
+    # pandas-stubs types the result as Series | DataFrame.
+    return cast(pd.DataFrame, sim_country)
 
 
 # ============================================================================
