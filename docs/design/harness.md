@@ -177,8 +177,9 @@ the bundled files in `vwf/resources/`. A locally *edited* bundled file therefore
 also labels as `"external"`, which is deliberate and fail-safe in the
 underclaiming direction: nothing unverified can masquerade as the bundled
 library. Contents of external curve files are never copied into the manifest,
-only hashes and counts, so the manual `cp models.real.csv models.csv` workflow
-is unchanged while every output becomes attributable. The rule is then
+only hashes and counts, so whichever library an input root holds, every output
+becomes attributable. (A licensed library lives in its own input root, never
+copied over the committed open library; the training guide gives the steps.) The rule is then
 mechanical: a result that turns on licensed rather than bundled curves is only
 reportable from a manifest with `library == "external"`.
 
@@ -188,15 +189,14 @@ provenance is diagnostic, not load-bearing.
 
 ## Driver
 
-```bash
-validate_region.py --region configs/regions/au_nem.toml train
-validate_region.py --region configs/regions/au_nem.toml evaluate
-validate_region.py --factors-from output/validation/AU-NEM/<run>/ \
-                   --region configs/regions/uk.toml transfer
-```
+The driver exposes three verbs, `train`, `evaluate` and `transfer`, through
+`pyvwf-validate` and `scripts/analysis/validate_region.py`. The commands are in
+the [training guide](../guides/training.md).
 
-Outputs land under `output/validation/<region-code>/<run-id>/`, with `run-id` a
-UTC timestamp plus a short config hash.
+Outputs land under `output/validation/<region-code>/<verb>-<suffix>/`: the
+verb is `train`, `evaluate-<year>` or `transfer-from-<source code>`, and the
+suffix is a UTC timestamp, or the `--run-name` given. The directory name
+carries no config hash; the manifest records the config's hash instead.
 
 **Transfer semantics.** Cluster labels are region-specific, so a source
 region's factors have no cluster correspondence in the target. Transfer is

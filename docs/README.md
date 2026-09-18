@@ -12,12 +12,52 @@ Every filename is lower-case with hyphens, and the folder supplies the
 category, so a name never repeats it: the training guide is
 `guides/training.md`, not `guides/TRAINING_GUIDE.md`.
 
-| Folder | Holds | Kind | Naming |
+| Folder or file | Holds | Kind | Naming |
 |---|---|---|---|
-| [`guides/`](guides) | How to use PyVWF: data, training, outputs, extending it. Maintained, and published to the site. | procedural | `<topic>.md` |
+| [`guides/`](guides) | How to use PyVWF: data, training, outputs, and extending it with a region, an adapter or a study (`adding-a-*.md`). Maintained, and published to the site. | procedural | `<topic>.md` |
 | [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | procedural | `<iso-code>.md` |
 | [`design/`](design) | Why the code is shaped as it is. Published. | argumentative | `<component>.md` |
 | [`findings/`](findings) | Research records, one question each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | argumentative | `<type>-<subject>.md` |
+| [`api.md`](api.md), [`CONTEXT.md`](CONTEXT.md) | The API reference, and the controlled vocabulary. Published. | reference | fixed names |
+
+### Where a new document goes
+
+The folders follow the Diataxis split, by what the reader is doing:
+
+- **Learning** the tool from nothing: the project README's quickstart and
+  `examples/run_minimal.py`. There is no separate tutorial folder.
+- **Doing** a task: `guides/` for a task on any region, `runbooks/` for one
+  region's data.
+- **Looking something up**: `api.md` and `CONTEXT.md`. Two guides,
+  `data-sources.md` and `output-structure.md`, are reference in kind. They stay
+  in `guides/` until a `reference/` folder is warranted.
+- **Understanding** why: `design/`.
+
+`findings/` sits outside the split. It records what was found, dated, and is
+never revised into guidance.
+
+A document serves one of these purposes. When a page starts to serve two, the
+second part moves to the folder that fits it, and the first page links to it.
+
+### One home per fact
+
+Each fact has one home, and every other document links to it rather than
+restating it. A restated fact drifts: the copies disagree, and nothing says
+which is right. These are the homes of the facts most often repeated:
+
+| Fact | Home |
+|---|---|
+| Installing PyVWF | the project README for users; `CONTRIBUTING.md` for developers |
+| Running the tests and the other CI checks | `CONTRIBUTING.md` |
+| Choosing the input root (`PYVWF_INPUT`) | `guides/training.md` |
+| Running a region through the harness | `guides/training.md` |
+| The legacy batch path | the last section of `guides/training.md` |
+| What a run directory contains | `guides/output-structure.md` |
+| Adding a region, an adapter or a study | `guides/adding-a-region.md`, `adding-an-adapter.md`, `adding-a-study.md` |
+| Each data source, its licence and its processing | `guides/data-sources.md` |
+| Fetching and combining ERA5 | `guides/data-sources.md`, section 3 |
+| The approved term for a concept | `CONTEXT.md` |
+| The rules for agents | `AGENTS.md` |
 
 `findings/` names carry their document type as a prefix, so two files sharing a
 prefix share a shape:

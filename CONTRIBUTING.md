@@ -25,12 +25,12 @@ studies, and performance improvements.
 git clone https://github.com/ellyess/PyVWF.git
 cd PyVWF
 
-# Option A: conda (pinned, reproducible)
+# Option A: pip, the same install CI uses
+pip install -e ".[dev,docs]"
+
+# Option B: conda, the conda-forge stack with the data extra
 conda env create -f environment.yaml
 conda activate pyvwf
-
-# Option B: pip
-pip install -e ".[dev]"
 ```
 
 ## Running the tests and linter
@@ -41,7 +41,7 @@ The test suite uses synthetic data and needs no ERA5 downloads or API access:
 pytest                     # run all tests
 pytest --cov=vwf           # with coverage
 ruff check src/vwf tests   # lint
-mypy                       # type check
+mypy                       # type check; needs pandas-stubs, from the dev extra
 ```
 
 Continuous integration (`.github/workflows/ci.yml`) runs, for every pull request
@@ -55,7 +55,14 @@ and every push to `main`:
 - a Sphinx build of the docs with `-W`, so a broken docstring or an orphaned
   page fails rather than quietly degrading the site;
 - an sdist and wheel build, `twine` metadata validation, then a clean-environment
-  install and import of the wheel with no repository on `sys.path`.
+  install and import of the wheel with no repository on `sys.path`;
+- a Docker build, which runs the image's default command on bundled data and
+  checks that the example corrected something, that the console script and
+  the curve library resolve, and that the image does not run as root.
+
+CI installs neither the `data` extra nor the other optional extras, so the
+suite and the example must pass without them. Tests that need `torch`,
+`pykrige` or `rasterio` skip themselves where those are missing.
 
 To build the docs locally:
 
@@ -71,8 +78,9 @@ versioning and stays in step with `CITATION.cff`.
 ## Submitting a pull request
 
 1. Fork the repository and create a feature branch from `main`.
-2. Make your change, keeping it focused and well documented (NumPy-style
-   docstrings, as used throughout `vwf/`).
+2. Make your change, keeping it focused and well documented (Google-style
+   docstrings, with `Args:` and `Returns:` sections, as used throughout
+   `vwf/`).
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
@@ -84,7 +92,7 @@ versioning and stays in step with `CITATION.cff`.
 
 - Target Python 3.10+.
 - Follow the existing module style: small, documented functions with type hints
-  where helpful, NumPy-style docstrings, and `ruff`-clean code (`E`, `F` rules;
+  where helpful, Google-style docstrings, and `ruff`-clean code (`E`, `F` rules;
   see `pyproject.toml`).
 - Keep new heavy/optional dependencies behind `try/except` imports, mirroring the
   optional visualisation import in `vwf/__init__.py`.

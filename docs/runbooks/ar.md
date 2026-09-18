@@ -53,10 +53,10 @@ override and exclusion is a documented judgment call; review before publishing.
 
 ```bash
 python scripts/fetch/era5.py --region ar        # 48 months 2021-2024, Patagonia+Pampas box
-PYVWF_INPUT=<combined-library root> \
-python scripts/analysis/validate_region.py train    --region configs/regions/ar.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/ar.toml \
-    --train-run output/validation/AR/train-<stamp>
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+    --region configs/regions/ar.toml
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/ar.toml --train-run output/validation/AR/train-<stamp>
 ```
 
 Trains 2021-2023, tests 2024. On the cleaned fleet the affine correction helps

@@ -1,3 +1,10 @@
+# A conda environment for running PyVWF: the conda-forge scientific stack, the
+# `data` extra (entsoe-py, openpyxl, pyarrow) and an editable install.
+#
+# It pins some versions that pyproject.toml leaves as ranges, and it is not the
+# environment CI tests. CI installs `pip install -e ".[dev,docs]"`, without the
+# `data` extra; CONTRIBUTING.md describes that route. A harness run's manifest
+# records the versions it actually ran with.
 name: pyvwf
 channels:
   - conda-forge

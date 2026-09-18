@@ -35,10 +35,10 @@ hard error. Read `join_report.md` and `cl_coord_residual.csv` after processing.
 
 ```bash
 python scripts/fetch/era5.py --region cl          # 48 months 2021-2024, mainland box
-PYVWF_INPUT=<combined-library root> \
-python scripts/analysis/validate_region.py train    --region configs/regions/cl.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/cl.toml \
-    --train-run output/validation/CL/train-<stamp>
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+    --region configs/regions/cl.toml
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/cl.toml --train-run output/validation/CL/train-<stamp>
 ```
 
 Trains 2021-2023, tests 2024. With matched curves the affine correction helps

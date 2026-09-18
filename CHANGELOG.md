@@ -352,6 +352,22 @@ consumers and go without a deprecation period.
 
 ### Documentation
 
+- **One home per fact.** `docs/README.md` states the Diataxis placement rule
+  and names the home of each fact documents most often repeat; the others now
+  link to it. The training guide gains "Choose the input root", the one
+  statement of which input root and curve library a run uses. Corrected on the
+  way: the README said dependencies are pinned in `environment.yaml` (they are
+  ranges in `pyproject.toml`, and the manifest records what ran) and omitted
+  the `grid` and `ml` extras; `CONTRIBUTING.md` called the conda route the
+  pinned one, omitted the Docker job and asked for NumPy-style docstrings
+  where the code uses Google style; `input/README.md` told users to copy a
+  licensed library over the committed open one, which a test forbids; the DK,
+  AR and CL runbooks set `PYVWF_INPUT` on `train` only, so `evaluate` ran on
+  the default root; `us.md` named a `power_curves.real.csv` no code reads; and
+  `design/harness.md` showed flags the driver does not have. The README
+  quickstart and `examples/quick_run.py` write under the git-ignored `output/`
+  rather than `outputs/`.
+
 - **Three extension guides.** `docs/guides/adding-a-region.md` (renamed from
   `adding-an-observation-source.md`, a rejected term) lists every file a new
   region touches, and now covers a country-level region end to end, including

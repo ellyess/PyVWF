@@ -58,10 +58,10 @@ step is needed.
 ## 2. Train and evaluate
 
 ```bash
-PYVWF_INPUT=<combined-library root> \
-python scripts/analysis/validate_region.py train    --region configs/regions/dk.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/dk.toml \
-    --train-run output/validation/DK/train-<stamp>
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+    --region configs/regions/dk.toml
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/dk.toml --train-run output/validation/DK/train-<stamp>
 ```
 
 Denmark trains on 2015-2019 and tests on 2020 (`dk.toml`). It is

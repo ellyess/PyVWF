@@ -14,7 +14,7 @@ below is in [`examples/viz_demo.py`](../../examples/viz_demo.py).
 ```python
 from vwf.viz import load_results, plot_cf_distribution, plot_qq
 
-res = load_results("outputs/DK", country="DK", year=2020)
+res = load_results("output/DK", country="DK", year=2020)
 sims = {"uncorrected": res.uncorrected, "linear": res.corrected[(1000, "bimonth")]}
 
 plot_cf_distribution(res.obs, sims).savefig("cf_distribution.png", dpi=150)
@@ -70,7 +70,7 @@ capacity-factor files a run writes to disk.
 import pandas as pd
 from vwf.viz import plot_sim_vs_obs
 
-cf_dir = "outputs/DK/results/capacity-factor"
+cf_dir = "output/DK/results/capacity-factor"
 fig = plot_sim_vs_obs(
     pd.read_csv(f"{cf_dir}/DK_2020_unc_cf.csv"),
     pd.read_csv(f"{cf_dir}/DK_2020_obs_cf.csv"),
@@ -91,7 +91,7 @@ reference.
 import pandas as pd
 from vwf.viz import plot_error_vs_clusters
 
-metrics = pd.read_csv("outputs/DK/pyvwf_evaluation_metrics.csv")
+metrics = pd.read_csv("output/DK/pyvwf_evaluation_metrics.csv")
 plot_error_vs_clusters(metrics[metrics["country"] == "DK"]).savefig("error_vs_clusters.png", dpi=150)
 ```
 

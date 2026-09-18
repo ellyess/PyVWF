@@ -55,12 +55,14 @@ pip install -e .            # simulate, bias-correct, evaluate, plot
 pip install -e ".[data]"    # + ENTSO-E client and Excel/Parquet readers
 pip install -e ".[dev]"     # + pytest, ruff, mypy
 pip install -e ".[docs]"    # + sphinx, myst-parser
+pip install -e ".[grid]"    # + pykrige, rasterio, for the gridded correction surfaces
+pip install -e ".[ml]"      # + xgboost, lightgbm, for a model comparison not yet ported
 pip install -e ".[pinn]"    # + torch, for the experimental physics-informed correction
 pip install -e ".[touchdesigner]"  # + mapbox-earcut, for animated cluster maps
 ```
 
 PyVWF reads inputs from `input/` in the working directory; set `PYVWF_INPUT` to
-point elsewhere. It bundles the open library of power curves (69 real machines plus
+point elsewhere ([choose the input root](docs/guides/training.md#choose-the-input-root)). It bundles the open library of power curves (69 real machines plus
 7 composites from NREL/turbine-models, BSD-3-Clause, VWF-smoothed) so it runs on
 real curve physics out of the box, matching fleets by specific power. It warns
 whenever it uses this open library because the input root has no
@@ -80,7 +82,7 @@ python examples/run_minimal.py
 With your own data, through the `pyvwf-train` console script:
 
 ```bash
-pyvwf-train --outdir outputs/demo_DK_2020 --country DK --year-test 2020 --calc-z0
+pyvwf-train --outdir output/demo_DK_2020 --country DK --year-test 2020 --calc-z0
 ```
 
 This trains the factors, simulates the test year, and writes metrics
@@ -251,8 +253,8 @@ hypotheses, are in
   than capturing an additive spatial bias
   ([method-country-level.md](docs/findings/method-country-level.md)).
 
-Dependencies are pinned in `environment.yaml` and methods are deterministic
-where possible. For published work, document the ERA5 version, the training
+Dependency ranges are declared in `pyproject.toml`, every harness run's manifest
+records the versions it ran with, and methods are deterministic where possible. For published work, document the ERA5 version, the training
 period and the power-curve source alongside the citation.
 
 ## Citation
