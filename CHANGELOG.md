@@ -147,6 +147,21 @@ consumers and go without a deprecation period.
   the one dependency the script imported without declaring, and the
   visualisation guide now documents the export.
 
+- **`pyvwf-validate`**, a console entry for the validation harness: train,
+  evaluate or transfer one region from its config. An installed PyVWF exposed
+  only `pyvwf-train`, the legacy path. `scripts/analysis/validate_region.py`
+  runs the same command from a checkout.
+- **Shared modules for logic that lived in scripts**: `vwf.harness.bootstrap`
+  (the paired bootstrap five studies copied), `vwf.datasets.gwpt` (the Global
+  Wind Power Tracker loading, filters and plant-name keys), the NZ production
+  path in `vwf.datasets.emi_nz`, the transfer machinery in
+  `vwf.extensions.ml`, and `vwf.cli.common` for entry points. Each move is
+  pinned by tests of the output it produced before, and none changed it.
+- **`scripts/studies/`**, one directory per findings document for the scripts
+  that produce its numbers, with a path map from each old location. Each
+  affected findings document names its drivers and the commit its numbers
+  came from.
+
 ### Changed
 
 - **A unit outside the loaded ERA5 extent stops the run.** `interpolate_wind`
@@ -164,6 +179,15 @@ consumers and go without a deprecation period.
 - **`vwf.clustering` imports shapely and geopandas directly.** Both became core
   dependencies long ago, so the fallbacks for a missing geopandas could not
   run.
+
+- **The process scripts resolve their default paths under `PYVWF_INPUT`.**
+  They named `input/` literally, so with another input root a fetch and the
+  matching process step used different trees. With the default root nothing
+  changes.
+- **The country-level generator runs as a module**:
+  `python -m vwf.datasets.generate_country_level_training_data`. It is split
+  into `vwf.datasets.country_grid`, `entsoe_country_obs` and
+  `pyvwf_config_writer`, and no longer edits `sys.path`.
 
 ### Removed
 

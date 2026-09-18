@@ -1131,3 +1131,18 @@ the data-sources guide (f7aa0db); the mypy and docs-build failures fixed
 Deferred to Phase 3, because the file is split there: the `sys.path` insert in
 `generate_country_level_training_data.py`. The documented commands run it by
 path.
+
+Phase 3 (2026-09-18), in the order the maintainer set:
+
+1. Pins before any move: NZ processing (0783d96), every recorded bootstrap
+   output (cd12d49, with a pandas 3 tolerance in 5c99912), the GWPT filters
+   and keys (286c164), the ML transfer library (4051a35) and the country-level
+   generator (7149875).
+2. Study drivers moved to `scripts/studies/<findings-stem>/`, each with its
+   findings header, 223cb46 to 98eec4a. Deferred with `scripts/pinn/` (issue
+   #12): `ml_transfer_retest.py` and `ml_transfer_expanded.py`.
+3. Promotions: NZ (edde3d3), GWPT (8762a98), bootstrap (1b0e0df), ML
+   (f13c825), the CLI helper and `pyvwf-validate` (168143d), and the pipeline
+   scripts' input-root defaults (a539319). No pin output changed.
+4. The generator split (91232e1).
+
