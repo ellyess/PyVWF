@@ -1,4 +1,4 @@
-"""The T2 other-brand assignment's rules (scripts/analysis/curve_library_assign.py).
+"""The T2 other-brand assignment's rules (scripts/studies/method-curve-library/curve_library_assign.py).
 
 T2 moves a unit from its own maker's curve to another maker's at the same scale
 and specific power, so what it can test is the share of capacity it actually
@@ -13,7 +13,7 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "curve_library_assign",
-    Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "curve_library_assign.py",
+    Path(__file__).resolve().parents[1] / "scripts" / "studies" / "method-curve-library" / "curve_library_assign.py",
 )
 assign = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(assign)

@@ -1,4 +1,4 @@
-"""The curve library study driver's refusal (scripts/analysis/curve_library_study.py).
+"""The curve library study driver's refusal (scripts/studies/method-curve-library/curve_library_study.py).
 
 Two of the study's conditions reassign model keys and two of its registered
 predictions say the reassignment will change nothing measurable. So a condition
@@ -17,7 +17,7 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "curve_library_study",
-    Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "curve_library_study.py",
+    Path(__file__).resolve().parents[1] / "scripts" / "studies" / "method-curve-library" / "curve_library_study.py",
 )
 study = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(study)

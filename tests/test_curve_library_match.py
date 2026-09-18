@@ -1,4 +1,4 @@
-"""The brand-and-spec matcher's rules (scripts/analysis/curve_library_match.py).
+"""The brand-and-spec matcher's rules (scripts/studies/method-curve-library/curve_library_match.py).
 
 T1 of the curve library study simulates a unit on the curve of the machine its
 register names, so the matcher decides which units the condition can reach at
@@ -18,7 +18,7 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "curve_library_match",
-    Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "curve_library_match.py",
+    Path(__file__).resolve().parents[1] / "scripts" / "studies" / "method-curve-library" / "curve_library_match.py",
 )
 matcher = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(matcher)

@@ -68,7 +68,7 @@ the mechanism.
 Usage, from the repository root, one region per process:
 
     PYVWF_INPUT=<root> PYTHONPATH=src:scripts/analysis python \\
-        scripts/analysis/curve_library_study.py <CODE> <condition> <out_dir>
+        scripts/studies/method-curve-library/curve_library_study.py <CODE> <condition> <out_dir>
 """
 import os
 import sys
@@ -77,7 +77,8 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_HERE = Path(__file__).resolve().parent
+sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
 import vwf.data as vwf_data  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402

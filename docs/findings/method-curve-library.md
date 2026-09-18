@@ -1,5 +1,16 @@
 # What the power curve library contributes
 
+**Reproduction record, added 2026-09-18.** Drivers:
+`scripts/studies/method-curve-library/curve_library_assign.py`,
+`scripts/studies/method-curve-library/curve_library_match.py`,
+`scripts/studies/method-curve-library/curve_library_study.py`,
+`scripts/studies/method-curve-library/curve_library_tables.py`. Until
+2026-09-18 they were in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the run
+manifests under `output/curve_library_study_2026-09-13/` record commits
+`2dff287`, `1196398`, `b00ec1f`, `207657b` and `6dd7af2`, each with a clean
+tree; the override tables and the paired comparisons record none.
+
 **Date:** 2026-09-13
 **Scope:** the curve library study of `method-curve-library-prereg.md`. All four
 conditions have run: C1 and C2 at country level, T1 and T2 at turbine level.

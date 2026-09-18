@@ -31,7 +31,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_HERE = Path(__file__).resolve().parent
+sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
 import curve_match_audit as audit  # noqa: E402
 
 #: The rating band a candidate must fall in, as a multiple of the unit's own

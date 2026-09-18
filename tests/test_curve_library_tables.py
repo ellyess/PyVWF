@@ -1,4 +1,4 @@
-"""The curve library study's table construction (scripts/analysis/curve_library_tables.py).
+"""The curve library study's table construction (scripts/studies/method-curve-library/curve_library_tables.py).
 
 A run fits the training fleet and is scored on the test fleet, and the two are
 not the same set. A table built from the training fleet alone therefore leaves
@@ -15,7 +15,7 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "curve_library_tables",
-    Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "curve_library_tables.py",
+    Path(__file__).resolve().parents[1] / "scripts" / "studies" / "method-curve-library" / "curve_library_tables.py",
 )
 tables = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(tables)

@@ -36,7 +36,7 @@ runs nothing.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src:scripts/analysis python \\
-        scripts/analysis/curve_library_tables.py <out_dir>
+        scripts/studies/method-curve-library/curve_library_tables.py <out_dir>
 """
 import sys
 from pathlib import Path
@@ -44,7 +44,8 @@ from typing import NamedTuple
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_HERE = Path(__file__).resolve().parent
+sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
 import baseline_bootstrap as bb  # noqa: E402
 import curve_library_assign as t2rule  # noqa: E402
 import curve_library_match as matcher  # noqa: E402
