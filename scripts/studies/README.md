@@ -62,3 +62,7 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/curve_library_study.py` | `scripts/studies/method-curve-library/curve_library_study.py` | `6dd7af2` |
 | `scripts/analysis/curve_library_tables.py` | `scripts/studies/method-curve-library/curve_library_tables.py` | `9aaa9d5` |
 | `scripts/analysis/roughness_treatment_study.py` | `scripts/studies/method-roughness-treatment/roughness_treatment_study.py` | `1ff1d54` |
+| `scripts/analysis/missing_value_audit.py` | `scripts/studies/scorecard/missing_value_audit.py` | `bbaf5b3` |
+| `scripts/analysis/off_curve_sensitivity.py` | `scripts/studies/scorecard/off_curve_sensitivity.py` | `56a78d2` |
+| `scripts/analysis/training_objective_check.py` | `scripts/studies/scorecard/training_objective_check.py` | `b7826d3` |
+| `scripts/analysis/unit_concentration.py` | `scripts/studies/scorecard/unit_concentration.py` | `4b6d143` |

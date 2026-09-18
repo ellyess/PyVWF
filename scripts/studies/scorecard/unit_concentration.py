@@ -46,7 +46,7 @@ cited figures can be regenerated from the runs that produced them.
 Usage, from the repository root, one region per process, with ``PYVWF_INPUT``
 as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/unit_concentration.py <CODE> <out_dir>
+    PYTHONPATH=src python scripts/studies/scorecard/unit_concentration.py <CODE> <out_dir>
 """
 import json
 import sys
@@ -55,6 +55,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
 from vwf.harness.driver import _tidy_eval_frame
 from vwf.harness.regions import load_region

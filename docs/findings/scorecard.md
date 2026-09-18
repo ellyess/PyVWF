@@ -1,5 +1,21 @@
 # Multi-region validation scorecard
 
+**Reproduction record, added 2026-09-18.** Drivers:
+`scripts/studies/scorecard/missing_value_audit.py`,
+`scripts/studies/scorecard/off_curve_sensitivity.py`,
+`scripts/studies/scorecard/training_objective_check.py`,
+`scripts/studies/scorecard/unit_concentration.py`. Until 2026-09-18 they were
+in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers:
+`unit_concentration.py`'s output records no commit; the driver's last commit
+before it was written is `4b6d143`, and rerun at `51807f8` it reproduces its
+recorded files byte for byte (`tests/test_pin_bootstrap_reproduction.py`). The
+outputs of `missing_value_audit.py`, `off_curve_sensitivity.py` and
+`training_objective_check.py` record no commit either, and each was written on
+2026-09-11 minutes before the driver's first commit (`bbaf5b3`, `b7826d3` and
+`b7826d3`), so the exact code that produced them is not recorded. The runs they
+read are pinned by their own manifests.
+
 Per region, how much PyVWF's affine wind-speed correction reduces the error
 between ERA5-simulated and observed capacity factors on a held-out year. Every
 number is read from a `metrics.csv` under `output/validation/`, with the source

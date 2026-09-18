@@ -93,7 +93,7 @@ def test_baseline_bootstrap_reproduces(code, tmp_path):
 def test_unit_concentration_reproduces(code, tmp_path):
     recorded = STUDY / "baseline_bootstrap"
     _need(BACKFILL / code, recorded / f"{code}_concentration.csv")
-    _run("analysis/unit_concentration.py", [code, str(tmp_path)], code)
+    _run("studies/scorecard/unit_concentration.py", [code, str(tmp_path)], code)
     _same(tmp_path, recorded, [f"{code}_concentration.csv", f"{code}_top5_units.csv"])
 
 

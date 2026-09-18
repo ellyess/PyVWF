@@ -51,7 +51,7 @@ It needs ERA5, the local input root and the git-ignored run tree, so a third
 party cannot run it. Usage, from the repository root, one region per process,
 with ``PYVWF_INPUT`` as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/off_curve_sensitivity.py <CODE> <out_dir>
+    PYTHONPATH=src python scripts/studies/scorecard/off_curve_sensitivity.py <CODE> <out_dir>
 
 Output: ``<CODE>_off_curve_sensitivity.csv``, one row per variant and basis.
 """
@@ -64,6 +64,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
 from vwf.clustering import cluster_turbines
 from vwf.data import assign_country_clusters, load_power_curves, val_set

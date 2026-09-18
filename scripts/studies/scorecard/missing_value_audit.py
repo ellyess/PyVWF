@@ -39,7 +39,7 @@ It needs ERA5, the local input root and the git-ignored run tree, so a third
 party cannot run it. Usage, from the repository root, one region per process,
 with ``PYVWF_INPUT`` as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/missing_value_audit.py <CODE> <out_dir>
+    PYTHONPATH=src python scripts/studies/scorecard/missing_value_audit.py <CODE> <out_dir>
 
 Outputs in ``<out_dir>``: ``<CODE>_missing_summary.csv`` (per variant),
 ``<CODE>_missing_by_cluster.csv`` and ``<CODE>_missing_by_unit.csv``.
@@ -51,6 +51,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
 from vwf.clustering import cluster_turbines
 from vwf.data import assign_country_clusters, load_power_curves, val_set
