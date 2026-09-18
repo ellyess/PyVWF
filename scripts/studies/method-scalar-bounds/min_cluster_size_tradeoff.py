@@ -34,7 +34,7 @@ would NOT mean the feature is wrong; it would mean Chile's monthly score was
 partly resting on a fit nobody should trust, which is worth knowing either way.
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/min_cluster_size_tradeoff.py
+        scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py
 """
 from __future__ import annotations
 

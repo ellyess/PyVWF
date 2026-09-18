@@ -78,3 +78,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/regime_coverage.py` | `scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py` | `8a7bcb8` |
 | `scripts/analysis/era5_overlap_check.py` | `scripts/studies/method-eu-rerun/era5_overlap_check.py` | `3898bdc` |
 | `scripts/analysis/hourly_resolution_test.py` | `scripts/studies/method-hourly-resolution/hourly_resolution_test.py` | `d2017f3` |
+| `scripts/analysis/min_cluster_size_tradeoff.py` | `scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py` | `6effe0e` |

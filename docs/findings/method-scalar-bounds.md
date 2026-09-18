@@ -1,5 +1,13 @@
 # Calibrating the fit-quality guards
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the run
+manifests under `output/min_cluster_size/` record commit `1b10581` with a dirty
+tree, and the output predates the driver's first commit, `569a00a`, so the
+exact producing code is not recorded.
+
 **Date:** 2026-08-12
 **Scope:** two experiments behind the fit-robustness work. (1) What are
 physically plausible bounds for a fitted wind scalar, judged against every fit in
