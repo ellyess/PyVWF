@@ -62,6 +62,7 @@ import numpy as np
 import pandas as pd
 
 import baseline_bootstrap as bb
+from vwf.harness.driver import load_obs_and_fleet
 from vwf.harness import driver
 from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
 from vwf.harness.regions import load_region
@@ -76,7 +77,7 @@ def main(code, out_dir):
     manifest = json.loads((ev / "run_manifest.json").read_text())
     year = int(manifest["evaluation_year"])
     old = pd.read_csv(ev / "metrics.csv")
-    obs, turb_info = bb.load_obs_and_fleet(spec, year)
+    obs, turb_info = load_obs_and_fleet(spec, year)
 
     def pairs(sim_cf):
         if spec.obs_level == "country":
@@ -183,7 +184,7 @@ def joint(code, out_dir, eval_dirs):
     years = {json.loads((d / "run_manifest.json").read_text())["evaluation_year"] for d in eval_dirs}
     if len(years) != 1:
         raise SystemExit(f"{code}: runs evaluate different years {years}")
-    obs, turb_info = bb.load_obs_and_fleet(spec, int(years.pop()))
+    obs, turb_info = load_obs_and_fleet(spec, int(years.pop()))
 
     def pairs(sim_cf):
         return {"fleet": collapse_pseudo_replicates(

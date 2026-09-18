@@ -23,7 +23,7 @@ import pandas as pd
 import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
-from vwf.data import assign_country_clusters, train_set, val_set
+from vwf.data import assign_country_clusters, train_set, val_obs_and_fleet, val_set
 from vwf.harness.corrections import fit_quality, get_correction
 from vwf.harness.provenance import (
     CURVE_RESOLUTION_NAME,
@@ -76,6 +76,25 @@ def resolve_source(
         cls = EntsoeFileSource if spec.source == "entsoe-country" else EntsoeZonalFileSource
         return cls(spec.code, split, spec.train_years, spec.test_years[0])
     return get_source(spec.source, spec.code)
+
+
+def load_obs_and_fleet(spec: RegionSpec, year: int, source: ObservationSource | None = None):
+    """The observations and fleet :func:`run_evaluate` scores, without ERA5.
+
+    For analyses that re-score a run's recorded frames. The whole fleet is
+    returned (mode ``"all"``) with its own curves, as the scorecard rows were
+    evaluated.
+
+    Args:
+        spec: The region.
+        year: The test year.
+        source: The adapter, resolved for the test split when omitted.
+
+    Returns:
+        Tuple of observations and turbine metadata, as :func:`vwf.data.val_obs_and_fleet`.
+    """
+    source = source if source is not None else resolve_source(spec, "test")
+    return val_obs_and_fleet(spec.code, year, obs_level=spec.obs_level, source=source)
 
 
 def _record_observation_quality(source) -> dict:

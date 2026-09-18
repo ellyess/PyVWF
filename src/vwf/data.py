@@ -553,13 +553,9 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         Tuple of observations, turbine metadata, reanalysis, and power curves.
     """
     source = _source_for(source, external_grid_points, external_obs_data)
-    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level, source=source)
-
-    if mode != "all":
-        turb_info = turb_info[turb_info["type"] == mode].copy()
-
-    if fix_turb is not None:
-        turb_info["model"] = fix_turb
+    power_curves = load_power_curves()
+    obs, turb_info = val_obs_and_fleet(country, year_test, mode, fix_turb, obs_level=obs_level,
+                                       source=source, power_curves=power_curves)
 
     # preping era5 for val
     reanalysis = prep_era5(country, False, calc_z0, bbox=bbox, era5_dir=era5_dir,
@@ -569,9 +565,44 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
     if year_test is not None:
         reanalysis = reanalysis.sel(time=str(year_test))
 
-    power_curves = load_power_curves()
+    return obs, turb_info, reanalysis, power_curves
+
+
+def val_obs_and_fleet(country, year_test, mode="all", fix_turb=None, *, obs_level: str = "turbine",
+                      source: ObservationSource | None = None,
+                      power_curves: pd.DataFrame | None = None):
+    """The observations and fleet of :func:`val_set`, without the reanalysis.
+
+    What an evaluation scores against, for analyses that re-score recorded
+    simulations and so need no ERA5: the observations in the test year and the
+    fleet they cover, prepared exactly as :func:`val_set` prepares them.
+
+    Args:
+        country: Country code.
+        year_test: Test year.
+        mode: Cluster mode (``"all"``, ``"onshore"``, ``"offshore"``).
+        fix_turb: Optional turbine model override.
+        obs_level: ``"turbine"`` or ``"country"``.
+        source: Observation source. Resolved from ``country`` when omitted.
+        power_curves: The power curves, loaded when omitted. Used by the
+            country-level fleet preparation.
+
+    Returns:
+        Tuple of observations and turbine metadata. Turbine-level observations
+        are one column per unit and one row per month; country-level ones are
+        a ``time`` and ``obs`` column.
+    """
+    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level, source=source)
+
+    if mode != "all":
+        turb_info = turb_info[turb_info["type"] == mode].copy()
+
+    if fix_turb is not None:
+        turb_info["model"] = fix_turb
 
     if obs_level == "country":
+        if power_curves is None:
+            power_curves = load_power_curves()
         # Country-level observations arrive as a DatetimeIndexed capacity-factor
         # series from the observation source, at its native resolution.
         obs_country = obs_data.copy()
@@ -593,13 +624,11 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
             # run is, or the two are not comparable.
             obs_country = country_zonal_to_national(obs_country, turb_info)
 
-        obs_country['year'] = obs_country.index.year
-        obs_country['month'] = obs_country.index.month
         obs_country['time'] = obs_country.index
         obs_country = obs_country.rename(columns={'capacity_factor': 'obs'})
         obs_country = obs_country[['time', 'obs']].sort_values('time')
 
-        return obs_country, turb_info, reanalysis, power_curves
+        return obs_country, turb_info
 
     # turbine-level path
     obs_cf = obs_data
@@ -614,7 +643,7 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
     turb_info = turb_info.loc[turb_info["ID"].isin(obs_cf["ID"])].reset_index(drop=True)
     obs_cf = obs_cf.set_index("ID").transpose().rename_axis("time").reset_index()
 
-    return obs_cf, turb_info, reanalysis, power_curves
+    return obs_cf, turb_info
 
 
 def assign_country_clusters(turb_info, num_clu):

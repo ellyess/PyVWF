@@ -47,6 +47,7 @@ import pandas as pd
 _HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
 import baseline_bootstrap as bb  # noqa: E402
+from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
 import curve_library_assign as t2rule  # noqa: E402
 import curve_library_match as matcher  # noqa: E402
 import curve_match_audit as audit  # noqa: E402
@@ -107,10 +108,11 @@ def train_fleet_of(code: str) -> pd.DataFrame:
 def test_fleet_of(code: str) -> pd.DataFrame:
     """The fleet the row is scored on, by the route ``run_evaluate`` takes.
 
-    ``baseline_bootstrap.load_obs_and_fleet`` is ``val_set`` without the ERA5
-    load: the same ``prep_country`` call and the same narrowing to the units
-    the test year observes. Reusing it keeps one definition of the test fleet
-    rather than a second one written here that could drift from the first.
+    ``vwf.harness.driver.load_obs_and_fleet`` is the part of ``val_set`` that
+    loads no ERA5, and ``val_set`` calls it: the same ``prep_country`` call and
+    the same narrowing to the units the test year observes. Reusing it keeps
+    one definition of the test fleet rather than a second one written here that
+    could drift from the first.
 
     A country row's grid names its own model keys, so
     ``prepare_country_fleet`` never reaches for a default curve and the fleet
@@ -119,7 +121,7 @@ def test_fleet_of(code: str) -> pd.DataFrame:
     was written by a run under the row's own root.
     """
     spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
-    _, fleet = bb.load_obs_and_fleet(spec, int(spec.test_years[0]))
+    _, fleet = load_obs_and_fleet(spec, int(spec.test_years[0]))
     return fleet
 
 

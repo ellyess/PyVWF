@@ -57,6 +57,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
+from vwf.harness.driver import load_obs_and_fleet
 from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
 from vwf.harness.driver import _tidy_eval_frame
 from vwf.harness.regions import load_region
@@ -67,7 +68,7 @@ def main(code, out_dir):
     spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
     ev = next((bb.BACKFILL / code).glob("evaluate-*-backfill"))
     year = int(json.loads((ev / "run_manifest.json").read_text())["evaluation_year"])
-    obs, turb_info = bb.load_obs_and_fleet(spec, year)
+    obs, turb_info = load_obs_and_fleet(spec, year)
     names = {"unc": "unc_cf.csv", "cor": f"cor_cf_{bb.REPORTED[code]}.csv"}
     per_unit = {}
     for k, f in names.items():

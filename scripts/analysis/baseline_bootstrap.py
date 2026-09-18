@@ -76,13 +76,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.data import (
-    clean_obs_data,
-    country_zonal_to_national,
-    load_power_curves,
-    prep_country,
-    prepare_country_fleet,
-)
 from vwf.harness.bootstrap import (
     percentile_interval,
     resample_counts,
@@ -90,7 +83,7 @@ from vwf.harness.bootstrap import (
     rmse_over_rows,
     weighted_rmse,
 )
-from vwf.harness.driver import _country_skill, _tidy_eval_frame, resolve_source
+from vwf.harness.driver import _country_skill, _tidy_eval_frame, load_obs_and_fleet
 from vwf.harness.regions import load_region
 from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
 
@@ -111,33 +104,6 @@ REPORTED = {
     "DE": "fixed_100", "DK": "season_100", "UK": "fixed_50", "US": "fixed_250",
     "BR": "fixed_60", "AU-NEM": "season_45", "NZ": "fixed_7", "CL": "fixed_10", "AR": "fixed_10",
 }
-
-
-def load_obs_and_fleet(spec, year):
-    """val_set without prep_era5: the observations and fleet run_evaluate scored."""
-    source = resolve_source(spec, "test")
-    obs, turb_info = prep_country(spec.code, year, obs_level=spec.obs_level, source=source)
-    power_curves = load_power_curves()
-    if spec.obs_level == "country":
-        obs = obs.copy()
-        if not isinstance(obs.index, pd.DatetimeIndex):
-            obs.index = pd.to_datetime(obs.index, utc=True)
-        if obs.index.tz is not None:
-            obs.index = obs.index.tz_convert("UTC").tz_localize(None)
-        turb_info = prepare_country_fleet(turb_info, power_curves, None)
-        if "cluster" in obs.columns:
-            obs = country_zonal_to_national(obs, turb_info)
-        obs["time"] = obs.index
-        obs = obs.rename(columns={"capacity_factor": "obs"})[["time", "obs"]].sort_values("time")
-        return obs, turb_info
-    obs = clean_obs_data(obs, spec.code, False)
-    dates = np.arange(f"{year}-01", f"{year + 1}-01", dtype="datetime64[M]")
-    obs = obs.drop("year", axis=1)
-    obs.columns = ["ID"] + dates.tolist()
-    obs = obs.loc[obs["ID"].isin(turb_info["ID"])].reset_index(drop=True)
-    turb_info = turb_info.loc[turb_info["ID"].isin(obs["ID"])].reset_index(drop=True)
-    obs = obs.set_index("ID").transpose().rename_axis("time").reset_index()
-    return obs, turb_info
 
 
 def country_monthly(sim_cf, obs, turb_info):

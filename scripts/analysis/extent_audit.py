@@ -36,6 +36,7 @@ from pathlib import Path
 import pandas as pd
 
 import baseline_bootstrap as bb
+from vwf.harness.driver import load_obs_and_fleet
 from vwf.datasets.era5 import prep_era5
 from vwf.harness.driver import _era5_dir
 from vwf.harness.regions import load_region
@@ -46,7 +47,7 @@ def audit(code: str) -> dict:
     """One row's test fleet against the extent its configuration loads."""
     spec = load_region(Path("configs/regions/scorecard") / f"{bb.CONFIGS[code]}.toml")
     year = int(spec.test_years[0])
-    _, turb_info = bb.load_obs_and_fleet(spec, year)
+    _, turb_info = load_obs_and_fleet(spec, year)
     # The extent is a property of the files and the box, not of a year or of
     # the roughness, so the wind fields are loaded without deriving z0.
     reanalysis = prep_era5(

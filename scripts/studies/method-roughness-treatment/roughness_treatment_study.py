@@ -37,6 +37,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb  # noqa: E402
+from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.bootstrap import (  # noqa: E402
     percentile_interval,
@@ -83,7 +84,7 @@ def main(code, r0_dir, r1_dir, out_dir):
     reported = bb.REPORTED[code]
     runs = {"R0": Path(r0_dir), "R1": Path(r1_dir)}
     year = int(json.loads((runs["R0"] / "run_manifest.json").read_text())["evaluation_year"])
-    obs, turb_info = bb.load_obs_and_fleet(spec, year)
+    obs, turb_info = load_obs_and_fleet(spec, year)
 
     # The two runs must differ in the treatment and nothing else.
     treatments = {}

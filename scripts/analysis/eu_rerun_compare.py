@@ -56,6 +56,7 @@ import pandas as pd
 _HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(_HERE), str(_HERE.parent / "studies" / "method-roughness-treatment")]
 import baseline_bootstrap as bb  # noqa: E402
+from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
 import roughness_treatment_study as rts  # noqa: E402
 from vwf.harness import driver  # noqa: E402
 from vwf.harness.bootstrap import (  # noqa: E402
@@ -123,7 +124,7 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
     is_country = spec.obs_level == "country"
     reported = bb.REPORTED[code]
     year = int(json.loads((runs[baseline] / "run_manifest.json").read_text())["evaluation_year"])
-    obs, turb_info = bb.load_obs_and_fleet(spec, year)
+    obs, turb_info = load_obs_and_fleet(spec, year)
 
     # Every condition must score the same year and the same reported
     # configuration, or the difference is not the one the plan registered.
