@@ -136,7 +136,7 @@ from itertools import groupby
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.harness.regions import load_region  # noqa: E402
+from vwf.harness.regions import load_region_by_code  # noqa: E402
 
 DATASET = "reanalysis-era5-single-levels"
 VARIABLES = [
@@ -162,14 +162,6 @@ RECOMMENDED_WORKERS = 4
 # concurrent, which is the whole point, since the queue is the cost; only the
 # split is serialised, and it takes seconds against a queue wait of minutes.
 SPLIT_LOCK = threading.Lock()
-CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
-
-
-def region_spec(code: str):
-    path = CONFIG_DIR / f"{code.lower()}.toml"
-    if not path.is_file():
-        sys.exit(f"no region config at {path}: is {code!r} a shipped region?")
-    return load_region(path)
 
 
 @dataclass(frozen=True)
@@ -212,7 +204,10 @@ def resolve_spec(args) -> tuple[DownloadSpec, list[int]]:
         return DownloadSpec(code, check_bbox(args.bbox),
                             args.file_tag or code.upper()), sorted(args.years)
 
-    spec = region_spec(args.region)
+    try:
+        spec = load_region_by_code(args.region)
+    except (FileNotFoundError, ValueError) as exc:
+        sys.exit(str(exc))
     years = sorted(args.years) if args.years else list(
         range(spec.train_years[0], spec.test_years[-1] + 1))
     return DownloadSpec(

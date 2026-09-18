@@ -303,6 +303,11 @@ consumers and go without a deprecation period.
 - **The docs build passes with warnings as errors.** The manuscript decision
   register in `docs/design/` was in no toctree. It and the repository audit are
   working documents, so both are now excluded from the site.
+- **`scripts/fetch/era5.py` and `scripts/era5/combine.py` accept a hyphenated
+  region code.** Both looked for `<code in lower case>.toml`, so `--region
+  es-ws`, which the Spain runbook gives, and `--region AU-NEM` stopped with no
+  config found. They now share `vwf.harness.regions.load_region_by_code`, which
+  resolves the region stem and refuses a config that declares another code.
 
 ### Documentation
 

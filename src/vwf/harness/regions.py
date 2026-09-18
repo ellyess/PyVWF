@@ -63,6 +63,37 @@ def season_of_month(spec: RegionSpec) -> dict[int, str]:
     return {month: name for name, months in spec.seasons.items() for month in months}
 
 
+#: The maintained configs, one per region stem. It resolves in a source
+#: checkout; an installed package carries no configs.
+REGIONS_DIR = Path(__file__).resolve().parents[3] / "configs" / "regions"
+
+
+def region_stem(code: str) -> str:
+    """The file-name form of a region code: ``AU-NEM`` becomes ``au_nem``."""
+    return code.lower().replace("-", "_")
+
+
+def load_region_by_code(code: str, config_dir: str | Path = REGIONS_DIR) -> RegionSpec:
+    """Load the maintained config of the region ``code``.
+
+    The file is ``<config_dir>/<region stem>.toml``, and the config it holds
+    must declare that code, so a code is never answered with another region's
+    config. ``se_zonal.toml`` (code ``SE-BZ``) is the one maintained config
+    whose name is not its code's stem; load it by path.
+
+    Raises:
+        FileNotFoundError: If no config has that stem.
+        ValueError: If the config found declares another code.
+    """
+    path = Path(config_dir) / f"{region_stem(code)}.toml"
+    if not path.is_file():
+        raise FileNotFoundError(f"no region config at {path}: is {code!r} a shipped region?")
+    spec = load_region(path)
+    if spec.code.upper() != code.upper():
+        raise ValueError(f"{path} declares code {spec.code!r}, not {code!r}")
+    return spec
+
+
 def _fail(path: Path, message: str) -> None:
     raise ValueError(f"{path}: {message}")
 

@@ -32,16 +32,7 @@ import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from vwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
-
-CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
-
-
-def region_spec(code: str):
-    path = CONFIG_DIR / f"{code.lower()}.toml"
-    if not path.is_file():
-        sys.exit(f"no region config at {path}; is {code!r} a shipped region?")
-    return load_region(path)
+from vwf.harness.regions import load_region_by_code  # noqa: E402
 
 
 def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:
@@ -88,7 +79,10 @@ def main() -> None:
                     help="Override the year span (default: train[0]..test[-1])")
     args = ap.parse_args()
 
-    spec = region_spec(args.region)
+    try:
+        spec = load_region_by_code(args.region)
+    except (FileNotFoundError, ValueError) as exc:
+        sys.exit(str(exc))
     # Filenames key on file_tag, not the region code: AU-NEM writes era5_au_*.
     tag = spec.file_tag.lower()
     years = args.years or list(range(spec.train_years[0], spec.test_years[-1] + 1))
