@@ -3,36 +3,23 @@
 This module provides spatial clustering of turbine coordinates for training and
 evaluation workflows.
 """
-# Lazy (string) annotations so optional geometry types (e.g. Polygon) in
-# function signatures don't require shapely to be importable.
 from __future__ import annotations
 
 from pathlib import Path
 
 from sklearn.cluster import KMeans
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import warnings
+from shapely.geometry import Point, Polygon
 
 from vwf.config import PyVWFPaths
 
-# shapely powers the optional Voronoi/geometry helpers below; the core
-# KMeans-based cluster_turbines() does not need it, so guard the import to keep
-# the package importable in minimal environments.
-try:
-    from shapely.geometry import Point, Polygon
-    HAS_SHAPELY = True
-except ImportError:
-    HAS_SHAPELY = False
-    Point = Polygon = None
-    warnings.warn("shapely not installed. Geometry-based features will be limited.")
-
-try:
-    import geopandas as gpd
-    HAS_GEOPANDAS = True
-except ImportError:
-    HAS_GEOPANDAS = False
-    warnings.warn("geopandas not installed. Geometry-based features will be limited.")
+#: Retained for backwards compatibility; always True now that shapely and
+#: geopandas are core dependencies.
+HAS_SHAPELY = True
+HAS_GEOPANDAS = True
 
 
 # Cached region shapes
@@ -118,7 +105,7 @@ def repair_region_shape(geom, region_code: str, fleet_xy=None, coastline_path=No
         The merged shapely geometry, or ``geom`` unchanged when the coastline
         file is missing or nothing new is claimed.
     """
-    if not HAS_GEOPANDAS or geom is None or geom.is_empty:
+    if geom is None or geom.is_empty:
         return geom
 
     coast_path = Path(coastline_path) if coastline_path else PyVWFPaths.COASTLINES
@@ -199,9 +186,6 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore",
     Returns:
         Shapely geometry for the country/offshore region, or None if not found.
     """
-    if not HAS_GEOPANDAS:
-        return None
-
     country_shapes, offshore_shapes = load_region_shapes()
 
     # Map UK <-> GB
@@ -736,13 +720,6 @@ def cluster_with_geometries(
         )
 
         # Create Voronoi diagram from cluster centers for geometries
-        if not HAS_GEOPANDAS:
-            warnings.warn(
-                "geopandas not installed. Returning None for cluster geometries. "
-                "Install with: pip install geopandas"
-            )
-            return sampling_points, None
-
         centers = kmeans.cluster_centers_  # [lat, lon]
 
         # Import geometry types needed for both Voronoi and convex hull
@@ -886,9 +863,6 @@ def cluster_with_geometries(
 
         if 'cluster' not in sampling_points.columns:
             raise ValueError("For method='predefined', sampling_points must have 'cluster' column")
-
-        if not HAS_GEOPANDAS:
-            return sampling_points, None
 
         # Create geometries from point clusters
         cluster_geoms = []
