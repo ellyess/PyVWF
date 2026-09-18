@@ -35,6 +35,7 @@ import glob
 import sys
 from pathlib import Path
 
+from vwf.cli.common import add_input_path
 from vwf.datasets.emi_nz import (
     capacity_history_from_curation,
     gen_code_map,
@@ -48,13 +49,12 @@ from vwf.datasets.emi_nz import (
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", default="input/raw/emi",
-                    help="Directory of <YYYYMM>_Generation_MD.csv files")
+    add_input_path(ap, "--raw", "raw", "emi", help="Directory of <YYYYMM>_Generation_MD.csv files")
     ap.add_argument("--configs", default="configs/curation",
                     help="Directory holding the curated nz_*.csv tables")
     ap.add_argument("--years", type=int, nargs=2, default=[2019, 2024],
                     metavar=("START", "END"), help="Inclusive UTC year window")
-    ap.add_argument("--out", default="input/observations/turbine/NZ")
+    add_input_path(ap, "--out", "observations", "turbine", "NZ")
     ap.add_argument("--fallback-model", default="2019COE_Market_Average_2.6MW_121",
                     help="Uniform curve key for farms the matcher cannot place "
                     "(must be a column of power_curves.csv)")

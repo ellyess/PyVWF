@@ -30,12 +30,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from vwf.cli.common import add_input_path
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--models-csv", default="configs/curation/au_turbine_models.csv")
-    ap.add_argument("--md", default="input/observations/turbine/AU_NEM/au_nem_md.csv")
+    add_input_path(ap, "--md", "observations", "turbine", "AU_NEM", "au_nem_md.csv")
     ap.add_argument("--open-models", required=True, help="models_open.csv path")
     ap.add_argument("--open-curves", required=True, help="open power-curve CSV path")
     args = ap.parse_args()

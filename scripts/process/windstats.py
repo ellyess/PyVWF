@@ -31,6 +31,7 @@ from vwf.datasets.windstats import (
     windstats_metadata,
     windstats_monthly_cf,
 )
+from vwf.cli.common import add_input_path, input_path
 
 GEO_NAME = {"ES": "spain", "SE": "sweden", "FI": "finland"}
 GWPT_COUNTRY = {"ES": "Spain", "SE": "Sweden", "FI": "Finland"}
@@ -42,7 +43,7 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--country", required=True, choices=["ES", "SE", "FI"])
     ap.add_argument("--src", required=True, help="CONFIDENTIAL WindStats folder")
-    ap.add_argument("--gwpt", default="input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx")
+    add_input_path(ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--years", type=int, nargs=2, default=None, metavar=("START", "END"))
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--height", type=float, default=80.0)
@@ -74,7 +75,7 @@ def main() -> None:
     obs = windstats_monthly_cf(data, smd[["ID", "capacity"]], y0, y1)
     obs = obs[obs["ID"].isin(set(fmd["ID"]))].reset_index(drop=True)
 
-    out = Path(args.out_dir) if args.out_dir else Path("input/observations/turbine") / cc
+    out = Path(args.out_dir) if args.out_dir else input_path("observations", "turbine") / cc
     out.mkdir(parents=True, exist_ok=True)
     fmd.to_csv(out / f"{cc.lower()}_md.csv", index=False)
     obs.to_csv(out / f"{cc.lower()}_obs.csv", index=False)

@@ -32,6 +32,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from vwf.cli.common import add_input_path
 from vwf.datasets.gwpt import load_gwpt, projects_with_keys
 from vwf.datasets.cen_cl import (
     build_cl_metadata,
@@ -63,12 +64,12 @@ def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", default="input/raw/cen")
-    ap.add_argument("--gwpt", default="input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx")
+    add_input_path(ap, "--raw", "raw", "cen")
+    add_input_path(ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--overrides", default="configs/curation/cl_coord_overrides.csv")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
-    ap.add_argument("--out", default="input/observations/turbine/CL")
+    add_input_path(ap, "--out", "observations", "turbine", "CL")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub-height default, m (CEN has no hub height)")
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",

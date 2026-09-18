@@ -32,6 +32,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from vwf.cli.common import add_input_path
 from vwf.datasets.aemo_au import (
     build_au_metadata,
     capacity_mask_months,
@@ -54,10 +55,10 @@ def read_zipped_mms(path: Path) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--raw", default="input/raw/aemo", help="Raw archive dir")
+    add_input_path(ap, "--raw", "raw", "aemo", help="Raw archive dir")
     ap.add_argument("--gen-info", required=True, help="Generation Information xlsx")
     ap.add_argument("--gwpt", required=True, help="Global Wind Power Tracker xlsx")
-    ap.add_argument("--out", default="input/observations/turbine/AU_NEM")
+    add_input_path(ap, "--out", "observations", "turbine", "AU_NEM")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub height default, m (no per-farm data yet)")
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",

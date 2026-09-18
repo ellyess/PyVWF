@@ -41,6 +41,7 @@ from vwf.datasets.ons_br import (
     wind_complexes_from_fc,
     wind_rows,
 )
+from vwf.cli.common import add_input_path
 
 FC_COLS = ["id_ons", "nom_tipousina", "din_instante", "val_fatorcapacidade"]
 
@@ -61,7 +62,7 @@ def main() -> None:
     ap.add_argument("--siga", default=None, help="ANEEL SIGA CSV (commissioning)")
     ap.add_argument("--curtailment-threshold", type=float, default=0.05,
                     help="Mask months whose curtailed fraction exceeds this")
-    ap.add_argument("--out", default="input/observations/turbine/BR")
+    add_input_path(ap, "--out", "observations", "turbine", "BR")
     ap.add_argument("--height", type=float, default=100.0,
                     help="Uniform hub-height default, m (ONS has no hub height)")
     ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",

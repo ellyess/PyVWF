@@ -32,6 +32,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+from vwf.cli.common import add_input_path
 
 FILES = {
     "DE_md.csv": {"V1", "Manufacturer", "kW", "Rotor..m.", "Tower..m."},
@@ -45,7 +46,7 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", required=True,
                     help="Directory holding the confidential WindStats DE files")
-    ap.add_argument("--out-dir", default="input/observations/turbine/DE")
+    add_input_path(ap, "--out-dir", "observations", "turbine", "DE")
     ap.add_argument("--check-only", action="store_true",
                     help="Validate the source files without staging them")
     args = ap.parse_args()

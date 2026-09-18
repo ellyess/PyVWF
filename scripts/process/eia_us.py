@@ -39,6 +39,7 @@ from vwf.datasets.eia_us import (
     wind_capacity_from_eia860,
     wind_generation_from_eia923,
 )
+from vwf.cli.common import add_input_path
 
 
 def main() -> None:
@@ -55,7 +56,7 @@ def main() -> None:
     ap.add_argument("--eia860-header", type=int, default=1,
                     help="0-based header row of the EIA-860 sheets")
     ap.add_argument("--uswtdb", default=None, help="USWTDB CSV (hub heights, models)")
-    ap.add_argument("--out", default="input/observations/turbine/US")
+    add_input_path(ap, "--out", "observations", "turbine", "US")
     ap.add_argument("--curve-assignment", choices=["match", "uniform"], default="match",
                     help="'match' assigns each plant a real library curve by "
                     "specific power via vwf.data.add_models (as the AU-NEM and "
