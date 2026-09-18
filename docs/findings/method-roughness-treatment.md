@@ -1,5 +1,15 @@
 # Roughness temporal treatment: the per-timestep derivation is adopted
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-roughness-treatment/roughness_treatment_study.py`.
+Until 2026-09-18 it was in `scripts/analysis/`, the path any command below
+uses; `scripts/studies/README.md` maps each old path to its new one. Numbers:
+the R0 and R1 run manifests under `output/roughness_treatment_2026-09-12/`
+record commits `48192c5` and `1ff1d54`, both clean trees. The comparison under
+its `analysis/` records none; the driver's last commit before it was written is
+`1ff1d54`, and rerun at `51807f8` the driver reproduces those files byte for
+byte (`tests/test_pin_bootstrap_reproduction.py`).
+
 **Date:** 2026-09-12
 **Scope:** which temporal treatment of the derived surface roughness PyVWF
 uses. Pre-registered in `method-roughness-treatment-prereg.md`; the background

@@ -61,3 +61,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/curve_library_match.py` | `scripts/studies/method-curve-library/curve_library_match.py` | `b7ed5fd` |
 | `scripts/analysis/curve_library_study.py` | `scripts/studies/method-curve-library/curve_library_study.py` | `6dd7af2` |
 | `scripts/analysis/curve_library_tables.py` | `scripts/studies/method-curve-library/curve_library_tables.py` | `9aaa9d5` |
+| `scripts/analysis/roughness_treatment_study.py` | `scripts/studies/method-roughness-treatment/roughness_treatment_study.py` | `1ff1d54` |

@@ -25,7 +25,7 @@ It reads the local run tree and input root, so a third party cannot run it.
 
 Usage, from the repository root, one region per process:
 
-    PYTHONPATH=src python scripts/analysis/roughness_treatment_study.py <CODE> \
+    PYTHONPATH=src python scripts/studies/method-roughness-treatment/roughness_treatment_study.py <CODE> \
         <R0 evaluate dir> <R1 evaluate dir> <out_dir>
 """
 import json
@@ -35,8 +35,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-import baseline_bootstrap as bb
-from vwf.harness import driver
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
+import baseline_bootstrap as bb  # noqa: E402
+from vwf.harness import driver  # noqa: E402
 from vwf.harness.regions import load_region
 from vwf.harness.skill import (
     collapse_pseudo_replicates,

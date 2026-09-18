@@ -53,7 +53,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_HERE = Path(__file__).resolve().parent
+sys.path[:0] = [str(_HERE), str(_HERE.parent / "studies" / "method-roughness-treatment")]
 import baseline_bootstrap as bb  # noqa: E402
 import roughness_treatment_study as rts  # noqa: E402
 from vwf.harness import driver  # noqa: E402

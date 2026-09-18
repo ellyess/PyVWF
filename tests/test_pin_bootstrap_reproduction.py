@@ -36,7 +36,7 @@ import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-ANALYSIS = ROOT / "scripts" / "analysis"
+SCRIPTS = ROOT / "scripts"
 STUDY = ROOT / "output" / "curve_library_study_2026-09-11"
 BACKFILL = ROOT / "output" / "validation" / "curve_resolution_backfill_2026-09-11"
 ROUGHNESS = ROOT / "output" / "roughness_treatment_2026-09-12"
@@ -54,9 +54,10 @@ def _root(code: str) -> str:
 
 
 def _run(script: str, args: list[str], code: str, *, extra_path: str = "") -> None:
+    """Run ``scripts/<script>`` for one row, as its own process."""
     env = dict(os.environ, PYVWF_INPUT=_root(code),
                PYTHONPATH=os.pathsep.join(p for p in ("src", extra_path) if p))
-    done = subprocess.run([sys.executable, str(ANALYSIS / script), *args], cwd=ROOT,
+    done = subprocess.run([sys.executable, str(SCRIPTS / script), *args], cwd=ROOT,
                           env=env, capture_output=True, text=True)
     assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
 
@@ -84,7 +85,7 @@ def _need(*paths: Path) -> None:
 def test_baseline_bootstrap_reproduces(code, tmp_path):
     recorded = STUDY / "baseline_bootstrap"
     _need(BACKFILL / code, recorded / f"{code}_bootstrap.csv")
-    _run("baseline_bootstrap.py", [code, str(tmp_path)], code)
+    _run("analysis/baseline_bootstrap.py", [code, str(tmp_path)], code)
     _same(tmp_path, recorded, [f"{code}_bootstrap.csv", f"{code}_reproduction.csv"])
 
 
@@ -92,7 +93,7 @@ def test_baseline_bootstrap_reproduces(code, tmp_path):
 def test_unit_concentration_reproduces(code, tmp_path):
     recorded = STUDY / "baseline_bootstrap"
     _need(BACKFILL / code, recorded / f"{code}_concentration.csv")
-    _run("unit_concentration.py", [code, str(tmp_path)], code)
+    _run("analysis/unit_concentration.py", [code, str(tmp_path)], code)
     _same(tmp_path, recorded, [f"{code}_concentration.csv", f"{code}_top5_units.csv"])
 
 
@@ -100,7 +101,7 @@ def test_unit_concentration_reproduces(code, tmp_path):
 def test_common_row_rescore_reproduces(code, tmp_path):
     recorded = STUDY / "common_row_rescore"
     _need(BACKFILL / code, recorded / f"{code}_rescore.csv")
-    _run("common_row_rescore.py", [code, str(tmp_path)], code)
+    _run("analysis/common_row_rescore.py", [code, str(tmp_path)], code)
     names = [f"{code}_rescore.csv"]
     if (recorded / f"{code}_common_rows_bootstrap.csv").exists():
         names.append(f"{code}_common_rows_bootstrap.csv")
@@ -112,7 +113,8 @@ def test_roughness_treatment_study_reproduces(code, tmp_path):
     _need(ROUGHNESS / "R0" / code, ROUGHNESS / "R1" / code)
     r0 = next((ROUGHNESS / "R0" / code).glob("evaluate-*"))
     r1 = next((ROUGHNESS / "R1" / code).glob("evaluate-*"))
-    _run("roughness_treatment_study.py", [code, str(r0), str(r1), str(tmp_path)], code)
+    _run("studies/method-roughness-treatment/roughness_treatment_study.py",
+         [code, str(r0), str(r1), str(tmp_path)], code)
     # DK's recorded files sit in a subdirectory, FR's at the top level.
     recorded = ROUGHNESS / "analysis" / code
     if not recorded.is_dir():
@@ -129,7 +131,7 @@ def test_eu_rerun_compare_reproduces(code, tmp_path):
         conditions.append(
             f"oldfiles_derived={next((EU_RERUN / 'oldfiles_derived' / code).glob('evaluate-*'))}")
     conditions.append(f"new={next((EU_RERUN / 'new' / code).glob('evaluate-*'))}")
-    _run("eu_rerun_compare.py", [code, str(tmp_path), *conditions], code,
+    _run("analysis/eu_rerun_compare.py", [code, str(tmp_path), *conditions], code,
          extra_path="scripts/analysis")
     _same(tmp_path, EU_RERUN / "analysis",
           [f"{code}_rerun_comparison.csv", f"{code}_rerun_excluded_rows.csv"])
