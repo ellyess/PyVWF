@@ -1,10 +1,11 @@
 """Pin the New Zealand processing before it moves into the package.
 
 The capacity history, the build mask and the Generation_MD melt that produce
-the NZ inputs live only in ``scripts/process/emi_nz.py``, and they are the
+the NZ inputs were written in ``scripts/process/emi_nz.py``, and they are the
 production path: the register-based versions in ``vwf.datasets.emi_nz`` are
-tested but unused. Before that logic is promoted, these tests pin what it
-produces today, so the promotion can only move code, not change output.
+tested but unused. These tests pinned what that code produced before it moved
+into ``vwf.datasets.emi_nz``, so the move could only move code, not change
+output. Only the names the unit layer calls changed with the move.
 
 Three layers:
 
@@ -54,6 +55,8 @@ def _load_script():
 
 nz = _load_script()
 
+import vwf.datasets.emi_nz as emi  # noqa: E402  (the promoted helpers)
+
 
 def _read(name: str) -> pd.DataFrame:
     return pd.read_csv(PINS / name, dtype={"ID": str})
@@ -64,14 +67,14 @@ def _read(name: str) -> pd.DataFrame:
 # --------------------------------------------------------------------------
 
 def test_gen_code_map_on_the_curated_farms():
-    farms, _, _ = nz.load_curated(CURATION)
-    got = pd.DataFrame(sorted(nz.gen_code_map(farms).items()), columns=["gen_code", "ID"])
+    farms, _, _ = emi.load_curated_tables(CURATION)
+    got = pd.DataFrame(sorted(emi.gen_code_map(farms).items()), columns=["gen_code", "ID"])
     pd.testing.assert_frame_equal(got, _read("gen_code_map.csv"))
 
 
 def test_capacity_history_on_the_curated_tables():
-    farms, stages, _ = nz.load_curated(CURATION)
-    got = nz.capacity_history(farms, stages)
+    farms, stages, _ = emi.load_curated_tables(CURATION)
+    got = emi.capacity_history_from_curation(farms, stages)
     want = _read("capacity_history.csv")
     want["effective_from"] = pd.to_datetime(want["effective_from"])
     pd.testing.assert_frame_equal(got, want, check_dtype=False)
@@ -79,8 +82,8 @@ def test_capacity_history_on_the_curated_tables():
 
 
 def test_mask_from_windows_on_the_curated_windows():
-    _, _, windows = nz.load_curated(CURATION)
-    pd.testing.assert_frame_equal(nz.mask_from_windows(windows), _read("mask_from_windows.csv"))
+    _, _, windows = emi.load_curated_tables(CURATION)
+    pd.testing.assert_frame_equal(emi.mask_from_windows(windows), _read("mask_from_windows.csv"))
 
 
 # --------------------------------------------------------------------------
