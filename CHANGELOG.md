@@ -191,8 +191,12 @@ consumers and go without a deprecation period.
   run.
 
 - **The process scripts resolve their default paths under `PYVWF_INPUT`.**
-  They named `input/` literally, so with another input root a fetch and the
-  matching process step used different trees. With the default root nothing
+  This changes where they read and write by default, and only when
+  `PYVWF_INPUT` names a root other than `input/`: `scripts/process/*.py` and
+  `scripts/region_tools/assign_au_curves.py` now default to paths under that
+  root, as the fetch scripts and the loaders already did. Before, they named
+  `input/` literally, so a fetch and the matching process step used different
+  trees. With the default root, or with every path passed explicitly, nothing
   changes.
 - **The country-level generator runs as a module**:
   `python -m vwf.datasets.generate_country_level_training_data`. It is split
