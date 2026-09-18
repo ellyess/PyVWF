@@ -1104,3 +1104,30 @@ Neither is fixed here. Each is queued for the phase that touches the file.
 `edges.json` into the repository root, and it was moved out within seconds.
 No run that writes a manifest was in flight: only the MaStR download, which
 records no git state. The tree was clean when this document was written.
+
+## 12. Maintainer decisions, 2026-09-18, and progress
+
+| question | decision | done in |
+|---|---|---|
+| Q1 study drivers | Move to `scripts/studies/<stem>/` with a path map. Each findings document also gains a header line naming its driver path and the commit that produced its numbers, so the reference runs both ways. | Phase 3 |
+| Q2 `scripts/pinn/` | Defer until the turbine-only study runs; recorded in issue #12. | issue #12 |
+| Q3 `export_voronoi_frames.py` | Keep, with its dependency declared in a new extra and documented. | 4a81430 |
+| Q4 `surface_flag_report.py` | Delete: no findings document uses its output. | 7365b88 |
+| Q5 notebooks | Delete both: neither can run in CI. | 053ee87 |
+| Q6 Italian zones | Delete: no Italian zonal region is planned. | 243055b |
+| Q7 `STATUS.md` | Untrack; findings citations become permalinks to 3dbb83b. | 5b826d3 |
+| Q8 `CONTEXT.md` | Move to `docs/CONTEXT.md`, with the `AGENTS.md` import in the same commit. | Phase 4 |
+| Q9 this audit | Not published; excluded from the site. Deleted at the end of Phase 5, after its durable content moves to `CONTEXT.md` (the study term), `docs/README.md` (naming rules) and `.importlinter` (the layers). | 24b934f |
+| Q10 `docs/reference/` | Not now. | |
+| Q11 offer numbers | Removed from both docstrings. | 7739123 |
+
+Other Phase 2 changes: the duplicated ERA5 tests merged (fee99dd); the
+clustering import guards removed (ffa43b1); four unused documented names
+deprecated (285893e); the duplicate DK CLI removed (b25f7ce); `PIPELINE.md`
+folded into the training guide (286fd55); the `era5/EU` usage note folded into
+the data-sources guide (f7aa0db); the mypy and docs-build failures fixed
+(b9739d8, 24b934f).
+
+Deferred to Phase 3, because the file is split there: the `sys.path` insert in
+`generate_country_level_training_data.py`. The documented commands run it by
+path.
