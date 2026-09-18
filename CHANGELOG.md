@@ -67,6 +67,10 @@ consumers and go without a deprecation period.
   and `load_turbine_observations` from `vwf.data`**. Import them from `vwf` or
   `vwf.loaders`. **Removed the alias `vwf.data.add_time_res`**; the function is
   `vwf.time_utils.add_time_resolution_columns`.
+- **Removed the `external_grid_points` and `external_obs_data` arguments of
+  `vwf.data.train_set` and `val_set`.** Nothing passed them. Pass
+  `source=InMemoryCountrySource(grid_points, observations)` instead, which is
+  what they were wrapped into.
 
 ### Added
 

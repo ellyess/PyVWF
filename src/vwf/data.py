@@ -57,30 +57,12 @@ import vwf.correction as correction
 # Import from new utility modules
 from vwf.config import PyVWFPaths
 from vwf.time_utils import add_time_resolution_columns
-from vwf.sources import InMemoryCountrySource, ObservationSource, resolve
+from vwf.sources import ObservationSource, resolve
 from vwf.sources.base import ObsLevel
 
 # ============================================================================
 # INTERNAL HELPERS
 # ============================================================================
-
-def _source_for(
-    source: ObservationSource | None,
-    external_grid_points: pd.DataFrame | None,
-    external_obs_data: pd.DataFrame | None,
-) -> ObservationSource | None:
-    """Pick the observation source for a pipeline call.
-
-    An explicit ``source`` wins. Otherwise a pair of externally supplied frames is
-    wrapped in an in-memory country source. ``None`` means "resolve from the
-    country code".
-    """
-    if source is not None:
-        return source
-    if external_grid_points is not None and external_obs_data is not None:
-        return InMemoryCountrySource(external_grid_points, external_obs_data)
-    return None
-
 
 def _default_power_curve(power_curves: pd.DataFrame) -> str:
     """Pick a default turbine model from a power curve table.
@@ -374,8 +356,6 @@ def train_set(
     *,
     obs_level: str = "turbine",
     source: ObservationSource | None = None,
-    external_grid_points: pd.DataFrame | None = None,
-    external_obs_data: pd.DataFrame | None = None,
     era5_dir=None,
     bbox=None,
     allow_extrapolation=False,
@@ -393,10 +373,6 @@ def train_set(
         fix_turb: Turbine model name to fix to a single model.
         obs_level: Observation level ("turbine" or "country").
         source: Observation source. Resolved from ``country`` when omitted.
-        external_grid_points: Optional externally provided grid points (for country-level).
-            Superseded by ``source``; retained for backward compatibility.
-        external_obs_data: Optional externally provided observations (for country-level).
-            Superseded by ``source``; retained for backward compatibility.
         era5_dir: Optional ERA5 directory forwarded to prep_era5 (validation
             harness). Default None keeps the legacy location.
         bbox: Optional bounding box forwarded to prep_era5. Default None keeps
@@ -405,7 +381,6 @@ def train_set(
     Returns:
         Tuple of (gen_cf, turb_info, reanalysis, power_curves).
     """
-    source = _source_for(source, external_grid_points, external_obs_data)
     obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level, source=source)
 
     if mode != "all":
@@ -525,7 +500,7 @@ def train_set(
     return gen_cf, turb_info, reanalysis, power_curves
 
 
-def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, external_grid_points: pd.DataFrame | None = None, external_obs_data: pd.DataFrame | None = None, era5_dir=None, bbox=None, allow_extrapolation=False,
+def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, era5_dir=None, bbox=None, allow_extrapolation=False,
              roughness="stored"):
     """Prepare validation data for a country.
 
@@ -537,10 +512,6 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         fix_turb: Optional turbine model override.
         obs_level: ``"turbine"`` or ``"country"``.
         source: Observation source. Resolved from ``country`` when omitted.
-        external_grid_points: Optional externally provided grid points (for country-level).
-            Superseded by ``source``; retained for backward compatibility.
-        external_obs_data: Optional externally provided observations (for country-level).
-            Superseded by ``source``; retained for backward compatibility.
         era5_dir: Optional ERA5 directory forwarded to prep_era5 (validation
             harness). Default None keeps the legacy location.
         bbox: Optional bounding box forwarded to prep_era5. Default None keeps
@@ -552,7 +523,6 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
     Returns:
         Tuple of observations, turbine metadata, reanalysis, and power curves.
     """
-    source = _source_for(source, external_grid_points, external_obs_data)
     power_curves = load_power_curves()
     obs, turb_info = val_obs_and_fleet(country, year_test, mode, fix_turb, obs_level=obs_level,
                                        source=source, power_curves=power_curves)
