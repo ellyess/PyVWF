@@ -167,6 +167,25 @@ consumers and go without a deprecation period.
   path in `vwf.datasets.emi_nz`, the transfer machinery in
   `vwf.extensions.ml`, and `vwf.cli.common` for entry points. Each move is
   pinned by tests of the output it produced before, and none changed it.
+- **One definition each for logic written out several times**:
+  `vwf.time_utils.month_days` for the days in a month, used by every adapter
+  that converts monthly energy to a capacity factor;
+  `vwf.datasets.era5.log_roughness_from_shear` for the roughness inversion all
+  three roughness routes use; `zero_crossing_speed`, `within_plausible_bounds`
+  and `flag_implausible` in `vwf.extensions.grid.surface` for the plausibility
+  screen; `vwf.data.val_obs_and_fleet`, the observation half of `val_set`,
+  with `vwf.harness.driver.load_obs_and_fleet` over it; and
+  `vwf.harness.regions.load_region_by_code`. Each was checked against the
+  output of the copies it replaces and changed none of it, with two
+  exceptions: the region lookup now finds a hyphenated code (see Fixed), and
+  the day count of an empty frame is an empty series rather than an empty
+  table.
+- **Public names for the harness helpers analyses call**: `era5_dir`,
+  `tidy_eval_frame`, `country_pairs`, `country_skill`, `error_metrics`,
+  `score_on_common_rows` and `SCOPE_KEYS` in `vwf.harness.driver`,
+  `vwf.correction.find_offset_iterative`, `vwf.wind.power_curve_arrays` and
+  `vwf.datasets.cen_cl.local_to_utc`. A test fails if a script names a private
+  `vwf` attribute.
 - **`scripts/studies/`**, one directory per findings document for the scripts
   that produce its numbers, with a path map from each old location. Each
   affected findings document names its drivers and the commit its numbers
@@ -198,6 +217,10 @@ consumers and go without a deprecation period.
   `input/` literally, so a fetch and the matching process step used different
   trees. With the default root, or with every path passed explicitly, nothing
   changes.
+- **The Argentina and Chile fleet exclusions are data, not code.** The
+  units `scripts/process/cammesa_ar.py` and `cen_cl.py` drop, with the reason
+  for each, are read from `configs/curation/`, and `--exclusions` names
+  another file. The lists themselves are unchanged.
 - **The country-level generator runs as a module**:
   `python -m vwf.datasets.generate_country_level_training_data`. It is split
   into `vwf.datasets.country_grid`, `entsoe_country_obs` and
