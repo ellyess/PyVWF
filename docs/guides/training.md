@@ -93,9 +93,9 @@ python scripts/analysis/validate_region.py transfer \
 
 ## Adding a region
 
-Write one `ObservationSource` adapter and one TOML config; nothing in the
-pipeline changes. See
-[`adding-an-observation-source.md`](adding-an-observation-source.md). For where
+No core module changes. [`adding-a-region.md`](adding-a-region.md) lists the
+files a new region touches, in order, and
+[`adding-an-adapter.md`](adding-an-adapter.md) covers a new data source. For where
 each region's data comes from and how it is preprocessed, see
 [`data-sources.md`](data-sources.md).
 

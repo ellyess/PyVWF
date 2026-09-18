@@ -1,99 +1,13 @@
-# Adding a region and its adapter
+# Adding an adapter
 
-PyVWF's bias correction adjusts reanalysis wind speeds against observed
-generation. Each region reads its observations through an adapter, an
-`ObservationSource` subclass. The correction, interpolation, power curves and
-clustering do not depend on the data source. So a new region changes no core
-module.
+An adapter is an `ObservationSource` subclass. It loads one data source for
+the harness, and the registry finds it by name. The correction,
+interpolation, power curves and clustering do not depend on the data source.
+So a new adapter changes no core module.
 
-A new region does touch about fifteen files, in a fixed order. Each region
-carries its own acquisition, processing, tests, documentation and provenance.
-
-## A turbine-level region, file by file
-
-This section covers a turbine-level region. Its units may be turbines, farms,
-plants or complexes. Country-level regions built from ENTSO-E follow a
-different path; see
-[Country-level data supplied by the caller](#country-level-data-supplied-by-the-caller).
-
-The table is in dependency order. New Zealand (`emi-nz`) is the template to
-copy. Chile (`cen-cl`) is the cross-check.
-
-| # | File | What it holds |
-|---|---|---|
-| 1 | [`data-sources.md`](data-sources.md) row | The data source, its access route and its licence key: open, mixed or confidential. Write it before fetching anything. Data from a confidential source stays under the git-ignored `input/`. |
-| 2 | `configs/regions/<stem>.toml` | The adapter's registry name (`source`), `obs_level`, `obs_unit`, training years, test year, reanalysis box, `file_tag`, correction model, `cluster_list`, time slices and season months. See [`training.md`](training.md). The reanalysis fetch reads the box and years from this file, so it comes first. |
-| 3 | `scripts/fetch/<source>.py` | Downloads raw data into `<input-root>/raw/<source>/`. It honours `PYVWF_INPUT`. The user runs it, with their own credentials where needed. |
-| 4 | (no new file) `scripts/fetch/era5.py --region <stem>` | Fetches ERA5 for the config's box and years into `<input-root>/era5/<file_tag>/`. A large box is then reduced with `scripts/era5/combine.py --region <stem>`. |
-| 5 | `configs/curation/<stem>_*.csv` | Curated tables: farm coordinates, turbine specifications, capacity stages, months to mask. Each row carries its source in a `source_url` column. Check each source's terms before committing cells transcribed from it. |
-| 6 | `src/vwf/datasets/<source>.py` | Pure frame-to-frame transforms: time conventions, monthly capacity factor, masks. They do no file I/O, so they are testable without the raw data. |
-| 7 | `scripts/process/<source>.py` | The I/O wrapper. It writes `<stem>_md.csv`, `<stem>_obs.csv`, any mask and a `join_report.md` to `input/observations/turbine/<CODE>/`. It also assigns each unit a model key; see [Curve assignment](#curve-assignment). |
-| 8 | `src/vwf/sources/<source>.py` | The adapter, decorated with `@register`. See [What an adapter must provide](#what-an-adapter-must-provide). |
-| 9 | `src/vwf/sources/__init__.py` | One import line, so the registration runs. |
-| 10 | `tests/test_<source>_processing.py` | Synthetic tests of the transforms, and of the adapter's resolve and load. NZ's and Chile's are the models. |
-| 11 | `tests/test_harness_regions.py` | Raise the shipped-config count in `test_all_shipped_configs_load`. Pin the region's `obs_unit` and `obs_level` in `test_shipped_granularity_classification`. |
-| 12 | This guide's [built-in adapters](#built-in-adapters) table | One row. |
-| 13 | `docs/runbooks/<stem>.md` | Acquisition and processing steps, the licence, the capacity-factor denominator and its source, and how to refresh. |
-| 14 | `docs/findings/region-<stem>.md` | The region's findings document, written after the runs. [`docs/README.md`](../README.md) sets its name and shape. |
-| 15 | `docs/findings/scorecard.md` row, and its scorecard config | The scorecard row, and a byte-identical copy of the configuration behind it, `configs/regions/scorecard/<stem>_k<N>.toml`. |
-
-Between steps 13 and 14, run the region through the harness:
-
-```bash
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
-    --region configs/regions/<stem>.toml
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
-    --region configs/regions/<stem>.toml --train-run output/validation/<CODE>/train-<stamp>
-```
-
-Set `PYVWF_INPUT` on both commands. Each step resolves the curve library again,
-and the manifest records which one it used.
-
-Then read these outputs; [`output-structure.md`](output-structure.md) describes
-each one:
-
-- `metrics.csv`: the skill table, with the uncorrected row first.
-- The `fit_quality` columns: `max_scalar`, `n_implausible_scalar` and
-  `n_failed_offset`.
-- The substituted share (`substituted_capacity_share`), and each run's
-  `curve_resolution.csv`. Together they show which power curve every unit was
-  simulated on.
-- The curve-match audit. Add the region to `RUNS` and `own_manufacturer` in
-  `scripts/analysis/curve_match_audit.py`. Then run the script.
-
-## Curve assignment
-
-Each unit's model key selects its power curve. Three routes assign model keys.
-Two match on specific power, not on the turbine's make. The third gives every
-unit the same curve.
-
-| Route | Where | Used by |
-|---|---|---|
-| `vwf.datasets.eia_us.assign_curves_from_library` | processing time | US, NZ, and CL and AR through `scripts/region_tools/apply_turbine_specs.py` |
-| `vwf.data.add_models` | load time, inside the adapter; processing time through `scripts/region_tools/assign_au_curves.py` | DE, DK, UK (`european-turbine`), `client-csv-turbine`, and AU-NEM |
-| One default curve for every unit | processing time | BR |
-
-The first route keeps onshore models rated 0.5 to 2 times the unit's
-per-turbine rating. It then takes the nearest specific power. NZ imports it
-from the US module. It records how each unit was matched in `model_source`. A
-unit it cannot match gets the default curve.
-
-The second route first matches a fuzzily named manufacturer, then the nearest
-specific power. It records the tier it used in `model_match`.
-
-For every route:
-
-- **Record each unit's own manufacturer or model string.** Keep it in the
-  metadata, as NZ's `true_model` and US's `uswtdb_model` do. A curated table
-  keyed by `ID` also works. Without it, the curve-match audit reports the
-  region as unverifiable, as it does for BR.
-- **A model key missing from `power_curves.csv` does not stop a run.** The
-  unit is simulated on the fallback curve, the first column of
-  `power_curves.csv`. `curve_resolution.csv` records the unit as substituted.
-- **Read the substituted share (`substituted_capacity_share`) before any
-  result.** A share above zero means
-  some model keys were missing. In that case, list the missing keys before
-  you use the result.
+A new region with a new data source needs an adapter and more.
+[`adding-a-region.md`](adding-a-region.md) lists every file in order. This
+guide covers the adapter itself.
 
 ## What an adapter must provide
 
@@ -113,7 +27,7 @@ The units to simulate. Required columns:
 | `type` | `onshore` or `offshore`. `cluster_mode` uses it to filter the fleet. |
 
 Other columns pass through. Keep `model_source` and each unit's own
-manufacturer or model string; see [Curve assignment](#curve-assignment).
+manufacturer or model string; see [Curve assignment](adding-a-region.md#curve-assignment).
 
 A country-level adapter must also supply `cluster`, each grid point's cluster.
 Country-level corrections are fitted per cluster. No clustering step runs on
@@ -173,7 +87,8 @@ the adapter must take that code as its only constructor argument. Leave
 `InMemoryCountrySource` does.
 
 The harness then finds the adapter from the region config's `source` field.
-Nothing else changes; the commands above run it.
+Nothing else changes. [`adding-a-region.md`](adding-a-region.md) gives the
+commands that run it.
 
 ## Built-in adapters
 
@@ -206,9 +121,8 @@ That call wraps each frame in an `InMemoryCountrySource`. You might ask for
 for the region. Resolution then raises `NotImplementedError`, which explains
 both options. Nothing falls back silently.
 
-The ENTSO-E regions do not follow the file-by-file table above. Their fetch
-and processing live in `vwf.datasets.generate_country_level_training_data`, not
-in `scripts/fetch/` and `scripts/process/`. See [`data-sources.md`](data-sources.md).
+The ENTSO-E regions use their own path. See
+[A country-level region](adding-a-region.md#a-country-level-region).
 
 ## Testing a new adapter
 
@@ -218,5 +132,6 @@ test registers a throwaway adapter and drives it through `train_set` to
 `gen_cf`. That is the cheapest end-to-end check that a new adapter is wired
 correctly.
 
-For a region, also add the processing tests of step 10.
-`tests/test_emi_nz_processing.py` is the fuller model.
+For a region, also add the processing tests of step 10 in
+[`adding-a-region.md`](adding-a-region.md). `tests/test_emi_nz_processing.py`
+is the fuller model.

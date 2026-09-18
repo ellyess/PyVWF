@@ -211,7 +211,9 @@ plain Markdown in [`docs/`](docs/README.md).
 - [Training and evaluation](docs/guides/training.md): the region config, and train / evaluate / transfer.
 - [Output structure](docs/guides/output-structure.md): what a run directory contains.
 - [Visualisation](docs/guides/visualisation.md): the `vwf.viz` figures.
-- [Adding a region and its adapter](docs/guides/adding-an-observation-source.md): the adapter contract.
+- [Adding a region](docs/guides/adding-a-region.md): every file a new region touches, in order.
+- [Adding an adapter](docs/guides/adding-an-adapter.md): the adapter contract, for a new data source.
+- [Adding a study](docs/guides/adding-a-study.md): where a study's documents, driver and runs go.
 - [Using your own data](docs/guides/your-own-data.md): running the correction on a CSV fleet.
 - [Region runbooks](docs/runbooks/): acquisition and processing per region.
 - [Harness design](docs/design/harness.md): why the seams are where they are.

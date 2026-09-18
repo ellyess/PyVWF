@@ -3,7 +3,7 @@
 **Date:** 2026-07
 **Scope:** a web survey of market-operator and registry data for new validation
 regions, scoped by the adapter requirements in
-[adding-an-observation-source.md](../guides/adding-an-observation-source.md):
+[adding-an-adapter.md](../guides/adding-an-adapter.md):
 per-plant monthly capacity factor or finer plus coordinate and capacity
 metadata, or a zone/country aggregate plus a plant register.
 

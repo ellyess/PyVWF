@@ -33,7 +33,7 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 
 ## Before starting
 
-- Read `docs/guides/adding-an-observation-source.md`. Its table lists the files
+- Read `docs/guides/adding-a-region.md`. Its table lists the files
   this region touches, in order. Do not keep a separate list.
 - The template is New Zealand: `scripts/fetch/emi_nz.py`,
   `scripts/process/emi_nz.py`, `src/vwf/datasets/emi_nz.py`,

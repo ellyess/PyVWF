@@ -40,7 +40,9 @@ guides/data-sources
 guides/training
 guides/output-structure
 guides/visualisation
-guides/adding-an-observation-source
+guides/adding-a-region
+guides/adding-an-adapter
+guides/adding-a-study
 guides/your-own-data
 ```
 

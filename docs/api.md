@@ -20,8 +20,8 @@ and simulates capacity factors for a test year.
 ## Observation sources
 
 Observed generation and site metadata come from pluggable adapters, so
-supporting a new region means writing a source rather than editing the core
-pipeline. See {doc}`guides/adding-an-observation-source`.
+supporting a new data source means writing an adapter rather than editing the
+core pipeline. See {doc}`guides/adding-an-adapter`.
 
 ```{eval-rst}
 .. automodule:: vwf.sources.base

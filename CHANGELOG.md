@@ -352,6 +352,15 @@ consumers and go without a deprecation period.
 
 ### Documentation
 
+- **Three extension guides.** `docs/guides/adding-a-region.md` (renamed from
+  `adding-an-observation-source.md`, a rejected term) lists every file a new
+  region touches, and now covers a country-level region end to end, including
+  the core tables it edits. `adding-an-adapter.md` holds the adapter contract.
+  `adding-a-study.md` is new: where a study's documents, drivers and runs go,
+  and the order of commits. The procedure it replaces in
+  `scripts/studies/README.md` and the country-level steps in `data-sources.md`
+  now live only there.
+
 - **The eleven European rows were re-run on the per-timestep roughness and a
   wider ERA5 box, and Spain, Italy and Portugal have returned from
   suspension.** The plan was registered before the download completed and
@@ -690,7 +699,7 @@ changes the numbers the evaluation layer reports.
   `InMemoryCountrySource` for caller-supplied frames. `train_set` and `val_set`
   take a `source=` argument; the existing `external_grid_points` /
   `external_obs_data` arguments still work and are wrapped automatically. See
-  [docs/guides/adding-an-observation-source.md](docs/guides/adding-an-observation-source.md).
+  [docs/guides/adding-an-adapter.md](docs/guides/adding-an-adapter.md).
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:
