@@ -22,9 +22,8 @@ unqualified entries plus a reader's review of the rest. A clean search is not a
 pass. The search also catches exact forms only: an inflected form, such as
 "falls back" for "fell back", needs a reader.
 
-Nothing loads this file into a writer's or an agent's context automatically
-yet. Until an agent-instructions file imports it, it is enforced only when
-someone reads it.
+`AGENTS.md` imports this file, so an agent working in the repository reads it
+with the standing rules. A human writer reads it from here.
 
 ## The method
 
@@ -123,3 +122,5 @@ someone reads it.
 | findings document | A dated research record under `docs/findings/`, named `<type>-<subject>.md`. | report (as a document type), write-up (as a document type) |
 | scorecard | `docs/findings/scorecard.md`: the index of per-region results, and the entry point to the findings. | results table, league table |
 | scorecard row | One region's reported result in the scorecard: one configuration, with its scorecard config and run directory. | headline row, best row |
+| study | One research question, with its own findings document, usually a pre-registration, its drivers in `scripts/studies/<stem>/` (the stem of the findings document) and its run directories under `output/<name>_<date>/`. | experiment (for a study), analysis (for a study) |
+| driver | A script that produces a study's numbers: a thin entry point over `vwf`, in the study's directory, whose recorded command line is pinned by a test. | runner, analysis script (for a driver) |

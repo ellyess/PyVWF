@@ -67,7 +67,7 @@ Publishing them as site pages would present run-specific figures as guidance.
 
 ## Two kinds of document
 
-Terms in every document follow [`CONTEXT.md`](../CONTEXT.md), the project's
+Terms in every document follow [`CONTEXT.md`](CONTEXT.md), the project's
 controlled vocabulary.
 
 **Procedural documents** (`guides/`, `runbooks/`) are for readers who do not

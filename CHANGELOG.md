@@ -228,6 +228,9 @@ consumers and go without a deprecation period.
   rather than over it. An extra argument, which the positional parsers
   ignored, is now an error. `scripts/pinn/` and the two machine-learning
   transfer scripts are deferred with it.
+- **`CONTEXT.md` moved to `docs/CONTEXT.md`**, and the site publishes it
+  under Reference. `AGENTS.md` imports it from there. It defines two new terms,
+  study and driver.
 - **`configs/regions/se_zonal.toml` is now `se_bz.toml`**, the stem of its
   code `SE-BZ`, so `load_region_by_code("SE-BZ")` finds it. Its content is
   unchanged. A run manifest that names the old path still identifies the

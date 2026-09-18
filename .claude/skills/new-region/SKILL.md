@@ -18,7 +18,7 @@ Work through the phases in order. Each phase ends with a check you run
 yourself. Report the result. Then **stop for sign-off before the next phase**.
 Never skip a stop because a check passed.
 
-Terms follow `CONTEXT.md`. Use only its approved terms.
+Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 
 ## Scope
 

@@ -13,7 +13,7 @@ publishing a release belong to the maintainer. So does anything that mints a
 DOI. This holds even when asked in passing. Hand over the exact commands
 instead.
 
-Terms follow `CONTEXT.md`.
+Terms follow `docs/CONTEXT.md`.
 
 ## 1. Tests
 

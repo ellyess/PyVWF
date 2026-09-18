@@ -8,7 +8,7 @@ paths: "docs/findings/**"
 
 Findings documents are argumentative records for readers who know the project.
 Their shape and naming are set in `docs/README.md`; read it first. Terms follow
-`CONTEXT.md`: define each once, by citing it, and use it consistently.
+`docs/CONTEXT.md`: define each once, by citing it, and use it consistently.
 
 ## Stops
 
