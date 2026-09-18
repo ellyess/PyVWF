@@ -93,7 +93,8 @@ source lacks them. The region-specific work:
   per-phase nameplate (turbine count × unit MW) in
   `configs/curation/ar_coord_overrides.csv` where GWPT gave a phase-split
   full-farm value. Zero-generation and steady-underperforming codes are dropped
-  (`EXCLUDE`). Turbine specs drive matched curves.
+  (`configs/curation/ar_fleet_exclusions.csv`). Turbine specs drive matched
+  curves.
 - **Country-level (ENTSO-E)**: see §4.
 
 Turbine-level sources report at different native units (turbine / farm / plant /

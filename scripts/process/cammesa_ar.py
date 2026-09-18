@@ -43,38 +43,14 @@ from vwf.datasets.cammesa_ar import (
     strip_commissioning_prefix,
 )
 
-#: Plants dropped from the fleet, with the reason. Mostly self-generation
-#: autoproducers (behind-the-meter wind at cement works, oil fields, an
-#: aluminium smelter) that are absent from a confident GWPT match, so no
-#: coordinate or capacity can be sourced without fabricating one; plus
-#: "Fin del Mundo" which is in Tierra del Fuego, south of the -49 ERA5 box.
-#: The sizeable ones (Casa YPF Luz / Cañadón León ~123 MW Santa Cruz, ALUAR
-#: ~50 MW, La Elbita ~50 MW) are worth reinstating via the override table if
-#: their coordinates and capacity can be verified.
-EXCLUDE: tuple[str, ...] = (
-    "AG Cementos Avellaneda-Olav.",           # cement-works self-gen, Olavarría
-    "EL TORDILLO",                            # YPF oil-field self-gen, Chubut
-    "EOLICO EL JUME",                         # small, Santiago del Estero
-    "L.BLANC 4 ENARS",                        # Loma Blanca IV / ENARSA, Trelew, no confident GWPT cap
-    "P.E. LA ELBITA",                         # Buenos Aires, absent from GWPT match
-    "P.EOLICO CASA YPF LUZ",                  # Cañadón León (YPF Luz), Santa Cruz, reinstate if verifiable
-    "P.EOLICO VIENTOS LA RINCONADA",          # Buenos Aires, no confident match
-    "P.EOLICO VIENTOS OLAVARRIA",             # Olavarría self-gen, ambiguous vs Ternium
-    "Parque eólico autogeneración ALUAR",     # ALUAR smelter self-gen, Puerto Madryn
-    "Parques Eólicos del Fin del Mundo SA",   # Tierra del Fuego, SOUTH of the ERA5 box
-    "ARAUCO EOLICO",                          # zero generation 2021-2024; output reported under ARAUCO SAPEM codes
-    "ARAUCO EOLICO 2",                        # zero generation 2021-2024; duplicate Arauco code
-    "NECOCHEA EOLICO",                        # zero generation; same farm as VIENTOS DE NECOCHEA (do not double-count)
-    "PARQUE EOLICO ARAUCO SAPEM",             # steady CF ~0.08 (old IMPSA turbines, weak La Rioja wind); unrepresentative for training
-    "PARQUE EOLICO ARAUCO II SAPEM",          # steady CF ~0.06, same Arauco cluster; unreliable code->turbine mapping
-    "Parque Eólico La Castellana II",         # steady CF ~0.07 vs windy Bahia Blanca siblings at ~0.45; capacity or curtailment anomaly
-)
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     add_input_path(ap, "--monthly", "raw", "cammesa", "ar_wind_monthly.csv")
     add_input_path(ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--overrides", default="configs/curation/ar_coord_overrides.csv")
+    ap.add_argument("--exclusions", default="configs/curation/ar_fleet_exclusions.csv",
+                    help="Centrals dropped from the fleet, one row each with its reason: mostly "
+                    "self-generation with no confident GWPT match, and one south of the ERA5 box")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
     add_input_path(ap, "--out", "observations", "turbine", "AR")
@@ -91,11 +67,12 @@ def main() -> None:
              region=("region", "first"), provincia=("provincia", "first"))
              .reset_index())
 
-    # EXCLUDE is a hard drop from the fleet. The self-generation autoproducers
+    # The exclusions are a hard drop from the fleet. The self-generation autoproducers
     # were previously dropped only by failing the GWPT join, but that does not
     # remove a plant that DOES join (the Arauco / La Castellana codes join fine
     # yet are unrepresentative), so the drop is applied here to the fleet itself.
-    fleet = fleet[~fleet["ID"].isin(EXCLUDE)].reset_index(drop=True)
+    exclude = tuple(pd.read_csv(args.exclusions, dtype=str)["ID"])
+    fleet = fleet[~fleet["ID"].isin(exclude)].reset_index(drop=True)
 
     g = projects_with_keys(load_gwpt(Path(args.gwpt)), "Argentina", ar_plant_key)
     ov_path = Path(args.overrides)
@@ -127,7 +104,7 @@ def main() -> None:
     join_ok = join[~join["ID"].isin(suspect)]
     try:
         md = build_ar_metadata(fleet, join_ok, height=args.height,
-                               model=args.model, exclude=EXCLUDE)
+                               model=args.model, exclude=exclude)
     except ValueError as exc:
         (out / "ar_md.csv").unlink(missing_ok=True)
         print(f"\nmetadata NOT written: {exc}", file=sys.stderr)

@@ -27,8 +27,8 @@ height where known.
 
 The coordinate join: 54 plants auto-matched to GWPT by name confirmed on
 capacity, 6 hand-curated in `configs/curation/cl_coord_overrides.csv`, and 4 tiny
-PMGD plants excluded (5-9 MW, absent from GWPT; the `EXCLUDE` list, add
-coordinates to reinstate). A plant reaching training with no coordinate is a
+PMGD plants excluded (5-9 MW, absent from GWPT; listed in
+`configs/curation/cl_fleet_exclusions.csv`, add coordinates to reinstate). A plant reaching training with no coordinate is a
 hard error. Read `join_report.md` and `cl_coord_residual.csv` after processing.
 
 ## 2. Run

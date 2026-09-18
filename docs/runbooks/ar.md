@@ -39,7 +39,7 @@ the parent's full nameplate and read an impossibly low CF (0.03 to 0.07).
 Fixed with the turbine research: real nameplate = turbine count × unit MW, from
 `configs/curation/ar_turbine_specs.csv`, written as capacity overrides in
 `configs/curation/ar_coord_overrides.csv` (20 rows) where GWPT diverged by more
-than 15%. Six codes are hard-dropped in `EXCLUDE` (`scripts/process/cammesa_ar.py`):
+than 15%. Six codes are hard-dropped in `configs/curation/ar_fleet_exclusions.csv`:
 three with zero generation across the window (duplicate MEM codes whose output
 is reported elsewhere) and three with a steady CF near 0.07 (the state-owned
 Arauco farm's old IMPSA turbines in weak La Rioja wind, and a La Castellana II

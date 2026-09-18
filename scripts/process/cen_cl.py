@@ -43,15 +43,6 @@ from vwf.datasets.cen_cl import (
     wind_fleet_from_generation,
 )
 
-#: Plants dropped from the fleet, with the reason. The four tiny PMGD plants
-#: (5-9 MW each, ~30 MW total = <1% of the ~3.4 GW fleet) are real and report
-#: generation, but are absent from GWPT and the GWPT Below-Threshold sheet, so
-#: no coordinate can be sourced without fabricating one. Excluded rather than
-#: mis-located; add a row to configs/curation/cl_coord_overrides.csv to reinstate any
-#: whose location you can verify. (Magallanes / isolated systems south of -44
-#: would also live here; none are in the SEN wind fleet today.)
-EXCLUDE: tuple[str, ...] = ("334", "350", "414", "436")  # Raki, Huajache, Las Peñas, Lebu III
-
 def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
     paths = sorted(glob.glob(str(raw_dir / "cen_gen_*.json")))
     paths = [p for p in paths if y0 <= int(Path(p).stem.split("_")[-2]) <= y1]
@@ -67,6 +58,9 @@ def main() -> None:
     add_input_path(ap, "--raw", "raw", "cen")
     add_input_path(ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx")
     ap.add_argument("--overrides", default="configs/curation/cl_coord_overrides.csv")
+    ap.add_argument("--exclusions", default="configs/curation/cl_fleet_exclusions.csv",
+                    help="Plants dropped from the fleet, one row each with its reason; add a row "
+                    "to the coordinate overrides instead to reinstate one whose location is verified")
     ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
                     metavar=("START", "END"))
     add_input_path(ap, "--out", "observations", "turbine", "CL")
@@ -97,9 +91,10 @@ def main() -> None:
         print(f"  -> fill configs/curation/cl_coord_overrides.csv (ID,lon,lat) from "
               f"{out/'cl_coord_residual.csv'} then re-run.")
 
+    exclude = tuple(pd.read_csv(args.exclusions, dtype=str)["ID"])
     try:
         md = build_cl_metadata(fleet, coords.rename(columns={}), height=args.height,
-                               model=args.model, exclude=EXCLUDE)
+                               model=args.model, exclude=exclude)
     except ValueError as exc:
         (out / "cl_md.csv").unlink(missing_ok=True)
         print(f"\nmetadata NOT written: {exc}", file=sys.stderr)

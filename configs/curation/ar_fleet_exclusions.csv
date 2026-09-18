@@ -1,0 +1,17 @@
+ID,reason
+AG Cementos Avellaneda-Olav.,"cement-works self-gen, Olavarría"
+EL TORDILLO,"YPF oil-field self-gen, Chubut"
+EOLICO EL JUME,"small, Santiago del Estero"
+L.BLANC 4 ENARS,"Loma Blanca IV / ENARSA, Trelew, no confident GWPT cap"
+P.E. LA ELBITA,"Buenos Aires, absent from GWPT match"
+P.EOLICO CASA YPF LUZ,"Cañadón León (YPF Luz), Santa Cruz, reinstate if verifiable"
+P.EOLICO VIENTOS LA RINCONADA,"Buenos Aires, no confident match"
+P.EOLICO VIENTOS OLAVARRIA,"Olavarría self-gen, ambiguous vs Ternium"
+Parque eólico autogeneración ALUAR,"ALUAR smelter self-gen, Puerto Madryn"
+Parques Eólicos del Fin del Mundo SA,"Tierra del Fuego, SOUTH of the ERA5 box"
+ARAUCO EOLICO,zero generation 2021-2024; output reported under ARAUCO SAPEM codes
+ARAUCO EOLICO 2,zero generation 2021-2024; duplicate Arauco code
+NECOCHEA EOLICO,zero generation; same farm as VIENTOS DE NECOCHEA (do not double-count)
+PARQUE EOLICO ARAUCO SAPEM,"steady CF ~0.08 (old IMPSA turbines, weak La Rioja wind); unrepresentative for training"
+PARQUE EOLICO ARAUCO II SAPEM,"steady CF ~0.06, same Arauco cluster; unreliable code->turbine mapping"
+Parque Eólico La Castellana II,steady CF ~0.07 vs windy Bahia Blanca siblings at ~0.45; capacity or curtailment anomaly
