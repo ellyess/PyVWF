@@ -16,11 +16,6 @@ from shapely.geometry import Point, Polygon
 
 from vwf.config import PyVWFPaths
 
-#: Retained for backwards compatibility; always True now that shapely and
-#: geopandas are core dependencies.
-HAS_SHAPELY = True
-HAS_GEOPANDAS = True
-
 
 # Cached region shapes
 _COUNTRY_SHAPES = None

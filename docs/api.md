@@ -45,7 +45,7 @@ reanalysis, and power curves.
 ```{eval-rst}
 .. automodule:: vwf.data
    :members: train_set, val_set, cluster_train_set, prep_country, clean_obs_data,
-             add_models, interp_nans, load_power_curves, sim_turbines_to_country_cf
+             add_models, interp_nans, load_power_curves
 ```
 
 ## Wind simulation
@@ -120,7 +120,7 @@ hyperparameters.
    :members: load_turbine_metadata, load_turbine_observations
 
 .. automodule:: vwf.loaders.country_level_loaders
-   :members: load_year_specific_grid_points, country_gen_to_cf
+   :members: load_year_specific_grid_points
 ```
 
 ## Configuration and utilities

@@ -47,6 +47,22 @@ newcomer can add a region, a data source or a study without reading the whole
 tree. The audit behind it is `docs/design/repo-audit.md`. None of it changes a
 number: the golden regression test and every test file pass at each step.
 
+### Breaking
+
+PyVWF is not published on PyPI, so these removals have no downstream
+consumers and go without a deprecation period.
+
+- **Removed `vwf.data.sim_turbines_to_country_cf`** and
+  **`vwf.loaders.country_level_loaders.country_gen_to_cf`**. Nothing in PyVWF
+  called either.
+- **Removed `PyVWF.from_config`.** It imported the generated
+  `pyvwf_config.py` by inserting a directory into `sys.path`, and nothing
+  called it. The `entsoe-country` adapter with a region config replaces it.
+- **Removed the module constants `vwf.data.COUNTRY_DIR`, `TURBINE_DIR` and
+  `COUNTRY_LEVEL_DIR`.** Use `vwf.config.PyVWFPaths`.
+- **Removed `vwf.clustering.HAS_SHAPELY` and `HAS_GEOPANDAS`.** Both
+  libraries are core dependencies.
+
 ### Added
 
 - **A switch for the temporal treatment of the roughness.**
@@ -147,23 +163,7 @@ number: the golden regression test and every test file pass at each step.
 
 - **`vwf.clustering` imports shapely and geopandas directly.** Both became core
   dependencies long ago, so the fallbacks for a missing geopandas could not
-  run. `HAS_SHAPELY` and `HAS_GEOPANDAS` remain, always true, for anyone who
-  imports them.
-
-### Deprecated
-
-- **Four documented names that nothing in PyVWF uses.** Each still works and
-  now raises a `DeprecationWarning`; each will be removed in a future
-  release.
-  - `vwf.data.sim_turbines_to_country_cf`.
-  - `vwf.loaders.country_level_loaders.country_gen_to_cf`.
-  - `PyVWF.from_config`, which imported generated code by inserting a
-    directory into `sys.path`. Use the `entsoe-country` adapter with a region
-    config instead.
-  - The module constants `vwf.data.COUNTRY_DIR`, `TURBINE_DIR` and
-    `COUNTRY_LEVEL_DIR`. Use `vwf.config.PyVWFPaths` instead. They are now
-    read when accessed, so they no longer go stale when the input root
-    changes after import.
+  run.
 
 ### Removed
 

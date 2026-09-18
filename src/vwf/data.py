@@ -22,7 +22,6 @@ Supporting Functions:
     clean_obs_data: Filter and clean observation data
     add_models: Assign turbine models based on metadata
     interp_nans: Interpolate missing observation values
-    sim_turbines_to_country_cf: Aggregate turbine simulations to country level
 
 Examples:
     Turbine-level workflow:
@@ -50,7 +49,6 @@ from typing import cast
 import numpy as np
 import pandas as pd
 import difflib
-import warnings
 
 import vwf.wind as wind
 from vwf.datasets.era5 import prep_era5
@@ -69,28 +67,6 @@ from vwf.loaders import (  # noqa: F401  (re-exported for backward compatibility
 )
 from vwf.sources import InMemoryCountrySource, ObservationSource, resolve
 from vwf.sources.base import ObsLevel
-
-# Deprecated module constants, kept importable for backward compatibility.
-# They used to be copied from PyVWFPaths once, at import, so a later change of
-# input root left them stale; they now read PyVWFPaths when accessed.
-_DEPRECATED_PATHS = {
-    "COUNTRY_DIR": "COUNTRY_DATA",
-    "TURBINE_DIR": "TURBINE_DATA",
-    "COUNTRY_LEVEL_DIR": "COUNTRY_LEVEL_DATA",
-}
-
-
-def __getattr__(name: str):
-    if name in _DEPRECATED_PATHS:
-        target = _DEPRECATED_PATHS[name]
-        warnings.warn(
-            f"vwf.data.{name} is deprecated and will be removed in a future "
-            f"release; use vwf.config.PyVWFPaths.{target}.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(PyVWFPaths, target)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # ============================================================================
 # INTERNAL HELPERS
@@ -183,46 +159,6 @@ def prep_country(
         return source.load_observations(), turb_info
 
     return source.load_observations(year_test, year_test), turb_info
-
-
-def sim_turbines_to_country_cf(sim_cf_long: pd.DataFrame, turb_info: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate turbine simulations to a country-level series.
-
-    .. deprecated:: 0.6.0
-        Nothing in PyVWF calls this function. It will be removed in a future
-        release.
-
-    Args:
-        sim_cf_long: Long-form simulations with ``year``, ``month``, ``ID``, ``sim``.
-        turb_info: Turbine metadata with ``ID`` and ``capacity`` (kW).
-
-    Returns:
-        DataFrame with ``year``, ``month``, and capacity-weighted ``sim``.
-    """
-    warnings.warn(
-        "vwf.data.sim_turbines_to_country_cf is deprecated and will be removed "
-        "in a future release; nothing in PyVWF calls it.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    df = sim_cf_long.copy()
-    df["ID"] = df["ID"].astype(str)
-    caps = turb_info[["ID", "capacity"]].copy()
-    caps["ID"] = caps["ID"].astype(str)
-    df = df.merge(caps, on="ID", how="left")
-
-    df = df.dropna(subset=["capacity", "sim"])
-    if df.empty:
-        raise ValueError("No valid rows to aggregate in sim_turbines_to_country_cf.")
-
-    sim_country = (
-        df.groupby(["year", "month"], as_index=False)[["sim", "capacity"]]
-            .apply(lambda g: pd.Series({"sim": (g["sim"] * g["capacity"]).sum() / g["capacity"].sum()}))
-            .reset_index(drop=True)
-    )
-    # groupby.apply returning a Series per group builds a DataFrame at runtime;
-    # pandas-stubs types the result as Series | DataFrame.
-    return cast(pd.DataFrame, sim_country)
 
 
 # ============================================================================
