@@ -1,5 +1,14 @@
 # The 5-degree distance mask deletes far more good cells than bad
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-distance-mask/unmasked_surface_bands.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+output under `output/unmasked_bands_2026-09-15/` records no commit. The
+driver's last commit before its files were last written is `171f530`, later
+than the `bdb5f66` the text below names: `171f530` added the zero-crossing
+screen behind the correction notice's table.
+
 **Date:** 2026-09-15
 **Scope:** whether the distance mask thesis chapter 4 applies to its gridded
 correction surface does what its rationale says it does. Terms follow
