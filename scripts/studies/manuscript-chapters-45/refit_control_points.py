@@ -32,7 +32,7 @@ Read-only apart from the run directories it writes under ``<out_dir>``.
 Usage, from the repository root:
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
-        scripts/analysis/refit_control_points.py <out_dir> [stem ...]
+        scripts/studies/manuscript-chapters-45/refit_control_points.py <out_dir> [stem ...]
 """
 import dataclasses
 import sys

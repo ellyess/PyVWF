@@ -1,5 +1,12 @@
 # Merging thesis chapters 4 and 5: what has to be decided
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/manuscript-chapters-45/refit_control_points.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the run
+manifests under `output/refit_control_points_2026-09-15/` record commit
+`3930f26` with a clean tree.
+
 **Date:** 2026-09-13
 **Status:** open. Nothing here is decided, and nothing has been ported or run.
 **Scope:** the manuscript merging the gridded-interpolation chapter and the

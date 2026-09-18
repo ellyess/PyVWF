@@ -83,3 +83,4 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/domain_split_study.py` | `scripts/studies/method-domain-split/domain_split_study.py` | `f305b28` |
 | `scripts/analysis/unmasked_surface_bands.py` | `scripts/studies/method-distance-mask/unmasked_surface_bands.py` | `171f530` |
 | `scripts/analysis/chapter_capacity_weights.py` | `scripts/studies/method-country-level/chapter_capacity_weights.py` | `bff4467` |
+| `scripts/analysis/refit_control_points.py` | `scripts/studies/manuscript-chapters-45/refit_control_points.py` | `3930f26` |
