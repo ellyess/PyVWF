@@ -217,6 +217,13 @@ consumers and go without a deprecation period.
   `input/` literally, so a fetch and the matching process step used different
   trees. With the default root, or with every path passed explicitly, nothing
   changes.
+- **Every study driver and analysis script parses its command line with
+  `argparse`.** Each recorded command line still works and makes the same
+  call. A data path a driver hardcoded is now a flag whose default is the
+  recorded path, so a run can read other inputs or write beside its record
+  rather than over it. An extra argument, which the positional parsers
+  ignored, is now an error. `scripts/pinn/` and the two machine-learning
+  transfer scripts are deferred with it.
 - **The Argentina and Chile fleet exclusions are data, not code.** The
   units `scripts/process/cammesa_ar.py` and `cen_cl.py` drop, with the reason
   for each, are read from `configs/curation/`, and `--exclusions` names
