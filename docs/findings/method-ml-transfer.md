@@ -60,6 +60,17 @@ min_samples_split=10), identical hyperparameters. 5 seeds; mean ± std.
 | UK | −0.197 ± 0.080 | −0.072 |
 | US | **−1.049 ± 0.219** | −0.910 |
 
+*[Environment note, added 2026-09-18. The environment of the run behind this
+table was not recorded. Rerun on 2026-09-18 with
+`scripts/analysis/ml_transfer_retest.py` at `f13c825`, on the same July factor
+files and ETOPO grid, it reproduces every value in the table under
+scikit-learn 1.7.2 (pandas 2.3.3, numpy 2.3.5, Python 3.13.9). Under
+scikit-learn 1.9.1 (pandas 3.0.6) the same rerun moves some scores in the third
+decimal: scalar R² BR +0.186 ± 0.023, DE −0.015 ± 0.035, DK −0.227 ± 0.053,
+UK −0.199 ± 0.078, US −1.059 ± 0.237; offset R² DE −0.020, DK −0.195, US
+−0.905. The gate reads 1 of 5 either way. `tests/test_pin_ml_transfer.py`
+pins the full output under 1.7.2.]*
+
 **Gate: 1/5 → NEGATIVE result stands.** Two honest observations alongside:
 
 - **BR is the first region ever to transfer positively** in this programme's

@@ -26,12 +26,14 @@ manual copy.
     python scripts/process/de.py --src "<path to WindStats folder>"
     python scripts/process/de.py --src "<...>" --check-only   # validate, don't copy
 """
+
 import argparse
 import shutil
 import sys
 from pathlib import Path
 
 import pandas as pd
+from vwf.cli.common import add_input_path
 
 FILES = {
     "DE_md.csv": {"V1", "Manufacturer", "kW", "Rotor..m.", "Tower..m."},
@@ -42,12 +44,15 @@ FILES = {
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--src", required=True,
-                    help="Directory holding the confidential WindStats DE files")
-    ap.add_argument("--out-dir", default="input/observations/turbine/DE")
-    ap.add_argument("--check-only", action="store_true",
-                    help="Validate the source files without staging them")
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--src", required=True, help="Directory holding the confidential WindStats DE files"
+    )
+    add_input_path(ap, "--out-dir", "observations", "turbine", "DE")
+    ap.add_argument(
+        "--check-only", action="store_true", help="Validate the source files without staging them"
+    )
     args = ap.parse_args()
 
     print("=" * 70)
@@ -76,10 +81,12 @@ def main() -> None:
     data = pd.read_csv(src / "DE_data.csv", usecols=["ID", "Year", "Output"])
     md["postcode"] = md["V1"].astype(str).str[:5]
     matched = md["postcode"].isin(geo["postcode"].astype(str)).mean()
-    print(f"turbines: {len(md):,} | capacity: {md['kW'].sum()/1e6:.2f} GW")
+    print(f"turbines: {len(md):,} | capacity: {md['kW'].sum() / 1e6:.2f} GW")
     print(f"postcode geolocation coverage: {matched:.1%}")
-    print(f"generation: {len(data):,} turbine-months, "
-          f"years {int(data['Year'].min())}-{int(data['Year'].max())}")
+    print(
+        f"generation: {len(data):,} turbine-months, "
+        f"years {int(data['Year'].min())}-{int(data['Year'].max())}"
+    )
 
     if args.check_only:
         print("\n--check-only: validated, nothing staged.")

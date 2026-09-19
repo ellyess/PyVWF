@@ -12,6 +12,7 @@ Three panels, each answering one question the tables answer less legibly:
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/e1_figures.py --tag primary
 """
+
 from __future__ import annotations
 
 import argparse
@@ -57,14 +58,26 @@ def fig_transfer(raw: pd.DataFrame, table: pd.DataFrame, out: Path):
         m = np.array([sub.mean().get(r, np.nan) for r in regions])
         e = np.array([sub.std().get(r, 0.0) or 0.0 for r in regions])
         label, colour = ARM_STYLE[arm]
-        ax.bar(x + i * width - 0.4 + width / 2, m, width, yerr=e,
-               label=label, color=colour, edgecolor="none",
-               error_kw=dict(lw=0.6, capsize=1.5))
+        ax.bar(
+            x + i * width - 0.4 + width / 2,
+            m,
+            width,
+            yerr=e,
+            label=label,
+            color=colour,
+            edgecolor="none",
+            error_kw=dict(lw=0.6, capsize=1.5),
+        )
     if "affine_best" in table:
-        aff = [table.loc[r, "affine_best"] if r in table.index else np.nan
-               for r in regions]
-        ax.plot(x, aff, "k_", markersize=18, markeredgewidth=1.2,
-                label="incumbent affine, in-region (best of sweep)")
+        aff = [table.loc[r, "affine_best"] if r in table.index else np.nan for r in regions]
+        ax.plot(
+            x,
+            aff,
+            "k_",
+            markersize=18,
+            markeredgewidth=1.2,
+            label="incumbent affine, in-region (best of sweep)",
+        )
     ax.set_xticks(x, regions)
     ax.set_ylabel("held-out capacity-factor RMSE")
     ax.set_xlabel("region held out of training")
@@ -92,12 +105,24 @@ def fig_coverage(table: pd.DataFrame, out: Path):
             continue
         skill = 1 - (table.loc[regions, arm] / table.loc[regions, "uncorrected"]) ** 2
         label, colour = ARM_STYLE[arm]
-        ax.scatter(joint.loc[regions, "joint_covered"], skill, marker=marker,
-                   s=22, color=colour, label=label, zorder=3)
+        ax.scatter(
+            joint.loc[regions, "joint_covered"],
+            skill,
+            marker=marker,
+            s=22,
+            color=colour,
+            label=label,
+            zorder=3,
+        )
         for r in regions:
             s = 1 - (table.loc[r, arm] / table.loc[r, "uncorrected"]) ** 2
-            ax.annotate(r, (joint.loc[r, "joint_covered"], s), fontsize=5,
-                        xytext=(3, 2), textcoords="offset points")
+            ax.annotate(
+                r,
+                (joint.loc[r, "joint_covered"], s),
+                fontsize=5,
+                xytext=(3, 2),
+                textcoords="offset points",
+            )
     ax.axhline(0.0, color="k", lw=0.6, ls=":")
     ax.set_xlabel("share of held-out units inside the training\nphysiographic envelope")
     ax.set_ylabel("skill against uncorrected ERA5")
@@ -117,9 +142,16 @@ def fig_physics(out: Path):
     df = df[~df.density] if "density" in df else df
     fig, ax = plt.subplots(figsize=(3.4, 3.0))
     for i, (code, sub) in enumerate(df.groupby("region")):
-        ax.scatter(sub.relief_28km, sub.speedup, s=3, alpha=0.35,
-                   color=OKABE_ITO[i % len(OKABE_ITO)], label=code,
-                   edgecolors="none", rasterized=True)
+        ax.scatter(
+            sub.relief_28km,
+            sub.speedup,
+            s=3,
+            alpha=0.35,
+            color=OKABE_ITO[i % len(OKABE_ITO)],
+            label=code,
+            edgecolors="none",
+            rasterized=True,
+        )
     ax.axhline(1.0, color="k", lw=0.6, ls=":")
     ax.set_xlabel("elevation range within the ERA5 cell (m)")
     ax.set_ylabel("fitted wind-speed speed-up")
@@ -139,8 +171,11 @@ def main():
 
     raw = pd.read_csv(E1 / f"e1_{args.tag}_raw.csv")
     tpath = E1 / f"e1_{args.tag}_table.csv"
-    table = (pd.read_csv(tpath, index_col=0) if tpath.exists()
-             else raw.groupby(["holdout", "arm"]).rmse.mean().unstack())
+    table = (
+        pd.read_csv(tpath, index_col=0)
+        if tpath.exists()
+        else raw.groupby(["holdout", "arm"]).rmse.mean().unstack()
+    )
     fig_transfer(raw, table, FIG)
     fig_coverage(table, FIG)
     fig_physics(FIG)

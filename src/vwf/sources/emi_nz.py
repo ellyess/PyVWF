@@ -12,11 +12,14 @@ Decisions baked into the finalisation, documented in the region config:
   civil time with DST (46/48/50 periods per day); the processing step maps
   them to UTC through ``Pacific/Auckland`` before anything is binned, matching
   the ERA5/simulation convention: ``time_convention = "utc-monthly-bins"``.
-- **Then-current capacity denominator.** Monthly CF is computed against the
-  farm's effective-dated registered capacity from the EMI plant register (the
-  ONS-style denominator), so staged builds (Turitea, Harapaki) are not biased
-  low. A below-final-build mask (the AU registered-capacity pattern) is
-  applied on top when present, removing the erratic partially-erected months.
+- **Then-current capacity denominator.** Monthly CF is computed against a
+  stable-plateau capacity history built from the curated tables, not from the
+  EMI plant register: ``configs/curation/nz_capacity_stages.csv`` for staged
+  builds (Turitea), and otherwise each farm's final capacity from
+  ``nz_wind_farms.csv`` from its first generation. The register is fetched but
+  only reported on. Commissioning-ramp months listed in
+  ``configs/curation/nz_mask_windows.csv`` are masked on top, removing the
+  erratic partially-erected months.
 - **Registry-grade metadata is hand-compiled.** EMI carries no coordinates or
   hub heights; the curated farm table (``configs/curation/nz_wind_farms.csv``, with
   per-farm provenance) supplies coordinates, capacity, turbine model, and hub
@@ -24,6 +27,7 @@ Decisions baked into the finalisation, documented in the region config:
   and makes NZ one of the few regions outside Europe with per-farm hub
   heights.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -59,10 +63,7 @@ def apply_month_mask(wide: pd.DataFrame, mask: pd.DataFrame | None) -> pd.DataFr
     )
     for m in range(1, 13):
         col = f"obs_{m}"
-        hit = [
-            (str(i), int(y), m) in mask_keys
-            for i, y in zip(out["ID"], out["year"])
-        ]
+        hit = [(str(i), int(y), m) in mask_keys for i, y in zip(out["ID"], out["year"])]
         out.loc[hit, col] = float("nan")
     return out
 
@@ -77,19 +78,19 @@ class EMINewZealandSource(ObservationSource):
     ``nz_md.csv``
         Farm metadata: ``ID`` (farm key), ``lon``, ``lat``, ``height`` (m),
         ``capacity`` (kW, final build), ``model``, ``type``, optional
-        ``commissioning_date``, plus provenance/context columns
-        (``height_source``, ``model_source``, ``site_name``, ``island``).
-        Joined from the curated farm table (``configs/curation/nz_wind_farms.csv``)
-        and the EMI plant register.
+        ``commissioning_date``, plus provenance and context columns
+        (``site_name``, ``height_source``, ``model_source``, ``true_model``,
+        ``n_turbines``, ``diameter``, ``operator``). Built from the curated
+        farm table (``configs/curation/nz_wind_farms.csv``).
     ``nz_obs.csv``
         Monthly observations, wide: ``ID``, ``year``, ``obs_1``..``obs_12``.
-        Monthly mean CF in UTC bins against then-current registered
-        capacity, coverage-screened, as written by the processing step from
-        the half-hourly ``Generation_MD`` melt.
+        Monthly mean CF in UTC bins against the stable-plateau capacity
+        history from the curated tables, coverage-screened, as written by the
+        processing step from the half-hourly ``Generation_MD`` melt.
     ``nz_build_mask.csv`` (optional)
         ``ID``, ``year``, ``month`` rows to NaN because the farm was below
         its final build (commissioning months), as written by the processing
-        step from the register capacity history.
+        step from ``configs/curation/nz_mask_windows.csv``.
     """
 
     name: ClassVar[str] = "emi-nz"
@@ -99,9 +100,7 @@ class EMINewZealandSource(ObservationSource):
     def __init__(self, country: str = "NZ") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

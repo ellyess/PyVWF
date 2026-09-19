@@ -1,9 +1,28 @@
 # Does the correction survive at hourly resolution? (Chile, 2024)
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-hourly-resolution/hourly_resolution_test.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+output, `output/hourly_test/cl_2024_by_aggregation.csv`, records no commit and
+was written on 2026-08-12 before the driver's first commit, `d2017f3`, that
+afternoon, so the exact producing code is not recorded.
+
 **Date:** 2026-08-12
 **Question:** every validated result in this repo scores monthly capacity
 factors. Any use of the correction inside a forecasting system would score it
 hourly. Does it hold at that timescale?
+
+**Correction notice, 2026-09-11: the monthly CL win left the damage out; it did
+not smear it.** The section on the finding that matters beyond forecasting
+says the monthly metric passes a cluster with a wind scalar of 80 because
+averaging smears the damage. In fact the plants of that cluster had no
+corrected value at all. The corrected score dropped them, and the uncorrected
+score kept them. On the same plants, the monthly result is 0.110 against
+0.104, a gain that cannot be distinguished from zero (`scorecard.md`, daggered-rows
+notice of the same date). The conclusion that nothing in the
+monthly metric flagged the fit stands; the reason is exclusion, not
+averaging. The hourly results in this document were not rescored.
 
 **Answer: no, and the first-order reason is not the one predicted.** All three
 pre-registered gates failed. But the failure is dominated by three degenerate

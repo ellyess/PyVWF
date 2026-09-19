@@ -22,29 +22,49 @@ matching `twp` to a coordinate source:
 Per-country column layouts differ (WindStats is not uniform), captured in
 :data:`SCHEMA`.
 """
+
 from __future__ import annotations
 
 import re
 import unicodedata
-from calendar import monthrange
 from collections.abc import Sequence
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 #: Per-country WindStats column layout. ``id`` is the metadata key column;
 #: ``link`` is the metadata column the geolocate ``ws`` matches (the id itself,
 #: or a separate ``Location`` column). ``onshore_default`` is used where the
 #: country carries no on/offshore flag.
 SCHEMA: dict[str, dict] = {
-    "ES": {"id": "Unnamed: 0", "cap": "kW", "rotor": "Rotor (m)",
-           "tower": "Tower (m)", "manuf": "Manufacturer", "onoff": None,
-           "link": "id"},
-    "SE": {"id": "Unnamed: 0", "cap": "kW", "rotor": "Rotor (m)",
-           "tower": "Tower (m)", "manuf": "Manufacturer", "onoff": "On/offshore",
-           "link": "Location"},
-    "FI": {"id": "Unnamed: 0", "cap": "kW", "rotor": "Rotor (m)",
-           "tower": "Tower (m)", "manuf": "Manufacturer", "onoff": "On/offshore",
-           "link": "id"},
+    "ES": {
+        "id": "Unnamed: 0",
+        "cap": "kW",
+        "rotor": "Rotor (m)",
+        "tower": "Tower (m)",
+        "manuf": "Manufacturer",
+        "onoff": None,
+        "link": "id",
+    },
+    "SE": {
+        "id": "Unnamed: 0",
+        "cap": "kW",
+        "rotor": "Rotor (m)",
+        "tower": "Tower (m)",
+        "manuf": "Manufacturer",
+        "onoff": "On/offshore",
+        "link": "Location",
+    },
+    "FI": {
+        "id": "Unnamed: 0",
+        "cap": "kW",
+        "rotor": "Rotor (m)",
+        "tower": "Tower (m)",
+        "manuf": "Manufacturer",
+        "onoff": "On/offshore",
+        "link": "id",
+    },
 }
 
 _JUNK = {"I", "II", "III", "IV", "DE", "LA", "EL", "THE", "OF", "AND"}
@@ -52,8 +72,7 @@ _JUNK = {"I", "II", "III", "IV", "DE", "LA", "EL", "THE", "OF", "AND"}
 
 def _norm(s: str) -> str:
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().upper()
-    for j in ("WIND FARM", "WINDFARM", "WIND POWER", "PARQUE EOLICO", "WINDPARK",
-              "PARK", "PARQUE"):
+    for j in ("WIND FARM", "WINDFARM", "WIND POWER", "PARQUE EOLICO", "WINDPARK", "PARK", "PARQUE"):
         s = s.replace(j, " ")
     toks = [t for t in re.sub(r"[^A-Z0-9 ]", " ", s).split() if t not in _JUNK]
     return " ".join(toks).strip()
@@ -101,8 +120,7 @@ def windstats_monthly_cf(
     Returns:
         Wide ``ID``, ``year``, ``obs_1``..``obs_12`` (monthly CF; missing NaN).
     """
-    df = data.rename(columns={"Year": "year", "Month": "month",
-                              "Output": "output"}).copy()
+    df = data.rename(columns={"Year": "year", "Month": "month", "Output": "output"}).copy()
     df["ID"] = df["ID"].astype(str).str.strip()
     cap = capacity.copy()
     cap["ID"] = cap["ID"].astype(str).str.strip()
@@ -113,11 +131,13 @@ def windstats_monthly_cf(
     df = df[(df["year"] >= int(year_start)) & (df["year"] <= int(year_end))]
     if df.empty:
         return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
-    days = df.apply(lambda r: monthrange(int(r["year"]), int(r["month"]))[1], axis=1)
+    days = month_days(df["year"], df["month"])
     df["cf"] = df["output"] / (df["capacity"] * days * 24.0)
-    wide = (df.pivot_table(index=["ID", "year"], columns="month", values="cf",
-                           aggfunc="mean")
-            .reindex(columns=range(1, 13)).reset_index())
+    wide = (
+        df.pivot_table(index=["ID", "year"], columns="month", values="cf", aggfunc="mean")
+        .reindex(columns=range(1, 13))
+        .reset_index()
+    )
     wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
     return wide
 
@@ -151,8 +171,7 @@ def match_twp_to_coords(
         hit = exact.get(n)
         matched = n
         if hit is None:
-            cand = [gn for gn in names
-                    if gn and min(len(gn), len(n)) >= 4 and (gn in n or n in gn)]
+            cand = [gn for gn in names if gn and min(len(gn), len(n)) >= 4 and (gn in n or n in gn)]
             if cand:
                 matched = min(cand, key=lambda x: abs(len(x) - len(n)))
                 hit = exact[matched]
@@ -185,8 +204,9 @@ def build_windstats_metadata(
         ``coord_source``.
     """
     md = station_md.copy()
-    md = md.merge(ws_coords.rename(columns={"ws": "link"})[["link", "lon", "lat"]],
-                  on="link", how="left")
+    md = md.merge(
+        ws_coords.rename(columns={"ws": "link"})[["link", "lon", "lat"]], on="link", how="left"
+    )
     bad = md[(md["lon"].isna() | md["lat"].isna()) & ~md["link"].isin(set(exclude))]
     if len(bad):
         raise ValueError(
@@ -195,12 +215,14 @@ def build_windstats_metadata(
             "Add their farms to the coordinate table or the exclude list; never "
             "leave a turbine coordinateless (it would be mis-located)."
         )
-    md = md[md["lon"].notna() & md["lat"].notna()
-            & md["capacity"].notna() & (md["capacity"] > 0)].copy()
+    md = md[
+        md["lon"].notna() & md["lat"].notna() & md["capacity"].notna() & (md["capacity"] > 0)
+    ].copy()
     has_height = pd.to_numeric(md["height"], errors="coerce") > 1
     md["height_source"] = has_height.map({True: "windstats", False: "default-uniform"})
     md["height"] = pd.to_numeric(md["height"], errors="coerce").where(
-        has_height, float(height_default))
+        has_height, float(height_default)
+    )
     md["diameter"] = pd.to_numeric(md["diameter"], errors="coerce")
     # WindStats manufacturer strings are not curve-library keys (and are often
     # mojibake), so the curve key is the uniform default (as AU/BR/CL/AR do for
@@ -210,6 +232,19 @@ def build_windstats_metadata(
     md["model"] = model
     md["model_source"] = "default-uniform"
     md["coord_source"] = "gwpt-open"
-    return md[["ID", "lon", "lat", "height", "capacity", "diameter", "model",
-               "type", "height_source", "model_source", "coord_source",
-               "windstats_manufacturer"]].reset_index(drop=True)
+    return md[
+        [
+            "ID",
+            "lon",
+            "lat",
+            "height",
+            "capacity",
+            "diameter",
+            "model",
+            "type",
+            "height_source",
+            "model_source",
+            "coord_source",
+            "windstats_manufacturer",
+        ]
+    ].reset_index(drop=True)

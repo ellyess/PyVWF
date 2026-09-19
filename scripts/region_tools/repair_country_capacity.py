@@ -14,12 +14,42 @@ national fleet looks like. GWPT undercounts Ireland before 2017 (peak CF still
 1.05 in 2015), so ``--from-year`` also writes a trimmed training file over the
 window where the register is trustworthy.
 
+**This tool is only correct where GWPT is the better source, and that has to be
+established per country rather than assumed.** A register that disagrees with
+GWPT is a reason to look, not a reason to rewrite: the disagreement says one of
+the two is wrong and does not say which.
+
+- **Ireland is the case where it held.** The register was frozen at 1907.13 MW
+  for seven years, GWPT tracked a fleet that nearly doubled, and the repaired
+  capacity factors land where a national fleet does.
+- **Sweden is the case where neither source can be trusted.** The register is
+  flat at 8354 MW for 2015 to 2019, so it is defective by the same test, and
+  GWPT gives 4226 rising to 6270 over those years, roughly half of it.
+  Repairing from GWPT puts Sweden's 2015 national mean capacity factor at
+  0.4481 against a current 0.2267. **Neither number is evidence.** Sweden's
+  four bidding zones each hold a frozen capacity over those five years, each
+  zonal series peaks at exactly 0.900, and the four sum to 8354 MW exactly.
+  0.900 is the signature of the fetcher's own fallback in
+  ``vwf.datasets.fetch_entsoe_capacity_factors``,
+  ``estimated_cap = gen.max() / 0.9``, applied when ENTSO-E returns no
+  capacity at all. So the denominator is derived from the numerator and the
+  plausible-looking capacity factors are constructed, not observed. **Sweden
+  needs a real installed-capacity register and neither this tool nor the file
+  on disk is one.**
+- **Portugal is a case where it holds.** The register is flat at 4486 MW for
+  2015 to 2019, GWPT disagrees by at most 5% and moves where the register does
+  not, and every repaired year peaks between 0.95 and 0.98.
+
+The check before running it is whether the repaired capacity factors are
+physically credible for that country, not whether the two registers differ.
+
 Check the result with scripts/analysis/audit_country_observations.py.
 
 Usage:
     PYTHONPATH=src python scripts/region_tools/repair_country_capacity.py IE --dry-run
     PYTHONPATH=src python scripts/region_tools/repair_country_capacity.py IE --from-year 2017
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,11 +60,13 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vwf.config import PyVWFPaths  # noqa: E402
 from vwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
-from weight_country_grid_points import GWPT_PATH, fleet_for, load_gwpt  # noqa: E402
+from vwf.datasets.gwpt import default_path, fleet_for, load_exclusions, load_gwpt  # noqa: E402
+
+GWPT_PATH = default_path()
+EXCLUSIONS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_exclusions.csv"
 
 #: Matches the ceiling applied by the ENTSO-E fetcher.
 CLIP = 1.5
@@ -44,7 +76,8 @@ BACKUP_SUFFIX = ".entsoe-capacity.bak.csv"
 
 def annual_capacity(gwpt: pd.DataFrame, country: str, years) -> dict[int, float]:
     """Installed capacity in MW as of each year, from the tracker."""
-    return {int(y): float(fleet_for(gwpt, country, int(y))["mw"].sum()) for y in years}
+    excluded = load_exclusions(EXCLUSIONS_PATH)
+    return {int(y): float(fleet_for(gwpt, country, int(y), excluded)["mw"].sum()) for y in years}
 
 
 def repair(path: Path, gwpt: pd.DataFrame, country: str, *, dry_run: bool) -> pd.DataFrame:
@@ -68,8 +101,10 @@ def repair(path: Path, gwpt: pd.DataFrame, country: str, *, dry_run: bool) -> pd
 
     after = check_country_cf(out, f"{path.name} after", warn=False)
     print(f"\n{path.name}")
-    print(f"  capacity  {obs['capacity_mw'].min():.0f}-{obs['capacity_mw'].max():.0f} MW "
-          f"-> {out['capacity_mw'].min():.0f}-{out['capacity_mw'].max():.0f} MW")
+    print(
+        f"  capacity  {obs['capacity_mw'].min():.0f}-{obs['capacity_mw'].max():.0f} MW "
+        f"-> {out['capacity_mw'].min():.0f}-{out['capacity_mw'].max():.0f} MW"
+    )
     print(f"  mean CF   {before.mean_cf:.3f} -> {after.mean_cf:.3f}")
     print(f"  peak CF   {before.peak_cf:.3f} -> {after.peak_cf:.3f}")
     peaks = (out.groupby(out.index.year)["capacity_factor"].max()).round(2)

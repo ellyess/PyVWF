@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
+
 # entsoe-py lives in the optional `data` extra: acquisition needs it, the pure
 # transforms in this module do not, and CI deliberately installs the package
 # without that extra. Importing it lazily keeps this module importable (and so
@@ -43,6 +44,7 @@ except ImportError:  # pragma: no cover - exercised only without the extra
         Unreachable without entsoe-py, since nothing can be fetched at all.
         """
 
+
 # ENTSO-E country and zone codes
 COUNTRY_CODES = {
     # Currently implemented (country-level)
@@ -50,14 +52,12 @@ COUNTRY_CODES = {
     "FR": "FR",  # France
     "BE": "BE",  # Belgium
     "NO": "NO",  # Norway (aggregate across zones)
-
     # Norwegian bidding zones
     "NO_1": "NO_1",
     "NO_2": "NO_2",
     "NO_3": "NO_3",
     "NO_4": "NO_4",
     "NO_5": "NO_5",
-
     # Phase 1: High priority (large wind capacity >5 GW)
     "ES": "ES",  # Spain (~30 GW)
     "IT": "IT",  # Italy (~12 GW)
@@ -67,18 +67,15 @@ COUNTRY_CODES = {
     "FI": "FI",  # Finland (~5 GW)
     "IE": "IE",  # Ireland (~5 GW)
     "IE_SEM": "IE_SEM",  # Ireland Single Electricity Market
-
     # Swedish bidding zones
     "SE_1": "SE_1",  # Luleå / Northern Sweden
     "SE_2": "SE_2",  # Sundsvall / North-Central Sweden
     "SE_3": "SE_3",  # Stockholm / Central Sweden
     "SE_4": "SE_4",  # Malmö / Southern Sweden
-
     # Phase 2: Medium priority (1-5 GW)
     "AT": "AT",  # Austria (~3 GW)
     "GR": "GR",  # Greece (~5 GW)
     "RO": "RO",  # Romania (~3 GW)
-
     # Phase 3: Lower priority (<1 GW)
     "CZ": "CZ",  # Czech Republic (~0.3 GW)
     "HU": "HU",  # Hungary (~0.3 GW)
@@ -188,7 +185,9 @@ class ENTSOEWindDataFetcher:
         if country.upper() == "NO":
             return self._fetch_norway_generation(start, end, psr_type)
 
-        print(f"Fetching {psr_type} wind generation for {country} ({start.date()} to {end.date()})...")
+        print(
+            f"Fetching {psr_type} wind generation for {country} ({start.date()} to {end.date()})..."
+        )
 
         try:
             if psr_type == "all":
@@ -542,9 +541,9 @@ class ENTSOEWindDataFetcher:
         results = {}
 
         for country in countries:
-            print(f"\n{'='*70}")
+            print(f"\n{'=' * 70}")
             print(f"Processing {country.upper()}")
-            print(f"{'='*70}")
+            print(f"{'=' * 70}")
 
             df = self.calculate_capacity_factor(country, start, end, psr_type)
 
@@ -552,11 +551,13 @@ class ENTSOEWindDataFetcher:
                 # Resample if requested
                 if resample is not None:
                     print(f"  Resampling to {resample}...")
-                    df = df.resample(resample).agg({
-                        "generation_mw": "mean",
-                        "capacity_mw": "mean",
-                        "capacity_factor": "mean",
-                    })
+                    df = df.resample(resample).agg(
+                        {
+                            "generation_mw": "mean",
+                            "capacity_mw": "mean",
+                            "capacity_factor": "mean",
+                        }
+                    )
 
                 results[country.upper()] = df
                 print(f"  ✓ {country.upper()} complete: {len(df)} data points")
@@ -613,9 +614,7 @@ def save_capacity_factors(
 
 def main():
     """Main execution."""
-    parser = argparse.ArgumentParser(
-        description="Fetch wind capacity factors from ENTSO-E API"
-    )
+    parser = argparse.ArgumentParser(description="Fetch wind capacity factors from ENTSO-E API")
     parser.add_argument(
         "--countries",
         nargs="+",
@@ -697,9 +696,9 @@ def main():
 
     # Save results
     if data:
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print("Saving results...")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         save_capacity_factors(data, args.output_dir, format=args.format)
 
         print(f"\n✓ Complete! Data saved to: {args.output_dir}")

@@ -4,12 +4,15 @@ This adapter wraps the existing CSV loaders in :mod:`vwf.loaders.turbine_loaders
 and reproduces the metadata and capacity-factor preparation that
 ``vwf.data.prep_country`` performed inline before the source refactor.
 """
+
 from __future__ import annotations
 
-from calendar import monthrange
 from typing import ClassVar
 
 import pandas as pd
+
+from vwf.curves import add_models
+from vwf.time_utils import month_days
 
 from vwf.loaders.turbine_loaders import load_turbine_metadata, load_turbine_observations
 from vwf.sources.base import ObservationSource, ObsLevel
@@ -49,9 +52,7 @@ class EuropeanTurbineSource(ObservationSource):
     def __init__(self, country: str) -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
         self._metadata: pd.DataFrame | None = None
 
@@ -64,7 +65,7 @@ class EuropeanTurbineSource(ObservationSource):
         """Load turbine metadata and assign a power-curve model to each turbine.
 
         The raw country file is cleaned by the country loader, then
-        :func:`vwf.data.add_models` matches every turbine to a curve in the
+        :func:`vwf.curves.add_models` matches every turbine to a curve in the
         model catalog by manufacturer and specific power. The result is
         loaded once per instance and cached; callers get a copy.
 
@@ -74,10 +75,6 @@ class EuropeanTurbineSource(ObservationSource):
             the assigned ``model``.
         """
         if self._metadata is None:
-            # Imported lazily: vwf.data imports this package at module scope, so a
-            # top-level import here would close the cycle.
-            from vwf.data import add_models
-
             self._metadata = add_models(load_turbine_metadata(self.country))
         return self._metadata.copy()
 
@@ -101,12 +98,16 @@ class EuropeanTurbineSource(ObservationSource):
         obs_gen = load_turbine_observations(self.country, int(year_start), int(year_end)).copy()
 
         if not {"ID", "year"}.issubset(obs_gen.columns):
-            raise ValueError("Turbine observations must contain columns ['ID','year', ...months...]")
+            raise ValueError(
+                "Turbine observations must contain columns ['ID','year', ...months...]"
+            )
 
         # Standardise month columns to obs_1..obs_12 (if not already)
         month_cols = [c for c in obs_gen.columns if c not in ["ID", "year"]]
         if not any(str(c).startswith("obs_") for c in month_cols):
-            obs_gen.columns = [f"obs_{c}" if c not in ["ID", "year"] else c for c in obs_gen.columns]
+            obs_gen.columns = [
+                f"obs_{c}" if c not in ["ID", "year"] else c for c in obs_gen.columns
+            ]
 
         obs_gen["ID"] = obs_gen["ID"].astype(str)
         obs_gen["year"] = pd.to_numeric(obs_gen["year"], errors="coerce").astype("Int64")
@@ -119,12 +120,7 @@ class EuropeanTurbineSource(ObservationSource):
             col = f"obs_{m}"
             if col not in obs_gen.columns:
                 continue
-            days = (
-                obs_gen["year"]
-                .astype(int)
-                .map(lambda y, month=m: monthrange(int(y), int(month))[1])
-                .astype(float)
-            )
+            days = month_days(obs_gen["year"].astype(int), m).astype(float)
             obs_gen[col] = pd.to_numeric(obs_gen[col], errors="coerce") / (
                 days * 24.0 * obs_gen["capacity"].astype(float)
             )

@@ -7,6 +7,7 @@ changes what a published run actually did.
 The full run is exercised by tests/test_pipeline.py; here we check the parser
 and that `main` wires its arguments through to the model unchanged.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -43,13 +44,21 @@ def test_cluster_mode_rejects_an_unknown_choice():
 def test_lists_and_flags_parse():
     args = _build_parser().parse_args(
         [
-            "--outdir", "out",
-            "--country", "DE",
-            "--year-test", "2019",
+            "--outdir",
+            "out",
+            "--country",
+            "DE",
+            "--year-test",
+            "2019",
             "--calc-z0",
-            "--cluster-list", "10", "100",
-            "--time-res-list", "fixed", "month",
-            "--fix-turb", "2019COE_Market_Average_2.6MW_121",
+            "--cluster-list",
+            "10",
+            "100",
+            "--time-res-list",
+            "fixed",
+            "month",
+            "--fix-turb",
+            "2019COE_Market_Average_2.6MW_121",
         ]
     )
 
@@ -72,8 +81,8 @@ def test_main_passes_arguments_through_to_the_model(tmp_path, monkeypatch):
             captured["correct"] = correct
             captured.update(kwargs)
 
-        def train(self, check):
-            captured["trained"] = check
+        def train(self):
+            captured["trained"] = True
 
         def simulate_cf(self, year_test):
             captured["year_test"] = year_test
@@ -82,23 +91,28 @@ def test_main_passes_arguments_through_to_the_model(tmp_path, monkeypatch):
 
     main(
         [
-            "--outdir", str(tmp_path / "run"),
-            "--country", "DE",
-            "--year-test", "2018",
+            "--outdir",
+            str(tmp_path / "run"),
+            "--country",
+            "DE",
+            "--year-test",
+            "2018",
             "--calc-z0",
-            "--cluster-list", "7",
-            "--time-res-list", "season",
+            "--cluster-list",
+            "7",
+            "--time-res-list",
+            "season",
         ]
     )
 
     assert captured["country"] == "DE"
-    assert captured["correct"] is True          # the CLI always trains a correction
+    assert captured["correct"] is True  # the CLI always trains a correction
     assert captured["calc_z0"] is True
     assert captured["cluster_mode"] == "onshore"
     assert captured["cluster_list"] == [7]
     assert captured["time_res_list"] == ["season"]
     assert captured["year_test"] == 2018
-    assert captured["trained"] is False         # --train-plots not passed
+    assert captured["trained"] is True
     # The output directory is created up front, so a long run doesn't die at the
     # first write.
     assert (tmp_path / "run").is_dir()

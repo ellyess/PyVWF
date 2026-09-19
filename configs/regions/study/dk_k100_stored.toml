@@ -1,0 +1,37 @@
+# Study configuration: the R0 condition of
+# docs/findings/method-roughness-treatment-prereg.md. Identical to
+# configs/regions/scorecard/dk_k100.toml except that it opts in to
+# extrapolation, which deviation D2 of that record registers: 47 of the 5,446
+# test units lie east of the box, 0.6% of capacity, up to 1.64 degrees out.
+# Both conditions carry the same opt-in, so the paired difference is not
+# confounded by it. Not a scorecard row.
+# Region config for the multi-region validation harness (docs/design/HARNESS_DESIGN.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "DK"
+name = "Denmark"
+
+[observations]
+source = "european-turbine"
+obs_level = "turbine"
+obs_unit = "turbine"
+train_years = [2015, 2019]
+test_years = [2020]
+
+[era5]
+allow_extrapolation = true  # deviation D2, both conditions
+path = "era5/EU"
+bbox = [7.5, 13.5, 54.0, 58.2]
+file_tag = "EU"
+
+[correction]
+model = "affine-wind"
+cluster_list = [100]  # sweep knee (docs/findings/cluster_sweep_and_ml_retest.md)
+time_slices = ["season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

@@ -2,8 +2,8 @@
 
 Pure frame-to-frame logic for ``scripts/process/emi_nz.py``: mapping EMI
 trading periods to UTC timestamps, reshaping the half-hourly ``Generation_MD``
-energy series into monthly capacity factors, and deriving a capacity history
-from the effective-dated EMI plant register.
+energy series into monthly capacity factors, and building the capacity
+history they are divided by.
 
 Everything here takes and returns DataFrames so it is testable without the raw
 EMI files; file I/O lives in the script.
@@ -26,20 +26,28 @@ Two NZ-specific facts shape the design:
   on DST days by construction (no period is skipped or double-counted),
   and the monthly bins downstream are UTC, matching the ERA5/simulation
   convention everywhere else (``time_convention = "utc-monthly-bins"``).
-- **The register is effective-dated.** The EMI dispatched-plant register
-  carries nameplate capacity per unit with validity windows, so a capacity
-  *history* per farm is derivable. The monthly CF is computed against the
-  then-current registered capacity (the ONS-style denominator), which keeps
-  ramping builds (Turitea 2021-2023, Harapaki 2024) from biasing CF low; a
-  below-final-build mask is offered on top for the erratic
-  partially-erected months (the AU DUDETAIL pattern).
+- **Capacity changes over time.** The monthly CF is computed against a
+  then-current capacity, which keeps ramping builds (Turitea 2021-2023,
+  Harapaki 2024) from biasing CF low. The processing step builds that history
+  from the curated tables (``nz_capacity_stages.csv``, then each farm's final
+  capacity from ``nz_wind_farms.csv``) and masks the commissioning windows in
+  ``nz_mask_windows.csv``. The register-based alternatives here,
+  :func:`capacity_history_from_register` and :func:`below_final_build_mask`,
+  derive the same things from the EMI dispatched-plant register's
+  effective-dated nameplate rows. They are tested but not used by the
+  processing step, which uses :func:`capacity_history_from_curation` and
+  :func:`mask_from_windows`.
 """
+
 from __future__ import annotations
 
-from calendar import monthrange
+from collections.abc import Iterable
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 #: New Zealand civil time. EMI trading dates and periods are defined in this
 #: zone (NZST/NZDT); the zone database handles the DST transitions.
@@ -65,9 +73,7 @@ def day_start_utc(trading_dates: pd.Series) -> pd.Series:
     dates = pd.to_datetime(trading_dates)
     if getattr(dates.dt, "tz", None) is not None:
         raise ValueError("trading dates must be naive local dates, got tz-aware")
-    return (
-        dates.dt.tz_localize(NZ_TZ).dt.tz_convert("UTC").dt.tz_localize(None)
-    )
+    return dates.dt.tz_localize(NZ_TZ).dt.tz_convert("UTC").dt.tz_localize(None)
 
 
 def expected_trading_periods(trading_dates: pd.Series) -> pd.Series:
@@ -83,9 +89,7 @@ def expected_trading_periods(trading_dates: pd.Series) -> pd.Series:
     return ((end - start) / pd.Timedelta(minutes=30)).astype(int)
 
 
-def trading_period_start_utc(
-    trading_dates: pd.Series, trading_periods: pd.Series
-) -> pd.Series:
+def trading_period_start_utc(trading_dates: pd.Series, trading_periods: pd.Series) -> pd.Series:
     """UTC start instant of each ``(trading date, trading period)`` pair.
 
     TP ``n`` is the ``n``-th half hour of the local day counted in elapsed
@@ -124,8 +128,7 @@ def half_hourly_from_generation_md(
         Long frame with ``ID``, ``timestamp`` (naive UTC, period start), and
         ``kwh``. NaN periods (no data / non-existent) are dropped.
     """
-    tp_cols = [c for c in gen.columns if c.startswith(tp_prefix)
-               and c[len(tp_prefix):].isdigit()]
+    tp_cols = [c for c in gen.columns if c.startswith(tp_prefix) and c[len(tp_prefix) :].isdigit()]
     if not tp_cols:
         raise ValueError(f"no {tp_prefix}<n> trading-period columns found")
 
@@ -135,7 +138,7 @@ def half_hourly_from_generation_md(
         var_name="tp",
         value_name="kwh",
     )
-    long["tp"] = long["tp"].str[len(tp_prefix):].astype(int)
+    long["tp"] = long["tp"].str[len(tp_prefix) :].astype(int)
     long["kwh"] = pd.to_numeric(long["kwh"], errors="coerce")
     long = long[long["kwh"].notna()].copy()
 
@@ -196,9 +199,7 @@ def capacity_history_from_register(
         for t in points:
             live = (rows["start"] <= t) & (rows["end"].isna() | (rows["end"] > t))
             caps.append(rows.loc[live, "mw"].sum() * 1000.0)
-        frame = pd.DataFrame(
-            {"ID": str(farm), "effective_from": points, "capacity": caps}
-        )
+        frame = pd.DataFrame({"ID": str(farm), "effective_from": points, "capacity": caps})
         # Collapse consecutive points with unchanged capacity.
         frame = frame[frame["capacity"].ne(frame["capacity"].shift())]
         events.append(frame)
@@ -207,14 +208,15 @@ def capacity_history_from_register(
     return pd.concat(events, ignore_index=True)
 
 
-def _capacity_at(history: pd.DataFrame, ids: pd.Series,
-                 timestamps: pd.Series) -> pd.Series:
+def _capacity_at(history: pd.DataFrame, ids: pd.Series, timestamps: pd.Series) -> pd.Series:
     """Then-current capacity (kW) for each (ID, timestamp) pair."""
     lookup = history.sort_values("effective_from")
-    frame = pd.DataFrame({
-        "ID": ids.astype(str).values,
-        "timestamp": pd.to_datetime(timestamps).values,
-    })
+    frame = pd.DataFrame(
+        {
+            "ID": ids.astype(str).values,
+            "timestamp": pd.to_datetime(timestamps).values,
+        }
+    )
     frame["_row"] = range(len(frame))
     merged = pd.merge_asof(
         frame.sort_values("timestamp"),
@@ -247,7 +249,10 @@ def monthly_cf(
         half_hourly: Output of :func:`half_hourly_from_generation_md`,
             aggregated to one row per (ID, timestamp); sum multiple units
             of one farm before calling.
-        capacity_history: Output of :func:`capacity_history_from_register`.
+        capacity_history: ``ID``, ``effective_from``, ``capacity`` (kW). The
+            processing step builds it from the curated tables;
+            :func:`capacity_history_from_register` is the register-based
+            alternative.
         year_start: First UTC year to include (inclusive).
         year_end: Last UTC year to include (inclusive).
         min_coverage: Minimum fraction of a month's half-hours required.
@@ -265,18 +270,12 @@ def monthly_cf(
     hh["month"] = hh["timestamp"].dt.month
     hh = hh[(hh["year"] >= int(year_start)) & (hh["year"] <= int(year_end))]
     if hh.empty:
-        return pd.DataFrame(
-            columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-        )
+        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
 
     agg = (
-        hh.groupby(["ID", "year", "month"])
-        .agg(cf=("cf", "mean"), n=("cf", "count"))
-        .reset_index()
+        hh.groupby(["ID", "year", "month"]).agg(cf=("cf", "mean"), n=("cf", "count")).reset_index()
     )
-    expected = agg.apply(
-        lambda r: monthrange(int(r["year"]), int(r["month"]))[1] * 48.0, axis=1
-    )
+    expected = month_days(agg["year"], agg["month"]) * 48.0
     agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
 
     wide = (
@@ -309,15 +308,188 @@ def below_final_build_mask(
     """
     rows = []
     final = capacity_history.groupby("ID")["capacity"].max()
-    months = pd.date_range(
-        f"{int(year_start)}-01-01", f"{int(year_end)}-12-01", freq="MS"
-    )
+    months = pd.date_range(f"{int(year_start)}-01-01", f"{int(year_end)}-12-01", freq="MS")
     for farm, cap_final in final.items():
         starts = pd.Series(months)
-        caps = _capacity_at(
-            capacity_history, pd.Series([farm] * len(starts)), starts
-        )
+        caps = _capacity_at(capacity_history, pd.Series([farm] * len(starts)), starts)
         under = caps.isna() | (caps < float(threshold) * cap_final)
         for t in months[under.values]:
             rows.append({"ID": str(farm), "year": t.year, "month": t.month})
     return pd.DataFrame(rows, columns=["ID", "year", "month"])
+
+
+# ---------------------------------------------------------------------------
+# The production path: the curated tables in configs/curation/
+# ---------------------------------------------------------------------------
+
+#: Register-listed wind Gen_Codes that never carry wind rows in Generation_MD,
+#: or embedded farms outside the dispatched dataset. Documented exclusions;
+#: an unmapped Gen_Code NOT in this set is an error.
+KNOWN_ABSENT = frozenset(
+    {
+        # Mahinerangi is metered inside the Waipori hydro scheme; its output never
+        # appears as wind rows in Generation_MD (verified 2013/2025/2026 files).
+        "mahinerangi",
+    }
+)
+
+#: Fuel_Code spellings of wind; the coding changed with Kaiwera Downs 2.
+WIND_FUELS = frozenset({"wind", "win"})
+
+
+def load_curated_tables(configs: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Read the three curated NZ tables.
+
+    Returns:
+        ``(farms, stages, windows)`` from ``nz_wind_farms.csv``,
+        ``nz_capacity_stages.csv`` and ``nz_mask_windows.csv``, with the farm
+        ``ID`` as a string.
+    """
+    farms = pd.read_csv(configs / "nz_wind_farms.csv")
+    farms["ID"] = farms["ID"].astype(str)
+    stages = pd.read_csv(configs / "nz_capacity_stages.csv")
+    windows = pd.read_csv(configs / "nz_mask_windows.csv")
+    return farms, stages, windows
+
+
+def gen_code_map(farms: pd.DataFrame) -> dict[str, str]:
+    """Lower-cased Gen_Code -> farm ID, from the farms table's ``gen_codes``."""
+    mapping: dict[str, str] = {}
+    for _, row in farms.iterrows():
+        for code in str(row["gen_codes"]).split(";"):
+            mapping[code.strip().lower()] = row["ID"]
+    return mapping
+
+
+def capacity_history_from_curation(farms: pd.DataFrame, stages: pd.DataFrame) -> pd.DataFrame:
+    """Stable-plateau capacity history from the curated tables.
+
+    Curated stages where a farm has them, otherwise one row per farm from its
+    first generation at its final capacity. This, not
+    :func:`capacity_history_from_register`, is what the NZ inputs are built on.
+
+    Returns:
+        Frame with ``ID``, ``effective_from`` and ``capacity`` (kW), sorted by
+        farm and date.
+    """
+    rows = [
+        pd.DataFrame(
+            {
+                "ID": stages["ID"].astype(str),
+                "effective_from": pd.to_datetime(stages["effective_from"]),
+                "capacity": pd.to_numeric(stages["capacity"]),
+            }
+        )
+    ]
+    staged = set(stages["ID"].astype(str))
+    plain = farms[~farms["ID"].isin(staged)]
+    rows.append(
+        pd.DataFrame(
+            {
+                "ID": plain["ID"],
+                "effective_from": pd.to_datetime(plain["first_generation"]),
+                "capacity": pd.to_numeric(plain["capacity"]),
+            }
+        )
+    )
+    return (
+        pd.concat(rows, ignore_index=True)
+        .sort_values(["ID", "effective_from"])
+        .reset_index(drop=True)
+    )
+
+
+def mask_from_windows(windows: pd.DataFrame) -> pd.DataFrame:
+    """Expand curated ``(from_month, to_month)`` windows to ``(ID, year, month)``."""
+    rows = []
+    for _, w in windows.iterrows():
+        months = pd.period_range(w["from_month"], w["to_month"], freq="M")
+        for p in months:
+            rows.append({"ID": str(w["ID"]), "year": p.year, "month": p.month})
+    return pd.DataFrame(rows, columns=["ID", "year", "month"])
+
+
+def wind_half_hourly(
+    paths: Iterable[Path],
+    mapping: dict[str, str],
+    *,
+    known_absent: frozenset[str] = KNOWN_ABSENT,
+) -> tuple[pd.DataFrame | None, set[str]]:
+    """Melt every Generation_MD file to half-hourly UTC energy per farm.
+
+    Wind rows are selected by ``Fuel_Code`` and keyed on the case-normalised
+    ``Gen_Code``: ``Site_Code`` is not stable across years, and capitalisation
+    varies. The header casing drifts too (the 2019 files say
+    ``Trading_date``).
+
+    Returns:
+        ``(half_hourly, unmapped)``. ``half_hourly`` has ``ID``, ``timestamp``
+        and ``kwh`` summed per farm and half-hour, or is None if no file has a
+        mapped wind row. ``unmapped`` holds wind Gen_Codes with no farm that
+        are not documented absentees; the caller decides that they are an
+        error.
+    """
+    pieces = []
+    unmapped: set[str] = set()
+    for path in paths:
+        gen = pd.read_csv(path, low_memory=False)
+        gen = gen.rename(
+            columns={c: "Trading_Date" for c in gen.columns if c.lower() == "trading_date"}
+        )
+        fuel = gen["Fuel_Code"].astype(str).str.strip().str.lower()
+        wind = gen[fuel.isin(WIND_FUELS)].copy()
+        if wind.empty:
+            continue
+        codes = wind["Gen_Code"].astype(str).str.strip().str.lower()
+        unmapped |= set(codes[~codes.isin(mapping)]) - known_absent
+        wind["farm"] = codes.map(mapping)
+        wind = wind[wind["farm"].notna()]
+        if wind.empty:
+            continue
+        pieces.append(half_hourly_from_generation_md(wind, id_col="farm"))
+    if not pieces:
+        return None, unmapped
+    half_hourly = (
+        pd.concat(pieces, ignore_index=True)
+        .groupby(["ID", "timestamp"], as_index=False)["kwh"]
+        .sum()
+    )
+    return half_hourly, unmapped
+
+
+#: The columns of ``nz_md.csv``, the metadata contract EMINewZealandSource reads.
+METADATA_COLUMNS = [
+    "ID",
+    "site_name",
+    "lon",
+    "lat",
+    "height",
+    "capacity",
+    "model",
+    "type",
+    "commissioning_date",
+    "height_source",
+    "model_source",
+    "true_model",
+    "n_turbines",
+    "diameter",
+    "operator",
+]
+
+
+def metadata_contract(farms: pd.DataFrame, fallback_model: str) -> pd.DataFrame:
+    """The ``nz_md.csv`` frame: curated farms with a curve key assigned.
+
+    Keys are assigned per farm by scale-then-specific-power matching against
+    the active curve library, the guarded matcher the US fleet uses. The true
+    manufacturer and model string is carried in ``true_model`` for provenance,
+    never as the curve key.
+    """
+    from vwf.datasets.eia_us import assign_curves_from_library
+
+    md = farms.rename(columns={"turbine_model": "true_model"}).copy()
+    md["model"] = fallback_model
+    md["model_source"] = "default-uniform"
+    md = assign_curves_from_library(md, fallback_model=fallback_model)
+    md["commissioning_date"] = pd.to_datetime(md["first_generation"])
+    return md[METADATA_COLUMNS]

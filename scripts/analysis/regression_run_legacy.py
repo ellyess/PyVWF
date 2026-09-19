@@ -17,6 +17,7 @@ Country-level (NL, FR): load_country_data from the observations/country files
 Writes factors_<slice>_<n>.csv and cor_cf_<slice>_<n>.csv (+ unc_cf, obs_cf)
 into --out; diff against a harness run with scripts/analysis/regression_compare.py.
 """
+
 import argparse
 import sys
 import time
@@ -47,8 +48,14 @@ def main():
 
     t0 = time.time()
     model = PyVWF(
-        str(run_dir), args.country, True, True, args.mode,
-        args.clusters, args.time_res, obs_level=args.obs_level,
+        str(run_dir),
+        args.country,
+        True,
+        True,
+        args.mode,
+        args.clusters,
+        args.time_res,
+        obs_level=args.obs_level,
     )
 
     if args.obs_level == "country":
@@ -57,11 +64,13 @@ def main():
         gp = pd.read_csv(cl / "grid_points" / c / f"{c}_grid_points.csv")
         tr = pd.read_csv(
             cl / "observations" / c / f"{c}_train_{args.train_start}_{args.train_end}.csv",
-            index_col=0, parse_dates=True,
+            index_col=0,
+            parse_dates=True,
         )
         te = pd.read_csv(
             cl / "observations" / c / f"{c}_test_{args.test_year}.csv",
-            index_col=0, parse_dates=True,
+            index_col=0,
+            parse_dates=True,
         )
         model.load_country_data(gp, tr, te)
 

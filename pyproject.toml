@@ -23,7 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Typing :: Typed",
 ]
-# Single source of truth: vwf.__version__ (see tool.setuptools.dynamic below).
+# Single source of truth: vwf/_version.py, re-exported as vwf.__version__
+# (see tool.setuptools.dynamic below).
 # tests/test_packaging.py asserts it stays in step with CITATION.cff.
 dynamic = ["version"]
 
@@ -54,6 +55,9 @@ dependencies = [
     # Performance. bottleneck also backs xarray's .bfill(), which prep_era5
     # uses to fill the surface-roughness field, so it is a hard requirement.
     "bottleneck>=1.3.0",
+    # vwf.harness.regions reads region configs with tomllib, in the standard
+    # library from 3.11; 3.10 needs the backport at runtime, not only in tests.
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -76,12 +80,33 @@ pinn = [
     "torch>=2.0",
 ]
 
+# The gridded-correction extension (vwf.extensions.grid) only: kriging needs
+# pykrige, and the terrain feature extraction reads GeoTIFFs through rasterio.
+# Kept out of the base install so the affine pipeline does not pull them, and
+# out of CI so the matrix stays light; the tests skip themselves when absent.
+grid = [
+    "pykrige>=1.7.0",
+    "rasterio>=1.3.0",
+]
+
+# The TouchDesigner export (scripts/analysis/export_voronoi_frames.py) only:
+# earcut triangulates the clipped Voronoi cells, because TouchDesigner's own
+# Python has numpy but no scipy or shapely, so every polygon has to arrive as
+# flat triangles. Nothing in the package imports it.
+touchdesigner = [
+    "mapbox-earcut>=2.0.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
     "pandas-stubs",
+    "pre-commit>=3.0.0",
+    "import-linter>=2.0",
+    "deptry>=0.20",
+    "vulture>=2.10",
     # tests/test_packaging.py parses pyproject.toml. tomllib entered the stdlib
     # in 3.11, so 3.10 needs the backport.
     "tomli>=2.0.0; python_version < '3.11'",
@@ -99,12 +124,13 @@ Repository = "https://github.com/ellyess/PyVWF"
 
 [project.scripts]
 pyvwf-train = "vwf.cli.train:main"
+pyvwf-validate = "vwf.cli.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.dynamic]
-version = {attr = "vwf.__version__"}
+version = {attr = "vwf._version.__version__"}
 
 [tool.setuptools.package-data]
 # The previous glob ("*.csv") matched nothing: there are no data files directly
@@ -116,7 +142,13 @@ vwf = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers"
+# CI runs `-m "not slow and not realdata"` on pushes and pull requests, and the
+# full set on a manual dispatch. CONTRIBUTING.md gives both commands.
+markers = [
+    "realdata: reads git-ignored data under input/ or output/, and skips where it is absent",
+    "slow: a pin that takes seconds per case; left out of the default CI run",
+]
 # `python -m pytest` puts the working directory on sys.path but a bare `pytest`
 # does not, and CI invokes the bare form. tests/test_country_zonal.py imports a
 # helper from tests/test_pipeline.py, so the repo root has to be importable
@@ -174,6 +206,31 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E402"]  # sys.path manipulation before imports in a few tests
+
+[tool.deptry]
+# Checks src/ against the declared dependencies; CI runs `deptry src`.
+known_first_party = ["vwf"]
+pep621_dev_dependency_groups = ["dev", "docs"]
+
+[tool.deptry.package_module_name_map]
+entsoe-py = "entsoe"
+mapbox-earcut = "mapbox_earcut"
+
+[tool.deptry.per_rule_ignores]
+# Declared but never imported by src/, for a stated reason each:
+# - netCDF4, bottleneck: xarray's backends, loaded by name, never imported;
+# - openpyxl, pyarrow: pandas' Excel and Parquet engines, likewise;
+# - cdsapi, mapbox-earcut: used only by scripts/ (fetch/era5.py,
+#   analysis/export_voronoi_frames.py), which deptry does not scan.
+DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi", "mapbox-earcut"]
+
+[tool.vulture]
+# Dead-code scan of src/ at a conservative confidence; CI runs `vulture`.
+paths = ["src"]
+min_confidence = 80
+# A parameter an interface requires: matplotlib's FuncFormatter calls
+# _comma_formatter(x, pos).
+ignore_names = ["pos"]
 
 [tool.mypy]
 # No python_version pin: numpy's bundled stubs use PEP 695 syntax that mypy

@@ -8,6 +8,7 @@ were measuring which local optimum KMeans fell into, not k.
 
 These tests pin the property that matters: same data, same k, same partition.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -31,11 +32,13 @@ def _blobs(n_blobs=40, per_blob=5, spread=0.02, seed=0):
         pts.append(c + rng.normal(0.0, spread, (per_blob, 2)))
         truth.extend([i] * per_blob)
     xy = np.vstack(pts)
-    df = pd.DataFrame({
-        "ID": [str(i) for i in range(len(xy))],
-        "lat": xy[:, 0],
-        "lon": xy[:, 1],
-    })
+    df = pd.DataFrame(
+        {
+            "ID": [str(i) for i in range(len(xy))],
+            "lat": xy[:, 0],
+            "lon": xy[:, 1],
+        }
+    )
     return df, np.asarray(truth)
 
 
@@ -79,12 +82,14 @@ def _capacity_gradient(n=21):
     weighted or not. A contiguous line does, because weighting decides where
     the boundary falls rather than whether there is one.
     """
-    return pd.DataFrame({
-        "ID": [str(i) for i in range(n)],
-        "lat": np.linspace(0.0, 20.0, n),
-        "lon": np.zeros(n),
-        "capacity": [1.0] * (n // 2 + 1) + [100.0] * (n // 2),
-    })
+    return pd.DataFrame(
+        {
+            "ID": [str(i) for i in range(n)],
+            "lat": np.linspace(0.0, 20.0, n),
+            "lon": np.zeros(n),
+            "capacity": [1.0] * (n // 2 + 1) + [100.0] * (n // 2),
+        }
+    )
 
 
 def _lowest_lat_of_top_cluster(df, labels):
@@ -118,9 +123,7 @@ def test_capacity_weighting_falls_back_when_weights_unusable():
     with pytest.warns(UserWarning, match="falling back to an unweighted fit"):
         out = cluster_turbines(2, df.copy(), True, weight_col="capacity")
     baseline = cluster_turbines(2, df.copy(), True)
-    assert np.array_equal(
-        pd.factorize(out["cluster"])[0], pd.factorize(baseline["cluster"])[0]
-    )
+    assert np.array_equal(pd.factorize(out["cluster"])[0], pd.factorize(baseline["cluster"])[0])
 
 
 def test_missing_weight_column_is_not_an_error():
@@ -146,19 +149,23 @@ def _square_km_grid(lat0=50.0, half_km=60.0, n=7):
         for dx in offs:
             lats.append(lat0 + dy / km_per_deg_lat)
             lons.append(dx / km_per_deg_lon)
-    return pd.DataFrame({
-        "ID": [str(i) for i in range(len(lats))],
-        "lat": lats,
-        "lon": lons,
-    })
+    return pd.DataFrame(
+        {
+            "ID": [str(i) for i in range(len(lats))],
+            "lat": lats,
+            "lon": lons,
+        }
+    )
 
 
 def _split_axis(df, labels):
     """Whether a 2-cluster split separates points by latitude or longitude."""
     a, b = (df[labels == c] for c in np.unique(labels))
-    return "lat" if abs(a["lat"].mean() - b["lat"].mean()) > abs(
-        a["lon"].mean() - b["lon"].mean()
-    ) else "lon"
+    return (
+        "lat"
+        if abs(a["lat"].mean() - b["lat"].mean()) > abs(a["lon"].mean() - b["lon"].mean())
+        else "lon"
+    )
 
 
 def test_degree_space_splits_a_square_along_the_wrong_axis():
@@ -179,9 +186,9 @@ def test_degree_space_splits_a_square_along_the_wrong_axis():
     assert _split_axis(df, geographic) == "lat", (
         "geographic fit still split along the degree-stretched axis"
     )
-    assert not np.array_equal(
-        pd.factorize(degrees)[0], pd.factorize(geographic)[0]
-    ), "geographic projection did not change the partition"
+    assert not np.array_equal(pd.factorize(degrees)[0], pd.factorize(geographic)[0]), (
+        "geographic projection did not change the partition"
+    )
 
 
 def test_the_two_conventions_agree_where_there_is_no_distortion():

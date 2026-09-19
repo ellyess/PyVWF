@@ -6,25 +6,15 @@ hourly generation and a national turbine register (TÜREB) carrying turbine
 models, so hub heights become derivable per plant; see
 docs/runbooks/tr.md and docs/findings/dataset-survey.md.
 
-WHERE TO PUT YOUR CREDENTIALS
------------------------------
-Two options; pick either. Both keep the password out of the shell history,
-out of this repository, and out of any log.
+CREDENTIALS
+-----------
+Pass them in the environment, for the one command, never in a file
+(AGENTS.md: "Write no credential into a file"):
 
-1. A credentials file (easiest). Create `input/.epias_credentials`:
+    EPIAS_USERNAME='your@email' EPIAS_PASSWORD='your-password' \
+        python scripts/fetch/epias_tr.py --probe
 
-       {"username": "your@email", "password": "your-password"}
-
-   `input/` is git-ignored in its entirety (.gitignore line 90), so the file
-   cannot be committed by accident. The script reads it with no other setup.
-   Optionally `chmod 600 input/.epias_credentials`.
-
-2. Environment variables, if you prefer nothing on disk:
-
-       export EPIAS_USERNAME='your@email'
-       export EPIAS_PASSWORD='your-password'
-
-Environment variables win when both are present.
+A credentials file under input/ was read until 2026-09-18. It is no longer.
 
     python scripts/fetch/epias_tr.py --probe      # verification, writes nothing
     python scripts/fetch/epias_tr.py --years 2021 2024
@@ -49,6 +39,7 @@ Turkey abolished daylight saving in 2016 and sits at a permanent UTC+3, so the
 timestamp handling is a fixed offset, simpler than the NZ trading periods or
 Chile's DST. Verify the API's own timestamp labels before trusting that.
 """
+
 import argparse
 import json
 import os
@@ -56,7 +47,6 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 
 CAS = "https://giris.epias.com.tr/cas/v1/tickets"
 BASE = "https://seffaflik.epias.com.tr/electricity-service/v1"
@@ -70,15 +60,13 @@ PLANT_LIST_PATHS = (
     "/generation/data/uevm-powerplant-list",
 )
 GENERATION_PATHS = (
-    "/generation/data/injection-quantity",        # UEVM, settlement-grade
-    "/generation/data/realtime-generation",       # operational
+    "/generation/data/injection-quantity",  # UEVM, settlement-grade
+    "/generation/data/realtime-generation",  # operational
 )
-
-CRED_FILE = "input/.epias_credentials"
 
 
 def credentials() -> tuple[str, str]:
-    """Username and password, from the environment or the credentials file.
+    """Username and password, from the environment only.
 
     Never printed, never placed on a command line, never written anywhere.
     """
@@ -86,34 +74,10 @@ def credentials() -> tuple[str, str]:
     pwd = os.environ.get("EPIAS_PASSWORD", "")
     if user and pwd:
         return user, pwd
-
-    path = Path(os.environ.get("PYVWF_INPUT", "input")) / ".epias_credentials"
-    if not path.is_file():
-        path = Path(CRED_FILE)
-    if path.is_file():
-        try:
-            blob = json.loads(path.read_text())
-            user = str(blob.get("username", "")).strip()
-            pwd = str(blob.get("password", ""))
-        except json.JSONDecodeError:
-            # tolerate key=value lines
-            blob = {}
-            for line in path.read_text().splitlines():
-                if "=" in line and not line.strip().startswith("#"):
-                    k, v = line.split("=", 1)
-                    blob[k.strip().lower()] = v.strip().strip("'\"")
-            user, pwd = blob.get("username", ""), blob.get("password", "")
-        if user and pwd:
-            return user, pwd
-
     sys.exit(
-        "No EPİAŞ credentials found.\n\n"
-        f"  Either create {CRED_FILE} containing:\n"
-        '      {"username": "your@email", "password": "your-password"}\n'
-        "  (input/ is git-ignored, so it cannot be committed)\n\n"
-        "  Or export them:\n"
-        "      export EPIAS_USERNAME='your@email'\n"
-        "      export EPIAS_PASSWORD='your-password'\n"
+        "No EPİAŞ credentials found. Pass them in the environment for this command:\n\n"
+        "      EPIAS_USERNAME='your@email' EPIAS_PASSWORD='your-password' \\\n"
+        "          python scripts/fetch/epias_tr.py --probe\n"
     )
 
 
@@ -126,9 +90,14 @@ def get_tgt() -> str:
     user, pwd = credentials()
     body = urllib.parse.urlencode({"username": user, "password": pwd}).encode()
     req = urllib.request.Request(
-        CAS, data=body, method="POST",
-        headers={"Content-Type": "application/x-www-form-urlencoded",
-                 "Accept": "text/plain", "User-Agent": "pyvwf-fetch"},
+        CAS,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "text/plain",
+            "User-Agent": "pyvwf-fetch",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -152,8 +121,7 @@ def get_tgt() -> str:
     return tgt
 
 
-def call(path: str, payload: dict, tgt: str, *, method: str = "POST",
-         timeout: int = 180):
+def call(path: str, payload: dict, tgt: str, *, method: str = "POST", timeout: int = 180):
     """Call a Transparency endpoint. Returns (status, parsed).
 
     Method matters and is not guessable from the path: the *-list endpoints
@@ -162,9 +130,15 @@ def call(path: str, payload: dict, tgt: str, *, method: str = "POST",
     """
     data = json.dumps(payload).encode() if method == "POST" else None
     req = urllib.request.Request(
-        f"{BASE}{path}", data=data, method=method,
-        headers={"Content-Type": "application/json", "Accept": "application/json",
-                 "TGT": tgt, "User-Agent": "pyvwf-fetch"},
+        f"{BASE}{path}",
+        data=data,
+        method=method,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "TGT": tgt,
+            "User-Agent": "pyvwf-fetch",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -203,8 +177,7 @@ def items(payload) -> list:
 
 def day_window(date: str) -> dict:
     """Transparency wants ISO timestamps with Turkey's fixed +03:00 offset."""
-    return {"startDate": f"{date}T00:00:00+03:00",
-            "endDate": f"{date}T23:00:00+03:00"}
+    return {"startDate": f"{date}T00:00:00+03:00", "endDate": f"{date}T23:00:00+03:00"}
 
 
 def probe() -> None:
@@ -216,8 +189,7 @@ def probe() -> None:
 
     plants, used_path, list_method = [], None, None
     for path in PLANT_LIST_PATHS:
-        status, payload, method = try_both(
-            path, {"period": "2024-06-01T00:00:00+03:00"}, tgt)
+        status, payload, method = try_both(path, {"period": "2024-06-01T00:00:00+03:00"}, tgt)
         found = items(payload) if status == 200 else []
         print(f"  {path:52s} {status} {method or ''} {len(found) if found else ''}")
         if found:
@@ -251,8 +223,7 @@ def probe() -> None:
     pid = sample.get("id") or sample.get("powerPlantId") or sample.get("plantId")
     print(f"\nprobing plant id={pid} ({str(sample.get('name', '?')).strip()})")
 
-    other = next((p for p in wind
-                  if (p.get("id") or p.get("powerPlantId")) != pid), None)
+    other = next((p for p in wind if (p.get("id") or p.get("powerPlantId")) != pid), None)
     other_id = other.get("id") if other else None
 
     print("\n" + "-" * 70)
@@ -276,7 +247,8 @@ def probe() -> None:
                 keys = [k for k in found[0] if k not in ("date", "hour")]
                 sigs[label] = json.dumps(
                     {k: v for k, v in found[0].items() if isinstance(v, (int, float))},
-                    sort_keys=True)
+                    sort_keys=True,
+                )
             print(f"  {path:46s} {label} {status} rows={len(found)}")
         if keys:
             print(f"    payload keys: {keys[:8]}")
@@ -297,17 +269,23 @@ def probe() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--probe", action="store_true",
-                    help="Authenticate and verify; writes nothing")
-    ap.add_argument("--years", type=int, nargs=2, metavar=("START", "END"),
-                    help="Fetch per-plant generation for this window")
+    ap.add_argument("--probe", action="store_true", help="Authenticate and verify; writes nothing")
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="Fetch per-plant generation for this window",
+    )
     args = ap.parse_args()
 
     if args.probe:
         probe()
     elif args.years:
-        sys.exit("Run --probe first: the endpoint paths and history depth must "
-                 "be confirmed before a bulk fetch is worth starting.")
+        sys.exit(
+            "Run --probe first: the endpoint paths and history depth must "
+            "be confirmed before a bulk fetch is worth starting."
+        )
     else:
         ap.print_help()
 

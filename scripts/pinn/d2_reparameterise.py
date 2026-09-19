@@ -26,6 +26,7 @@ pre-specified separately in docs/findings/method-physics-informed-prespecificati
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d2_reparameterise.py
 """
+
 from pathlib import Path
 import sys
 
@@ -36,7 +37,10 @@ from sklearn.ensemble import RandomForestRegressor
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis.ml_transfer_retest import (  # noqa: E402
-    RUNS, SEEDS, SET_A, RF_KW, terrain_features,
+    SEEDS,
+    SET_A,
+    RF_KW,
+    terrain_features,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,9 +53,16 @@ def ridge_pivot(df: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for region, s in df.groupby("region"):
         res = stats.linregress(s["scalar"], s["offset"])
-        rows.append(dict(region=region, n=len(s),
-                         pivot_w=-res.slope, intercept=res.intercept,
-                         r=res.rvalue, r2=res.rvalue ** 2))
+        rows.append(
+            dict(
+                region=region,
+                n=len(s),
+                pivot_w=-res.slope,
+                intercept=res.intercept,
+                r=res.rvalue,
+                r2=res.rvalue**2,
+            )
+        )
     return pd.DataFrame(rows)
 
 
@@ -65,17 +76,27 @@ def loro_both_metrics(df, feats, target, identity):
     for region in sorted(df.region.unique()):
         tr, te = df[df.region != region], df[df.region == region]
         y = te[target].to_numpy()
-        preds = np.column_stack([
-            RandomForestRegressor(random_state=s, **RF_KW)
-            .fit(tr[feats], tr[target]).predict(te[feats]) for s in SEEDS
-        ])
+        preds = np.column_stack(
+            [
+                RandomForestRegressor(random_state=s, **RF_KW)
+                .fit(tr[feats], tr[target])
+                .predict(te[feats])
+                for s in SEEDS
+            ]
+        )
         m_ml = float(np.mean([mse(y, preds[:, i]) for i in range(preds.shape[1])]))
         m_oracle = mse(y, np.full_like(y, y.mean()))
         m_ident = mse(y, np.full_like(y, identity))
-        rows.append(dict(holdout=region, n=len(te),
-                         r2_vs_holdout_mean=1 - m_ml / m_oracle,
-                         skill_vs_identity=1 - m_ml / m_ident,
-                         rmse_ml=np.sqrt(m_ml), rmse_identity=np.sqrt(m_ident)))
+        rows.append(
+            dict(
+                holdout=region,
+                n=len(te),
+                r2_vs_holdout_mean=1 - m_ml / m_oracle,
+                skill_vs_identity=1 - m_ml / m_ident,
+                rmse_ml=np.sqrt(m_ml),
+                rmse_identity=np.sqrt(m_ident),
+            )
+        )
     return pd.DataFrame(rows)
 
 
@@ -84,12 +105,12 @@ def main():
     df = pd.read_csv(D1)
     for c in ("lon", "lat"):
         df[f"{c}_norm"] = (df[c] - df[c].min()) / (df[c].max() - df[c].min())
-    df = terrain_features(df)   # the published SET_A features
+    df = terrain_features(df)  # the published SET_A features
     pd.set_option("display.width", 210)
 
     # ---------------------------------------------------------------- 1 ----
     piv = ridge_pivot(df)
-    print(f"{'='*94}\n### 1. The (scalar, offset) ridge: offset = c - w_p * scalar\n")
+    print(f"{'=' * 94}\n### 1. The (scalar, offset) ridge: offset = c - w_p * scalar\n")
     print(piv.round(3).to_string(index=False))
     w_p = float(piv["pivot_w"].median())
     print(f"\n  median pivot speed across regions: w_p = {w_p:.2f} m/s")
@@ -99,25 +120,31 @@ def main():
     # ---------------------------------------------------------------- 2 ----
     # Reparameterise onto a SINGLE global pivot so the new target is defined
     # identically in every region (a per-region pivot would leak region identity).
-    df["level"] = df["scalar"] * w_p + df["offset"]      # corrected speed at w_p
-    df["gain"] = df["scalar"]                             # slope, unchanged
-    print(f"\n{'='*94}\n### 2. Orthogonality after reparameterising at w_p = {w_p:.2f} m/s\n")
+    df["level"] = df["scalar"] * w_p + df["offset"]  # corrected speed at w_p
+    df["gain"] = df["scalar"]  # slope, unchanged
+    print(f"\n{'=' * 94}\n### 2. Orthogonality after reparameterising at w_p = {w_p:.2f} m/s\n")
     rows = []
     for region, s in df.groupby("region"):
-        rows.append(dict(
-            region=region,
-            r_scalar_offset=stats.pearsonr(s.scalar, s.offset)[0],
-            r_gain_level=stats.pearsonr(s.gain, s.level)[0],
-            level_mean=s.level.mean(), level_std=s.level.std(),
-            gain_mean=s.gain.mean(), gain_std=s.gain.std(),
-        ))
+        rows.append(
+            dict(
+                region=region,
+                r_scalar_offset=stats.pearsonr(s.scalar, s.offset)[0],
+                r_gain_level=stats.pearsonr(s.gain, s.level)[0],
+                level_mean=s.level.mean(),
+                level_std=s.level.std(),
+                gain_mean=s.gain.mean(),
+                gain_std=s.gain.std(),
+            )
+        )
     orth = pd.DataFrame(rows)
     print(orth.round(3).to_string(index=False))
-    print(f"\n  pooled r(scalar,offset) = {stats.pearsonr(df.scalar, df.offset)[0]:+.3f}"
-          f"   pooled r(gain,level) = {stats.pearsonr(df.gain, df.level)[0]:+.3f}")
+    print(
+        f"\n  pooled r(scalar,offset) = {stats.pearsonr(df.scalar, df.offset)[0]:+.3f}"
+        f"   pooled r(gain,level) = {stats.pearsonr(df.gain, df.level)[0]:+.3f}"
+    )
 
     # ---------------------------------------------------------------- 3 ----
-    print(f"\n{'='*94}\n### 3. LORO transfer on old vs new targets (same RF, same seeds)\n")
+    print(f"\n{'=' * 94}\n### 3. LORO transfer on old vs new targets (same RF, same seeds)\n")
     # identity correction: scalar 1, offset 0  ->  level = w_p, gain = 1
     specs = [("scalar", 1.0), ("offset", 0.0), ("level", w_p), ("gain", 1.0)]
     all_res = []
@@ -127,8 +154,10 @@ def main():
         all_res.append(r)
         print(f"\n-- target = {target}  (identity = {ident:.3f}) --")
         print(r.round(3).to_string(index=False))
-        print(f"   R2>0 in {int((r.r2_vs_holdout_mean>0).sum())}/5   |   "
-              f"skill-vs-identity>0 in {int((r.skill_vs_identity>0).sum())}/5")
+        print(
+            f"   R2>0 in {int((r.r2_vs_holdout_mean > 0).sum())}/5   |   "
+            f"skill-vs-identity>0 in {int((r.skill_vs_identity > 0).sum())}/5"
+        )
     res = pd.concat(all_res, ignore_index=True)
     res.to_csv(OUT / "d2_loro_reparameterised.csv", index=False)
 
@@ -137,8 +166,8 @@ def main():
     # Because they sit on a ridge, the constrained alternative is to predict the
     # scalar only and READ the offset off the ridge: b = c - w_p * a. Score both
     # in wind-speed space, which is where the correction is actually applied.
-    print(f"\n{'='*94}\n### 4. Free vs ridge-constrained offset, scored in wind-speed space\n")
-    ws = np.arange(4.0, 20.1, 0.5)   # above cut-in: the speeds that make power
+    print(f"\n{'=' * 94}\n### 4. Free vs ridge-constrained offset, scored in wind-speed space\n")
+    ws = np.arange(4.0, 20.1, 0.5)  # above cut-in: the speeds that make power
     rows = []
     for region in sorted(df.region.unique()):
         tr, te = df[df.region != region], df[df.region == region]
@@ -148,33 +177,48 @@ def main():
         b_true = te["offset"].to_numpy()[:, None]
         w_true = a_true * ws[None, :] + b_true
 
-        pa = np.mean([RandomForestRegressor(random_state=s_, **RF_KW)
-                      .fit(tr[SET_A], tr["scalar"]).predict(te[SET_A])
-                      for s_ in SEEDS], axis=0)[:, None]
-        pb = np.mean([RandomForestRegressor(random_state=s_, **RF_KW)
-                      .fit(tr[SET_A], tr["offset"]).predict(te[SET_A])
-                      for s_ in SEEDS], axis=0)[:, None]
+        pa = np.mean(
+            [
+                RandomForestRegressor(random_state=s_, **RF_KW)
+                .fit(tr[SET_A], tr["scalar"])
+                .predict(te[SET_A])
+                for s_ in SEEDS
+            ],
+            axis=0,
+        )[:, None]
+        pb = np.mean(
+            [
+                RandomForestRegressor(random_state=s_, **RF_KW)
+                .fit(tr[SET_A], tr["offset"])
+                .predict(te[SET_A])
+                for s_ in SEEDS
+            ],
+            axis=0,
+        )[:, None]
 
-        w_free = pa * ws[None, :] + pb                      # as published
+        w_free = pa * ws[None, :] + pb  # as published
         w_ridge = pa * ws[None, :] + (rr.intercept + rr.slope * pa)
         w_none = np.broadcast_to(ws[None, :], w_true.shape)  # no correction
 
         def r(x):
             return float(np.sqrt(np.mean((w_true - x) ** 2)))
-        rows.append(dict(
-            holdout=region,
-            rmse_uncorrected=r(w_none),
-            rmse_pred_free=r(w_free),
-            rmse_pred_ridge=r(w_ridge),
-            skill_free=1 - r(w_free) ** 2 / r(w_none) ** 2,
-            skill_ridge=1 - r(w_ridge) ** 2 / r(w_none) ** 2,
-        ))
+
+        rows.append(
+            dict(
+                holdout=region,
+                rmse_uncorrected=r(w_none),
+                rmse_pred_free=r(w_free),
+                rmse_pred_ridge=r(w_ridge),
+                skill_free=1 - r(w_free) ** 2 / r(w_none) ** 2,
+                skill_ridge=1 - r(w_ridge) ** 2 / r(w_none) ** 2,
+            )
+        )
     wsp = pd.DataFrame(rows)
     print(wsp.round(3).to_string(index=False))
-    print(f"\n  skill = 1 - MSE/MSE_uncorrected in m/s over 4-20 m/s;")
-    print(f"  positive means the transferred correction beats leaving ERA5 alone.")
-    print(f"  free  > 0 in {int((wsp.skill_free>0).sum())}/5 regions")
-    print(f"  ridge > 0 in {int((wsp.skill_ridge>0).sum())}/5 regions")
+    print("\n  skill = 1 - MSE/MSE_uncorrected in m/s over 4-20 m/s;")
+    print("  positive means the transferred correction beats leaving ERA5 alone.")
+    print(f"  free  > 0 in {int((wsp.skill_free > 0).sum())}/5 regions")
+    print(f"  ridge > 0 in {int((wsp.skill_ridge > 0).sum())}/5 regions")
     wsp.to_csv(OUT / "d2_windspace.csv", index=False)
 
     df.to_csv(OUT / "d2_targets.csv", index=False)

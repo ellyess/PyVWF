@@ -9,6 +9,7 @@ The real motivating cases are recorded in
 docs/findings/method-country-level.md: NL never exceeds CF 0.57 over four
 years of quarter-hourly data, and IE rails against the fetcher's 1.5 clip.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -41,6 +42,7 @@ def healthy(n=2000, seed=0):
 # The gate passes real-looking data
 # ---------------------------------------------------------------------------
 
+
 def test_healthy_series_passes():
     report = check_country_cf(healthy(), "XX train")
     assert report.ok
@@ -58,6 +60,7 @@ def test_no_warning_when_healthy(recwarn):
 # The gate catches each failure mode
 # ---------------------------------------------------------------------------
 
+
 def test_understated_generation_is_caught_by_the_peak_test():
     """NL's signature. The mean can sit inside a plausible band while every
     value is scaled down, so the peak is what distinguishes it."""
@@ -67,11 +70,45 @@ def test_understated_generation_is_caught_by_the_peak_test():
     assert any("never reaches" in issue for issue in report.issues)
 
 
-def test_capacity_factor_above_one_is_caught():
+def test_one_hour_above_one_is_a_note_and_carries_its_count():
+    """Belgium's signature: 1 hour of 61,364 at 1.295, against an annual
+    register that cannot track within-year additions. It is reported and it is
+    not a failure, because a message that reads the same here as it does at
+    13.1% of hours teaches a reader to ignore it."""
     cf = healthy()["capacity_factor"].to_numpy().copy()
     cf[5] = 1.29
     report = check_country_cf(series(cf), "XX", warn=False)
-    assert any("exceeds 1" in issue for issue in report.issues)
+    assert report.ok and not report.failures
+    assert len(report.notes) == 1
+    assert "1 of 2000 rows" in report.notes[0] and "peak 1.290" in report.notes[0]
+
+
+def test_a_tenth_of_a_percent_above_one_is_a_warning():
+    cf = healthy(n=2000)["capacity_factor"].to_numpy().copy()
+    cf[:5] = 1.1  # 0.25%, above the warn share, below fail
+    report = check_country_cf(series(cf), "XX", warn=False)
+    assert report.ok and not report.failures
+    assert len(report.warnings_) == 1 and "0.250%" in report.warnings_[0]
+
+
+def test_a_month_averaging_above_one_fails_on_its_own():
+    """Ireland's pre-repair signature. A whole month above 1 is impossible
+    under any correct denominator, whatever share of hours is involved. The
+    series is long enough that 744 bad hours are 0.74% of it, which would
+    otherwise be a warning, so the month is what makes it a failure."""
+    cf = healthy(n=100_000)["capacity_factor"].to_numpy().copy()
+    cf[:744] = 1.05  # January 2015, wholly
+    report = check_country_cf(series(cf), "XX", warn=False)
+    assert 0.001 < (cf > 1).mean() < 0.01
+    assert not report.ok
+    assert any("MEAN above 1" in f and "2015-01" in f for f in report.failures)
+
+
+def test_more_than_one_percent_above_one_fails_without_a_bad_month():
+    cf = healthy(n=2000)["capacity_factor"].to_numpy().copy()
+    cf[::40] = 1.05  # 2.5%, spread so no month's mean exceeds 1
+    report = check_country_cf(series(cf), "XX", warn=False)
+    assert not report.ok and report.failures
 
 
 def test_clip_saturation_is_reported_separately_from_exceeding_one():
@@ -105,14 +142,38 @@ def test_moving_capacity_register_is_not_flagged():
     assert not any("register" in issue for issue in report.issues)
 
 
-def test_coarse_but_moving_register_is_not_flagged():
-    """PT's register is two numbers over seven years, but the fleet genuinely
-    only grew 15%. Coarseness alone is not evidence of a stalled register."""
-    frame = healthy(n=40000)
-    half = len(frame) // 2
-    frame["capacity_mw"] = np.r_[np.full(half, 4486.0), np.full(len(frame) - half, 5181.0)]
+def test_a_register_held_for_years_is_flagged_however_far_it_moves_in_the_end():
+    """Portugal's register: 4486 MW from 2015 to 2019, then 5181. The rule this
+    replaced exempted it because total movement is 15.5%, and cited Portugal as
+    its justification while Portugal is the defect it admits. When the register
+    moved is the test; how far it moves in the end is not."""
+    frame = healthy(n=61000)
+    year = pd.Series(frame.index.year, index=frame.index)
+    frame["capacity_mw"] = np.where(year.to_numpy() <= 2019, 4486.0, 5181.0)
     report = check_country_cf(frame, "XX", warn=False)
-    assert not any("register" in issue for issue in report.issues)
+    assert not report.ok
+    assert any("unchanged at 4486 MW across 5 consecutive years" in f for f in report.failures)
+    assert report.longest_unchanged_years == 5
+    assert report.unchanged_span == "2015 to 2019"
+
+
+def test_a_register_stepping_every_year_is_not_flagged():
+    """Belgium's register: six values over seven years. A run of two is normal
+    and must not fire, or the rule catches every real series."""
+    frame = healthy(n=61000)
+    steps = {
+        2015: 1249.0,
+        2016: 1249.0,
+        2017: 1745.0,
+        2018: 1979.0,
+        2019: 2248.0,
+        2020: 4671.0,
+        2021: 4883.0,
+    }
+    frame["capacity_mw"] = [steps.get(y, 4883.0) for y in frame.index.year]
+    report = check_country_cf(frame, "XX", warn=False)
+    assert not any("register" in f for f in report.failures)
+    assert report.longest_unchanged_years == 2
 
 
 def test_coarse_and_static_register_is_flagged():
@@ -129,13 +190,12 @@ def test_coarse_and_static_register_is_flagged():
 # Coverage drift
 # ---------------------------------------------------------------------------
 
+
 def drifting(annual_cf, seed=0):
     """One year per entry, at the given annual mean capacity factor."""
     rng = np.random.default_rng(seed)
     idx = pd.date_range("2015-01-01", periods=len(annual_cf) * 8760, freq="h", tz="UTC")
-    cf = np.concatenate(
-        [np.clip(rng.beta(1.4, 4.0, 8760) * (m / 0.259), 0, 1) for m in annual_cf]
-    )
+    cf = np.concatenate([np.clip(rng.beta(1.4, 4.0, 8760) * (m / 0.259), 0, 1) for m in annual_cf])
     cf[0] = 0.93
     return pd.DataFrame({"capacity_factor": cf}, index=idx)
 
@@ -171,6 +231,7 @@ def test_mostly_missing_series_is_caught():
 # Resolution handling
 # ---------------------------------------------------------------------------
 
+
 def test_peak_test_is_skipped_on_a_monthly_series():
     """A monthly mean legitimately never approaches the fleet peak. Applying
     the sub-daily threshold there would fail every correctly aggregated file."""
@@ -184,9 +245,7 @@ def test_mixed_offset_index_still_gets_the_resolution_checks():
     timestamps cross a DST boundary, which every ENTSO-E export does. Without
     coercion the resolution-dependent gates silently skip the worst files."""
     idx = pd.date_range("2015-01-01", periods=300, freq="15min", tz="UTC")
-    frame = pd.DataFrame(
-        {"capacity_factor": 0.2}, index=pd.Index(idx.astype(str), dtype=object)
-    )
+    frame = pd.DataFrame({"capacity_factor": 0.2}, index=pd.Index(idx.astype(str), dtype=object))
     report = check_country_cf(frame, "XX", warn=False)
     assert report.step_hours == pytest.approx(0.25)
     assert any("never reaches" in issue for issue in report.issues)
@@ -195,6 +254,7 @@ def test_mixed_offset_index_still_gets_the_resolution_checks():
 # ---------------------------------------------------------------------------
 # Calling conventions
 # ---------------------------------------------------------------------------
+
 
 def test_strict_raises_instead_of_warning():
     with pytest.raises(ValueError, match="never reaches"):

@@ -6,6 +6,7 @@ relies on: every model resolves to a curve column, curves are capacity
 factors on the expected speed grid, and every curve column has a recorded
 source and license.
 """
+
 import numpy as np
 import pandas as pd
 import pytest

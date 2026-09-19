@@ -8,6 +8,7 @@ a clean in-sample fit. The only place to catch it is where the ratio is formed.
 
 See docs/findings/method-country-level.md.
 """
+
 from __future__ import annotations
 
 import pandas as pd

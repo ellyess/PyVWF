@@ -40,7 +40,9 @@ guides/data-sources
 guides/training
 guides/output-structure
 guides/visualisation
-guides/adding-an-observation-source
+guides/adding-a-region
+guides/adding-an-adapter
+guides/adding-a-study
 guides/your-own-data
 ```
 
@@ -65,6 +67,8 @@ runbooks/tr
 :caption: Design
 
 design/harness
+design/roughness-temporal-treatment
+design/undefined-roughness-in-complex-terrain
 ```
 
 ```{toctree}
@@ -72,6 +76,7 @@ design/harness
 :caption: Reference
 
 api
+CONTEXT
 ```
 
 ## Citing PyVWF
@@ -86,9 +91,9 @@ Please cite both the software and the method paper.
 
 **The method:**
 
-> Benmoufok, E. F., Warder, S. C., Zhu, E., and Piggott, M. D. (2024).
-> *Improving wind power modelling through granular spatial and temporal bias
-> correction of reanalysis data.* Energy.
+> Benmoufok, E. F., Warder, S. C., Zhu, E., Bhaskaran, B., Staffell, I., and
+> Piggott, M. D. (2024). *Improving wind power modelling through granular
+> spatial and temporal bias correction of reanalysis data.* Energy.
 > [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759)
 
 Machine-readable metadata for both lives in `CITATION.cff`.

@@ -1,4 +1,5 @@
 """Region-config loading and validation (docs/design/harness.md §1)."""
+
 from pathlib import Path
 
 import pytest
@@ -120,6 +121,7 @@ def test_pseudo_replication_requires_station_regex(tmp_path):
 # are pinned here so a config edit cannot silently un-verify them.
 # ---------------------------------------------------------------------------
 
+
 def shipped(name: str) -> RegionSpec:
     return load_region(CONFIG_DIR / f"{name}.toml")
 
@@ -173,3 +175,29 @@ def test_hemisphere_pin_au_winter_is_jja():
     assert au.seasons["winter"] != uk.seasons["winter"]
     # Same season NAMES on both sides: transfer matches by name (design §7.3).
     assert set(au.seasons) == set(uk.seasons)
+
+
+def test_load_region_by_code_resolves_the_stem_and_checks_the_code(tmp_path):
+    from vwf.harness.regions import load_region_by_code, region_stem
+
+    assert region_stem("AU-NEM") == "au_nem"
+    assert load_region_by_code("AU-NEM").code == "AU-NEM"
+    # A hyphenated code resolved to a missing file before the lookup was shared.
+    assert load_region_by_code("es-ws").code == "ES-WS"
+    assert load_region_by_code("nz") == shipped("nz")
+    with pytest.raises(FileNotFoundError, match="is 'XX' a shipped region"):
+        load_region_by_code("XX")
+    # A config whose declared code is not the one asked for is refused.
+    (tmp_path / "zz.toml").write_text((CONFIG_DIR / "nz.toml").read_text())
+    with pytest.raises(ValueError, match="declares code 'NZ', not 'zz'"):
+        load_region_by_code("zz", config_dir=tmp_path)
+
+
+def test_every_maintained_config_is_named_for_its_code():
+    """load_region_by_code finds a config by its file name, so the name is a contract."""
+    from vwf.harness.regions import load_region_by_code, region_stem
+
+    for path in sorted(CONFIG_DIR.glob("*.toml")):
+        spec = load_region(path)
+        assert path.stem == region_stem(spec.code), (path.name, spec.code)
+        assert load_region_by_code(spec.code) == spec

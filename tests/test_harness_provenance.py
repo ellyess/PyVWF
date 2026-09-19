@@ -1,4 +1,5 @@
 """Run-manifest provenance (docs/design/harness.md §6)."""
+
 import json
 import shutil
 from importlib import resources
@@ -7,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from vwf.config import PyVWFPaths
-from vwf.harness.provenance import (
+from vwf.provenance import (
     MANIFEST_NAME,
     build_manifest,
     curve_library_identity,
@@ -103,3 +104,23 @@ def test_write_manifest_safe_never_raises(empty_input_root, tmp_path):
     with pytest.warns(UserWarning, match="not self-describing"):
         result = write_manifest_safe(blocker / "run")
     assert result is None
+
+
+def test_manifest_records_the_python_and_library_versions(empty_input_root, tmp_path):
+    import platform as _platform
+
+    import numpy
+    import pandas
+    import sklearn
+
+    env = build_manifest(load_region(CONFIG_DIR / "nz.toml"))["environment"]
+    assert env["python"] == _platform.python_version()
+    assert env["packages"]["numpy"] == numpy.__version__
+    assert env["packages"]["pandas"] == pandas.__version__
+    assert env["packages"]["scikit-learn"] == sklearn.__version__
+    # It survives the write, and an absent optional package is recorded as None.
+    loaded = json.loads(write_manifest(tmp_path / "run", build_manifest()).read_text())[
+        "environment"
+    ]["packages"]
+    assert set(loaded) >= {"numpy", "pandas", "scikit-learn", "torch"}
+    assert all(v is None or isinstance(v, str) for v in loaded.values())

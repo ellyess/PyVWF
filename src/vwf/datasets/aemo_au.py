@@ -23,6 +23,7 @@ writes):
   staging. DUDETAILSUMMARY-based capacity histories are the named follow-up
   before any seasonal-cycle result is trusted.
 """
+
 from __future__ import annotations
 
 import re
@@ -112,9 +113,7 @@ def wind_fleet_from_gen_info(gen_info: pd.DataFrame) -> pd.DataFrame:
     ].copy()
 
     wind["DUID"] = wind["DUID"].astype(str).str.strip()
-    wind["capacity_mw"] = pd.to_numeric(
-        wind["Agg Nameplate Capacity (MW AC)"], errors="coerce"
-    )
+    wind["capacity_mw"] = pd.to_numeric(wind["Agg Nameplate Capacity (MW AC)"], errors="coerce")
     wind["fcud"] = pd.to_datetime(wind["Full Commercial Use Date"], errors="coerce")
 
     fleet = (
@@ -201,9 +200,7 @@ def join_fleet_to_gwpt(
 
     matched = fleet.merge(gwpt_farms, on="_key", how="inner")
     unmatched_fleet = fleet[~fleet["_key"].isin(gwpt_farms["_key"])].drop(columns="_key")
-    unmatched_gwpt = gwpt_farms[~gwpt_farms["_key"].isin(fleet["_key"])].drop(
-        columns="_key"
-    )
+    unmatched_gwpt = gwpt_farms[~gwpt_farms["_key"].isin(fleet["_key"])].drop(columns="_key")
     matched = matched.drop(columns="_key")
     matched["match_source"] = "name"
     return matched, unmatched_fleet, unmatched_gwpt
@@ -239,9 +236,7 @@ def resolve_duid_aliases(
             A typo in a human-approved alias must fail loudly, not silently
             drop a farm.
     """
-    au = gwpt_data[
-        gwpt_data["Country/Area"].astype(str).str.contains("Australia", na=False)
-    ].copy()
+    au = gwpt_data[gwpt_data["Country/Area"].astype(str).str.contains("Australia", na=False)].copy()
     au_below = None
     if gwpt_below is not None:
         au_below = gwpt_below[
@@ -379,8 +374,12 @@ def capacity_mask_months(
             else:
                 continue
             rows.append(
-                {"ID": str(duid), "year": int(r["year"]), "month": int(r["month"]),
-                 "reason": reason}
+                {
+                    "ID": str(duid),
+                    "year": int(r["year"]),
+                    "month": int(r["month"]),
+                    "reason": reason,
+                }
             )
     return pd.DataFrame(rows, columns=["ID", "year", "month", "reason"])
 

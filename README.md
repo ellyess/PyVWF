@@ -15,11 +15,11 @@ granular bias-correction method of
 
 Raw reanalysis winds carry systematic, location-dependent biases, so capacity
 factors simulated straight from ERA5 drift away from what fleets actually
-generate. PyVWF learns a per-cluster, per-time-slice linear correction of the
+generate. PyVWF learns a per-cluster, per-time-slice affine correction of the
 **wind speed** (`w_corrected = a*w + b`) from observed generation, then converts
 the corrected wind to power. Unlike API-only tools, it exposes the full
 *training* workflow, so the factors are yours to inspect, map and retrain at
-whatever spatial and temporal resolution your observations support.
+whatever spatial resolution and time slice your observations support.
 
 ```mermaid
 flowchart TD
@@ -55,14 +55,18 @@ pip install -e .            # simulate, bias-correct, evaluate, plot
 pip install -e ".[data]"    # + ENTSO-E client and Excel/Parquet readers
 pip install -e ".[dev]"     # + pytest, ruff, mypy
 pip install -e ".[docs]"    # + sphinx, myst-parser
+pip install -e ".[grid]"    # + pykrige, rasterio, for the gridded correction surfaces
 pip install -e ".[pinn]"    # + torch, for the experimental physics-informed correction
+pip install -e ".[touchdesigner]"  # + mapbox-earcut, for animated cluster maps
 ```
 
 PyVWF reads inputs from `input/` in the working directory; set `PYVWF_INPUT` to
-point elsewhere. It bundles an open turbine curve library (69 real machines plus
+point elsewhere ([choose the input root](docs/guides/training.md#choose-the-input-root)). It bundles the open library of power curves (69 real machines plus
 7 composites from NREL/turbine-models, BSD-3-Clause, VWF-smoothed) so it runs on
-real curve physics out of the box, matching fleets by specific power and warning
-whenever it falls back. Turbine metadata and observed generation are not shipped,
+real curve physics out of the box, matching fleets by specific power. It warns
+whenever it uses this open library because the input root has no
+`power_curves.csv` of its own. Turbine metadata and observed generation are not
+shipped,
 because such datasets are usually proprietary. See
 [data sources](docs/guides/data-sources.md) for the full input layout.
 
@@ -77,10 +81,10 @@ python examples/run_minimal.py
 With your own data, through the `pyvwf-train` console script:
 
 ```bash
-pyvwf-train --outdir outputs/demo_DK_2020 --country DK --year-test 2020 --calc-z0
+pyvwf-train --outdir output/demo_DK_2020 --country DK --year-test 2020 --calc-z0
 ```
 
-This trains the correction factors, simulates the test year, and writes metrics
+This trains the factors, simulates the test year, and writes metrics
 and diagnostic plots. `--help` lists the options: `--cluster-mode`,
 `--cluster-list`, `--time-res-list` and the rest.
 
@@ -98,7 +102,8 @@ the [training guide](docs/guides/training.md).
 `vwf.viz` turns a run into diagnostic figures, from distribution and QQ plots to
 maps of what the correction learned per cluster. See the
 [visualisation guide](docs/guides/visualisation.md), or run
-`python examples/viz_demo.py` for a data-free reproduction of all six.
+`python examples/viz_demo.py` for a data-free reproduction of all six, written
+to `output/viz_demo/` (`--out docs/img` regenerates the committed figures).
 
 ![Correction factor map](docs/img/viz_factor_map.png)
 
@@ -126,8 +131,13 @@ driven by tens of gigabytes of user-supplied data. `docker-compose.yml` wires
 
 ```bash
 docker compose run --rm pyvwf \
-    python scripts/analysis/validate_region.py train --region configs/regions/nz.toml
+    python scripts/analysis/validate_region.py train --region configs/regions/nz.toml \
+    --out /data/output/validation
 ```
+
+Pass `--out` under `/data/output`, the mounted path. The container's working
+directory is `/app`, so the default `output/` lands inside the container, and
+`--rm` deletes it with the container.
 
 The container runs as a non-root user (uid 1000). Bind mounts keep host
 ownership, so if your host uid differs, run as yourself with
@@ -151,25 +161,48 @@ the [scorecard](docs/findings/scorecard.md) gives the source path for each.
 | Region | Fleet (test) | RMSE | Region | Fleet (test) | RMSE |
 |---|---|---|---|---|---|
 | Germany | 4,814 turbines | 0.086 → **0.057** | Australia (NEM) | 77 farms | 0.115 → **0.094** |
-| Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 turbines | 0.145 → **0.115** |
-| Brazil † | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** |
-| United States † | 520 plants | 0.110 → **0.097** | Chile † | 59 plants | 0.123 → **0.105** |
-| Argentina † | 59 plants | 0.151 → **0.133** | | | |
+| Denmark | 5,410 turbines | 0.147 → **0.085** | United Kingdom | 348 farms | 0.145 → **0.115** ‡ |
+| Brazil † | 151 complexes | 0.139 → **0.105** | New Zealand | 12 farms | 0.157 → **0.106** ‡ |
+| United States † | 520 plants | 0.110 → **0.097** | Chile † | 59 plants | 0.110 → **0.104** ‡ |
+| Argentina † | 59 plants | 0.150 → **0.133** | | | |
 
 **† Degenerate fit.** The aggregate metric is real, but the per-cluster factors
 contain implausible wind scalars, worst in Chile at 80.23 and the United States
 at 46.39. Do not reuse the factors from these four.
 
-**National level** (ENTSO-E aggregate, held-out 2023, all eight clean): France
-0.171 → **0.012**, Belgium 0.340 → **0.020**, Spain 0.135 → **0.026**, Ireland
-0.172 → **0.021**, Sweden 0.088 → **0.030**, Italy 0.066 → **0.034**, Portugal
-0.110 → **0.074**. All eight were simulated on one fallback curve, a 100 kW
+**‡ Gain not resolved.** When the test year's units are resampled, the United
+Kingdom, New Zealand and Chile gains cannot be distinguished from zero. See the
+correction notices in the [scorecard](docs/findings/scorecard.md).
+
+**Curve matching.** Turbines are matched to power curves by specific power, not
+by make, so in most of these fleets part of the capacity runs on another
+manufacturer's curve or a research reference design, and some fleets record no
+manufacturer to check against. The [scorecard](docs/findings/scorecard.md)
+gives those shares per row. Whether the correction's skill survives that
+mismatch is not yet assessed.
+
+**National level** (ENTSO-E aggregate, held-out 2023): France 0.171 →
+**0.012**, Belgium 0.340 → **0.020**, Ireland 0.172 → **0.021**, Sweden 0.088 →
+**0.030**, Spain 0.028 → **0.026**, Italy 0.070 → **0.017**, Portugal 0.089 →
+**0.027**. Italy, Portugal and Spain were suspended until 2026-09-13: half or
+more of their capacity lay outside the ERA5 data the harness had been given, so
+their winds were extrapolated rather than simulated. A wider download covers
+them and they were re-run (see the scorecard). All the
+country rows were simulated on one fallback curve, a 100 kW
 distributed-wind turbine, because their grids name Vestas models the bundled
 open library does not contain, and how much of each reduction reflects that
 mismatch rather than ERA5 bias is not yet quantified.
 
+**§ Extrapolated winds.** Part of the fleet lies outside the ERA5 data the run
+loaded, and its winds were extrapolated past the grid. Sweden and Norway
+carried this until the wider download of 2026-09-12; Denmark is now the only
+marked row, at 0.6% of capacity, because its own bounding box rather than the
+data stops short of Bornholm. The scorecard marks every such row with the
+share.
+
 **Where it does not work.** Norway is close to unbiased uncorrected and the
-correction makes it worse (0.034 → 0.039). The Netherlands is excluded: an
+correction does not help (0.035 → 0.036, and the interval on the difference
+includes zero). The Netherlands is excluded: an
 ENTSO-E coverage defect caps its reported capacity factor and no rescaling
 repairs it. Chile and Argentina remove the mean bias but add limited skill,
 because ERA5 exaggerates the north-south wind gradient in both. The United
@@ -185,12 +218,14 @@ plain Markdown in [`docs/`](docs/README.md).
 - [Training and evaluation](docs/guides/training.md): the region config, and train / evaluate / transfer.
 - [Output structure](docs/guides/output-structure.md): what a run directory contains.
 - [Visualisation](docs/guides/visualisation.md): the `vwf.viz` figures.
-- [Adding an observation source](docs/guides/adding-an-observation-source.md): the adapter contract.
+- [Adding a region](docs/guides/adding-a-region.md): every file a new region touches, in order.
+- [Adding an adapter](docs/guides/adding-an-adapter.md): the adapter contract, for a new data source.
+- [Adding a study](docs/guides/adding-a-study.md): where a study's documents, driver and runs go.
 - [Using your own data](docs/guides/your-own-data.md): running the correction on a CSV fleet.
 - [Region runbooks](docs/runbooks/): acquisition and processing per region.
 - [Harness design](docs/design/harness.md): why the seams are where they are.
 - [Findings](docs/findings/): the validation results, including the negative ones.
-- [PIPELINE.md](PIPELINE.md): script execution order.
+- [Legacy batch path](docs/guides/training.md#legacy-batch-path): the older `PyVWF` batch scripts.
 
 ## Physics-informed correction (experimental)
 
@@ -223,8 +258,8 @@ hypotheses, are in
   than capturing an additive spatial bias
   ([method-country-level.md](docs/findings/method-country-level.md)).
 
-Dependencies are pinned in `environment.yaml` and methods are deterministic
-where possible. For published work, document the ERA5 version, the training
+Dependency ranges are declared in `pyproject.toml`, every harness run's manifest
+records the versions it ran with, and methods are deterministic where possible. For published work, document the ERA5 version, the training
 period and the power-curve source alongside the citation.
 
 ## Citation

@@ -10,6 +10,7 @@ TARGET's season definitions. Nothing else: no spatial matching schemes on
 this branch. The driver also enforces the approved pair set: transfer runs
 must have AU-NEM on exactly one side.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -23,11 +24,21 @@ import pandas as pd
 import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
-from vwf.data import assign_country_clusters, train_set, val_set
+from vwf.data import assign_country_clusters, train_set, val_obs_and_fleet, val_set
 from vwf.harness.corrections import fit_quality, get_correction
-from vwf.harness.provenance import write_manifest_safe
+from vwf.provenance import (
+    CURVE_RESOLUTION_NAME,
+    curve_resolution,
+    summarise_curve_resolution,
+    write_manifest_safe,
+)
 from vwf.harness.regions import RegionSpec
-from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
+from vwf.harness.skill import (
+    collapse_pseudo_replicates,
+    restrict_to_common_rows,
+    skill_metrics,
+    summarise_exclusions,
+)
 from vwf.sources import (
     EntsoeFileSource,
     EntsoeZonalFileSource,
@@ -66,6 +77,123 @@ def resolve_source(
         cls = EntsoeFileSource if spec.source == "entsoe-country" else EntsoeZonalFileSource
         return cls(spec.code, split, spec.train_years, spec.test_years[0])
     return get_source(spec.source, spec.code)
+
+
+def load_obs_and_fleet(spec: RegionSpec, year: int, source: ObservationSource | None = None):
+    """The observations and fleet :func:`run_evaluate` scores, without ERA5.
+
+    For analyses that re-score a run's recorded frames. The whole fleet is
+    returned (mode ``"all"``) with its own curves, as the scorecard rows were
+    evaluated.
+
+    Args:
+        spec: The region.
+        year: The test year.
+        source: The adapter, resolved for the test split when omitted.
+
+    Returns:
+        Tuple of observations and turbine metadata, as :func:`vwf.data.val_obs_and_fleet`.
+    """
+    source = source if source is not None else resolve_source(spec, "test")
+    return val_obs_and_fleet(spec.code, year, obs_level=spec.obs_level, source=source)
+
+
+def _record_observation_quality(source) -> dict:
+    """What the country-level observation gates found, for the manifest.
+
+    A row sitting on the fetcher's clip ceiling is a value that was discarded,
+    not a value that is wrong, so a metric computed over the series is computed
+    over fewer observations than it appears to be. That count stopped at the
+    audit script; it now travels with the run, the way the substituted and
+    extrapolated shares do.
+
+    Returns an empty dict for a source that runs no such gate, which is every
+    turbine-level source.
+    """
+    report = getattr(source, "obs_report", None)
+    if report is None:
+        return {}
+    return {
+        "n_rows": report.n_rows,
+        "n_clipped": report.n_clipped,
+        "clipped_share": report.frac_clipped,
+        "peak_cf": report.peak_cf,
+        "mean_cf": report.mean_cf,
+        "longest_unchanged_capacity_years": report.longest_unchanged_years,
+        "unchanged_capacity_span": report.unchanged_span,
+        "ok": report.ok,
+        "failures": list(report.failures),
+        "warnings": list(report.warnings_),
+        "notes": list(report.notes),
+    }
+
+
+def _record_curve_resolution(
+    run_dir: Path, fleet: pd.DataFrame, power_curves: pd.DataFrame, code: str
+) -> dict:
+    """Write ``curve_resolution.csv`` for the fleet a run simulates.
+
+    A model missing from the curve table used to be visible only as a one-off
+    warning, which is how every country-level row came to be simulated on a
+    100 kW fallback curve for two months unnoticed. The record goes in the run
+    directory, its summary in the manifest, and the substituted share into
+    every metrics row, so it travels with the numbers the way ``fit_quality``
+    does. Recording only: a substitution never stops a run.
+    """
+    resolution = curve_resolution(fleet, power_curves)
+    resolution.to_csv(run_dir / CURVE_RESOLUTION_NAME, index=False)
+    summary = summarise_curve_resolution(resolution)
+    if summary["n_models_substituted"]:
+        warnings.warn(
+            f"{code}: {summary['substituted_capacity_share']:.1%} of fleet capacity "
+            f"simulated on a substitute curve {summary['substitutions']}; see "
+            f"{run_dir / CURVE_RESOLUTION_NAME}."
+        )
+    return summary
+
+
+def _record_era5_extent(reanalysis, fleet: pd.DataFrame, spec: RegionSpec) -> dict:
+    """Where the fleet lies against the loaded ERA5 extent, for the run record.
+
+    A run only gets here with units outside the extent if its region opted in
+    (``[era5] allow_extrapolation = true``); otherwise ``interpolate_wind``
+    has already refused. The record is written either way, with zeros when
+    nothing is outside, so an absent value never needs interpreting. Inside the
+    loaded extent is a statement about position, not a check of the data in
+    those cells; ``wind.off_curve_record`` counts off-curve and missing values.
+    """
+    coverage = wind.loaded_extent_coverage(reanalysis, fleet)
+    record = {
+        **coverage,
+        "requested_bbox": list(spec.bbox),
+        "allow_extrapolation": bool(spec.allow_extrapolation),
+        "meaning": (
+            "units inside the loaded ERA5 extent are interpolated, not extrapolated; "
+            "this does not verify the data in those cells"
+        ),
+    }
+    if coverage["units_outside_loaded_extent"]:
+        warnings.warn(
+            f"{spec.code}: {coverage['capacity_share_outside_loaded_extent']:.1%} of fleet "
+            "capacity lies outside the loaded ERA5 extent and was simulated from "
+            "extrapolated winds ([era5] allow_extrapolation = true). Any scorecard row "
+            "from this run carries the extrapolation marker and the share."
+        )
+    return record
+
+
+def _record_roughness(reanalysis, spec: RegionSpec) -> dict:
+    """Which temporal treatment of the roughness the run actually applied.
+
+    Requested and applied are both recorded, because they differ when a region
+    asks for a stored field and the ERA5 files carry none. The European files
+    carry one annual mean per year; every other region derives it per timestep
+    (``docs/design/roughness-temporal-treatment.md``).
+    """
+    return {
+        "requested": spec.roughness,
+        "applied": reanalysis.attrs.get("pyvwf_roughness_treatment"),
+    }
 
 
 def _era5_dir(spec: RegionSpec) -> Path:
@@ -132,11 +260,16 @@ def run_train(
         source=source,
         era5_dir=_era5_dir(spec),
         bbox=spec.bbox,
+        allow_extrapolation=spec.allow_extrapolation,
+        roughness=spec.roughness,
     )
 
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, "train", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
+    curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
+    era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
+    fit_record: dict[str, dict] = {}
 
     for num_clu in spec.cluster_list:
         for time_res in spec.time_slices:
@@ -152,11 +285,39 @@ def run_train(
                 min_cluster_size=spec.min_cluster_size,
             )
             factors.to_csv(run_dir / f"factors_{time_res}_{num_clu}.csv", index=False)
-            clus_info.to_csv(
-                run_dir / f"train_turb_info_{num_clu}.csv", index=False
+            clus_info.to_csv(run_dir / f"train_turb_info_{num_clu}.csv", index=False)
+            # What the fitted pairs do to the speeds they were fitted on: a pair
+            # that sends training days off the curve drops them from its own
+            # objective. Recorded beside the dagger; it does not set it.
+            diagnostics = wind.fit_diagnostics(
+                reanalysis,
+                clus_info,
+                factors,
+                time_res,
+                power_curves,
+                seasons=spec.seasons,
+                years=spec.train_years,
             )
+            diagnostics.to_csv(run_dir / f"fit_diagnostics_{time_res}_{num_clu}.csv", index=False)
+            fit_record[f"{time_res}_{num_clu}"] = {
+                k: v
+                for k, v in fit_quality(factors, diagnostics=diagnostics).items()
+                if k.startswith("max_") and k.endswith("_share")
+            }
 
-    write_manifest_safe(run_dir, spec, extra={"run_mode": "train", "fleet_mode": mode})
+    write_manifest_safe(
+        run_dir,
+        spec,
+        extra={
+            "run_mode": "train",
+            "fleet_mode": mode,
+            "curve_resolution": curves,
+            "era5_extent": era5_extent,
+            "fit_diagnostics": fit_record,
+            "observation_quality": _record_observation_quality(source),
+            "era5_roughness": _record_roughness(reanalysis, spec),
+        },
+    )
     return run_dir
 
 
@@ -203,43 +364,60 @@ def run_evaluate(
         source=source,
         era5_dir=_era5_dir(spec),
         bbox=spec.bbox,
+        allow_extrapolation=spec.allow_extrapolation,
+        roughness=spec.roughness,
     )
 
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, f"evaluate-{year}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
-
-    rows = []
+    curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
+    era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
 
     # A zonal source can also be scored zone by zone. The national metric is the
     # joint optimiser's own objective, so it favours a national fit by
     # construction; the per-zone metric scores what a zonal fit actually
     # targets. Both are reported, distinguished by the "scope" column.
-    zone_source = score_zones if score_zones is not None else (
-        source if spec.source == "entsoe-zonal" else None
+    zone_source = (
+        score_zones
+        if score_zones is not None
+        else (source if spec.source == "entsoe-zonal" else None)
     )
     obs_zonal = zone_source.load_observations() if zone_source is not None else None
 
-    def _skill_rows(sim_cf: pd.DataFrame, variant: str, num_clu, time_res) -> list[dict]:
-        head = {"variant": variant, "num_clu": num_clu, "time_res": time_res}
+    def _pairs(sim_cf: pd.DataFrame) -> dict[str, pd.DataFrame]:
         if not is_country:
-            tidy = collapse_pseudo_replicates(
-                _tidy_eval_frame(sim_cf, obs_cf, turb_info), spec
-            )
-            return [{**head, "scope": "fleet", **skill_metrics(tidy)}]
-
-        out = [{**head, "scope": "national", **_country_skill(sim_cf, obs_cf, turb_info)}]
+            return {
+                "fleet": collapse_pseudo_replicates(
+                    _tidy_eval_frame(sim_cf, obs_cf, turb_info), spec
+                )
+            }
+        out = {"national": _country_pairs(sim_cf, obs_cf, turb_info)}
         if obs_zonal is not None:
             # Scored on the grid's own zone assignments, not the run's cluster
             # count, so a 1-cluster run is still judged zone by zone.
-            out.append(
-                {**head, "scope": "per-zone", **_zonal_skill(sim_cf, obs_zonal, turb_info)}
-            )
+            out["per-zone"] = _zonal_pairs(sim_cf, obs_zonal, turb_info)
         return out
 
-    _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+    # Every variant's paired frame is built first and scored afterwards, all on
+    # the rows every variant can score (see _score_on_common_rows).
+    variants: list[dict] = []
+
+    capacity = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
+    unc_ws, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
     unc_cf.to_csv(run_dir / "unc_cf.csv", index=False)
-    rows.extend(_skill_rows(unc_cf, "uncorrected", 1, "none"))
+    variants.append(
+        {
+            "label": "uncorrected",
+            "head": {"variant": "uncorrected", "num_clu": 1, "time_res": "none"},
+            # The uncorrected row carries the fit-quality columns empty, so the
+            # corrected rows' columns keep their place in metrics.csv.
+            "extra": dict.fromkeys(fit_quality(pd.DataFrame()), np.nan),
+            "tail": wind.off_curve_record(unc_ws, unc_cf, capacity, power_curves),
+            "pairs": _pairs(unc_cf),
+        }
+    )
+    del unc_ws, unc_cf
 
     for factors_path in sorted(train_run_dir.glob("factors_*.csv")):
         time_res, num_clu_str = factors_path.stem.split("_")[1:3]
@@ -256,17 +434,22 @@ def run_evaluate(
         else:
             train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
             clus_info = cluster_turbines(
-                num_clu, train_fleet, False, turb_info,
+                num_clu,
+                train_fleet,
+                False,
+                turb_info,
                 min_cluster_size=spec.min_cluster_size,
             )
-        _, cor_cf = model.apply(
+        cor_ws, cor_cf = model.apply(
             reanalysis, clus_info, power_curves, factors, time_res, seasons=spec.seasons
         )
         cor_cf.to_csv(run_dir / f"cor_cf_{time_res}_{num_clu}.csv", index=False)
         # Skill alone hides a bad fit: a region can score as a corrected win
         # while carrying an implausible scalar or an offset that never
         # converged, so the fit diagnostics travel with every corrected row.
-        quality = fit_quality(factors)
+        diagnostics_path = train_run_dir / f"fit_diagnostics_{time_res}_{num_clu}.csv"
+        diagnostics = pd.read_csv(diagnostics_path) if diagnostics_path.is_file() else None
+        quality = fit_quality(factors, diagnostics=diagnostics)
         if quality["n_implausible_scalar"] or quality["n_failed_offset"]:
             warnings.warn(
                 f"{spec.code} {time_res} k={num_clu}: "
@@ -277,23 +460,157 @@ def run_evaluate(
                 "The skill metric can still look good; see "
                 "docs/findings/method-hourly-resolution.md."
             )
-        rows.extend([
-            {**row, **quality}
-            for row in _skill_rows(cor_cf, spec.correction_model, num_clu, time_res)
-        ])
+        variants.append(
+            {
+                "label": f"{time_res}_{num_clu}",
+                "head": {
+                    "variant": spec.correction_model,
+                    "num_clu": num_clu,
+                    "time_res": time_res,
+                },
+                "extra": quality,
+                "tail": wind.off_curve_record(cor_ws, cor_cf, capacity, power_curves),
+                "pairs": _pairs(cor_cf),
+            }
+        )
+        del cor_ws, cor_cf
 
+    rows, scoring = _score_on_common_rows(variants, spec.code, run_dir)
+    off_curve = _record_off_curve(variants, spec.code)
     metrics_df = pd.DataFrame(rows)
+    # Every variant simulates the same fleet on the same table.
+    metrics_df["substituted_capacity_share"] = curves["substituted_capacity_share"]
+    metrics_df["excluded_share"] = metrics_df["scope"].map(
+        {scope: summary["excluded_share"] for scope, summary in scoring.items()}
+    )
+    metrics_df["extrapolated_capacity_share"] = era5_extent["capacity_share_outside_loaded_extent"]
+    observation_quality = _record_observation_quality(source)
+    metrics_df["observations_clipped_share"] = observation_quality.get("clipped_share", 0.0)
     metrics_df.to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
         spec,
         extra={
             "run_mode": "evaluate",
+            "observation_quality": observation_quality,
             "evaluation_year": year,
             "trained_from": str(train_run_dir),
+            "curve_resolution": curves,
+            "common_row_scoring": scoring,
+            "era5_extent": era5_extent,
+            "era5_roughness": _record_roughness(reanalysis, spec),
+            "off_curve": off_curve,
         },
     )
     return run_dir
+
+
+def _record_off_curve(variants: list[dict], code: str) -> dict:
+    """Each variant's off-curve record, for the manifest, with a warning if any."""
+    record = {v["label"]: v.get("tail", {}) for v in variants}
+    hit = {
+        label: r
+        for label, r in record.items()
+        if r and (r["off_curve_below_share"] or r["off_curve_above_share"] or r["no_speed_share"])
+    }
+    if hit:
+        worst = max(
+            hit,
+            key=lambda k: (
+                hit[k]["off_curve_below_share"]
+                + hit[k]["off_curve_above_share"]
+                + hit[k]["no_speed_share"]
+            ),
+        )
+        r = hit[worst]
+        warnings.warn(
+            f"{code}: {len(hit)} variant(s) have simulated values the power curves could "
+            f"not convert; worst {worst}: {r['off_curve_below_share']:.2%} below the "
+            f"curve, {r['off_curve_above_share']:.2%} above it, {r['no_speed_share']:.2%} "
+            f"with no speed, by capacity, and {r['unit_months_partly_missing']} unit-months "
+            "scored on only some of their steps. They are missing, not zero; see the "
+            "off_curve block in the manifest."
+        )
+    return record
+
+
+#: Per scope: the columns that identify a row across variants, the weight
+#: column (None for the unweighted monthly aggregates) and the unit column.
+_SCOPE_KEYS: dict[str, tuple[list[str], str | None, str | None]] = {
+    "fleet": (["ID", "year", "month"], "capacity", "ID"),
+    "national": (["ym"], None, None),
+    "per-zone": (["cluster", "ym"], None, "cluster"),
+}
+
+SCORING_EXCLUSIONS_NAME = "scoring_exclusions.csv"
+
+
+def _score_on_common_rows(
+    variants: list[dict], code: str, run_dir: Path
+) -> tuple[list[dict], dict]:
+    """Score every variant of one run on the rows all of them can score.
+
+    Scored one at a time, a variant with no value for some units (a corrected
+    variant whose cluster failed to fit) was compared with the uncorrected
+    variant on a different set of rows. The rows dropped were the hard ones,
+    so the comparison flattered the correction. Each scope is now restricted
+    to its common complete rows before any metric is computed. The rows
+    excluded, and the variants that lacked them, are written to
+    ``scoring_exclusions.csv``. The excluded share goes into ``metrics.csv``,
+    and a summary into the manifest.
+
+    Args:
+        variants: One dict per variant, in output order, with ``label`` (the
+            name used in the exclusions file), ``head`` (the leading metrics
+            columns), ``extra`` (trailing columns, such as fit quality) and
+            ``pairs`` (scope name to paired frame), and optionally ``tail``
+            (columns appended after ``extra``, such as the off-curve record).
+        code: Region code, for warnings.
+        run_dir: Where the exclusions file is written.
+
+    Returns:
+        The metrics rows, and the per-scope summary for the manifest.
+    """
+    scopes = list(variants[0]["pairs"])
+    scored: dict[str, dict[str, pd.DataFrame]] = {}
+    summaries: dict[str, dict] = {}
+    exclusion_tables = []
+    for scope in scopes:
+        keys, weight, unit = _SCOPE_KEYS[scope]
+        frames = {v["label"]: v["pairs"][scope] for v in variants}
+        scored[scope], excluded = restrict_to_common_rows(frames, keys, weight=weight)
+        summaries[scope] = summarise_exclusions(frames, excluded, keys, weight=weight, unit=unit)
+        if len(excluded):
+            exclusion_tables.append(excluded.assign(scope=scope))
+            summary = summaries[scope]
+            warnings.warn(
+                f"{code} {scope}: {summary['n_rows_excluded']} row(s), "
+                f"{summary['excluded_share']:.1%} of what any variant could score, "
+                "lack a value in some variant and are excluded from every "
+                f"variant's score; see {run_dir / SCORING_EXCLUSIONS_NAME}."
+            )
+
+    # Written even when empty, so a missing file never has to be interpreted.
+    columns = ["scope", "ID", "year", "month", "cluster", "ym", "capacity", "missing_in"]
+    exclusions = pd.concat(exclusion_tables, ignore_index=True) if exclusion_tables else None
+    (
+        exclusions[[c for c in columns if c in exclusions.columns]]
+        if exclusions is not None
+        else pd.DataFrame(columns=columns)
+    ).to_csv(run_dir / SCORING_EXCLUSIONS_NAME, index=False)
+
+    rows = []
+    for v in variants:
+        for scope in scopes:
+            frame = scored[scope][v["label"]]
+            if scope == "fleet":
+                metrics = skill_metrics(frame)
+            elif scope == "per-zone":
+                metrics = _zonal_metrics(frame)
+            else:
+                metrics = _error_metrics(frame)
+            rows.append({**v["head"], "scope": scope, **metrics, **v["extra"], **v.get("tail", {})})
+    return rows, summaries
 
 
 def _zone_aggregate(sim_cf: pd.DataFrame, members: pd.DataFrame) -> pd.Series:
@@ -316,12 +633,18 @@ def _zone_aggregate(sim_cf: pd.DataFrame, members: pd.DataFrame) -> pd.Series:
 def _error_metrics(merged: pd.DataFrame) -> dict:
     """MBE, MAE, RMSE and correlation over paired sim/obs columns."""
     if merged.empty:
-        return {"mbe": float("nan"), "mae": float("nan"), "rmse": float("nan"),
-                "pearson_r": float("nan"), "n_months": 0}
+        return {
+            "mbe": float("nan"),
+            "mae": float("nan"),
+            "rmse": float("nan"),
+            "pearson_r": float("nan"),
+            "n_months": 0,
+        }
     diff = merged["cf_sim"] - merged["cf_obs"]
     r = (
         float(np.corrcoef(merged["cf_sim"], merged["cf_obs"])[0, 1])
-        if len(merged) > 1 else float("nan")
+        if len(merged) > 1
+        else float("nan")
     )
     return {
         "mbe": float(diff.mean()),
@@ -332,9 +655,7 @@ def _error_metrics(merged: pd.DataFrame) -> dict:
     }
 
 
-def _zonal_skill(
-    sim_cf: pd.DataFrame, obs_zonal: pd.DataFrame, turb_info: pd.DataFrame
-) -> dict:
+def _zonal_skill(sim_cf: pd.DataFrame, obs_zonal: pd.DataFrame, turb_info: pd.DataFrame) -> dict:
     """Each zone's simulated aggregate against that zone's own observation.
 
     The national metric scores the capacity-weighted country aggregate, which is
@@ -352,6 +673,17 @@ def _zonal_skill(
 
     Returns:
         Pooled metrics plus ``n_zones``.
+    """
+    return _zonal_metrics(_zonal_pairs(sim_cf, obs_zonal, turb_info).dropna())
+
+
+def _zonal_pairs(
+    sim_cf: pd.DataFrame, obs_zonal: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Per-zone monthly simulated and observed CF, one row per (zone, month).
+
+    Rows keep a missing side as NaN, so the caller can score several
+    conditions on the same rows (``restrict_to_common_rows``).
     """
     obs = obs_zonal.copy()
     if not isinstance(obs.index, pd.DatetimeIndex):
@@ -372,14 +704,19 @@ def _zonal_skill(
             .mean()
             .rename("cf_obs")
         )
-        merged = pd.concat([sim_m, obs_m], axis=1).dropna()
+        merged = pd.concat([sim_m, obs_m], axis=1)
         merged["cluster"] = cluster
         pairs.append(merged)
 
     if not pairs:
-        return {**_error_metrics(pd.DataFrame()), "n_zones": 0}
+        return pd.DataFrame(columns=["cluster", "ym", "cf_sim", "cf_obs"])
+    pooled = pd.concat(pairs).rename_axis("ym").reset_index()
+    return pooled[["cluster", "ym", "cf_sim", "cf_obs"]]
 
-    pooled = pd.concat(pairs)
+
+def _zonal_metrics(pooled: pd.DataFrame) -> dict:
+    if pooled.empty:
+        return {**_error_metrics(pd.DataFrame()), "n_zones": 0}
     return {**_error_metrics(pooled), "n_zones": int(pooled["cluster"].nunique())}
 
 
@@ -392,6 +729,17 @@ def _country_skill(
     per timestep (NaN-skipping, reweighting on the present grid points), then
     both sides are compared as monthly means, matching the legacy
     country-level metric.
+    """
+    return _error_metrics(_country_pairs(sim_cf, obs_country, turb_info).dropna())
+
+
+def _country_pairs(
+    sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Monthly national simulated and observed CF, one row per month (``ym``).
+
+    Rows keep a missing side as NaN, so the caller can score several
+    conditions on the same months (``restrict_to_common_rows``).
     """
     grid_cols = [c for c in sim_cf.columns if c != "time"]
     cap = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
@@ -413,7 +761,7 @@ def _country_skill(
     obs["ym"] = obs["time"].dt.to_period("M")
     obs_m = obs.groupby("ym")["obs"].mean().rename("cf_obs")
 
-    return _error_metrics(pd.concat([sim_m, obs_m], axis=1).dropna())
+    return pd.concat([sim_m, obs_m], axis=1).rename_axis("ym").reset_index()
 
 
 def collapse_factors(
@@ -475,9 +823,7 @@ def run_transfer(
     source_run_dir = Path(source_run_dir)
     year = int(year if year is not None else target_spec.test_years[0])
 
-    target_source = (
-        target_source if target_source is not None else resolve_source(target_spec)
-    )
+    target_source = target_source if target_source is not None else resolve_source(target_spec)
     obs_cf, turb_info, reanalysis, power_curves = val_set(
         target_spec.code,
         calc_z0,
@@ -487,22 +833,32 @@ def run_transfer(
         source=target_source,
         era5_dir=_era5_dir(target_spec),
         bbox=target_spec.bbox,
+        allow_extrapolation=target_spec.allow_extrapolation,
+        roughness=target_spec.roughness,
     )
 
     model = get_correction(target_spec.correction_model)
     run_dir = _run_dir(out_root, target_spec, f"transfer-from-{source_spec.code}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
+    curves = _record_curve_resolution(run_dir, turb_info, power_curves, target_spec.code)
+    era5_extent = _record_era5_extent(reanalysis, turb_info, target_spec)
 
-    rows = []
+    capacity = turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID")["capacity"]
 
-    def _skill_row(sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
-        tidy = _tidy_eval_frame(sim_cf, obs_cf, turb_info)
-        tidy = collapse_pseudo_replicates(tidy, target_spec)
-        metrics = skill_metrics(tidy)
-        return {"variant": variant, "time_res": time_res, **metrics}
+    def _variant(sim_ws: pd.DataFrame, sim_cf: pd.DataFrame, variant: str, time_res) -> dict:
+        tidy = collapse_pseudo_replicates(_tidy_eval_frame(sim_cf, obs_cf, turb_info), target_spec)
+        return {
+            "label": variant,
+            "head": {"variant": variant, "time_res": time_res},
+            "extra": {},
+            "tail": wind.off_curve_record(sim_ws, sim_cf, capacity, power_curves),
+            "pairs": {"fleet": tidy},
+        }
 
-    _, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
-    rows.append(_skill_row(unc_cf, "uncorrected", "none"))
+    # As in run_evaluate: every variant is scored on the rows all of them can score.
+    variants = []
+    unc_ws, unc_cf = wind.simulate_wind(reanalysis, turb_info, power_curves)
+    variants.append(_variant(unc_ws, unc_cf, "uncorrected", "none"))
 
     # Uniform application: every target site is cluster 0.
     target_info = turb_info.copy()
@@ -511,15 +867,11 @@ def run_transfer(
     for factors_path in sorted(source_run_dir.glob("factors_*.csv")):
         time_res, num_clu_str = factors_path.stem.split("_")[1:3]
         factors = pd.read_csv(factors_path)
-        source_fleet = pd.read_csv(
-            source_run_dir / f"train_turb_info_{num_clu_str}.csv"
-        )
+        source_fleet = pd.read_csv(source_run_dir / f"train_turb_info_{num_clu_str}.csv")
         cluster_capacity = source_fleet.groupby("cluster")["capacity"].sum()
         collapsed = collapse_factors(factors, cluster_capacity, time_res)
-        collapsed.to_csv(
-            run_dir / f"collapsed_factors_{time_res}_{num_clu_str}.csv", index=False
-        )
-        _, cor_cf = model.apply(
+        collapsed.to_csv(run_dir / f"collapsed_factors_{time_res}_{num_clu_str}.csv", index=False)
+        cor_ws, cor_cf = model.apply(
             reanalysis,
             target_info,
             power_curves,
@@ -527,20 +879,85 @@ def run_transfer(
             time_res,
             seasons=target_spec.seasons,  # season-NAME matching, design §7.3
         )
-        rows.append(
-            _skill_row(cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
+        variants.append(
+            _variant(cor_ws, cor_cf, f"transfer-from-{source_spec.code}-{num_clu_str}", time_res)
         )
 
-    pd.DataFrame(rows).to_csv(run_dir / "metrics.csv", index=False)
+    rows, scoring = _score_on_common_rows(variants, target_spec.code, run_dir)
+    off_curve = _record_off_curve(variants, target_spec.code)
+    pd.DataFrame(rows).drop(columns="scope").assign(
+        substituted_capacity_share=curves["substituted_capacity_share"],
+        excluded_share=scoring["fleet"]["excluded_share"],
+        extrapolated_capacity_share=era5_extent["capacity_share_outside_loaded_extent"],
+    ).to_csv(run_dir / "metrics.csv", index=False)
     write_manifest_safe(
         run_dir,
         target_spec,
         extra={
             "run_mode": "transfer",
+            "curve_resolution": curves,
             "transfer_source_region": source_spec.code,
             "transfer_source_run": str(source_run_dir),
             "transfer_semantics": "capacity-weighted-collapse, uniform, season-name-matched",
             "evaluation_year": year,
+            "common_row_scoring": scoring,
+            "era5_extent": era5_extent,
+            "era5_roughness": _record_roughness(reanalysis, target_spec),
+            "off_curve": off_curve,
         },
     )
     return run_dir
+
+
+# ---------------------------------------------------------------------------
+# Public entry points for analyses that re-score recorded runs. Each is the
+# function run_train or run_evaluate itself calls, so a study scores exactly as
+# the harness does. The private names stay the harness's own.
+# ---------------------------------------------------------------------------
+
+#: Per scope: the columns that identify a row across variants, the weight
+#: column (None for the unweighted monthly aggregates) and the unit column.
+SCOPE_KEYS = _SCOPE_KEYS
+
+
+def era5_dir(spec: RegionSpec) -> Path:
+    """The ERA5 directory a region's runs load: its ``era5_path`` under the input root."""
+    return _era5_dir(spec)
+
+
+def tidy_eval_frame(
+    sim_cf: pd.DataFrame, obs_cf: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Simulated and observed monthly CFs per unit, as ``run_evaluate`` scores them."""
+    return _tidy_eval_frame(sim_cf, obs_cf, turb_info)
+
+
+def country_pairs(
+    sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame
+) -> pd.DataFrame:
+    """Monthly national simulated and observed CF, one row per month (``ym``).
+
+    A missing side stays NaN, so several conditions can be scored on the same
+    months (``restrict_to_common_rows``).
+    """
+    return _country_pairs(sim_cf, obs_country, turb_info)
+
+
+def country_skill(sim_cf: pd.DataFrame, obs_country: pd.DataFrame, turb_info: pd.DataFrame) -> dict:
+    """Capacity-weighted national CF against the observed series, as monthly means."""
+    return _country_skill(sim_cf, obs_country, turb_info)
+
+
+def error_metrics(merged: pd.DataFrame) -> dict:
+    """MBE, MAE, RMSE and correlation over paired ``cf_sim`` and ``cf_obs`` columns."""
+    return _error_metrics(merged)
+
+
+def score_on_common_rows(variants: list[dict], code: str, run_dir: Path) -> tuple[list[dict], dict]:
+    """Score every variant of one run on the rows all of them can score.
+
+    As ``run_evaluate`` does: each scope is restricted to its common complete
+    rows before any metric is computed, and the rows excluded are written to
+    ``scoring_exclusions.csv`` under ``run_dir``.
+    """
+    return _score_on_common_rows(variants, code, run_dir)

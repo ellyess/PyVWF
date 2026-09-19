@@ -18,6 +18,7 @@ equal split across each station's turbines. The station->turbine-count mapping
 comes from the curated `uk_md.csv` (the accreditation-number key the open REPD
 table does not carry); pass `--turbine-counts` to use a different source.
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -32,8 +33,9 @@ from vwf.datasets.uk_roc import (
     repd_wind_metadata,
     roc_issuance_to_station_monthly,
 )
+from vwf.cli.common import add_input_path, input_path
 
-UK_DIR = Path("input/observations/turbine/UK")
+UK_DIR = input_path("observations", "turbine", "UK")
 
 
 def _read_any(path: Path) -> pd.DataFrame:
@@ -57,7 +59,8 @@ def cmd_metadata(args) -> None:
 
     curated_path = UK_DIR / "uk_md.csv"
     lines = [
-        "# UK metadata: open REPD reconstruction vs curated table", "",
+        "# UK metadata: open REPD reconstruction vs curated table",
+        "",
         f"- open (REPD): {len(station_md)} stations, {len(open_turb)} turbine rows",
         "- height: REPD tip height where present, else uniform default; "
         "NO turbine model or rotor diameter in REPD (uniform defaults used).",
@@ -65,8 +68,10 @@ def cmd_metadata(args) -> None:
     if curated_path.is_file():
         rep = divergence_report(open_turb, pd.read_csv(curated_path))
         lines += [
-            "", "## fleet-level divergence (keys differ: REPD Ref ID vs ROC "
-            "accreditation number, so this is not a row match)", "",
+            "",
+            "## fleet-level divergence (keys differ: REPD Ref ID vs ROC "
+            "accreditation number, so this is not a row match)",
+            "",
             "| metric | open (REPD, current fleet) | curated (2015-2019 RO set) |",
             "|---|---|---|",
             f"| turbine rows | {rep['open']['turbine_rows']} | {rep['curated']['turbine_rows']} |",
@@ -81,16 +86,19 @@ def cmd_metadata(args) -> None:
             "the committed input for reproducing published DK/DE/UK results.",
         ]
     (out / "uk_md_open_divergence.md").write_text("\n".join(lines))
-    print(f"open metadata: {len(open_turb)} turbine rows -> {out/'uk_md_open.csv'}")
-    print(f"divergence report -> {out/'uk_md_open_divergence.md'}")
+    print(f"open metadata: {len(open_turb)} turbine rows -> {out / 'uk_md_open.csv'}")
+    print(f"divergence report -> {out / 'uk_md_open_divergence.md'}")
 
 
 def cmd_observations(args) -> None:
     if not args.ofgem_confidential and not args.roc:
-        sys.exit("provide --roc (public RER export) or --ofgem-confidential "
-                 "(the licensed certificate-warehouse CSVs).")
+        sys.exit(
+            "provide --roc (public RER export) or --ofgem-confidential "
+            "(the licensed certificate-warehouse CSVs)."
+        )
     if args.ofgem_confidential:
         import glob
+
         paths = sorted(p for g in args.ofgem_confidential for p in glob.glob(g))
         if not paths:
             sys.exit(f"no files matched {args.ofgem_confidential}")
@@ -111,24 +119,31 @@ def cmd_observations(args) -> None:
                 if c.lower() in cols:
                     return cols[c.lower()]
             if required:
-                sys.exit(f"ROC export is missing a column like {cands}; found "
-                         f"{list(roc.columns)}. Pass --station-col/--period-col/"
-                         "--certs-col to name them explicitly.")
+                sys.exit(
+                    f"ROC export is missing a column like {cands}; found "
+                    f"{list(roc.columns)}. Pass --station-col/--period-col/"
+                    "--certs-col to name them explicitly."
+                )
             return None
 
-        station = args.station_col or pick("AccreditationNumber", "Accreditation Number",
-                                           "Generating Station", "Station")
+        station = args.station_col or pick(
+            "AccreditationNumber", "Accreditation Number", "Generating Station", "Station"
+        )
         period = args.period_col or pick("OutputPeriod", "Output Period", "Period", "Month")
-        certs = args.certs_col or pick("Certificates", "ROCs", "No. of Certificates",
-                                       "Number of Certificates")
+        certs = args.certs_col or pick(
+            "Certificates", "ROCs", "No. of Certificates", "Number of Certificates"
+        )
         station_monthly = roc_issuance_to_station_monthly(
-            roc, station_col=station, period_col=period, certs_col=certs)
+            roc, station_col=station, period_col=period, certs_col=certs
+        )
         out_name = "ukobs_open.csv"
 
     tc_path = Path(args.turbine_counts) if args.turbine_counts else UK_DIR / "uk_md.csv"
     if not tc_path.is_file():
-        sys.exit(f"{tc_path} not found; need a station->turbine-count source "
-                 "(the curated uk_md.csv, or --turbine-counts).")
+        sys.exit(
+            f"{tc_path} not found; need a station->turbine-count source "
+            "(the curated uk_md.csv, or --turbine-counts)."
+        )
     md = pd.read_csv(tc_path)
     md["station"] = md["ID"].astype(str).str.replace(r"-\d+$", "", regex=True)
     counts = md.groupby("station").size()
@@ -138,19 +153,22 @@ def cmd_observations(args) -> None:
     out.mkdir(parents=True, exist_ok=True)
     obs.to_csv(out / out_name, index=False)
     n_st = station_monthly["ID"].nunique()
-    print(f"ROC stations: {n_st} | matched to turbine counts: "
-          f"{station_monthly[station_monthly['ID'].isin(counts.index)]['ID'].nunique()}")
-    print(f"observations: {len(obs)} turbine rows -> {out/out_name}")
+    print(
+        f"ROC stations: {n_st} | matched to turbine counts: "
+        f"{station_monthly[station_monthly['ID'].isin(counts.index)]['ID'].nunique()}"
+    )
+    print(f"observations: {len(obs)} turbine rows -> {out / out_name}")
     print(f"(saved as {out_name}, not overwriting the committed ukobs.csv)")
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     m = sub.add_parser("metadata", help="REPD -> open uk_md + divergence report")
-    m.add_argument("--repd", default="input/raw/repd/repd_wind.csv")
+    add_input_path(m, "--repd", "raw", "repd", "repd_wind.csv")
     m.add_argument("--out-dir", default=str(UK_DIR))
     m.add_argument("--height", type=float, default=100.0)
     m.add_argument("--model", default="2019COE_Market_Average_2.6MW_121")
@@ -158,11 +176,18 @@ def main() -> None:
 
     o = sub.add_parser("observations", help="Ofgem ROC export -> ukobs")
     o.add_argument("--roc", help="Public Ofgem RER per-station issuance export")
-    o.add_argument("--ofgem-confidential", nargs="+", metavar="GLOB",
-                   help="CONFIDENTIAL Ofgem certificate-warehouse CSV(s) "
-                   "(differently licensed; reproduces the committed ukobs exactly)")
-    o.add_argument("--turbine-counts", default=None,
-                   help="station->turbine-count source (default: curated uk_md.csv)")
+    o.add_argument(
+        "--ofgem-confidential",
+        nargs="+",
+        metavar="GLOB",
+        help="CONFIDENTIAL Ofgem certificate-warehouse CSV(s) "
+        "(differently licensed; reproduces the committed ukobs exactly)",
+    )
+    o.add_argument(
+        "--turbine-counts",
+        default=None,
+        help="station->turbine-count source (default: curated uk_md.csv)",
+    )
     o.add_argument("--out-dir", default=str(UK_DIR))
     o.add_argument("--station-col", default=None)
     o.add_argument("--period-col", default=None)

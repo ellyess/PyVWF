@@ -13,6 +13,7 @@ path and field in the message. It deliberately does NOT check that
 declarative and may name adapters that only exist later (the driver resolves
 names against the registries at run time).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -54,11 +55,44 @@ class RegionSpec:
     pseudo_replicated_rows: bool = False
     station_id_regex: str | None = None
     time_convention: str = "utc-monthly-bins"
+    allow_extrapolation: bool = False
+    roughness: str = "stored"
 
 
 def season_of_month(spec: RegionSpec) -> dict[int, str]:
     """Return the month → season-name mapping defined by ``spec``."""
     return {month: name for name, months in spec.seasons.items() for month in months}
+
+
+#: The maintained configs, one per region stem. It resolves in a source
+#: checkout; an installed package carries no configs.
+REGIONS_DIR = Path(__file__).resolve().parents[3] / "configs" / "regions"
+
+
+def region_stem(code: str) -> str:
+    """The file-name form of a region code: ``AU-NEM`` becomes ``au_nem``."""
+    return code.lower().replace("-", "_")
+
+
+def load_region_by_code(code: str, config_dir: str | Path = REGIONS_DIR) -> RegionSpec:
+    """Load the maintained config of the region ``code``.
+
+    The file is ``<config_dir>/<region stem>.toml``, and the config it holds
+    must declare that code, so a code is never answered with another region's
+    config. Every maintained config is named for its code's stem, and a test
+    holds that.
+
+    Raises:
+        FileNotFoundError: If no config has that stem.
+        ValueError: If the config found declares another code.
+    """
+    path = Path(config_dir) / f"{region_stem(code)}.toml"
+    if not path.is_file():
+        raise FileNotFoundError(f"no region config at {path}: is {code!r} a shipped region?")
+    spec = load_region(path)
+    if spec.code.upper() != code.upper():
+        raise ValueError(f"{path} declares code {spec.code!r}, not {code!r}")
+    return spec
 
 
 def _fail(path: Path, message: str) -> None:
@@ -72,8 +106,10 @@ def _require(table: dict, section: str, key: str, path: Path):
 
 
 def _int_list(value, where: str, path: Path) -> tuple[int, ...]:
-    if not isinstance(value, list) or not value or not all(
-        isinstance(v, int) and not isinstance(v, bool) for v in value
+    if (
+        not isinstance(value, list)
+        or not value
+        or not all(isinstance(v, int) and not isinstance(v, bool) for v in value)
     ):
         _fail(path, f"{where} must be a non-empty list of integers, got {value!r}")
     return tuple(value)
@@ -117,7 +153,9 @@ def load_region(path: str | Path) -> RegionSpec:
 
     obs_level = _require(obs, "observations", "obs_level", path)
     if obs_level not in VALID_OBS_LEVELS:
-        _fail(path, f"[observations] obs_level must be one of {VALID_OBS_LEVELS}, got {obs_level!r}")
+        _fail(
+            path, f"[observations] obs_level must be one of {VALID_OBS_LEVELS}, got {obs_level!r}"
+        )
 
     obs_unit = _require(obs, "observations", "obs_unit", path)
     if obs_unit not in VALID_OBS_UNITS:
@@ -166,6 +204,16 @@ def load_region(path: str | Path) -> RegionSpec:
     if not era5_path or not file_tag:
         _fail(path, "[era5] path and file_tag must be non-empty")
 
+    roughness = str(era5.get("roughness", "stored")).strip()
+    if roughness not in ("stored", "derived"):
+        _fail(path, f'[era5] roughness must be "stored" or "derived", got {roughness!r}')
+
+    allow_extrapolation = era5.get("allow_extrapolation", False)
+    if not isinstance(allow_extrapolation, bool):
+        _fail(
+            path, f"[era5] allow_extrapolation must be true or false, got {allow_extrapolation!r}"
+        )
+
     bbox_raw = _require(era5, "era5", "bbox", path)
     if (
         not isinstance(bbox_raw, list)
@@ -181,7 +229,9 @@ def load_region(path: str | Path) -> RegionSpec:
             f"[era5] bbox longitudes must satisfy -180 <= lon_min < lon_max <= 180, got {bbox}",
         )
     if not (-90.0 <= lat_min < lat_max <= 90.0):
-        _fail(path, f"[era5] bbox latitudes must satisfy -90 <= lat_min < lat_max <= 90, got {bbox}")
+        _fail(
+            path, f"[era5] bbox latitudes must satisfy -90 <= lat_min < lat_max <= 90, got {bbox}"
+        )
 
     correction_model = str(_require(corr, "correction", "model", path)).strip()
     if not correction_model:
@@ -202,18 +252,22 @@ def load_region(path: str | Path) -> RegionSpec:
     time_slices = tuple(str(s) for s in slices_raw)
 
     min_cluster_size = corr.get("min_cluster_size", 1)
-    if not isinstance(min_cluster_size, int) or isinstance(min_cluster_size, bool) \
-            or min_cluster_size < 1:
+    if (
+        not isinstance(min_cluster_size, int)
+        or isinstance(min_cluster_size, bool)
+        or min_cluster_size < 1
+    ):
         _fail(
             path,
-            "[correction] min_cluster_size must be an integer >= 1, got "
-            f"{min_cluster_size!r}",
+            f"[correction] min_cluster_size must be an integer >= 1, got {min_cluster_size!r}",
         )
 
     seasons: dict[str, tuple[int, ...]] = {}
     for season_name, months in seasons_raw.items():
-        if not isinstance(months, list) or not months or not all(
-            isinstance(m, int) and not isinstance(m, bool) for m in months
+        if (
+            not isinstance(months, list)
+            or not months
+            or not all(isinstance(m, int) and not isinstance(m, bool) for m in months)
         ):
             _fail(path, f"[seasons] {season_name} must be a non-empty list of month integers")
         seasons[str(season_name)] = tuple(months)
@@ -246,4 +300,6 @@ def load_region(path: str | Path) -> RegionSpec:
         pseudo_replicated_rows=pseudo,
         station_id_regex=station_regex,
         time_convention=time_convention,
+        allow_extrapolation=allow_extrapolation,
+        roughness=roughness,
     )

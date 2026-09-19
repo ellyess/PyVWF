@@ -4,6 +4,7 @@ Adapters are keyed by their ``name`` so that a country can carry more than one
 source (for example a turbine-level and a country-level adapter for the same
 region). :func:`resolve` picks the right one for a ``(country, obs_level)`` pair.
 """
+
 from __future__ import annotations
 
 from typing import Any

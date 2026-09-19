@@ -88,8 +88,9 @@ representative.
 
 The caveat is identity, not realism: the fleet is matched to the library by
 specific power, not by actual machine, so this is a fleet-representative curve,
-not each plant's true one. For identity-matched curves, supply your own library
-as `input/reference/power_curves.real.csv` (git-ignored) and pass its key. The USWTDB
+not each plant's true one. For identity-matched curves, use an input root with
+your own library; see
+[Choose the input root](../guides/training.md#choose-the-input-root). The USWTDB
 manufacturer/model string is carried in `us_md.csv`'s `uswtdb_model` column for
 the future vintage-aware per-plant assignment, but is never itself the curve key.
 

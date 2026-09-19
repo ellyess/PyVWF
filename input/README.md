@@ -38,13 +38,11 @@ Those datasets carry their own licensing terms and are **not redistributed** her
 
 ## Using your own curve library (for production runs)
 
-Keep licensed files out of git as `input/reference/power_curves.real.csv` and
-`input/reference/models.real.csv` (both gitignored), then swap them in when needed:
-
-```bash
-cp input/reference/power_curves.real.csv input/reference/power_curves.csv    # use your own curves
-git checkout input/reference/power_curves.csv input/reference/models.csv     # restore the open library before committing
-```
+Do not copy another library over `reference/power_curves.csv`: that file is
+the committed open library, and a test fails if it changes. Build a separate
+input root instead, as `combined/` below is built, and point `PYVWF_INPUT` at
+it. The steps are in
+[Choose the input root](../docs/guides/training.md#choose-the-input-root).
 
 ## Folder layout
 

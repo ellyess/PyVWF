@@ -22,6 +22,7 @@ Usage::
         --sweep output/validation/dk_onshore_sweep_2026-07-24 \
         --region DK --out output/viz/dk_voronoi_frames.npz
 """
+
 from __future__ import annotations
 
 import argparse
@@ -64,22 +65,31 @@ METRIC_CRS = "EPSG:3035"
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--sweep", required=True, type=Path,
-                   help="Sweep directory containing <region>/train-k*/")
+    p.add_argument(
+        "--sweep", required=True, type=Path, help="Sweep directory containing <region>/train-k*/"
+    )
     p.add_argument("--region", default="DK", help="Region code (default: DK)")
     p.add_argument("--out", required=True, type=Path, help="Output .npz path")
-    p.add_argument("--shapes", type=Path,
-                   default=Path("input/reference/shapes/country_shapes.geojson"),
-                   help="GeoJSON of country polygons with a 'name' column")
-    p.add_argument("--max-k", type=int, default=1000,
-                   help="Highest cluster count to include (default: 1000)")
-    p.add_argument("--time-res", default="fixed",
-                   help="Factors temporal resolution to read (default: fixed)")
+    p.add_argument(
+        "--shapes",
+        type=Path,
+        default=Path("input/reference/shapes/country_shapes.geojson"),
+        help="GeoJSON of country polygons with a 'name' column",
+    )
+    p.add_argument(
+        "--max-k", type=int, default=1000, help="Highest cluster count to include (default: 1000)"
+    )
+    p.add_argument(
+        "--time-res", default="fixed", help="Factors temporal resolution to read (default: fixed)"
+    )
     p.add_argument("--cmap", default="RdBu_r", help="Diverging colormap name")
-    p.add_argument("--coastline", type=Path,
-                   default=Path("input/reference/terrain/coastlines.geojson"),
-                   help="Coastline GeoJSON used to recover islands the country "
-                        "shape omits; pass a missing path to disable")
+    p.add_argument(
+        "--coastline",
+        type=Path,
+        default=Path("input/reference/terrain/coastlines.geojson"),
+        help="Coastline GeoJSON used to recover islands the country "
+        "shape omits; pass a missing path to disable",
+    )
     return p.parse_args()
 
 
@@ -95,8 +105,9 @@ def discover_ks(region_dir: Path, max_k: int) -> list[int]:
     return sorted(ks)
 
 
-def load_boundary(shapes_path: Path, region: str, coastline_path: Path | None,
-                  fleet_xy: np.ndarray | None):
+def load_boundary(
+    shapes_path: Path, region: str, coastline_path: Path | None, fleet_xy: np.ndarray | None
+):
     """Land polygon for ``region``, dissolved to a single geometry.
 
     The bundled country shapes are coarse: the DK polygon holds only Jutland,
@@ -119,21 +130,24 @@ def load_boundary(shapes_path: Path, region: str, coastline_path: Path | None,
     if coastline_path is not None and not coastline_path.exists():
         return base_geom
 
-    merged = repair_region_shape(base_geom, region.upper(), fleet_xy=fleet_xy,
-                                 coastline_path=coastline_path)
+    merged = repair_region_shape(
+        base_geom, region.upper(), fleet_xy=fleet_xy, coastline_path=coastline_path
+    )
     if merged is base_geom or merged.equals(base_geom):
         return base_geom
 
     def _km2(g):
         return gpd.GeoSeries([g], crs=gdf.crs).to_crs(METRIC_CRS).area.iloc[0] / 1e6
 
-    print(f"boundary: merged coastline landmasses, "
-          f"{_km2(base_geom):,.0f} -> {_km2(merged):,.0f} km2")
+    print(
+        f"boundary: merged coastline landmasses, {_km2(base_geom):,.0f} -> {_km2(merged):,.0f} km2"
+    )
     return merged
 
 
-def load_skill(sweep: Path, ks: list[int], time_res: str
-               ) -> tuple[np.ndarray, float] | tuple[None, None]:
+def load_skill(
+    sweep: Path, ks: list[int], time_res: str
+) -> tuple[np.ndarray, float] | tuple[None, None]:
     """Fleet RMSE per solution, plus the uncorrected baseline.
 
     Read from the sweep's ``combined_metrics.csv`` so the number on screen is
@@ -151,9 +165,9 @@ def load_skill(sweep: Path, ks: list[int], time_res: str
 
     m = pd.read_csv(path)
     base = m[m["variant"] == "uncorrected"]["rmse"]
-    corrected = m[(m["variant"] == "affine-wind")
-                  & (m["time_res"] == time_res)
-                  & (m["scope"] == "fleet")].set_index("num_clu")["rmse"]
+    corrected = m[
+        (m["variant"] == "affine-wind") & (m["time_res"] == time_res) & (m["scope"] == "fleet")
+    ].set_index("num_clu")["rmse"]
 
     missing = [k for k in ks if k not in corrected.index]
     if base.empty or missing:
@@ -211,8 +225,7 @@ def triangulate(geom) -> np.ndarray:
         if not isinstance(part, Polygon) or part.is_empty:
             continue
         rings = [np.asarray(part.exterior.coords[:-1], dtype=np.float64)]
-        rings += [np.asarray(r.coords[:-1], dtype=np.float64)
-                  for r in part.interiors]
+        rings += [np.asarray(r.coords[:-1], dtype=np.float64) for r in part.interiors]
         rings = [r for r in rings if len(r) >= 3]
         if not rings:
             continue
@@ -258,8 +271,9 @@ def main() -> None:
     # The fleet is identical at every k, so any solution supplies the points
     # used to claim coastline landmasses for this region.
     seed_turb = pd.read_csv(region_dir / f"train-k{ks[0]}" / f"train_turb_info_{ks[0]}.csv")
-    boundary = load_boundary(args.shapes, args.region, args.coastline,
-                             seed_turb[["lon", "lat"]].to_numpy(dtype=float))
+    boundary = load_boundary(
+        args.shapes, args.region, args.coastline, seed_turb[["lon", "lat"]].to_numpy(dtype=float)
+    )
     print(f"region {args.region}: {len(ks)} solutions {ks[0]}..{ks[-1]}")
 
     # Equal-area-ish display transform: degrees are the clustering space, but
@@ -308,10 +322,8 @@ def main() -> None:
         cluster_ids = cen.index.to_numpy()
         centroids = cen.to_numpy(dtype=float)
 
-        alpha = (fac.groupby("cluster")["scalar"].mean()
-                 .reindex(cluster_ids).to_numpy(dtype=float))
-        offset = (fac.groupby("cluster")["offset"].mean()
-                  .reindex(cluster_ids).to_numpy(dtype=float))
+        alpha = fac.groupby("cluster")["scalar"].mean().reindex(cluster_ids).to_numpy(dtype=float)
+        offset = fac.groupby("cluster")["offset"].mean().reindex(cluster_ids).to_numpy(dtype=float)
         if np.isnan(alpha).any() or np.isnan(offset).any():
             raise SystemExit(f"k={k}: factors table missing clusters present in turb info")
 
@@ -359,8 +371,10 @@ def main() -> None:
 
         n_tri = len(tri_xy) // 3
         summary.append((k, len(cells), n_tri))
-        print(f"  k={k:5d}  cells={len(cells):5d}  triangles={n_tri:6d}  "
-              f"alpha[{alpha.min():.3f}, {alpha.max():.3f}]")
+        print(
+            f"  k={k:5d}  cells={len(cells):5d}  triangles={n_tri:6d}  "
+            f"alpha[{alpha.min():.3f}, {alpha.max():.3f}]"
+        )
 
     coast = outline_segments(boundary)
     payload["coast_xy"] = (to_display(coast) * scale).astype(np.float32)
@@ -371,7 +385,8 @@ def main() -> None:
     payload["turb_alpha"] = np.vstack(turb_alpha_rows).astype(np.float32)
     payload["turb_offset"] = np.vstack(turb_offset_rows).astype(np.float32)
     payload["turb_centroid_xy"] = np.stack(
-        [to_display(c) * scale for c in turb_centroid_rows]).astype(np.float32)
+        [to_display(c) * scale for c in turb_centroid_rows]
+    ).astype(np.float32)
 
     # Colour lookup table so TouchDesigner can shade a continuously
     # interpolated alpha without reimplementing TwoSlopeNorm: the norm is baked
@@ -381,17 +396,18 @@ def main() -> None:
     payload["alpha_lut"] = cmap(norm(lut_alpha))[:, :3].astype(np.float32)
     lut_off = np.linspace(OFF_VMIN, OFF_VMAX, 256)
     payload["offset_lut"] = cmap(off_norm(lut_off))[:, :3].astype(np.float32)
-    payload["offset_limits"] = np.asarray(
-        [OFF_VMIN, OFF_NEUTRAL, OFF_VMAX], dtype=np.float32)
+    payload["offset_limits"] = np.asarray([OFF_VMIN, OFF_NEUTRAL, OFF_VMAX], dtype=np.float32)
 
     rmse, rmse_unc = load_skill(args.sweep, ks, args.time_res)
     if rmse is not None:
         payload["rmse"] = rmse.astype(np.float32)
         payload["rmse_uncorrected"] = np.float32(rmse_unc)
-        print(f"\nfleet RMSE ({args.time_res}): uncorrected {rmse_unc:.5f}, "
-              f"corrected {rmse.min():.5f}..{rmse.max():.5f} "
-              f"({100*(rmse.min()-rmse_unc)/rmse_unc:+.1f}%.."
-              f"{100*(rmse.max()-rmse_unc)/rmse_unc:+.1f}%)")
+        print(
+            f"\nfleet RMSE ({args.time_res}): uncorrected {rmse_unc:.5f}, "
+            f"corrected {rmse.min():.5f}..{rmse.max():.5f} "
+            f"({100 * (rmse.min() - rmse_unc) / rmse_unc:+.1f}%.."
+            f"{100 * (rmse.max() - rmse_unc) / rmse_unc:+.1f}%)"
+        )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(args.out, **payload)

@@ -3,6 +3,7 @@
 This module provides functions to load turbine metadata and observations
 from supported countries (DK, DE, UK).
 """
+
 import pandas as pd
 
 from vwf.config import PyVWFPaths
@@ -34,7 +35,7 @@ def _standardise_turb_info_minimal(df: pd.DataFrame) -> pd.DataFrame:
 
     # enforce physical hub heights
     df = df[df["height"].notna()]
-    df = df[df["height"] > 1.0]   # or >0, but >1 m avoids pathological cases
+    df = df[df["height"] > 1.0]  # or >0, but >1 m avoids pathological cases
 
     if df.empty:
         raise ValueError("No turbines with valid hub height (>1 m) after standardisation")
@@ -77,7 +78,7 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
             "height": "height",
             "lon": "lon",
             "lat": "lat",
-            "location_type": "type"
+            "location_type": "type",
         }
 
         # Keep only available columns
@@ -87,7 +88,9 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
 
         # Standardize location type (Land -> onshore, Hav -> offshore)
         if "type" in dk_md.columns:
-            dk_md["type"] = dk_md["type"].str.lower().replace({"land": "onshore", "hav": "offshore"})
+            dk_md["type"] = (
+                dk_md["type"].str.lower().replace({"land": "onshore", "hav": "offshore"})
+            )
 
         # Ensure numeric columns
         dk_md = ensure_numeric(dk_md, ["capacity", "diameter", "height", "lon", "lat"])
@@ -109,7 +112,9 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
         de_md.columns = ["ID", "manufacturer", "capacity", "diameter", "height"]
         de_md["postcode"] = de_md["ID"].astype(str).str[:5].astype(int)
 
-        de_md = pd.merge(de_md, de_geo[["postcode", "lon", "lat"]], on="postcode", how="left").drop(columns=["postcode"])
+        de_md = pd.merge(de_md, de_geo[["postcode", "lon", "lat"]], on="postcode", how="left").drop(
+            columns=["postcode"]
+        )
         de_md = de_md.dropna(subset=["capacity", "diameter", "lon", "lat"]).reset_index(drop=True)
         de_md["type"] = "onshore"
         return _standardise_turb_info_minimal(de_md)
@@ -151,7 +156,9 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
         dk_data = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DK/dk_obs_2002_2020.csv")
 
         # Filter by year range
-        dk_data = dk_data.loc[(dk_data["year"] >= year_start) & (dk_data["year"] <= year_end)].copy()
+        dk_data = dk_data.loc[
+            (dk_data["year"] >= year_start) & (dk_data["year"] <= year_end)
+        ].copy()
 
         # Ensure proper data types
         dk_data["ID"] = dk_data["ID"].astype(str)

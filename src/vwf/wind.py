@@ -5,6 +5,7 @@ Performance optimizations:
 - Optional turbine aggregation for massive speedups
 - Vectorized operations where possible
 """
+
 from __future__ import annotations
 
 import warnings
@@ -18,11 +19,225 @@ from scipy.interpolate import Akima1DInterpolator
 from vwf.time_utils import add_time_resolution_columns
 from vwf.utils import ensure_numeric
 
+#: Dataset attribute carrying whether a run may extrapolate winds beyond the
+#: loaded ERA5 extent. ``prep_era5`` sets it; ``interpolate_wind`` reads it, so
+#: the permission travels with the data through every path that simulates.
+EXTRAPOLATION_ATTR = "pyvwf_allow_extrapolation"
+
+
+class ExtrapolationError(ValueError):
+    """Units lie outside the loaded ERA5 extent and extrapolation is not allowed."""
+
+
+def loaded_extent_coverage(reanalysis, turb_info) -> dict[str, Any]:
+    """Where a fleet's units lie relative to the loaded ERA5 extent.
+
+    The loaded extent is the lon/lat range of the grid a run actually loaded,
+    after the bbox slice. A unit inside it has its winds interpolated between
+    grid cells; a unit outside it would have them extrapolated linearly from
+    the edge of the grid, which produces winds from data that does not exist
+    (the European download stops at 42N, and Spanish grid points five degrees
+    south of it were simulated at speeds down to -57.7 m/s).
+
+    Inside the loaded extent is a statement about position only. It does not
+    verify the data in the surrounding cells: a unit can sit inside the extent
+    over cells whose values are unusable; :func:`off_curve_record` counts
+    those.
+
+    Args:
+        reanalysis: Dataset with ``lon`` and ``lat`` coordinates.
+        turb_info: Units with ``ID``, ``lon``, ``lat`` and ``capacity``.
+
+    Returns:
+        The loaded extent, the number and capacity share of units outside it,
+        how far outside the furthest one lies (degrees), and up to ten of their
+        IDs.
+    """
+    lon = np.asarray(reanalysis["lon"].values, dtype=float)
+    lat = np.asarray(reanalysis["lat"].values, dtype=float)
+    lon_min, lon_max, lat_min, lat_max = lon.min(), lon.max(), lat.min(), lat.max()
+    x = np.asarray(turb_info["lon"], dtype=float)
+    y = np.asarray(turb_info["lat"], dtype=float)
+    capacity = np.asarray(turb_info["capacity"], dtype=float)
+    beyond = np.maximum.reduce(
+        [lon_min - x, x - lon_max, lat_min - y, y - lat_max, np.zeros_like(x)]
+    )
+    outside = beyond > 1e-9
+    total = float(np.nansum(capacity))
+    return {
+        "loaded_extent": [float(lon_min), float(lon_max), float(lat_min), float(lat_max)],
+        "units": int(len(x)),
+        "units_outside_loaded_extent": int(outside.sum()),
+        "capacity_share_outside_loaded_extent": (
+            float(np.nansum(capacity[outside])) / total if total > 0 else 0.0
+        ),
+        "max_degrees_outside_loaded_extent": float(beyond.max()) if len(x) else 0.0,
+        "ids_outside": [str(i) for i in np.asarray(turb_info["ID"])[outside][:10]],
+    }
+
+
+def off_curve_record(
+    ws: pd.DataFrame, cf: pd.DataFrame, capacity: pd.Series, power_curves: pd.DataFrame
+) -> dict[str, Any]:
+    """How many simulated values the power curves could not convert, and why.
+
+    A speed below the power curve table's first speed (0 m/s) or above its last
+    (40 m/s) has no value on the curve. The Akima interpolator returns NaN
+    there, not zero output, and a missing speed (for example an undefined
+    roughness in the input) also gives NaN. A monthly or national mean then
+    skips the value. So a unit-month can be scored on only some of its steps,
+    and the steps it loses are the ones the simulation could not handle. Off
+    the curve, the values are left missing: counting them as zero output is a
+    separate question about the physics.
+
+    Args:
+        ws: Wide frame of simulated speeds, a ``time`` column plus one column
+            per unit, as :func:`simulate_wind` returns.
+        cf: The matching wide frame of capacity factors.
+        capacity: Capacity by unit ID (string index), for the weights.
+        power_curves: The power curve table the speeds were converted on.
+
+    Returns:
+        Capacity-weighted shares of unit-steps below the curve, above it, and
+        with no speed, and the number of unit-months with every step missing
+        and with some but not all.
+    """
+    cols = [c for c in ws.columns if c != "time"]
+    speeds = ws[cols].to_numpy(dtype=float)
+    grid = power_curves["data$speed"].to_numpy(dtype=float)
+    weights = capacity.reindex([str(c) for c in cols]).to_numpy(dtype=float)
+    weights = np.broadcast_to(np.nan_to_num(weights)[None, :], speeds.shape)
+    total = float(weights.sum())
+
+    def share(mask: np.ndarray) -> float:
+        return float(weights[mask].sum()) / total if total > 0 else 0.0
+
+    with np.errstate(invalid="ignore"):
+        below = speeds < grid.min()
+        above = speeds > grid.max()
+    months = pd.to_datetime(cf["time"]).dt.to_period("M").to_numpy()
+    missing = cf[cols].isna().groupby(months).mean().to_numpy()
+    return {
+        "off_curve_below_share": share(below),
+        "off_curve_above_share": share(above),
+        "no_speed_share": share(np.isnan(speeds)),
+        "unit_months_wholly_missing": int((missing == 1.0).sum()),
+        "unit_months_partly_missing": int(((missing > 0) & (missing < 1.0)).sum()),
+    }
+
+
+def fit_diagnostics(
+    reanalysis,
+    clus_info: pd.DataFrame,
+    factors: pd.DataFrame,
+    time_res: str,
+    power_curves: pd.DataFrame,
+    seasons=None,
+    years: tuple[int, int] | None = None,
+) -> pd.DataFrame:
+    """Where a fitted correction sends the speeds it was fitted on.
+
+    ``fit_quality`` bounds the scalar and checks that each offset converged. It
+    never asks what the pair does to the speeds it is applied to. An affine
+    pair sends every speed below ``-offset / scalar`` to a negative corrected
+    speed, which has no value on the power curve and drops out of both the fit's
+    objective and the score. In the Spanish country row, clusters 0 and 3 cross
+    zero at 11.7 and 8.9 m/s, and more than half their training days fell below
+    it. This applies each cluster's fitted factors to its own training winds and
+    records how much of them lands off the curve.
+
+    Args:
+        reanalysis: The training reanalysis the factors were fitted on.
+        clus_info: The fitted units, with ``cluster``, ``capacity`` and the
+            columns :func:`interpolate_wind` needs.
+        factors: The fitted factors table (``cluster``, the slice column,
+            ``scalar``, ``offset``).
+        time_res: The time slice the factors were fitted at.
+        power_curves: The power curve table, for its speed range.
+        seasons: Season definitions, as for :func:`correct_wind_speed`.
+        years: Inclusive ``(first, last)`` training years to keep; the loaded
+            reanalysis may hold more.
+
+    Returns:
+        One row per cluster, slice value and year: the scalar and offset, the
+        zero-crossing speed (``-offset / scalar`` where the offset is negative,
+        else NaN), the unit-steps, and the capacity-weighted steps in total,
+        below 0 m/s and above the curve. The weighted counts are kept so that
+        shares aggregate exactly.
+    """
+    ws = interpolate_wind(reanalysis, clus_info).transpose("time", "turbine")
+    times = pd.DatetimeIndex(ws["time"].values)
+    keep = np.ones(len(times), dtype=bool)
+    if years is not None:
+        keep = (times.year >= years[0]) & (times.year <= years[1])
+    speeds = np.asarray(ws.values, dtype=float)[keep]
+    times = times[keep]
+    slices = add_time_resolution_columns(pd.DataFrame({"month": times.month}), seasons)[
+        time_res
+    ].to_numpy()
+    grid = power_curves["data$speed"].to_numpy(dtype=float)
+    top, bottom = float(grid.max()), float(grid.min())
+    units = pd.Index(np.asarray(ws["turbine"].values).astype(str))
+    info = clus_info.assign(ID=clus_info["ID"].astype(str)).set_index("ID").loc[units]
+    cluster = info["cluster"].to_numpy()
+    capacity = info["capacity"].to_numpy(dtype=float)
+    rows = []
+    for cl, value, scalar, offset in zip(
+        factors["cluster"],
+        factors[time_res],
+        factors["scalar"].astype(float),
+        factors["offset"].astype(float),
+    ):
+        cols = cluster == cl
+        rows_t = slices == value
+        if not cols.any() or not rows_t.any():
+            continue
+        corrected = speeds[np.ix_(rows_t, cols)] * scalar + offset
+        weight = np.broadcast_to(capacity[cols][None, :], corrected.shape)
+        valid = ~np.isnan(corrected)
+        for year in sorted(set(times[rows_t].year)):
+            in_year = (times[rows_t].year == year)[:, None] & valid
+            rows.append(
+                {
+                    "cluster": cl,
+                    time_res: value,
+                    "year": int(year),
+                    "scalar": scalar,
+                    "offset": offset,
+                    "zero_crossing_speed": (
+                        -offset / scalar if offset < 0 and scalar > 0 else float("nan")
+                    ),
+                    "unit_steps": int(in_year.sum()),
+                    "weight_steps": float(weight[in_year].sum()),
+                    "weight_below_zero": float(weight[in_year & (corrected < bottom)].sum()),
+                    "weight_above_curve": float(weight[in_year & (corrected > top)].sum()),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
 # Global cache for power curve interpolators (cleared on module reload).
 # Keyed by id() of the power-curve table; each entry holds the column tuple it
 # was built from (to detect a stale id() reuse), the speed grid, and the
 # per-model interpolators.
 _power_curve_cache: dict[int, dict[str, Any]] = {}
+
+
+def default_curve_key(power_curves: pd.DataFrame) -> str | None:
+    """The model whose curve stands in for any model the table lacks.
+
+    It is the table's first model column, and its identity decides results:
+    every unit whose model is missing from the table is simulated on this
+    curve (see ``_CurveByModel``), and ``vwf.curves._default_power_curve`` assigns
+    it to a country grid with no ``model`` column. For the bundled library it
+    is a 100 kW distributed-wind machine, which is what every country-level run
+    on that library simulated with. ``vwf.provenance.curve_resolution``
+    calls this too, so the resolution log cannot disagree with the simulation,
+    and ``tests/test_curve_resolution.py`` pins its value for the bundled
+    library so that reordering the table cannot change results unnoticed.
+    """
+    cols = [c for c in power_curves.columns if c != "data$speed"]
+    return cols[0] if cols else None
 
 
 class _CurveByModel(dict):
@@ -65,6 +280,15 @@ class _CurveByModel(dict):
         return self[default]
 
 
+def power_curve_arrays(power_curves):
+    """The speeds and per-model curve arrays the simulation interpolates on.
+
+    Returns ``(speeds, curve_by_model)``, from the same cache the simulation
+    uses, so a study reads the curves exactly as they are applied.
+    """
+    return _get_power_curve_cache(power_curves)
+
+
 def _get_power_curve_cache(powerCurveFile):
     """Return cached power curve arrays for a given power curve table."""
     cache_key = id(powerCurveFile)
@@ -77,7 +301,7 @@ def _get_power_curve_cache(powerCurveFile):
     model_cols = [m for m in powerCurveFile.columns if m != "data$speed"]
     curve_by_model = _CurveByModel(
         {m: Akima1DInterpolator(x, powerCurveFile[m].to_numpy()) for m in model_cols},
-        default_model=model_cols[0] if model_cols else None,
+        default_model=default_curve_key(powerCurveFile),
     )
     _power_curve_cache[cache_key] = {
         "columns": columns,
@@ -85,6 +309,7 @@ def _get_power_curve_cache(powerCurveFile):
         "curve_by_model": curve_by_model,
     }
     return x, curve_by_model
+
 
 def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFrame:
     """Collapse turbines onto nearest reanalysis grid cell.
@@ -153,6 +378,7 @@ def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFr
 
     return out[["ID", "lat", "lon", "height", "capacity", "model"]]
 
+
 def simulate_country_cf(
     reanalysis,
     turb_info,
@@ -204,16 +430,46 @@ def simulate_country_cf(
     return country_cf.to_series()
 
 
-def interpolate_wind(reanalysis, turb_info):
+def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None = None):
     """Interpolate reanalysis wind speeds to turbine locations.
+
+    Refuses by default when any unit lies outside the loaded ERA5 extent:
+    ``xarray``'s interpolation is called with ``fill_value=None``, which would
+    otherwise extrapolate linearly past the grid without a warning. Passing
+    this check means the units lie inside the loaded extent. It does not verify
+    the data in those cells (see :func:`loaded_extent_coverage`).
 
     Args:
         reanalysis: Reanalysis dataset with wind fields.
         turb_info: Turbine metadata with lon/lat/height.
+        allow_extrapolation: Permit units outside the loaded extent. None (the
+            default) reads the permission ``prep_era5`` attached to the
+            dataset, which is False unless a run opted in.
 
     Returns:
         DataArray of interpolated wind speeds.
+
+    Raises:
+        ExtrapolationError: If a unit lies outside the loaded extent and
+            extrapolation is not allowed.
     """
+    if allow_extrapolation is None:
+        allow_extrapolation = bool(reanalysis.attrs.get(EXTRAPOLATION_ATTR, False))
+    coverage = loaded_extent_coverage(reanalysis, turb_info)
+    if coverage["units_outside_loaded_extent"] and not allow_extrapolation:
+        lon_min, lon_max, lat_min, lat_max = coverage["loaded_extent"]
+        raise ExtrapolationError(
+            f"{coverage['units_outside_loaded_extent']} of {coverage['units']} units "
+            f"({coverage['capacity_share_outside_loaded_extent']:.1%} of capacity) lie "
+            f"outside the loaded ERA5 extent (lon {lon_min} to {lon_max}, lat {lat_min} "
+            f"to {lat_max}), up to {coverage['max_degrees_outside_loaded_extent']:.2f} "
+            f"degrees beyond it; for example {coverage['ids_outside'][:5]}. Their winds "
+            "would be extrapolated from the edge of the grid, not interpolated. Download "
+            "ERA5 that covers them, or opt in with [era5] allow_extrapolation = true "
+            "(allow_extrapolation=True outside the harness), which records the share "
+            "and marks any scorecard result. Passing this check means only that units "
+            "lie inside the loaded extent; it does not verify the data in those cells."
+        )
     reanalysis = reanalysis.assign_coords(height=("height", turb_info["height"].unique()))
 
     EPS = 1e-6  # meters
@@ -232,9 +488,15 @@ def interpolate_wind(reanalysis, turb_info):
     # ArrowStringArray, which xarray cannot use as an indexable coordinate
     # (it breaks groupby("model") and label-based indexing on the turbine dim).
     ids = np.asarray(turb_info["ID"], dtype=object)
-    lat = xr.DataArray(np.asarray(turb_info["lat"], dtype=float), dims="turbine", coords={"turbine": ids})
-    lon = xr.DataArray(np.asarray(turb_info["lon"], dtype=float), dims="turbine", coords={"turbine": ids})
-    height = xr.DataArray(np.asarray(turb_info["height"], dtype=float), dims="turbine", coords={"turbine": ids})
+    lat = xr.DataArray(
+        np.asarray(turb_info["lat"], dtype=float), dims="turbine", coords={"turbine": ids}
+    )
+    lon = xr.DataArray(
+        np.asarray(turb_info["lon"], dtype=float), dims="turbine", coords={"turbine": ids}
+    )
+    height = xr.DataArray(
+        np.asarray(turb_info["height"], dtype=float), dims="turbine", coords={"turbine": ids}
+    )
 
     # print(f"Interpolating wind speeds for {len(turb_info)} turbines (this may take a few minutes)...")
     sim_ws = ws.interp(lon=lon, lat=lat, height=height, kwargs={"fill_value": None})
@@ -345,7 +607,9 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info, seasons=None):
     # model coord for downstream mapping (coerce to numpy so the coordinate is
     # not a pandas ArrowStringArray, which breaks groupby("model") on pandas>=3)
     ds2 = ds2.assign_coords({"model": ("turbine", np.asarray(turb_info["model"], dtype=object))})
-    ds2 = ds2.assign_coords({"capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float))})
+    ds2 = ds2.assign_coords(
+        {"capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float))}
+    )
 
     return ds2.cor_ws
 
@@ -454,6 +718,7 @@ def train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar=1, offset=0):
     avg_cf = cor_cf.weighted(cor_cf["capacity"]).mean()
     return avg_cf.data
 
+
 def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
     """Simulate a mean capacity factor for training.
 
@@ -469,5 +734,3 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     """
     unc_ws = interpolate_wind(reanalysis, turb_info)
     return train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar, offset)
-
-

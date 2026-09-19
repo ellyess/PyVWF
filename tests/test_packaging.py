@@ -1,13 +1,14 @@
 """Packaging invariants: one version, semantically formatted, no drift.
 
-``vwf.__version__`` is the single source of truth; ``pyproject.toml`` reads it
-dynamically. ``CITATION.cff`` cannot, so it is the one place a stale version can
+``vwf/_version.py`` is the single source of truth: ``vwf.__version__``
+re-exports it, and ``pyproject.toml`` reads it dynamically. ``CITATION.cff`` cannot, so it is the one place a stale version can
 hide; these tests fail loudly when it drifts.
 
 Optional dependencies get the same treatment from the other side: the data
 -acquisition extras must stay out of the import path of the simulation code, or
 a plain ``pip install pyvwf`` silently stops working.
 """
+
 from __future__ import annotations
 
 import re
@@ -54,9 +55,11 @@ def test_pyproject_reads_version_from_package(pyproject):
     )
     assert "version" in project["dynamic"]
     assert (
-        pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"]
-        == "vwf.__version__"
+        pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "vwf._version.__version__"
     )
+    from vwf._version import __version__
+
+    assert vwf.__version__ is __version__
 
 
 def test_citation_version_matches_package():
@@ -68,6 +71,39 @@ def test_citation_version_matches_package():
     assert cff_version == vwf.__version__, (
         f"CITATION.cff version {cff_version!r} != vwf.__version__ "
         f"{vwf.__version__!r}; bump both when releasing"
+    )
+
+
+def test_changelog_top_release_matches_package():
+    """The newest released CHANGELOG section is the one the package claims to be.
+
+    The version bump, the CHANGELOG promotion, its compare links and the
+    CITATION.cff release date are four hand edits made together at each
+    release, and nothing else checks them against each other. The version and
+    CITATION.cff were tied; this ties the rest. It holds between releases too,
+    because ``__version__`` only moves when [Unreleased] is promoted.
+    """
+    text = (ROOT / "CHANGELOG.md").read_text()
+    top = re.search(r"^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2})$", text, re.MULTILINE)
+    assert top, "CHANGELOG.md has no released version heading"
+    version, date = top.groups()
+    assert version == vwf.__version__, (
+        f"newest CHANGELOG release is {version}, vwf.__version__ is "
+        f"{vwf.__version__}; promote [Unreleased] when bumping the version"
+    )
+    v = re.escape(version)
+    assert re.search(rf"^\[Unreleased\]: \S+/compare/v{v}\.\.\.HEAD$", text, re.MULTILINE), (
+        f"the [Unreleased] link must compare v{version}...HEAD"
+    )
+    assert re.search(rf"^\[{v}\]: \S+/compare/v[\d.]+\.\.\.v{v}$", text, re.MULTILINE), (
+        f"CHANGELOG.md has no [{version}] compare link"
+    )
+    citation = (ROOT / "CITATION.cff").read_text()
+    released = re.search(r"^date-released:\s*\"?(\d{4}-\d{2}-\d{2})\"?\s*$", citation, re.MULTILINE)
+    assert released, "CITATION.cff has no date-released field"
+    assert released.group(1) == date, (
+        f"CITATION.cff date-released {released.group(1)} != CHANGELOG {version} "
+        f"date {date}; set both when releasing"
     )
 
 

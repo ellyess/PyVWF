@@ -8,14 +8,14 @@ Core functionality (always available):
 - train_set, val_set: Data preparation functions
 - Loaders: Functions for loading turbine and country-level data
 - ObservationSource: Pluggable adapters supplying observed generation. See
-  docs/guides/adding-an-observation-source.md to add a new region.
+  docs/guides/adding-a-region.md to add a new region.
 - Configuration: Path and bounding box configuration
 
 Optional functionality (requires additional dependencies):
 - Visualisation: Distributional diagnostics via ``vwf.viz`` (requires matplotlib).
 """
 
-__version__ = "0.5.1"
+from vwf._version import __version__ as __version__  # re-exported
 
 # ============================================================================
 # CORE FUNCTIONALITY (Always available)
@@ -58,10 +58,6 @@ from vwf.viz import (
     plot_sim_vs_obs,
 )
 
-#: Retained for backwards compatibility; always True now that the
-#: visualisation layer's dependencies are core.
-HAS_VIZ = True
-
 # ============================================================================
 # PUBLIC API
 # ============================================================================
@@ -95,5 +91,4 @@ __all__ = [
     "plot_factor_joint",
     "plot_qq",
     "plot_sim_vs_obs",
-    "HAS_VIZ",
 ]

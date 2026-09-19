@@ -14,6 +14,7 @@ optimiser's own objective. Scoring a zonal fit on the national aggregate
 flatters the national fit by construction, so the comparison needed a metric on
 the quantity a zonal fit actually targets.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -67,14 +68,20 @@ def paired(grid):
 # The zero-offset control
 # ---------------------------------------------------------------------------
 
+
 def test_scalar_only_is_registered():
     assert "scalar-only" in available_corrections()
 
 
 def test_scalar_only_offsets_are_all_zero(paired, grid):
     factors, _ = get_correction("scalar-only").fit(
-        paired, grid, None, pd.DataFrame(), num_clusters=2,
-        time_res="fixed", obs_level="country",
+        paired,
+        grid,
+        None,
+        pd.DataFrame(),
+        num_clusters=2,
+        time_res="fixed",
+        obs_level="country",
     )
     assert (factors["offset"] == 0).all()
 
@@ -83,8 +90,13 @@ def test_scalar_only_needs_no_reanalysis(paired, grid):
     """It must not touch the offset solver, which is the expensive part and the
     part under test. Passing None for the reanalysis proves it never gets there."""
     factors, _ = get_correction("scalar-only").fit(
-        paired, grid, None, pd.DataFrame(), num_clusters=2,
-        time_res="fixed", obs_level="country",
+        paired,
+        grid,
+        None,
+        pd.DataFrame(),
+        num_clusters=2,
+        time_res="fixed",
+        obs_level="country",
     )
     assert len(factors) == 2
 
@@ -96,17 +108,28 @@ def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
     import vwf.correction as correction
 
     monkeypatch.setattr(
-        correction, "find_offsets_country_level",
+        correction,
+        "find_offsets_country_level",
         lambda **kw: {c: 0.5 for c in kw["scalars_by_cluster"]},
     )
 
     affine, _ = get_correction("affine-wind").fit(
-        paired, grid, None, pd.DataFrame(), num_clusters=2,
-        time_res="fixed", obs_level="country",
+        paired,
+        grid,
+        None,
+        pd.DataFrame(),
+        num_clusters=2,
+        time_res="fixed",
+        obs_level="country",
     )
     scalar_only, _ = get_correction("scalar-only").fit(
-        paired, grid, None, pd.DataFrame(), num_clusters=2,
-        time_res="fixed", obs_level="country",
+        paired,
+        grid,
+        None,
+        pd.DataFrame(),
+        num_clusters=2,
+        time_res="fixed",
+        obs_level="country",
     )
 
     merged = affine.merge(scalar_only, on=["cluster", "fixed"], suffixes=("_a", "_s"))
@@ -120,8 +143,13 @@ def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
 
 def test_scalar_only_inherits_the_turbine_path(paired, grid):
     factors, clus_info = get_correction("scalar-only").fit(
-        paired, grid, None, pd.DataFrame(), num_clusters=2,
-        time_res="fixed", obs_level="turbine",
+        paired,
+        grid,
+        None,
+        pd.DataFrame(),
+        num_clusters=2,
+        time_res="fixed",
+        obs_level="turbine",
     )
     assert (factors["offset"] == 0).all()
     assert "cluster" in clus_info.columns
@@ -130,6 +158,7 @@ def test_scalar_only_inherits_the_turbine_path(paired, grid):
 # ---------------------------------------------------------------------------
 # Per-zone scoring
 # ---------------------------------------------------------------------------
+
 
 def sim_wide(cluster_cfs, grid, periods=24):
     """Wide (time x ID) simulation where each cluster holds a constant CF."""
@@ -201,9 +230,7 @@ def test_per_zone_weights_within_a_zone_by_capacity(grid):
     """Within a zone the aggregate is capacity-weighted, matching how the
     national metric and the training path both aggregate."""
     times = pd.date_range("2023-01-01", periods=4, freq="15D")
-    sim = pd.DataFrame(
-        {"time": times, "g0": 0.10, "g1": 0.30, "g2": 0.20, "g3": 0.20}
-    )
+    sim = pd.DataFrame({"time": times, "g0": 0.10, "g1": 0.30, "g2": 0.20, "g3": 0.20})
     # Zone 0 is 1000 MW at 0.10 and 3000 MW at 0.30, so 0.25.
     obs = zonal_obs({0: 0.25, 1: 0.20}, periods=4)
     assert _zonal_skill(sim, obs, grid)["rmse"] == pytest.approx(0.0, abs=1e-9)

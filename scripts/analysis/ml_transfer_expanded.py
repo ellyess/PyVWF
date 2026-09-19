@@ -32,6 +32,7 @@ Reuses the feature/model machinery of ml_transfer_retest.py unchanged
 Run after the cluster sweep has produced the train dirs, with
 PYVWF_INPUT unset (this reads factors, no simulation).
 """
+
 from __future__ import annotations
 
 import sys
@@ -118,12 +119,12 @@ def main() -> int:
     new_ok = all(r8.loc[reg, "r2_mean"] > 0 for reg in ("NZ", "CL", "AR"))
 
     print("\nPRE-SPECIFIED GATES")
-    print(f"  G1 US-holdout: {us5:.3f} (5-region) -> {us8:.3f} (8-region)  "
-          f"[{'TRANSFERS' if us8 > 0 else 'RESCUED' if us8 > -0.30 else 'still fails'}]")
-    print(f"  G2 majority:   {n_pos}/8 regions R2>0  "
-          f"[{'MET' if n_pos >= 5 else 'not met'}]")
-    print(f"  G3 new regimes NZ/CL/AR all R2>0:  "
-          f"[{'MET' if new_ok else 'not met'}]")
+    print(
+        f"  G1 US-holdout: {us5:.3f} (5-region) -> {us8:.3f} (8-region)  "
+        f"[{'TRANSFERS' if us8 > 0 else 'RESCUED' if us8 > -0.30 else 'still fails'}]"
+    )
+    print(f"  G2 majority:   {n_pos}/8 regions R2>0  [{'MET' if n_pos >= 5 else 'not met'}]")
+    print(f"  G3 new regimes NZ/CL/AR all R2>0:  [{'MET' if new_ok else 'not met'}]")
 
     # Capped variant: removes the numerical poisoning from the extreme-scalar
     # artifacts, so the transfer question is asked on tamed targets.
@@ -143,7 +144,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     r8.reset_index().to_csv(out / "expanded_loro_scalar.csv", index=False)
     c8.reset_index().to_csv(out / "expanded_loro_scalar_capped.csv", index=False)
-    print(f"\nwrote {out/'expanded_loro_scalar.csv'} (+ capped)")
+    print(f"\nwrote {out / 'expanded_loro_scalar.csv'} (+ capped)")
     return 0
 
 

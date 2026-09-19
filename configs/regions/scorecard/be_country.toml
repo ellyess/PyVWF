@@ -13,9 +13,10 @@ train_years = [2015, 2021]
 test_years = [2023]
 
 [era5]
-path = "era5/EU"
+roughness = "derived"
+path = "era5/EU_2026-09"
 bbox = [2.2, 6.6, 49.3, 51.8]
-file_tag = "EU"
+file_tag = "EU_2026-09"
 
 [correction]
 model = "affine-wind"

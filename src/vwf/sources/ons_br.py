@@ -23,6 +23,7 @@ Decisions baked into the finalisation, documented in the region config:
   Pre-2021 has no such series and its CF carries unscreened curtailment: a
   standing caveat.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -79,10 +80,7 @@ def fc_to_monthly_cf(
         )
         for m in range(1, 13):
             col = f"obs_{m}"
-            hit = [
-                (str(i), int(y), m) in mask_keys
-                for i, y in zip(wide["ID"], wide["year"])
-            ]
+            hit = [(str(i), int(y), m) in mask_keys for i, y in zip(wide["ID"], wide["year"])]
             wide.loc[hit, col] = float("nan")
     return wide
 
@@ -118,9 +116,7 @@ class ONSBrazilSource(ObservationSource):
     def __init__(self, country: str = "BR") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

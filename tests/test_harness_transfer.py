@@ -7,6 +7,7 @@ name-matched one is correct against planted ground truth. A fixture on which
 both modes agree would pass vacuously and is explicitly not acceptable
 (design §8, test 8).
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -32,6 +33,7 @@ SH_SEASONS = {
 # ---------------------------------------------------------------------------
 # §7.1: capacity-weighted collapse
 # ---------------------------------------------------------------------------
+
 
 def test_collapse_is_capacity_weighted_not_unweighted():
     factors = pd.DataFrame(
@@ -83,14 +85,13 @@ def test_collapse_refuses_unknown_clusters():
 # Approved pair set
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("source,target", [("AU-NEM", "UK"), ("DK", "AU-NEM")])
 def test_transfer_pairs_with_au_on_one_side_pass(source, target):
     check_transfer_pair(source, target)  # must not raise
 
 
-@pytest.mark.parametrize(
-    "source,target", [("DK", "UK"), ("UK", "DE"), ("AU-NEM", "AU-NEM")]
-)
+@pytest.mark.parametrize("source,target", [("DK", "UK"), ("UK", "DE"), ("AU-NEM", "AU-NEM")])
 def test_transfer_pairs_outside_the_approved_set_fail(source, target):
     with pytest.raises(ValueError):
         check_transfer_pair(source, target)
@@ -99,6 +100,7 @@ def test_transfer_pairs_outside_the_approved_set_fail(source, target):
 # ---------------------------------------------------------------------------
 # §7.3: the mirrored-hemisphere fixture (normative)
 # ---------------------------------------------------------------------------
+
 
 def test_mirrored_hemisphere_transfer_matches_by_season_name():
     """Source (NH) learned: winter winds are over-blown 2x (scalar 0.5).
@@ -131,13 +133,17 @@ def test_mirrored_hemisphere_transfer_matches_by_season_name():
     )
 
     # Name matching (correct, design §7.3): target's season definitions.
-    cor_name = correct_wind_speed(
-        reanalysis_ws, "season", factors, turb_info, seasons=SH_SEASONS
-    ).transpose("time", "turbine").to_numpy()
+    cor_name = (
+        correct_wind_speed(reanalysis_ws, "season", factors, turb_info, seasons=SH_SEASONS)
+        .transpose("time", "turbine")
+        .to_numpy()
+    )
     # Month matching (the bug this design eliminates): source's definitions.
-    cor_month = correct_wind_speed(
-        reanalysis_ws, "season", factors, turb_info, seasons=NH_SEASONS
-    ).transpose("time", "turbine").to_numpy()
+    cor_month = (
+        correct_wind_speed(reanalysis_ws, "season", factors, turb_info, seasons=NH_SEASONS)
+        .transpose("time", "turbine")
+        .to_numpy()
+    )
 
     rmse_name = float(np.sqrt(np.mean((cor_name - true_ws) ** 2)))
     rmse_month = float(np.sqrt(np.mean((cor_month - true_ws) ** 2)))

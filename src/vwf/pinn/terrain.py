@@ -12,6 +12,7 @@ to the orographic blocking scale, and are deliberately all functions of terrain
 alone: no longitude, no latitude, nothing that could encode region identity and
 so score well in-sample while failing to transfer.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,9 +29,8 @@ from scipy.ndimage import uniform_filter, maximum_filter, minimum_filter
 #   84 km  the orographic drag / blocking scale
 SCALES_KM: dict[str, float] = {"1km": 1.0, "5km": 5.0, "28km": 28.0, "84km": 84.0}
 
-FEATURES: tuple[str, ...] = (
-    ("z_site", "land_frac_28km")
-    + tuple(f"{p}_{s}" for s in SCALES_KM for p in ("tpi", "std", "relief"))
+FEATURES: tuple[str, ...] = ("z_site", "land_frac_28km") + tuple(
+    f"{p}_{s}" for s in SCALES_KM for p in ("tpi", "std", "relief")
 )
 
 
@@ -85,17 +85,18 @@ def terrain_descriptors(
 
     out: dict[str, np.ndarray] = {"z_site": z_site}
     n28 = _odd(round(28.0 / km_per_px))
-    out["land_frac_28km"] = uniform_filter(
-        (elev > 0).astype("float32"), size=n28, mode="nearest"
-    )[ii, jj].astype("float64")
+    out["land_frac_28km"] = uniform_filter((elev > 0).astype("float32"), size=n28, mode="nearest")[
+        ii, jj
+    ].astype("float64")
 
     for name, km in SCALES_KM.items():
         n = _odd(round(km / km_per_px))
         mean = uniform_filter(elev, size=n, mode="nearest")
         msq = uniform_filter(elev.astype("float64") ** 2, size=n, mode="nearest")
         std = np.sqrt(np.clip(msq - mean.astype("float64") ** 2, 0.0, None))
-        relief = (maximum_filter(elev, size=n, mode="nearest")
-                  - minimum_filter(elev, size=n, mode="nearest"))
+        relief = maximum_filter(elev, size=n, mode="nearest") - minimum_filter(
+            elev, size=n, mode="nearest"
+        )
         out[f"tpi_{name}"] = z_site - mean[ii, jj].astype("float64")
         out[f"std_{name}"] = std[ii, jj]
         out[f"relief_{name}"] = relief[ii, jj].astype("float64")

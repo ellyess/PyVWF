@@ -13,6 +13,7 @@ territorial waters, not proximity to land. Bornholm is 34 km from Sweden and
 it sits inside Denmark's EEZ, so the EEZ rule gets it right. The synthetic
 fixture below reproduces exactly that inversion.
 """
+
 import json
 
 import numpy as np
@@ -46,35 +47,47 @@ def _ring(bounds):
 
 
 def _write_geojson(path, features):
-    path.write_text(json.dumps({
-        "type": "FeatureCollection",
-        "features": [
-            {"type": "Feature", "properties": {"name": name},
-             "geometry": geom}
-            for name, geom in features
-        ],
-    }))
+    path.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {"type": "Feature", "properties": {"name": name}, "geometry": geom}
+                    for name, geom in features
+                ],
+            }
+        )
+    )
 
 
 @pytest.fixture
 def shape_files(tmp_path, monkeypatch):
     """Point PyVWF's shape paths at a synthetic two-country world."""
     coast = tmp_path / "coastlines.geojson"
-    _write_geojson(coast, [
-        ("c", {"type": "LineString", "coordinates": _ring(A_MAINLAND)}),
-        ("c", {"type": "LineString", "coordinates": _ring(ISLAND_A)}),
-        ("c", {"type": "LineString", "coordinates": _ring(ISLAND_B)}),
-    ])
+    _write_geojson(
+        coast,
+        [
+            ("c", {"type": "LineString", "coordinates": _ring(A_MAINLAND)}),
+            ("c", {"type": "LineString", "coordinates": _ring(ISLAND_A)}),
+            ("c", {"type": "LineString", "coordinates": _ring(ISLAND_B)}),
+        ],
+    )
     countries = tmp_path / "country_shapes.geojson"
-    _write_geojson(countries, [
-        ("A", box(*A_MAINLAND).__geo_interface__),
-        ("B", box(*B_MAINLAND).__geo_interface__),
-    ])
+    _write_geojson(
+        countries,
+        [
+            ("A", box(*A_MAINLAND).__geo_interface__),
+            ("B", box(*B_MAINLAND).__geo_interface__),
+        ],
+    )
     offshore = tmp_path / "offshore_shapes.geojson"
-    _write_geojson(offshore, [
-        ("A", box(*A_WATERS).__geo_interface__),
-        ("B", box(*B_WATERS).__geo_interface__),
-    ])
+    _write_geojson(
+        offshore,
+        [
+            ("A", box(*A_WATERS).__geo_interface__),
+            ("B", box(*B_WATERS).__geo_interface__),
+        ],
+    )
 
     monkeypatch.setattr(PyVWFPaths, "COASTLINES", coast)
     monkeypatch.setattr(PyVWFPaths, "COUNTRY_SHAPES", countries)
@@ -109,7 +122,7 @@ def test_island_in_other_countrys_waters_is_not_claimed(shape_files):
 
 def test_fleet_points_claim_a_landmass(shape_files):
     """A landmass carrying the fleet is kept whatever the EEZ test decides."""
-    fleet = np.array([[14.8, 56.0]])   # sits on ISLAND_B, in B's waters
+    fleet = np.array([[14.8, 56.0]])  # sits on ISLAND_B, in B's waters
     repaired = repair_region_shape(box(*A_MAINLAND), "A", fleet_xy=fleet)
     assert repaired.contains(box(*ISLAND_B).centroid), (
         "a turbine's own island was dropped; the fleet override is what keeps "
@@ -147,11 +160,13 @@ def test_denmark_regains_bornholm():
     repaired = get_country_shape("DK", repair=True)
 
     from shapely.geometry import Point
+
     bornholm = Point(14.9, 55.13)
     assert not plain.contains(bornholm)
     assert repaired.contains(bornholm)
 
     import geopandas as gpd
+
     areas = gpd.GeoSeries([plain, repaired], crs="EPSG:4326").to_crs("EPSG:3035").area / 1e6
     # Published land area is 42,943 km2; unrepaired is 39,208.
     assert areas.iloc[0] < 40_000

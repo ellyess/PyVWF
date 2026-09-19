@@ -22,6 +22,7 @@ speed-of-mean-components), and roughness is derived from the hourly 10 m/100 m
 shear exactly as ``vwf.datasets.era5.prep_era5`` does; prep_era5 detects the
 precomputed ``wnd100m``/``roughness`` and skips recomputation.
 """
+
 import argparse
 import os
 import sys
@@ -31,17 +32,8 @@ import numpy as np
 import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.harness.regions import load_region  # noqa: E402
-
-Z0_CLIP = (1e-6, 2.0)
-CONFIG_DIR = Path(__file__).resolve().parents[2] / "configs" / "regions"
-
-
-def region_spec(code: str):
-    path = CONFIG_DIR / f"{code.lower()}.toml"
-    if not path.is_file():
-        sys.exit(f"no region config at {path}; is {code!r} a shipped region?")
-    return load_region(path)
+from vwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear  # noqa: E402
+from vwf.harness.regions import load_region_by_code  # noqa: E402
 
 
 def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:
@@ -67,31 +59,39 @@ def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:
         w100 = np.hypot(ds["u100"], ds["v100"])
         w10 = np.hypot(ds["u10"], ds["v10"]).clip(min=1e-4)
         w100c = w100.clip(min=1e-4)
-        num = w100c * np.log(10) - w10 * np.log(100)
-        den = (w100c - w10).where(lambda x: np.abs(x) > 1e-4)
-        z0log = (num / den).where(lambda x: x < 0)
-        z0log = z0log.bfill("time").clip(min=np.log(Z0_CLIP[0]), max=np.log(Z0_CLIP[1]))
-        rough = np.exp(z0log).clip(min=Z0_CLIP[0])
+        z0log = log_roughness_from_shear(w10, w100c)
+        rough = np.exp(z0log).clip(min=Z0_BOUNDS[0])
         daily = xr.Dataset({"wnd100m": w100, "roughness": rough}).resample(time="1D").mean()
         days.append(daily.astype("float32"))
         ds.close()
     combined = xr.concat(days, dim="time").sortby("time")
     enc = {v: {"zlib": True, "complevel": 4} for v in combined.data_vars}
     combined.to_netcdf(target, encoding=enc)
-    print(f"{year}: {combined.sizes['time']} days -> {target.name} "
-          f"({target.stat().st_size / 1e6:.0f} MB)")
+    print(
+        f"{year}: {combined.sizes['time']} days -> {target.name} "
+        f"({target.stat().st_size / 1e6:.0f} MB)"
+    )
     return target
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--region", required=True, help="Region code (e.g. br, us, au)")
-    ap.add_argument("--years", type=int, nargs="+", default=None,
-                    help="Override the year span (default: train[0]..test[-1])")
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Override the year span (default: train[0]..test[-1])",
+    )
     args = ap.parse_args()
 
-    spec = region_spec(args.region)
+    try:
+        spec = load_region_by_code(args.region)
+    except (FileNotFoundError, ValueError) as exc:
+        sys.exit(str(exc))
     # Filenames key on file_tag, not the region code: AU-NEM writes era5_au_*.
     tag = spec.file_tag.lower()
     years = args.years or list(range(spec.train_years[0], spec.test_years[-1] + 1))

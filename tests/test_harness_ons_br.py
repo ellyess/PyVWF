@@ -2,6 +2,7 @@
 
 All fixtures are synthetic; real ONS acquisition is Phase 2.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,23 +14,27 @@ from vwf.sources.ons_br import ONSBrazilSource, fc_to_monthly_cf
 
 def fc_hours(id_ons, start, end, cf):
     times = pd.date_range(start, end, freq="h", inclusive="left")
-    return pd.DataFrame({
-        "id_ons": id_ons,
-        "nom_tipousina": "Eólica",
-        "din_instante": times,
-        "val_fatorcapacidade": float(cf),
-    })
+    return pd.DataFrame(
+        {
+            "id_ons": id_ons,
+            "nom_tipousina": "Eólica",
+            "din_instante": times,
+            "val_fatorcapacidade": float(cf),
+        }
+    )
 
 
-METADATA = pd.DataFrame({
-    "ID": ["CJU_A"],
-    "lon": [-40.0],
-    "lat": [-5.0],
-    "height": [100.0],
-    "capacity": [100_000.0],
-    "model": ["M"],
-    "type": ["onshore"],
-})
+METADATA = pd.DataFrame(
+    {
+        "ID": ["CJU_A"],
+        "lon": [-40.0],
+        "lat": [-5.0],
+        "height": [100.0],
+        "capacity": [100_000.0],
+        "model": ["M"],
+        "type": ["onshore"],
+    }
+)
 
 
 def test_fc_to_monthly_cf_basic():
@@ -74,9 +79,7 @@ def test_source_end_to_end_from_files(tmp_path, monkeypatch):
     data_dir = tmp_path / "BR"
     data_dir.mkdir(parents=True)
     METADATA.to_csv(data_dir / "br_md.csv", index=False)
-    fc_hours("CJU_A", "2023-01-01", "2024-01-01", 0.35).to_csv(
-        data_dir / "br_fc.csv", index=False
-    )
+    fc_hours("CJU_A", "2023-01-01", "2024-01-01", 0.35).to_csv(data_dir / "br_fc.csv", index=False)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
 
     obs = ONSBrazilSource().load_observations(2023, 2023)
@@ -89,16 +92,15 @@ def test_curtailment_mask_file_flows_through_source(tmp_path, monkeypatch):
     data_dir = tmp_path / "BR"
     data_dir.mkdir(parents=True)
     METADATA.to_csv(data_dir / "br_md.csv", index=False)
-    fc_hours("CJU_A", "2023-01-01", "2024-01-01", 0.35).to_csv(
-        data_dir / "br_fc.csv", index=False
-    )
+    fc_hours("CJU_A", "2023-01-01", "2024-01-01", 0.35).to_csv(data_dir / "br_fc.csv", index=False)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
 
     unmasked = ONSBrazilSource().load_observations(2023, 2023)
     assert unmasked.iloc[0]["obs_4"] == pytest.approx(0.35, abs=1e-6)
 
     pd.DataFrame({"ID": ["CJU_A"], "year": [2023], "month": [4]}).to_csv(
-        data_dir / "br_curtailment_mask.csv", index=False)
+        data_dir / "br_curtailment_mask.csv", index=False
+    )
     masked = ONSBrazilSource().load_observations(2023, 2023)
     assert np.isnan(masked.iloc[0]["obs_4"])
     assert masked.iloc[0]["obs_5"] == pytest.approx(unmasked.iloc[0]["obs_5"])  # only Apr
@@ -111,8 +113,7 @@ def test_default_train_years_used_when_unspecified(tmp_path, monkeypatch):
     lo, hi = ONSBrazilSource().default_train_years
     inside = fc_hours("CJU_A", f"{lo}-01-01", f"{lo}-02-01", 0.3)
     outside = fc_hours("CJU_A", f"{hi + 5}-01-01", f"{hi + 5}-02-01", 0.3)
-    pd.concat([inside, outside], ignore_index=True).to_csv(
-        data_dir / "br_fc.csv", index=False)
+    pd.concat([inside, outside], ignore_index=True).to_csv(data_dir / "br_fc.csv", index=False)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
 
     obs = ONSBrazilSource().load_observations()

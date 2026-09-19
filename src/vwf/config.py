@@ -12,6 +12,7 @@ installed copy of PyVWF works outside a checkout::
 
     export PYVWF_INPUT=/data/pyvwf-inputs
 """
+
 from __future__ import annotations
 
 import os
@@ -137,7 +138,12 @@ class PyVWFPaths:
             Path to grid points CSV file.
         """
         country_lower = country.lower()
-        return cls.COUNTRY_LEVEL_DATA / "grid_points" / country_lower / f"{country_lower}_grid_points.csv"
+        return (
+            cls.COUNTRY_LEVEL_DATA
+            / "grid_points"
+            / country_lower
+            / f"{country_lower}_grid_points.csv"
+        )
 
     @classmethod
     def get_country_level_observations(cls, country: str, train: bool = True) -> Path:
@@ -171,10 +177,10 @@ class BoundingBoxes:
         "NO": (4.0, 31.5, 57.5, 71.5),
         "FR": (-6.0, 10.5, 41.0, 51.5),
         # Phase 1 Countries
-        "ES": (-9.5, 3.5, 36.0, 43.8),    # Spain
-        "SE": (11.0, 24.2, 55.3, 69.0),   # Sweden
-        "IT": (6.6, 18.5, 36.6, 47.1),    # Italy
-        "PT": (-9.5, -6.2, 37.0, 42.2),   # Portugal
+        "ES": (-9.5, 3.5, 36.0, 43.8),  # Spain
+        "SE": (11.0, 24.2, 55.3, 69.0),  # Sweden
+        "IT": (6.6, 18.5, 36.6, 47.1),  # Italy
+        "PT": (-9.5, -6.2, 37.0, 42.2),  # Portugal
         "IE": (-10.5, -5.4, 51.4, 55.4),  # Ireland
         # Multi-region expansion: contiguous US (CONUS). Alaska and Hawaii are
         # excluded: a separate, antimeridian-crossing box would be needed for

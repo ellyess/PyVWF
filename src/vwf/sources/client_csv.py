@@ -22,13 +22,16 @@ Expected inputs (column names are remappable via ``column_map``):
 See ``docs/guides/your-own-data.md`` for a worked example and the exact
 column contract.
 """
+
 from __future__ import annotations
 
-from calendar import monthrange
 from pathlib import Path
 from typing import ClassVar
 
 import pandas as pd
+
+from vwf.curves import add_models
+from vwf.time_utils import month_days
 
 from vwf.sources.base import ObservationSource, ObsLevel
 from vwf.sources.registry import register
@@ -39,11 +42,11 @@ DEFAULT_COLUMN_MAP: dict[str, str] = {
     "ID": "ID",
     "lon": "lon",
     "lat": "lat",
-    "capacity": "capacity",   # rated capacity (see capacity_unit)
-    "height": "height",       # hub height, metres
-    "diameter": "diameter",   # rotor diameter, metres (optional, for curve match)
-    "model": "model",         # power-curve key (optional; matched if absent)
-    "type": "type",           # onshore/offshore (optional; defaults onshore)
+    "capacity": "capacity",  # rated capacity (see capacity_unit)
+    "height": "height",  # hub height, metres
+    "diameter": "diameter",  # rotor diameter, metres (optional, for curve match)
+    "model": "model",  # power-curve key (optional; matched if absent)
+    "type": "type",  # onshore/offshore (optional; defaults onshore)
     "manufacturer": "manufacturer",  # optional, aids curve matching
 }
 
@@ -130,8 +133,6 @@ class ClientCsvTurbineSource(ObservationSource):
                     "'diameter' to match one. Provide either a power-curve key "
                     "per site or a rotor diameter (plus manufacturer if known)."
                 )
-            from vwf.data import add_models  # lazy: vwf.data imports this package
-
             if "manufacturer" not in md.columns:
                 md["manufacturer"] = ""
             md = add_models(md)
@@ -171,8 +172,7 @@ class ClientCsvTurbineSource(ObservationSource):
         else:
             cap = self.load_metadata().set_index("ID")["capacity"]  # kW
             cap_kw = gen["ID"].map(cap)
-            days = [monthrange(int(y), int(m))[1] for y, m in zip(gen["year"], gen["month"])]
-            hours = pd.Series(days, index=gen.index) * 24.0
+            hours = month_days(gen["year"], gen["month"]) * 24.0
             # energy unit matches capacity basis; if capacity is kW, energy is kWh.
             energy = val * (1000.0 if self._capacity_unit == "mw" else 1.0)
             gen["cf"] = energy / (hours * cap_kw)

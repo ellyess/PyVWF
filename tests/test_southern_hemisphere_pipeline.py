@@ -24,6 +24,7 @@ What it can and cannot prove, stated honestly:
   THAN NO CORRECTION AT ALL: it leaves JJA biased and breaks the previously
   unbiased DJF.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -33,7 +34,8 @@ import xarray as xr
 
 import vwf.wind as wind
 from vwf.config import PyVWFPaths
-from vwf.data import load_power_curves, val_set
+from vwf.data import val_set
+from vwf.curves import load_power_curves
 from vwf.harness.driver import run_evaluate, run_train
 from vwf.harness.regions import RegionSpec
 from vwf.sources.aemo import AEMONemSource
@@ -123,9 +125,7 @@ def au_world(tmp_path_factory):
     # value and the only planted difference is the JJA bias.
     to_cf = _curve_cf()
     day_cf = pd.Series(to_cf(true_wind), index=days)
-    stamps_aest = pd.date_range(
-        f"{YEARS[0]}-01-01 00:00", f"{YEARS[-1]}-12-31 23:55", freq="5min"
-    )
+    stamps_aest = pd.date_range(f"{YEARS[0]}-01-01 00:00", f"{YEARS[-1]}-12-31 23:55", freq="5min")
     utc_day = (stamps_aest - pd.Timedelta(hours=10)).normalize()
     cf_per_stamp = day_cf.reindex(utc_day).to_numpy()
     keep = ~np.isnan(cf_per_stamp)  # first 10 AEST hours map before the window

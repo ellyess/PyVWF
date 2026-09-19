@@ -19,6 +19,7 @@ already absorbed) and ``eta`` (conversion efficiency) supplied by the model in
 eta = 1 the operator reduces to the incumbent simulation, which is what
 ``tests/test_pinn_physics.py`` checks.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -43,8 +44,7 @@ class PowerCurveBank:
     model carries a separate, learned ``kappa``.
     """
 
-    def __init__(self, speeds: np.ndarray, curves: np.ndarray,
-                 device=None, dtype=torch.float32):
+    def __init__(self, speeds: np.ndarray, curves: np.ndarray, device=None, dtype=torch.float32):
         speeds = np.asarray(speeds, dtype="float64")
         step = np.diff(speeds)
         if not np.allclose(step, step[0], rtol=1e-9, atol=1e-12):
@@ -52,6 +52,10 @@ class PowerCurveBank:
         self.v0 = float(speeds[0])
         self.dv = float(step[0])
         self.n = len(speeds)
+        # The table's speed range. Outside it the bank returns the end value
+        # rather than a missing one, so callers count those speeds themselves.
+        self.v_min = float(speeds[0])
+        self.v_max = float(speeds[-1])
         self.curves = torch.as_tensor(np.asarray(curves), dtype=dtype, device=device)
 
     def __call__(self, u: torch.Tensor, curve_idx: torch.Tensor) -> torch.Tensor:
@@ -124,10 +128,8 @@ def hub_wind_ratio(
         z0 = roughness_from_shear(shear)
         if log_z0_offset is not None:
             z0 = (z0 * torch.exp(log_z0_offset)).clamp(min=1e-6, max=2.0)
-        denom = torch.log(
-            torch.tensor(REF_HEIGHT, dtype=z0.dtype, device=z0.device) / z0)
-        denom = torch.where(denom.abs() > 1e-6, denom,
-                            torch.full_like(denom, 1e-6))
+        denom = torch.log(torch.tensor(REF_HEIGHT, dtype=z0.dtype, device=z0.device) / z0)
+        denom = torch.where(denom.abs() > 1e-6, denom, torch.full_like(denom, 1e-6))
         return torch.log(height / z0) / denom
     raise ValueError(f"unknown profile {profile!r}")
 
@@ -267,6 +269,7 @@ def monthly_mean(
     total = torch.zeros(n_months, n_units, dtype=daily.dtype, device=daily.device)
     count = torch.zeros(n_months, 1, dtype=daily.dtype, device=daily.device)
     total.index_add_(0, month_id, daily)
-    count.index_add_(0, month_id, torch.ones(len(month_id), 1,
-                                             dtype=daily.dtype, device=daily.device))
+    count.index_add_(
+        0, month_id, torch.ones(len(month_id), 1, dtype=daily.dtype, device=daily.device)
+    )
     return total / count

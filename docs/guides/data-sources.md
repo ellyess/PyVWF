@@ -4,7 +4,7 @@ The single reference for the data PyVWF uses: what each source is, its licence,
 how it is fetched, and **what the processing does to it** for every region.
 Full step-by-step acquisition lives in the per-region runbooks
 (`docs/runbooks/<cc>.md`); the adapter contract is in
-[`adding-an-observation-source.md`](adding-an-observation-source.md).
+[`adding-an-adapter.md`](adding-an-adapter.md).
 
 **Licence key**, used in the `Lic.` column below: **open** = redistributable;
 **mixed** = open coordinates over a confidential generation series;
@@ -93,12 +93,13 @@ source lacks them. The region-specific work:
   per-phase nameplate (turbine count × unit MW) in
   `configs/curation/ar_coord_overrides.csv` where GWPT gave a phase-split
   full-farm value. Zero-generation and steady-underperforming codes are dropped
-  (`EXCLUDE`). Turbine specs drive matched curves.
+  (`configs/curation/ar_fleet_exclusions.csv`). Turbine specs drive matched
+  curves.
 - **Country-level (ENTSO-E)**: see §4.
 
 Turbine-level sources report at different native units (turbine / farm / plant /
 complex); the per-adapter unit, time convention, and curtailment handling are in
-[`adding-an-observation-source.md`](adding-an-observation-source.md).
+the [built-in adapters](adding-an-adapter.md#built-in-adapters) table.
 
 ### Source URLs
 
@@ -128,11 +129,30 @@ the box and years from the region TOML, batches 3 months per CDS request (the
 cost-limit ceiling), and writes per-month `era5_<tag>_<YYYY>_<MM>.nc`. Big boxes
 (US, BR) are reduced to yearly daily means by `scripts/era5/combine.py`.
 
+**The `era5/EU` archive (annual-mean roughness).** The European rows published
+before 2026-09-13 read `era5/EU`. It holds one hourly file per year, 2015 to
+2023, named `era5_combined_<YYYY>_EU.nc`. Each file merges the 10 m and 100 m
+winds and carries `z0`, one static field per year. That field is the annual
+mean of the roughness derived from the 10 m to 100 m shear, so a run on it
+applies the annual-mean treatment. `src/vwf/datasets/combine_era5_files.py`
+built the archive from the per-year `era5_u10_v10_<YYYY>_months01-12_EU.nc` and
+`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads:
+
+```bash
+python src/vwf/datasets/combine_era5_files.py --all-years --add-roughness \
+    --roughness-source pyvwf
+```
+
+The archive is kept unchanged, so the rows published on it stay reproducible.
+New work uses `era5/EU_2026-09`, which carries no roughness field, so
+`prep_era5` derives it per timestep. The reasons are in
+[`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
+
 **Coordinates and capacity: Global Wind Power Tracker (GWPT).** Global Energy
 Monitor, CC-BY-4.0, at `input/reference/gwpt/`. Supplies coordinates (CL, AR,
 ES-WS) and per-phase capacity (AR). Also supplies capacity weights for every
 country-level grid via `scripts/region_tools/weight_country_grid_points.py`
-(§4); start/retirement years let the fleet be reconstructed by year. One known
+(§4 and the region guide); start/retirement years let the fleet be reconstructed by year. One known
 spurious record is excluded in `configs/curation/gwpt_exclusions.csv`.
 
 **Bidding-zone geometry.** Real polygons vendored under
@@ -160,12 +180,15 @@ for clustering (committed).
 
 ---
 
-## 4. Country-level (ENTSO-E) workflow
+## 4. Country-level (ENTSO-E) layout
 
 The nine ENTSO-E regions use grid-sampled ERA5 against a national observed
-series. `datasets/generate_country_level_training_data.py` fetches ENTSO-E
-generation (needs `ENTSOE_API_KEY`) and builds the grid points; the harness then
-trains and evaluates like any region. Layout:
+series. `python -m vwf.datasets.generate_country_level_training_data` fetches
+ENTSO-E generation and builds the grid points; the harness then trains and
+evaluates like any region. The steps, including the capacity weighting and the
+observation audit, are in
+[A country-level region](adding-a-region.md#a-country-level-region). The
+generator writes this layout:
 
 ```
 input/observations/country/
@@ -175,29 +198,6 @@ input/observations/country/
 
 Zonal regions (NO, SE) also carry per-zone files and an `_aggregated` national
 series.
-
-Three steps make the grid trustworthy, and each has a script:
-
-1. **Capacity-weight the grid.** The generator writes a uniform synthetic
-   capacity, which weights the country aggregate by land area, not fleet. Fix it
-   with real GWPT capacity (drops empty grid points):
-   ```bash
-   PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py --all --per-year 2015 2024
-   ```
-   `--per-year` writes one grid per year so train and test see the fleet as it
-   stood (NL's more than quadrupled). Add `--zone-aware` for NO/SE so capacity
-   is never summed across a zone boundary.
-
-2. **Set `cluster_list` correctly.** It must be `1` (one national cluster, an
-   exactly-determined fit) or the grid's own cluster count; anything else raises.
-
-3. **Audit the observations** before trusting them:
-   ```bash
-   PYTHONPATH=src python scripts/analysis/audit_country_observations.py
-   ```
-   The affine correction absorbs a constant observation error into the scalar,
-   so a uniformly-wrong series still fits well in sample. **NL and IE fail this
-   audit** (see [method-country-level.md](../findings/method-country-level.md)).
 
 ---
 

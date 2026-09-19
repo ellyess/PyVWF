@@ -18,9 +18,11 @@ train_years = [2019, 2023]
 test_years = [2024]
 # EMI Generation_MD is metered half-hourly grid injection per plant; trading
 # periods are NZ civil time with DST (46/48/50-period days) -> UTC at ingest;
-# monthly bins are UTC. CF denominator is the then-current registered
-# capacity from the effective-dated EMI plant register, with commissioning
-# months masked below final build (Turitea 2021-2023, Harapaki 2024).
+# monthly bins are UTC. CF denominator is a stable-plateau capacity history
+# from the curated tables (configs/curation/nz_capacity_stages.csv for staged
+# builds, otherwise each farm's final capacity from nz_wind_farms.csv), not the
+# EMI register; commissioning months listed in nz_mask_windows.csv are masked
+# (Turitea 2021-2023, Harapaki 2024).
 # Metered injection is net of farm availability but NZ sees little economic
 # curtailment over this window (hydro-dominated system; standing caveat,
 # not screened).

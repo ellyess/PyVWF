@@ -1,0 +1,14 @@
+ID,site_name,lon,lat,height,capacity,type,commissioning_date,height_source,true_model,n_turbines,diameter,operator
+tararua_1_2,Tararua I & II,175.78,-40.346,40,67980,onshore,1999-01-01,verified,Vestas V47-660,103,47.0,Mercury
+tararua_3,Tararua III,175.78,-40.346,65,93000,onshore,2007-01-01,unverified-model-standard,Vestas V90-3.0,31,90.0,Mercury
+te_apiti,Te Apiti,175.808,-40.296,70,90750,onshore,2004-01-01,verified,NEG Micon NM72C-1.65,55,72.0,Meridian
+white_hill,White Hill,168.272,-45.753,68,58000,onshore,2007-01-01,verified,Vestas V80-2.0,29,80.0,Meridian
+te_rere_hau,Te Rere Hau,175.724,-40.388,30,48500,onshore,2006-01-01,verified,Windflow 500,97,33.0,NZ Windfarms (Meridian)
+west_wind,West Wind (Makara),174.66,-41.276,68,142600,onshore,2009-01-01,verified,Siemens SWT-2.3-82 VS,62,82.4,Meridian
+te_uku,Te Uku,174.963,-37.878,80,64400,onshore,2011-01-01,verified,Siemens SWT-2.3-101,28,101.0,Meridian + WEL Networks
+mill_creek,Mill Creek (Ohariu),174.739,-41.212,80,59800,onshore,2014-01-01,unverified-conflicting-sources,Siemens SWT-2.3-82 VS,26,82.4,Meridian
+waipipi,Waipipi,174.55,-39.783,95,133300,onshore,2020-11-01,verified,Siemens Gamesa SWT-DD-130,31,130.0,Mercury (Genesis offtaker)
+turitea,Turitea (North + South),175.671,-40.441,69,221400,onshore,2021-03-01,verified,Vestas V112-3.6/3.8,60,112.0,Mercury
+harapaki,Harapaki,176.693,-39.184,85,176300,onshore,2023-11-01,verified,Siemens Gamesa SG 4.3-120 DD,41,120.0,Meridian
+kaiwera_downs_1,Kaiwera Downs 1,169.056,-46.241,77,43000,onshore,2023-08-01,verified,Vestas V136-4.2,10,136.0,Mercury
+kaiwera_downs_2,Kaiwera Downs 2,169.056,-46.241,97,154800,onshore,2026-03-01,unverified-consent-docs,Vestas V136-4.2,36,136.0,Mercury

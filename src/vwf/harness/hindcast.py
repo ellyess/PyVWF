@@ -18,6 +18,7 @@ a few years present this still produces the series and the ranking, but the
 percentile context is only as deep as the years available. The function reports
 how many years it used so the note can be honest about it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,7 +29,8 @@ import pandas as pd
 import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
-from vwf.data import load_power_curves, val_set
+from vwf.data import val_set
+from vwf.curves import load_power_curves
 from vwf.harness.corrections import get_correction
 from vwf.harness.regions import RegionSpec
 from vwf.datasets.era5 import prep_era5
@@ -85,18 +87,34 @@ def run_hindcast(
 
     # Prepared fleet (curves, hub heights) for the chosen year, via the harness.
     _, turb_info, _, _ = val_set(
-        spec.code, calc_z0, mode, year_test=fleet_year, obs_level="turbine",
-        era5_dir=era5_dir, bbox=spec.bbox,
+        spec.code,
+        calc_z0,
+        mode,
+        year_test=fleet_year,
+        obs_level="turbine",
+        era5_dir=era5_dir,
+        bbox=spec.bbox,
     )
     power_curves = load_power_curves()
 
     # Full-window reanalysis (no year filter): the length of the context.
-    reanalysis = prep_era5(spec.code, False, calc_z0, bbox=spec.bbox, era5_dir=era5_dir)
+    reanalysis = prep_era5(
+        spec.code,
+        False,
+        calc_z0,
+        bbox=spec.bbox,
+        era5_dir=era5_dir,
+        allow_extrapolation=spec.allow_extrapolation,
+        roughness=spec.roughness,
+    )
 
     # Cluster the fleet against the training fleet so the factors' cluster ids align.
     train_fleet = pd.read_csv(train_run_dir / f"train_turb_info_{num_clu}.csv")
     clus_info = cluster_turbines(
-        num_clu, train_fleet, False, turb_info,
+        num_clu,
+        train_fleet,
+        False,
+        turb_info,
         min_cluster_size=spec.min_cluster_size,
     )
     factors = pd.read_csv(train_run_dir / f"factors_{time_res}_{num_clu}.csv")

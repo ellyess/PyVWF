@@ -58,10 +58,10 @@ step is needed.
 ## 2. Train and evaluate
 
 ```bash
-PYVWF_INPUT=<combined-library root> \
-python scripts/analysis/validate_region.py train    --region configs/regions/dk.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/dk.toml \
-    --train-run output/validation/DK/train-<stamp>
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+    --region configs/regions/dk.toml
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/dk.toml --train-run output/validation/DK/train-<stamp>
 ```
 
 Denmark trains on 2015-2019 and tests on 2020 (`dk.toml`). It is
@@ -70,6 +70,16 @@ every metric, the anchor the other regions are read against
 (`docs/findings/method-harness-regression.md`, `method-generalisation.md`). ERA5 for DK comes from
 the shared European box (`era5/EU`), already on disk; there is no DK-specific
 ERA5 fetch.
+
+The legacy `PyVWF` path runs Denmark through the `pyvwf-train` console script.
+It trains, then simulates one test year:
+
+```bash
+pyvwf-train --outdir output/demo_DK_2020 --country DK --year-test 2020 --calc-z0
+```
+
+The harness above is the path for new work. The legacy path is described in
+the [training guide](../guides/training.md#legacy-batch-path).
 
 ## Notes
 

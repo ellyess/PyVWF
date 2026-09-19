@@ -25,23 +25,41 @@ studies, and performance improvements.
 git clone https://github.com/ellyess/PyVWF.git
 cd PyVWF
 
-# Option A: conda (pinned, reproducible)
+# Option A: pip, the same install CI uses
+pip install -e ".[dev,docs]"
+
+# Option B: conda, the conda-forge stack with the data extra
 conda env create -f environment.yaml
 conda activate pyvwf
-
-# Option B: pip
-pip install -e ".[dev]"
 ```
 
 ## Running the tests and linter
 
-The test suite uses synthetic data and needs no ERA5 downloads or API access:
+The test suite uses synthetic data and needs no ERA5 downloads or API access.
+Two markers split it:
+
+- `realdata` tests read git-ignored data under `input/` or `output/`, such as
+  the pins that reproduce recorded study outputs. They skip where the data is
+  absent, which includes CI.
+- `slow` tests are pins that take seconds per case.
+
+Install the commit hooks once, after the dev extra. They run `ruff check`,
+`ruff format`, the whitespace and file checks and `nbstripout` on each commit:
 
 ```bash
-pytest                     # run all tests
+pre-commit install
+pre-commit run --all-files   # the same checks over the whole tree
+```
+
+The tree was reformatted once with `ruff format`. To keep that commit out of
+`git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
+```bash
+pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
+pytest                                  # every test: what CI runs on a manual dispatch
 pytest --cov=vwf           # with coverage
-ruff check src/vwf tests   # lint
-mypy                       # type check
+ruff check src tests scripts examples   # lint, as CI does
+mypy                       # type check; needs pandas-stubs, from the dev extra
 ```
 
 Continuous integration (`.github/workflows/ci.yml`) runs, for every pull request
@@ -52,10 +70,20 @@ and every push to `main`:
 - the suite plus `examples/run_minimal.py` on Python 3.10 to 3.12, installed
   from `pyproject.toml` so the declared dependencies are exercised as a fresh
   `pip install` would get them, with coverage gated;
+- every file in `examples/`, which then must leave the tracked tree unchanged,
+  with the regenerated example data equal to the committed data to a relative
+  1e-12 (the last bit differs between platforms);
 - a Sphinx build of the docs with `-W`, so a broken docstring or an orphaned
   page fails rather than quietly degrading the site;
 - an sdist and wheel build, `twine` metadata validation, then a clean-environment
-  install and import of the wheel with no repository on `sys.path`.
+  install and import of the wheel with no repository on `sys.path`;
+- a Docker build, which runs the image's default command on bundled data and
+  checks that the example corrected something, that the console script and
+  the curve library resolve, and that the image does not run as root.
+
+CI installs neither the `data` extra nor the other optional extras, so the
+suite and the example must pass without them. Tests that need `torch`,
+`pykrige` or `rasterio` skip themselves where those are missing.
 
 To build the docs locally:
 
@@ -71,12 +99,13 @@ versioning and stays in step with `CITATION.cff`.
 ## Submitting a pull request
 
 1. Fork the repository and create a feature branch from `main`.
-2. Make your change, keeping it focused and well documented (NumPy-style
-   docstrings, as used throughout `vwf/`).
+2. Make your change, keeping it focused and well documented (Google-style
+   docstrings, with `Args:` and `Returns:` sections, as used throughout
+   `vwf/`).
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
-4. Ensure `pytest` and `ruff check src/vwf tests` pass locally.
+4. Ensure `pytest` and `ruff check src tests scripts examples` pass locally.
 5. Open a pull request describing the change and its motivation. Link any
    related issue.
 
@@ -84,7 +113,7 @@ versioning and stays in step with `CITATION.cff`.
 
 - Target Python 3.10+.
 - Follow the existing module style: small, documented functions with type hints
-  where helpful, NumPy-style docstrings, and `ruff`-clean code (`E`, `F` rules;
+  where helpful, Google-style docstrings, and `ruff`-clean code (`E`, `F` rules;
   see `pyproject.toml`).
 - Keep new heavy/optional dependencies behind `try/except` imports, mirroring the
   optional visualisation import in `vwf/__init__.py`.

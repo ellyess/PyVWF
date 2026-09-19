@@ -16,6 +16,7 @@ Data-window caveat: the WindStats extracts are historical. ES generation is
 contemporaries of the 2015-2019 reference set. Training them needs ERA5 for the
 matching years.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -67,9 +68,7 @@ class WindStatsSource(ObservationSource):
     def __init__(self, country: str) -> None:
         self.country: str = country.upper()
         if _base_country(self.country) not in {"ES", "SE", "FI"}:
-            raise ValueError(
-                f"{type(self).__name__} supports ES-WS/SE-WS/FI-WS, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports ES-WS/SE-WS/FI-WS, got {country!r}")
 
     @property
     def default_train_years(self) -> tuple[int, int]:

@@ -27,12 +27,14 @@ corrections absorb both more than European monthly *generation* data does.
 Curtailment screening is a shared follow-up (``pyvwf.qc``), not yet applied
 here.
 """
+
 from __future__ import annotations
 
-from calendar import monthrange
 from typing import ClassVar
 
 import pandas as pd
+
+from vwf.time_utils import month_days
 
 from vwf.config import PyVWFPaths
 from vwf.sources.base import ObservationSource, ObsLevel
@@ -84,13 +86,14 @@ def netgen_to_monthly_cf(
     monthly["year"] = pd.to_numeric(monthly["year"], errors="coerce").astype("int64")
     monthly["month"] = pd.to_numeric(monthly["month"], errors="coerce").astype("int64")
     monthly["net_gen_mwh"] = pd.to_numeric(monthly["net_gen_mwh"], errors="coerce")
-    monthly = monthly[
-        (monthly["year"] >= int(year_start)) & (monthly["year"] <= int(year_end))
-    ]
+    monthly = monthly[(monthly["year"] >= int(year_start)) & (monthly["year"] <= int(year_end))]
 
     if drop_annual_respondents and "respondent_frequency" in monthly.columns:
         imputed = (
-            monthly["respondent_frequency"].astype(str).str.strip().str.upper()
+            monthly["respondent_frequency"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
             .isin(IMPUTED_RESPONDENT_FLAGS)
         )
         monthly.loc[imputed, "net_gen_mwh"] = float("nan")
@@ -99,13 +102,9 @@ def netgen_to_monthly_cf(
     meta["ID"] = meta["ID"].astype(str)
     monthly = monthly.merge(meta[["ID", "capacity"]], on="ID", how="inner")
 
-    hours = monthly.apply(
-        lambda r: monthrange(int(r["year"]), int(r["month"]))[1] * 24.0, axis=1
-    )
+    hours = month_days(monthly["year"], monthly["month"]) * 24.0
     # capacity is kW (source contract); net_gen is MWh: align units.
-    monthly["cf"] = (monthly["net_gen_mwh"] * 1000.0) / (
-        hours * monthly["capacity"].astype(float)
-    )
+    monthly["cf"] = (monthly["net_gen_mwh"] * 1000.0) / (hours * monthly["capacity"].astype(float))
 
     # Commissioning mask: any month that STARTS before the commissioning date
     # is NaN; the first fully post-commissioning month is the first valid one.
@@ -117,9 +116,7 @@ def netgen_to_monthly_cf(
             monthly["year"].astype(str) + "-" + monthly["month"].astype(str) + "-01"
         )
         commissioned = monthly["ID"].map(commissioning)
-        monthly.loc[
-            commissioned.notna() & (month_start < commissioned), "cf"
-        ] = float("nan")
+        monthly.loc[commissioned.notna() & (month_start < commissioned), "cf"] = float("nan")
 
     wide = (
         monthly.pivot(index=["ID", "year"], columns="month", values="cf")
@@ -162,9 +159,7 @@ class EIAUSSource(ObservationSource):
     def __init__(self, country: str = "US") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

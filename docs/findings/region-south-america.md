@@ -4,6 +4,20 @@
 **Scope:** why the affine correction removes the mean bias but not the skill for
 CL and AR, evaluated on 2024.
 
+**Correction notice, 2026-09-11: CL's matched-curve result compared different
+plants.** The matched-curve table reports CL at 0.123 uncorrected and 0.104
+corrected. The corrected score left out the four plants of a cluster whose
+fit failed, which are among the worst uncorrected, and the uncorrected score
+kept them. On the scorecard row's run, scored on the same rows (53 plants), the
+figures are 0.110 and 0.104. The gain of 0.006 has a 95% interval of -0.007 to
+0.021 when plants are resampled (`scorecard.md`, daggered-rows notice of the
+same date). The last section calls CL usable on the published comparison, and
+the comparison does not carry that. AR's figures move by at most 0.001 on
+common rows. AR's degenerate cluster 7 also loses 308 plant-days above 40 m/s;
+counting them as zero output moves its corrected RMSE from 0.133 to 0.132
+(same notice). The training-data figures in the first table were not
+rescored.
+
 Both regions fail the same way: the correction drives mean bias to near zero
 without improving RMSE or correlation. The cause is a spatial bias in which
 **ERA5 exaggerates the wind gradient**, making the northern deserts too calm and

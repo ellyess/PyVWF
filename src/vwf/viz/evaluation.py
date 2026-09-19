@@ -18,6 +18,7 @@ y=x diagonal is that turbine's bias, annotated with fleet-level MBE/RMSE.
 
 Free functions returning ``matplotlib.figure.Figure``.
 """
+
 from __future__ import annotations
 
 from typing import Sequence
@@ -98,9 +99,7 @@ def plot_error_vs_clusters(
 
     if figsize is None:
         figsize = (4.0 * len(metric_cols), 3.4)
-    fig, axes = plt.subplots(
-        1, len(metric_cols), figsize=figsize, layout="constrained"
-    )
+    fig, axes = plt.subplots(1, len(metric_cols), figsize=figsize, layout="constrained")
     axes = np.atleast_1d(axes)
 
     time_res_vals = _ordered_time_res(corrected["time_res"].unique())
@@ -123,8 +122,12 @@ def plot_error_vs_clusters(
             ref = float(baseline[metric].mean())
             if np.isfinite(ref):
                 ax.axhline(
-                    ref, color="grey", linewidth=1.0, linestyle="--",
-                    label="Uncorrected", zorder=0,
+                    ref,
+                    color="grey",
+                    linewidth=1.0,
+                    linestyle="--",
+                    label="Uncorrected",
+                    zorder=0,
                 )
 
         ax.set_xscale("log")
@@ -215,17 +218,25 @@ def plot_sim_vs_obs(
         )
         for turb_type, group in per_turb.groupby(types):
             ax.scatter(
-                group["obs"], group["sim"], s=18,
+                group["obs"],
+                group["sim"],
+                s=18,
                 color=TURBINE_TYPE_COLOURS.get(turb_type, "#999999"),
-                alpha=0.8, edgecolor="black", linewidths=0.3,
+                alpha=0.8,
+                edgecolor="black",
+                linewidths=0.3,
                 label=str(turb_type).capitalize(),
             )
         ax.legend(loc="lower right", frameon=False)
     else:
         ax.scatter(
-            per_turb["obs"], per_turb["sim"], s=18,
-            color=TURBINE_TYPE_COLOURS["onshore"], alpha=0.8,
-            edgecolor="black", linewidths=0.3,
+            per_turb["obs"],
+            per_turb["sim"],
+            s=18,
+            color=TURBINE_TYPE_COLOURS["onshore"],
+            alpha=0.8,
+            edgecolor="black",
+            linewidths=0.3,
         )
 
     hi = float(np.nanmax(per_turb.to_numpy())) * 1.05
@@ -235,9 +246,13 @@ def plot_sim_vs_obs(
     ax.set_aspect("equal", adjustable="box")
 
     ax.text(
-        0.03, 0.97,
+        0.03,
+        0.97,
         f"MBE = {mbe:+.3f}\nRMSE = {rmse:.3f}\nn = {len(per_turb)}",
-        transform=ax.transAxes, va="top", ha="left", fontsize=8,
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        fontsize=8,
     )
 
     ax.set_xlabel("Observed mean CF")

@@ -1,5 +1,15 @@
 # Country-level method review
 
+**Reproduction record, added 2026-09-18.** Driver:
+`scripts/studies/method-country-level/chapter_capacity_weights.py`. Until
+2026-09-18 it was in `scripts/analysis/`, the path any command below uses;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: for
+`chapter_capacity_weights.py`, the output under
+`output/chapter_capacity_weights_2026-09-16/` records no commit and was written
+minutes before the driver's first commit, `bff4467`, so the exact producing
+code is not recorded. The document's other numbers come from harness runs with
+their own manifests.
+
 **Date:** 2026-07-23
 **Scope:** the `obs_level = "country"` path against the turbine-level path, plus
 an audit of the nine ENTSO-E observation series on disk.
@@ -24,11 +34,46 @@ specific-power mismatch rather than ERA5 bias is not quantified. It is the lead
 question of a curve library study, and nothing here should be read as answering
 it. Sections 2 and 3, and the diagnosis of the NL and IE observation series in
 section 4, depend only on the observations and the fleet register, not on any
-power curve, and stand. So do the DK and NZ correlations quoted in section 7,
-which are turbine-level and reproduce to the quoted precision from
-`output/validation/DK/train-ppopen` (bundled library, every training turbine
-matched to a curve the library contains) and `output/validation/NZ/train-k147`
-(licensed library).
+power curve, and stand.
+
+The DK and NZ correlations quoted in section 7 are turbine-level and outside
+the fallback defect. They reproduce to the quoted precision from
+`output/validation/DK/train-ppopen` and `output/validation/NZ/train-k147`, and
+every unit in both resolved to a curve its library contains. That does not make
+the curves right. Most of both fleets was matched on specific power to another
+manufacturer's model or a research reference design:
+
+- DK: 63.0% of `train-ppopen`'s training capacity (1,731 of 3,699 turbines);
+- NZ: 89.1% of `train-k147`'s (7 of 8 farms).
+
+A further 22.9% of the DK capacity (1,297 turbines) has no recorded
+manufacturer, so its match cannot be checked in either direction
+(`output/validation/curve_resolution_backfill_2026-09-11/cross_manufacturer_audit.csv`).
+Whether the two correlations hold on each unit's own curves is open.
+
+**Suspension notice, 2026-09-11: the IT, PT and ES figures below rest on
+extrapolated winds.** The European ERA5 files cover 42°N to 72°N and 12°W to
+22°E. Italy's, Portugal's and Spain's grid points lie largely south of 42°N:
+94.5%, 89.9% and 50.3% of their capacity. The harness extrapolated winds to
+them linearly and without a warning (`fill_value=None`), up to 5° beyond the
+data, giving uncorrected speeds as low as -57.7 m/s. Every simulated or fitted
+figure for those three countries rests on that input: the results in section
+6, the scalar and offset analysis in section 7, and the question in section 8
+of why PT gets worse under correction. They were suspended with the scorecard
+rows (`scorecard.md`, suspension notice of the same date). ES's clusters 0 and
+3 lie wholly outside the data, and their offsets of -5.64 and -4.46 m/s were
+fitted to it. NO (4.4% of capacity) and SE (0.8%) are affected at those
+shares. As with the correction above, sections 2 and 3 depend only on the
+observations and the fleet register, and stand for all three.
+
+*[Resolved, 2026-09-13: ERA5 was downloaded over a box that covers all three,
+and the rows were re-run with no unit outside the extent they load
+(`method-eu-rerun.md`). The figures below are the ones that rested on
+extrapolated winds, and the re-run supersedes them; they are kept here because
+sections 6 to 8 were written about them. The re-run moved them substantially,
+Italy's corrected RMSE halving and Portugal's falling by two thirds, so
+section 8's question about why PT gets worse under correction has to be asked
+again against the new figures rather than answered from these.]*
 
 The country-level path is wired consistently with the turbine-level path but
 fits a different estimator under the same name, and its observations had never
@@ -133,6 +178,25 @@ country average was mostly an average over empty countryside. In France one
 cluster holds 34.9% of the fleet on 10.3% of the area while another holds 0.1%
 of the fleet on 10.5%. In Norway two entire clusters contain no wind at all.
 
+*[Scope notice, 2026-09-16. This section describes the grid files the harness
+loaded in July 2026, and is correct about them: the files backed up on
+2026-07-23 as `*_grid_points.uniform.bak.csv` carry one capacity per country at
+every point. **It does not describe thesis chapter 4's country-level runs**, and
+it was later read as though it did (`../design/manuscript-chapters-45.md`, D0,
+which carries the correction notice). The chapter's runs,
+`output/runs/turbine_grid/*-obs_country-*` of 2026-02-13, used the same point
+sets with weights that vary by point: for each point, the summed capacity of
+every Global Wind Power Tracker project within 50 km that counts as present in
+2015, floored at 3 MW. A project counts if its start year is 2015 or earlier or
+blank, with no filter on status, so non-operating projects carry 37% to 97% of
+the summed weight; overlapping radii count one project at several points; and
+the 2015 weights are used for the 2023 test year. Reproduced exactly in all nine
+countries, with a wrong year and a wrong radius both failing:
+`output/chapter_capacity_weights_2026-09-16/`, from
+`scripts/analysis/chapter_capacity_weights.py`. So "land-area weighted" and "an
+average over empty countryside" are true of the July files and are not true of
+the chapter: its weights are fleet-shaped, but on the wrong fleet.]*
+
 ## 4. NL and IE: what they need
 
 Both are fetch-side, and neither is repairable by rescaling what is on disk.
@@ -156,7 +220,30 @@ register (`scripts/region_tools/repair_country_capacity.py`) fixes it:
 
 Those annual peaks are what a national fleet looks like. GWPT undercounts
 Ireland before 2017 (peak CF 1.05 in 2015, 1.08 in 2016), so `ie.toml` trains on
-2017-2021. Evaluated on 2023 the effect is large: uncorrected RMSE 0.1967 to
+2017-2021.
+
+**The repair generalises only where GWPT is the better register, which is a
+per-country question.** A register that disagrees with GWPT says one of the two
+is wrong and does not say which. Sweden, added to this document on 2026-09-15,
+is the counter-case: its register is flat at 8354 MW for 2015 to 2019 and so is
+defective by the same test, while GWPT gives 4226 rising to 6270 over those
+years and repairing from it would put Sweden's 2015 national mean capacity
+factor at 0.4481 against a current 0.2267.
+
+**Corrected the same day: neither number is evidence, and the current register
+is the weaker of the two.** Sweden's four bidding zones each hold a capacity
+frozen across 2015 to 2019, each zonal series peaks at exactly **0.900**, and
+the four sum to 8354 MW exactly. 0.900 is the signature of the ENTSO-E
+fetcher's fallback for a country whose installed-capacity endpoint returns
+nothing, `estimated_cap = gen.max() / 0.9`. **Sweden's denominator is derived
+from its own numerator**, which is why it is flat for five years, why GWPT
+disagrees by a factor of two, and why the resulting capacity factors look like
+a national fleet: they were constructed to peak near 0.9. Sweden needs a real
+register and neither source on hand is one. Portugal,
+flat at 4486 MW over the same years, is the opposite: GWPT disagrees by at most
+5%, moves where the register does not, and every repaired year peaks between
+0.95 and 0.98. The test before running the repair is whether the repaired
+capacity factors are physically credible for that country. Evaluated on 2023 the effect is large: uncorrected RMSE 0.1967 to
 0.1721, and the N=1 fixed fit 0.1598 to **0.0230**. IE moves from the worst
 region to one of the best, and the earlier "correction barely helps IE" reading
 was an artefact of the denominator.
@@ -260,6 +347,35 @@ With one observation per cluster the fit is exactly determined, so
 the joint optimiser. `country_obs_is_per_cluster` decides by reading whether the
 observations actually differ across clusters within a period, which is precisely
 the condition under which per-cluster offsets are estimable.
+
+**Correction notice, 2026-09-15: the per-zone figures below are not errors
+against observed capacity factors.** Each Swedish bidding zone's capacity is
+back-derived from its own generation. `vwf.datasets.fetch_entsoe_capacity_factors`
+falls back to `estimated_cap = gen["generation_mw"].max() / 0.9` when ENTSO-E's
+installed-capacity endpoint returns nothing, and all sixteen Swedish zonal
+files, `se_1` through `se_4` across every split, peak at **exactly 0.900**,
+which is that fallback's signature. The four zonal registers sum to 8354.4 MW,
+which is the national aggregated register for 2015 to 2019 exactly, so the
+national denominator inherits the derivation as well.
+
+What survives and what does not:
+
+- **The ranking survives.** All five rows below share the same constructed
+  observation series, so a comparison between fits on it is still a comparison
+  between fits.
+- **The per-zone RMSEs do not survive as errors against observation.** Each
+  zone's denominator moves with the extremes of its own numerator, and by a
+  different factor per zone between training and test: zone 1 by 2.36, zone 2
+  by 2.07, zone 3 by 1.42, zone 4 by 1.39. A scalar fitted on training is
+  applied to a test series rescaled by a different amount.
+- **Read no per-zone figure below as an error against observation.** The
+  comparison is between fits on a constructed series, and the levels are
+  properties of that construction.
+
+The national series is affected through the sum and the zonal series directly.
+Sweden is excluded from `method-national-single-cluster-prereg.md` for the same
+reason. Nothing here is repaired, and the exact-0.900 test was run across all
+88 country-level observation files: it finds these sixteen and no others.
 
 Sweden, trained 2015-2019, evaluated 2023, `fixed` slice:
 

@@ -1,0 +1,45 @@
+# Import contracts for src/vwf. Checked in CI with `lint-imports`.
+#
+# A module may import from the layers below it, never from a layer above. The
+# layering was derived from an AST pass over every module (the repository
+# audit of 2026-09-18) and holds with no ignored imports. What import-linter
+# cannot express, because it models modules rather than names and scripts/ is
+# not a package, is that scripts use only public vwf names; that rule is a test,
+# tests/test_public_analysis_api.py.
+
+[importlinter]
+root_package = vwf
+# An import under `if TYPE_CHECKING:` is for annotations and never runs.
+exclude_type_checking_imports = True
+
+[importlinter:contract:vwf-layers]
+name = PyVWF layers
+type = layers
+layers =
+    vwf.cli | vwf.extensions | vwf.pinn | vwf.viz
+    vwf.harness
+    vwf.vwf
+    vwf.data
+    vwf.sources
+    vwf.loaders | vwf.datasets | vwf.provenance | vwf.curves
+    vwf.correction
+    vwf.clustering | vwf.wind
+    vwf.config | vwf.utils | vwf.time_utils | vwf.metrics | vwf.geospatial | vwf.resources | vwf._version
+
+[importlinter:contract:harness-layers]
+name = Harness layers
+type = layers
+containers = vwf.harness
+layers =
+    driver | export | hindcast
+    corrections | skill
+    regions | bootstrap
+
+[importlinter:contract:pinn-layers]
+name = PINN layers
+type = layers
+containers = vwf.pinn
+layers =
+    train | runs
+    cache
+    era5_stats | model | physics | terrain | gwa

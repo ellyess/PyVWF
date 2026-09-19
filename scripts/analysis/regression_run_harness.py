@@ -15,6 +15,7 @@ Builds a RegionSpec in-memory (NH seasons; D1 is European regions only),
 runs driver.run_train + run_evaluate, and flattens factors_<slice>_<n>.csv
 and cor_cf_<slice>_<n>.csv (+ unc_cf, harness_metrics) into --out.
 """
+
 import argparse
 import shutil
 import sys
@@ -43,14 +44,19 @@ def main():
     from vwf.harness.regions import RegionSpec
 
     spec = RegionSpec(
-        code=args.country, name=args.country, source=args.source,
+        code=args.country,
+        name=args.country,
+        source=args.source,
         obs_level=args.obs_level,
         obs_unit="turbine" if args.obs_level == "turbine" else "country",
         train_years=(args.train_start, args.train_end),
         test_years=(args.test_year,),
-        era5_path="era5/EU", bbox=tuple(args.bbox), file_tag="EU",
+        era5_path="era5/EU",
+        bbox=tuple(args.bbox),
+        file_tag="EU",
         correction_model="affine-wind",
-        cluster_list=tuple(args.clusters), time_slices=tuple(args.time_res),
+        cluster_list=tuple(args.clusters),
+        time_slices=tuple(args.time_res),
         seasons=NH,
     )
 

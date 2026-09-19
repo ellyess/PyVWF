@@ -2,8 +2,8 @@
 
 PyVWF trains and evaluates one **region** at a time through the validation
 harness. A region is a single TOML file in `configs/regions/`; the harness reads
-it, fits correction factors on the training window, and scores them on a
-held-out test year. The design is in
+it, fits correction factors on the training years, and scores them on the
+test year, which the fit never sees. The design is in
 [`design/harness.md`](../design/harness.md).
 
 ## The region config
@@ -54,12 +54,41 @@ python scripts/analysis/validate_region.py evaluate \
     --train-run output/validation/NZ/train-<timestamp>
 ```
 
-For a production run, point `PYVWF_INPUT` at an input root carrying the licensed
-curve library (`input/combined`); otherwise the open bundled library is used
-(with a warning).
+Set `PYVWF_INPUT` on both commands when the run uses another input root; see
+[Choose the input root](#choose-the-input-root).
 
 Outputs land under `output/validation/<CODE>/`; see
 [`output-structure.md`](output-structure.md).
+
+## Choose the input root
+
+PyVWF reads every input from one directory, the input root. The default is
+`input/`. `PYVWF_INPUT` names another one. The input root decides which curve
+library a run uses:
+
+| Input root | Curve library | Used for |
+|---|---|---|
+| `input/` (the default) | the open library | the test suite, the country-level rows, CL and AR |
+| `input/combined` | the combined library: open and licensed | the turbine-level rows DE, DK, UK, US, BR, AU-NEM and NZ |
+
+Follow these rules:
+
+- **Set `PYVWF_INPUT` on every command of a run.** Train and evaluate each
+  resolve the curve library again. A command without it uses `input/`.
+- **Read the manifest.** Each run records the library it used, by sha256, in
+  `run_manifest.json`.
+- **Build a separate input root for another library.** Give it the same
+  `era5/`, `observations/` and `raw/` as `input/`; symbolic links work. Put
+  your `power_curves.csv` and `models.csv` in its own `reference/`.
+- **Never copy a licensed library over `input/reference/power_curves.csv`.**
+  That file is the open library, which is committed.
+  `tests/test_committed_files.py` fails if its content changes.
+- **Expect a warning without a library.** An input root with no
+  `power_curves.csv` uses the open library shipped inside the package, and
+  PyVWF warns.
+
+The fetch and process scripts resolve their default paths under the same input
+root.
 
 ## Correction models
 
@@ -77,7 +106,7 @@ Selected by `[correction] model`:
 `k ≤ n_farms` reaching the trainer, and `k` near that ceiling is
 one-farm-per-cluster (a fake plateau, `docs/findings/region-us-br.md`). For
 country-level regions, `cluster_list` must be `1` or the grid's own cluster
-count (see [`data-sources.md`](data-sources.md#4-country-level-entso-e-workflow)).
+count (see [A country-level region](adding-a-region.md#a-country-level-region)).
 
 ## Transfer runs
 
@@ -93,8 +122,62 @@ python scripts/analysis/validate_region.py transfer \
 
 ## Adding a region
 
-Write one `ObservationSource` adapter and one TOML config; nothing in the
-pipeline changes. See
-[`adding-an-observation-source.md`](adding-an-observation-source.md). For where
+No core module changes. [`adding-a-region.md`](adding-a-region.md) lists the
+files a new region touches, in order, and
+[`adding-an-adapter.md`](adding-an-adapter.md) covers a new data source. For where
 each region's data comes from and how it is preprocessed, see
 [`data-sources.md`](data-sources.md).
+
+## Legacy batch path
+
+The harness is the path for new work. The legacy path is the `PyVWF` class in
+`src/vwf/vwf.py`. It produced the thesis-era runs under `output/runs/`, and it
+stays so that they can be reproduced. The harness affine correction delegates
+to its correction code.
+
+Two entry points use it:
+
+- `pyvwf-train` runs `PyVWF.train` and then `simulate_cf`, for one country and
+  one test year. Run `pyvwf-train --help` for its options.
+- `scripts/analysis/train_all_bias_corrections.py` runs named configuration
+  sets in batch.
+
+To run a batch:
+
+1. For a country-level set, generate the training data first. Pass the ENTSO-E
+   key in the environment for this one command. The script also needs the
+   `[data]` extra.
+
+   ```bash
+   ENTSOE_API_KEY=<key> PYTHONPATH=src python -m vwf.datasets.generate_country_level_training_data
+   ```
+
+   This writes the observations, the grid points and
+   `input/observations/country/pyvwf_config.py`. The batch script reads that
+   file. A turbine-level set (DK, DE, UK) needs no such step.
+2. List the configuration sets. The script defines them, so its list is the
+   only current record.
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/train_all_bias_corrections.py --list
+   ```
+
+3. Run one or more sets.
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/train_all_bias_corrections.py \
+       --sets turbine_grid country_grid_2015_2021_2023
+   ```
+
+   Each run writes to `output/runs/<prefix>/<country-run>/`. Its factors are
+   under `training/correction-factors/`. `--outdir` changes the base directory.
+4. Score the runs of one set.
+
+   ```bash
+   PYTHONPATH=src python scripts/analysis/evaluate_all_pyvwf_runs.py --prefix turbine_grid
+   ```
+
+   This writes `output/runs/<prefix>/pyvwf_evaluation_metrics.csv`, with MAE,
+   RMSE and bias for each run. Its `r2` column is always empty.
+   `vwf.viz.plot_error_vs_clusters` plots this file (see
+   [`visualisation.md`](visualisation.md)).

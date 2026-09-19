@@ -4,14 +4,19 @@
 This script combines:
 1. u10, v10 (10-meter winds)
 2. u100, v100 (100-meter winds)
-3. z0 (surface roughness length) - optional
+3. z0 (surface roughness length) - optional, and when added it is the
+   ANNUAL MEAN of the shear-derived roughness, one static field per year, not
+   a time series (see calculate_roughness_from_winds). Every region outside
+   Europe instead derives z0 hour by hour in vwf.datasets.era5.prep_era5.
+   Which treatment is better is under test; see
+   docs/design/roughness-temporal-treatment.md.
 
 Into single files per year with optimized encoding for faster I/O.
 
 Usage:
     python combine_era5_files.py --years 2019 2020 2021
     python combine_era5_files.py --all-years  # Process all available years
-    python combine_era5_files.py --years 2019 --add-roughness --roughness-source terrain
+    python combine_era5_files.py --years 2019 --add-roughness --roughness-source pyvwf
 """
 
 import argparse
@@ -19,6 +24,8 @@ import xarray as xr
 import numpy as np
 from pathlib import Path
 from datetime import datetime
+
+from vwf.datasets.era5 import log_roughness_from_shear
 
 
 def find_available_years(era5_dir):
@@ -34,7 +41,7 @@ def find_available_years(era5_dir):
     years = []
     for f in u10_files:
         # Extract year from filename
-        parts = f.stem.split('_')
+        parts = f.stem.split("_")
         year = int(parts[3])
         years.append(year)
     return sorted(years)
@@ -88,47 +95,33 @@ def calculate_roughness_from_winds(combined_ds):
     print("  Calculating roughness length from wind shear (PyVWF method)...")
 
     # Calculate wind speeds
-    wnd10m = np.sqrt(combined_ds['u10']**2 + combined_ds['v10']**2)
-    wnd100m = np.sqrt(combined_ds['u100']**2 + combined_ds['v100']**2)
+    wnd10m = np.sqrt(combined_ds["u10"] ** 2 + combined_ds["v10"] ** 2)
+    wnd100m = np.sqrt(combined_ds["u100"] ** 2 + combined_ds["v100"] ** 2)
 
     # Clip to avoid division by zero
     wnd10m = wnd10m.clip(min=1e-4)
     wnd100m = wnd100m.clip(min=1e-4)
 
-    # Calculate z0 from logarithmic profile
-    num = wnd100m * np.log(10) - wnd10m * np.log(100)
-    denom = wnd100m - wnd10m
-
-    # Mask near-zero shear (avoid divide-by-zero)
-    denom = denom.where(np.abs(denom) > 1e-4)
-
-    z0_log = num / denom
-
-    # Physical constraint: log(z0) < 0  →  z0 < 1 m
-    z0_log = z0_log.where(z0_log < 0)
-
-    # Backward fill missing values in time
-    z0_log = z0_log.bfill("time")
-
-    # Clip to realistic roughness range [1e-6 m, 2.0 m]
-    z0_log = z0_log.clip(min=np.log(1e-6), max=np.log(2.0))
+    # Calculate z0 from the logarithmic profile, masked, back-filled in time
+    # and clipped to the realistic range [1e-6 m, 2.0 m]
+    z0_log = log_roughness_from_shear(wnd10m, wnd100m)
 
     # Convert from log space
     z0 = np.exp(z0_log)
     z0 = z0.clip(min=1e-6, max=2.0)
 
     # Time-average for representative roughness
-    z0_mean = z0.mean(dim='time')
+    z0_mean = z0.mean(dim="time")
 
     # Add to dataset
-    combined_ds['z0'] = z0_mean
-    combined_ds['z0'].attrs = {
-        'long_name': 'Surface roughness length',
-        'units': 'm',
-        'method': 'PyVWF: derived from 10m-100m wind shear',
-        'description': 'Roughness length (z0) from logarithmic wind profile',
-        'valid_range': '1e-6 to 2.0 m',
-        'temporal_aggregation': 'time-averaged'
+    combined_ds["z0"] = z0_mean
+    combined_ds["z0"].attrs = {
+        "long_name": "Surface roughness length",
+        "units": "m",
+        "method": "PyVWF: derived from 10m-100m wind shear",
+        "description": "Roughness length (z0) from logarithmic wind profile",
+        "valid_range": "1e-6 to 2.0 m",
+        "temporal_aggregation": "time-averaged",
     }
 
     print(f"    z0 range: [{float(z0_mean.min()):.6f}, {float(z0_mean.max()):.6f}] m")
@@ -147,24 +140,22 @@ def add_constant_roughness(combined_ds, z0_value=0.03):
         Dataset with z0 variable added.
     """
     print(f"  Adding constant roughness z0={z0_value}m")
-    z0_const = np.full(
-        (len(combined_ds.latitude), len(combined_ds.longitude)),
-        z0_value
-    )
-    combined_ds['z0'] = (
-        ('latitude', 'longitude'),
+    z0_const = np.full((len(combined_ds.latitude), len(combined_ds.longitude)), z0_value)
+    combined_ds["z0"] = (
+        ("latitude", "longitude"),
         z0_const,
         {
-            'long_name': 'Surface roughness length',
-            'units': 'm',
-            'description': f'Constant roughness length = {z0_value}m'
-        }
+            "long_name": "Surface roughness length",
+            "units": "m",
+            "description": f"Constant roughness length = {z0_value}m",
+        },
     )
     return combined_ds
 
 
-def combine_era5_year(era5_dir, year, add_roughness=False, roughness_source='pyvwf',
-                      z0_constant=0.03, output_dir=None):
+def combine_era5_year(
+    era5_dir, year, add_roughness=False, roughness_source="pyvwf", z0_constant=0.03, output_dir=None
+):
     """Combine ERA5 files for a single year.
 
     Args:
@@ -179,40 +170,44 @@ def combine_era5_year(era5_dir, year, add_roughness=False, roughness_source='pyv
         Path to output file.
     """
     print(f"\nProcessing year {year}...")
-    print("="*60)
+    print("=" * 60)
 
     # Load wind data
     ds_10m, ds_100m = load_era5_winds(era5_dir, year)
 
     # Combine datasets
     print("  Combining 10m and 100m winds...")
-    combined_ds = xr.Dataset({
-        'u10': ds_10m['u10'],
-        'v10': ds_10m['v10'],
-        'u100': ds_100m['u100'],
-        'v100': ds_100m['v100'],
-    })
+    combined_ds = xr.Dataset(
+        {
+            "u10": ds_10m["u10"],
+            "v10": ds_10m["v10"],
+            "u100": ds_100m["u100"],
+            "v100": ds_100m["v100"],
+        }
+    )
 
     # Rename time coordinate if needed
-    if 'valid_time' in combined_ds.coords:
-        combined_ds = combined_ds.rename({'valid_time': 'time'})
+    if "valid_time" in combined_ds.coords:
+        combined_ds = combined_ds.rename({"valid_time": "time"})
 
     # Add roughness if requested
     if add_roughness:
-        if roughness_source == 'pyvwf':
+        if roughness_source == "pyvwf":
             combined_ds = calculate_roughness_from_winds(combined_ds)
         else:
             combined_ds = add_constant_roughness(combined_ds, z0_constant)
 
     # Add metadata
-    combined_ds.attrs.update({
-        'title': f'Combined ERA5 wind data for Europe - {year}',
-        'source': 'ERA5 reanalysis',
-        'created': datetime.now().isoformat(),
-        'variables': 'u10, v10, u100, v100' + (', z0' if add_roughness else ''),
-        'domain': 'Europe (42-72°N, -12-22°E)',
-        'temporal_resolution': 'hourly',
-    })
+    combined_ds.attrs.update(
+        {
+            "title": f"Combined ERA5 wind data for Europe - {year}",
+            "source": "ERA5 reanalysis",
+            "created": datetime.now().isoformat(),
+            "variables": "u10, v10, u100, v100" + (", z0" if add_roughness else ""),
+            "domain": "Europe (42-72°N, -12-22°E)",
+            "temporal_resolution": "hourly",
+        }
+    )
 
     # Set output directory
     if output_dir is None:
@@ -229,10 +224,10 @@ def combine_era5_year(era5_dir, year, add_roughness=False, roughness_source='pyv
     encoding = {}
     for var in combined_ds.data_vars:
         encoding[var] = {
-            'zlib': True,
-            'complevel': 4,  # Moderate compression (balance speed vs size)
-            'shuffle': True,
-            'dtype': 'float32',  # Use float32 to save space
+            "zlib": True,
+            "complevel": 4,  # Moderate compression (balance speed vs size)
+            "shuffle": True,
+            "dtype": "float32",  # Use float32 to save space
         }
 
     combined_ds.to_netcdf(output_file, encoding=encoding)
@@ -251,47 +246,34 @@ def combine_era5_year(era5_dir, year, add_roughness=False, roughness_source='pyv
 
 def main():
     """Main execution."""
-    parser = argparse.ArgumentParser(
-        description='Combine ERA5 wind files with optional roughness'
+    parser = argparse.ArgumentParser(description="Combine ERA5 wind files with optional roughness")
+    parser.add_argument(
+        "--years", type=int, nargs="+", help="Years to process (e.g., 2019 2020 2021)"
+    )
+    parser.add_argument("--all-years", action="store_true", help="Process all available years")
+    parser.add_argument(
+        "--add-roughness", action="store_true", help="Add surface roughness length (z0)"
     )
     parser.add_argument(
-        '--years',
-        type=int,
-        nargs='+',
-        help='Years to process (e.g., 2019 2020 2021)'
+        "--roughness-source",
+        choices=["pyvwf", "constant"],
+        default="pyvwf",
+        help="Roughness source: pyvwf (from wind shear) or constant value (default: pyvwf)",
     )
     parser.add_argument(
-        '--all-years',
-        action='store_true',
-        help='Process all available years'
-    )
-    parser.add_argument(
-        '--add-roughness',
-        action='store_true',
-        help='Add surface roughness length (z0)'
-    )
-    parser.add_argument(
-        '--roughness-source',
-        choices=['pyvwf', 'constant'],
-        default='pyvwf',
-        help='Roughness source: pyvwf (from wind shear) or constant value (default: pyvwf)'
-    )
-    parser.add_argument(
-        '--roughness-value',
+        "--roughness-value",
         type=float,
         default=0.03,
-        help='Constant roughness value (m) if using constant source (default: 0.03)'
+        help="Constant roughness value (m) if using constant source (default: 0.03)",
     )
     parser.add_argument(
-        '--era5-dir',
+        "--era5-dir",
         type=str,
-        default='input/era5/EU',
-        help='Directory containing ERA5 files (default: input/era5/EU)'
+        default="input/era5/EU",
+        help="Directory containing ERA5 files (default: input/era5/EU)",
     )
     parser.add_argument(
-        '--output-dir',
-        type=str,
-        help='Output directory (default: same as ERA5 directory)'
+        "--output-dir", type=str, help="Output directory (default: same as ERA5 directory)"
     )
 
     args = parser.parse_args()
@@ -313,20 +295,20 @@ def main():
         return 1
 
     # Print configuration
-    print("="*80)
+    print("=" * 80)
     print("ERA5 FILE COMBINATION SCRIPT")
-    print("="*80)
+    print("=" * 80)
     print(f"ERA5 directory: {era5_dir}")
     print(f"Years to process: {years}")
     print(f"Add roughness: {args.add_roughness}")
     if args.add_roughness:
         print(f"Roughness source: {args.roughness_source}")
-        if args.roughness_source == 'constant':
+        if args.roughness_source == "constant":
             print(f"Roughness value: {args.roughness_value}m")
         else:
             print("Roughness method: PyVWF (from 10m-100m wind shear)")
     print(f"Output directory: {args.output_dir or era5_dir}")
-    print("="*80)
+    print("=" * 80)
 
     # Process each year
     output_files = []
@@ -338,7 +320,7 @@ def main():
                 add_roughness=args.add_roughness,
                 roughness_source=args.roughness_source,
                 z0_constant=args.roughness_value,
-                output_dir=args.output_dir
+                output_dir=args.output_dir,
             )
             output_files.append(output_file)
         except Exception as e:
@@ -346,9 +328,9 @@ def main():
             continue
 
     # Summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("SUMMARY")
-    print("="*80)
+    print("=" * 80)
     print(f"Successfully processed: {len(output_files)}/{len(years)} years")
 
     if output_files:
@@ -361,19 +343,25 @@ def main():
         print(f"\nTotal size: {total_size:.1f} MB")
 
         # Size comparison
-        original_size = sum([
-            (era5_dir / f"era5_u10_v10_{year}_months01-12_EU.nc").stat().st_size +
-            (era5_dir / f"era5_u100_v100_{year}_months01-12_EU.nc").stat().st_size
-            for year in years if (era5_dir / f"era5_u10_v10_{year}_months01-12_EU.nc").exists()
-        ]) / 1e6
+        original_size = (
+            sum(
+                [
+                    (era5_dir / f"era5_u10_v10_{year}_months01-12_EU.nc").stat().st_size
+                    + (era5_dir / f"era5_u100_v100_{year}_months01-12_EU.nc").stat().st_size
+                    for year in years
+                    if (era5_dir / f"era5_u10_v10_{year}_months01-12_EU.nc").exists()
+                ]
+            )
+            / 1e6
+        )
 
         savings_pct = (original_size - total_size) / original_size * 100
         print(f"Original total: {original_size:.1f} MB")
         print(f"Space savings: {savings_pct:.1f}%")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("✓ COMPLETE - Your code will run faster with combined files!")
-        print("="*80)
+        print("=" * 80)
         print("\nUsage in your code:")
         print("  ds = xr.open_dataset('input/era5/EU/era5_combined_2019_EU.nc')")
         print("  u10 = ds['u10']")
@@ -386,6 +374,7 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     sys.exit(main())

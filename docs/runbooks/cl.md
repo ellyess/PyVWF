@@ -27,18 +27,18 @@ height where known.
 
 The coordinate join: 54 plants auto-matched to GWPT by name confirmed on
 capacity, 6 hand-curated in `configs/curation/cl_coord_overrides.csv`, and 4 tiny
-PMGD plants excluded (5-9 MW, absent from GWPT; the `EXCLUDE` list, add
-coordinates to reinstate). A plant reaching training with no coordinate is a
+PMGD plants excluded (5-9 MW, absent from GWPT; listed in
+`configs/curation/cl_fleet_exclusions.csv`, add coordinates to reinstate). A plant reaching training with no coordinate is a
 hard error. Read `join_report.md` and `cl_coord_residual.csv` after processing.
 
 ## 2. Run
 
 ```bash
 python scripts/fetch/era5.py --region cl          # 48 months 2021-2024, mainland box
-PYVWF_INPUT=<combined-library root> \
-python scripts/analysis/validate_region.py train    --region configs/regions/cl.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/cl.toml \
-    --train-run output/validation/CL/train-<stamp>
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+    --region configs/regions/cl.toml
+PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+    --region configs/regions/cl.toml --train-run output/validation/CL/train-<stamp>
 ```
 
 Trains 2021-2023, tests 2024. With matched curves the affine correction helps

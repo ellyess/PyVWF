@@ -70,8 +70,8 @@ def _aggregate_sim_to_country(df_sim: pd.DataFrame, turb_info: pd.DataFrame) -> 
     Returns:
         Series of capacity-weighted average CF values aligned with df_sim index.
     """
-    grid_cols = [c for c in df_sim.columns if c != 'time']
-    cap_map = turb_info.set_index('ID')['capacity']
+    grid_cols = [c for c in df_sim.columns if c != "time"]
+    cap_map = turb_info.set_index("ID")["capacity"]
     # Only use grid columns that have capacity info
     valid_cols = [c for c in grid_cols if c in cap_map.index]
     caps = cap_map[valid_cols].values.astype(float)
@@ -87,8 +87,9 @@ def _aggregate_sim_to_country(df_sim: pd.DataFrame, turb_info: pd.DataFrame) -> 
     return pd.Series(result, index=df_sim.index)
 
 
-def _country_level_metrics(df_sim: pd.DataFrame, df_obs: pd.DataFrame,
-                           turb_info: pd.DataFrame) -> tuple[float, float, float]:
+def _country_level_metrics(
+    df_sim: pd.DataFrame, df_obs: pd.DataFrame, turb_info: pd.DataFrame
+) -> tuple[float, float, float]:
     """Compute MAE, RMSE, MBE for country-level obs vs aggregated sim.
 
     Args:
@@ -101,30 +102,30 @@ def _country_level_metrics(df_sim: pd.DataFrame, df_obs: pd.DataFrame,
     """
     sim = df_sim.copy()
     obs = df_obs.copy()
-    sim['time'] = pd.to_datetime(sim['time'])
-    obs['time'] = pd.to_datetime(obs['time'])
+    sim["time"] = pd.to_datetime(sim["time"])
+    obs["time"] = pd.to_datetime(obs["time"])
 
     # Aggregate sim to country level
-    sim['cf_sim'] = _aggregate_sim_to_country(sim, turb_info)
+    sim["cf_sim"] = _aggregate_sim_to_country(sim, turb_info)
 
     # Aggregate both to monthly
-    sim['month'] = sim['time'].dt.month
-    sim['year'] = sim['time'].dt.year
-    sim_monthly = sim.groupby(['year', 'month'])['cf_sim'].mean().reset_index()
+    sim["month"] = sim["time"].dt.month
+    sim["year"] = sim["time"].dt.year
+    sim_monthly = sim.groupby(["year", "month"])["cf_sim"].mean().reset_index()
 
-    obs['month'] = obs['time'].dt.month
-    obs['year'] = obs['time'].dt.year
-    obs_monthly = obs.groupby(['year', 'month'])['obs'].mean().reset_index()
-    obs_monthly = obs_monthly.rename(columns={'obs': 'cf_obs'})
+    obs["month"] = obs["time"].dt.month
+    obs["year"] = obs["time"].dt.year
+    obs_monthly = obs.groupby(["year", "month"])["obs"].mean().reset_index()
+    obs_monthly = obs_monthly.rename(columns={"obs": "cf_obs"})
 
-    merged = pd.merge(sim_monthly, obs_monthly, on=['year', 'month'])
-    merged = merged.dropna(subset=['cf_sim', 'cf_obs'])
+    merged = pd.merge(sim_monthly, obs_monthly, on=["year", "month"])
+    merged = merged.dropna(subset=["cf_sim", "cf_obs"])
 
     if len(merged) == 0:
         return np.nan, np.nan, np.nan
 
-    diff = merged['cf_sim'] - merged['cf_obs']
-    rmse = np.sqrt((diff ** 2).mean())
+    diff = merged["cf_sim"] - merged["cf_obs"]
+    rmse = np.sqrt((diff**2).mean())
     mae = np.abs(diff).mean()
     mbe = diff.mean()
     return rmse, mae, mbe
@@ -192,7 +193,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
         if match:
             time_res, n_clusters = match.groups()
             # Strip year prefix from time_res if present (e.g., "2020_fixed" -> "fixed")
-            time_res_clean = re.sub(r'^\d{4}_', '', time_res)
+            time_res_clean = re.sub(r"^\d{4}_", "", time_res)
             cluster_set.add(int(n_clusters))
             time_res_set.add(time_res_clean)
 
@@ -207,7 +208,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
     print(f"  Found time resolutions: {time_res_list}")
 
     # Country-level obs: aggregate sim to country level and compute metrics directly
-    if metadata['obs_level'] == 'country':
+    if metadata["obs_level"] == "country":
         obs_df = pd.read_csv(obs_file)
         results = []
 
@@ -219,33 +220,58 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
         if unc_file.exists():
             unc_df = pd.read_csv(unc_file)
             rmse, mae, mbe = _country_level_metrics(unc_df, obs_df, turb_info)
-            results.append({
-                **metadata, "year": year,
-                "error_mode": metric_type,
-                "correction_type": "uncorrected", "time_res": None,
-                "n_clusters": None, "mae": mae, "rmse": rmse,
-                "r2": np.nan, "bias": mbe, "rel_bias": np.nan,
-                "mean_obs": np.nan, "mean_sim": np.nan, "n_points": np.nan,
-            })
+            results.append(
+                {
+                    **metadata,
+                    "year": year,
+                    "error_mode": metric_type,
+                    "correction_type": "uncorrected",
+                    "time_res": None,
+                    "n_clusters": None,
+                    "mae": mae,
+                    "rmse": rmse,
+                    "r2": np.nan,
+                    "bias": mbe,
+                    "rel_bias": np.nan,
+                    "mean_obs": np.nan,
+                    "mean_sim": np.nan,
+                    "n_points": np.nan,
+                }
+            )
 
         # Corrected variants
         for num_clu in cluster_list:
             for time_res in time_res_list:
                 if is_train:
-                    cor_file = results_dir / f"{metadata['country']}_train_{time_res}_{num_clu}_cor_cf.csv"
+                    cor_file = (
+                        results_dir / f"{metadata['country']}_train_{time_res}_{num_clu}_cor_cf.csv"
+                    )
                 else:
-                    cor_file = results_dir / f"{metadata['country']}_{year}_{time_res}_{num_clu}_cor_cf.csv"
+                    cor_file = (
+                        results_dir
+                        / f"{metadata['country']}_{year}_{time_res}_{num_clu}_cor_cf.csv"
+                    )
                 if cor_file.exists():
                     cor_df = pd.read_csv(cor_file)
                     rmse, mae, mbe = _country_level_metrics(cor_df, obs_df, turb_info)
-                    results.append({
-                        **metadata, "year": year,
-                        "error_mode": metric_type,
-                        "correction_type": "corrected", "time_res": time_res,
-                        "n_clusters": num_clu, "mae": mae, "rmse": rmse,
-                        "r2": np.nan, "bias": mbe, "rel_bias": np.nan,
-                        "mean_obs": np.nan, "mean_sim": np.nan, "n_points": np.nan,
-                    })
+                    results.append(
+                        {
+                            **metadata,
+                            "year": year,
+                            "error_mode": metric_type,
+                            "correction_type": "corrected",
+                            "time_res": time_res,
+                            "n_clusters": num_clu,
+                            "mae": mae,
+                            "rmse": rmse,
+                            "r2": np.nan,
+                            "bias": mbe,
+                            "rel_bias": np.nan,
+                            "mean_obs": np.nan,
+                            "mean_sim": np.nan,
+                            "n_points": np.nan,
+                        }
+                    )
 
         return results
 
@@ -254,7 +280,7 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
         overall_args = [
             metric_type,
             str(run_dir.resolve()),
-            metadata['country'],
+            metadata["country"],
             turb_info,
             cluster_list,
             time_res_list,
@@ -273,13 +299,15 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
         result = {
             **metadata,
             "year": year,
-            "correction_type": "uncorrected" if pd.isna(row['time_res']) else "corrected",
-            "time_res": row['time_res'] if not pd.isna(row['time_res']) else None,
-            "n_clusters": row['num_clu'] if row['num_clu'] != 1 or not pd.isna(row['time_res']) else None,
-            "mae": row['mae'],
-            "rmse": row['rmse'],
+            "correction_type": "uncorrected" if pd.isna(row["time_res"]) else "corrected",
+            "time_res": row["time_res"] if not pd.isna(row["time_res"]) else None,
+            "n_clusters": row["num_clu"]
+            if row["num_clu"] != 1 or not pd.isna(row["time_res"])
+            else None,
+            "mae": row["mae"],
+            "rmse": row["rmse"],
             "r2": np.nan,  # overall_error doesn't return R²
-            "bias": row['mbe'],
+            "bias": row["mbe"],
             "rel_bias": np.nan,  # overall_error doesn't return rel_bias
             "mean_obs": np.nan,  # overall_error doesn't return these
             "mean_sim": np.nan,
@@ -289,7 +317,6 @@ def evaluate_run(run_dir: Path, metric_type: str = "total") -> list[dict]:
         results.append(result)
 
     return results
-
 
 
 def find_all_runs(base_dir: Path) -> list[Path]:
@@ -425,13 +452,19 @@ def main():
     print("Mean Metrics by Correction Type:")
     print("-" * 80)
 
-    summary = df.groupby(["correction_type", "obs_level"]).agg({
-        "mae": "mean",
-        "rmse": "mean",
-        "r2": "mean",
-        "bias": "mean",
-        "rel_bias": "mean",
-    }).round(4)
+    summary = (
+        df.groupby(["correction_type", "obs_level"])
+        .agg(
+            {
+                "mae": "mean",
+                "rmse": "mean",
+                "r2": "mean",
+                "bias": "mean",
+                "rel_bias": "mean",
+            }
+        )
+        .round(4)
+    )
 
     print(summary)
 
@@ -443,4 +476,5 @@ def main():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(main())

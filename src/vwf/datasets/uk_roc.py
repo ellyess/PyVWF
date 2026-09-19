@@ -32,6 +32,7 @@ methodology) and their reproducibility:
   curated ``uk_md.csv`` (which carries real per-station models and heights from
   a source that is not openly redistributable).
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -47,8 +48,7 @@ import pandas as pd
 #: vintages, which is the overwhelming majority).
 ROC_BANDING: dict[str, dict] = {
     "onshore": {"pre_2013": 1.0, "from_2013": 0.9, "default": 0.9},
-    "offshore": {"to_2014_15": 2.0, "2015_16": 1.9, "post_2016": 1.8,
-                 "default": 2.0},
+    "offshore": {"to_2014_15": 2.0, "2015_16": 1.9, "post_2016": 1.8, "default": 2.0},
 }
 
 
@@ -95,14 +95,21 @@ def osgb_to_wgs84(easting: pd.Series, northing: pd.Series) -> pd.DataFrame:
 #: names columns ``textbox<n>``; a blank title line means the header sits on
 #: row index 2. Mapped by those stable textbox ids, not by position.
 _OFGEM_COLS = {
-    "textbox4": "station", "textbox13": "name", "textbox5": "scheme",
-    "textbox15": "technology", "textbox18": "period", "textbox21": "certs",
-    "textbox37": "mwh_per_cert", "textbox33": "status",
+    "textbox4": "station",
+    "textbox13": "name",
+    "textbox5": "scheme",
+    "textbox15": "technology",
+    "textbox18": "period",
+    "textbox21": "certs",
+    "textbox37": "mwh_per_cert",
+    "textbox33": "status",
 }
 
 
 def read_ofgem_confidential_certificates(
-    paths: Sequence[str], *, scheme: str = "RO",
+    paths: Sequence[str],
+    *,
+    scheme: str = "RO",
 ) -> pd.DataFrame:
     """Station-monthly MWh from the CONFIDENTIAL Ofgem certificate warehouse.
 
@@ -142,8 +149,7 @@ def read_ofgem_confidential_certificates(
     certs = pd.to_numeric(cat["certs"], errors="coerce").fillna(0.0)
     factor = pd.to_numeric(cat["mwh_per_cert"], errors="coerce").fillna(0.0)
     cat["mwh"] = certs * factor
-    return (cat.groupby(["ID", "year", "month"])["mwh"].sum()
-            .reset_index())
+    return cat.groupby(["ID", "year", "month"])["mwh"].sum().reset_index()
 
 
 # --------------------------------------------------------------- observations
@@ -192,13 +198,17 @@ def roc_issuance_to_station_monthly(
     acc = accreditation_year or {}
     monthly = (
         df.groupby(["ID", "year", "month"])
-        .agg(certs=("certs", "sum"), tech=(tech_col or "ID",
-             "first" if tech_col else (lambda s: tech_of({"ID": s.iloc[0]}))))
+        .agg(
+            certs=("certs", "sum"),
+            tech=(
+                tech_col or "ID",
+                "first" if tech_col else (lambda s: tech_of({"ID": s.iloc[0]})),
+            ),
+        )
         .reset_index()
     )
     monthly["band"] = [
-        band_for(r.tech if tech_col else tech_of({"ID": r.ID, tech_col: r.tech}),
-                 acc.get(r.ID))
+        band_for(r.tech if tech_col else tech_of({"ID": r.ID, tech_col: r.tech}), acc.get(r.ID))
         for r in monthly.itertuples()
     ]
     monthly["mwh"] = monthly["certs"] / monthly["band"]
@@ -225,8 +235,9 @@ def pseudo_replicate_observations(
     """
     mcols = [str(m) for m in range(1, 13)]
     wide = (
-        station_monthly.pivot_table(index=["ID", "year"], columns="month",
-                                    values="mwh", aggfunc="sum")
+        station_monthly.pivot_table(
+            index=["ID", "year"], columns="month", values="mwh", aggfunc="sum"
+        )
         .reindex(columns=range(1, 13))
         .reset_index()
     )
@@ -284,20 +295,38 @@ def repd_wind_metadata(
     df["capacity"] = turb_cap.where(turb_cap > 0, installed_kw / df["n_turbines"])
     tip = pd.to_numeric(df.get("Height of Turbines (m)"), errors="coerce")
     df["height"] = tip.where(tip > 1, float(height_default))
-    df["height_source"] = tip.where(tip > 1).notna().map(
-        {True: "repd-tip-height", False: "default-uniform"})
-    df["type"] = df["Technology Type"].str.contains("Offshore").map(
-        {True: "offshore", False: "onshore"})
+    df["height_source"] = (
+        tip.where(tip > 1).notna().map({True: "repd-tip-height", False: "default-uniform"})
+    )
+    df["type"] = (
+        df["Technology Type"].str.contains("Offshore").map({True: "offshore", False: "onshore"})
+    )
     df["model"] = model
     df["model_source"] = "default-uniform"
-    df["operational"] = pd.to_datetime(df.get("Operational"), errors="coerce",
-                                       dayfirst=True)
+    df["operational"] = pd.to_datetime(df.get("Operational"), errors="coerce", dayfirst=True)
     out = df.rename(columns={"Ref ID": "station", "Site Name": "site_name"})
-    out = out[out["n_turbines"].notna() & (out["n_turbines"] > 0)
-              & out["lon"].notna() & out["capacity"].notna()]
-    return out[["station", "site_name", "type", "n_turbines", "capacity",
-                "lon", "lat", "height", "height_source", "model",
-                "model_source", "operational"]].reset_index(drop=True)
+    out = out[
+        out["n_turbines"].notna()
+        & (out["n_turbines"] > 0)
+        & out["lon"].notna()
+        & out["capacity"].notna()
+    ]
+    return out[
+        [
+            "station",
+            "site_name",
+            "type",
+            "n_turbines",
+            "capacity",
+            "lon",
+            "lat",
+            "height",
+            "height_source",
+            "model",
+            "model_source",
+            "operational",
+        ]
+    ].reset_index(drop=True)
 
 
 def pseudo_replicate_metadata(station_md: pd.DataFrame) -> pd.DataFrame:
@@ -305,11 +334,18 @@ def pseudo_replicate_metadata(station_md: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for r in station_md.itertuples(index=False):
         for t in range(1, int(r.n_turbines) + 1):
-            rows.append({
-                "ID": f"{r.station}-{t}", "manufacturer": r.model,
-                "capacity": r.capacity, "diameter": float("nan"),
-                "height": r.height, "lon": r.lon, "lat": r.lat, "type": r.type,
-            })
+            rows.append(
+                {
+                    "ID": f"{r.station}-{t}",
+                    "manufacturer": r.model,
+                    "capacity": r.capacity,
+                    "diameter": float("nan"),
+                    "height": r.height,
+                    "lon": r.lon,
+                    "lat": r.lat,
+                    "type": r.type,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -321,6 +357,7 @@ def divergence_report(open_md: pd.DataFrame, curated_md: pd.DataFrame) -> dict:
     (the keys differ: curated uses ROC accreditation numbers, open uses REPD
     Ref IDs), so this is a fleet-level comparison.
     """
+
     def stats(df):
         return {
             "turbine_rows": len(df),
@@ -329,4 +366,5 @@ def divergence_report(open_md: pd.DataFrame, curated_md: pd.DataFrame) -> dict:
             "median_height_m": round(float(df["height"].median()), 1),
             "has_model": int(df["manufacturer"].notna().sum()) if "manufacturer" in df else 0,
         }
+
     return {"open": stats(open_md), "curated": stats(curated_md)}

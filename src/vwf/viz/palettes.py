@@ -20,10 +20,10 @@ OKABE_ITO = [
 
 # ---------- Temporal resolution & training ----------
 TIME_RES_COLOURS = {
-    "fixed": "#D55E00",    # vermillion
-    "season": "#009E73",   # bluish green
+    "fixed": "#D55E00",  # vermillion
+    "season": "#009E73",  # bluish green
     "bimonth": "#56B4E9",  # sky blue
-    "month": "#E69F00",    # orange
+    "month": "#E69F00",  # orange
 }
 
 TIME_RES_LABELS = {
@@ -44,11 +44,11 @@ TIME_RES_LINESTYLES = {
 }
 
 EXISTING_NEW_COLOURS = {
-    "Yes": OKABE_ITO[4],   # blue
-    "No": OKABE_ITO[5],    # vermillion
+    "Yes": OKABE_ITO[4],  # blue
+    "No": OKABE_ITO[5],  # vermillion
 }
 
 TURBINE_TYPE_COLOURS = {
-    "onshore": OKABE_ITO[4],   # blue
+    "onshore": OKABE_ITO[4],  # blue
     "offshore": OKABE_ITO[5],  # vermillion
 }
