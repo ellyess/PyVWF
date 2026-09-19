@@ -81,6 +81,10 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The terrain wind-deficit study is registered** (#26): the question,
+  measures, gates, predictions and the package recommendation under each
+  outcome, in `docs/findings/method-terrain-wind-deficit-prereg.md`, committed
+  before any driver exists or runs.
 - **Real-data pins are change detectors, not guards.** `CONTRIBUTING.md`
   states the policy under the test markers: the repository aims at the most
   accurate results it can produce, published results are legacy, and a
