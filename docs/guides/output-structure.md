@@ -40,12 +40,20 @@ One row per `(cluster, time-slice)`, with the fitted parameters:
 Each factor averages its scalar and its offset over the same accepted years:
 the training years whose offset was fitted and accepted. A year with no
 usable observation is not an accepted year, and neither is a year whose offset
-search refused. A factor that rests on fewer than two thirds of the training
-years, rounded up, is refused: its `scalar` and `offset` are empty, its units
-get no corrected values, and `metrics.csv` counts it in `n_failed_offset`.
-With three training years a factor needs two; with five, it needs four. The
-train manifest's `accepted_years` block holds each factors file's counts, per
-factor, with the minimum and the number of partial and refused factors.
+search refused. Two cases have no factor to average:
+
+- **A refused factor:** fits were attempted, but the accepted years are not a
+  strict majority of the training years (two of three, three of four, three of
+  five). Its `scalar` and `offset` are empty, its units get no corrected
+  values, and `metrics.csv` counts it in `n_failed_offset`.
+- **An unfitted cluster:** no training year has a usable observation, so no fit
+  was attempted. It carries the identity, `scalar` 1 and `offset` 0, with
+  `n_years` 0, so its units keep their uncorrected values. It is not counted
+  as a failure, and a transfer's collapse leaves it out.
+
+The train manifest's `accepted_years` block holds each factors file's counts,
+per factor, with the minimum and the numbers of partial, refused and unfitted
+factors.
 
 ## Fit diagnostics (`fit_diagnostics_<slice>_<k>.csv`)
 

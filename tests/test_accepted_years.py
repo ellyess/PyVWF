@@ -1,11 +1,13 @@
 """The accepted-year rule for factors (issue #28).
 
 A factor is the mean of per-year fits. It averages its scalar and its offset
-over one set of years, the years whose offset was fitted and accepted, and is
-refused unless that set holds at least two thirds of the training years. Each
-test is built so the rule before #28 would give a different answer: a mean
-over every year's scalar, a zero-observation year counted in, a partial set
-averaged silently, or a cluster with no fit given the identity.
+over one set of years, the years whose offset was fitted and accepted. A factor
+whose fits were attempted is refused unless that set is a majority of the
+training years; a cluster with no usable observation in any year was never
+fitted and keeps the identity. Each test is built so the rule before #28 would
+give a different answer (a mean over every year's scalar, a zero-observation
+year counted in, a partial set averaged silently), or so the two cases with no
+factor to average, unfitted and refused, cannot be confused.
 """
 
 from __future__ import annotations
@@ -32,8 +34,8 @@ def _one_cluster(years, obs, scalars, offsets):
     )
 
 
-@pytest.mark.parametrize("n, need", [(1, 1), (2, 2), (3, 2), (4, 3), (5, 4), (6, 4)])
-def test_the_minimum_is_two_thirds_rounded_up(n, need):
+@pytest.mark.parametrize("n, need", [(1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 4), (7, 4)])
+def test_the_minimum_is_a_strict_majority(n, need):
     assert min_accepted_years(n) == need
 
 
@@ -80,25 +82,35 @@ def test_a_zero_observation_year_is_not_a_fit():
     assert f.loc[0, "n_years"] == 2
 
 
-def test_a_cluster_with_no_fit_is_refused_not_the_identity():
-    # The old rule turned a NaN scalar into scalar 1, offset 0.
+def test_a_cluster_never_fitted_keeps_the_identity():
+    # No year has a usable observation, so no fit was attempted.
+    for obs in ([np.nan] * 3, [0.0] * 3):
+        f = format_bc_factors(
+            _one_cluster([2019, 2020, 2021], obs, [np.nan] * 3, [np.nan] * 3), "fixed"
+        )
+        assert f.loc[0, "scalar"] == 1.0 and f.loc[0, "offset"] == 0.0
+        assert f.loc[0, "n_years"] == 0
+
+
+def test_a_cluster_whose_every_fit_failed_is_refused_not_the_identity():
+    # Same n_years as the unfitted cluster, but fits were attempted.
     f = format_bc_factors(
-        _one_cluster([2019, 2020, 2021], [np.nan] * 3, [np.nan] * 3, [np.nan] * 3), "fixed"
+        _one_cluster([2019, 2020, 2021], [0.3] * 3, [80.0, 90.0, 60.0], [np.nan] * 3), "fixed"
     )
     assert np.isnan(f.loc[0, "scalar"]) and np.isnan(f.loc[0, "offset"])
     assert f.loc[0, "n_years"] == 0
 
 
-def test_five_training_years_need_four():
+def test_five_training_years_need_three():
     years = [2015, 2016, 2017, 2018, 2019]
+    two = format_bc_factors(
+        _one_cluster(years, [0.3] * 5, [1.0] * 5, [0.1, 0.1, np.nan, np.nan, np.nan]), "fixed"
+    )
     three = format_bc_factors(
         _one_cluster(years, [0.3] * 5, [1.0] * 5, [0.1, 0.1, 0.1, np.nan, np.nan]), "fixed"
     )
-    four = format_bc_factors(
-        _one_cluster(years, [0.3] * 5, [1.0] * 5, [0.1, 0.1, 0.1, 0.1, np.nan]), "fixed"
-    )
-    assert np.isnan(three.loc[0, "offset"])
-    assert four.loc[0, "offset"] == pytest.approx(0.1)
+    assert np.isnan(two.loc[0, "offset"])
+    assert three.loc[0, "offset"] == pytest.approx(0.1)
 
 
 def test_each_season_has_its_own_set():
@@ -144,7 +156,20 @@ def test_the_manifest_record_carries_every_count():
         ),
         "fixed",
     )
-    record = _record_accepted_years(f, "fixed", 3)
+    unfitted = format_bc_factors(
+        _one_cluster([2019, 2020, 2021], [np.nan] * 3, [np.nan] * 3, [np.nan] * 3).assign(
+            cluster=3
+        ),
+        "fixed",
+    )
+    record = _record_accepted_years(pd.concat([f, unfitted], ignore_index=True), "fixed", 3)
     assert record["training_years"] == 3 and record["min_accepted_years"] == 2
-    assert record["per_factor"] == {"1/1": {"0": 3, "1": 2, "2": 1}}
-    assert record["n_partial"] == 1 and record["n_refused"] == 1
+    assert record["per_factor"] == {"1/1": {"0": 3, "1": 2, "2": 1, "3": 0}}
+    assert record["n_partial"] == 1 and record["n_refused"] == 1 and record["n_unfitted"] == 1
+
+
+def test_fit_quality_does_not_count_an_unfitted_cluster():
+    f = format_bc_factors(
+        _one_cluster([2019, 2020, 2021], [np.nan] * 3, [np.nan] * 3, [np.nan] * 3), "fixed"
+    )
+    assert fit_quality(f)["n_failed_offset"] == 0

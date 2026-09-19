@@ -19,15 +19,16 @@ this file stay in step with it.
   factor averages its scalar and its offset over the same years: those whose
   offset was fitted and accepted. A year with no usable observation is no
   longer counted in the offset mean as an unfitted zero, and the scalar is no
-  longer averaged over years whose offset was refused. A factor resting on
-  fewer than two thirds of the training years, rounded up, is refused, and a
-  cluster with no usable year is refused rather than given the identity. The
-  factors table gains `n_years` and the train manifest an `accepted_years`
-  block. What moved: on the DK k=100 and CL k=10 pins no offset or scalar
-  that was applied moves and no cluster is newly refused; CL's two clusters
-  already refused now report no scalar either, where they showed the
-  implausible values of the years they were refused in. Both pins are
-  re-recorded. Rows with partial clusters, such as the US, move when re-run.
+  longer averaged over years whose offset was refused. A factor whose fits
+  were attempted is refused unless its accepted years are a strict majority of
+  the training years. A cluster with no usable observation in any year was
+  never fitted and keeps the identity, now marked by `n_years` 0. The factors
+  table gains `n_years` and the train manifest an `accepted_years` block. What
+  moved: on the DK k=100 and CL k=10 pins no offset or scalar that was applied
+  moves and no cluster is newly refused; CL's two clusters already refused now
+  report no scalar either, where they showed the implausible values of the
+  years they were refused in. Both pins are re-recorded. Rows with partial
+  clusters, such as the US, move when re-run.
 
 ### Breaking
 
@@ -63,8 +64,9 @@ this file stay in step with it.
   capacity-weighted collapse to one factor per slice kept the weight of a
   cluster whose scalar or offset was NaN while its terms dropped out of the
   sums, which pulled the collapsed scalar and offset toward zero by that
-  cluster's capacity share. Such clusters are now left out of the weights
-  too. What moves: any transfer from a source with a failed offset or a
+  cluster's capacity share. The collapse now sums over fitted clusters only,
+  leaving out refused factors, failed offsets and unfitted clusters, whose
+  identity is not a correction learned from the source. What moves: any transfer from a source with a failed offset or a
   refused factor, such as CL; no pin reads a transfer.
 - **The offset search returns a root or nothing (#18). The iterative search
   stopped short of the root by up to its last step, its residual test refused

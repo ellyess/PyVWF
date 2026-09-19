@@ -141,7 +141,8 @@ def fit_quality(
     # A NaN offset where a scalar was fitted means the offset solver failed and
     # nothing raised; those sites silently drop out of any simulation. A table
     # with ``n_years`` (issue #28) also refuses a factor whose accepted years
-    # fall short, with its scalar NaN too, so there a NaN offset alone marks it.
+    # are not a majority, with its scalar NaN too, so there a NaN offset alone
+    # marks it. An unfitted cluster carries the identity and is not a failure.
     if "offset" in factors.columns:
         off = pd.to_numeric(factors["offset"], errors="coerce")
         failed_offset = off.isna() if "n_years" in factors.columns else off.isna() & s.notna()
@@ -552,8 +553,8 @@ class ScalarOnlyWindCorrection(AffineWindCorrection):
         factors = format_bc_factors(train_bias_df, time_res)
         # No offset is fitted here, so a year is accepted when it has a usable
         # observation, and the scalars equal the affine model's wherever the
-        # affine search accepted every such year. A factor refused for too few
-        # years is NaN in both parameters; every other offset must be 0.
+        # affine search accepted every such year. A refused factor is NaN in
+        # both parameters; every other offset, the identity's included, is 0.
         refused = factors["scalar"].isna()
         assert (factors.loc[~refused, "offset"] == 0).all(), "scalar-only produced a nonzero offset"
         return factors, clus_info

@@ -94,6 +94,23 @@ def test_collapse_leaves_out_a_cluster_with_no_factor():
     assert collapsed.iloc[0]["scalar"] == pytest.approx(0.8)
 
 
+def test_collapse_sums_over_fitted_clusters_only():
+    # Cluster 1 was never fitted and carries the identity (n_years 0). Kept,
+    # it would pull the scalar to 0.9 and the offset to -0.5.
+    factors = pd.DataFrame(
+        {
+            "cluster": [0, 1],
+            "fixed": ["1/1", "1/1"],
+            "scalar": [0.8, 1.0],
+            "offset": [-1.0, 0.0],
+            "n_years": [3, 0],
+        }
+    )
+    collapsed = collapse_factors(factors, pd.Series({0: 50.0, 1: 50.0}), "fixed")
+    assert collapsed.iloc[0]["scalar"] == pytest.approx(0.8)
+    assert collapsed.iloc[0]["offset"] == pytest.approx(-1.0)
+
+
 def test_collapse_of_a_slice_with_no_factor_is_nan():
     factors = pd.DataFrame(
         {"cluster": [0], "fixed": ["1/1"], "scalar": [np.nan], "offset": [np.nan]}

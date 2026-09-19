@@ -248,17 +248,21 @@ def _record_accepted_years(factors: pd.DataFrame, time_res: str, n_training_year
 
     The same counts are the factors table's ``n_years`` column; the manifest
     carries them so a run's record says, without the table, which factors rest
-    on fewer than all their training years and which were refused.
+    on fewer than all their training years, which were refused, and which were
+    never fitted and carry the identity.
     """
     per_slice: dict[str, dict[str, int]] = {}
     for slice_label, cluster, n in zip(factors[time_res], factors["cluster"], factors["n_years"]):
         per_slice.setdefault(str(slice_label), {})[str(cluster)] = int(n)
-    refused = factors.loc[factors["scalar"].isna() & factors["offset"].isna(), "cluster"]
+    refused = factors["scalar"].isna() & factors["offset"].isna()
+    unfitted = (factors["n_years"] == 0) & ~refused
+    partial = (factors["n_years"] < n_training_years) & ~refused & ~unfitted
     return {
         "training_years": n_training_years,
         "min_accepted_years": min_accepted_years(n_training_years),
-        "n_partial": int((factors["n_years"] < n_training_years).sum() - len(refused)),
-        "n_refused": int(len(refused)),
+        "n_partial": int(partial.sum()),
+        "n_refused": int(refused.sum()),
+        "n_unfitted": int(unfitted.sum()),
         "per_factor": per_slice,
     }
 
@@ -804,11 +808,13 @@ def collapse_factors(
     weights are the installed capacity behind each cluster in the SOURCE
     region's training fleet, never an unweighted mean.
 
-    A cluster with no factor to apply (a refused factor or a failed offset,
-    NaN in either parameter) is left out of both the sums and the weights. A
-    NaN term drops out of a pandas sum, so keeping its weight would pull the
-    collapsed scalar and offset toward zero by that cluster's capacity share.
-    A slice where no cluster has a factor collapses to NaN.
+    Only fitted clusters enter the sums and the weights. A refused factor or a
+    failed offset (NaN in either parameter) is left out: a NaN term drops out
+    of a pandas sum, so keeping its weight would pull the collapsed scalar and
+    offset toward zero by that cluster's capacity share. An unfitted cluster
+    (``n_years`` 0, carrying the identity) is left out too, since the identity
+    is not a correction learned from the source. A slice where no cluster is
+    fitted collapses to NaN.
     """
     merged = factors.copy()
     merged["_w"] = merged["cluster"].map(cluster_capacity)
@@ -819,6 +825,8 @@ def collapse_factors(
             "the source training fleet disagree"
         )
     usable = merged["scalar"].notna() & merged["offset"].notna()
+    if "n_years" in merged.columns:
+        usable &= merged["n_years"] > 0
     merged["_w"] = merged["_w"].where(usable, 0.0)
     merged["_ws"] = merged["scalar"].where(usable, 0.0) * merged["_w"]
     merged["_wo"] = merged["offset"].where(usable, 0.0) * merged["_w"]
