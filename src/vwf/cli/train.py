@@ -74,11 +74,6 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help='Optional fixed turbine model/id, e.g. "2019COE_Market_Average_2.6MW_121".',
     )
-    p.add_argument(
-        "--train-plots",
-        action="store_true",
-        help="Emit verbose training plots (maps to PyVWF.train(True)).",
-    )
     return p
 
 
@@ -101,7 +96,7 @@ def main(argv: list[str] | None = None) -> None:
         interp_nan=args.interp_nan,
         fix_turb=args.fix_turb,
     )
-    vwf_model.train(args.train_plots)
+    vwf_model.train()
     vwf_model.simulate_cf(args.year_test)
 
 

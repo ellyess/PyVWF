@@ -228,10 +228,9 @@ DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi", "mapbox-earc
 # Dead-code scan of src/ at a conservative confidence; CI runs `vulture`.
 paths = ["src"]
 min_confidence = 80
-# Parameters an interface requires, reported 2026-09-19 and kept:
-# - pos: matplotlib's FuncFormatter calls _comma_formatter(x, pos);
-# - check: PyVWF.train(check=False) is public legacy API, never read inside.
-ignore_names = ["pos", "check"]
+# A parameter an interface requires: matplotlib's FuncFormatter calls
+# _comma_formatter(x, pos).
+ignore_names = ["pos"]
 
 [tool.mypy]
 # No python_version pin: numpy's bundled stubs use PEP 695 syntax that mypy

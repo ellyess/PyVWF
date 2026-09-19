@@ -80,7 +80,7 @@ class PyVWF:
         ...     obs_level="country"
         ... )
         >>> model.load_country_data(grid_points, obs_train, obs_test)
-        >>> model.train(check=False)
+        >>> model.train()
         >>> model.simulate_cf(2021)
     """
 
@@ -295,7 +295,7 @@ class PyVWF:
         Example:
             >>> model = PyVWF("", "NL", True, True, "all", [5], ["fixed"], obs_level="country")
             >>> model.load_country_data(grid_points, obs_train, obs_test)
-            >>> model.train(False)
+            >>> model.train()
         """
         if self.obs_level != "country":
             print("Warning: load_country_data() is intended for obs_level='country'")
@@ -346,7 +346,7 @@ class PyVWF:
             >>> obs_train = pd.read_csv("obs_train.csv", index_col=0, parse_dates=True)
             >>> obs_test = pd.read_csv("obs_test.csv", index_col=0, parse_dates=True)
             >>> model.load_country_data_with_year_specific(obs_train, obs_test)
-            >>> model.train(False)
+            >>> model.train()
         """
         from vwf.loaders import load_year_specific_grid_points
 
@@ -403,7 +403,6 @@ class PyVWF:
 
     def train(
         self,
-        check=False,
         dask_n_workers=3,
         dask_threads_per_worker=1,
         dask_use_processes=True,
@@ -427,7 +426,6 @@ class PyVWF:
         control how they are parallelised.
 
         Args:
-            check: Unused compatibility flag.
             dask_n_workers: Number of worker processes for distributed offsets.
             dask_threads_per_worker: Threads per worker (use 1 for CPU-bound).
             dask_use_processes: Use processes instead of threads.

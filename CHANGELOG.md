@@ -51,6 +51,10 @@ the golden regression test and every test file pass at each step.
 
 ### Breaking
 
+- **Removed `PyVWF.train`'s `check` argument and `pyvwf-train --train-plots`.**
+  The method never read `check`, and the flag only set it, so neither did
+  anything. `train` now takes the `dask_*` arguments only; pass them by name.
+
 - **Removed the `ml` extra.** It declared `xgboost` and `lightgbm` for a model
   comparison that was never ported, and nothing imported either;
   `vwf.extensions.ml` needs only scikit-learn, a core dependency. The extra

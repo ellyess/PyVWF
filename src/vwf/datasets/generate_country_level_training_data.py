@@ -241,7 +241,7 @@ def main():
        obs_level="country"  # ← KEY: Country-level observations!
    )
 
-   vwf_model.train(False)
+   vwf_model.train()
    vwf_model.simulate_cf(config["test_year"])
 
 4. Visualize correction regions:

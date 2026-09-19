@@ -374,7 +374,6 @@ def train_turbine_level(country_key: str, config: dict, output_dir: Path, args) 
         # Train
         print(f"\nTraining {country_key}...")
         model.train(
-            check=False,
             dask_n_workers=args.dask_n_workers,
             dask_threads_per_worker=args.dask_threads_per_worker,
             dask_use_processes=not args.dask_no_processes,
@@ -534,7 +533,6 @@ def train_country_level(
         # Train
         print(f"\nTraining {country}...")
         model.train(
-            check=False,
             dask_n_workers=args.dask_n_workers,
             dask_threads_per_worker=args.dask_threads_per_worker,
             dask_use_processes=not args.dask_no_processes,

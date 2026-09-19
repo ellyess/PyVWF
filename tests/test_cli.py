@@ -81,8 +81,8 @@ def test_main_passes_arguments_through_to_the_model(tmp_path, monkeypatch):
             captured["correct"] = correct
             captured.update(kwargs)
 
-        def train(self, check):
-            captured["trained"] = check
+        def train(self):
+            captured["trained"] = True
 
         def simulate_cf(self, year_test):
             captured["year_test"] = year_test
@@ -112,7 +112,7 @@ def test_main_passes_arguments_through_to_the_model(tmp_path, monkeypatch):
     assert captured["cluster_list"] == [7]
     assert captured["time_res_list"] == ["season"]
     assert captured["year_test"] == 2018
-    assert captured["trained"] is False  # --train-plots not passed
+    assert captured["trained"] is True
     # The output directory is created up front, so a long run doesn't die at the
     # first write.
     assert (tmp_path / "run").is_dir()
