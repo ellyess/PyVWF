@@ -59,6 +59,8 @@ runbooks/br
 runbooks/nz
 runbooks/cl
 runbooks/ar
+runbooks/au_nem
+runbooks/entsoe
 runbooks/tr
 ```
 

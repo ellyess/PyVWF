@@ -74,3 +74,14 @@ Trains 2021-2023, tests 2024. With matched curves the affine correction helps
 Endpoints: `/generacion-real/v3/findByDate` (per-plant generation),
 `/centrales/v4/findByDate` (registry), `/capacidad-instalada/v4/findByDate`
 (capacity history). Auth is `user_key` as a query parameter.
+
+## Licence
+
+The generation data are public transparency data from the Coordinador
+Eléctrico Nacional, through its SIP API with a free key (the [source table](../guides/data-sources.md#source-urls)). Nothing
+from them is committed. Plant coordinates come from the Global Wind Power
+Tracker (Global Energy Monitor, CC-BY-4.0), which requires attribution. The
+committed curation tables are `configs/curation/cl_turbine_specs.csv`, every
+row of which cites its source in `source_url`; `cl_coord_overrides.csv`,
+which carries a `note` per row but no source column; and
+`cl_fleet_exclusions.csv`, which gives each excluded plant's reason.

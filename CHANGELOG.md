@@ -60,6 +60,10 @@ this file stay in step with it.
   tag proposed for it. The thesis DOI is added when it is deposited.
 - **`method-scalar-bounds.md` marks its `min_cluster_size` table superseded**
   (#17), and points at the rerun recorded on the issue.
+- **Every scorecard region has a runbook with a licence section.** The US, BR,
+  NZ, CL and AR runbooks gain one, stating each source's terms, what is
+  committed from it, and which committed curation tables cite a source per
+  row. New runbooks cover AU-NEM and the eight country-level regions.
 
 ## [0.6.0] - 2026-09-19
 

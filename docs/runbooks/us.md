@@ -117,3 +117,11 @@ the US: the driver's validated-pair guard covers AU and Europe only.
   generalised from the AU heuristics, is the right home; not yet applied.
 - **Static nameplate.** Staged build-outs bias a plant's early months low; the
   commissioning mask removes pre-operating months but not partial staging.
+
+## Licence
+
+The observations and metadata are US public-domain data: EIA-923 and EIA-860
+from the Energy Information Administration, and hub heights from the US Wind
+Turbine Database (USGS). The [source table](../guides/data-sources.md#source-urls) records each. Nothing from them is committed:
+`input/` is git-ignored, and this runbook rebuilds it. Results computed from
+them may be shared.
