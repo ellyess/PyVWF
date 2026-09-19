@@ -69,7 +69,9 @@ scikit-learn 1.9.1 (pandas 3.0.6) the same rerun moves some scores in the third
 decimal: scalar R² BR +0.186 ± 0.023, DE −0.015 ± 0.035, DK −0.227 ± 0.053,
 UK −0.199 ± 0.078, US −1.059 ± 0.237; offset R² DE −0.020, DK −0.195, US
 −0.905. The gate reads 1 of 5 either way. `tests/test_pin_ml_transfer.py`
-pins the full output under 1.7.2.]*
+pins the full output under 1.7.2.]* *[2026-09-19: the pin is now recorded under
+scikit-learn 1.9.1, the version CI resolves, so the table is superseded by the
+1.9.1 values in this note.]*
 
 **Gate: 1/5 → NEGATIVE result stands.** Two honest observations alongside:
 

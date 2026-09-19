@@ -59,6 +59,8 @@ runbooks/br
 runbooks/nz
 runbooks/cl
 runbooks/ar
+runbooks/au_nem
+runbooks/entsoe
 runbooks/tr
 ```
 
@@ -77,6 +79,7 @@ design/undefined-roughness-in-complex-terrain
 
 api
 CONTEXT
+publications
 ```
 
 ## Citing PyVWF

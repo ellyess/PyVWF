@@ -13,6 +13,15 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Breaking
+
+- **`find_offset` has one offset search.** A bracketed root search replaces
+  the iterative search and its scipy fallback, so `find_offset` loses its
+  `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
+  and `vwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
+  removed. The identifiability study that probes the iterative search keeps its
+  own copy of it.
+
 ### Changed
 
 - **The US and CL scorecard rows are re-run with the bracketed offset search**,
@@ -24,15 +33,13 @@ this file stay in step with it.
   whose old offset averaged values that were not roots, is now refused, and
   its plants were already outside the common rows. No pin reads these runs;
   the CL fixed-slice factors equal the pin re-recorded with the search.
-
-### Breaking
-
-- **`find_offset` has one offset search.** A bracketed root search replaces
-  the iterative search and its scipy fallback, so `find_offset` loses its
-  `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
-  and `vwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
-  removed. The identifiability study that probes the iterative search keeps its
-  own copy of it.
+- **The machine-learning transfer pin is recorded under scikit-learn 1.9.1**,
+  the version CI's Python 3.11 and 3.12 jobs resolve, instead of 1.7.2. What
+  moved: the leave-one-region-out scores the driver prints, in the third
+  decimal; the centroid table does not move. Why: the 1.7.2 restriction
+  existed only to match the published table in `method-ml-transfer.md`, which
+  is superseded. The real-data layer still skips under any other version,
+  because its digest cannot tell a version change from a code change.
 
 ### Fixed
 
@@ -49,6 +56,23 @@ this file stay in step with it.
   move, the set of refused fits is unchanged, and the golden regression test
   is unmoved. The real-data pins of both configurations' fixed-slice
   factors, recorded before the change, are re-recorded with it.
+
+### Documentation
+
+- **Real-data pins are change detectors, not guards.** `CONTRIBUTING.md`
+  states the policy under the test markers: the repository aims at the most
+  accurate results it can produce, published results are legacy, and a
+  deliberate improvement that moves a pinned output re-records the fixture in
+  the same commit and says in this file what moved and why.
+- **`docs/publications.md` lists the published results**, the 2024 Energy
+  paper and the thesis, with the commit that produced each and the annotated
+  tag proposed for it. The thesis DOI is added when it is deposited.
+- **`method-scalar-bounds.md` marks its `min_cluster_size` table superseded**
+  (#17), and points at the rerun recorded on the issue.
+- **Every scorecard region has a runbook with a licence section.** The US, BR,
+  NZ, CL and AR runbooks gain one, stating each source's terms, what is
+  committed from it, and which committed curation tables cite a source per
+  row. New runbooks cover AU-NEM and the eight country-level regions.
 
 ## [0.6.0] - 2026-09-19
 

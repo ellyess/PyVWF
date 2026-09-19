@@ -122,3 +122,10 @@ guard covers AU and Europe only.
   energy account (delivered/curtailed). Wiring the wind-speed column for
   *direct* wind-speed validation is the standout Phase-2 science task (research
   doc §1) and is not yet done.
+
+## Licence
+
+The capacity factors, the complex coordinates and capacities, and the
+constrained-off series come from the ONS open-data portal, under ONS Open Data
+terms (the [source table](../guides/data-sources.md#source-urls)). Nothing from it is committed: `input/` is git-ignored, and
+this runbook rebuilds it. Results computed from it may be shared.

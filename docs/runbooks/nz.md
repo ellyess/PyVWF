@@ -148,3 +148,12 @@ Notes for reading the result:
 - **Dataset changes:** EMI plans to replace `Generation_MD` with a richer
   dataset.
   - A fetch that returns 404 is the sign. Then check the EMI dataset page.
+
+## Licence
+
+The generation data are open Electricity Authority EMI datasets, downloaded
+without registration (the [source table](../guides/data-sources.md#source-urls)). Nothing from them is committed. The committed
+curation tables are `configs/curation/nz_wind_farms.csv`,
+`nz_capacity_stages.csv` and `nz_mask_windows.csv`. The farm table records
+where each hub height came from in `height_source`, and other notes in
+`notes`; it has no general per-row source column.
