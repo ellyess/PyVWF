@@ -1,9 +1,8 @@
 """Scripts reach vwf through public names only.
 
 Analyses in ``scripts/`` used to import the harness's private helpers
-(``driver._tidy_eval_frame``, ``vwf.correction._find_offset_iterative`` and
-others), so a refactor of a private function could break a study that no test
-ran. Each now has a public wrapper that calls the private function, and this
+(``driver._tidy_eval_frame`` and others), so a refactor of a private function
+could break a study that no test ran. Each now has a public wrapper that calls the private function, and this
 file checks two things: that every wrapper behaves as the function it wraps,
 and that no script under ``scripts/`` or ``examples/`` names a private ``vwf``
 attribute again.
@@ -112,12 +111,9 @@ def test_the_driver_wrappers_are_the_harness_functions():
 
 
 def test_the_other_wrappers_are_the_functions_they_wrap():
-    from vwf import correction, wind
+    from vwf import wind
     from vwf.datasets import cen_cl
 
-    assert inspect.signature(correction.find_offset_iterative) == inspect.signature(
-        correction._find_offset_iterative
-    )
     curves = pd.DataFrame({"data$speed": np.arange(0.0, 5.0), "M1": np.linspace(0, 1, 5)})
     got, want = wind.power_curve_arrays(curves), wind._get_power_curve_cache(curves)
     np.testing.assert_array_equal(got[0], want[0])

@@ -1,7 +1,7 @@
 """Bias correction utilities for PyVWF."""
 
 import numpy as np
-from scipy.optimize import minimize, minimize_scalar
+from scipy.optimize import brentq, minimize
 
 from vwf.wind import interpolate_wind, train_simulate_wind, prepare_offset_arrays, fast_simulate_cf
 from vwf.time_utils import parse_time_slice
@@ -81,136 +81,85 @@ def calculate_scalar(gen_cf, time_res):
     return df[["year", "time_slice", "cluster", "obs", "sim", "scalar"]]
 
 
-#: Largest capacity-factor residual a returned offset may leave. The step-size
-#: test alone cannot see this: the step shrinks whether or not the error did,
-#: so a search that never reached the root still passes it. A genuine
-#: convergence leaves a residual near ``tolerance ** 3``, about 8e-9, because
-#: the step is the cube root of the error; a throttled one leaves a residual
-#: orders of magnitude larger. Anything between those separates them, and this
-#: is set loose enough not to reject a working fit.
-MAX_OFFSET_RESIDUAL = 1e-4
+#: Width of each step the bracketed search takes outward from zero, in m/s,
+#: while it looks for a change of sign in the residual.
+OFFSET_BRACKET_STEP = 0.5
+
+#: The bracketed search's tolerance on the offset itself, in m/s.
+OFFSET_XTOL = 1e-6
+
+#: Largest capacity-factor residual the bracketed search may leave. Brent's
+#: method converges to within ``OFFSET_XTOL`` of the root, and the capacity
+#: factor changes by at most about 0.2 per m/s of offset, so a genuine root
+#: leaves a residual near 2e-7. A larger one means the residual changed sign by
+#: jumping, not by crossing zero: an off-curve value dropping out of the mean.
+BRACKETED_MAX_RESIDUAL = 1e-6
 
 
-def find_offset_iterative(
+def _find_offset_bracketed(
     row,
     offset_arrays,
-    max_iter=100,
-    tolerance=0.002,
-    initial_step=10.0,
-    residual_tolerance=MAX_OFFSET_RESIDUAL,
+    bounds=(-10.0, 10.0),
+    bracket_step=OFFSET_BRACKET_STEP,
+    xtol=OFFSET_XTOL,
+    residual_tolerance=BRACKETED_MAX_RESIDUAL,
 ):
-    """The offset search the correction fits with, for one row.
+    """The offset at which the simulated capacity factor equals the observed one.
 
-    Public entry to :func:`_find_offset_iterative`, for studies that probe the
-    search itself; arguments and result are the same.
-    """
-    return _find_offset_iterative(
-        row,
-        offset_arrays,
-        max_iter=max_iter,
-        tolerance=tolerance,
-        initial_step=initial_step,
-        residual_tolerance=residual_tolerance,
-    )
-
-
-def _find_offset_iterative(
-    row,
-    offset_arrays,
-    max_iter=100,
-    tolerance=0.002,
-    initial_step=10.0,
-    residual_tolerance=MAX_OFFSET_RESIDUAL,
-):
-    """Fast iterative optimization using cube root step sizing.
+    Steps outward from zero, in the direction that moves the simulation toward
+    the observation, until the residual changes sign; then solves that bracket
+    with Brent's method. So it returns the root nearest zero on that side, as
+    the iterative search it replaced aimed to. The capacity factor is not
+    monotonic in the offset once enough speeds pass the cut-out, which is why
+    the bracket is found by stepping rather than taken from the bounds.
 
     Args:
-        row: Row with year, cluster, time_slice, obs, sim, scalar
-        offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
-        max_iter: Maximum iterations (default: 100)
-        tolerance: Convergence tolerance on the STEP, in m/s
-        initial_step: Initial step size (default: 10.0 m/s)
-        residual_tolerance: Largest capacity-factor residual a returned offset
-            may leave. See :data:`MAX_OFFSET_RESIDUAL`.
+        row: Row with ``obs``, ``scalar`` and the cluster's identity.
+        offset_arrays: Pre-extracted numpy arrays from ``prepare_offset_arrays``.
+        bounds: The search is confined to this interval, in m/s.
+        bracket_step: Width of each outward step, in m/s.
+        xtol: Tolerance on the offset, in m/s.
+        residual_tolerance: Largest capacity-factor residual accepted.
 
     Returns:
-        float: Optimized offset, or np.nan when the step converged without the
-        residual doing so. **The step-size test is not sufficient on its own.**
-        Each proposed step is clamped to the previous magnitude, so a search
-        started below the natural step size, which is the cube root of a
-        capacity-factor error and never exceeds about 0.7 m/s, halves its way
-        to the tolerance without ever reaching the root. Probed at
-        ``initial_step=0.25`` that returns offsets wrong by up to 7.2 m/s while
-        reporting success (``docs/findings/method-correction-identifiability.md``).
+        float: The offset, or ``np.nan`` when the search refuses: the residual
+        does not change sign before a bound (no root inside the bounds on that
+        side), the root lies at a bound, or the residual at the root exceeds
+        ``residual_tolerance``. Each refusal is explicit, never a value at the
+        edge of the interval.
     """
-    step = np.sign(row.obs - row.sim) * initial_step
-    step_prev = step
-    offset = 0.0
+    lo, hi = float(bounds[0]), float(bounds[1])
 
-    for _ in range(max_iter):
-        # Check convergence
-        if np.abs(step) <= tolerance:
-            residual = row.obs - fast_simulate_cf(offset_arrays, row.scalar, offset)
-            if np.abs(residual) > residual_tolerance:
-                return np.nan
-            return offset
+    def residual(offset):
+        return float(row.obs - fast_simulate_cf(offset_arrays, row.scalar, offset))
 
-        # Simulate with current offset using fast numpy path
-        mean_sim_cf = fast_simulate_cf(offset_arrays, row.scalar, offset)
-
-        # Calculate error and step (cube root for power ~ wind^3)
-        error = row.obs - mean_sim_cf
-        step = np.cbrt(error)
-
-        # Prevent oscillation
-        if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
-            step = -step_prev / 2
-        elif np.sign(step) == np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
-            step = step_prev / 2
-
-        # Update
-        step_prev = step
-        offset += step
-
-    # Failed to converge - fall back to scipy
-    return np.nan
-
-
-def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3), residual_tolerance=MAX_OFFSET_RESIDUAL):
-    """Robust scipy optimization fallback.
-
-    Args:
-        row: Row with correction factors
-        offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
-        bounds: Offset search bounds
-        residual_tolerance: Largest capacity-factor residual a returned offset
-            may leave. See :data:`MAX_OFFSET_RESIDUAL`.
-
-    Returns:
-        float: Optimized offset, or np.nan when the minimiser succeeded without
-        reaching the root. ``minimize_scalar`` reports success for finding a
-        minimum of the squared error, which on a bounded interval can be an
-        endpoint rather than a zero, so the residual is checked as well.
-    """
-
-    def objective(offset):
-        """Squared error between observed and simulated CF."""
-        sim_cf = fast_simulate_cf(offset_arrays, row.scalar, offset)
-        return (sim_cf - row.obs) ** 2
-
-    try:
-        result = minimize_scalar(
-            objective, bounds=bounds, method="bounded", options={"xatol": 0.001}
-        )
-
-        if not result.success:
-            return np.nan
-        if np.sqrt(max(float(result.fun), 0.0)) > residual_tolerance:
-            return np.nan
-        return result.x
-
-    except Exception:
+    start = 0.0
+    f_start = residual(start)
+    if not np.isfinite(f_start):
         return np.nan
+    if f_start == 0.0:
+        return start
+    direction = 1.0 if f_start > 0 else -1.0  # observed above simulated: raise the speed
+    a, f_a = start, f_start
+    while True:
+        b = min(max(a + direction * bracket_step, lo), hi)
+        f_b = residual(b)
+        if not np.isfinite(f_b):
+            return np.nan
+        if f_b == 0.0:
+            root = b
+            break
+        if np.sign(f_b) != np.sign(f_a):
+            root = brentq(residual, min(a, b), max(a, b), xtol=xtol)
+            break
+        if b in (lo, hi):
+            return np.nan  # no change of sign inside the bounds
+        a, f_a = b, f_b
+    if min(abs(root - lo), abs(root - hi)) <= xtol:
+        return np.nan  # a root at the edge of the search is not accepted
+    if abs(residual(root)) > residual_tolerance:
+        return np.nan
+    return float(root)
 
 
 def find_offset(
@@ -218,35 +167,31 @@ def find_offset(
     turb_info,
     reanalysis,
     powerCurveFile,
-    max_iter=100,
-    tolerance=0.002,
-    initial_step=10.0,
     bounds=(-10, 10),
-    use_scipy_fallback=True,
     verbose=False,
     seasons=None,
 ):
     """Optimize the additive offset correction factor.
 
-    Uses a hybrid approach: fast iterative method with scipy fallback for robustness.
+    Solves for the root with :func:`_find_offset_bracketed`: a bracket found by
+    stepping outward from zero, then Brent's method, refusing a result at a
+    bound or with a residual above :data:`BRACKETED_MAX_RESIDUAL`.
 
     Args:
         row (pandas.Series): Row with ``year``, ``cluster``, ``time_slice``, ``obs``, ``sim``, ``scalar``.
         turb_info (pandas.DataFrame): Turbine metadata including height and coordinates.
         reanalysis (xarray.Dataset): Wind parameters on a grid.
         powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
-        max_iter (int): Maximum iterations for fast method (default: 100).
-        tolerance (float): Convergence tolerance (default: 0.002).
-        initial_step (float): Initial step size for fast method (default: 10.0).
-        bounds (tuple): Offset bounds for scipy method (default: (-10, 10)).
-        use_scipy_fallback (bool): Use scipy if fast method fails (default: True).
+        bounds (tuple): The interval the search is confined to, in m/s
+            (default: (-10, 10)). A root at either end is refused.
         verbose (bool): Print warnings for failed optimizations (default: False).
         seasons: Optional season-name → month-list mapping, for regions
             whose seasons differ from the Northern-Hemisphere defaults.
             Default None keeps the hardcoded NH season months.
 
     Returns:
-        float: Best-fit offset value (or np.nan if all methods fail).
+        float: The offset, or np.nan when the search refuses (see
+        :func:`_find_offset_bracketed`) or the cluster has no units.
     """
     # Parse time slice to months
     months = parse_time_slice(row["time_slice"], seasons)
@@ -275,12 +220,7 @@ def find_offset(
     # Pre-extract numpy arrays for fast iteration (avoids xarray overhead per iteration)
     offset_arrays = prepare_offset_arrays(unc_ws, powerCurveFile)
 
-    # Try fast iterative method first
-    offset = _find_offset_iterative(row, offset_arrays, max_iter, tolerance, initial_step)
-
-    # If failed and fallback enabled, use scipy
-    if np.isnan(offset) and use_scipy_fallback:
-        offset = _find_offset_scipy(row, offset_arrays, bounds)
+    offset = _find_offset_bracketed(row, offset_arrays, bounds=bounds)
 
     # Optional warning for failed optimizations
     if verbose and np.isnan(offset):
