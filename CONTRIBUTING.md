@@ -39,9 +39,24 @@ The test suite uses synthetic data and needs no ERA5 downloads or API access.
 Two markers split it:
 
 - `realdata` tests read git-ignored data under `input/` or `output/`, such as
-  the pins that reproduce recorded study outputs. They skip where the data is
-  absent, which includes CI.
+  the pins that record what the code produces on real inputs. They skip where
+  the data is absent, which includes CI.
 - `slow` tests are pins that take seconds per case.
+
+**Real-data pins are change detectors, not guards.** The repository aims at
+the most accurate results it can produce, not at reproducing earlier ones.
+Published results are legacy, and a recorded output is superseded by a better
+one rather than preserved. A pin records what the code produces now, so that a
+change to it is seen and measured, not so that the change is prevented. When a
+deliberate improvement changes a pinned output:
+
+- re-record the fixture in the same commit as the change;
+- say in the CHANGELOG, under `[Unreleased]`, what moved and why;
+- give the size of each movement in the commit message or the pull request,
+  since the CHANGELOG carries no metrics.
+
+A pinned output that moves without a deliberate change is a regression until
+shown otherwise, which is the case the detector exists for.
 
 Install the commit hooks once, after the dev extra. They run `ruff check`,
 `ruff format`, the whitespace and file checks and `nbstripout` on each commit:

@@ -38,6 +38,14 @@ this file stay in step with it.
   is unmoved. The real-data pins of both configurations' fixed-slice
   factors, recorded before the change, are re-recorded with it.
 
+### Documentation
+
+- **Real-data pins are change detectors, not guards.** `CONTRIBUTING.md`
+  states the policy under the test markers: the repository aims at the most
+  accurate results it can produce, published results are legacy, and a
+  deliberate improvement that moves a pinned output re-records the fixture in
+  the same commit and says in this file what moved and why.
+
 ## [0.6.0] - 2026-09-19
 
 Changes since 0.5.1 make the power curve behind every number a recorded fact: a
