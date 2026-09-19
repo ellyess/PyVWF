@@ -51,6 +51,9 @@ pre-commit install
 pre-commit run --all-files   # the same checks over the whole tree
 ```
 
+The tree was reformatted once with `ruff format`. To keep that commit out of
+`git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
 ```bash
 pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
 pytest                                  # every test: what CI runs on a manual dispatch
