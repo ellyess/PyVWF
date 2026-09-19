@@ -43,6 +43,15 @@ jobs:
         # the layers below it.
         run: lint-imports
 
+      - name: Declared dependencies (deptry)
+        # Every import in src/ is declared, and every declared dependency is
+        # used or listed with its reason in pyproject.toml.
+        run: deptry src
+
+      - name: Dead code (vulture)
+        # src/ at confidence 80; the kept exceptions are named in pyproject.toml.
+        run: vulture
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

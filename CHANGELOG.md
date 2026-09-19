@@ -82,6 +82,11 @@ consumers and go without a deprecation period.
 
 ### Added
 
+- **deptry and vulture in CI.** Every import in `src/` is declared and every
+  declared dependency is used or listed with its reason; dead code in `src/` is
+  reported at confidence 80. Two unused `ml` extra packages and two
+  interface-required parameters are listed, not removed.
+
 - **Import contracts** in `.importlinter`, checked in CI by `lint-imports`: the
   layers of `vwf`, of `vwf.harness` and of `vwf.pinn`, with no exceptions.
 

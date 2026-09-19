@@ -113,6 +113,8 @@ dev = [
     "pandas-stubs",
     "pre-commit>=3.0.0",
     "import-linter>=2.0",
+    "deptry>=0.20",
+    "vulture>=2.10",
     # tests/test_packaging.py parses pyproject.toml. tomllib entered the stdlib
     # in 3.11, so 3.10 needs the backport.
     "tomli>=2.0.0; python_version < '3.11'",
@@ -212,6 +214,35 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E402"]  # sys.path manipulation before imports in a few tests
+
+[tool.deptry]
+# Checks src/ against the declared dependencies; CI runs `deptry src`.
+known_first_party = ["vwf"]
+pep621_dev_dependency_groups = ["dev", "docs"]
+
+[tool.deptry.package_module_name_map]
+entsoe-py = "entsoe"
+mapbox-earcut = "mapbox_earcut"
+
+[tool.deptry.per_rule_ignores]
+# Declared but never imported by src/, for a stated reason each:
+# - netCDF4, bottleneck: xarray's backends, loaded by name, never imported;
+# - openpyxl, pyarrow: pandas' Excel and Parquet engines, likewise;
+# - cdsapi, mapbox-earcut: used only by scripts/ (fetch/era5.py,
+#   analysis/export_voronoi_frames.py), which deptry does not scan;
+# - xgboost, lightgbm: the ml extra, which nothing imports. Reported
+#   2026-09-19 as unused; kept until the maintainer decides.
+DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi", "mapbox-earcut",
+          "xgboost", "lightgbm"]
+
+[tool.vulture]
+# Dead-code scan of src/ at a conservative confidence; CI runs `vulture`.
+paths = ["src"]
+min_confidence = 80
+# Parameters an interface requires, reported 2026-09-19 and kept:
+# - pos: matplotlib's FuncFormatter calls _comma_formatter(x, pos);
+# - check: PyVWF.train(check=False) is public legacy API, never read inside.
+ignore_names = ["pos", "check"]
 
 [tool.mypy]
 # No python_version pin: numpy's bundled stubs use PEP 695 syntax that mypy
