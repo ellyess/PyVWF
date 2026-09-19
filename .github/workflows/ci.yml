@@ -193,4 +193,5 @@ jobs:
           cd /tmp
           /tmp/clean/bin/python -c "import vwf; print('pyvwf', vwf.__version__)"
           /tmp/clean/bin/python -c "import vwf.wind, vwf.correction, vwf.metrics, vwf.viz"
+          /tmp/clean/bin/python -c "import vwf.harness, vwf.sources, vwf.provenance, vwf.curves"
           /tmp/clean/bin/pyvwf-train --help

@@ -282,6 +282,11 @@ consumers and go without a deprecation period.
 
 ### Fixed
 
+- **The harness imports on Python 3.10 without the dev extra.** Its config
+  reader imports `tomli` on 3.10, which only the dev extra declared, so a plain
+  install could not import `vwf.harness`. It is now a core dependency on
+  Python before 3.11.
+
 - **The variants of a run are compared on the same rows.** `run_evaluate` and
   `run_transfer` scored each variant on its own complete rows. So a corrected
   variant with no value for some units, such as those in a cluster whose offset
