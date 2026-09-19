@@ -28,6 +28,7 @@ made the correction silently conditional on grid size.
 ``pykrige`` is an optional dependency, in the ``grid`` extra, and is imported
 where it is used so that this module imports without it.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -65,13 +66,15 @@ def _check(control_points: pd.DataFrame) -> None:
 
 
 def _targets(lons, lats) -> np.ndarray:
-    return np.column_stack([np.asarray(lons, dtype=float).ravel(),
-                            np.asarray(lats, dtype=float).ravel()])
+    return np.column_stack(
+        [np.asarray(lons, dtype=float).ravel(), np.asarray(lats, dtype=float).ravel()]
+    )
 
 
 def _grid_targets(grid_lons, grid_lats) -> tuple[np.ndarray, tuple[int, int]]:
-    lon_grid, lat_grid = np.meshgrid(np.asarray(grid_lons, dtype=float),
-                                     np.asarray(grid_lats, dtype=float))
+    lon_grid, lat_grid = np.meshgrid(
+        np.asarray(grid_lons, dtype=float), np.asarray(grid_lats, dtype=float)
+    )
     return _targets(lon_grid, lat_grid), lon_grid.shape
 
 
@@ -83,8 +86,9 @@ EARTH_RADIUS_KM = 6371.0
 DEFAULT_METRIC = "degrees"
 
 
-def degree_distances(targets: np.ndarray, coords: np.ndarray,
-                     metric: str = DEFAULT_METRIC) -> np.ndarray:
+def degree_distances(
+    targets: np.ndarray, coords: np.ndarray, metric: str = DEFAULT_METRIC
+) -> np.ndarray:
     """Distance between every target and every control point.
 
     Named rather than inlined so that the one place the metric is decided is
@@ -103,21 +107,29 @@ def degree_distances(targets: np.ndarray, coords: np.ndarray,
     """
     if metric == "degrees":
         diff = targets[:, None, :] - coords[None, :, :]
-        return np.sqrt((diff ** 2).sum(axis=-1))
+        return np.sqrt((diff**2).sum(axis=-1))
     if metric == "great_circle":
         lon1, lat1 = np.radians(targets[:, 0]), np.radians(targets[:, 1])
         lon2, lat2 = np.radians(coords[:, 0]), np.radians(coords[:, 1])
         dlat = lat2[None, :] - lat1[:, None]
         dlon = lon2[None, :] - lon1[:, None]
-        h = (np.sin(dlat / 2) ** 2
-             + np.cos(lat1)[:, None] * np.cos(lat2)[None, :] * np.sin(dlon / 2) ** 2)
+        h = (
+            np.sin(dlat / 2) ** 2
+            + np.cos(lat1)[:, None] * np.cos(lat2)[None, :] * np.sin(dlon / 2) ** 2
+        )
         return 2 * EARTH_RADIUS_KM * np.arcsin(np.sqrt(np.clip(h, 0, 1)))
     raise ValueError(f"unknown metric {metric!r}; use 'degrees' or 'great_circle'")
 
 
-def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER,
-           k: int | None = None,
-           metric: str = DEFAULT_METRIC) -> tuple[np.ndarray, np.ndarray]:
+def idw_at(
+    control_points: pd.DataFrame,
+    lons,
+    lats,
+    *,
+    power: float = IDW_POWER,
+    k: int | None = None,
+    metric: str = DEFAULT_METRIC,
+) -> tuple[np.ndarray, np.ndarray]:
     """Inverse distance weighting at arbitrary points.
 
     This is the single definition: the grid-wise and point-wise entry points
@@ -148,7 +160,7 @@ def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER
     # defect this port fixes.
     batch = 10_000
     for start in range(0, len(targets), batch):
-        chunk = targets[start:start + batch]
+        chunk = targets[start : start + batch]
         dist = degree_distances(chunk, coords, metric)
         if k is not None and k < dist.shape[1]:
             nearest = np.argsort(dist, axis=1)[:, :k]
@@ -159,13 +171,12 @@ def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER
             take = {c: np.broadcast_to(values[c], dist.shape) for c in VALUE_COLUMNS}
 
         with np.errstate(divide="ignore"):
-            weights = 1.0 / dist_k ** power
+            weights = 1.0 / dist_k**power
         exact = ~np.isfinite(weights).all(axis=1)
         weights = np.where(np.isfinite(weights), weights, 0.0)
         total = weights.sum(axis=1, keepdims=True)
         for c in VALUE_COLUMNS:
-            out[c][start:start + len(chunk)] = (
-                (weights * take[c]).sum(axis=1) / total.ravel())
+            out[c][start : start + len(chunk)] = (weights * take[c]).sum(axis=1) / total.ravel()
 
         # A target sitting exactly on a control point takes that point's value
         # rather than a weighted average of an infinity. Applied to every
@@ -179,19 +190,23 @@ def idw_at(control_points: pd.DataFrame, lons, lats, *, power: float = IDW_POWER
     return out["scalar"], out["offset"]
 
 
-def nearest_at(control_points: pd.DataFrame, lons, lats, *,
-               metric: str = DEFAULT_METRIC) -> tuple[np.ndarray, np.ndarray]:
+def nearest_at(
+    control_points: pd.DataFrame, lons, lats, *, metric: str = DEFAULT_METRIC
+) -> tuple[np.ndarray, np.ndarray]:
     """Nearest-neighbour assignment, equivalent to Voronoi cell membership."""
     _check(control_points)
     coords = control_points[["lon", "lat"]].to_numpy(dtype=float)
     dist = degree_distances(_targets(lons, lats), coords, metric)
     nearest = np.argmin(dist, axis=1)
-    return (control_points["scalar"].to_numpy(dtype=float)[nearest],
-            control_points["offset"].to_numpy(dtype=float)[nearest])
+    return (
+        control_points["scalar"].to_numpy(dtype=float)[nearest],
+        control_points["offset"].to_numpy(dtype=float)[nearest],
+    )
 
 
-def rbf_at(control_points: pd.DataFrame, lons, lats, *,
-           kernel: str = RBF_KERNEL) -> tuple[np.ndarray, np.ndarray]:
+def rbf_at(
+    control_points: pd.DataFrame, lons, lats, *, kernel: str = RBF_KERNEL
+) -> tuple[np.ndarray, np.ndarray]:
     """Radial basis function interpolation, thin-plate spline by default.
 
     Every control point influences every target, so this overshoots where the
@@ -207,12 +222,17 @@ def rbf_at(control_points: pd.DataFrame, lons, lats, *,
     )
 
 
-def kriging_at(control_points: pd.DataFrame, lons, lats, *,
-               variogram_model: str = KRIGING_VARIOGRAM,
-               coordinates_type: str = KRIGING_COORDINATES,
-               nlags: int = 6,
-               n_closest_points: int | None = None,
-               with_variance: bool = False):
+def kriging_at(
+    control_points: pd.DataFrame,
+    lons,
+    lats,
+    *,
+    variogram_model: str = KRIGING_VARIOGRAM,
+    coordinates_type: str = KRIGING_COORDINATES,
+    nlags: int = 6,
+    n_closest_points: int | None = None,
+    with_variance: bool = False,
+):
     """Ordinary kriging at arbitrary points, one fit per target field.
 
     Args:
@@ -272,8 +292,7 @@ def kriging_at(control_points: pd.DataFrame, lons, lats, *,
         window = None if n_closest_points is None else int(n_closest_points)
         if window is not None and window >= len(control_points):
             window = None
-        extra = {"n_closest_points": window, "backend": "loop"} \
-            if window is not None else {}
+        extra = {"n_closest_points": window, "backend": "loop"} if window is not None else {}
         z, var = model.execute("points", lon, lat, **extra)
         predictions.append(np.asarray(z).ravel())
         variances.append(np.asarray(var).ravel())
@@ -301,15 +320,19 @@ def to_grid(method, control_points: pd.DataFrame, grid_lons, grid_lats, **kwargs
     result = method(control_points, targets[:, 0], targets[:, 1], **kwargs)
     if kwargs.get("with_variance"):
         (scalar, offset), (scalar_var, offset_var) = result
-        return (np.asarray(scalar).reshape(shape), np.asarray(offset).reshape(shape),
-                np.asarray(scalar_var).reshape(shape),
-                np.asarray(offset_var).reshape(shape))
+        return (
+            np.asarray(scalar).reshape(shape),
+            np.asarray(offset).reshape(shape),
+            np.asarray(scalar_var).reshape(shape),
+            np.asarray(offset_var).reshape(shape),
+        )
     scalar, offset = result
     return np.asarray(scalar).reshape(shape), np.asarray(offset).reshape(shape)
 
 
-def distance_to_nearest(control_points: pd.DataFrame, lons, lats, *,
-                        metric: str = DEFAULT_METRIC) -> np.ndarray:
+def distance_to_nearest(
+    control_points: pd.DataFrame, lons, lats, *, metric: str = DEFAULT_METRIC
+) -> np.ndarray:
     """Degrees from each target to its nearest control point.
 
     The IDW product's mask reads this, and both registered studies report it

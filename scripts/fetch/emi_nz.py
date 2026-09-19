@@ -35,6 +35,7 @@ in a .part file and are renamed only on success. EMI notes Generation_MD will
 eventually be superseded by a richer dataset; if a fetch 404s across the
 board, check the dataset page.
 """
+
 import argparse
 import os
 import re
@@ -63,14 +64,10 @@ def download(url: str, dest: Path) -> None:
 
 def latest_register_name() -> str:
     """Scrape the register directory listing for the newest filename."""
-    req = urllib.request.Request(
-        REGISTER_DIR, headers={"User-Agent": "pyvwf-fetch"}
-    )
+    req = urllib.request.Request(REGISTER_DIR, headers={"User-Agent": "pyvwf-fetch"})
     with urllib.request.urlopen(req) as resp:
         html = resp.read().decode("utf-8", errors="replace")
-    names = sorted(set(re.findall(
-        r"(\d{8}_DispatchedGenerationPlant\.csv)", html
-    )))
+    names = sorted(set(re.findall(r"(\d{8}_DispatchedGenerationPlant\.csv)", html)))
     if not names:
         raise RuntimeError(
             f"no *_DispatchedGenerationPlant.csv links found at {REGISTER_DIR}; "
@@ -81,24 +78,30 @@ def latest_register_name() -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--years", type=int, nargs="+", default=list(YEARS),
-                    help="Years of Generation_MD to fetch (default: 2019-2024)")
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs="+",
+        default=list(YEARS),
+        help="Years of Generation_MD to fetch (default: 2019-2024)",
+    )
     ap.add_argument("--months", type=int, nargs="+", default=list(range(1, 13)))
     ap.add_argument("--skip-register", action="store_true")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Print the download plan and exit")
+    ap.add_argument("--dry-run", action="store_true", help="Print the download plan and exit")
     args = ap.parse_args()
 
     out = output_dir()
     plan = [
-        (GEN_MD.format(yyyymm=f"{y}{m:02d}"),
-         out / f"{y}{m:02d}_Generation_MD.csv")
-        for y in sorted(args.years) for m in sorted(args.months)
+        (GEN_MD.format(yyyymm=f"{y}{m:02d}"), out / f"{y}{m:02d}_Generation_MD.csv")
+        for y in sorted(args.years)
+        for m in sorted(args.months)
     ]
     todo = [(u, p) for u, p in plan if not p.is_file()]
     print(f"Output directory: {out}")
-    print(f"{len(plan)} monthly file(s) in plan, {len(plan) - len(todo)} "
-          f"already present, {len(todo)} to fetch.")
+    print(
+        f"{len(plan)} monthly file(s) in plan, {len(plan) - len(todo)} "
+        f"already present, {len(todo)} to fetch."
+    )
 
     if args.dry_run:
         for url, path in todo:

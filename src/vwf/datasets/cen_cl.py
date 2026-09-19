@@ -33,6 +33,7 @@ Two facts about the CEN series shape the design, verified against the real
   constant. It is still divided per hour, which stays correct if a future
   edition adds a ramping plant.
 """
+
 from __future__ import annotations
 
 from datetime import timedelta, timezone
@@ -65,9 +66,7 @@ def _local_to_utc(timestamps: pd.Series) -> pd.Series:
     """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC."""
     ts = pd.to_datetime(timestamps)
     if getattr(ts.dt, "tz", None) is not None:
-        raise ValueError(
-            "CEN timestamps must be naive Chilean standard time; got tz-aware"
-        )
+        raise ValueError("CEN timestamps must be naive Chilean standard time; got tz-aware")
     return ts.dt.tz_localize(CHILE_STD).dt.tz_convert("UTC").dt.tz_localize(None)
 
 
@@ -99,12 +98,16 @@ def wind_fleet_from_generation(gen: pd.DataFrame) -> pd.DataFrame:
     wind = wind_rows(gen)
     wind["ID"] = wind["id_central"].astype(str).str.strip()
     wind["cap_mw"] = pd.to_numeric(wind["potencia_maxima"], errors="coerce")
-    grouped = wind.groupby("ID").agg(
-        site_name=("central", "first"),
-        propietario=("propietario", "first"),
-        capacity_mw=("cap_mw", "max"),
-        subtipo=("subtipo_tecnologia", "first"),
-    ).reset_index()
+    grouped = (
+        wind.groupby("ID")
+        .agg(
+            site_name=("central", "first"),
+            propietario=("propietario", "first"),
+            capacity_mw=("cap_mw", "max"),
+            subtipo=("subtipo_tecnologia", "first"),
+        )
+        .reset_index()
+    )
     return grouped
 
 
@@ -145,9 +148,7 @@ def monthly_cf_from_generation(
     wind["month"] = wind["timestamp"].dt.month
     wind = wind[(wind["year"] >= int(year_start)) & (wind["year"] <= int(year_end))]
     if wind.empty:
-        return pd.DataFrame(
-            columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-        )
+        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
 
     agg = (
         wind.groupby(["ID", "year", "month"])
@@ -166,9 +167,7 @@ def monthly_cf_from_generation(
     return wide
 
 
-def strip_commissioning_prefix(
-    wide: pd.DataFrame, *, threshold: float = 0.02
-) -> pd.DataFrame:
+def strip_commissioning_prefix(wide: pd.DataFrame, *, threshold: float = 0.02) -> pd.DataFrame:
     """NaN each plant's leading months before it is operational.
 
     ``potencia_maxima`` is the full nameplate from the first row, but CEN
@@ -267,8 +266,19 @@ def build_cl_metadata(
     md["capacity"] = pd.to_numeric(md["capacity_mw"], errors="coerce") * 1000.0
     md["type"] = "onshore"
     return md[
-        ["ID", "site_name", "lon", "lat", "height", "capacity", "model",
-         "type", "height_source", "model_source", "propietario"]
+        [
+            "ID",
+            "site_name",
+            "lon",
+            "lat",
+            "height",
+            "capacity",
+            "model",
+            "type",
+            "height_source",
+            "model_source",
+            "propietario",
+        ]
     ].reset_index(drop=True)
 
 
@@ -298,9 +308,16 @@ def match_coordinates(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFr
     # present, itertuples attribute access shifted r.ID onto the lon value and
     # silently produced longitude-keyed entries that matched no plant. Only
     # ID/lon/lat are used from `overrides`.
-    ov = (dict(zip(overrides["ID"].astype(str),
-                   zip(overrides["lon"].astype(float), overrides["lat"].astype(float))))
-          if len(overrides) else {})
+    ov = (
+        dict(
+            zip(
+                overrides["ID"].astype(str),
+                zip(overrides["lon"].astype(float), overrides["lat"].astype(float)),
+            )
+        )
+        if len(overrides)
+        else {}
+    )
     rows, residual = [], []
     for f in fleet.itertuples():
         fid, cap, nm = str(f.ID), f.capacity_mw, cl_plant_key(f.site_name)
@@ -314,16 +331,23 @@ def match_coordinates(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFr
             cand = cand.assign(dcap=(cand["cap"] - cap).abs() / cap)
             best = cand.nsmallest(1, "dcap").iloc[0]
             if best["dcap"] <= CAP_TOL:
-                rows.append((fid, best["Longitude"], best["Latitude"],
-                             best["Project Name"]))
+                rows.append((fid, best["Longitude"], best["Latitude"], best["Project Name"]))
                 continue
-        top = g.assign(dcap=(g["cap"] - cap).abs()).nsmallest(3, "dcap") \
-            if pd.notna(cap) else g.head(3)
-        residual.append({
-            "ID": fid, "site_name": f.site_name, "capacity_mw": cap,
-            "candidates": "; ".join(
-                f"{r['Project Name']} ({r['cap']}MW @{r['Latitude']:.3f},{r['Longitude']:.3f})"
-                for _, r in top.iterrows()),
-        })
+        top = (
+            g.assign(dcap=(g["cap"] - cap).abs()).nsmallest(3, "dcap")
+            if pd.notna(cap)
+            else g.head(3)
+        )
+        residual.append(
+            {
+                "ID": fid,
+                "site_name": f.site_name,
+                "capacity_mw": cap,
+                "candidates": "; ".join(
+                    f"{r['Project Name']} ({r['cap']}MW @{r['Latitude']:.3f},{r['Longitude']:.3f})"
+                    for _, r in top.iterrows()
+                ),
+            }
+        )
     coords = pd.DataFrame(rows, columns=["ID", "lon", "lat", "gwpt_name"])
     return coords, pd.DataFrame(residual)

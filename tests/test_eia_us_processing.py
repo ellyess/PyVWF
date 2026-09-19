@@ -5,6 +5,7 @@ fixtures carry the schedule's real quirks on purpose (thousands separators,
 the ``.`` missing marker, the ``-9999`` USWTDB sentinel, and the wind-vs-other
 fuel filter) because handling those is part of the contract under test.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -21,8 +22,18 @@ from vwf.datasets.eia_us import (
 )
 
 MONTHS = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ]
 
 
@@ -30,21 +41,36 @@ def eia923_frame():
     """Two plants (one wind, one gas) + a second wind row to exercise summing."""
     rows = []
     # Plant 100: wind, monthly respondent, 1,000 MWh every month (comma-formatted).
-    row = {"Plant Id": 100, "Reported Fuel Type Code": "WND",
-           "Reported Prime Mover": "WT", "YEAR": 2020, "Respondent Frequency": "M"}
+    row = {
+        "Plant Id": 100,
+        "Reported Fuel Type Code": "WND",
+        "Reported Prime Mover": "WT",
+        "YEAR": 2020,
+        "Respondent Frequency": "M",
+    }
     for m in MONTHS:
         row[f"Netgen_{m}"] = "1,000"
     row["Netgen_March"] = "."  # withheld month -> NaN, not 0
     rows.append(row)
     # Plant 200: gas, must be filtered out.
-    row = {"Plant Id": 200, "Reported Fuel Type Code": "NG",
-           "Reported Prime Mover": "CT", "YEAR": 2020, "Respondent Frequency": "M"}
+    row = {
+        "Plant Id": 200,
+        "Reported Fuel Type Code": "NG",
+        "Reported Prime Mover": "CT",
+        "YEAR": 2020,
+        "Respondent Frequency": "M",
+    }
     for m in MONTHS:
         row[f"Netgen_{m}"] = "5,000"
     rows.append(row)
     # Plant 300: wind, annual respondent (imputed monthly cells).
-    row = {"Plant Id": 300, "Reported Fuel Type Code": "WND",
-           "Reported Prime Mover": "WT", "YEAR": 2020, "Respondent Frequency": "A"}
+    row = {
+        "Plant Id": 300,
+        "Reported Fuel Type Code": "WND",
+        "Reported Prime Mover": "WT",
+        "YEAR": 2020,
+        "Respondent Frequency": "A",
+    }
     for m in MONTHS:
         row[f"Netgen_{m}"] = "800"
     rows.append(row)
@@ -174,8 +200,17 @@ def test_build_metadata_contract_and_height_provenance():
     hh = plant_hub_heights_from_uswtdb(uswtdb_frame())
     md = build_us_metadata(cap, hh, default_height=100.0, model="2019COE_Market_Average_2.6MW_121")
 
-    required = {"ID", "lon", "lat", "height", "capacity", "model", "type",
-                "commissioning_date", "height_source"}
+    required = {
+        "ID",
+        "lon",
+        "lat",
+        "height",
+        "capacity",
+        "model",
+        "type",
+        "commissioning_date",
+        "height_source",
+    }
     assert required <= set(md.columns)
     p100 = md[md["ID"] == "100"].iloc[0]
     assert p100["capacity"] == pytest.approx(100_000.0)  # MW -> kW
@@ -231,7 +266,7 @@ def test_curve_matching_refuses_a_micro_turbine_for_a_utility_machine():
     md = pd.DataFrame(
         {
             "ID": ["big"],
-            "capacity": [8000.0],   # plant total kW = 2 x 4 MW
+            "capacity": [8000.0],  # plant total kW = 2 x 4 MW
             "n_turbines": [2],
             "diameter": [150.0],
             "height": [100.0],
@@ -256,10 +291,17 @@ def test_curve_matching_refuses_a_micro_turbine_for_a_utility_machine():
 def test_curve_matching_falls_back_without_a_diameter():
     md = pd.DataFrame(
         {
-            "ID": ["nodia"], "capacity": [8000.0], "n_turbines": [2],
-            "diameter": [float("nan")], "height": [100.0], "lon": [-100.0],
-            "lat": [40.0], "type": ["onshore"], "uswtdb_model": [""],
-            "model": ["placeholder"], "model_source": ["default-uniform"],
+            "ID": ["nodia"],
+            "capacity": [8000.0],
+            "n_turbines": [2],
+            "diameter": [float("nan")],
+            "height": [100.0],
+            "lon": [-100.0],
+            "lat": [40.0],
+            "type": ["onshore"],
+            "uswtdb_model": [""],
+            "model": ["placeholder"],
+            "model_source": ["default-uniform"],
         }
     )
     out = assign_curves_from_library(md, fallback_model="FALLBACK")
@@ -288,7 +330,5 @@ def test_bin_hub_heights_disabled_is_a_noop():
 
 
 def test_filter_to_bbox_is_a_noop_when_all_inside():
-    md = pd.DataFrame(
-        {"ID": ["a", "b"], "lon": [-100.0, -80.0], "lat": [30.0, 40.0]}
-    )
+    md = pd.DataFrame({"ID": ["a", "b"], "lon": [-100.0, -80.0], "lat": [30.0, 40.0]})
     assert filter_to_bbox(md, CONUS)["ID"].tolist() == ["a", "b"]

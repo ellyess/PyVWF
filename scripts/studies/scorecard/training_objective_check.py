@@ -34,6 +34,7 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/scorecard/training_objective_check.py <CODE> <time_res> <k> <out_dir>
 """
+
 import sys
 from pathlib import Path
 
@@ -61,12 +62,19 @@ def main(code, time_res, k, out_dir, refresh=REFRESH):
     if time_res != "fixed":
         raise SystemExit("only the fixed slice is implemented: one objective per training year")
     gen_cf, turb_info, reanalysis, power_curves = train_set(
-        spec.code, True, "all", obs_level=spec.obs_level,
-        source=driver.resolve_source(spec), era5_dir=driver.era5_dir(spec), bbox=spec.bbox,
+        spec.code,
+        True,
+        "all",
+        obs_level=spec.obs_level,
+        source=driver.resolve_source(spec),
+        era5_dir=driver.era5_dir(spec),
+        bbox=spec.bbox,
     )
     fitted = pd.read_csv(train_dir / f"train_turb_info_{k}.csv")
     fitted["ID"] = fitted["ID"].astype(str)
-    turb_info = turb_info.assign(ID=turb_info["ID"].astype(str)).drop(columns="cluster", errors="ignore")
+    turb_info = turb_info.assign(ID=turb_info["ID"].astype(str)).drop(
+        columns="cluster", errors="ignore"
+    )
     turb_info = turb_info.merge(fitted[["ID", "cluster"]], on="ID", how="inner")
     factors = pd.read_csv(train_dir / f"factors_{time_res}_{k}.csv").set_index("cluster")
     bias, _ = cluster_train_set(gen_cf, time_res, int(k), turb_info, obs_level="country")
@@ -74,12 +82,16 @@ def main(code, time_res, k, out_dir, refresh=REFRESH):
 
     top = float(load_power_curves().iloc[:, 0].max())
     _, curves = power_curve_arrays(power_curves)
-    ws = interpolate_wind(reanalysis, turb_info)            # (time, turbine)
+    ws = interpolate_wind(reanalysis, turb_info)  # (time, turbine)
     ws = ws.transpose("time", "turbine")
     years = pd.DatetimeIndex(ws["time"].values).year
     model = np.asarray(ws["model"].values)
     capacity = np.asarray(ws["capacity"].values, float)
-    cluster = turb_info.set_index("ID").loc[np.asarray(ws["turbine"].values, dtype=str), "cluster"].to_numpy()
+    cluster = (
+        turb_info.set_index("ID")
+        .loc[np.asarray(ws["turbine"].values, dtype=str), "cluster"]
+        .to_numpy()
+    )
     unc = ws.to_numpy()
 
     rows, national = [], []
@@ -105,21 +117,45 @@ def main(code, time_res, k, out_dir, refresh=REFRESH):
             ok = ~np.isnan(filled)
             zero_sum[cl] = float((filled[ok] * w[ok]).sum())
             zero_w[cl] = float(w[ok].sum())
-            rows.append({
-                "region": code, "config": f"{time_res}_{k}", "year": int(year), "cluster": int(cl),
-                "scalar": scalar, "offset": offset, "grid_points": int(j.sum()),
-                "grid_point_days": int(c.size), "uncorrected_off_curve": int(unc_off.sum()),
-                "corrected_below_0": int(below.sum()), "corrected_above_curve": int(above.sum()),
-                "weight_share_dropped": 1 - skipped_w[cl] / float(w.sum()),
-                "cluster_cf_objective": skipped_sum[cl] / skipped_w[cl] if skipped_w[cl] else np.nan,
-                "cluster_cf_zero_fill": zero_sum[cl] / zero_w[cl] if zero_w[cl] else np.nan,
-            })
+            rows.append(
+                {
+                    "region": code,
+                    "config": f"{time_res}_{k}",
+                    "year": int(year),
+                    "cluster": int(cl),
+                    "scalar": scalar,
+                    "offset": offset,
+                    "grid_points": int(j.sum()),
+                    "grid_point_days": int(c.size),
+                    "uncorrected_off_curve": int(unc_off.sum()),
+                    "corrected_below_0": int(below.sum()),
+                    "corrected_above_curve": int(above.sum()),
+                    "weight_share_dropped": 1 - skipped_w[cl] / float(w.sum()),
+                    "cluster_cf_objective": skipped_sum[cl] / skipped_w[cl]
+                    if skipped_w[cl]
+                    else np.nan,
+                    "cluster_cf_zero_fill": zero_sum[cl] / zero_w[cl] if zero_w[cl] else np.nan,
+                }
+            )
         cap_cl = pd.Series(capacity).groupby(cluster).sum()
-        obj = sum(cap_cl[c] * skipped_sum[c] / skipped_w[c] for c in cap_cl.index if skipped_w[c]) / cap_cl.sum()
-        zf = sum(cap_cl[c] * zero_sum[c] / zero_w[c] for c in cap_cl.index if zero_w[c]) / cap_cl.sum()
-        national.append({"region": code, "config": f"{time_res}_{k}", "year": int(year),
-                         "observed": float(obs_by_year.get(year, np.nan)),
-                         "national_cf_objective": obj, "national_cf_zero_fill": zf})
+        obj = (
+            sum(cap_cl[c] * skipped_sum[c] / skipped_w[c] for c in cap_cl.index if skipped_w[c])
+            / cap_cl.sum()
+        )
+        zf = (
+            sum(cap_cl[c] * zero_sum[c] / zero_w[c] for c in cap_cl.index if zero_w[c])
+            / cap_cl.sum()
+        )
+        national.append(
+            {
+                "region": code,
+                "config": f"{time_res}_{k}",
+                "year": int(year),
+                "observed": float(obs_by_year.get(year, np.nan)),
+                "national_cf_objective": obj,
+                "national_cf_zero_fill": zf,
+            }
+        )
 
     by_cluster = pd.DataFrame(rows)
     nat = pd.DataFrame(national)
@@ -127,10 +163,16 @@ def main(code, time_res, k, out_dir, refresh=REFRESH):
     nat.to_csv(out_dir / f"{code}_{time_res}_{k}_training_national.csv", index=False)
     with pd.option_context("display.width", 220):
         agg = by_cluster.groupby("cluster").agg(
-            scalar=("scalar", "first"), offset=("offset", "first"), days=("grid_point_days", "sum"),
-            unc_off=("uncorrected_off_curve", "sum"), below_0=("corrected_below_0", "sum"),
-            above=("corrected_above_curve", "sum"), dropped_share=("weight_share_dropped", "mean"),
-            cf_objective=("cluster_cf_objective", "mean"), cf_zero_fill=("cluster_cf_zero_fill", "mean"))
+            scalar=("scalar", "first"),
+            offset=("offset", "first"),
+            days=("grid_point_days", "sum"),
+            unc_off=("uncorrected_off_curve", "sum"),
+            below_0=("corrected_below_0", "sum"),
+            above=("corrected_above_curve", "sum"),
+            dropped_share=("weight_share_dropped", "mean"),
+            cf_objective=("cluster_cf_objective", "mean"),
+            cf_zero_fill=("cluster_cf_zero_fill", "mean"),
+        )
         print(agg.round(4).to_string())
         print(nat.round(4).to_string(index=False))
 
@@ -142,9 +184,12 @@ def cli(argv: list[str] | None = None) -> None:
     parser.add_argument("time_res", help="Time slice; only fixed is implemented")
     parser.add_argument("k", help="Cluster count of the fit to check")
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--refresh", type=Path, default=REFRESH,
-                        help="Runs holding <CODE>/train-refresh, whose fits are checked "
-                             f"(default: {REFRESH})")
+    parser.add_argument(
+        "--refresh",
+        type=Path,
+        default=REFRESH,
+        help=f"Runs holding <CODE>/train-refresh, whose fits are checked (default: {REFRESH})",
+    )
     args = parser.parse_args(argv)
     main(args.code, args.time_res, args.k, args.out_dir, refresh=args.refresh)
 

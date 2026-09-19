@@ -19,6 +19,7 @@ than recomputed, so what was evaluated is visible in the invocation:
     PYVWF_INPUT=input/combined PYVWF_OFFSET_WORKERS=4 PYTHONPATH=src python \\
         scripts/studies/method-cluster-selection/cluster_selection_gaps.py <out_dir> "UK offshore" 50
 """
+
 import importlib.util
 import time
 from pathlib import Path
@@ -29,7 +30,8 @@ from vwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    "cluster_selection_study", Path(__file__).resolve().parent / "cluster_selection_study.py")
+    "cluster_selection_study", Path(__file__).resolve().parent / "cluster_selection_study.py"
+)
 study = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(study)
 
@@ -39,17 +41,22 @@ def main(out_dir: str, label: str, *counts: str) -> None:
     wanted = tuple(sorted(int(c) for c in counts))
     match = [c for c in study.CONFIGURATIONS if c[0] == label]
     if not match:
-        raise SystemExit(f"unknown row {label!r}; expected one of "
-                         f"{[c[0] for c in study.CONFIGURATIONS]}")
+        raise SystemExit(
+            f"unknown row {label!r}; expected one of {[c[0] for c in study.CONFIGURATIONS]}"
+        )
     _, stem, mode, _ = match[0]
     from vwf.harness import regions
+
     spec = regions.load_region(REPO / "configs" / "regions" / f"{stem}.toml")
 
-    print(f"{label}: training {wanted} on {spec.train_years}, scoring "
-          f"{spec.test_years[0]}", flush=True)
+    print(
+        f"{label}: training {wanted} on {spec.train_years}, scoring {spec.test_years[0]}",
+        flush=True,
+    )
     started = time.monotonic()
-    metrics = study.evaluate_at(spec, out, mode, wanted, spec.train_years,
-                                int(spec.test_years[0]), "gaps")
+    metrics = study.evaluate_at(
+        spec, out, mode, wanted, spec.train_years, int(spec.test_years[0]), "gaps"
+    )
     fitted = metrics[metrics["variant"] != "uncorrected"]
     stem_label = label.replace(" ", "_")
     fitted.to_csv(out / f"gaps_{stem_label}.csv", index=False)
@@ -64,8 +71,7 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="The study's output directory, under output/")
     parser.add_argument("label", help='A row of CONFIGURATIONS, e.g. "UK offshore"')
-    parser.add_argument("counts", nargs="+", metavar="count",
-                        help="Cluster counts to fill in")
+    parser.add_argument("counts", nargs="+", metavar="count", help="Cluster counts to fill in")
     args = parser.parse_args(argv)
     main(args.out_dir, args.label, *args.counts)
 

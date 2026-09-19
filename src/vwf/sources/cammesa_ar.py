@@ -18,6 +18,7 @@ Decisions baked into the processing (documented in the region config):
 - **Commissioning prefix stripped.** Pre-operational leading months (CF~0
   against the static nameplate) are removed.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -58,9 +59,7 @@ class CAMMESAArgentinaSource(ObservationSource):
     def __init__(self, country: str = "AR") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

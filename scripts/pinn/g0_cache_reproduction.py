@@ -14,6 +14,7 @@ roughness treatment, not of data.
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/g0_cache_reproduction.py \
          --old <published cache root> --new <rebuilt cache root> --out <dir>
 """
+
 import argparse
 import hashlib
 import sys
@@ -48,10 +49,13 @@ def compare(old, new) -> dict:
     ni = np.array([n_pos[i] for i in common], dtype=int)
 
     rec = {
-        "units_old": len(old_ids), "units_new": len(new_ids), "units_common": len(common),
+        "units_old": len(old_ids),
+        "units_new": len(new_ids),
+        "units_common": len(common),
         "units_only_old": len(set(old_ids) - set(new_ids)),
         "units_only_new": len(set(new_ids) - set(old_ids)),
-        "days_old": len(old.dates), "days_new": len(new.dates),
+        "days_old": len(old.dates),
+        "days_new": len(new.dates),
     }
     days = old.dates.intersection(new.dates)
     rec["days_common"] = len(days)
@@ -68,8 +72,9 @@ def compare(old, new) -> dict:
             rec[f"meta_{col}_mismatches"] = int((om[col].astype(str) != nm[col].astype(str)).sum())
         else:
             a, b = om[col].to_numpy(dtype=float), nm[col].to_numpy(dtype=float)
-            rec[f"meta_{col}_mismatches"] = int((~np.isclose(a, b, rtol=0, atol=1e-9)
-                                                 & ~(np.isnan(a) & np.isnan(b))).sum())
+            rec[f"meta_{col}_mismatches"] = int(
+                (~np.isclose(a, b, rtol=0, atol=1e-9) & ~(np.isnan(a) & np.isnan(b))).sum()
+            )
 
     keys = ["ID", "year", "month"]
     oo = old.obs.astype({"ID": str}).dropna(subset=["obs"])
@@ -79,8 +84,9 @@ def compare(old, new) -> dict:
     rec["obs_rows_common"] = int(len(both))
     rec["obs_rows_only_old"] = int((merged["_merge"] == "left_only").sum())
     rec["obs_rows_only_new"] = int((merged["_merge"] == "right_only").sum())
-    rec["obs_max_abs_diff"] = (float((both["obs_old"] - both["obs_new"]).abs().max())
-                               if len(both) else None)
+    rec["obs_max_abs_diff"] = (
+        float((both["obs_old"] - both["obs_new"]).abs().max()) if len(both) else None
+    )
 
     for name in FIELDS:
         a = np.asarray(getattr(old, name))[np.ix_(od, oi)].astype("float64")
@@ -88,8 +94,9 @@ def compare(old, new) -> dict:
         fa, fb = np.isfinite(a), np.isfinite(b)
         rec[f"{name}_finite_mismatch"] = int((fa != fb).sum())
         both_finite = fa & fb
-        rec[f"{name}_max_abs_diff"] = (float(np.abs(a - b)[both_finite].max())
-                                       if both_finite.any() else None)
+        rec[f"{name}_max_abs_diff"] = (
+            float(np.abs(a - b)[both_finite].max()) if both_finite.any() else None
+        )
     return rec
 
 
@@ -108,13 +115,19 @@ def main():
             old_dir = Path(args.old) / f"{code}_{split}"
             old = load_cache(code, split, args.old)
             new = load_cache(code, split, args.new)
-            rec = {"region": code, "split": split,
-                   "old_fields_sha256": _sha256(old_dir / "fields.npz"),
-                   **compare(old, new)}
+            rec = {
+                "region": code,
+                "split": split,
+                "old_fields_sha256": _sha256(old_dir / "fields.npz"),
+                **compare(old, new),
+            }
             rows.append(rec)
-            print(f"[{code}/{split}] units {rec['units_old']} -> {rec['units_new']} "
-                  f"({rec['units_common']} common); obs max diff {rec['obs_max_abs_diff']}; "
-                  + "; ".join(f"{f} {rec[f'{f}_max_abs_diff']}" for f in FIELDS), flush=True)
+            print(
+                f"[{code}/{split}] units {rec['units_old']} -> {rec['units_new']} "
+                f"({rec['units_common']} common); obs max diff {rec['obs_max_abs_diff']}; "
+                + "; ".join(f"{f} {rec[f'{f}_max_abs_diff']}" for f in FIELDS),
+                flush=True,
+            )
             del old, new
 
     out = Path(args.out)

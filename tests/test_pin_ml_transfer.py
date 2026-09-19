@@ -27,6 +27,7 @@ is identical. The published table in ``method-ml-transfer.md`` matches 1.7.2
 exactly, so the real-data layer is pinned to that version and skips under any
 other.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -66,6 +67,7 @@ ml = _load()
 # Synthetic inputs
 # --------------------------------------------------------------------------
 
+
 def write_synthetic_root(root: Path) -> dict:
     """Two train directories and an elevation grid under a fake repo root."""
     rng = np.random.default_rng(20260918)
@@ -75,19 +77,23 @@ def write_synthetic_root(root: Path) -> dict:
         d.mkdir(parents=True)
         k = 6
         n = 30
-        turb = pd.DataFrame({
-            "ID": [f"{region}{i}" for i in range(n)],
-            "cluster": np.arange(n) % k,
-            "lon": lon0 + rng.uniform(-1.5, 1.5, n),
-            "lat": lat0 + rng.uniform(-1.0, 1.0, n),
-            "height": rng.uniform(60, 120, n).round(1),
-            "capacity": rng.uniform(500, 4000, n).round(0),
-        })
-        fac = pd.DataFrame({
-            "cluster": np.arange(k),
-            "scalar": rng.uniform(0.7, 1.4, k),
-            "offset": rng.uniform(-2.0, 1.0, k),
-        })
+        turb = pd.DataFrame(
+            {
+                "ID": [f"{region}{i}" for i in range(n)],
+                "cluster": np.arange(n) % k,
+                "lon": lon0 + rng.uniform(-1.5, 1.5, n),
+                "lat": lat0 + rng.uniform(-1.0, 1.0, n),
+                "height": rng.uniform(60, 120, n).round(1),
+                "capacity": rng.uniform(500, 4000, n).round(0),
+            }
+        )
+        fac = pd.DataFrame(
+            {
+                "cluster": np.arange(k),
+                "scalar": rng.uniform(0.7, 1.4, k),
+                "offset": rng.uniform(-2.0, 1.0, k),
+            }
+        )
         turb.to_csv(d / f"train_turb_info_{k}.csv", index=False)
         fac.to_csv(d / f"factors_fixed_{k}.csv", index=False)
         runs[region] = (str(d.relative_to(root)), k)
@@ -98,8 +104,9 @@ def write_synthetic_root(root: Path) -> dict:
     z = 300 * np.sin(lo / 2.0) * np.cos(la / 3.0) + 50 * (lo - 3) + 20 * (la - 53)
     terrain = root / "input" / "reference" / "terrain"
     terrain.mkdir(parents=True)
-    xr.Dataset({"z": (("lat", "lon"), z.astype("float32"))},
-               coords={"lat": lat, "lon": lon}).to_netcdf(terrain / "etopo_global.nc")
+    xr.Dataset(
+        {"z": (("lat", "lon"), z.astype("float32"))}, coords={"lat": lat, "lon": lon}
+    ).to_netcdf(terrain / "etopo_global.nc")
     return runs
 
 
@@ -123,17 +130,24 @@ def model_results(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     for target in ("scalar", "offset"):
         out[f"loro_{target}"] = ml.loro(df, ml.SET_A, target)
         m, sd, mae = ml.random_cv(df, ml.SET_B, target)
-        out[f"summary_{target}"] = pd.DataFrame({
-            "quantity": ["random_cv_r2_mean", "random_cv_r2_std", "random_cv_mae",
-                         "between_region_share"],
-            "value": [m, sd, mae, ml.variance_decomposition(df, target)],
-        })
+        out[f"summary_{target}"] = pd.DataFrame(
+            {
+                "quantity": [
+                    "random_cv_r2_mean",
+                    "random_cv_r2_std",
+                    "random_cv_mae",
+                    "between_region_share",
+                ],
+                "value": [m, sd, mae, ml.variance_decomposition(df, target)],
+            }
+        )
     return out
 
 
 # --------------------------------------------------------------------------
 # CI layer
 # --------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def frame(tmp_path_factory):
@@ -142,8 +156,9 @@ def frame(tmp_path_factory):
 
 def test_centroids_and_terrain_features(frame):
     want = pd.read_csv(PINS / "synthetic_frame.csv")
-    pd.testing.assert_frame_equal(frame.reset_index(drop=True), want,
-                                  check_dtype=False, rtol=0, atol=1e-12)
+    pd.testing.assert_frame_equal(
+        frame.reset_index(drop=True), want, check_dtype=False, rtol=0, atol=1e-12
+    )
 
 
 @pytest.mark.slow
@@ -151,18 +166,21 @@ def test_centroids_and_terrain_features(frame):
 def test_forest_and_variance_results(frame, name):
     got = model_results(frame)[name]
     want = pd.read_csv(PINS / f"{name}.csv")
-    pd.testing.assert_frame_equal(got.reset_index(drop=True), want,
-                                  check_dtype=False, rtol=0, atol=1e-12)
+    pd.testing.assert_frame_equal(
+        got.reset_index(drop=True), want, check_dtype=False, rtol=0, atol=1e-12
+    )
 
 
 # --------------------------------------------------------------------------
 # Local layer: the whole script on the real inputs
 # --------------------------------------------------------------------------
 
+
 def _real_inputs_present() -> bool:
     runs = [ROOT / rel for rel, _ in ml.RUNS.values()]
     return (ROOT / "input/reference/terrain/etopo_global.nc").is_file() and all(
-        p.is_dir() for p in runs)
+        p.is_dir() for p in runs
+    )
 
 
 def run_real(tmp_path: Path) -> tuple[str, str]:
@@ -177,15 +195,18 @@ def run_real(tmp_path: Path) -> tuple[str, str]:
         ml.OUT = old
     stdout = hashlib.sha256(buffer.getvalue().encode()).hexdigest()
     centroids = hashlib.sha256(
-        (tmp_path / "ml_retest_centroids_primary.csv").read_bytes()).hexdigest()
+        (tmp_path / "ml_retest_centroids_primary.csv").read_bytes()
+    ).hexdigest()
     return stdout, centroids
 
 
 @pytest.mark.realdata
-@pytest.mark.skipif(not _real_inputs_present(),
-                    reason="the July factor files and the ETOPO grid are local only")
+@pytest.mark.skipif(
+    not _real_inputs_present(), reason="the July factor files and the ETOPO grid are local only"
+)
 def test_script_on_the_real_inputs(tmp_path):
     import sklearn
+
     if sklearn.__version__ != REAL_SKLEARN:
         pytest.skip(f"pinned under scikit-learn {REAL_SKLEARN}, not {sklearn.__version__}")
     stdout, centroids = run_real(tmp_path)
@@ -195,6 +216,7 @@ def test_script_on_the_real_inputs(tmp_path):
 
 if __name__ == "__main__":  # records the fixtures; run once, by hand
     import tempfile
+
     PINS.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as d:
         df = synthetic_frame(Path(d))

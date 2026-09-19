@@ -1,4 +1,5 @@
 """Tests for wind interpolation, height extrapolation, and power conversion."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -38,13 +39,16 @@ def test_height_log_law_scaling(make_reanalysis):
     """Below 100 m, wind speed scales by ln(h/z0)/ln(100/z0) < 1."""
     z0 = 0.03
     ds = make_reanalysis(n_hours=6, z0=z0, mean_speed=10.0, seed=1)
-    turb = pd.DataFrame({
-        "ID": ["a", "b"],
-        "lat": [55.5, 55.5], "lon": [8.5, 8.5],
-        "height": [100.0, 80.0],
-        "model": ["GE.1.5sle", "GE.1.5sle"],
-        "capacity": [1.0, 1.0],
-    })
+    turb = pd.DataFrame(
+        {
+            "ID": ["a", "b"],
+            "lat": [55.5, 55.5],
+            "lon": [8.5, 8.5],
+            "height": [100.0, 80.0],
+            "model": ["GE.1.5sle", "GE.1.5sle"],
+            "capacity": [1.0, 1.0],
+        }
+    )
     ws = interpolate_wind(ds, turb)
     factor = np.log(80.0 / z0) / np.log(100.0 / z0)
     ratio = (ws.isel(turbine=1) / ws.isel(turbine=0)).values
@@ -65,10 +69,16 @@ def test_power_curve_extremes(make_reanalysis, power_curve):
     calm["wnd100m"].values[:] = 0.0
     windy = make_reanalysis(n_hours=4, mean_speed=18.0, seed=3)
     windy["wnd100m"].values[:] = 18.0  # within rated plateau (13-25 m/s)
-    turb = pd.DataFrame({
-        "ID": ["a"], "lat": [55.5], "lon": [8.5], "height": [100.0],
-        "model": ["GE.1.5sle"], "capacity": [1.0],
-    })
+    turb = pd.DataFrame(
+        {
+            "ID": ["a"],
+            "lat": [55.5],
+            "lon": [8.5],
+            "height": [100.0],
+            "model": ["GE.1.5sle"],
+            "capacity": [1.0],
+        }
+    )
     cf_calm = train_simulate_wind(calm, turb, power_curve, 1.0, 0.0)
     cf_windy = train_simulate_wind(windy, turb, power_curve, 1.0, 0.0)
     assert cf_calm == pytest.approx(0.0, abs=1e-6)
@@ -92,23 +102,31 @@ def test_fast_simulate_cf_matches_train_simulate(reanalysis, turbines, power_cur
 
 
 def test_aggregate_turbines_to_grid_conserves_capacity(reanalysis):
-    turb = pd.DataFrame({
-        "ID": [f"t{i}" for i in range(6)],
-        "lat": [55.05, 55.06, 55.5, 55.51, 56.0, 56.0],
-        "lon": [8.05, 8.06, 8.5, 8.51, 9.0, 9.0],
-        "height": [100.0] * 6,
-        "model": ["GE.1.5sle"] * 6,
-        "capacity": [100.0, 200.0, 50.0, 50.0, 10.0, 10.0],
-    })
+    turb = pd.DataFrame(
+        {
+            "ID": [f"t{i}" for i in range(6)],
+            "lat": [55.05, 55.06, 55.5, 55.51, 56.0, 56.0],
+            "lon": [8.05, 8.06, 8.5, 8.51, 9.0, 9.0],
+            "height": [100.0] * 6,
+            "model": ["GE.1.5sle"] * 6,
+            "capacity": [100.0, 200.0, 50.0, 50.0, 10.0, 10.0],
+        }
+    )
     agg = aggregate_turbines_to_grid(turb, reanalysis)
     assert agg["capacity"].sum() == pytest.approx(turb["capacity"].sum())
     assert len(agg) <= len(turb)
 
 
 def test_aggregate_turbines_raises_on_empty(reanalysis):
-    turb = pd.DataFrame({
-        "ID": ["x"], "lat": [np.nan], "lon": [np.nan],
-        "height": [np.nan], "model": ["GE.1.5sle"], "capacity": [np.nan],
-    })
+    turb = pd.DataFrame(
+        {
+            "ID": ["x"],
+            "lat": [np.nan],
+            "lon": [np.nan],
+            "height": [np.nan],
+            "model": ["GE.1.5sle"],
+            "capacity": [np.nan],
+        }
+    )
     with pytest.raises(ValueError):
         aggregate_turbines_to_grid(turb, reanalysis)

@@ -26,6 +26,7 @@ ONSBrazilSource at load time, through the same audited code the tests pin.
         --coff input/raw/ons/RESTRICAO_COFF_EOLICA_2021_*.csv \\
         --siga input/raw/ons/siga-empreendimentos-geracao.csv
 """
+
 import argparse
 import glob
 import sys
@@ -55,21 +56,35 @@ def _read_many(patterns, **kwargs) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--fc", nargs="+", required=True,
-                    help="ONS FATOR_CAPACIDADE CSV glob(s)")
-    ap.add_argument("--coff", nargs="+", default=None,
-                    help="ONS RESTRICAO_COFF_EOLICA CSV glob(s) (curtailment mask)")
+    ap.add_argument("--fc", nargs="+", required=True, help="ONS FATOR_CAPACIDADE CSV glob(s)")
+    ap.add_argument(
+        "--coff",
+        nargs="+",
+        default=None,
+        help="ONS RESTRICAO_COFF_EOLICA CSV glob(s) (curtailment mask)",
+    )
     ap.add_argument("--siga", default=None, help="ANEEL SIGA CSV (commissioning)")
-    ap.add_argument("--curtailment-threshold", type=float, default=0.05,
-                    help="Mask months whose curtailed fraction exceeds this")
+    ap.add_argument(
+        "--curtailment-threshold",
+        type=float,
+        default=0.05,
+        help="Mask months whose curtailed fraction exceeds this",
+    )
     add_input_path(ap, "--out", "observations", "turbine", "BR")
-    ap.add_argument("--height", type=float, default=100.0,
-                    help="Uniform hub-height default, m (ONS has no hub height)")
-    ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",
-                    help="Uniform power-curve key (must be a column of "
-                    "power_curves.csv). Defaults to the bundled open library's "
-                    "most recent market-average utility curve; override with a "
-                    "specific reference or your own licensed key.")
+    ap.add_argument(
+        "--height",
+        type=float,
+        default=100.0,
+        help="Uniform hub-height default, m (ONS has no hub height)",
+    )
+    ap.add_argument(
+        "--model",
+        default="2019COE_Market_Average_2.6MW_121",
+        help="Uniform power-curve key (must be a column of "
+        "power_curves.csv). Defaults to the bundled open library's "
+        "most recent market-average utility curve; override with a "
+        "specific reference or your own licensed key.",
+    )
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -124,11 +139,12 @@ def main() -> None:
     print(f"metadata: {len(metadata)} complexes -> {out / 'br_md.csv'}")
     print(f"fc series: {len(wind_fc)} hourly rows -> {out / 'br_fc.csv'}")
     if args.coff:
-        print(f"curtailment mask: {n_masked} complex-months -> "
-              f"{out / 'br_curtailment_mask.csv'}")
+        print(f"curtailment mask: {n_masked} complex-months -> {out / 'br_curtailment_mask.csv'}")
     else:
-        print("No --coff given: curtailment mask SKIPPED; observed CF carries "
-              "curtailment.", file=sys.stderr)
+        print(
+            "No --coff given: curtailment mask SKIPPED; observed CF carries curtailment.",
+            file=sys.stderr,
+        )
     print(f"join report -> {out / 'join_report.md'}")
 
 

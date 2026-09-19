@@ -13,6 +13,7 @@ Examples:
         --source-region configs/regions/au_nem.toml \
         --source-run output/validation/AU-NEM/train-20260715T120000Z
 """
+
 import sys
 
 from vwf.cli.validate import main

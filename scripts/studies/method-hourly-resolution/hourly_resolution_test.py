@@ -53,6 +53,7 @@ converter is used.
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-hourly-resolution/hourly_resolution_test.py
 """
+
 from __future__ import annotations
 
 import json
@@ -123,18 +124,16 @@ def _simulate_year(spec, clus_info, power_curves, factors, model, *, daily: bool
             continue
         with tempfile.TemporaryDirectory() as tmp:
             os.symlink(matches[0].resolve(), Path(tmp) / matches[0].name)
-            rea = prep_era5(spec.code, False, True, bbox=spec.bbox,
-                            era5_dir=Path(tmp), resample_daily=daily)
+            rea = prep_era5(
+                spec.code, False, True, bbox=spec.bbox, era5_dir=Path(tmp), resample_daily=daily
+            )
         _, unc = wind.simulate_wind(rea, clus_info, power_curves)
-        _, cor = model.apply(
-            rea, clus_info, power_curves, factors, TIME_RES, seasons=spec.seasons
-        )
+        _, cor = model.apply(rea, clus_info, power_curves, factors, TIME_RES, seasons=spec.seasons)
         unc_parts.append(unc)
         cor_parts.append(cor)
         del rea
         print(f"  month {month:02d}: {len(unc)} steps", flush=True)
-    return (pd.concat(unc_parts, ignore_index=True),
-            pd.concat(cor_parts, ignore_index=True))
+    return (pd.concat(unc_parts, ignore_index=True), pd.concat(cor_parts, ignore_index=True))
 
 
 def _hourly_observations(raw_cen: Path = RAW_CEN) -> pd.DataFrame:
@@ -177,33 +176,34 @@ def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) 
 
     print(f"CL fleet: {len(clus_info)} plants, {NUM_CLU} clusters, {TIME_RES} slice")
     print("simulating at NATIVE HOURLY resolution")
-    unc_h, cor_h = _simulate_year(
-        spec, clus_info, power_curves, factors, model, daily=False)
+    unc_h, cor_h = _simulate_year(spec, clus_info, power_curves, factors, model, daily=False)
     print("simulating at PUBLISHED DAILY resolution (wind averaged before the curve)")
-    unc_d, cor_d = _simulate_year(
-        spec, clus_info, power_curves, factors, model, daily=True)
+    unc_d, cor_d = _simulate_year(spec, clus_info, power_curves, factors, model, daily=True)
 
     obs = _hourly_observations(raw_cen)
     print(f"CEN hourly rows: {len(obs):,} across {obs['ID'].nunique()} plants")
 
     hourly = (
-        _long(unc_h, "unc").merge(_long(cor_h, "cor"), on=["time", "ID"])
+        _long(unc_h, "unc")
+        .merge(_long(cor_h, "cor"), on=["time", "ID"])
         .merge(obs, on=["time", "ID"], how="inner")
         .dropna(subset=["unc", "cor", "obs"])
     )
     print(f"paired HOURLY rows: {len(hourly):,} across {hourly['ID'].nunique()} plants")
     if len(hourly) < 100_000:
-        print("WARNING: far fewer paired hourly rows than the ~500k expected; "
-              "check the time convention before trusting anything below.")
+        print(
+            "WARNING: far fewer paired hourly rows than the ~500k expected; "
+            "check the time convention before trusting anything below."
+        )
 
     def _agg(df, freq):
         k = df["time"].dt.floor("D") if freq == "D" else df["time"].dt.to_period("M")
-        return df.assign(k=k).groupby(["ID", "k"], as_index=False)[
-            ["unc", "cor", "obs"]].mean()
+        return df.assign(k=k).groupby(["ID", "k"], as_index=False)[["unc", "cor", "obs"]].mean()
 
     obs_daily = _agg(obs.assign(unc=np.nan, cor=np.nan), "D")[["ID", "k", "obs"]]
     daily_pub = (
-        _long(unc_d, "unc").merge(_long(cor_d, "cor"), on=["time", "ID"])
+        _long(unc_d, "unc")
+        .merge(_long(cor_d, "cor"), on=["time", "ID"])
         .assign(k=lambda d: d["time"].dt.floor("D"))
         .merge(obs_daily, on=["ID", "k"], how="inner")
         .dropna(subset=["unc", "cor", "obs"])
@@ -216,15 +216,13 @@ def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) 
     # whose absurd wind multipliers saturate the curve at hourly resolution
     # while monthly averaging masked them. Excluding the degenerate clusters
     # separates the two: if the rest is fine, the problem is (b), not (a).
-    degenerate = set(
-        factors.loc[factors["scalar"] > 3.0, "cluster"].astype(int).tolist()
-    )
-    ok_ids = set(
-        clus_info.loc[~clus_info["cluster"].isin(degenerate), "ID"].astype(str)
-    )
+    degenerate = set(factors.loc[factors["scalar"] > 3.0, "cluster"].astype(int).tolist())
+    ok_ids = set(clus_info.loc[~clus_info["cluster"].isin(degenerate), "ID"].astype(str))
     hourly_ok = hourly[hourly["ID"].isin(ok_ids)]
-    print(f"degenerate clusters (scalar > 3.0): {sorted(degenerate)}; "
-          f"hourly rows retained {len(hourly_ok):,} of {len(hourly):,}")
+    print(
+        f"degenerate clusters (scalar > 3.0): {sorted(degenerate)}; "
+        f"hourly rows retained {len(hourly_ok):,} of {len(hourly):,}"
+    )
 
     rows = []
     for label, frame in [
@@ -233,19 +231,28 @@ def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) 
         ("daily (from hourly power)", _agg(hourly, "D")),
         ("daily (published: daily wind)", daily_pub),
         ("monthly (from hourly power)", _agg(hourly, "M")),
-        ("monthly (published: daily wind)",
-         daily_pub.assign(time=daily_pub["k"]).pipe(
-             lambda d: d.assign(k=pd.to_datetime(d["k"]).dt.to_period("M"))
-         ).groupby(["ID", "k"], as_index=False)[["unc", "cor", "obs"]].mean()),
+        (
+            "monthly (published: daily wind)",
+            daily_pub.assign(time=daily_pub["k"])
+            .pipe(lambda d: d.assign(k=pd.to_datetime(d["k"]).dt.to_period("M")))
+            .groupby(["ID", "k"], as_index=False)[["unc", "cor", "obs"]]
+            .mean(),
+        ),
     ]:
         u, c = _metrics(frame, "unc"), _metrics(frame, "cor")
-        rows.append({
-            "arm": label, "n": u["n"],
-            "unc_rmse": u["rmse"], "cor_rmse": c["rmse"],
-            "rmse_red_%": 100 * (1 - c["rmse"] / u["rmse"]),
-            "unc_mbe": u["mbe"], "cor_mbe": c["mbe"],
-            "unc_r": u["r"], "cor_r": c["r"],
-        })
+        rows.append(
+            {
+                "arm": label,
+                "n": u["n"],
+                "unc_rmse": u["rmse"],
+                "cor_rmse": c["rmse"],
+                "rmse_red_%": 100 * (1 - c["rmse"] / u["rmse"]),
+                "unc_mbe": u["mbe"],
+                "cor_mbe": c["mbe"],
+                "unc_r": u["r"],
+                "cor_r": c["r"],
+            }
+        )
     table = pd.DataFrame(rows)
 
     print("\n" + "=" * 100)
@@ -263,30 +270,42 @@ def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) 
     g2 = h["rmse_red_%"] >= monthly_red / 2
     g3 = abs(h["cor_mbe"]) < abs(h["unc_mbe"])
 
-    print(f"\nCONTROL: published-method monthly {m_pub['unc_rmse']:.4f} -> "
-          f"{m_pub['cor_rmse']:.4f}  (canonical {MONTHLY_REFERENCE[0]:.4f} -> "
-          f"{MONTHLY_REFERENCE[1]:.4f})")
+    print(
+        f"\nCONTROL: published-method monthly {m_pub['unc_rmse']:.4f} -> "
+        f"{m_pub['cor_rmse']:.4f}  (canonical {MONTHLY_REFERENCE[0]:.4f} -> "
+        f"{MONTHLY_REFERENCE[1]:.4f})"
+    )
     print("  Exact agreement is NOT expected: the canonical run builds its monthly")
     print("  observations through the processed cl_obs.csv path (capacity overrides,")
     print("  commissioning-prefix stripping, exclusions), while this reads raw CEN.")
     print("  The control is for order of magnitude and sign, not equality.")
     print("\nCONVEXITY COST (same wind, curve applied before vs after averaging):")
-    print(f"  daily   uncorrected RMSE  published {d_pub['unc_rmse']:.4f}  vs  "
-          f"from-hourly {d_hr['unc_rmse']:.4f}")
-    print(f"  monthly uncorrected MBE   published {m_pub['unc_mbe']:+.4f}  vs  "
-          f"from-hourly {m_hr['unc_mbe']:+.4f}")
+    print(
+        f"  daily   uncorrected RMSE  published {d_pub['unc_rmse']:.4f}  vs  "
+        f"from-hourly {d_hr['unc_rmse']:.4f}"
+    )
+    print(
+        f"  monthly uncorrected MBE   published {m_pub['unc_mbe']:+.4f}  vs  "
+        f"from-hourly {m_hr['unc_mbe']:+.4f}"
+    )
     print("\nPRE-SPECIFIED GATES")
-    print(f"  G1 helps at all:       {h['cor_rmse']:.4f} < {h['unc_rmse']:.4f}"
-          f"   [{'PASS' if g1 else 'FAIL'}]")
-    print(f"  G2 survives timescale: {h['rmse_red_%']:.1f}% vs {monthly_red/2:.1f}% "
-          f"required   [{'PASS' if g2 else 'FAIL'}]")
-    print(f"  G3 bias reduced:       |{h['cor_mbe']:+.4f}| < |{h['unc_mbe']:+.4f}|"
-          f"   [{'PASS' if g3 else 'FAIL'}]")
+    print(
+        f"  G1 helps at all:       {h['cor_rmse']:.4f} < {h['unc_rmse']:.4f}"
+        f"   [{'PASS' if g1 else 'FAIL'}]"
+    )
+    print(
+        f"  G2 survives timescale: {h['rmse_red_%']:.1f}% vs {monthly_red / 2:.1f}% "
+        f"required   [{'PASS' if g2 else 'FAIL'}]"
+    )
+    print(
+        f"  G3 bias reduced:       |{h['cor_mbe']:+.4f}| < |{h['unc_mbe']:+.4f}|"
+        f"   [{'PASS' if g3 else 'FAIL'}]"
+    )
 
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     table.to_csv(out / "cl_2024_by_aggregation.csv", index=False)
-    print(f"\nwrote {out/'cl_2024_by_aggregation.csv'}")
+    print(f"\nwrote {out / 'cl_2024_by_aggregation.csv'}")
     return 0
 
 
@@ -297,12 +316,21 @@ def cli(argv: list[str] | None = None) -> int:
     over it; its default is the recorded directory.
     """
     parser = make_parser(__doc__)
-    parser.add_argument("--out", type=Path, default=OUT,
-                        help=f"Directory for the table (default: {OUT})")
-    parser.add_argument("--train-run", type=Path, default=TRAIN_RUN,
-                        help=f"The training run whose factors are applied (default: {TRAIN_RUN})")
-    parser.add_argument("--raw-cen", type=Path, default=RAW_CEN,
-                        help=f"The CEN hourly downloads (default: {RAW_CEN})")
+    parser.add_argument(
+        "--out", type=Path, default=OUT, help=f"Directory for the table (default: {OUT})"
+    )
+    parser.add_argument(
+        "--train-run",
+        type=Path,
+        default=TRAIN_RUN,
+        help=f"The training run whose factors are applied (default: {TRAIN_RUN})",
+    )
+    parser.add_argument(
+        "--raw-cen",
+        type=Path,
+        default=RAW_CEN,
+        help=f"The CEN hourly downloads (default: {RAW_CEN})",
+    )
     args = parser.parse_args(argv)
     return main(out=args.out, train_run=args.train_run, raw_cen=args.raw_cen)
 

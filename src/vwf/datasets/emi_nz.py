@@ -38,6 +38,7 @@ Two NZ-specific facts shape the design:
   processing step, which uses :func:`capacity_history_from_curation` and
   :func:`mask_from_windows`.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -72,9 +73,7 @@ def day_start_utc(trading_dates: pd.Series) -> pd.Series:
     dates = pd.to_datetime(trading_dates)
     if getattr(dates.dt, "tz", None) is not None:
         raise ValueError("trading dates must be naive local dates, got tz-aware")
-    return (
-        dates.dt.tz_localize(NZ_TZ).dt.tz_convert("UTC").dt.tz_localize(None)
-    )
+    return dates.dt.tz_localize(NZ_TZ).dt.tz_convert("UTC").dt.tz_localize(None)
 
 
 def expected_trading_periods(trading_dates: pd.Series) -> pd.Series:
@@ -90,9 +89,7 @@ def expected_trading_periods(trading_dates: pd.Series) -> pd.Series:
     return ((end - start) / pd.Timedelta(minutes=30)).astype(int)
 
 
-def trading_period_start_utc(
-    trading_dates: pd.Series, trading_periods: pd.Series
-) -> pd.Series:
+def trading_period_start_utc(trading_dates: pd.Series, trading_periods: pd.Series) -> pd.Series:
     """UTC start instant of each ``(trading date, trading period)`` pair.
 
     TP ``n`` is the ``n``-th half hour of the local day counted in elapsed
@@ -131,8 +128,7 @@ def half_hourly_from_generation_md(
         Long frame with ``ID``, ``timestamp`` (naive UTC, period start), and
         ``kwh``. NaN periods (no data / non-existent) are dropped.
     """
-    tp_cols = [c for c in gen.columns if c.startswith(tp_prefix)
-               and c[len(tp_prefix):].isdigit()]
+    tp_cols = [c for c in gen.columns if c.startswith(tp_prefix) and c[len(tp_prefix) :].isdigit()]
     if not tp_cols:
         raise ValueError(f"no {tp_prefix}<n> trading-period columns found")
 
@@ -142,7 +138,7 @@ def half_hourly_from_generation_md(
         var_name="tp",
         value_name="kwh",
     )
-    long["tp"] = long["tp"].str[len(tp_prefix):].astype(int)
+    long["tp"] = long["tp"].str[len(tp_prefix) :].astype(int)
     long["kwh"] = pd.to_numeric(long["kwh"], errors="coerce")
     long = long[long["kwh"].notna()].copy()
 
@@ -203,9 +199,7 @@ def capacity_history_from_register(
         for t in points:
             live = (rows["start"] <= t) & (rows["end"].isna() | (rows["end"] > t))
             caps.append(rows.loc[live, "mw"].sum() * 1000.0)
-        frame = pd.DataFrame(
-            {"ID": str(farm), "effective_from": points, "capacity": caps}
-        )
+        frame = pd.DataFrame({"ID": str(farm), "effective_from": points, "capacity": caps})
         # Collapse consecutive points with unchanged capacity.
         frame = frame[frame["capacity"].ne(frame["capacity"].shift())]
         events.append(frame)
@@ -214,14 +208,15 @@ def capacity_history_from_register(
     return pd.concat(events, ignore_index=True)
 
 
-def _capacity_at(history: pd.DataFrame, ids: pd.Series,
-                 timestamps: pd.Series) -> pd.Series:
+def _capacity_at(history: pd.DataFrame, ids: pd.Series, timestamps: pd.Series) -> pd.Series:
     """Then-current capacity (kW) for each (ID, timestamp) pair."""
     lookup = history.sort_values("effective_from")
-    frame = pd.DataFrame({
-        "ID": ids.astype(str).values,
-        "timestamp": pd.to_datetime(timestamps).values,
-    })
+    frame = pd.DataFrame(
+        {
+            "ID": ids.astype(str).values,
+            "timestamp": pd.to_datetime(timestamps).values,
+        }
+    )
     frame["_row"] = range(len(frame))
     merged = pd.merge_asof(
         frame.sort_values("timestamp"),
@@ -275,14 +270,10 @@ def monthly_cf(
     hh["month"] = hh["timestamp"].dt.month
     hh = hh[(hh["year"] >= int(year_start)) & (hh["year"] <= int(year_end))]
     if hh.empty:
-        return pd.DataFrame(
-            columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-        )
+        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
 
     agg = (
-        hh.groupby(["ID", "year", "month"])
-        .agg(cf=("cf", "mean"), n=("cf", "count"))
-        .reset_index()
+        hh.groupby(["ID", "year", "month"]).agg(cf=("cf", "mean"), n=("cf", "count")).reset_index()
     )
     expected = month_days(agg["year"], agg["month"]) * 48.0
     agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
@@ -317,14 +308,10 @@ def below_final_build_mask(
     """
     rows = []
     final = capacity_history.groupby("ID")["capacity"].max()
-    months = pd.date_range(
-        f"{int(year_start)}-01-01", f"{int(year_end)}-12-01", freq="MS"
-    )
+    months = pd.date_range(f"{int(year_start)}-01-01", f"{int(year_end)}-12-01", freq="MS")
     for farm, cap_final in final.items():
         starts = pd.Series(months)
-        caps = _capacity_at(
-            capacity_history, pd.Series([farm] * len(starts)), starts
-        )
+        caps = _capacity_at(capacity_history, pd.Series([farm] * len(starts)), starts)
         under = caps.isna() | (caps < float(threshold) * cap_final)
         for t in months[under.values]:
             rows.append({"ID": str(farm), "year": t.year, "month": t.month})
@@ -338,11 +325,13 @@ def below_final_build_mask(
 #: Register-listed wind Gen_Codes that never carry wind rows in Generation_MD,
 #: or embedded farms outside the dispatched dataset. Documented exclusions;
 #: an unmapped Gen_Code NOT in this set is an error.
-KNOWN_ABSENT = frozenset({
-    # Mahinerangi is metered inside the Waipori hydro scheme; its output never
-    # appears as wind rows in Generation_MD (verified 2013/2025/2026 files).
-    "mahinerangi",
-})
+KNOWN_ABSENT = frozenset(
+    {
+        # Mahinerangi is metered inside the Waipori hydro scheme; its output never
+        # appears as wind rows in Generation_MD (verified 2013/2025/2026 files).
+        "mahinerangi",
+    }
+)
 
 #: Fuel_Code spellings of wind; the coding changed with Kaiwera Downs 2.
 WIND_FUELS = frozenset({"wind", "win"})
@@ -384,22 +373,30 @@ def capacity_history_from_curation(farms: pd.DataFrame, stages: pd.DataFrame) ->
         farm and date.
     """
     rows = [
-        pd.DataFrame({
-            "ID": stages["ID"].astype(str),
-            "effective_from": pd.to_datetime(stages["effective_from"]),
-            "capacity": pd.to_numeric(stages["capacity"]),
-        })
+        pd.DataFrame(
+            {
+                "ID": stages["ID"].astype(str),
+                "effective_from": pd.to_datetime(stages["effective_from"]),
+                "capacity": pd.to_numeric(stages["capacity"]),
+            }
+        )
     ]
     staged = set(stages["ID"].astype(str))
     plain = farms[~farms["ID"].isin(staged)]
-    rows.append(pd.DataFrame({
-        "ID": plain["ID"],
-        "effective_from": pd.to_datetime(plain["first_generation"]),
-        "capacity": pd.to_numeric(plain["capacity"]),
-    }))
-    return pd.concat(rows, ignore_index=True).sort_values(
-        ["ID", "effective_from"]
-    ).reset_index(drop=True)
+    rows.append(
+        pd.DataFrame(
+            {
+                "ID": plain["ID"],
+                "effective_from": pd.to_datetime(plain["first_generation"]),
+                "capacity": pd.to_numeric(plain["capacity"]),
+            }
+        )
+    )
+    return (
+        pd.concat(rows, ignore_index=True)
+        .sort_values(["ID", "effective_from"])
+        .reset_index(drop=True)
+    )
 
 
 def mask_from_windows(windows: pd.DataFrame) -> pd.DataFrame:
@@ -436,10 +433,9 @@ def wind_half_hourly(
     unmapped: set[str] = set()
     for path in paths:
         gen = pd.read_csv(path, low_memory=False)
-        gen = gen.rename(columns={
-            c: "Trading_Date" for c in gen.columns
-            if c.lower() == "trading_date"
-        })
+        gen = gen.rename(
+            columns={c: "Trading_Date" for c in gen.columns if c.lower() == "trading_date"}
+        )
         fuel = gen["Fuel_Code"].astype(str).str.strip().str.lower()
         wind = gen[fuel.isin(WIND_FUELS)].copy()
         if wind.empty:
@@ -455,16 +451,29 @@ def wind_half_hourly(
         return None, unmapped
     half_hourly = (
         pd.concat(pieces, ignore_index=True)
-        .groupby(["ID", "timestamp"], as_index=False)["kwh"].sum()
+        .groupby(["ID", "timestamp"], as_index=False)["kwh"]
+        .sum()
     )
     return half_hourly, unmapped
 
 
 #: The columns of ``nz_md.csv``, the metadata contract EMINewZealandSource reads.
 METADATA_COLUMNS = [
-    "ID", "site_name", "lon", "lat", "height", "capacity", "model",
-    "type", "commissioning_date", "height_source", "model_source",
-    "true_model", "n_turbines", "diameter", "operator",
+    "ID",
+    "site_name",
+    "lon",
+    "lat",
+    "height",
+    "capacity",
+    "model",
+    "type",
+    "commissioning_date",
+    "height_source",
+    "model_source",
+    "true_model",
+    "n_turbines",
+    "diameter",
+    "operator",
 ]
 
 

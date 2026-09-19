@@ -8,6 +8,7 @@ Optional dependencies get the same treatment from the other side: the data
 -acquisition extras must stay out of the import path of the simulation code, or
 a plain ``pip install pyvwf`` silently stops working.
 """
+
 from __future__ import annotations
 
 import re
@@ -53,10 +54,7 @@ def test_pyproject_reads_version_from_package(pyproject):
         "vwf.__version__ remains the single source of truth"
     )
     assert "version" in project["dynamic"]
-    assert (
-        pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"]
-        == "vwf.__version__"
-    )
+    assert pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "vwf.__version__"
 
 
 def test_citation_version_matches_package():

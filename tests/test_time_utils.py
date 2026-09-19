@@ -1,4 +1,5 @@
 """Tests for temporal resolution parsing and column assignment."""
+
 import pandas as pd
 import pytest
 
@@ -9,16 +10,19 @@ from vwf.time_utils import (
 )
 
 
-@pytest.mark.parametrize("slice_str,expected", [
-    ("winter", [1, 2, 12]),
-    ("spring", [3, 4, 5]),
-    ("summer", [6, 7, 8]),
-    ("autumn", [9, 10, 11]),
-    ("1/6", [1, 2]),
-    ("1/1", list(range(1, 13))),
-    ("3", [3]),
-    ("11", [11]),
-])
+@pytest.mark.parametrize(
+    "slice_str,expected",
+    [
+        ("winter", [1, 2, 12]),
+        ("spring", [3, 4, 5]),
+        ("summer", [6, 7, 8]),
+        ("autumn", [9, 10, 11]),
+        ("1/6", [1, 2]),
+        ("1/1", list(range(1, 13))),
+        ("3", [3]),
+        ("11", [11]),
+    ],
+)
 def test_parse_time_slice(slice_str, expected):
     assert parse_time_slice(slice_str) == expected
 
@@ -98,15 +102,14 @@ def test_explicit_nh_seasons_match_default_exactly():
     explicit = add_time_resolution_columns(df.copy(), seasons=nh_explicit)
     pd.testing.assert_frame_equal(default, explicit)
     for name in nh_explicit:
-        assert set(parse_time_slice(name, seasons=nh_explicit)) == set(
-            parse_time_slice(name)
-        )
+        assert set(parse_time_slice(name, seasons=nh_explicit)) == set(parse_time_slice(name))
 
 
 def test_month_days_rows_and_a_single_month():
     import pandas as pd
 
     from vwf.time_utils import month_days
+
     years = pd.Series([2019, 2020, 2021, 2024], index=[10, 11, 12, 13])
     months = pd.Series([2, 2, 12, 4], index=[10, 11, 12, 13])
     got = month_days(years, months)

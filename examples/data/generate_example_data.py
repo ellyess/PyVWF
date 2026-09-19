@@ -11,6 +11,7 @@ Re-run to regenerate the committed files:
 
     python examples/data/generate_example_data.py
 """
+
 from __future__ import annotations
 
 from pathlib import Path

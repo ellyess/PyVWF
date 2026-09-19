@@ -41,6 +41,7 @@ is constrained off, so the resource that the wind actually offered is their sum.
 Pre-2021 has no constrained-off series, so its CF carries unscreened curtailment
 (a documented caveat, and the Nordeste is where it bites hardest).
 """
+
 from __future__ import annotations
 
 from datetime import timedelta, timezone
@@ -66,9 +67,7 @@ def _brasilia_to_utc(timestamps: pd.Series) -> pd.Series:
     """Convert naive Brasília (UTC-3) timestamps to naive UTC."""
     ts = pd.to_datetime(timestamps)
     if getattr(ts.dt, "tz", None) is not None:
-        raise ValueError(
-            "ONS timestamps must be naive Brasília civil time; got tz-aware input"
-        )
+        raise ValueError("ONS timestamps must be naive Brasília civil time; got tz-aware input")
     return ts.dt.tz_localize(BRASILIA).dt.tz_convert("UTC").dt.tz_localize(None)
 
 
@@ -103,22 +102,25 @@ def wind_complexes_from_fc(fc: pd.DataFrame) -> pd.DataFrame:
     """
     wind = wind_rows(fc)
     wind["ID"] = wind["id_ons"].astype(str).str.strip()
-    for col in ("val_capacidadeinstalada", "val_latitudesecoletora",
-                "val_longitudesecoletora"):
+    for col in ("val_capacidadeinstalada", "val_latitudesecoletora", "val_longitudesecoletora"):
         wind[col] = pd.to_numeric(wind[col], errors="coerce")
 
     def _first_valid(series: pd.Series):
         nn = series.dropna()
         return nn.iloc[0] if len(nn) else float("nan")
 
-    grouped = wind.groupby("ID").agg(
-        site_name=("nom_usina_conjunto", "first"),
-        lat=("val_latitudesecoletora", _first_valid),
-        lon=("val_longitudesecoletora", _first_valid),
-        capacity_mw=("val_capacidadeinstalada", "max"),
-        subsystem=("id_subsistema", "first"),
-        state=("nom_estado", "first"),
-    ).reset_index()
+    grouped = (
+        wind.groupby("ID")
+        .agg(
+            site_name=("nom_usina_conjunto", "first"),
+            lat=("val_latitudesecoletora", _first_valid),
+            lon=("val_longitudesecoletora", _first_valid),
+            capacity_mw=("val_capacidadeinstalada", "max"),
+            subsystem=("id_subsistema", "first"),
+            state=("nom_estado", "first"),
+        )
+        .reset_index()
+    )
     return grouped
 
 

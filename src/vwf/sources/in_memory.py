@@ -5,6 +5,7 @@ observations (ENTSO-E derived, for example) are fetched and cached outside the
 library, then handed to PyVWF as a pair of DataFrames. Wrapping them in a source
 lets the country-level path travel the same seam as the turbine-level path.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar

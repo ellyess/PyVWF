@@ -19,6 +19,7 @@ Coordinates come from matching each WindStats id -> its thewindpower name
 match GWPT are dropped and listed. Spain's WindStats extract is 1998-2000, so
 the default window is historical.
 """
+
 import argparse
 from pathlib import Path
 
@@ -40,10 +41,13 @@ DEFAULT_WINDOW = {"ES": (1998, 2000)}
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--country", required=True, choices=["ES", "SE", "FI"])
     ap.add_argument("--src", required=True, help="CONFIDENTIAL WindStats folder")
-    add_input_path(ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx")
+    add_input_path(
+        ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx"
+    )
     ap.add_argument("--years", type=int, nargs=2, default=None, metavar=("START", "END"))
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--height", type=float, default=80.0)
@@ -52,8 +56,7 @@ def main() -> None:
     cc = args.country
     src = Path(args.src)
     print("=" * 70)
-    print(f"CONFIDENTIAL WindStats ({cc}) generation + open GWPT coords "
-          "(mixed licence).")
+    print(f"CONFIDENTIAL WindStats ({cc}) generation + open GWPT coords (mixed licence).")
     print("   Output is NOT redistributable; input/ is git-ignored.")
     print("=" * 70)
 
@@ -66,11 +69,12 @@ def main() -> None:
     coords = match_twp_to_coords(geo, gsub)
     matched = smd["link"].isin(set(coords["ws"]))
     unmatched_links = tuple(smd.loc[~matched, "link"].unique())
-    print(f"turbines: {len(smd)} | with a GWPT coordinate: {matched.sum()} "
-          f"({matched.mean():.0%}) | farms unmatched: {len(unmatched_links)}")
+    print(
+        f"turbines: {len(smd)} | with a GWPT coordinate: {matched.sum()} "
+        f"({matched.mean():.0%}) | farms unmatched: {len(unmatched_links)}"
+    )
 
-    fmd = build_windstats_metadata(smd, coords, height_default=args.height,
-                                   exclude=unmatched_links)
+    fmd = build_windstats_metadata(smd, coords, height_default=args.height, exclude=unmatched_links)
     y0, y1 = args.years or DEFAULT_WINDOW.get(cc, (1998, 2013))
     obs = windstats_monthly_cf(data, smd[["ID", "capacity"]], y0, y1)
     obs = obs[obs["ID"].isin(set(fmd["ID"]))].reset_index(drop=True)
@@ -80,14 +84,14 @@ def main() -> None:
     fmd.to_csv(out / f"{cc.lower()}_md.csv", index=False)
     obs.to_csv(out / f"{cc.lower()}_obs.csv", index=False)
     lines = [
-        f"# {GWPT_COUNTRY[cc]} (WindStats) coordinate-join report", "",
+        f"# {GWPT_COUNTRY[cc]} (WindStats) coordinate-join report",
+        "",
         "Warning: Generation is CONFIDENTIAL WindStats; coordinates are open GWPT.",
-        f"- turbines with a coordinate: {len(fmd)} of {len(smd)} "
-        f"({len(fmd)/len(smd):.0%})",
-        f"- capacity: {fmd['capacity'].sum()/1e6:.2f} GW; "
+        f"- turbines with a coordinate: {len(fmd)} of {len(smd)} ({len(fmd) / len(smd):.0%})",
+        f"- capacity: {fmd['capacity'].sum() / 1e6:.2f} GW; "
         f"lat {fmd['lat'].min():.1f}..{fmd['lat'].max():.1f}",
         f"- coordinate source: GWPT (open); real WindStats hub heights on "
-        f"{(fmd['height_source']=='windstats').sum()} turbines",
+        f"{(fmd['height_source'] == 'windstats').sum()} turbines",
         f"- data window: {y0}-{y1}; obs plant-years: {len(obs)}",
         f"- farms with NO GWPT match (excluded): {len(unmatched_links)}",
     ]
@@ -96,8 +100,10 @@ def main() -> None:
     print(f"observations: {len(obs)} plant-years -> {out / f'{cc.lower()}_obs.csv'}")
     print(f"join report -> {out / f'{cc.lower()}_join_report.md'}")
     if cc in ("SE", "FI"):
-        print("\nNOTE: GWPT under-covers SE/FI (7-9% match). Supply a "
-              "thewindpower coordinate table for a usable region.")
+        print(
+            "\nNOTE: GWPT under-covers SE/FI (7-9% match). Supply a "
+            "thewindpower coordinate table for a usable region."
+        )
 
 
 if __name__ == "__main__":

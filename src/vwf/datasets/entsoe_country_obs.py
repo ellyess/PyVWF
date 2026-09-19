@@ -7,6 +7,7 @@ series. Needs the ``data`` extra and an ENTSO-E API key in the environment.
 
 Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -44,9 +45,9 @@ def fetch_observations(
     results = {}
 
     for country in countries:
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"Fetching Observations for {country}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         # Special handling for Norway - fetch zones separately
         if country.upper() == "NO":
@@ -98,9 +99,9 @@ def fetch_norway_zone_observations(
 
     # Fetch each zone
     for zone_id in NORWAY_ZONES.keys():
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print(f"Fetching {zone_id}")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
 
         zone_results = fetch_country_observations(
             fetcher, zone_id, train_years, test_year, output_dir, psr_type
@@ -111,22 +112,24 @@ def fetch_norway_zone_observations(
             zone_test_data[zone_id] = zone_results["test"]
 
     # Aggregate zones for country-level
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print("Aggregating zones to country-level")
-    print(f"{'─'*70}")
+    print(f"{'─' * 70}")
 
     if zone_train_data:
         # Combine all zones with sum
-        train_combined = pd.concat([
-            df[['generation_mw', 'capacity_mw']] for df in zone_train_data.values()
-        ], axis=1)
+        train_combined = pd.concat(
+            [df[["generation_mw", "capacity_mw"]] for df in zone_train_data.values()], axis=1
+        )
 
-        train_agg = pd.DataFrame({
-            'generation_mw': train_combined.filter(like='generation').sum(axis=1),
-            'capacity_mw': train_combined.filter(like='capacity').sum(axis=1),
-        })
-        train_agg['capacity_factor'] = train_agg['generation_mw'] / train_agg['capacity_mw']
-        train_agg['capacity_factor'] = train_agg['capacity_factor'].clip(0, 1.5)
+        train_agg = pd.DataFrame(
+            {
+                "generation_mw": train_combined.filter(like="generation").sum(axis=1),
+                "capacity_mw": train_combined.filter(like="capacity").sum(axis=1),
+            }
+        )
+        train_agg["capacity_factor"] = train_agg["generation_mw"] / train_agg["capacity_mw"]
+        train_agg["capacity_factor"] = train_agg["capacity_factor"].clip(0, 1.5)
 
         print(f"  ✓ Aggregated training: {len(train_agg)} data points")
         print(f"    Mean CF: {train_agg['capacity_factor'].mean():.2%}")
@@ -135,16 +138,18 @@ def fetch_norway_zone_observations(
         train_agg = pd.DataFrame()
 
     if zone_test_data:
-        test_combined = pd.concat([
-            df[['generation_mw', 'capacity_mw']] for df in zone_test_data.values()
-        ], axis=1)
+        test_combined = pd.concat(
+            [df[["generation_mw", "capacity_mw"]] for df in zone_test_data.values()], axis=1
+        )
 
-        test_agg = pd.DataFrame({
-            'generation_mw': test_combined.filter(like='generation').sum(axis=1),
-            'capacity_mw': test_combined.filter(like='capacity').sum(axis=1),
-        })
-        test_agg['capacity_factor'] = test_agg['generation_mw'] / test_agg['capacity_mw']
-        test_agg['capacity_factor'] = test_agg['capacity_factor'].clip(0, 1.5)
+        test_agg = pd.DataFrame(
+            {
+                "generation_mw": test_combined.filter(like="generation").sum(axis=1),
+                "capacity_mw": test_combined.filter(like="capacity").sum(axis=1),
+            }
+        )
+        test_agg["capacity_factor"] = test_agg["generation_mw"] / test_agg["capacity_mw"]
+        test_agg["capacity_factor"] = test_agg["capacity_factor"].clip(0, 1.5)
 
         print(f"  ✓ Aggregated test: {len(test_agg)} data points")
         print(f"    Mean CF: {test_agg['capacity_factor'].mean():.2%}")
@@ -174,7 +179,7 @@ def fetch_norway_zone_observations(
         "aggregated": {
             "train": train_agg,
             "test": test_agg,
-        }
+        },
     }
 
 
@@ -204,9 +209,9 @@ def fetch_sweden_zone_observations(
 
     # Fetch each zone
     for zone_id in SWEDEN_ZONES.keys():
-        print(f"\n{'─'*70}")
+        print(f"\n{'─' * 70}")
         print(f"Fetching {zone_id}")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
 
         zone_results = fetch_country_observations(
             fetcher, zone_id, train_years, test_year, output_dir, psr_type
@@ -217,22 +222,24 @@ def fetch_sweden_zone_observations(
             zone_test_data[zone_id] = zone_results["test"]
 
     # Aggregate zones for country-level
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print("Aggregating zones to country-level")
-    print(f"{'─'*70}")
+    print(f"{'─' * 70}")
 
     if zone_train_data:
         # Combine all zones with sum
-        train_combined = pd.concat([
-            df[['generation_mw', 'capacity_mw']] for df in zone_train_data.values()
-        ], axis=1)
+        train_combined = pd.concat(
+            [df[["generation_mw", "capacity_mw"]] for df in zone_train_data.values()], axis=1
+        )
 
-        train_agg = pd.DataFrame({
-            'generation_mw': train_combined.filter(like='generation').sum(axis=1),
-            'capacity_mw': train_combined.filter(like='capacity').sum(axis=1),
-        })
-        train_agg['capacity_factor'] = train_agg['generation_mw'] / train_agg['capacity_mw']
-        train_agg['capacity_factor'] = train_agg['capacity_factor'].clip(0, 1.5)
+        train_agg = pd.DataFrame(
+            {
+                "generation_mw": train_combined.filter(like="generation").sum(axis=1),
+                "capacity_mw": train_combined.filter(like="capacity").sum(axis=1),
+            }
+        )
+        train_agg["capacity_factor"] = train_agg["generation_mw"] / train_agg["capacity_mw"]
+        train_agg["capacity_factor"] = train_agg["capacity_factor"].clip(0, 1.5)
 
         print(f"  ✓ Aggregated training: {len(train_agg)} data points")
         print(f"    Mean CF: {train_agg['capacity_factor'].mean():.2%}")
@@ -241,16 +248,18 @@ def fetch_sweden_zone_observations(
         train_agg = pd.DataFrame()
 
     if zone_test_data:
-        test_combined = pd.concat([
-            df[['generation_mw', 'capacity_mw']] for df in zone_test_data.values()
-        ], axis=1)
+        test_combined = pd.concat(
+            [df[["generation_mw", "capacity_mw"]] for df in zone_test_data.values()], axis=1
+        )
 
-        test_agg = pd.DataFrame({
-            'generation_mw': test_combined.filter(like='generation').sum(axis=1),
-            'capacity_mw': test_combined.filter(like='capacity').sum(axis=1),
-        })
-        test_agg['capacity_factor'] = test_agg['generation_mw'] / test_agg['capacity_mw']
-        test_agg['capacity_factor'] = test_agg['capacity_factor'].clip(0, 1.5)
+        test_agg = pd.DataFrame(
+            {
+                "generation_mw": test_combined.filter(like="generation").sum(axis=1),
+                "capacity_mw": test_combined.filter(like="capacity").sum(axis=1),
+            }
+        )
+        test_agg["capacity_factor"] = test_agg["generation_mw"] / test_agg["capacity_mw"]
+        test_agg["capacity_factor"] = test_agg["capacity_factor"].clip(0, 1.5)
 
         print(f"  ✓ Aggregated test: {len(test_agg)} data points")
         print(f"    Mean CF: {test_agg['capacity_factor'].mean():.2%}")
@@ -280,7 +289,7 @@ def fetch_sweden_zone_observations(
         "aggregated": {
             "train": train_agg,
             "test": test_agg,
-        }
+        },
     }
 
 

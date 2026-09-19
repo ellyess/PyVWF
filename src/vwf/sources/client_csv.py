@@ -22,6 +22,7 @@ Expected inputs (column names are remappable via ``column_map``):
 See ``docs/guides/your-own-data.md`` for a worked example and the exact
 column contract.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -40,11 +41,11 @@ DEFAULT_COLUMN_MAP: dict[str, str] = {
     "ID": "ID",
     "lon": "lon",
     "lat": "lat",
-    "capacity": "capacity",   # rated capacity (see capacity_unit)
-    "height": "height",       # hub height, metres
-    "diameter": "diameter",   # rotor diameter, metres (optional, for curve match)
-    "model": "model",         # power-curve key (optional; matched if absent)
-    "type": "type",           # onshore/offshore (optional; defaults onshore)
+    "capacity": "capacity",  # rated capacity (see capacity_unit)
+    "height": "height",  # hub height, metres
+    "diameter": "diameter",  # rotor diameter, metres (optional, for curve match)
+    "model": "model",  # power-curve key (optional; matched if absent)
+    "type": "type",  # onshore/offshore (optional; defaults onshore)
     "manufacturer": "manufacturer",  # optional, aids curve matching
 }
 

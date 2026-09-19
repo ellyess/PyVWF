@@ -17,6 +17,7 @@ existing artefacts to decide which metric later gates should be written in.
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d0_metric_reframe.py
 """
+
 from pathlib import Path
 import sys
 
@@ -25,7 +26,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis.ml_transfer_retest import (  # noqa: E402
-    RUNS, SEEDS, SET_A, build_centroids, terrain_features, RF_KW,
+    RUNS,
+    SEEDS,
+    SET_A,
+    build_centroids,
+    terrain_features,
+    RF_KW,
 )
 from sklearn.ensemble import RandomForestRegressor  # noqa: E402
 
@@ -55,31 +61,38 @@ def main():
             te = df[df.region == region]
             y = te[target].to_numpy()
 
-            preds = np.column_stack([
-                RandomForestRegressor(random_state=s, **RF_KW)
-                .fit(tr[SET_A], tr[target]).predict(te[SET_A])
-                for s in SEEDS
-            ])
-            mse_ml = float(np.mean([mse(y, preds[:, i])
-                                    for i in range(preds.shape[1])]))
+            preds = np.column_stack(
+                [
+                    RandomForestRegressor(random_state=s, **RF_KW)
+                    .fit(tr[SET_A], tr[target])
+                    .predict(te[SET_A])
+                    for s in SEEDS
+                ]
+            )
+            mse_ml = float(np.mean([mse(y, preds[:, i]) for i in range(preds.shape[1])]))
 
             mse_ident = mse(y, np.full_like(y, ident))
             mse_pooled = mse(y, np.full_like(y, tr[target].mean()))
             mse_oracle = mse(y, np.full_like(y, y.mean()))  # R2 denominator
 
-            rows.append(dict(
-                target=target, holdout=region, n=len(te),
-                y_mean=y.mean(), y_std=y.std(),
-                # published metric: 1 - mse_ml/mse_oracle
-                r2_vs_holdout_mean=1 - mse_ml / mse_oracle,
-                # decision-relevant: skill against declining to correct
-                skill_ml_vs_identity=1 - mse_ml / mse_ident,
-                skill_pooledmean_vs_identity=1 - mse_pooled / mse_ident,
-                skill_oraclemean_vs_identity=1 - mse_oracle / mse_ident,
-                rmse_identity=np.sqrt(mse_ident),
-                rmse_pooled=np.sqrt(mse_pooled),
-                rmse_ml=np.sqrt(mse_ml),
-            ))
+            rows.append(
+                dict(
+                    target=target,
+                    holdout=region,
+                    n=len(te),
+                    y_mean=y.mean(),
+                    y_std=y.std(),
+                    # published metric: 1 - mse_ml/mse_oracle
+                    r2_vs_holdout_mean=1 - mse_ml / mse_oracle,
+                    # decision-relevant: skill against declining to correct
+                    skill_ml_vs_identity=1 - mse_ml / mse_ident,
+                    skill_pooledmean_vs_identity=1 - mse_pooled / mse_ident,
+                    skill_oraclemean_vs_identity=1 - mse_oracle / mse_ident,
+                    rmse_identity=np.sqrt(mse_ident),
+                    rmse_pooled=np.sqrt(mse_pooled),
+                    rmse_ml=np.sqrt(mse_ml),
+                )
+            )
 
     res = pd.DataFrame(rows)
     res.to_csv(OUT / "d0_metric_reframe.csv", index=False)
@@ -87,16 +100,29 @@ def main():
     pd.set_option("display.width", 200)
     for target in ("scalar", "offset"):
         sub = res[res.target == target]
-        print(f"\n{'='*92}\n### target = {target}   (identity = {IDENTITY[target]})\n")
-        print(sub[[
-            "holdout", "n", "y_mean", "y_std",
-            "r2_vs_holdout_mean",
-            "skill_ml_vs_identity", "skill_pooledmean_vs_identity",
-            "skill_oraclemean_vs_identity",
-        ]].round(3).to_string(index=False))
+        print(f"\n{'=' * 92}\n### target = {target}   (identity = {IDENTITY[target]})\n")
+        print(
+            sub[
+                [
+                    "holdout",
+                    "n",
+                    "y_mean",
+                    "y_std",
+                    "r2_vs_holdout_mean",
+                    "skill_ml_vs_identity",
+                    "skill_pooledmean_vs_identity",
+                    "skill_oraclemean_vs_identity",
+                ]
+            ]
+            .round(3)
+            .to_string(index=False)
+        )
         print(f"\n  RMSE (lower better):")
-        print(sub[["holdout", "rmse_identity", "rmse_pooled", "rmse_ml"]]
-              .round(3).to_string(index=False))
+        print(
+            sub[["holdout", "rmse_identity", "rmse_pooled", "rmse_ml"]]
+            .round(3)
+            .to_string(index=False)
+        )
         n_pos_pub = int((sub.r2_vs_holdout_mean > 0).sum())
         n_pos_ml = int((sub.skill_ml_vs_identity > 0).sum())
         n_pos_pool = int((sub.skill_pooledmean_vs_identity > 0).sum())
@@ -104,7 +130,7 @@ def main():
         print(f"  regions with ML skill vs identity > 0 : {n_pos_ml}/5")
         print(f"  regions with pooled-mean skill    > 0 : {n_pos_pool}/5  (zero-ML transfer)")
 
-    print(f"\nwrote {OUT/'d0_metric_reframe.csv'}")
+    print(f"\nwrote {OUT / 'd0_metric_reframe.csv'}")
 
 
 if __name__ == "__main__":

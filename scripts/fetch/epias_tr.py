@@ -39,6 +39,7 @@ Turkey abolished daylight saving in 2016 and sits at a permanent UTC+3, so the
 timestamp handling is a fixed offset, simpler than the NZ trading periods or
 Chile's DST. Verify the API's own timestamp labels before trusting that.
 """
+
 import argparse
 import json
 import os
@@ -59,9 +60,10 @@ PLANT_LIST_PATHS = (
     "/generation/data/uevm-powerplant-list",
 )
 GENERATION_PATHS = (
-    "/generation/data/injection-quantity",        # UEVM, settlement-grade
-    "/generation/data/realtime-generation",       # operational
+    "/generation/data/injection-quantity",  # UEVM, settlement-grade
+    "/generation/data/realtime-generation",  # operational
 )
+
 
 def credentials() -> tuple[str, str]:
     """Username and password, from the environment only.
@@ -88,9 +90,14 @@ def get_tgt() -> str:
     user, pwd = credentials()
     body = urllib.parse.urlencode({"username": user, "password": pwd}).encode()
     req = urllib.request.Request(
-        CAS, data=body, method="POST",
-        headers={"Content-Type": "application/x-www-form-urlencoded",
-                 "Accept": "text/plain", "User-Agent": "pyvwf-fetch"},
+        CAS,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "text/plain",
+            "User-Agent": "pyvwf-fetch",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -114,8 +121,7 @@ def get_tgt() -> str:
     return tgt
 
 
-def call(path: str, payload: dict, tgt: str, *, method: str = "POST",
-         timeout: int = 180):
+def call(path: str, payload: dict, tgt: str, *, method: str = "POST", timeout: int = 180):
     """Call a Transparency endpoint. Returns (status, parsed).
 
     Method matters and is not guessable from the path: the *-list endpoints
@@ -124,9 +130,15 @@ def call(path: str, payload: dict, tgt: str, *, method: str = "POST",
     """
     data = json.dumps(payload).encode() if method == "POST" else None
     req = urllib.request.Request(
-        f"{BASE}{path}", data=data, method=method,
-        headers={"Content-Type": "application/json", "Accept": "application/json",
-                 "TGT": tgt, "User-Agent": "pyvwf-fetch"},
+        f"{BASE}{path}",
+        data=data,
+        method=method,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "TGT": tgt,
+            "User-Agent": "pyvwf-fetch",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -165,8 +177,7 @@ def items(payload) -> list:
 
 def day_window(date: str) -> dict:
     """Transparency wants ISO timestamps with Turkey's fixed +03:00 offset."""
-    return {"startDate": f"{date}T00:00:00+03:00",
-            "endDate": f"{date}T23:00:00+03:00"}
+    return {"startDate": f"{date}T00:00:00+03:00", "endDate": f"{date}T23:00:00+03:00"}
 
 
 def probe() -> None:
@@ -178,8 +189,7 @@ def probe() -> None:
 
     plants, used_path, list_method = [], None, None
     for path in PLANT_LIST_PATHS:
-        status, payload, method = try_both(
-            path, {"period": "2024-06-01T00:00:00+03:00"}, tgt)
+        status, payload, method = try_both(path, {"period": "2024-06-01T00:00:00+03:00"}, tgt)
         found = items(payload) if status == 200 else []
         print(f"  {path:52s} {status} {method or ''} {len(found) if found else ''}")
         if found:
@@ -213,8 +223,7 @@ def probe() -> None:
     pid = sample.get("id") or sample.get("powerPlantId") or sample.get("plantId")
     print(f"\nprobing plant id={pid} ({str(sample.get('name', '?')).strip()})")
 
-    other = next((p for p in wind
-                  if (p.get("id") or p.get("powerPlantId")) != pid), None)
+    other = next((p for p in wind if (p.get("id") or p.get("powerPlantId")) != pid), None)
     other_id = other.get("id") if other else None
 
     print("\n" + "-" * 70)
@@ -238,7 +247,8 @@ def probe() -> None:
                 keys = [k for k in found[0] if k not in ("date", "hour")]
                 sigs[label] = json.dumps(
                     {k: v for k, v in found[0].items() if isinstance(v, (int, float))},
-                    sort_keys=True)
+                    sort_keys=True,
+                )
             print(f"  {path:46s} {label} {status} rows={len(found)}")
         if keys:
             print(f"    payload keys: {keys[:8]}")
@@ -259,17 +269,23 @@ def probe() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--probe", action="store_true",
-                    help="Authenticate and verify; writes nothing")
-    ap.add_argument("--years", type=int, nargs=2, metavar=("START", "END"),
-                    help="Fetch per-plant generation for this window")
+    ap.add_argument("--probe", action="store_true", help="Authenticate and verify; writes nothing")
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="Fetch per-plant generation for this window",
+    )
     args = ap.parse_args()
 
     if args.probe:
         probe()
     elif args.years:
-        sys.exit("Run --probe first: the endpoint paths and history depth must "
-                 "be confirmed before a bulk fetch is worth starting.")
+        sys.exit(
+            "Run --probe first: the endpoint paths and history depth must "
+            "be confirmed before a bulk fetch is worth starting."
+        )
     else:
         ap.print_help()
 

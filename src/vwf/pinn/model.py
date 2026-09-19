@@ -19,6 +19,7 @@ network is fitted. Most training data is flat, most of the world is flat, and
 without the pin the term is free to drift there and take the extrapolation with
 it.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -71,13 +72,16 @@ def _preactivation_for(value: float, lo: float, hi: float) -> float:
 class _Head(nn.Module):
     """Linear, or a small MLP when ``hidden`` is given."""
 
-    def __init__(self, n_in: int, hidden: int | None, bias0: float, n_out: int = 1,
-                 init_scale: float = 0.0):
+    def __init__(
+        self, n_in: int, hidden: int | None, bias0: float, n_out: int = 1, init_scale: float = 0.0
+    ):
         super().__init__()
         if hidden:
             self.net = nn.Sequential(
-                nn.Linear(n_in, hidden), nn.Tanh(),
-                nn.Linear(hidden, hidden), nn.Tanh(),
+                nn.Linear(n_in, hidden),
+                nn.Tanh(),
+                nn.Linear(hidden, hidden),
+                nn.Tanh(),
                 nn.Linear(hidden, n_out),
             )
         else:
@@ -131,10 +135,18 @@ class PhysicsCorrection(nn.Module):
             the physics was decorative and the gain came from feature scale.
     """
 
-    def __init__(self, n_terrain: int, n_fleet: int, hidden: int | None = None,
-                 physics: bool = True, init_scale: float = 0.02,
-                 wake: bool = False, wake_feature: int = 0,
-                 delta_is_log_z0: bool = False, bound_scale: float = 1.0):
+    def __init__(
+        self,
+        n_terrain: int,
+        n_fleet: int,
+        hidden: int | None = None,
+        physics: bool = True,
+        init_scale: float = 0.02,
+        wake: bool = False,
+        wake_feature: int = 0,
+        delta_is_log_z0: bool = False,
+        bound_scale: float = 1.0,
+    ):
         super().__init__()
         self.physics = physics
         # One knob shrinking every bounded quantity toward its starting value.
@@ -143,19 +155,18 @@ class PhysicsCorrection(nn.Module):
         # from constraining one term and watching the error move to another.
         self.bound_scale = float(bound_scale)
         self.delta_is_log_z0 = delta_is_log_z0
-        self._delta_bounds = (DELTA_LOG_Z0_BOUNDS if delta_is_log_z0
-                              else DELTA_BOUNDS)
-        gb, db, eb, kb = (self._bounds(GAMMA_BOUNDS, 0.0),
-                          self._bounds(self._delta_bounds, 0.0),
-                          self._bounds(ETA_BOUNDS, 0.90),
-                          self._bounds(KAPPA_BOUNDS, 0.5))
+        self._delta_bounds = DELTA_LOG_Z0_BOUNDS if delta_is_log_z0 else DELTA_BOUNDS
+        gb, db, eb, kb = (
+            self._bounds(GAMMA_BOUNDS, 0.0),
+            self._bounds(self._delta_bounds, 0.0),
+            self._bounds(ETA_BOUNDS, 0.90),
+            self._bounds(KAPPA_BOUNDS, 0.5),
+        )
         # Initial state: no speed-up, no shear correction, a 10% conversion
         # loss (a fleet always loses something), and half the within-day spread
         # not yet absorbed by the pre-smoothed curves.
-        self.amp = _Head(n_terrain, hidden, _preactivation_for(0.0, *gb),
-                         init_scale=init_scale)
-        self.delta = _Head(n_terrain, hidden, _preactivation_for(0.0, *db),
-                           init_scale=init_scale)
+        self.amp = _Head(n_terrain, hidden, _preactivation_for(0.0, *gb), init_scale=init_scale)
+        self.delta = _Head(n_terrain, hidden, _preactivation_for(0.0, *db), init_scale=init_scale)
         # With the array-loss term active, the density it is defined on is
         # withheld from the efficiency head. Leaving it in gives the model two
         # routes to the same effect -- a learned function and a physical one --
@@ -163,8 +174,7 @@ class PhysicsCorrection(nn.Module):
         # head quietly undoes it. The remaining fleet features are unaffected.
         self.wake_feature = wake_feature if wake else None
         eta_inputs = n_fleet - 1 if wake else n_fleet
-        self.eta = _Head(eta_inputs, hidden, _preactivation_for(0.90, *eb),
-                         init_scale=init_scale)
+        self.eta = _Head(eta_inputs, hidden, _preactivation_for(0.90, *eb), init_scale=init_scale)
         # Relief scale at which the speed-up term saturates, in metres. Learned
         # in log space so it stays positive; 300 m is the median ERA5-cell
         # relief across the five training fleets.
@@ -220,8 +230,13 @@ class PhysicsCorrection(nn.Module):
         k = max(self.bound_scale, 1e-3)
         return (v0 + k * (lo - v0), v0 + k * (hi - v0))
 
-    def forward(self, terrain: torch.Tensor, fleet: torch.Tensor,
-                relief: torch.Tensor, capdens: torch.Tensor | None = None):
+    def forward(
+        self,
+        terrain: torch.Tensor,
+        fleet: torch.Tensor,
+        relief: torch.Tensor,
+        capdens: torch.Tensor | None = None,
+    ):
         """Compute the four physical quantities for a batch of units.
 
         Args:
@@ -237,8 +252,7 @@ class PhysicsCorrection(nn.Module):
         Returns:
             ``(gamma, delta, eta, kappa)``; the first three are ``(N,)``.
         """
-        amp = _scaled_tanh(self.amp(terrain).squeeze(-1),
-                           *self._bounds(GAMMA_BOUNDS, 0.0))
+        amp = _scaled_tanh(self.amp(terrain).squeeze(-1), *self._bounds(GAMMA_BOUNDS, 0.0))
         if self.physics:
             # Saturating in relief and exactly zero at zero relief. The scale is
             # clamped to 1 m - 10 km, which is generous for a terrain length
@@ -249,18 +263,19 @@ class PhysicsCorrection(nn.Module):
             gamma = amp * (r / (1.0 + r))
         else:
             gamma = amp
-        delta = _scaled_tanh(self.delta(terrain).squeeze(-1),
-                             *self._bounds(self._delta_bounds, 0.0))
+        delta = _scaled_tanh(
+            self.delta(terrain).squeeze(-1), *self._bounds(self._delta_bounds, 0.0)
+        )
         if self.wake and self.physics:
             if capdens is None:
                 raise ValueError("wake=True needs capdens (MW/km2)")
             keep = [i for i in range(fleet.shape[-1]) if i != self.wake_feature]
-            eta = _scaled_tanh(self.eta(fleet[..., keep]).squeeze(-1),
-                               *self._bounds(ETA_BOUNDS, 0.90))
+            eta = _scaled_tanh(
+                self.eta(fleet[..., keep]).squeeze(-1), *self._bounds(ETA_BOUNDS, 0.90)
+            )
             eta = (eta * self.array_efficiency(capdens)).clamp(min=ETA_FLOOR)
         else:
-            eta = _scaled_tanh(self.eta(fleet).squeeze(-1),
-                               *self._bounds(ETA_BOUNDS, 0.90))
+            eta = _scaled_tanh(self.eta(fleet).squeeze(-1), *self._bounds(ETA_BOUNDS, 0.90))
         kappa = _scaled_tanh(self.raw_kappa, *self._bounds(KAPPA_BOUNDS, 0.5))
         return gamma, delta, eta, kappa
 
@@ -270,13 +285,18 @@ class PhysicsCorrection(nn.Module):
         g, d, e, k = self.forward(terrain, fleet, relief, capdens)
         k = k.detach()
         return {
-            "gamma_mean": float(g.mean()), "gamma_std": float(g.std()),
-            "gamma_max": float(g.max()), "gamma_min": float(g.min()),
+            "gamma_mean": float(g.mean()),
+            "gamma_std": float(g.std()),
+            "gamma_max": float(g.max()),
+            "gamma_min": float(g.min()),
             "speedup_mean": float(torch.exp(g).mean()),
             "speedup_max": float(torch.exp(g).max()),
-            "delta_mean": float(d.mean()), "delta_std": float(d.std()),
-            "eta_mean": float(e.mean()), "eta_std": float(e.std()),
-            "eta_min": float(e.min()), "eta_max": float(e.max()),
+            "delta_mean": float(d.mean()),
+            "delta_std": float(d.std()),
+            "eta_mean": float(e.mean()),
+            "eta_std": float(e.std()),
+            "eta_min": float(e.min()),
+            "eta_max": float(e.max()),
             "kappa": float(k),
             "relief_scale_m": float(self.relief_scale()),
             "wake_c": float(self.wake_coefficient()) if self.wake else float("nan"),

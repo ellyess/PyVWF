@@ -14,6 +14,7 @@ tree unless ``--allow-dirty`` is given.
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
          scripts/pinn/build_cache.py --regions DK DE UK US BR
 """
+
 import argparse
 import hashlib
 import sys
@@ -35,19 +36,31 @@ def main():
     ap.add_argument("--regions", nargs="+", default=["DK", "DE", "UK", "US", "BR"])
     ap.add_argument("--splits", nargs="+", default=["train", "test"])
     ap.add_argument("--out", default=str(CACHE))
-    ap.add_argument("--config", action="append", default=[], metavar="CODE=PATH",
-                    help="region config to load for CODE; repeatable. Regions "
-                         "not named use configs/regions/<stem>.toml")
-    ap.add_argument("--registration", default=None,
-                    help="the registration this build answers to, recorded in the manifest")
-    ap.add_argument("--allow-dirty", action="store_true",
-                    help="build on a tree with uncommitted changes; the manifest "
-                         "records it")
+    ap.add_argument(
+        "--config",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="region config to load for CODE; repeatable. Regions "
+        "not named use configs/regions/<stem>.toml",
+    )
+    ap.add_argument(
+        "--registration",
+        default=None,
+        help="the registration this build answers to, recorded in the manifest",
+    )
+    ap.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="build on a tree with uncommitted changes; the manifest records it",
+    )
     args = ap.parse_args()
 
     if build_manifest()["git_dirty"] and not args.allow_dirty:
-        raise SystemExit("refusing to build on a dirty tree: the caches would be "
-                         "unattributable. Commit first, or pass --allow-dirty.")
+        raise SystemExit(
+            "refusing to build on a dirty tree: the caches would be "
+            "unattributable. Commit first, or pass --allow-dirty."
+        )
 
     named = {}
     for item in args.config:
@@ -57,8 +70,7 @@ def main():
         named[code] = Path(path)
     # Region codes may carry a hyphen (AU-NEM) where the config filename uses an
     # underscore (au_nem.toml).
-    paths = {c: named.get(c, CONFIGS / f"{c.lower().replace('-', '_')}.toml")
-             for c in args.regions}
+    paths = {c: named.get(c, CONFIGS / f"{c.lower().replace('-', '_')}.toml") for c in args.regions}
 
     built, failed = {}, {}
     for code in args.regions:
@@ -70,25 +82,35 @@ def main():
             print(f"[{code}/{split}] building...")
             try:
                 cache = build_cache(spec, split)
-            except Exception as e:                        # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 print(f"[{code}/{split}] FAILED: {type(e).__name__}: {e}")
                 failed[f"{code}/{split}"] = f"{type(e).__name__}: {e}"
                 continue
             d = save_cache(cache, args.out)
-            built[f"{code}/{split}"] = {"dir": str(d), "units": len(cache.meta),
-                                        "days": len(cache.dates), **cache.era5_record}
-            print(f"[{code}/{split}] {cache}  -> {d}  ({time.time()-t0:.0f}s)")
+            built[f"{code}/{split}"] = {
+                "dir": str(d),
+                "units": len(cache.meta),
+                "days": len(cache.dates),
+                **cache.era5_record,
+            }
+            print(f"[{code}/{split}] {cache}  -> {d}  ({time.time() - t0:.0f}s)")
 
-    write_manifest(args.out, build_manifest(extra={
-        "run_mode": "pinn-cache",
-        "registration": args.registration,
-        "argv": sys.argv[1:],
-        "configs": {c: {"path": str(p),
-                        "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
-                    for c, p in paths.items()},
-        "built": built,
-        "failed": failed,
-    }))
+    write_manifest(
+        args.out,
+        build_manifest(
+            extra={
+                "run_mode": "pinn-cache",
+                "registration": args.registration,
+                "argv": sys.argv[1:],
+                "configs": {
+                    c: {"path": str(p), "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
+                    for c, p in paths.items()
+                },
+                "built": built,
+                "failed": failed,
+            }
+        ),
+    )
     if failed:
         raise SystemExit(f"{len(failed)} cache(s) failed: {', '.join(failed)}")
 

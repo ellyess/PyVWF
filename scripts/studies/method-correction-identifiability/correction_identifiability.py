@@ -36,6 +36,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-correction-identifiability/correction_identifiability.py <out_dir>
 """
+
 from pathlib import Path
 
 import numpy as np
@@ -77,24 +78,25 @@ def main(out_dir: str, pool_path: Path = POOL) -> None:
         r = float(np.corrcoef(a, b)[0, 1])
         # Share of the joint variation lying along one line, after putting the
         # two coefficients on a common scale.
-        z = np.column_stack([(a - a.mean()) / a.std(ddof=1),
-                             (b - b.mean()) / b.std(ddof=1)])
+        z = np.column_stack([(a - a.mean()) / a.std(ddof=1), (b - b.mean()) / b.std(ddof=1)])
         eig = np.linalg.eigvalsh(np.cov(z.T, ddof=1))
         along = float(eig.max() / eig.sum())
         p = pivot(a, b)
-        record = {"row": code, "n": len(g), "r": round(r, 3),
-                  "variance_along_the_line": round(along, 3),
-                  "pivot_speed": round(p, 2),
-                  "cv_scalar": round(float(a.std(ddof=1) / abs(a.mean())), 3),
-                  "cv_offset": round(float(b.std(ddof=1) / abs(b.mean())), 3)}
+        record = {
+            "row": code,
+            "n": len(g),
+            "r": round(r, 3),
+            "variance_along_the_line": round(along, 3),
+            "pivot_speed": round(p, 2),
+            "cv_scalar": round(float(a.std(ddof=1) / abs(a.mean())), 3),
+            "cv_offset": round(float(b.std(ddof=1) / abs(b.mean())), 3),
+        }
         for v in REFERENCE_WINDS:
             corrected = a * v + b
-            record[f"cv_v{v:g}"] = round(float(corrected.std(ddof=1)
-                                               / abs(corrected.mean())), 3)
+            record[f"cv_v{v:g}"] = round(float(corrected.std(ddof=1) / abs(corrected.mean())), 3)
         if np.isfinite(p):
             at_pivot = a * p + b
-            record["cv_at_pivot"] = round(float(at_pivot.std(ddof=1)
-                                                / abs(at_pivot.mean())), 3)
+            record["cv_at_pivot"] = round(float(at_pivot.std(ddof=1) / abs(at_pivot.mean())), 3)
             record["mean_at_pivot"] = round(float(at_pivot.mean()), 3)
         rows.append(record)
     frame = pd.DataFrame(rows)
@@ -105,8 +107,20 @@ def main(out_dir: str, pool_path: Path = POOL) -> None:
 
         dense = frame[frame["n"] >= 10].dropna(subset=["r"])
         print("\n=== the rows with enough points to say anything")
-        print(dense[["row", "n", "r", "variance_along_the_line", "pivot_speed",
-                     "cv_scalar", "cv_offset", "cv_at_pivot"]].to_string(index=False))
+        print(
+            dense[
+                [
+                    "row",
+                    "n",
+                    "r",
+                    "variance_along_the_line",
+                    "pivot_speed",
+                    "cv_scalar",
+                    "cv_offset",
+                    "cv_at_pivot",
+                ]
+            ].to_string(index=False)
+        )
 
         print("\n=== relative spread of the corrected speed, by reference wind")
         cols = ["row", "n"] + [f"cv_v{v:g}" for v in REFERENCE_WINDS] + ["cv_at_pivot"]
@@ -118,8 +132,9 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the tables, under output/")
-    parser.add_argument("--pool", type=Path, default=POOL,
-                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument(
+        "--pool", type=Path, default=POOL, help=f"The control-point pool (default: {POOL})"
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, pool_path=args.pool)
 

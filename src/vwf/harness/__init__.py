@@ -6,6 +6,7 @@ correction or simulation code paths.
 
 See ``docs/design/harness.md`` for the design this implements.
 """
+
 from vwf.harness.corrections import (
     AffineWindCorrection,
     CorrectionModel,

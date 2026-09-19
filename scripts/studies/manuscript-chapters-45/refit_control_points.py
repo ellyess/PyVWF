@@ -34,6 +34,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/manuscript-chapters-45/refit_control_points.py <out_dir> [stem ...]
 """
+
 import dataclasses
 from pathlib import Path
 
@@ -71,38 +72,55 @@ def main(out_dir: str, *stems: str, pool_path: Path = POOL) -> None:
     pool = pd.read_csv(pool_path)
     results = []
 
-    for stem in (stems or DEFAULT_STEMS):
+    for stem in stems or DEFAULT_STEMS:
         spec = regions.load_region(Path("configs/regions") / f"{stem}.toml")
         current = pool[pool["country_code"] == spec.code]
         clusters = len(current)
-        print(f"\n=== {spec.code}: refitting {clusters} clusters on {ERA5_PATH}",
-              flush=True)
+        print(f"\n=== {spec.code}: refitting {clusters} clusters on {ERA5_PATH}", flush=True)
 
         refit = dataclasses.replace(
-            spec, cluster_list=(clusters,), time_slices=(TIME_SLICE,),
-            era5_path=ERA5_PATH, roughness=ROUGHNESS)
+            spec,
+            cluster_list=(clusters,),
+            time_slices=(TIME_SLICE,),
+            era5_path=ERA5_PATH,
+            roughness=ROUGHNESS,
+        )
         run_dir = driver.run_train(refit, out, run_name="refit")
         factors = pd.read_csv(run_dir / f"factors_{TIME_SLICE}_{clusters}.csv")
 
         before = screen(current[["cluster", "scalar", "offset"]]).assign(
-            code=spec.code, condition="pool, chapter era")
+            code=spec.code, condition="pool, chapter era"
+        )
         after = screen(factors[["cluster", "scalar", "offset"]]).assign(
-            code=spec.code, condition=f"refit, {ERA5_PATH}")
+            code=spec.code, condition=f"refit, {ERA5_PATH}"
+        )
         results.append(pd.concat([before, after], ignore_index=True))
 
     frame = pd.concat(results, ignore_index=True)
     frame.to_csv(out / "refit_control_points.csv", index=False)
     low, high = PLAUSIBLE_SCALAR
     with pd.option_context("display.width", 250, "display.max_columns", 20):
-        print(f"\n=== every fitted pair, screened at scalar [{low}, {high}] and "
-              f"crossing {MAX_ZERO_CROSSING_SPEED} m/s")
-        print(frame[["code", "condition", "cluster", "scalar", "offset",
-                     "crossing", "implausible"]].round(3).to_string(index=False))
+        print(
+            f"\n=== every fitted pair, screened at scalar [{low}, {high}] and "
+            f"crossing {MAX_ZERO_CROSSING_SPEED} m/s"
+        )
+        print(
+            frame[["code", "condition", "cluster", "scalar", "offset", "crossing", "implausible"]]
+            .round(3)
+            .to_string(index=False)
+        )
         print("\n=== implausible pairs, before and after")
-        print(frame.groupby(["code", "condition"], sort=False).agg(
-            clusters=("scalar", "size"), implausible=("implausible", "sum"),
-            min_scalar=("scalar", "min"), max_scalar=("scalar", "max"),
-            ).round(3).to_string())
+        print(
+            frame.groupby(["code", "condition"], sort=False)
+            .agg(
+                clusters=("scalar", "size"),
+                implausible=("implausible", "sum"),
+                min_scalar=("scalar", "min"),
+                max_scalar=("scalar", "max"),
+            )
+            .round(3)
+            .to_string()
+        )
     print(f"\nwritten: {out / 'refit_control_points.csv'}")
 
 
@@ -110,10 +128,12 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir> [stem ...]``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the run directories, under output/")
-    parser.add_argument("stems", nargs="*", metavar="stem",
-                        help="Region stems to refit (default: all)")
-    parser.add_argument("--pool", type=Path, default=POOL,
-                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument(
+        "stems", nargs="*", metavar="stem", help="Region stems to refit (default: all)"
+    )
+    parser.add_argument(
+        "--pool", type=Path, default=POOL, help=f"The control-point pool (default: {POOL})"
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, *args.stems, pool_path=args.pool)
 

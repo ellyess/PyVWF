@@ -28,6 +28,7 @@ source it runs on is confidential and not on this machine. Its hashes were
 recorded from that expression on the workbook at 51807f8;
 ``gwpt.operating_projects``, which replaced it, reproduces them.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -82,8 +83,9 @@ def curated_names() -> list[str]:
 
 def normalised_table() -> pd.DataFrame:
     names = curated_names()
-    return pd.DataFrame({"name": names,
-                         **{k: [f(n) for n in names] for k, f in NORMALISERS.items()}})
+    return pd.DataFrame(
+        {"name": names, **{k: [f(n) for n in names] for k, f in NORMALISERS.items()}}
+    )
 
 
 def test_normalisers_on_curated_names():
@@ -98,7 +100,8 @@ def test_normalisers_on_curated_names():
 
 needs_gwpt = pytest.mark.skipif(
     not GWPT.is_file() or importlib.util.find_spec("openpyxl") is None,
-    reason="the GWPT workbook and openpyxl are local only")
+    reason="the GWPT workbook and openpyxl are local only",
+)
 
 
 def _digest(frame: pd.DataFrame) -> str:
@@ -137,8 +140,13 @@ def test_gwpt_filters_on_the_real_workbook():
 
 def _process(script: str, out: Path, root: str) -> None:
     env = dict(os.environ, PYVWF_INPUT=root, PYTHONPATH="src")
-    done = subprocess.run([sys.executable, f"scripts/process/{script}.py", "--out", str(out)],
-                          cwd=ROOT, env=env, capture_output=True, text=True)
+    done = subprocess.run(
+        [sys.executable, f"scripts/process/{script}.py", "--out", str(out)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
     assert done.returncode == 0, done.stderr[-2000:]
 
 
@@ -162,9 +170,18 @@ def test_processing_chain_reproduces_production(script, code, tmp_path):
     (root / "reference").symlink_to(ROOT / "input" / "reference")
     env = dict(os.environ, PYVWF_INPUT=str(root), PYTHONPATH="src")
     done = subprocess.run(
-        [sys.executable, "scripts/region_tools/apply_turbine_specs.py", code,
-         "--specs", f"configs/curation/{lc}_turbine_specs.csv"],
-        cwd=ROOT, env=env, capture_output=True, text=True)
+        [
+            sys.executable,
+            "scripts/region_tools/apply_turbine_specs.py",
+            code,
+            "--specs",
+            f"configs/curation/{lc}_turbine_specs.csv",
+        ],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
     assert done.returncode == 0, done.stderr[-2000:]
     for produced in sorted(out.iterdir()):
         if produced.name.endswith(".bak.csv"):

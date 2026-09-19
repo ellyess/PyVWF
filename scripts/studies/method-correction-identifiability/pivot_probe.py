@@ -32,6 +32,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-correction-identifiability/pivot_probe.py <out_dir> [DE|DK|UK]
 """
+
 import time
 from pathlib import Path
 
@@ -81,19 +82,25 @@ def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_
     curves = load_power_curves()
     summary, per_cluster = [], []
 
-    for label in (only or ROWS):
+    for label in only or ROWS:
         stem, mode, k, train_dir = ROWS[label]
         spec = regions.load_region(REPO / "configs" / "regions" / f"{stem}.toml")
         base = Path(selection) / label / train_dir
         factors = pd.read_csv(base / f"factors_fixed_{k}.csv")
         fleet = pd.read_csv(base / f"train_turb_info_{k}.csv")
-        print(f"\n=== {label}: {len(fleet)} units, {len(factors)} clusters, "
-              f"train {spec.train_years}", flush=True)
+        print(
+            f"\n=== {label}: {len(fleet)} units, {len(factors)} clusters, train {spec.train_years}",
+            flush=True,
+        )
 
-        reanalysis = prep_era5(spec.code, True, True,
-                               bbox=BBOX.get(stem, spec.bbox),
-                               era5_dir=Path(era5_dir),
-                               roughness="derived")
+        reanalysis = prep_era5(
+            spec.code,
+            True,
+            True,
+            bbox=BBOX.get(stem, spec.bbox),
+            era5_dir=Path(era5_dir),
+            roughness="derived",
+        )
         first, last = spec.train_years
         years = pd.DatetimeIndex(reanalysis.time.values).year
         reanalysis = reanalysis.isel(time=np.where((years >= first) & (years <= last))[0])
@@ -115,8 +122,7 @@ def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_
         daily_mean_wind = np.nanmean(whole["ws_data"], axis=1)
         below = daily_mean_wind < CUT_IN
         share_days = float(below.mean())
-        share_mass = float((cf[below] * weights[below]).sum()
-                           / (cf * weights).sum())
+        share_mass = float((cf[below] * weights[below]).sum() / (cf * weights).sum())
 
         started = time.monotonic()
         rows = []
@@ -127,20 +133,24 @@ def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_
                 continue
             arrays = prepare_offset_arrays(speed.isel(turbine=np.where(mask)[0]), curves)
             target = fast_simulate_cf(arrays, float(f["scalar"]), float(f["offset"]))
-            row = {"cluster": cl, "scalar": float(f["scalar"]),
-                   "offset_shipped": float(f["offset"])}
+            row = {
+                "cluster": cl,
+                "scalar": float(f["scalar"]),
+                "offset_shipped": float(f["offset"]),
+            }
             uncorrected = fast_simulate_cf(arrays, 1.0, 0.0)
             for step in INITIAL_STEPS:
                 for cap in MAX_ITERS:
                     # sign(obs - sim) is zero at the shipped optimum, so the
                     # search is started off it by using the uncorrected mean as
                     # sim, which is what the real fit had.
-                    probe = pd.Series({"obs": target, "sim": uncorrected,
-                                       "scalar": float(f["scalar"])})
-                    key = (f"offset_from_{step:g}" if cap == 100
-                           else f"offset_from_{step:g}_iter{cap}")
-                    row[key] = find_offset_iterative(
-                        probe, arrays, max_iter=cap, initial_step=step)
+                    probe = pd.Series(
+                        {"obs": target, "sim": uncorrected, "scalar": float(f["scalar"])}
+                    )
+                    key = (
+                        f"offset_from_{step:g}" if cap == 100 else f"offset_from_{step:g}_iter{cap}"
+                    )
+                    row[key] = find_offset_iterative(probe, arrays, max_iter=cap, initial_step=step)
             rows.append(row)
         frame = pd.DataFrame(rows)
         frame["row"] = label
@@ -148,46 +158,62 @@ def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_
         elapsed = (time.monotonic() - started) / 60
 
         variants = [c for c in frame.columns if c.startswith("offset_from_")]
-        piv = {"shipped": pivot(frame["scalar"].to_numpy(),
-                                frame["offset_shipped"].to_numpy())}
+        piv = {"shipped": pivot(frame["scalar"].to_numpy(), frame["offset_shipped"].to_numpy())}
         for col in variants:
             piv[col.replace("offset_from_", "")] = pivot(
-                frame["scalar"].to_numpy(), frame[col].to_numpy())
-        worst = max(float(np.nanmax(np.abs(frame[c] - frame["offset_shipped"])))
-                    for c in variants)
+                frame["scalar"].to_numpy(), frame[col].to_numpy()
+            )
+        worst = max(float(np.nanmax(np.abs(frame[c] - frame["offset_shipped"]))) for c in variants)
         failed = int(sum(frame[c].isna().sum() for c in variants))
-        summary.append({"row": label, "clusters": len(frame),
-                        "days_below_cut_in": round(share_days, 4),
-                        "cf_mass_below_cut_in": round(share_mass, 5),
-                        **{k2: round(v, 3) for k2, v in piv.items()},
-                        "worst_offset_change": round(worst, 5),
-                        "non_convergences": failed,
-                        "minutes": round(elapsed, 1)})
-        print("  pivot: " + ", ".join(f"{k2} {v:.3f}" for k2, v in piv.items()),
-              flush=True)
-        print(f"  worst offset change across initialisations: {worst:.5f}; "
-              f"non-convergences {failed}", flush=True)
+        summary.append(
+            {
+                "row": label,
+                "clusters": len(frame),
+                "days_below_cut_in": round(share_days, 4),
+                "cf_mass_below_cut_in": round(share_mass, 5),
+                **{k2: round(v, 3) for k2, v in piv.items()},
+                "worst_offset_change": round(worst, 5),
+                "non_convergences": failed,
+                "minutes": round(elapsed, 1),
+            }
+        )
+        print("  pivot: " + ", ".join(f"{k2} {v:.3f}" for k2, v in piv.items()), flush=True)
+        print(
+            f"  worst offset change across initialisations: {worst:.5f}; non-convergences {failed}",
+            flush=True,
+        )
 
-    pd.concat(per_cluster, ignore_index=True).to_csv(out / "pivot_per_cluster.csv",
-                                                     index=False)
+    pd.concat(per_cluster, ignore_index=True).to_csv(out / "pivot_per_cluster.csv", index=False)
     frame = pd.DataFrame(summary)
     frame.to_csv(out / "pivot_probe.csv", index=False)
     with pd.option_context("display.width", 250, "display.max_columns", 30):
         print("\n=== summary")
         print(frame.to_string(index=False))
-    print("\nIf the pivot is unchanged across initialisations, the offset search "
-          "found a root and the pivot is not an artefact of where it started.")
+    print(
+        "\nIf the pivot is unchanged across initialisations, the offset search "
+        "found a root and the pivot is not an artefact of where it started."
+    )
 
 
 def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir> [DE|DK|UK]``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("only", nargs="*", metavar="row", help="Rows of ROWS to probe (default: all)")
-    parser.add_argument("--selection", type=Path, default=SEL,
-                        help=f"The cluster selection runs whose factors are probed (default: {SEL})")
-    parser.add_argument("--era5-dir", type=Path, default=ERA5_DIR,
-                        help=f"The ERA5 the fits were trained on (default: {ERA5_DIR})")
+    parser.add_argument(
+        "only", nargs="*", metavar="row", help="Rows of ROWS to probe (default: all)"
+    )
+    parser.add_argument(
+        "--selection",
+        type=Path,
+        default=SEL,
+        help=f"The cluster selection runs whose factors are probed (default: {SEL})",
+    )
+    parser.add_argument(
+        "--era5-dir",
+        type=Path,
+        default=ERA5_DIR,
+        help=f"The ERA5 the fits were trained on (default: {ERA5_DIR})",
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, *args.only, selection=args.selection, era5_dir=args.era5_dir)
 

@@ -15,6 +15,7 @@ Two incumbent columns, because the choice matters and neither alone is fair:
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/e1_report.py --tag primary
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,25 +61,35 @@ def main():
     raw = pd.read_csv(E1 / f"e1_{args.tag}_raw.csv")
     pd.set_option("display.width", 230)
 
-    agg = (raw.groupby(["holdout", "arm"])
-              .agg(rmse=("rmse", "mean"), rmse_sd=("rmse", "std"),
-                   mbe=("mbe", "mean"), r=("pearson_r", "mean"),
-                   n=("rmse", "size")).reset_index())
+    agg = (
+        raw.groupby(["holdout", "arm"])
+        .agg(
+            rmse=("rmse", "mean"),
+            rmse_sd=("rmse", "std"),
+            mbe=("mbe", "mean"),
+            r=("pearson_r", "mean"),
+            n=("rmse", "size"),
+        )
+        .reset_index()
+    )
     piv = agg.pivot(index="holdout", columns="arm", values="rmse")
-    order = [c for c in ("uncorrected", "rf-transfer", "pinn", "pinn-ablation",
-                         "pinn-in-region") if c in piv.columns]
+    order = [
+        c
+        for c in ("uncorrected", "rf-transfer", "pinn", "pinn-ablation", "pinn-in-region")
+        if c in piv.columns
+    ]
     piv = piv[order]
 
     inc = pd.DataFrame({c: incumbent(c) for c in REGIONS if c in piv.index}).T
     table = piv.join(inc[["affine_best", "affine_config_k", "affine_best_cfg"]])
 
-    print(f"{'='*112}\n### Capacity-factor RMSE on the held-out test year "
-          f"(capacity-weighted, harness skill_metrics)\n")
+    print(
+        f"{'=' * 112}\n### Capacity-factor RMSE on the held-out test year "
+        f"(capacity-weighted, harness skill_metrics)\n"
+    )
     print(table.round(4).to_string())
-    print("\n  pinn / pinn-ablation / pinn-in-region are means over seeds; "
-          "spreads below.")
-    print("  affine_* are in-region fits, shown as reference points, never as "
-          "transfer arms.")
+    print("\n  pinn / pinn-ablation / pinn-in-region are means over seeds; spreads below.")
+    print("  affine_* are in-region fits, shown as reference points, never as transfer arms.")
 
     print(f"\n### Seed spread (sd of RMSE across seeds)\n")
     sd = agg.pivot(index="holdout", columns="arm", values="rmse_sd")
@@ -93,28 +104,33 @@ def main():
     print(f"\n### Skill against uncorrected ERA5  (1 - MSE/MSE_uncorrected)\n")
     print(skill.round(3).to_string())
 
-    print(f"\n{'='*112}\n### Pre-specified gates\n")
-    ok1a = (piv["pinn"] < base)
-    ok1b = (piv["pinn"] > base * 1.10)
+    print(f"\n{'=' * 112}\n### Pre-specified gates\n")
+    ok1a = piv["pinn"] < base
+    ok1b = piv["pinn"] > base * 1.10
     p1 = bool(ok1a.sum() >= 3 and not ok1b.any())
     print(f"P1  zero-shot beats uncorrected in >=3/5, and degrades none by >10%")
-    print(f"      beats uncorrected in {int(ok1a.sum())}/5: "
-          f"{', '.join(sorted(piv.index[ok1a])) or 'none'}")
-    print(f"      degraded by >10% : "
-          f"{', '.join(sorted(piv.index[ok1b])) or 'none'}")
+    print(
+        f"      beats uncorrected in {int(ok1a.sum())}/5: "
+        f"{', '.join(sorted(piv.index[ok1a])) or 'none'}"
+    )
+    print(f"      degraded by >10% : {', '.join(sorted(piv.index[ok1b])) or 'none'}")
     print(f"      -> P1 {'PASS' if p1 else 'FAIL'}")
 
     if "rf-transfer" in piv:
         ok2 = piv["pinn"] < piv["rf-transfer"]
         print(f"\nP2  beats the incumbent RF transfer in >=3/5")
-        print(f"      beats rf-transfer in {int(ok2.sum())}/5: "
-              f"{', '.join(sorted(piv.index[ok2])) or 'none'}")
+        print(
+            f"      beats rf-transfer in {int(ok2.sum())}/5: "
+            f"{', '.join(sorted(piv.index[ok2])) or 'none'}"
+        )
         print(f"      -> P2 {'PASS' if ok2.sum() >= 3 else 'FAIL'}")
 
     if "pinn-ablation" in piv:
         d = piv["pinn-ablation"] - piv["pinn"]
-        print(f"\nP3  does the physics earn its place? (ablation RMSE minus pinn RMSE;"
-              f" positive = constraints help)")
+        print(
+            f"\nP3  does the physics earn its place? (ablation RMSE minus pinn RMSE;"
+            f" positive = constraints help)"
+        )
         print(d.round(4).to_string())
         print(f"      physics better in {int((d > 0).sum())}/5 regions")
 

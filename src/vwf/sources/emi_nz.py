@@ -27,6 +27,7 @@ Decisions baked into the finalisation, documented in the region config:
   and makes NZ one of the few regions outside Europe with per-farm hub
   heights.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -62,10 +63,7 @@ def apply_month_mask(wide: pd.DataFrame, mask: pd.DataFrame | None) -> pd.DataFr
     )
     for m in range(1, 13):
         col = f"obs_{m}"
-        hit = [
-            (str(i), int(y), m) in mask_keys
-            for i, y in zip(out["ID"], out["year"])
-        ]
+        hit = [(str(i), int(y), m) in mask_keys for i, y in zip(out["ID"], out["year"])]
         out.loc[hit, col] = float("nan")
     return out
 
@@ -102,9 +100,7 @@ class EMINewZealandSource(ObservationSource):
     def __init__(self, country: str = "NZ") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

@@ -5,6 +5,7 @@ CI. These cases cover the same functions where CI can run them, including the
 one real difference between the two filters: whether the country string is
 stripped before it is compared.
 """
+
 import pandas as pd
 import pytest
 
@@ -12,17 +13,19 @@ from vwf.datasets import gwpt
 
 
 def tracker() -> pd.DataFrame:
-    return pd.DataFrame({
-        "Country/Area": ["Ireland", "Ireland ", "Ireland", "Ireland", "Ireland", "France"],
-        "Status": ["operating", "Operating", "operating", "retired", "operating", "operating"],
-        "Project Name": ["A", "B", "C", "D", "E", "F"],
-        "GEM phase ID": ["G1", "G2", "G3", "G4", "G5", "G6"],
-        "Latitude": [53.0, 53.1, None, 53.3, 53.4, 46.0],
-        "Longitude": [-8.0, -8.1, -8.2, -8.3, -8.4, 2.0],
-        "Capacity (MW)": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
-        "Start year": [2010, 2012, 2012, 2005, None, 2015],
-        "Retired year": [None, None, None, 2016, None, None],
-    })
+    return pd.DataFrame(
+        {
+            "Country/Area": ["Ireland", "Ireland ", "Ireland", "Ireland", "Ireland", "France"],
+            "Status": ["operating", "Operating", "operating", "retired", "operating", "operating"],
+            "Project Name": ["A", "B", "C", "D", "E", "F"],
+            "GEM phase ID": ["G1", "G2", "G3", "G4", "G5", "G6"],
+            "Latitude": [53.0, 53.1, None, 53.3, 53.4, 46.0],
+            "Longitude": [-8.0, -8.1, -8.2, -8.3, -8.4, 2.0],
+            "Capacity (MW)": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+            "Start year": [2010, 2012, 2012, 2005, None, 2015],
+            "Retired year": [None, None, None, 2016, None, None],
+        }
+    )
 
 
 def test_fleet_for_compares_the_country_as_written_and_needs_coordinates():

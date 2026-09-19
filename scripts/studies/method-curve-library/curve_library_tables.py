@@ -38,6 +38,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src:scripts/analysis python \\
         scripts/studies/method-curve-library/curve_library_tables.py <out_dir>
 """
+
 import sys
 from pathlib import Path
 from typing import NamedTuple
@@ -182,7 +183,8 @@ def load_fleets(code: str, condition: str, inputs: Inputs = INPUTS) -> Fleets:
             raise SystemExit(
                 f"{code}: {int(differ.sum())} units carry a different {field} in the "
                 f"training and test fleets, for example {examples}. {condition} reads "
-                "this field, so these units have no single key.")
+                "this field, so these units have no single key."
+            )
 
     extra = test[~test["ID"].astype(str).isin(train_ids)]
     union = pd.concat([train, extra], ignore_index=True)
@@ -192,12 +194,16 @@ def load_fleets(code: str, condition: str, inputs: Inputs = INPUTS) -> Fleets:
     return Fleets(union, train, test)
 
 
-def write_table(out_dir: Path, name: str, fleet: pd.DataFrame,
-                keys: pd.Series) -> pd.DataFrame:
+def write_table(out_dir: Path, name: str, fleet: pd.DataFrame, keys: pd.Series) -> pd.DataFrame:
     """Write one override table, carrying which fleet holds each unit."""
-    table = pd.DataFrame({"ID": fleet["ID"].astype(str), "model": keys,
-                          "in_train": fleet["in_train"].to_numpy(),
-                          "in_test": fleet["in_test"].to_numpy()}).dropna(subset=["model"])
+    table = pd.DataFrame(
+        {
+            "ID": fleet["ID"].astype(str),
+            "model": keys,
+            "in_train": fleet["in_train"].to_numpy(),
+            "in_test": fleet["in_test"].to_numpy(),
+        }
+    ).dropna(subset=["model"])
     table.to_csv(out_dir / f"{name}.csv", index=False)
     return table
 
@@ -220,9 +226,11 @@ def nearest_in_band(key: str, catalogue: pd.DataFrame, source: pd.Series) -> dic
         return {"substitute": None, "d_specific_power": None, "d_rating_kw": None}
     nearest = (band["p_density"] - float(source["p_density"])).abs().idxmin()
     row = band.loc[nearest]
-    return {"substitute": str(row["model"]),
-            "d_specific_power": float(row["p_density"]) - float(source["p_density"]),
-            "d_rating_kw": float(row["capacity"]) - kw}
+    return {
+        "substitute": str(row["model"]),
+        "d_specific_power": float(row["p_density"]) - float(source["p_density"]),
+        "d_rating_kw": float(row["capacity"]) - kw,
+    }
 
 
 def extremes(fleet: pd.DataFrame, applied: pd.Series) -> list[dict]:
@@ -230,9 +238,15 @@ def extremes(fleet: pd.DataFrame, applied: pd.Series) -> list[dict]:
     cap = pd.to_numeric(fleet["capacity"], errors="coerce")
     out = []
     for label, i in (("smallest", cap.idxmin()), ("largest", cap.idxmax())):
-        out.append({"end": label, "ID": str(fleet.loc[i, "ID"]),
-                    "capacity": float(cap.loc[i]), "from": str(fleet.loc[i, "model"]),
-                    "to": str(applied.get(str(fleet.loc[i, "ID"]), fleet.loc[i, "model"]))})
+        out.append(
+            {
+                "end": label,
+                "ID": str(fleet.loc[i, "ID"]),
+                "capacity": float(cap.loc[i]),
+                "from": str(fleet.loc[i, "model"]),
+                "to": str(applied.get(str(fleet.loc[i, "ID"]), fleet.loc[i, "model"])),
+            }
+        )
     return out
 
 
@@ -252,12 +266,15 @@ def coverage(fleets: Fleets, table: pd.DataFrame) -> dict:
     made the single-fleet construction look adequate.
     """
     ids = set(table["ID"].astype(str))
-    return {"units_union": int(len(fleets.union)),
-            "units_train": int(len(fleets.train)), "units_test": int(len(fleets.test)),
-            "reached_train": int(fleets.train["ID"].astype(str).isin(ids).sum()),
-            "reached_test": int(fleets.test["ID"].astype(str).isin(ids).sum()),
-            "capacity_share_train": share(fleets.train, ids),
-            "capacity_share_test": share(fleets.test, ids)}
+    return {
+        "units_union": int(len(fleets.union)),
+        "units_train": int(len(fleets.train)),
+        "units_test": int(len(fleets.test)),
+        "reached_train": int(fleets.train["ID"].astype(str).isin(ids).sum()),
+        "reached_test": int(fleets.test["ID"].astype(str).isin(ids).sum()),
+        "capacity_share_train": share(fleets.train, ids),
+        "capacity_share_test": share(fleets.test, ids),
+    }
 
 
 def build_c2(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
@@ -272,20 +289,32 @@ def build_c2(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
         mapping = {}
         for key in sorted(fleet["model"].astype(str).unique()):
             if key not in catalogue.index:
-                report.append({"condition": "C2", "region": code, "key": key,
-                               "substitute": None, "note": "key not in the catalogue"})
+                report.append(
+                    {
+                        "condition": "C2",
+                        "region": code,
+                        "key": key,
+                        "substitute": None,
+                        "note": "key not in the catalogue",
+                    }
+                )
                 continue
             found = nearest_in_band(key, open_lib, catalogue.loc[key])
             mapping[key] = found["substitute"]
             units = fleet["ID"][fleet["model"].astype(str) == key]
-            report.append({"condition": "C2", "region": code, "key": key,
-                           "own_specific_power": float(catalogue.loc[key, "p_density"]),
-                           "own_rating_kw": float(catalogue.loc[key, "capacity"]),
-                           **found,
-                           "capacity_share_train": share(fleets.train, units),
-                           "capacity_share_test": share(fleets.test, units)})
-        table = write_table(out_dir, f"C2_{code}", fleet,
-                            fleet["model"].astype(str).map(mapping))
+            report.append(
+                {
+                    "condition": "C2",
+                    "region": code,
+                    "key": key,
+                    "own_specific_power": float(catalogue.loc[key, "p_density"]),
+                    "own_rating_kw": float(catalogue.loc[key, "capacity"]),
+                    **found,
+                    "capacity_share_train": share(fleets.train, units),
+                    "capacity_share_test": share(fleets.test, units),
+                }
+            )
+        table = write_table(out_dir, f"C2_{code}", fleet, fleet["model"].astype(str).map(mapping))
         report.append({"condition": "C2", "region": code, **coverage(fleets, table)})
         for row in extremes(fleet, table.set_index("ID")["model"]):
             report.append({"condition": "C2", "region": code, **row})
@@ -311,14 +340,16 @@ def designation_fields(code: str, fleet: pd.DataFrame) -> tuple[pd.Series | None
         # the Danish designation never reaches the pipeline at all, one layer
         # earlier than add_models not reading one.
         from vwf.config import PyVWFPaths
+
         md = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DK/dk_md.csv")
         lut = md.assign(ID=md["ID"].astype(str)).drop_duplicates("ID").set_index("ID")
         return ids.map(lut["manufacturer"]), ids.map(lut["model"])
     if code == "UK":
         from vwf.loaders import load_turbine_metadata
+
         md = load_turbine_metadata("UK").assign(ID=lambda d: d["ID"].astype(str))
         lut = md.drop_duplicates("ID").set_index("ID")["manufacturer"]
-        return None, ids.map(lut)          # packed: the field holds both
+        return None, ids.map(lut)  # packed: the field holds both
     if code == "US":
         return None, fleet["uswtdb_model"]
     raise SystemExit(f"{code}: no designation field is known for this register")
@@ -336,14 +367,22 @@ def build_t1(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
         maker, machine = designation_fields(code, fleet)
         if maker is None:
             maker = pd.Series([None] * len(fleet), index=fleet.index)
-        keys = pd.Series([matcher.match(a, b, index) for a, b in zip(maker, machine)],
-                         index=fleet.index)
+        keys = pd.Series(
+            [matcher.match(a, b, index) for a, b in zip(maker, machine)], index=fleet.index
+        )
         table = write_table(out_dir, f"T1_{code}", fleet, keys)
-        report.append({"condition": "T1", "region": code,
-                       "designation": "model column" if code == "DK"
-                       else ("packed into manufacturer" if code == "UK" else "uswtdb_model"),
-                       "units_matched": int(len(table)), **coverage(fleets, table),
-                       "distinct_keys": int(table["model"].nunique())})
+        report.append(
+            {
+                "condition": "T1",
+                "region": code,
+                "designation": "model column"
+                if code == "DK"
+                else ("packed into manufacturer" if code == "UK" else "uswtdb_model"),
+                "units_matched": int(len(table)),
+                **coverage(fleets, table),
+                "distinct_keys": int(table["model"].nunique()),
+            }
+        )
         for row in extremes(fleet, table.set_index("ID")["model"]):
             report.append({"condition": "T1", "region": code, **row})
     return report
@@ -361,27 +400,37 @@ def build_t2(out_dir: Path, inputs: Inputs = INPUTS) -> list[dict]:
         rating = per_turbine_rating(fleet)
         got = t2rule.other_brand_assignment(fleet, own, combined, rating_kw=rating)
         moved = got["t2_reason"] == "moved"
-        table = write_table(out_dir, f"T2_{code}", fleet[moved],
-                            got["t2_model"][moved])
+        table = write_table(out_dir, f"T2_{code}", fleet[moved], got["t2_model"][moved])
         distances = []
         for old, new in zip(fleet["model"].astype(str)[moved], got["t2_model"][moved]):
             if old in catalogue.index and new in catalogue.index:
-                distances.append((float(catalogue.loc[new, "p_density"])
-                                  - float(catalogue.loc[old, "p_density"]),
-                                  float(catalogue.loc[new, "capacity"])
-                                  - float(catalogue.loc[old, "capacity"])))
+                distances.append(
+                    (
+                        float(catalogue.loc[new, "p_density"])
+                        - float(catalogue.loc[old, "p_density"]),
+                        float(catalogue.loc[new, "capacity"])
+                        - float(catalogue.loc[old, "capacity"]),
+                    )
+                )
         d = pd.DataFrame(distances, columns=["d_specific_power", "d_rating_kw"])
-        report.append({"condition": "T2", "region": code, "own_manufacturer": source,
-                       "units_moved": int(moved.sum()), **coverage(fleets, table),
-                       "moved_share_union": t2rule.moved_share(fleet, got),
-                       **{f"reason_{k}": int(v) for k, v in
-                          got["t2_reason"].value_counts().items()},
-                       "median_d_specific_power": float(d["d_specific_power"].abs().median())
-                       if len(d) else None,
-                       "max_d_specific_power": float(d["d_specific_power"].abs().max())
-                       if len(d) else None,
-                       "max_d_rating_kw": float(d["d_rating_kw"].abs().max())
-                       if len(d) else None})
+        report.append(
+            {
+                "condition": "T2",
+                "region": code,
+                "own_manufacturer": source,
+                "units_moved": int(moved.sum()),
+                **coverage(fleets, table),
+                "moved_share_union": t2rule.moved_share(fleet, got),
+                **{f"reason_{k}": int(v) for k, v in got["t2_reason"].value_counts().items()},
+                "median_d_specific_power": float(d["d_specific_power"].abs().median())
+                if len(d)
+                else None,
+                "max_d_specific_power": float(d["d_specific_power"].abs().max())
+                if len(d)
+                else None,
+                "max_d_rating_kw": float(d["d_rating_kw"].abs().max()) if len(d) else None,
+            }
+        )
         for row in extremes(fleet, table.set_index("ID")["model"]):
             report.append({"condition": "T2", "region": code, **row})
     return report
@@ -401,22 +450,33 @@ def build_c1(inputs: Inputs = INPUTS) -> list[dict]:
         fleets = load_fleets(code, "C1", inputs)
         fleet = fleets.union
         keys = fleet["model"].astype(str)
-        report.append({"condition": "C1", "region": code,
-                       "keys": ", ".join(sorted(keys.unique())),
-                       "units_train": int(len(fleets.train)),
-                       "units_test": int(len(fleets.test)),
-                       "capacity_share_resolving_combined":
-                           share(fleets.test, fleet["ID"][keys.isin(combined)]),
-                       "capacity_share_resolving_open":
-                           share(fleets.test, fleet["ID"][keys.isin(open_lib)])})
+        report.append(
+            {
+                "condition": "C1",
+                "region": code,
+                "keys": ", ".join(sorted(keys.unique())),
+                "units_train": int(len(fleets.train)),
+                "units_test": int(len(fleets.test)),
+                "capacity_share_resolving_combined": share(
+                    fleets.test, fleet["ID"][keys.isin(combined)]
+                ),
+                "capacity_share_resolving_open": share(
+                    fleets.test, fleet["ID"][keys.isin(open_lib)]
+                ),
+            }
+        )
     return report
 
 
 def main(out_dir: str | Path, inputs: Inputs = INPUTS) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    rows = (build_c1(inputs) + build_c2(out_dir, inputs) + build_t1(out_dir, inputs)
-            + build_t2(out_dir, inputs))
+    rows = (
+        build_c1(inputs)
+        + build_c2(out_dir, inputs)
+        + build_t1(out_dir, inputs)
+        + build_t2(out_dir, inputs)
+    )
     report = pd.DataFrame(rows)
     report.to_csv(out_dir / "override_report.csv", index=False)
     with pd.option_context("display.width", 250, "display.max_columns", 30):
@@ -431,10 +491,11 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the tables and report, under output/")
     for name, default, text in (
-            ("--open-models", OPEN_MODELS, "The open library's models.csv"),
-            ("--combined-models", COMBINED_MODELS, "The combined library's model catalogue"),
-            ("--rerun", RERUN, "The European re-run, whose training fleets stand first"),
-            ("--refresh", REFRESH, "The refresh runs, for rows the re-run does not hold")):
+        ("--open-models", OPEN_MODELS, "The open library's models.csv"),
+        ("--combined-models", COMBINED_MODELS, "The combined library's model catalogue"),
+        ("--rerun", RERUN, "The European re-run, whose training fleets stand first"),
+        ("--refresh", REFRESH, "The refresh runs, for rows the re-run does not hold"),
+    ):
         parser.add_argument(name, type=Path, default=default, help=f"{text} (default: {default})")
     args = parser.parse_args(argv)
     main(args.out_dir, Inputs(args.open_models, args.combined_models, args.rerun, args.refresh))

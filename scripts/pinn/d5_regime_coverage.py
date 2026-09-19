@@ -25,6 +25,7 @@ Measurement only: no model, no gate.
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d5_regime_coverage.py
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,8 +43,16 @@ from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES  # noqa: E402
 CACHE = ROOT / "output" / "pinn" / "cache"
 OUT = ROOT / "output" / "pinn" / "d5"
 REGIONS = ["DK", "DE", "UK", "US", "BR"]
-KEY = ["relief_28km", "std_84km", "tpi_28km", "z_site", "land_frac_28km",
-       "std_28km", "relief_84km", "relief_5km"]
+KEY = [
+    "relief_28km",
+    "std_84km",
+    "tpi_28km",
+    "z_site",
+    "land_frac_28km",
+    "std_28km",
+    "relief_84km",
+    "relief_5km",
+]
 
 
 def main():
@@ -53,19 +62,16 @@ def main():
     args = ap.parse_args()
     regions = args.regions
     OUT.mkdir(parents=True, exist_ok=True)
-    meta = {c: pd.read_csv(CACHE / f"{c}_train" / "meta.csv", dtype={"ID": str})
-            for c in regions}
-    test = {c: pd.read_csv(CACHE / f"{c}_test" / "meta.csv", dtype={"ID": str})
-            for c in regions}
+    meta = {c: pd.read_csv(CACHE / f"{c}_train" / "meta.csv", dtype={"ID": str}) for c in regions}
+    test = {c: pd.read_csv(CACHE / f"{c}_test" / "meta.csv", dtype={"ID": str}) for c in regions}
     pd.set_option("display.width", 220)
 
-    print(f"{'='*104}\n### Physiography by region (training fleets)\n")
-    summary = pd.DataFrame({
-        c: meta[c][KEY].median() for c in regions
-    }).T
+    print(f"{'=' * 104}\n### Physiography by region (training fleets)\n")
+    summary = pd.DataFrame({c: meta[c][KEY].median() for c in regions}).T
     summary.insert(0, "n_units", [len(meta[c]) for c in regions])
-    summary.insert(1, "n_unique_loc",
-                   [meta[c][["lon", "lat"]].drop_duplicates().shape[0] for c in regions])
+    summary.insert(
+        1, "n_unique_loc", [meta[c][["lon", "lat"]].drop_duplicates().shape[0] for c in regions]
+    )
     print(summary.round(2).to_string())
     print("\n  n_unique_loc matters: German rows are postcode centroids and British")
     print("  rows are farm generation split across turbines, so the number of")
@@ -90,21 +96,28 @@ def main():
         # chunked to keep the pairwise distance matrix small
         nn = np.empty(len(B))
         for i in range(0, len(B), 512):
-            d = np.linalg.norm(B[i:i + 512, None, :] - A[None, :, :], axis=2)
-            nn[i:i + 512] = d.min(axis=1)
-        joint_rows.append(dict(holdout=holdout, n_test=len(te),
-                               joint_covered=float(inside_all.mean()),
-                               nn_median=float(np.median(nn)),
-                               nn_p90=float(np.percentile(nn, 90)),
-                               nn_max=float(nn.max())))
+            d = np.linalg.norm(B[i : i + 512, None, :] - A[None, :, :], axis=2)
+            nn[i : i + 512] = d.min(axis=1)
+        joint_rows.append(
+            dict(
+                holdout=holdout,
+                n_test=len(te),
+                joint_covered=float(inside_all.mean()),
+                nn_median=float(np.median(nn)),
+                nn_p90=float(np.percentile(nn, 90)),
+                nn_max=float(nn.max()),
+            )
+        )
 
     cov = pd.DataFrame(rows)
     joint = pd.DataFrame(joint_rows)
     cov.to_csv(OUT / f"d5_per_feature_{args.tag}.csv", index=False)
     joint.to_csv(OUT / f"d5_joint_{args.tag}.csv", index=False)
 
-    print(f"\n{'='*104}\n### Per-feature coverage: share of holdout units inside the "
-          f"training 1st-99th percentile range\n")
+    print(
+        f"\n{'=' * 104}\n### Per-feature coverage: share of holdout units inside the "
+        f"training 1st-99th percentile range\n"
+    )
     piv = cov.pivot(index="feature", columns="holdout", values="covered")
     piv = piv.loc[[f for f in TERRAIN_FEATURES]]
     print(piv.round(3).to_string())
@@ -113,7 +126,7 @@ def main():
         f = piv[h].idxmin()
         print(f"    {h}: {f} ({piv.loc[f, h]:.1%} of units in range)")
 
-    print(f"\n{'='*104}\n### Joint coverage and distance to the nearest training site\n")
+    print(f"\n{'=' * 104}\n### Joint coverage and distance to the nearest training site\n")
     print(joint.round(3).to_string(index=False))
     print("\n  joint_covered = share of holdout units inside the training range on")
     print("  EVERY terrain feature at once. nn_* are distances in standardised")

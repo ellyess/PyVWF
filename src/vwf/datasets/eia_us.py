@@ -43,6 +43,7 @@ Known limitations, stated up front (also in the join report):
   history has no clean EIA-860 analogue at monthly resolution: a named
   follow-up).
 """
+
 from __future__ import annotations
 
 import calendar
@@ -88,10 +89,7 @@ def _to_number(series: pd.Series) -> pd.Series:
     error.
     """
     cleaned = (
-        series.astype(str)
-        .str.replace(",", "", regex=False)
-        .str.strip()
-        .replace({".": "", "": ""})
+        series.astype(str).str.replace(",", "", regex=False).str.strip().replace({".": "", "": ""})
     )
     return pd.to_numeric(cleaned, errors="coerce")
 
@@ -126,22 +124,17 @@ def wind_generation_from_eia923(page1: pd.DataFrame) -> pd.DataFrame:
     # Frequency", "Netgen\nJanuary". Collapse any whitespace run to a single
     # space so the contract below reads the same on the real file and on the
     # single-line synthetic fixtures.
-    page1 = page1.rename(
-        columns={c: " ".join(str(c).split()) for c in page1.columns}
-    )
+    page1 = page1.rename(columns={c: " ".join(str(c).split()) for c in page1.columns})
 
     required = {"Plant Id", "Reported Fuel Type Code", "YEAR"}
     missing = required - set(page1.columns)
     if missing:
         raise ValueError(f"EIA-923 Page 1 is missing required columns {sorted(missing)}")
 
-    netgen_cols = {
-        m: _find_netgen_column(page1.columns, name) for m, name in _MONTH_NAME.items()
-    }
+    netgen_cols = {m: _find_netgen_column(page1.columns, name) for m, name in _MONTH_NAME.items()}
 
     wind = page1[
-        page1["Reported Fuel Type Code"].astype(str).str.strip().str.upper()
-        == WIND_FUEL_CODE
+        page1["Reported Fuel Type Code"].astype(str).str.strip().str.upper() == WIND_FUEL_CODE
     ].copy()
     wind["ID"] = _plant_id(wind["Plant Id"])
     wind["year"] = pd.to_numeric(wind["YEAR"], errors="coerce").astype("Int64")
@@ -167,16 +160,11 @@ def wind_generation_from_eia923(page1: pd.DataFrame) -> pd.DataFrame:
     flags = long.groupby(["ID", "year"])["respondent_frequency"].nunique()
     if (flags > 1).any():
         bad = flags[flags > 1].index.tolist()
-        raise ValueError(
-            f"plant-years carry conflicting respondent frequencies: {bad}"
-        )
+        raise ValueError(f"plant-years carry conflicting respondent frequencies: {bad}")
 
-    grouped = (
-        long.groupby(["ID", "year", "month"], as_index=False)
-        .agg(
-            net_gen_mwh=("net_gen_mwh", "sum"),
-            respondent_frequency=("respondent_frequency", "first"),
-        )
+    grouped = long.groupby(["ID", "year", "month"], as_index=False).agg(
+        net_gen_mwh=("net_gen_mwh", "sum"),
+        respondent_frequency=("respondent_frequency", "first"),
     )
     # A plant-year present only as all-missing melts to NaN sums via min_count
     # semantics; keep them (finalisation makes them NaN CF) but a genuine 0 is
@@ -326,7 +314,9 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
         model = ""
         if "t_model" in group.columns and group["t_model"].notna().any():
             manu = group.get("t_manu", pd.Series("", index=group.index)).fillna("")
-            label = (manu.astype(str).str.strip() + " " + group["t_model"].astype(str).str.strip()).str.strip()
+            label = (
+                manu.astype(str).str.strip() + " " + group["t_model"].astype(str).str.strip()
+            ).str.strip()
             by_cap = (
                 pd.DataFrame({"label": label, "cap": group["t_cap"].fillna(0.0)})
                 .groupby("label")["cap"]
@@ -350,9 +340,7 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def filter_to_bbox(
-    metadata: pd.DataFrame, bbox: tuple[float, float, float, float]
-) -> pd.DataFrame:
+def filter_to_bbox(metadata: pd.DataFrame, bbox: tuple[float, float, float, float]) -> pd.DataFrame:
     """Drop plants outside the reanalysis domain.
 
     EIA-923/860 cover every US state, but a region's ERA5 box does not: the
@@ -372,16 +360,11 @@ def filter_to_bbox(
         Metadata restricted to plants inside the box (inclusive edges).
     """
     lon_min, lon_max, lat_min, lat_max = bbox
-    inside = (
-        metadata["lon"].between(lon_min, lon_max)
-        & metadata["lat"].between(lat_min, lat_max)
-    )
+    inside = metadata["lon"].between(lon_min, lon_max) & metadata["lat"].between(lat_min, lat_max)
     return metadata[inside].reset_index(drop=True)
 
 
-def assign_curves_from_library(
-    metadata: pd.DataFrame, *, fallback_model: str
-) -> pd.DataFrame:
+def assign_curves_from_library(metadata: pd.DataFrame, *, fallback_model: str) -> pd.DataFrame:
     """Match each plant to a real power curve by specific power.
 
     The US fleet spans roughly 200-390 W/m2 of specific power, so a single

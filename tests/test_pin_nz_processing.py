@@ -18,6 +18,7 @@ Three layers:
   production files, when those downloads are present. They are not
   redistributable, so this layer skips in CI.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -70,6 +71,7 @@ def _exact(got: pd.DataFrame, want: pd.DataFrame, **kw) -> None:
 # The helpers, on the committed curated tables
 # --------------------------------------------------------------------------
 
+
 def test_gen_code_map_on_the_curated_farms():
     farms, _, _ = emi.load_curated_tables(CURATION)
     got = pd.DataFrame(sorted(emi.gen_code_map(farms).items()), columns=["gen_code", "ID"])
@@ -94,25 +96,36 @@ def test_mask_from_windows_on_the_curated_windows():
 # The whole script, on synthetic Generation_MD files
 # --------------------------------------------------------------------------
 
-def _generation_md(year: int, month: int, rows: list[tuple[str, str, int]],
-                   *, date_header: str = "Trading_Date") -> pd.DataFrame:
+
+def _generation_md(
+    year: int, month: int, rows: list[tuple[str, str, int]], *, date_header: str = "Trading_Date"
+) -> pd.DataFrame:
     """One month of synthetic Generation_MD.
 
     ``rows`` is (Gen_Code, Fuel_Code, days of data from the 1st). Every
     trading period of a normal 48-period day gets a deterministic kWh value;
     TP49 and TP50 are empty, as in the real files.
     """
-    days = pd.date_range(f"{year}-{month:02d}-01", periods=pd.Period(f"{year}-{month:02d}").days_in_month)
+    days = pd.date_range(
+        f"{year}-{month:02d}-01", periods=pd.Period(f"{year}-{month:02d}").days_in_month
+    )
     records = []
     for k, (gen_code, fuel, n_days) in enumerate(rows):
         for d in days[:n_days]:
             values = {f"TP{tp}": 1000.0 * (k + 1) + 10.0 * d.day + tp for tp in range(1, 49)}
             values.update({"TP49": np.nan, "TP50": np.nan})
-            records.append({
-                "Site_Code": "SYN", "POC_Code": "SYN0000", "Nwk_Code": "SYN",
-                "Gen_Code": gen_code, "Fuel_Code": fuel, "Tech_Code": fuel,
-                date_header: d.strftime("%Y-%m-%d"), **values,
-            })
+            records.append(
+                {
+                    "Site_Code": "SYN",
+                    "POC_Code": "SYN0000",
+                    "Nwk_Code": "SYN",
+                    "Gen_Code": gen_code,
+                    "Fuel_Code": fuel,
+                    "Tech_Code": fuel,
+                    date_header: d.strftime("%Y-%m-%d"),
+                    **values,
+                }
+            )
     return pd.DataFrame.from_records(records)
 
 
@@ -120,18 +133,27 @@ def _write_raw(raw: Path) -> None:
     raw.mkdir()
     # January: both fuel spellings, a mixed-case Gen_Code, a hydro row the
     # fuel filter must drop, and the documented absentee.
-    _generation_md(2021, 1, [
-        ("twf_12", "Wind", 31),
-        ("TE_APITI", "WIN", 31),
-        ("aratiatia", "Hydro", 31),
-        ("mahinerangi", "Wind", 31),
-    ]).to_csv(raw / "202101_Generation_MD.csv", index=False)
+    _generation_md(
+        2021,
+        1,
+        [
+            ("twf_12", "Wind", 31),
+            ("TE_APITI", "WIN", 31),
+            ("aratiatia", "Hydro", 31),
+            ("mahinerangi", "Wind", 31),
+        ],
+    ).to_csv(raw / "202101_Generation_MD.csv", index=False)
     # February: the lower-case header the 2019 files use, and a farm with too
     # few days to pass the coverage screen.
-    _generation_md(2021, 2, [
-        ("twf_12", "Wind", 28),
-        ("te_apiti", "Wind", 20),
-    ], date_header="Trading_date").to_csv(raw / "202102_Generation_MD.csv", index=False)
+    _generation_md(
+        2021,
+        2,
+        [
+            ("twf_12", "Wind", 28),
+            ("te_apiti", "Wind", 20),
+        ],
+        date_header="Trading_date",
+    ).to_csv(raw / "202102_Generation_MD.csv", index=False)
 
 
 def _run_script(argv: list[str]) -> None:
@@ -146,12 +168,27 @@ def _run_script(argv: list[str]) -> None:
 def test_script_on_synthetic_generation_md(tmp_path):
     raw, out = tmp_path / "raw", tmp_path / "out"
     _write_raw(raw)
-    _run_script(["--raw", str(raw), "--configs", str(CURATION),
-                 "--years", "2021", "2021", "--out", str(out)])
+    _run_script(
+        [
+            "--raw",
+            str(raw),
+            "--configs",
+            str(CURATION),
+            "--years",
+            "2021",
+            "2021",
+            "--out",
+            str(out),
+        ]
+    )
 
-    _exact(pd.read_csv(out / "nz_obs.csv", dtype={"ID": str}, float_precision="round_trip"),
-           _read("synthetic_nz_obs.csv"))
-    _exact(pd.read_csv(out / "nz_build_mask.csv", dtype={"ID": str}), _read("mask_from_windows.csv"))
+    _exact(
+        pd.read_csv(out / "nz_obs.csv", dtype={"ID": str}, float_precision="round_trip"),
+        _read("synthetic_nz_obs.csv"),
+    )
+    _exact(
+        pd.read_csv(out / "nz_build_mask.csv", dtype={"ID": str}), _read("mask_from_windows.csv")
+    )
 
     # The metadata contract, minus the curve keys, which depend on the input
     # root's curve library rather than on the NZ logic.
@@ -163,19 +200,34 @@ def test_script_refuses_an_unmapped_wind_gen_code(tmp_path):
     raw = tmp_path / "raw"
     raw.mkdir()
     _generation_md(2021, 1, [("brand_new_farm", "Wind", 31)]).to_csv(
-        raw / "202101_Generation_MD.csv", index=False)
+        raw / "202101_Generation_MD.csv", index=False
+    )
     with pytest.raises(SystemExit, match="brand_new_farm"):
-        _run_script(["--raw", str(raw), "--configs", str(CURATION),
-                     "--years", "2021", "2021", "--out", str(tmp_path / "out")])
+        _run_script(
+            [
+                "--raw",
+                str(raw),
+                "--configs",
+                str(CURATION),
+                "--years",
+                "2021",
+                "2021",
+                "--out",
+                str(tmp_path / "out"),
+            ]
+        )
 
 
 # --------------------------------------------------------------------------
 # The whole script, on the real EMI downloads (local only)
 # --------------------------------------------------------------------------
 
+
 @pytest.mark.realdata
-@pytest.mark.skipif(not any(RAW_EMI.glob("*_Generation_MD.csv")),
-                    reason="the EMI Generation_MD downloads are local only")
+@pytest.mark.skipif(
+    not any(RAW_EMI.glob("*_Generation_MD.csv")),
+    reason="the EMI Generation_MD downloads are local only",
+)
 def test_script_reproduces_the_production_files(tmp_path):
     out = tmp_path / "out"
     _run_script(["--raw", str(RAW_EMI), "--configs", str(CURATION), "--out", str(out)])

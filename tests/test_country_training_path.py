@@ -12,6 +12,7 @@ turbine-level path in ways nothing detected:
 
 See docs/findings/method-country-level.md.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -57,6 +58,7 @@ def grid():
 # Fleet preparation
 # ---------------------------------------------------------------------------
 
+
 def test_unparseable_fields_are_dropped(grid, curves):
     # pandas 3 raises rather than upcasting a float column in place, so widen
     # it first. The point of the test is what prepare_country_fleet does with
@@ -91,6 +93,7 @@ def test_preparation_does_not_mutate_the_caller(grid, curves):
 # Monthly aggregation
 # ---------------------------------------------------------------------------
 
+
 def month_of_hours(gen_mw, cap_mw):
     idx = pd.date_range("2015-01-01", periods=len(gen_mw), freq="h", tz="UTC")
     return pd.DataFrame(
@@ -123,9 +126,7 @@ def test_constant_capacity_leaves_the_two_definitions_equal():
     rng = np.random.default_rng(0)
     gen = rng.uniform(0, 900, n)
     obs = month_of_hours(gen, np.full(n, 1000.0))
-    assert country_cf_to_monthly(obs)["obs"].iloc[0] == pytest.approx(
-        obs["capacity_factor"].mean()
-    )
+    assert country_cf_to_monthly(obs)["obs"].iloc[0] == pytest.approx(obs["capacity_factor"].mean())
 
 
 def test_falls_back_to_the_ratio_when_generation_is_absent():
@@ -156,6 +157,7 @@ def test_mixed_offset_index_is_handled():
 # ---------------------------------------------------------------------------
 # Cluster resolution
 # ---------------------------------------------------------------------------
+
 
 def test_one_cluster_collapses_the_country(grid):
     out = assign_country_clusters(grid, 1)
@@ -190,6 +192,7 @@ def test_metadata_without_clusters_is_refused(grid):
 # ---------------------------------------------------------------------------
 # Weighted cluster means
 # ---------------------------------------------------------------------------
+
 
 def paired(grid, sims, obs=0.22):
     """The frame _country_cluster_means sees: simulations already joined to
@@ -240,6 +243,7 @@ def test_a_grid_with_no_capacities_at_all_still_works(grid):
 # ---------------------------------------------------------------------------
 # End to end through cluster_train_set
 # ---------------------------------------------------------------------------
+
 
 def test_single_cluster_fit_has_one_row_per_period(grid):
     # cluster_train_set joins the cluster and capacity itself, so it receives

@@ -21,6 +21,7 @@ Decisions baked into the finalisation, documented in the region config:
   the processing step. Any plant reaching training without a coordinate is a
   hard error, not a silent drop.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -60,9 +61,7 @@ class CENChileSource(ObservationSource):
     def __init__(self, country: str = "CL") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

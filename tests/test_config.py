@@ -13,6 +13,7 @@ The fallback must *warn*. The bundled curves are real, but a fleet is matched
 to them by specific power rather than machine identity; the user has to know
 their turbines are being represented by class proxies.
 """
+
 from __future__ import annotations
 
 import os
@@ -36,6 +37,7 @@ def no_input_root(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # reference_file resolution
 # ---------------------------------------------------------------------------
+
 
 def test_reference_file_prefers_the_users_own_table(tmp_path, monkeypatch):
     """A local (possibly licensed, non-redistributable) power-curve library must
@@ -84,6 +86,7 @@ def test_reference_file_raises_for_an_unknown_table(no_input_root):
 # ---------------------------------------------------------------------------
 # The loaders that used to be cwd-dependent
 # ---------------------------------------------------------------------------
+
 
 def test_load_power_curves_works_outside_a_checkout(no_input_root):
     """Regression: this raised FileNotFoundError for every pip-installed user

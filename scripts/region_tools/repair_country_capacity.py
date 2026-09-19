@@ -49,6 +49,7 @@ Usage:
     PYTHONPATH=src python scripts/region_tools/repair_country_capacity.py IE --dry-run
     PYTHONPATH=src python scripts/region_tools/repair_country_capacity.py IE --from-year 2017
 """
+
 from __future__ import annotations
 
 import argparse
@@ -100,8 +101,10 @@ def repair(path: Path, gwpt: pd.DataFrame, country: str, *, dry_run: bool) -> pd
 
     after = check_country_cf(out, f"{path.name} after", warn=False)
     print(f"\n{path.name}")
-    print(f"  capacity  {obs['capacity_mw'].min():.0f}-{obs['capacity_mw'].max():.0f} MW "
-          f"-> {out['capacity_mw'].min():.0f}-{out['capacity_mw'].max():.0f} MW")
+    print(
+        f"  capacity  {obs['capacity_mw'].min():.0f}-{obs['capacity_mw'].max():.0f} MW "
+        f"-> {out['capacity_mw'].min():.0f}-{out['capacity_mw'].max():.0f} MW"
+    )
     print(f"  mean CF   {before.mean_cf:.3f} -> {after.mean_cf:.3f}")
     print(f"  peak CF   {before.peak_cf:.3f} -> {after.peak_cf:.3f}")
     peaks = (out.groupby(out.index.year)["capacity_factor"].max()).round(2)

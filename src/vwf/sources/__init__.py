@@ -5,6 +5,7 @@ subclass :class:`ObservationSource`, decorate it with :func:`register`, and
 import the module so the decorator runs. See
 ``docs/guides/adding-an-adapter.md``.
 """
+
 from vwf.sources.base import ObservationSource, ObsLevel
 from vwf.sources.registry import (
     available_sources,

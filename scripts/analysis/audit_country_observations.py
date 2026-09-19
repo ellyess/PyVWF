@@ -11,6 +11,7 @@ Usage:
     PYTHONPATH=src python scripts/analysis/audit_country_observations.py
     PYTHONPATH=src python scripts/analysis/audit_country_observations.py --csv out.csv
 """
+
 from __future__ import annotations
 
 import argparse
@@ -77,9 +78,21 @@ def main() -> int:
         print("No country-level regions found.")
         return 0
 
-    columns = [c for c in ("label", "step_hours", "mean_cf", "peak_cf",
-                           "n_clipped", "frac_clipped", "longest_unchanged_years",
-                           "unchanged_span", "ok") if c in table.columns]
+    columns = [
+        c
+        for c in (
+            "label",
+            "step_hours",
+            "mean_cf",
+            "peak_cf",
+            "n_clipped",
+            "frac_clipped",
+            "longest_unchanged_years",
+            "unchanged_span",
+            "ok",
+        )
+        if c in table.columns
+    ]
     with pd.option_context("display.width", 220, "display.max_colwidth", 60):
         print(table[columns].to_string(index=False))
 
@@ -89,9 +102,11 @@ def main() -> int:
     # hour now passes, and passing silently is not the intent.
     noted = int(table.get("n_notes", pd.Series(dtype=int)).fillna(0).sum())
     warned = int(table.get("n_warnings", pd.Series(dtype=int)).fillna(0).sum())
-    print(f"\n{len(failures)} of {len(table)} series failed a gate; "
-          f"{warned} warning{'' if warned == 1 else 's'} and "
-          f"{noted} note{'' if noted == 1 else 's'} on series that passed.")
+    print(
+        f"\n{len(failures)} of {len(table)} series failed a gate; "
+        f"{warned} warning{'' if warned == 1 else 's'} and "
+        f"{noted} note{'' if noted == 1 else 's'} on series that passed."
+    )
     if len(failures):
         print()
         for _, row in failures.iterrows():

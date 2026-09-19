@@ -6,6 +6,7 @@ reanalysis follows the same schema the production loaders produce: an
 ``xarray.Dataset`` with ``time``/``lat``/``lon`` coordinates and ``wnd100m``
 (100 m wind speed) plus ``roughness`` (surface roughness z0) data variables.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -46,12 +47,18 @@ def reanalysis(grid):
 @pytest.fixture
 def make_reanalysis(grid):
     """Factory so individual tests can request custom-length reanalysis."""
+
     def _factory(n_hours=48, start="2020-01-01", mean_speed=8.0, z0=0.03, seed=0):
         times = pd.date_range(start, periods=n_hours, freq="h")
         return _make_reanalysis(
-            times, grid["lats"], grid["lons"],
-            mean_speed=mean_speed, z0=z0, seed=seed,
+            times,
+            grid["lats"],
+            grid["lons"],
+            mean_speed=mean_speed,
+            z0=z0,
+            seed=seed,
         )
+
     return _factory
 
 

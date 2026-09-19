@@ -7,6 +7,7 @@ the table's first column. These tests pin that fallback's identity, check the
 resolution record against what the simulation actually does, and check the
 driver writes it where the numbers are.
 """
+
 import json
 import warnings
 from importlib import resources
@@ -47,18 +48,21 @@ def synthetic_dk(tmp_path, monkeypatch):
 
 def _fleet(models, capacities=None, **extra):
     n = len(models)
-    return pd.DataFrame({
-        "ID": [f"u{i}" for i in range(n)],
-        "lat": [55.2 + 0.1 * i for i in range(n)],
-        "lon": [8.2 + 0.1 * i for i in range(n)],
-        "height": [100.0] * n,
-        "capacity": capacities if capacities is not None else [1000.0] * n,
-        "model": models,
-        **extra,
-    })
+    return pd.DataFrame(
+        {
+            "ID": [f"u{i}" for i in range(n)],
+            "lat": [55.2 + 0.1 * i for i in range(n)],
+            "lon": [8.2 + 0.1 * i for i in range(n)],
+            "height": [100.0] * n,
+            "capacity": capacities if capacities is not None else [1000.0] * n,
+            "model": models,
+            **extra,
+        }
+    )
 
 
 # --- the fallback's identity --------------------------------------------------
+
 
 def test_bundled_fallback_identity_is_pinned(bundled_curves):
     """The simulation's fallback, the country-grid default and the resolution
@@ -83,17 +87,15 @@ def test_the_log_matches_the_simulation(reanalysis, bundled_curves):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         _, cf_missing = wind.simulate_wind(reanalysis, missing, bundled_curves)
-    _, cf_reported = wind.simulate_wind(
-        reanalysis, _fleet([reported]), bundled_curves
-    )
+    _, cf_reported = wind.simulate_wind(reanalysis, _fleet([reported]), bundled_curves)
     pd.testing.assert_frame_equal(cf_missing, cf_reported)
 
 
 # --- the record itself --------------------------------------------------------
 
+
 def test_a_fully_resolved_fleet_records_no_substitution(bundled_curves):
-    res = curve_resolution(_fleet(["VestasV47_660kW_47", "NREL_Reference_5MW_126"]),
-                           bundled_curves)
+    res = curve_resolution(_fleet(["VestasV47_660kW_47", "NREL_Reference_5MW_126"]), bundled_curves)
     assert (res["status"] == "resolved").all()
     assert (res["curve_used"] == res["requested"]).all()
     assert (res["origin"] == "open").all()
@@ -132,30 +134,41 @@ def test_origin_is_decided_by_curve_values_not_names(bundled_curves):
     table = bundled_curves[["data$speed", "VestasV47_660kW_47"]].copy()
     table["Licensed.Model"] = table["VestasV47_660kW_47"] * 0.99
     table["VestasV47_660kW_47"] = table["VestasV47_660kW_47"] * 0.98
-    res = curve_resolution(
-        _fleet(["Licensed.Model", "VestasV47_660kW_47"]), table
-    ).set_index("requested")
+    res = curve_resolution(_fleet(["Licensed.Model", "VestasV47_660kW_47"]), table).set_index(
+        "requested"
+    )
     assert res.loc["Licensed.Model", "origin"] == "external"
     assert res.loc["VestasV47_660kW_47", "origin"] == "external"
 
 
 def test_assignment_is_read_from_the_metadata(bundled_curves):
-    fleet = _fleet(["VestasV47_660kW_47", "VestasV47_660kW_47"],
-                   model_source=["verified", "matched-scale-and-specific-power"])
+    fleet = _fleet(
+        ["VestasV47_660kW_47", "VestasV47_660kW_47"],
+        model_source=["verified", "matched-scale-and-specific-power"],
+    )
     res = curve_resolution(fleet, bundled_curves)
     assert res["assigned_by"].iloc[0] == "matched-scale-and-specific-power;verified"
-    assert curve_resolution(_fleet(["VestasV47_660kW_47"]), bundled_curves)[
-        "assigned_by"
-    ].iloc[0] == "as-given"
+    assert (
+        curve_resolution(_fleet(["VestasV47_660kW_47"]), bundled_curves)["assigned_by"].iloc[0]
+        == "as-given"
+    )
 
 
 # --- add_models records how it matched ---------------------------------------
 
+
 def _metadata(manufacturer, capacity, diameter):
-    return pd.DataFrame({
-        "ID": ["a"], "manufacturer": [manufacturer], "capacity": [capacity],
-        "diameter": [diameter], "height": [80.0], "lon": [9.0], "lat": [56.0],
-    })
+    return pd.DataFrame(
+        {
+            "ID": ["a"],
+            "manufacturer": [manufacturer],
+            "capacity": [capacity],
+            "diameter": [diameter],
+            "height": [80.0],
+            "lon": [9.0],
+            "lat": [56.0],
+        }
+    )
 
 
 def test_add_models_records_a_manufacturer_match():
@@ -175,6 +188,7 @@ def test_add_models_records_a_specific_power_only_match():
 
 # --- the driver writes it where the numbers are -------------------------------
 
+
 def test_driver_records_resolution_in_train_and_evaluate(synthetic_dk):
 
     spec = make_spec()
@@ -186,7 +200,8 @@ def test_driver_records_resolution_in_train_and_evaluate(synthetic_dk):
         res = pd.read_csv(run / "curve_resolution.csv")
         assert (res["status"] == "resolved").all()
         assert set(res["assigned_by"]) <= {
-            "fuzzy-manufacturer+specific-power", "specific-power-only"
+            "fuzzy-manufacturer+specific-power",
+            "specific-power-only",
         }
         manifest = json.loads((run / "run_manifest.json").read_text())
         assert manifest["curve_resolution"]["substituted_capacity_share"] == 0.0
@@ -197,34 +212,43 @@ def test_driver_records_resolution_in_train_and_evaluate(synthetic_dk):
 
 def test_driver_country_run_with_a_missing_model_is_recorded(synthetic_dk):
 
-    grid = pd.DataFrame({
-        "ID": ["g0", "g1", "g2", "g3"],
-        "lon": [8.1, 8.3, 9.2, 9.4],
-        "lat": [55.2, 55.4, 55.6, 55.8],
-        "height": [100.0] * 4,
-        "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
-        "model": ["Vestas.V90.3000"] * 4,
-        "cluster": [0, 0, 1, 1],
-        "type": ["onshore"] * 4,
-    })
+    grid = pd.DataFrame(
+        {
+            "ID": ["g0", "g1", "g2", "g3"],
+            "lon": [8.1, 8.3, 9.2, 9.4],
+            "lat": [55.2, 55.4, 55.6, 55.8],
+            "height": [100.0] * 4,
+            "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
+            "model": ["Vestas.V90.3000"] * 4,
+            "cluster": [0, 0, 1, 1],
+            "type": ["onshore"] * 4,
+        }
+    )
     idx = {
-        y: pd.date_range(f"{y}-01-01", f"{y}-12-31 23:00", freq="h", tz="UTC")
-        for y in (2015, 2016)
+        y: pd.date_range(f"{y}-01-01", f"{y}-12-31 23:00", freq="h", tz="UTC") for y in (2015, 2016)
     }
-    spec = make_spec(source="in-memory-country", obs_level="country",
-                     obs_unit="country", cluster_list=(2,))
+    spec = make_spec(
+        source="in-memory-country", obs_level="country", obs_unit="country", cluster_list=(2,)
+    )
     out = synthetic_dk["root"] / "cl"
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         train_dir = run_train(
-            spec, out, run_name="t",
-            source=InMemoryCountrySource(grid, pd.DataFrame({"capacity_factor": 0.2},
-                                                            index=idx[2015])),
+            spec,
+            out,
+            run_name="t",
+            source=InMemoryCountrySource(
+                grid, pd.DataFrame({"capacity_factor": 0.2}, index=idx[2015])
+            ),
         )
         eval_dir = run_evaluate(
-            spec, train_dir, out, run_name="e",
-            source=InMemoryCountrySource(grid, pd.DataFrame({"capacity_factor": 0.2},
-                                                            index=idx[2016])),
+            spec,
+            train_dir,
+            out,
+            run_name="e",
+            source=InMemoryCountrySource(
+                grid, pd.DataFrame({"capacity_factor": 0.2}, index=idx[2016])
+            ),
         )
 
     metrics = pd.read_csv(eval_dir / "metrics.csv")
@@ -232,9 +256,7 @@ def test_driver_country_run_with_a_missing_model_is_recorded(synthetic_dk):
     res = pd.read_csv(eval_dir / "curve_resolution.csv")
     assert res["curve_used"].tolist() == [BUNDLED_FALLBACK]
     manifest = json.loads((eval_dir / "run_manifest.json").read_text())
-    assert manifest["curve_resolution"]["substitutions"] == {
-        "Vestas.V90.3000": BUNDLED_FALLBACK
-    }
+    assert manifest["curve_resolution"]["substitutions"] == {"Vestas.V90.3000": BUNDLED_FALLBACK}
 
 
 def test_driver_transfer_records_resolution(synthetic_dk):
@@ -243,11 +265,13 @@ def test_driver_transfer_records_resolution(synthetic_dk):
     target_spec = make_spec()
     out = synthetic_dk["root"] / "tr"
     train_dir = run_train(
-        source_spec, out, mode="onshore", run_name="t",
+        source_spec,
+        out,
+        mode="onshore",
+        run_name="t",
         source=get_source("european-turbine", "DK"),
     )
-    tr_dir = run_transfer(source_spec, train_dir, target_spec, out,
-                          mode="onshore", run_name="x")
+    tr_dir = run_transfer(source_spec, train_dir, target_spec, out, mode="onshore", run_name="x")
     assert (tr_dir / "curve_resolution.csv").is_file()
     metrics = pd.read_csv(tr_dir / "metrics.csv")
     assert (metrics["substituted_capacity_share"] == 0.0).all()

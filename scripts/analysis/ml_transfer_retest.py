@@ -11,6 +11,7 @@ runs at commit 8a032d6) and input/reference/terrain/etopo_global.nc.
 
 Run: /opt/anaconda3/bin/python scripts/analysis/ml_transfer_retest.py
 """
+
 from pathlib import Path
 
 import pandas as pd
@@ -67,14 +68,18 @@ def terrain_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def run_suite(df, label):
-    print(f"\n{'='*70}\n### {label}  (n={len(df)})")
+    print(f"\n{'=' * 70}\n### {label}  (n={len(df)})")
     # normalise lon/lat over the pooled dataset (cosmetic for trees)
     for c in ("lon", "lat"):
         df[f"{c}_norm"] = (df[c] - df[c].min()) / (df[c].max() - df[c].min())
     df = terrain_features(df)
     print("\nPer-region target stats:")
-    print(df.groupby("region")[["scalar", "offset"]]
-            .agg(["mean", "std", "count"]).round(3).to_string())
+    print(
+        df.groupby("region")[["scalar", "offset"]]
+        .agg(["mean", "std", "count"])
+        .round(3)
+        .to_string()
+    )
     for target in ("scalar", "offset"):
         vb = variance_decomposition(df, target)
         print(f"\nT5 {target}: between-region variance share = {vb:.1%}")
@@ -87,13 +92,14 @@ def run_suite(df, label):
             print(r.round(3).to_string(index=False))
     for target in ("scalar", "offset"):
         m, sd, mae = random_cv(df, SET_A, target)
-        print(f"\nT4 random 5-fold CV SetA [{target}]: "
-              f"R2 = {m:.3f} ± {sd:.3f}, MAE = {mae:.3f}")
+        print(f"\nT4 random 5-fold CV SetA [{target}]: R2 = {m:.3f} ± {sd:.3f}, MAE = {mae:.3f}")
     # gate check on T1 scalar
     t1 = results[("T1 SetA", "scalar")]
     n_pos = int((t1.r2_mean > 0).sum())
-    print(f"\nGATE (T1 scalar, primary set only): {n_pos}/5 regions R2>0 -> "
-          f"{'POSITIVE' if n_pos >= 3 else 'NEGATIVE result stands'}")
+    print(
+        f"\nGATE (T1 scalar, primary set only): {n_pos}/5 regions R2>0 -> "
+        f"{'POSITIVE' if n_pos >= 3 else 'NEGATIVE result stands'}"
+    )
     return df, results
 
 

@@ -18,6 +18,7 @@ is where this repository keeps anything now. Those are parameters here, with no
 defaults, so a caller states where its files are rather than discovering that a
 default points nowhere.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -78,12 +79,13 @@ def correction_geodataframe(
         if column is None:
             raise ValueError(
                 f"a time slice {time_slice!r} was asked for and the factors table has "
-                f"none of {list(TIME_COLUMNS)}")
+                f"none of {list(TIME_COLUMNS)}"
+            )
         available = sorted(factors[column].astype(str).unique())
         if time_slice not in available:
             raise ValueError(
-                f"time slice {time_slice!r} is not in the {column!r} column; "
-                f"it holds {available}")
+                f"time slice {time_slice!r} is not in the {column!r} column; it holds {available}"
+            )
         factors = factors[factors[column].astype(str) == time_slice]
 
     factors = factors.assign(cluster=factors["cluster"].astype(int))
@@ -95,7 +97,8 @@ def correction_geodataframe(
             f"the two files describe different fits: {len(only_geoms)} clusters have a "
             f"geometry and no factors {only_geoms[:5]}, {len(only_factors)} have factors "
             f"and no geometry {only_factors[:5]}. A left join would have mapped the "
-            "first as missing values and dropped the second.")
+            "first as missing values and dropped the second."
+        )
 
     joined = geoms.merge(factors, on="cluster", how="left")
     if output_path is not None:
@@ -103,7 +106,8 @@ def correction_geodataframe(
         drivers = {".geojson": "GeoJSON", ".gpkg": "GPKG", ".shp": "ESRI Shapefile"}
         if out.suffix not in drivers:
             raise ValueError(
-                f"unsupported output suffix {out.suffix!r}; use one of {list(drivers)}")
+                f"unsupported output suffix {out.suffix!r}; use one of {list(drivers)}"
+            )
         out.parent.mkdir(parents=True, exist_ok=True)
         joined.to_file(out, driver=drivers[out.suffix])
     return joined
@@ -137,12 +141,14 @@ def country_correction_geodataframes(
             empty result that reads as a row with no corrections.
     """
     factors_dir, geometry = Path(factors_dir), Path(geometry_file)
-    tables = sorted(factors_dir.glob(f"{country}_factors_*.csv")) or \
-        sorted(factors_dir.glob("factors_*.csv"))
+    tables = sorted(factors_dir.glob(f"{country}_factors_*.csv")) or sorted(
+        factors_dir.glob("factors_*.csv")
+    )
     if not tables:
         raise ValueError(
             f"no factors table for {country} in {factors_dir}; looked for "
-            f"'{country}_factors_*.csv' and 'factors_*.csv'")
+            f"'{country}_factors_*.csv' and 'factors_*.csv'"
+        )
 
     out: dict[str, gpd.GeoDataFrame] = {}
     for table in tables:
@@ -155,7 +161,9 @@ def country_correction_geodataframes(
         if output_dir is not None:
             destination = Path(output_dir) / country.lower() / f"{table.stem}.geojson"
         out[table.stem] = correction_geodataframe(
-            table, geometry,
+            table,
+            geometry,
             time_slice=FIXED_SLICE if column == "fixed" else None,
-            output_path=destination)
+            output_path=destination,
+        )
     return out

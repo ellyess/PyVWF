@@ -1,4 +1,5 @@
 """EntsoeFileSource: file-backed country-level loading (D1 wiring)."""
+
 import pandas as pd
 import pytest
 
@@ -41,9 +42,7 @@ def country_layout(tmp_path):
 def test_registered():
     assert "entsoe-country" in available_sources()
     # Not auto-resolvable: constructed explicitly, so get_source needs its args.
-    src = get_source(
-        "entsoe-country", "ZZ", "train", (2015, 2019), 2023
-    )
+    src = get_source("entsoe-country", "ZZ", "train", (2015, 2019), 2023)
     assert isinstance(src, EntsoeFileSource)
 
 

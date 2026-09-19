@@ -11,6 +11,7 @@ checks the call they receive, which is the call the ``sys.argv`` version made.
 A driver that needs an optional dependency to import is skipped where that
 dependency is missing.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -29,167 +30,357 @@ SHAPES = Path("input/reference/shapes")
 # script: [(argv, (entry function, positional args, keyword args)), ...]
 RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
     "scripts/analysis/baseline_bootstrap.py": [
-        (["DK", "output/curve_library_study_2026-09-11/baseline_bootstrap"],
-         ("main", ("DK", "output/curve_library_study_2026-09-11/baseline_bootstrap"),
-          {"backfill": BACKFILL})),
+        (
+            ["DK", "output/curve_library_study_2026-09-11/baseline_bootstrap"],
+            (
+                "main",
+                ("DK", "output/curve_library_study_2026-09-11/baseline_bootstrap"),
+                {"backfill": BACKFILL},
+            ),
+        ),
     ],
     "scripts/analysis/common_row_rescore.py": [
-        (["CL", "output/curve_library_study_2026-09-11/common_row_rescore"],
-         ("main", ("CL", "output/curve_library_study_2026-09-11/common_row_rescore"),
-          {"backfill": BACKFILL})),
-        (["CL", "output/curve_library_study_2026-09-11/common_row_rescore", "--joint",
-          "output/validation/common_row_rerun_2026-09-11/CL/evaluate-2024-rerun", "B"],
-         ("joint", ("CL", "output/curve_library_study_2026-09-11/common_row_rescore",
-                    ["output/validation/common_row_rerun_2026-09-11/CL/evaluate-2024-rerun", "B"]),
-          {})),
+        (
+            ["CL", "output/curve_library_study_2026-09-11/common_row_rescore"],
+            (
+                "main",
+                ("CL", "output/curve_library_study_2026-09-11/common_row_rescore"),
+                {"backfill": BACKFILL},
+            ),
+        ),
+        (
+            [
+                "CL",
+                "output/curve_library_study_2026-09-11/common_row_rescore",
+                "--joint",
+                "output/validation/common_row_rerun_2026-09-11/CL/evaluate-2024-rerun",
+                "B",
+            ],
+            (
+                "joint",
+                (
+                    "CL",
+                    "output/curve_library_study_2026-09-11/common_row_rescore",
+                    ["output/validation/common_row_rerun_2026-09-11/CL/evaluate-2024-rerun", "B"],
+                ),
+                {},
+            ),
+        ),
     ],
     "scripts/analysis/eu_rerun_compare.py": [
-        (["SE", "output/eu_rerun_2026-09-12/analysis", "published=A", "oldfiles_derived=B", "new=C"],
-         ("main", ("SE", "output/eu_rerun_2026-09-12/analysis",
-                   ["published=A", "oldfiles_derived=B", "new=C"]), {"tag": "rerun"})),
-        (["DK", "output/curve_library_study_2026-09-13/analysis", "--tag=T1", "T0=A", "T1=B"],
-         ("main", ("DK", "output/curve_library_study_2026-09-13/analysis", ["T0=A", "T1=B"]),
-          {"tag": "T1"})),
+        (
+            [
+                "SE",
+                "output/eu_rerun_2026-09-12/analysis",
+                "published=A",
+                "oldfiles_derived=B",
+                "new=C",
+            ],
+            (
+                "main",
+                (
+                    "SE",
+                    "output/eu_rerun_2026-09-12/analysis",
+                    ["published=A", "oldfiles_derived=B", "new=C"],
+                ),
+                {"tag": "rerun"},
+            ),
+        ),
+        (
+            ["DK", "output/curve_library_study_2026-09-13/analysis", "--tag=T1", "T0=A", "T1=B"],
+            (
+                "main",
+                ("DK", "output/curve_library_study_2026-09-13/analysis", ["T0=A", "T1=B"]),
+                {"tag": "T1"},
+            ),
+        ),
     ],
     "scripts/analysis/extent_audit.py": [
         (["output/extent_audit_2026-09-12"], ("main", ("output/extent_audit_2026-09-12", []), {})),
-        (["output/extent_audit_2026-09-12", "DK", "FR"],
-         ("main", ("output/extent_audit_2026-09-12", ["DK", "FR"]), {})),
+        (
+            ["output/extent_audit_2026-09-12", "DK", "FR"],
+            ("main", ("output/extent_audit_2026-09-12", ["DK", "FR"]), {}),
+        ),
     ],
     "scripts/studies/scorecard/missing_value_audit.py": [
-        (["DK", "output/curve_library_study_2026-09-11/missing_value_audit"],
-         ("main", ("DK", "output/curve_library_study_2026-09-11/missing_value_audit"),
-          {"backfill": BACKFILL})),
+        (
+            ["DK", "output/curve_library_study_2026-09-11/missing_value_audit"],
+            (
+                "main",
+                ("DK", "output/curve_library_study_2026-09-11/missing_value_audit"),
+                {"backfill": BACKFILL},
+            ),
+        ),
     ],
     "scripts/studies/scorecard/off_curve_sensitivity.py": [
-        (["DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"],
-         ("main", ("DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"),
-          {"backfill": BACKFILL})),
+        (
+            ["DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"],
+            (
+                "main",
+                ("DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"),
+                {"backfill": BACKFILL},
+            ),
+        ),
     ],
     "scripts/studies/scorecard/unit_concentration.py": [
-        (["DK", "output/curve_library_study_2026-09-11/unit_concentration"],
-         ("main", ("DK", "output/curve_library_study_2026-09-11/unit_concentration"),
-          {"backfill": BACKFILL})),
+        (
+            ["DK", "output/curve_library_study_2026-09-11/unit_concentration"],
+            (
+                "main",
+                ("DK", "output/curve_library_study_2026-09-11/unit_concentration"),
+                {"backfill": BACKFILL},
+            ),
+        ),
     ],
     "scripts/studies/scorecard/training_objective_check.py": [
-        (["ES", "fixed", "4", "output/curve_library_study_2026-09-11/training_objective_check"],
-         ("main", ("ES", "fixed", "4", "output/curve_library_study_2026-09-11/training_objective_check"),
-          {"refresh": Path("output/validation/refresh_2026-08-24")})),
+        (
+            ["ES", "fixed", "4", "output/curve_library_study_2026-09-11/training_objective_check"],
+            (
+                "main",
+                (
+                    "ES",
+                    "fixed",
+                    "4",
+                    "output/curve_library_study_2026-09-11/training_objective_check",
+                ),
+                {"refresh": Path("output/validation/refresh_2026-08-24")},
+            ),
+        ),
     ],
     "scripts/studies/method-cluster-selection/cluster_selection_study.py": [
-        (["output/cluster_selection_2026-09-15"], ("main", ("output/cluster_selection_2026-09-15",), {})),
-        (["output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"],
-         ("main", ("output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"), {})),
+        (
+            ["output/cluster_selection_2026-09-15"],
+            ("main", ("output/cluster_selection_2026-09-15",), {}),
+        ),
+        (
+            ["output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"],
+            ("main", ("output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"), {}),
+        ),
     ],
     "scripts/studies/method-cluster-selection/cluster_selection_gaps.py": [
-        (["output/cluster_selection_2026-09-15", "UK offshore", "50"],
-         ("main", ("output/cluster_selection_2026-09-15", "UK offshore", "50"), {})),
+        (
+            ["output/cluster_selection_2026-09-15", "UK offshore", "50"],
+            ("main", ("output/cluster_selection_2026-09-15", "UK offshore", "50"), {}),
+        ),
     ],
     "scripts/studies/method-cluster-selection/cluster_sweep_cost.py": [
         # The mode is now passed explicitly; "all" is main's own default.
-        (["be", "output/cluster_sweep_cost_2026-09-15"],
-         ("main", ("be", "output/cluster_sweep_cost_2026-09-15", "all"), {"pool": POOL})),
-        (["dk", "output/cluster_sweep_cost_2026-09-15", "onshore"],
-         ("main", ("dk", "output/cluster_sweep_cost_2026-09-15", "onshore"), {"pool": POOL})),
+        (
+            ["be", "output/cluster_sweep_cost_2026-09-15"],
+            ("main", ("be", "output/cluster_sweep_cost_2026-09-15", "all"), {"pool": POOL}),
+        ),
+        (
+            ["dk", "output/cluster_sweep_cost_2026-09-15", "onshore"],
+            ("main", ("dk", "output/cluster_sweep_cost_2026-09-15", "onshore"), {"pool": POOL}),
+        ),
     ],
     "scripts/studies/method-correction-identifiability/correction_identifiability.py": [
-        (["output/identifiability_2026-09-16"],
-         ("main", ("output/identifiability_2026-09-16",), {"pool_path": POOL})),
+        (
+            ["output/identifiability_2026-09-16"],
+            ("main", ("output/identifiability_2026-09-16",), {"pool_path": POOL}),
+        ),
     ],
     "scripts/studies/method-correction-identifiability/loco_reference_wind.py": [
-        (["output/loco_reference_2026-09-16"],
-         ("main", ("output/loco_reference_2026-09-16",), {"pool_path": ROOT / POOL})),
+        (
+            ["output/loco_reference_2026-09-16"],
+            ("main", ("output/loco_reference_2026-09-16",), {"pool_path": ROOT / POOL}),
+        ),
     ],
     "scripts/studies/method-correction-identifiability/pivot_probe.py": [
-        (["output/pivot_probe_2026-09-16"],
-         ("main", ("output/pivot_probe_2026-09-16",),
-          {"selection": ROOT / "output/cluster_selection_2026-09-15",
-           "era5_dir": ROOT / "input/era5/EU_2026-09"})),
-        (["output/pivot_probe_2026-09-16", "DK", "UK"],
-         ("main", ("output/pivot_probe_2026-09-16", "DK", "UK"),
-          {"selection": ROOT / "output/cluster_selection_2026-09-15",
-           "era5_dir": ROOT / "input/era5/EU_2026-09"})),
+        (
+            ["output/pivot_probe_2026-09-16"],
+            (
+                "main",
+                ("output/pivot_probe_2026-09-16",),
+                {
+                    "selection": ROOT / "output/cluster_selection_2026-09-15",
+                    "era5_dir": ROOT / "input/era5/EU_2026-09",
+                },
+            ),
+        ),
+        (
+            ["output/pivot_probe_2026-09-16", "DK", "UK"],
+            (
+                "main",
+                ("output/pivot_probe_2026-09-16", "DK", "UK"),
+                {
+                    "selection": ROOT / "output/cluster_selection_2026-09-15",
+                    "era5_dir": ROOT / "input/era5/EU_2026-09",
+                },
+            ),
+        ),
     ],
     "scripts/studies/method-country-level/chapter_capacity_weights.py": [
-        (["output/chapter_capacity_weights_2026-09-16"],
-         ("main", ("output/chapter_capacity_weights_2026-09-16",),
-          {"runs": ROOT / "output/runs/turbine_grid",
-           "gwpt": ROOT / "input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx"})),
+        (
+            ["output/chapter_capacity_weights_2026-09-16"],
+            (
+                "main",
+                ("output/chapter_capacity_weights_2026-09-16",),
+                {
+                    "runs": ROOT / "output/runs/turbine_grid",
+                    "gwpt": ROOT
+                    / "input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx",
+                },
+            ),
+        ),
     ],
     "scripts/studies/manuscript-chapters-45/refit_control_points.py": [
-        (["output/refit_control_points_2026-09-15"],
-         ("main", ("output/refit_control_points_2026-09-15",), {"pool_path": POOL})),
-        (["output/refit_control_points_2026-09-15", "dk", "uk"],
-         ("main", ("output/refit_control_points_2026-09-15", "dk", "uk"), {"pool_path": POOL})),
+        (
+            ["output/refit_control_points_2026-09-15"],
+            ("main", ("output/refit_control_points_2026-09-15",), {"pool_path": POOL}),
+        ),
+        (
+            ["output/refit_control_points_2026-09-15", "dk", "uk"],
+            ("main", ("output/refit_control_points_2026-09-15", "dk", "uk"), {"pool_path": POOL}),
+        ),
     ],
     "scripts/studies/method-curve-library/curve_library_study.py": [
-        (["DK", "T1", "output/curve_library_study_2026-09-13/T1",
-          "output/curve_library_study_2026-09-13/tables/T1_overrides.csv"],
-         ("main", ("DK", "T1", "output/curve_library_study_2026-09-13/T1",
-                   "output/curve_library_study_2026-09-13/tables/T1_overrides.csv"), {})),
+        (
+            [
+                "DK",
+                "T1",
+                "output/curve_library_study_2026-09-13/T1",
+                "output/curve_library_study_2026-09-13/tables/T1_overrides.csv",
+            ],
+            (
+                "main",
+                (
+                    "DK",
+                    "T1",
+                    "output/curve_library_study_2026-09-13/T1",
+                    "output/curve_library_study_2026-09-13/tables/T1_overrides.csv",
+                ),
+                {},
+            ),
+        ),
     ],
     "scripts/studies/method-curve-library/curve_library_tables.py": [
-        (["output/curve_library_study_2026-09-13/tables"],
-         ("main", ("output/curve_library_study_2026-09-13/tables",
-                   (Path("input/reference/models.csv"),
-                    Path("input/combined/reference/models_with_library.csv"),
-                    Path("output/eu_rerun_2026-09-12/new"),
-                    Path("output/validation/refresh_2026-08-24"))), {})),
+        (
+            ["output/curve_library_study_2026-09-13/tables"],
+            (
+                "main",
+                (
+                    "output/curve_library_study_2026-09-13/tables",
+                    (
+                        Path("input/reference/models.csv"),
+                        Path("input/combined/reference/models_with_library.csv"),
+                        Path("output/eu_rerun_2026-09-12/new"),
+                        Path("output/validation/refresh_2026-08-24"),
+                    ),
+                ),
+                {},
+            ),
+        ),
     ],
     "scripts/studies/method-distance-mask/unmasked_surface_bands.py": [
-        (["output/unmasked_bands_2026-09-15"],
-         ("main", ("output/unmasked_bands_2026-09-15",),
-          {"pool_path": POOL, "shapes": SHAPES})),
+        (
+            ["output/unmasked_bands_2026-09-15"],
+            ("main", ("output/unmasked_bands_2026-09-15",), {"pool_path": POOL, "shapes": SHAPES}),
+        ),
     ],
     "scripts/studies/method-domain-split/domain_split_study.py": [
-        (["output/domain_split_2026-09-15"],
-         ("main", ("output/domain_split_2026-09-15",),
-          {"pool_path": POOL, "runs": RUNS, "shapes": SHAPES,
-           "era5": Path("input/era5/EU_2026-09"), "era5_chapter": Path("input/era5/EU")})),
+        (
+            ["output/domain_split_2026-09-15"],
+            (
+                "main",
+                ("output/domain_split_2026-09-15",),
+                {
+                    "pool_path": POOL,
+                    "runs": RUNS,
+                    "shapes": SHAPES,
+                    "era5": Path("input/era5/EU_2026-09"),
+                    "era5_chapter": Path("input/era5/EU"),
+                },
+            ),
+        ),
     ],
     "scripts/studies/method-eu-rerun/era5_overlap_check.py": [
-        (["output/era5_overlap_2026-09-12"],
-         ("main", ("output/era5_overlap_2026-09-12",),
-          {"old_dir": Path("input/era5/EU"), "new_dir": Path("input/era5/EU_2026-09")})),
+        (
+            ["output/era5_overlap_2026-09-12"],
+            (
+                "main",
+                ("output/era5_overlap_2026-09-12",),
+                {"old_dir": Path("input/era5/EU"), "new_dir": Path("input/era5/EU_2026-09")},
+            ),
+        ),
     ],
     "scripts/studies/method-hourly-resolution/hourly_resolution_test.py": [
-        ([], ("main", (), {"out": Path("output/hourly_test"),
-                           "train_run": Path("output/validation/cl_matched_2026-07-24/CL/train-matched"),
-                           "raw_cen": Path("input/raw/cen")})),
+        (
+            [],
+            (
+                "main",
+                (),
+                {
+                    "out": Path("output/hourly_test"),
+                    "train_run": Path("output/validation/cl_matched_2026-07-24/CL/train-matched"),
+                    "raw_cen": Path("input/raw/cen"),
+                },
+            ),
+        ),
     ],
     "scripts/studies/method-loco-interpolation/loco_interpolation.py": [
         (["output/loco_2026-09-13"], ("main", ("output/loco_2026-09-13",), {"pool_path": POOL})),
     ],
     "scripts/studies/method-national-single-cluster/national_single_cluster_study.py": [
-        (["output/national_single_cluster_2026-09-16"],
-         ("main", ("output/national_single_cluster_2026-09-16",), {})),
-        (["output/national_single_cluster_2026-09-16", "be", "fr"],
-         ("main", ("output/national_single_cluster_2026-09-16", "be", "fr"), {})),
+        (
+            ["output/national_single_cluster_2026-09-16"],
+            ("main", ("output/national_single_cluster_2026-09-16",), {}),
+        ),
+        (
+            ["output/national_single_cluster_2026-09-16", "be", "fr"],
+            ("main", ("output/national_single_cluster_2026-09-16", "be", "fr"), {}),
+        ),
     ],
     "scripts/studies/method-offshore-pool/offshore_pool_study.py": [
-        (["output/offshore_pool_2026-09-13"],
-         ("main", ("output/offshore_pool_2026-09-13",),
-          {"pool_path": POOL, "runs": RUNS, "shapes": SHAPES})),
+        (
+            ["output/offshore_pool_2026-09-13"],
+            (
+                "main",
+                ("output/offshore_pool_2026-09-13",),
+                {"pool_path": POOL, "runs": RUNS, "shapes": SHAPES},
+            ),
+        ),
     ],
     "scripts/studies/method-roughness-treatment/roughness_treatment_study.py": [
-        (["DK", "R0_DIR", "R1_DIR", "output/roughness_treatment_2026-09-12/analysis"],
-         ("main", ("DK", "R0_DIR", "R1_DIR", "output/roughness_treatment_2026-09-12/analysis"), {})),
+        (
+            ["DK", "R0_DIR", "R1_DIR", "output/roughness_treatment_2026-09-12/analysis"],
+            (
+                "main",
+                ("DK", "R0_DIR", "R1_DIR", "output/roughness_treatment_2026-09-12/analysis"),
+                {},
+            ),
+        ),
     ],
     "scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py": [
         ([], ("main", (), {"out": Path("output/min_cluster_size")})),
     ],
     "scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py": [
-        (["output/pool_training_2026-09-16"],
-         ("main", ("output/pool_training_2026-09-16",),
-          {"pool_path": ROOT / POOL, "runs": ROOT / RUNS,
-           "selection": ROOT / "output/cluster_selection_2026-09-15"})),
+        (
+            ["output/pool_training_2026-09-16"],
+            (
+                "main",
+                ("output/pool_training_2026-09-16",),
+                {
+                    "pool_path": ROOT / POOL,
+                    "runs": ROOT / RUNS,
+                    "selection": ROOT / "output/cluster_selection_2026-09-15",
+                },
+            ),
+        ),
     ],
     "scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py": [
-        (["output/regime_coverage_2026-09-16"],
-         ("main", ("output/regime_coverage_2026-09-16",),
-          {"pool_path": ROOT / POOL,
-           "loco_path": ROOT / "output/loco_reference_2026-09-16/loco_reference_wind.csv",
-           "refresh": ROOT / "output/validation/refresh_2026-08-24"})),
+        (
+            ["output/regime_coverage_2026-09-16"],
+            (
+                "main",
+                ("output/regime_coverage_2026-09-16",),
+                {
+                    "pool_path": ROOT / POOL,
+                    "loco_path": ROOT / "output/loco_reference_2026-09-16/loco_reference_wind.csv",
+                    "refresh": ROOT / "output/validation/refresh_2026-08-24",
+                },
+            ),
+        ),
     ],
 }
 
@@ -209,19 +400,18 @@ def load(script: str):
     return module
 
 
-CASES = [(script, argv, expected) for script, cases in RECORDED.items()
-         for argv, expected in cases]
+CASES = [(script, argv, expected) for script, cases in RECORDED.items() for argv, expected in cases]
 
 
-@pytest.mark.parametrize("script,argv,expected", CASES,
-                         ids=[f"{Path(s).stem}-{i}" for i, (s, _, _) in enumerate(CASES)])
+@pytest.mark.parametrize(
+    "script,argv,expected", CASES, ids=[f"{Path(s).stem}-{i}" for i, (s, _, _) in enumerate(CASES)]
+)
 def test_recorded_command_line_makes_the_recorded_call(script, argv, expected, monkeypatch):
     module = load(script)
     calls = []
     for name in ("main", "joint"):
         if hasattr(module, name):
-            monkeypatch.setattr(module, name,
-                                lambda *a, _n=name, **k: calls.append((_n, a, k)))
+            monkeypatch.setattr(module, name, lambda *a, _n=name, **k: calls.append((_n, a, k)))
     module.cli(argv)
     assert calls == [expected]
 

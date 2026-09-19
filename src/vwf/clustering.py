@@ -3,6 +3,7 @@
 This module provides spatial clustering of turbine coordinates for training and
 evaluation workflows.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -115,7 +116,7 @@ def repair_region_shape(geom, region_code: str, fleet_xy=None, coastline_path=No
     from shapely.ops import polygonize, unary_union
 
     _, offshore_shapes = load_region_shapes()
-    code_map = {'UK': 'GB', 'GB': 'UK'}
+    code_map = {"UK": "GB", "GB": "UK"}
     codes = {region_code, code_map.get(region_code, region_code)}
 
     minx, miny, maxx, maxy = geom.bounds
@@ -164,8 +165,7 @@ def repair_region_shape(geom, region_code: str, fleet_xy=None, coastline_path=No
     return unary_union([geom] + extra)
 
 
-def get_country_shape(country_code: str, cluster_mode: str = "onshore",
-                      repair: bool = False):
+def get_country_shape(country_code: str, cluster_mode: str = "onshore", repair: bool = False):
     """Get country or offshore shape by country code.
 
     Args:
@@ -184,7 +184,7 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore",
     country_shapes, offshore_shapes = load_region_shapes()
 
     # Map UK <-> GB
-    code_map = {'UK': 'GB', 'GB': 'UK'}
+    code_map = {"UK": "GB", "GB": "UK"}
     codes_to_try = [country_code, code_map.get(country_code, country_code)]
 
     if cluster_mode == "offshore":
@@ -197,7 +197,7 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore",
 
     # Try to find the country
     for code in codes_to_try:
-        matches = shapes_df[shapes_df['name'] == code]
+        matches = shapes_df[shapes_df["name"] == code]
         if not matches.empty:
             # Return the union of all geometries for this country (in case of multi-part)
             geom = matches.geometry.unary_union
@@ -210,6 +210,7 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore",
 
     warnings.warn(f"Country/offshore shape not found for {country_code} (mode={cluster_mode})")
     return None
+
 
 def _cluster_coords(frame, geographic: bool):
     """Coordinates to cluster on: raw degrees, or unit-sphere Cartesian.
@@ -230,9 +231,7 @@ def _cluster_coords(frame, geographic: bool):
     lon = np.radians(pd.to_numeric(frame["lon"], errors="coerce").to_numpy(float))
     if not geographic:
         return frame[["lat", "lon"]]
-    return np.column_stack(
-        [np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)]
-    )
+    return np.column_stack([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])
 
 
 def _merge_undersized(labels, centres, min_size):
@@ -327,12 +326,8 @@ def cluster_turbines(
     # k-sweep was measuring initialisation luck. k-means++ collapses that
     # spread to 0.0507-0.0513 and beats the luckiest random draw.
     kmeans = KMeans(
-            init="k-means++",
-            n_clusters = num_clu,
-            n_init = 10,
-            max_iter = 300,
-            random_state = random_state
-        )
+        init="k-means++", n_clusters=num_clu, n_init=10, max_iter=300, random_state=random_state
+    )
     sample_weight = None
     if weight_col is not None and weight_col in turb_info_train.columns:
         w = pd.to_numeric(turb_info_train[weight_col], errors="coerce").to_numpy(float)
@@ -369,11 +364,11 @@ def cluster_turbines(
         return np.array([remap[int(c)] for c in out]) if remap else out
 
     if train:
-        turb_info_train['cluster'] = _labels(turb_info_train)
+        turb_info_train["cluster"] = _labels(turb_info_train)
         return turb_info_train
     else:
         turb_info = args[0]
-        turb_info['cluster'] = _labels(turb_info)
+        turb_info["cluster"] = _labels(turb_info)
         return turb_info
 
 
@@ -416,21 +411,21 @@ def add_turbine_metadata(
     points = sampling_points.copy()
 
     # Add ID if not present
-    if 'ID' not in points.columns:
-        points['ID'] = [f'grid_{i:04d}' for i in range(len(points))]
+    if "ID" not in points.columns:
+        points["ID"] = [f"grid_{i:04d}" for i in range(len(points))]
 
     # Add turbine metadata
-    if 'height' not in points.columns:
-        points['height'] = default_height
+    if "height" not in points.columns:
+        points["height"] = default_height
 
-    if 'model' not in points.columns:
-        points['model'] = default_model
+    if "model" not in points.columns:
+        points["model"] = default_model
 
-    if 'capacity' not in points.columns:
-        points['capacity'] = default_capacity
+    if "capacity" not in points.columns:
+        points["capacity"] = default_capacity
 
-    if 'type' not in points.columns:
-        points['type'] = default_type
+    if "type" not in points.columns:
+        points["type"] = default_type
 
     return points
 
@@ -528,17 +523,17 @@ def create_sampling_points(
         if turbine_locs is None:
             raise ValueError("turbine_locs required for method='turbines'")
 
-        if not all(col in turbine_locs.columns for col in ['lat', 'lon']):
+        if not all(col in turbine_locs.columns for col in ["lat", "lon"]):
             raise ValueError("turbine_locs must have 'lat' and 'lon' columns")
 
         # Use actual turbine locations
-        points = turbine_locs[['lat', 'lon']].copy()
+        points = turbine_locs[["lat", "lon"]].copy()
 
         # Add weight (capacity if available, otherwise 1.0)
-        if 'capacity' in turbine_locs.columns:
-            points['weight'] = turbine_locs['capacity']
+        if "capacity" in turbine_locs.columns:
+            points["weight"] = turbine_locs["capacity"]
         else:
-            points['weight'] = 1.0
+            points["weight"] = 1.0
 
         # Optionally add metadata
         if add_metadata:
@@ -546,7 +541,7 @@ def create_sampling_points(
                 points,
                 default_height=default_height,
                 default_model=default_model,
-                default_capacity=default_capacity
+                default_capacity=default_capacity,
             )
 
         return points.reset_index(drop=True)
@@ -566,11 +561,13 @@ def create_sampling_points(
             for lon in lons:
                 point = Point(lon, lat)
                 if country_bounds.contains(point):
-                    grid_points.append({
-                        'lat': lat,
-                        'lon': lon,
-                        'weight': 1.0  # Equal weighting for grid points
-                    })
+                    grid_points.append(
+                        {
+                            "lat": lat,
+                            "lon": lon,
+                            "weight": 1.0,  # Equal weighting for grid points
+                        }
+                    )
 
         if len(grid_points) == 0:
             raise ValueError("No grid points within country_bounds. Check bounds and resolution.")
@@ -583,7 +580,7 @@ def create_sampling_points(
                 points,
                 default_height=default_height,
                 default_model=default_model,
-                default_capacity=default_capacity
+                default_capacity=default_capacity,
             )
 
         return points
@@ -597,7 +594,7 @@ def create_sampling_points(
 
         if n_random is None:
             # Calculate from resolution
-            n_random = int((maxx - minx) * (maxy - miny) / (resolution ** 2))
+            n_random = int((maxx - minx) * (maxy - miny) / (resolution**2))
 
         # Distinct name from the DataFrame `points` bound in the other branches:
         # this one accumulates dicts before being framed up below.
@@ -611,11 +608,7 @@ def create_sampling_points(
             point = Point(lon, lat)
 
             if country_bounds.contains(point):
-                sampled.append({
-                    'lat': lat,
-                    'lon': lon,
-                    'weight': 1.0
-                })
+                sampled.append({"lat": lat, "lon": lon, "weight": 1.0})
             attempts += 1
 
         if len(sampled) < n_random:
@@ -632,7 +625,7 @@ def create_sampling_points(
                 points_df,
                 default_height=default_height,
                 default_model=default_model,
-                default_capacity=default_capacity
+                default_capacity=default_capacity,
             )
 
         return points_df
@@ -703,16 +696,10 @@ def cluster_with_geometries(
     if method == "kmeans":
         # Standard KMeans clustering
         kmeans = KMeans(
-            n_clusters=num_clusters,
-            init="k-means++",
-            n_init=10,
-            max_iter=300,
-            random_state=42
+            n_clusters=num_clusters, init="k-means++", n_init=10, max_iter=300, random_state=42
         )
 
-        sampling_points['cluster'] = kmeans.fit_predict(
-            sampling_points[['lat', 'lon']]
-        )
+        sampling_points["cluster"] = kmeans.fit_predict(sampling_points[["lat", "lon"]])
 
         # Create Voronoi diagram from cluster centers for geometries
         centers = kmeans.cluster_centers_  # [lat, lon]
@@ -748,9 +735,9 @@ def cluster_with_geometries(
                 padding = max(lon_range, lat_range) * 0.3  # 30% padding
 
                 from shapely.geometry import box as create_box
+
                 envelope = create_box(
-                    min_lon - padding, min_lat - padding,
-                    max_lon + padding, max_lat + padding
+                    min_lon - padding, min_lat - padding, max_lon + padding, max_lat + padding
                 )
 
                 # Generate bounded Voronoi diagram
@@ -773,7 +760,7 @@ def cluster_with_geometries(
 
                     if polygon is None:
                         # Fallback: find closest polygon
-                        min_dist = float('inf')
+                        min_dist = float("inf")
                         for geom in voronoi_polys.geoms:
                             dist = center_point.distance(geom)
                             if dist < min_dist:
@@ -785,13 +772,11 @@ def cluster_with_geometries(
                         polygon = polygon.intersection(clip_boundary)
 
                     # Count points in this cluster
-                    n_points = (sampling_points['cluster'] == cluster_id).sum()
+                    n_points = (sampling_points["cluster"] == cluster_id).sum()
 
-                    cluster_geoms.append({
-                        'cluster': cluster_id,
-                        'geometry': polygon,
-                        'n_points': n_points
-                    })
+                    cluster_geoms.append(
+                        {"cluster": cluster_id, "geometry": polygon, "n_points": n_points}
+                    )
 
                 cluster_gdf = gpd.GeoDataFrame(cluster_geoms, crs="EPSG:4326")
                 voronoi_success = True
@@ -815,9 +800,9 @@ def cluster_with_geometries(
 
             cluster_geoms = []
             for cluster_id in range(num_clusters):
-                cluster_points = sampling_points[
-                    sampling_points['cluster'] == cluster_id
-                ][['lon', 'lat']].values
+                cluster_points = sampling_points[sampling_points["cluster"] == cluster_id][
+                    ["lon", "lat"]
+                ].values
 
                 if len(cluster_points) >= 3:
                     # Create convex hull
@@ -828,11 +813,13 @@ def cluster_with_geometries(
                     if clip_boundary is not None:
                         polygon = polygon.intersection(clip_boundary)
 
-                    cluster_geoms.append({
-                        'cluster': cluster_id,
-                        'geometry': polygon,
-                        'n_points': len(cluster_points)
-                    })
+                    cluster_geoms.append(
+                        {
+                            "cluster": cluster_id,
+                            "geometry": polygon,
+                            "n_points": len(cluster_points),
+                        }
+                    )
                 elif len(cluster_points) > 0:
                     # Single or two points - create small buffer
                     center_lon, center_lat = cluster_points.mean(axis=0)
@@ -842,11 +829,13 @@ def cluster_with_geometries(
                     if clip_boundary is not None:
                         polygon = polygon.intersection(clip_boundary)
 
-                    cluster_geoms.append({
-                        'cluster': cluster_id,
-                        'geometry': polygon,
-                        'n_points': len(cluster_points)
-                    })
+                    cluster_geoms.append(
+                        {
+                            "cluster": cluster_id,
+                            "geometry": polygon,
+                            "n_points": len(cluster_points),
+                        }
+                    )
 
             cluster_gdf = gpd.GeoDataFrame(cluster_geoms, crs="EPSG:4326")
 
@@ -856,25 +845,23 @@ def cluster_with_geometries(
         # Use predefined cluster assignments (e.g., for bidding zones)
         # Assumes sampling_points already has 'cluster' column
 
-        if 'cluster' not in sampling_points.columns:
+        if "cluster" not in sampling_points.columns:
             raise ValueError("For method='predefined', sampling_points must have 'cluster' column")
 
         # Create geometries from point clusters
         cluster_geoms = []
-        for cluster_id in sampling_points['cluster'].unique():
-            cluster_points = sampling_points[
-                sampling_points['cluster'] == cluster_id
-            ][['lon', 'lat']].values
+        for cluster_id in sampling_points["cluster"].unique():
+            cluster_points = sampling_points[sampling_points["cluster"] == cluster_id][
+                ["lon", "lat"]
+            ].values
 
             if len(cluster_points) >= 3:
                 multipoint = MultiPoint([(lon, lat) for lon, lat in cluster_points])
                 polygon = multipoint.convex_hull
 
-                cluster_geoms.append({
-                    'cluster': cluster_id,
-                    'geometry': polygon,
-                    'n_points': len(cluster_points)
-                })
+                cluster_geoms.append(
+                    {"cluster": cluster_id, "geometry": polygon, "n_points": len(cluster_points)}
+                )
 
         cluster_gdf = gpd.GeoDataFrame(cluster_geoms, crs="EPSG:4326")
 

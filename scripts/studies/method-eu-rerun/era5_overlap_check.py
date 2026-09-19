@@ -33,6 +33,7 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/method-eu-rerun/era5_overlap_check.py <out_dir>
 """
+
 import sys
 from pathlib import Path
 
@@ -67,8 +68,7 @@ def _new_month(year: int, month: int, new_dir: Path = NEW_DIR) -> xr.Dataset:
     return _standardise(xr.open_dataset(Path(new_dir) / f"era5_eu_2026-09_{year}_{month:02d}.nc"))
 
 
-def compare_month(year: int, month: int, old_dir: Path = OLD_DIR,
-                  new_dir: Path = NEW_DIR) -> dict:
+def compare_month(year: int, month: int, old_dir: Path = OLD_DIR, new_dir: Path = NEW_DIR) -> dict:
     """One month of one year, on the sampled cells of the overlap."""
     old = _old_year(year, old_dir)
     new = _new_month(year, month, new_dir)
@@ -82,8 +82,10 @@ def compare_month(year: int, month: int, old_dir: Path = OLD_DIR,
     n = new.sel(lat=lats, lon=lons).sel(time=times)
 
     row = {
-        "year": year, "month": month,
-        "cells": len(lats) * len(lons), "hours": len(times),
+        "year": year,
+        "month": month,
+        "cells": len(lats) * len(lons),
+        "hours": len(times),
         "coords_match": bool(
             np.array_equal(o["lat"].values, n["lat"].values)
             and np.array_equal(o["lon"].values, n["lon"].values)
@@ -110,8 +112,11 @@ def main(out_dir: str, old_dir: Path = OLD_DIR, new_dir: Path = NEW_DIR) -> None
             rows.append(compare_month(year, month, old_dir, new_dir))
             r = rows[-1]
             worst = max(r[f"{v}_max_abs_diff"] for v in VARIABLES)
-            print(f"{year}-{month:02d}: {r['cells']} cells x {r['hours']} hours, "
-                  f"coords match {r['coords_match']}, worst |diff| {worst:.3e}", flush=True)
+            print(
+                f"{year}-{month:02d}: {r['cells']} cells x {r['hours']} hours, "
+                f"coords match {r['coords_match']}, worst |diff| {worst:.3e}",
+                flush=True,
+            )
 
     frame = pd.DataFrame(rows)
     frame.to_csv(out / "era5_overlap_check.csv", index=False)
@@ -124,11 +129,15 @@ def main(out_dir: str, old_dir: Path = OLD_DIR, new_dir: Path = NEW_DIR) -> None
     if identical and coords:
         print("G0: the two downloads are BIT-IDENTICAL on the sampled overlap.")
     elif coords and worst <= FLOAT32_TOLERANCE:
-        print(f"G0: equal within float32 round-trip ({FLOAT32_TOLERANCE:.0e}); "
-              "the difference is storage, not data.")
+        print(
+            f"G0: equal within float32 round-trip ({FLOAT32_TOLERANCE:.0e}); "
+            "the difference is storage, not data."
+        )
     else:
-        print("G0: the downloads DIFFER. The plan's second or third branch applies: "
-              "bound the cause, or withdraw the treatment claim for every row.")
+        print(
+            "G0: the downloads DIFFER. The plan's second or third branch applies: "
+            "bound the cause, or withdraw the treatment claim for every row."
+        )
         sys.exit(1)
 
 
@@ -136,10 +145,18 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--old-dir", type=Path, default=OLD_DIR,
-                        help=f"The annual combined ERA5 files (default: {OLD_DIR})")
-    parser.add_argument("--new-dir", type=Path, default=NEW_DIR,
-                        help=f"The 2026-09 monthly ERA5 files (default: {NEW_DIR})")
+    parser.add_argument(
+        "--old-dir",
+        type=Path,
+        default=OLD_DIR,
+        help=f"The annual combined ERA5 files (default: {OLD_DIR})",
+    )
+    parser.add_argument(
+        "--new-dir",
+        type=Path,
+        default=NEW_DIR,
+        help=f"The 2026-09 monthly ERA5 files (default: {NEW_DIR})",
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, old_dir=args.old_dir, new_dir=args.new_dir)
 

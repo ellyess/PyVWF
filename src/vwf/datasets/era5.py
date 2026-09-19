@@ -1,4 +1,5 @@
 """ERA5 reanalysis import and preprocessing utilities."""
+
 from pathlib import Path
 
 import xarray as xr
@@ -25,8 +26,8 @@ def unify_time_coordinate(ds):
             ds = ds.drop_vars("valid_time")
         else:
             # force rename valid_time → time, overwriting
-            ds = ds.drop_vars("time")                     # remove existing time first
-            ds = ds.rename({"valid_time": "time"})        # now rename safely
+            ds = ds.drop_vars("time")  # remove existing time first
+            ds = ds.rename({"valid_time": "time"})  # now rename safely
 
     # CASE 2: only valid_time exists
     elif "valid_time" in ds.coords and "time" not in ds.coords:
@@ -75,6 +76,7 @@ def _slice_bbox(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> xr.D
 
     return ds.sel(lon=slice(lon_min, lon_max), lat=lat_slice)
 
+
 def _extent_shortfall(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -> dict[str, float]:
     """How far, per side, the loaded grid stops short of the requested bbox.
 
@@ -89,8 +91,10 @@ def _extent_shortfall(ds: xr.Dataset, bbox: tuple[float, float, float, float]) -
     step_lat = float(np.min(np.abs(np.diff(np.sort(lat))))) if lat.size > 1 else 0.25
     lon_min, lon_max, lat_min, lat_max = bbox
     short = {
-        "west": lon.min() - lon_min, "east": lon_max - lon.max(),
-        "south": lat.min() - lat_min, "north": lat_max - lat.max(),
+        "west": lon.min() - lon_min,
+        "east": lon_max - lon.max(),
+        "south": lat.min() - lat_min,
+        "north": lat_max - lat.max(),
     }
     steps = {"west": step_lon, "east": step_lon, "south": step_lat, "north": step_lat}
     return {side: float(d) for side, d in short.items() if d > steps[side] + 1e-9}
@@ -134,8 +138,16 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     return z0_log.clip(min=np.log(Z0_BOUNDS[0]), max=np.log(Z0_BOUNDS[1]))
 
 
-def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
-              resample_daily=True, allow_extrapolation=False, roughness="stored"):
+def prep_era5(
+    country,
+    train=False,
+    calc_z0=True,
+    bbox=None,
+    era5_dir=None,
+    resample_daily=True,
+    allow_extrapolation=False,
+    roughness="stored",
+):
     """Preprocess ERA5 reanalysis data.
 
     Args:
@@ -219,9 +231,7 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
         ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2)
 
     if roughness not in ROUGHNESS_TREATMENTS:
-        raise ValueError(
-            f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}"
-        )
+        raise ValueError(f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}")
 
     applied = None
     if calc_z0:
@@ -240,10 +250,10 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             ds = ds.drop_vars(["z0", "roughness"], errors="ignore")
 
         # Check if roughness already exists (from preprocessing)
-        if 'z0' in ds.data_vars or 'roughness' in ds.data_vars:
+        if "z0" in ds.data_vars or "roughness" in ds.data_vars:
             # Use existing pre-calculated roughness
-            if 'z0' in ds.data_vars:
-                ds = ds.rename({'z0': 'roughness'})
+            if "z0" in ds.data_vars:
+                ds = ds.rename({"z0": "roughness"})
                 print("Using pre-calculated roughness (z0) from combined ERA5 files")
             else:
                 print("Using pre-calculated roughness from combined ERA5 files")
@@ -261,7 +271,7 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
 
             wnd10m = np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)
 
-            wnd10m  = wnd10m.clip(min=1e-4)
+            wnd10m = wnd10m.clip(min=1e-4)
             ds["wnd100m"] = ds["wnd100m"].clip(min=1e-4)
 
             z0_log = log_roughness_from_shear(wnd10m, ds["wnd100m"])

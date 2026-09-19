@@ -141,6 +141,7 @@ def main():
             except Exception as e:
                 print(f"\n✗ Error generating grid for {country}: {e}")
                 import traceback
+
                 traceback.print_exc()
 
     # Fetch observations
@@ -162,6 +163,7 @@ def main():
         except Exception as e:
             print(f"\n✗ Error fetching observations: {e}")
             import traceback
+
             traceback.print_exc()
             return 1
 
@@ -180,6 +182,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Error generating config: {e}")
         import traceback
+
         traceback.print_exc()
 
     # Print summary
@@ -200,7 +203,9 @@ def main():
         print("    ├── observations/")
         for country in args.countries:
             print(f"    │   ├── {country.lower()}/")
-            print(f"    │   │   ├── {country.lower()}_train_{min(args.train_years)}_{max(args.train_years)}.csv")
+            print(
+                f"    │   │   ├── {country.lower()}_train_{min(args.train_years)}_{max(args.train_years)}.csv"
+            )
             print(f"    │   │   └── {country.lower()}_test_{args.test_year}.csv")
 
     print("    └── pyvwf_config.py")
@@ -254,6 +259,7 @@ def main():
 """)
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

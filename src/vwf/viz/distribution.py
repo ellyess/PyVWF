@@ -13,6 +13,7 @@ Free functions; pass anything dict-shaped (``{label: series}``) and they
 will plot it. Returns ``matplotlib.figure.Figure`` so the caller decides
 what to do next (``fig.savefig(...)``, further tweaks, etc.).
 """
+
 from __future__ import annotations
 
 import re
@@ -53,6 +54,7 @@ _DEFAULT_COLOURS = {
 # ---------------------------------------------------------------------------
 # Results loader
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class Results:
@@ -135,9 +137,7 @@ def _align_to_obs_cadence(series: pd.Series, obs_index: pd.Index) -> pd.Series:
     if len(series) <= len(obs_index):
         return series
     obs_times = pd.DatetimeIndex(obs_index)
-    last_step = (
-        obs_times[-1] - obs_times[-2] if len(obs_times) >= 2 else pd.Timedelta(days=1)
-    )
+    last_step = obs_times[-1] - obs_times[-2] if len(obs_times) >= 2 else pd.Timedelta(days=1)
     edges = obs_times.append(pd.DatetimeIndex([obs_times[-1] + last_step]))
     out = []
     for i in range(len(obs_times)):
@@ -198,9 +198,7 @@ def load_results(
     turb_info = pd.read_csv(turb_path) if turb_path.is_file() else None
 
     train_turb_path = train_dir / f"{country}_train_turb_info.csv"
-    train_turb_info = (
-        pd.read_csv(train_turb_path) if train_turb_path.is_file() else None
-    )
+    train_turb_info = pd.read_csv(train_turb_path) if train_turb_path.is_file() else None
 
     obs_wide = pd.read_csv(obs_path)
     unc_wide = pd.read_csv(unc_path)
@@ -243,6 +241,7 @@ def load_results(
 # Helpers shared by the two plot functions
 # ---------------------------------------------------------------------------
 
+
 def _to_array(x) -> np.ndarray:
     a = np.asarray(x, dtype=float).ravel()
     return a[np.isfinite(a)]
@@ -261,6 +260,7 @@ def _legend_label(label: str, sim: np.ndarray, obs: np.ndarray) -> str:
 # ---------------------------------------------------------------------------
 # Plot 1: CF distribution (hist + ECDF + tail inset)
 # ---------------------------------------------------------------------------
+
 
 def plot_cf_distribution(
     obs,
@@ -300,7 +300,10 @@ def plot_cf_distribution(
         bins = max(5, min(50, n_min // 5))
 
     fig, (ax_hist, ax_cdf) = plt.subplots(
-        2, 1, figsize=figsize, sharex=True,
+        2,
+        1,
+        figsize=figsize,
+        sharex=True,
         gridspec_kw={"height_ratios": [1.2, 1.0], "hspace": 0.1},
         layout="constrained",
     )
@@ -309,9 +312,14 @@ def plot_cf_distribution(
 
     # Observed series: filled grey histogram (reference) + black step CDF
     ax_hist.hist(
-        obs_arr, bins=bin_edges, density=True,
-        histtype="stepfilled", color="0.75", edgecolor="black",
-        linewidth=1.2, label=f"obs  (μ={obs_arr.mean():.3f})",
+        obs_arr,
+        bins=bin_edges,
+        density=True,
+        histtype="stepfilled",
+        color="0.75",
+        edgecolor="black",
+        linewidth=1.2,
+        label=f"obs  (μ={obs_arr.mean():.3f})",
     )
     _plot_ecdf(ax_cdf, obs_arr, color="black", label="obs", linewidth=1.4)
 
@@ -320,8 +328,13 @@ def plot_cf_distribution(
         inset = ax_hist.inset_axes([0.55, 0.45, 0.42, 0.5])
         tail_edges = np.linspace(tail_threshold, 1.0, max(10, bins // 4))
         inset.hist(
-            obs_arr[obs_arr >= tail_threshold], bins=tail_edges, density=True,
-            histtype="stepfilled", color="0.75", edgecolor="black", linewidth=1.0,
+            obs_arr[obs_arr >= tail_threshold],
+            bins=tail_edges,
+            density=True,
+            histtype="stepfilled",
+            color="0.75",
+            edgecolor="black",
+            linewidth=1.0,
         )
 
     prop_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -333,16 +346,26 @@ def plot_cf_distribution(
             continue
         colour = _colour_for(label, next(cycle_iter, None) or "C0")
         ax_hist.hist(
-            arr, bins=bin_edges, density=True,
-            histtype="step", color=colour, linewidth=1.4,
+            arr,
+            bins=bin_edges,
+            density=True,
+            histtype="step",
+            color=colour,
+            linewidth=1.4,
             label=_legend_label(label, arr, obs_arr),
         )
         _plot_ecdf(ax_cdf, arr, color=colour, label=label, linewidth=1.2)
         if inset is not None:
             tail = arr[arr >= tail_threshold]
             if tail.size:
-                inset.hist(tail, bins=tail_edges, density=True,
-                           histtype="step", color=colour, linewidth=1.2)
+                inset.hist(
+                    tail,
+                    bins=tail_edges,
+                    density=True,
+                    histtype="step",
+                    color=colour,
+                    linewidth=1.2,
+                )
 
     if inset is not None:
         inset.set_yscale("log")
@@ -379,6 +402,7 @@ def _plot_ecdf(ax, arr: np.ndarray, *, color, label, linewidth=1.2) -> None:
 # Plot 2: QQ
 # ---------------------------------------------------------------------------
 
+
 def plot_qq(
     obs,
     sims: Mapping[str, "pd.Series | np.ndarray"],
@@ -411,8 +435,7 @@ def plot_qq(
 
     lo = float(np.nanmin(obs_q))
     hi = float(np.nanmax(obs_q))
-    ax.plot([lo, hi], [lo, hi], color="black", linewidth=1.0,
-            linestyle="--", label="y = x")
+    ax.plot([lo, hi], [lo, hi], color="black", linewidth=1.0, linestyle="--", label="y = x")
 
     prop_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     cycle_iter = iter(c for c in prop_cycle if c not in _DEFAULT_COLOURS.values())

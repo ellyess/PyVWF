@@ -11,6 +11,7 @@ shapes under ``input/reference/``, which ``/input`` would otherwise exclude. A
 new tracked file that the rules exclude fails here until it is either removed
 or added to the allowlist with a reason.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -54,7 +55,11 @@ def _git(*args: str) -> list[str]:
     try:
         out = subprocess.run(
             ["git", "-c", "core.excludesFile=", *args],
-            cwd=ROOT, capture_output=True, text=True, check=True, timeout=30,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30,
         ).stdout
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         pytest.skip("not running from a git checkout")

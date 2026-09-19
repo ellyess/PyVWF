@@ -71,6 +71,7 @@ Usage, from the repository root, one region per process:
         scripts/studies/method-curve-library/curve_library_study.py <CODE> <condition> <out_dir> \\
         <overrides_csv>
 """
+
 import os
 import sys
 from collections.abc import Iterable
@@ -115,8 +116,13 @@ class OverrideError(RuntimeError):
     """A condition's fleet is not the one it asked for."""
 
 
-def check_overrides(turb_info: pd.DataFrame, overrides: pd.Series, phase: str,
-                    *, expected_absent: Iterable[str] = ()) -> None:
+def check_overrides(
+    turb_info: pd.DataFrame,
+    overrides: pd.Series,
+    phase: str,
+    *,
+    expected_absent: Iterable[str] = (),
+) -> None:
     """Refuse unless the fleet carries exactly the keys the condition asked for.
 
     Args:
@@ -183,6 +189,7 @@ def check_library(run_dir: Path, expected_sha256: str | None) -> None:
     if not expected_sha256:
         return
     import json
+
     manifest = json.loads((run_dir / "run_manifest.json").read_text())
     got = manifest["curve_library"]["power_curves_sha256"]
     if got != expected_sha256:
@@ -210,11 +217,14 @@ def applied_fleet(overrides: pd.Series):
     simulation: ``train_set`` and ``val_set`` both call ``prep_country`` before
     they do anything else.
     """
+
     def wrap(prep):
         def prepped(*args, **kwargs):
             obs, turb_info = prep(*args, **kwargs)
             return obs, apply_overrides(turb_info, overrides)
+
         return prepped
+
     return wrap
 
 
@@ -226,19 +236,29 @@ def checked_fleet(overrides: pd.Series, phase: str, expected_absent: Iterable[st
     here, after the simulation that the fit reads, and the run would look
     correct while being the hybrid described above.
     """
+
     def wrap(loader):
         def loaded(*args, **kwargs):
             obs, turb_info, reanalysis, curves = loader(*args, **kwargs)
             check_overrides(turb_info, overrides, phase, expected_absent=expected_absent)
             return obs, turb_info, reanalysis, curves
+
         return loaded
+
     return wrap
 
 
-def run_condition(code: str, condition: str, out_root: Path, overrides: pd.Series,
-                  *, config: Path, library_sha256: str | None = None,
-                  mode: str = "all",
-                  absent: dict[str, Iterable[str]] | None = None) -> tuple[Path, Path]:
+def run_condition(
+    code: str,
+    condition: str,
+    out_root: Path,
+    overrides: pd.Series,
+    *,
+    config: Path,
+    library_sha256: str | None = None,
+    mode: str = "all",
+    absent: dict[str, Iterable[str]] | None = None,
+) -> tuple[Path, Path]:
     """Train and evaluate one row under one condition, or refuse.
 
     Args:
@@ -259,8 +279,7 @@ def run_condition(code: str, condition: str, out_root: Path, overrides: pd.Serie
         train_dir = driver.run_train(spec, out_root, mode=mode, run_name=condition)
         check_library(train_dir, library_sha256)
         _write_overrides(train_dir, overrides, absent.get("train", ()))
-        eval_dir = driver.run_evaluate(spec, train_dir, out_root, mode=mode,
-                                       run_name=condition)
+        eval_dir = driver.run_evaluate(spec, train_dir, out_root, mode=mode, run_name=condition)
         check_library(eval_dir, library_sha256)
         _write_overrides(eval_dir, overrides, absent.get("evaluate", ()))
     finally:
@@ -269,8 +288,7 @@ def run_condition(code: str, condition: str, out_root: Path, overrides: pd.Serie
     return train_dir, eval_dir
 
 
-def _write_overrides(run_dir: Path, overrides: pd.Series,
-                     absent: Iterable[str] = ()) -> None:
+def _write_overrides(run_dir: Path, overrides: pd.Series, absent: Iterable[str] = ()) -> None:
     """Record what the condition asked for, and what it could reach here.
 
     ``applied_here`` is false for a unit the table declared absent from this
@@ -306,13 +324,20 @@ def main(code: str, condition: str, out_dir: str, overrides_csv: str) -> None:
     table, absent = read_table(overrides_csv)
     config = Path("configs/regions/scorecard") / f"{_stem(code)}.toml"
     train_dir, eval_dir = run_condition(
-        code, condition, Path(out_dir), table, config=config,
-        library_sha256=os.environ.get("PYVWF_EXPECT_CURVES_SHA256"), absent=absent)
+        code,
+        condition,
+        Path(out_dir),
+        table,
+        config=config,
+        library_sha256=os.environ.get("PYVWF_EXPECT_CURVES_SHA256"),
+        absent=absent,
+    )
     print(f"{code} {condition}: {train_dir}, {eval_dir}")
 
 
 def _stem(code: str) -> str:
     import baseline_bootstrap as bb
+
     return bb.CONFIGS[code]
 
 
@@ -322,7 +347,9 @@ def cli(argv: list[str] | None = None) -> None:
     parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
     parser.add_argument("condition", help="The condition's name, e.g. T1")
     parser.add_argument("out_dir", help="Directory for the condition's runs, under output/")
-    parser.add_argument("overrides_csv", help="The condition's override table (curve_library_tables.py)")
+    parser.add_argument(
+        "overrides_csv", help="The condition's override table (curve_library_tables.py)"
+    )
     args = parser.parse_args(argv)
     main(args.code, args.condition, args.out_dir, args.overrides_csv)
 

@@ -7,6 +7,7 @@ behaviour of the additions when they are switched off, and the structural
 guarantees the model relies on to extrapolate -- above all that the terrain
 speed-up is exactly zero on flat ground whatever the network has learned.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -20,10 +21,17 @@ from scipy.interpolate import Akima1DInterpolator  # noqa: E402
 
 from vwf import wind  # noqa: E402
 from vwf.pinn.model import (  # noqa: E402
-    DELTA_BOUNDS, ETA_BOUNDS, GAMMA_BOUNDS, PhysicsCorrection,
+    DELTA_BOUNDS,
+    ETA_BOUNDS,
+    GAMMA_BOUNDS,
+    PhysicsCorrection,
 )
 from vwf.pinn.physics import (  # noqa: E402
-    PowerCurveBank, expected_cf, gauss_hermite, hub_wind_ratio, monthly_mean,
+    PowerCurveBank,
+    expected_cf,
+    gauss_hermite,
+    hub_wind_ratio,
+    monthly_mean,
 )
 
 
@@ -53,8 +61,9 @@ def test_bank_matches_akima_on_a_production_grid(fine_curve, bank):
     speeds = fine_curve["data$speed"].to_numpy()
     akima = Akima1DInterpolator(speeds, fine_curve["GE.1.5sle"].to_numpy())
     probe = np.arange(0.05, 39.9, 0.037)
-    ours = bank(torch.tensor(probe, dtype=torch.float32),
-                torch.zeros(len(probe), dtype=torch.long)).numpy()
+    ours = bank(
+        torch.tensor(probe, dtype=torch.float32), torch.zeros(len(probe), dtype=torch.long)
+    ).numpy()
     assert np.max(np.abs(ours - akima(probe))) < 1e-4
 
 
@@ -63,8 +72,8 @@ def test_bank_clamps_outside_the_grid(bank):
     probe = torch.tensor([-10.0, 0.0, 40.0, 1e6])
     out = bank(probe, torch.zeros(4, dtype=torch.long))
     assert torch.isfinite(out).all()
-    assert out[0] == out[1]           # below the grid clamps to the first sample
-    assert out[2] == out[3]           # above it clamps to the last
+    assert out[0] == out[1]  # below the grid clamps to the first sample
+    assert out[2] == out[3]  # above it clamps to the last
 
 
 def test_bank_rejects_a_non_uniform_grid():
@@ -99,18 +108,21 @@ def test_log_profile_reproduces_vwf_wind(reanalysis, turbines, power_curve):
     measured against the published scorecard, not asserted here.
     """
     ws = wind.interpolate_wind(reanalysis, turbines)
-    ratio = hub_wind_ratio(torch.tensor(turbines["height"].to_numpy(dtype=float)),
-                           z0=torch.tensor(0.03), profile="log")
-    per_turbine = np.stack([
-        reanalysis["wnd100m"].interp(lon=lo, lat=la).values
-        for lo, la in zip(turbines["lon"], turbines["lat"])
-    ], axis=1)
+    ratio = hub_wind_ratio(
+        torch.tensor(turbines["height"].to_numpy(dtype=float)), z0=torch.tensor(0.03), profile="log"
+    )
+    per_turbine = np.stack(
+        [
+            reanalysis["wnd100m"].interp(lon=lo, lat=la).values
+            for lo, la in zip(turbines["lon"], turbines["lat"])
+        ],
+        axis=1,
+    )
     assert np.allclose(ws.values, per_turbine * ratio.numpy(), atol=1e-6)
 
 
 def test_power_profile_is_unity_at_the_reference_height():
-    r = hub_wind_ratio(torch.tensor(100.0), shear=torch.tensor([0.0, 0.2, 0.5]),
-                       profile="power")
+    r = hub_wind_ratio(torch.tensor(100.0), shear=torch.tensor([0.0, 0.2, 0.5]), profile="power")
     assert torch.allclose(r, torch.ones(3))
 
 
@@ -149,8 +161,9 @@ def test_spread_raises_output_where_the_curve_is_convex(bank):
     u = torch.tensor([5.0])
     idx = torch.zeros(1, dtype=torch.long)
     quad = gauss_hermite(9)
-    assert (expected_cf(u, torch.tensor([1.5]), idx, bank, quad)
-            > expected_cf(u, torch.tensor([0.0]), idx, bank, quad))
+    assert expected_cf(u, torch.tensor([1.5]), idx, bank, quad) > expected_cf(
+        u, torch.tensor([0.0]), idx, bank, quad
+    )
 
 
 def test_gauss_hermite_weights_are_a_probability_measure():
@@ -198,7 +211,7 @@ def test_default_init_is_perturbed_but_still_near_identity():
     relief = torch.full((8,), 500.0)
     ga, da, _, _ = a(t, f, relief)
     gb, db, _, _ = b(t, f, relief)
-    assert not torch.allclose(ga, gb)              # seeds differ
+    assert not torch.allclose(ga, gb)  # seeds differ
     # Still identity-ish: a log speed-up of 0.08 is a 8% departure, which is
     # small against the 0.67x-2.46x range the term is allowed to reach.
     assert ga.abs().max() < 0.08
@@ -222,7 +235,7 @@ def test_speedup_is_pinned_to_zero_on_flat_ground(hidden):
     gamma, _, _, _ = m(t, f, relief)
     assert gamma[0] == 0.0 and gamma[1] == 0.0
     assert abs(float(gamma[2].detach())) < 1e-6
-    assert float(gamma[7].abs().detach()) > 0.0        # and it is not simply dead
+    assert float(gamma[7].abs().detach()) > 0.0  # and it is not simply dead
 
 
 @pytest.mark.parametrize("seed", range(8))
@@ -257,8 +270,7 @@ def test_ablation_matches_the_model_in_capacity():
     """Gate P3 is only a fair test if the two arms differ ONLY in the physics."""
     a = PhysicsCorrection(14, 4, physics=True, init_scale=0.0)
     b = PhysicsCorrection(14, 4, physics=False, init_scale=0.0)
-    assert (sum(p.numel() for p in a.parameters())
-            == sum(p.numel() for p in b.parameters()))
+    assert sum(p.numel() for p in a.parameters()) == sum(p.numel() for p in b.parameters())
     t, f = _inputs()
     # Both start at the same physical state; they diverge only once fitted.
     for x, y in zip(a(t, f, torch.full((8,), 400.0)), b(t, f, torch.full((8,), 400.0))):
@@ -278,6 +290,7 @@ def test_ablation_has_no_relief_pin():
 # ---------------------------------------------------------------- density ---
 def test_density_is_unity_at_sea_level_and_below():
     from vwf.pinn.physics import air_density_ratio, density_speed_factor
+
     z = torch.tensor([-50.0, -1.0, 0.0])
     assert torch.allclose(air_density_ratio(z), torch.ones(3), atol=1e-6)
     assert torch.allclose(density_speed_factor(z), torch.ones(3), atol=1e-6)
@@ -286,6 +299,7 @@ def test_density_is_unity_at_sea_level_and_below():
 def test_density_matches_the_standard_atmosphere():
     """Spot values from the ISA, which the formula must reproduce."""
     from vwf.pinn.physics import air_density_ratio
+
     z = torch.tensor([1000.0, 2000.0, 3000.0])
     # ISA density 1.1117, 1.0065, 0.9093 kg/m3 against 1.225 at sea level.
     expected = torch.tensor([1.1117, 1.0065, 0.9093]) / 1.225
@@ -294,9 +308,9 @@ def test_density_matches_the_standard_atmosphere():
 
 def test_density_speed_factor_is_the_cube_root():
     from vwf.pinn.physics import air_density_ratio, density_speed_factor
+
     z = torch.tensor([0.0, 500.0, 1500.0, 2500.0])
-    assert torch.allclose(density_speed_factor(z), air_density_ratio(z) ** (1 / 3),
-                          atol=1e-6)
+    assert torch.allclose(density_speed_factor(z), air_density_ratio(z) ** (1 / 3), atol=1e-6)
 
 
 def test_density_correction_recovers_the_cube_law_exactly():
@@ -306,6 +320,7 @@ def test_density_correction_recovers_the_cube_law_exactly():
     it is the sharpest available check that the exponent is right.
     """
     from vwf.pinn.physics import air_density_ratio, density_speed_factor
+
     speeds = np.arange(0.0, 40.0 + 1e-9, 0.01)
     cubic = PowerCurveBank(speeds, ((speeds / 40.0) ** 3)[None, :])
     u = torch.tensor([8.0, 12.0, 20.0])
@@ -323,12 +338,13 @@ def test_density_reduces_output_at_altitude(bank):
     predicts. The reduction must therefore exceed the density deficit itself.
     """
     from vwf.pinn.physics import air_density_ratio, density_speed_factor
+
     u = torch.tensor([8.0])
     idx = torch.zeros(1, dtype=torch.long)
     z = torch.tensor([1200.0])
     ratio = float(bank(u * density_speed_factor(z), idx) / bank(u, idx))
-    assert ratio < float(air_density_ratio(z))     # steeper than the cube law
-    assert 0.75 < ratio < 1.0                       # but not pathological
+    assert ratio < float(air_density_ratio(z))  # steeper than the cube law
+    assert 0.75 < ratio < 1.0  # but not pathological
 
 
 # ------------------------------------------------------------ array losses ---
@@ -341,7 +357,7 @@ def test_array_efficiency_is_one_at_zero_density():
 def test_array_efficiency_falls_monotonically_with_density():
     m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
     with torch.no_grad():
-        m.raw_wake.fill_(0.0)          # a sizeable coefficient
+        m.raw_wake.fill_(0.0)  # a sizeable coefficient
     d = torch.tensor([0.0, 0.05, 0.14, 0.5, 2.0, 9.0])
     eff = m.array_efficiency(d)
     assert torch.all(eff[1:] < eff[:-1])
@@ -380,8 +396,7 @@ def test_wake_off_reproduces_the_previous_efficiency_exactly():
     off = PhysicsCorrection(14, 4, wake=False, init_scale=0.0)
     torch.manual_seed(0)
     on = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
-    assert torch.allclose(off(t, f, relief)[2],
-                          on(t, f, relief, torch.zeros(8))[2], atol=1e-6)
+    assert torch.allclose(off(t, f, relief)[2], on(t, f, relief, torch.zeros(8))[2], atol=1e-6)
 
 
 def test_wake_needs_a_density_to_apply():
@@ -393,6 +408,7 @@ def test_wake_needs_a_density_to_apply():
 
 def test_efficiency_respects_its_floor_under_extreme_density():
     from vwf.pinn.model import ETA_FLOOR
+
     m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
     with torch.no_grad():
         m.raw_wake.fill_(3.0)
@@ -410,8 +426,9 @@ def test_roughness_inversion_round_trips():
     drift here would silently bias every hub height.
     """
     from vwf.pinn.physics import roughness_from_shear
+
     for z0_true in (0.0002, 0.01, 0.03, 0.1, 0.5):
-        r = np.log(100 / z0_true) / np.log(10 / z0_true)     # w100/w10
+        r = np.log(100 / z0_true) / np.log(10 / z0_true)  # w100/w10
         shear = np.log(r) / np.log(10.0)
         z0 = float(roughness_from_shear(torch.tensor([shear])))
         assert z0 == pytest.approx(z0_true, rel=1e-4)
@@ -445,11 +462,13 @@ def test_power_law_errs_in_opposite_directions_either_side_of_100m():
     z0_true = 0.03
     r = np.log(100 / z0_true) / np.log(10 / z0_true)
     shear = torch.tensor(float(np.log(r) / np.log(10.0)))
+
     def err(h):
         pw = float(hub_wind_ratio(torch.tensor(h), shear=shear, profile="power"))
         return pw / float(np.log(h / z0_true) / np.log(100 / z0_true)) - 1
-    assert err(30.0) < -0.005      # under-predicts well below the band
-    assert err(150.0) > +0.005     # over-predicts well above it
+
+    assert err(30.0) < -0.005  # under-predicts well below the band
+    assert err(150.0) > +0.005  # over-predicts well above it
 
 
 def test_shear_log_is_unity_at_the_reference_height():
@@ -462,15 +481,17 @@ def test_log_z0_offset_moves_the_profile_monotonically():
     """The learned quantity in this mode: rougher ground, more shear."""
     shear = torch.tensor(0.145)
     h = torch.tensor(45.0)
-    ratios = [float(hub_wind_ratio(h, shear=shear, profile="shear-log",
-                                   log_z0_offset=torch.tensor(d)))
-              for d in (-2.0, -1.0, 0.0, 1.0, 2.0)]
-    assert all(a > b for a, b in zip(ratios, ratios[1:]))   # rougher -> less wind at 45 m
+    ratios = [
+        float(hub_wind_ratio(h, shear=shear, profile="shear-log", log_z0_offset=torch.tensor(d)))
+        for d in (-2.0, -1.0, 0.0, 1.0, 2.0)
+    ]
+    assert all(a > b for a, b in zip(ratios, ratios[1:]))  # rougher -> less wind at 45 m
 
 
 def test_shear_log_survives_a_degenerate_profile():
     """A uniform or reversed 10-100 m profile has no roughness that explains it."""
     from vwf.pinn.physics import roughness_from_shear
+
     out = roughness_from_shear(torch.tensor([-0.05, 0.0, 1e-9, 0.6]))
     assert torch.isfinite(out).all()
     assert (out > 0).all()
@@ -495,6 +516,7 @@ def test_bound_scale_shrinks_every_term_toward_its_start(scale):
 
 def test_bound_scale_actually_narrows_the_reachable_range():
     from vwf.pinn.model import GAMMA_BOUNDS
+
     wide = PhysicsCorrection(14, 4, bound_scale=1.0)._bounds(GAMMA_BOUNDS, 0.0)
     tight = PhysicsCorrection(14, 4, bound_scale=0.35)._bounds(GAMMA_BOUNDS, 0.0)
     assert (tight[1] - tight[0]) < (wide[1] - wide[0])
@@ -504,6 +526,7 @@ def test_bound_scale_actually_narrows_the_reachable_range():
 def test_bound_scale_one_is_exactly_the_unconstrained_model():
     """The sweep's control arm must be bit-identical to the current model."""
     from vwf.pinn.model import GAMMA_BOUNDS, ETA_BOUNDS
+
     m = PhysicsCorrection(14, 4, bound_scale=1.0)
     assert m._bounds(GAMMA_BOUNDS, 0.0) == GAMMA_BOUNDS
     assert m._bounds(ETA_BOUNDS, 0.90) == ETA_BOUNDS
@@ -514,7 +537,8 @@ def test_off_curve_tally_counts_what_the_bank_clamps(bank):
     """The bank returns an end value outside its table where the harness
     returns nothing, so the tally is the only record that it happened."""
     from vwf.pinn.train import count_off_curve, off_curve_shares
-    u = torch.tensor([[-1.0, 5.0], [41.0, 12.0], [8.0, 45.0]])   # (days, units)
+
+    u = torch.tensor([[-1.0, 5.0], [41.0, 12.0], [8.0, 45.0]])  # (days, units)
     capacity = torch.tensor([1000.0, 3000.0])
     tally: dict = {}
     count_off_curve(u, capacity, bank, tally)
@@ -540,23 +564,35 @@ def test_a_unit_with_no_wind_is_dropped_and_recorded(fine_curve):
     from vwf.pinn.train import RegionTensors
 
     days = pd.date_range("2015-01-01", periods=31, freq="D")
-    meta = pd.DataFrame({
-        "ID": ["a", "b", "c"], "lon": [8.0, 8.1, 14.9], "lat": [55.0, 55.1, 55.1],
-        "capacity": [2000.0, 1000.0, 1000.0], "height": [80.0, 80.0, 80.0],
-        "type": ["onshore"] * 3, "model": ["GE.1.5sle"] * 3,
-        **{f: [1.0, 2.0, 3.0] for f in FEATURES},
-    })
+    meta = pd.DataFrame(
+        {
+            "ID": ["a", "b", "c"],
+            "lon": [8.0, 8.1, 14.9],
+            "lat": [55.0, 55.1, 55.1],
+            "capacity": [2000.0, 1000.0, 1000.0],
+            "height": [80.0, 80.0, 80.0],
+            "type": ["onshore"] * 3,
+            "model": ["GE.1.5sle"] * 3,
+            **{f: [1.0, 2.0, 3.0] for f in FEATURES},
+        }
+    )
     w = np.full((31, 3), 8.0, dtype="float32")
     w[:, 2] = np.nan
-    obs = pd.DataFrame({"ID": ["a", "b", "c"], "year": 2015, "month": 1,
-                        "obs": [0.3, 0.3, 0.3]})
+    obs = pd.DataFrame({"ID": ["a", "b", "c"], "year": 2015, "month": 1, "obs": [0.3, 0.3, 0.3]})
     cache = RegionCache(
-        code="ZZ", split="test", dates=days, meta=meta, obs=obs,
-        w_mean=w, w_std=np.ones_like(w), z0=np.full_like(w, 0.05),
+        code="ZZ",
+        split="test",
+        dates=days,
+        meta=meta,
+        obs=obs,
+        w_mean=w,
+        w_std=np.ones_like(w),
+        z0=np.full_like(w, 0.05),
         shear=np.full_like(w, 0.14),
         curve_speeds=fine_curve["data$speed"].to_numpy(),
         curve_cf=fine_curve["GE.1.5sle"].to_numpy()[None, :],
-        curve_names=["GE.1.5sle"], turbine_curve=np.zeros(3, dtype="int64"),
+        curve_names=["GE.1.5sle"],
+        turbine_curve=np.zeros(3, dtype="int64"),
         era5_record={"era5_roughness": {"requested": "derived", "applied": "derived"}},
     )
     r = RegionTensors.from_cache(cache, quiet=True)
@@ -567,7 +603,8 @@ def test_a_unit_with_no_wind_is_dropped_and_recorded(fine_curve):
 
     kept = RegionTensors.from_cache(
         RegionCache(**{**cache.__dict__, "w_mean": np.full((31, 3), 8.0, dtype="float32")}),
-        quiet=True)
+        quiet=True,
+    )
     assert kept.dropped_ids == [] and kept.dropped_capacity_share == 0.0
 
 
@@ -578,32 +615,50 @@ def _country_cache(fine_curve, *, years=(2015, 2016), capacity_years=None):
     from vwf.pinn.terrain import FEATURES
 
     days = pd.DatetimeIndex(
-        [d for y in years for d in pd.date_range(f"{y}-01-01", periods=31, freq="D")])
-    meta = pd.DataFrame({
-        "ID": ["p1", "p2"], "lon": [4.0, 5.0], "lat": [50.0, 51.0],
-        "capacity": [1000.0, 3000.0], "height": [100.0, 100.0],
-        "type": ["onshore"] * 2, "model": ["GE.1.5sle"] * 2,
-        **{f: [0.0, 500.0] if f == "relief_28km" else [1.0, 2.0] for f in FEATURES},
-    })
+        [d for y in years for d in pd.date_range(f"{y}-01-01", periods=31, freq="D")]
+    )
+    meta = pd.DataFrame(
+        {
+            "ID": ["p1", "p2"],
+            "lon": [4.0, 5.0],
+            "lat": [50.0, 51.0],
+            "capacity": [1000.0, 3000.0],
+            "height": [100.0, 100.0],
+            "type": ["onshore"] * 2,
+            "model": ["GE.1.5sle"] * 2,
+            **{f: [0.0, 500.0] if f == "relief_28km" else [1.0, 2.0] for f in FEATURES},
+        }
+    )
     w = np.empty((len(days), 2), dtype="float32")
     w[:, 0], w[:, 1] = 6.0, 10.0
-    obs = pd.DataFrame({"ID": NATIONAL_ID, "year": list(years), "month": 1,
-                        "obs": [0.30, 0.40][: len(years)]})
+    obs = pd.DataFrame(
+        {"ID": NATIONAL_ID, "year": list(years), "month": 1, "obs": [0.30, 0.40][: len(years)]}
+    )
     capacity_years = list(years) if capacity_years is None else capacity_years
     capacity = np.array([[1000.0, 3000.0], [3000.0, 1000.0]])[: len(capacity_years)]
     return RegionCache(
-        code="ZZ", split="train", dates=days, meta=meta, obs=obs, w_mean=w,
-        w_std=np.ones_like(w), z0=np.full_like(w, 0.05), shear=np.full_like(w, 0.14),
+        code="ZZ",
+        split="train",
+        dates=days,
+        meta=meta,
+        obs=obs,
+        w_mean=w,
+        w_std=np.ones_like(w),
+        z0=np.full_like(w, 0.05),
+        shear=np.full_like(w, 0.14),
         curve_speeds=fine_curve["data$speed"].to_numpy(),
         curve_cf=fine_curve["GE.1.5sle"].to_numpy()[None, :],
-        curve_names=["GE.1.5sle"], turbine_curve=np.zeros(2, dtype="int64"),
-        level="country", capacity_years=np.array(capacity_years),
+        curve_names=["GE.1.5sle"],
+        turbine_curve=np.zeros(2, dtype="int64"),
+        level="country",
+        capacity_years=np.array(capacity_years),
         capacity_by_year=capacity,
     )
 
 
 def test_country_months_are_weighted_by_their_own_years_capacity(fine_curve):
     from vwf.pinn.train import RegionTensors
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     assert r.level == "country"
     assert r.months == [(2015, 1), (2016, 1)]
@@ -614,6 +669,7 @@ def test_country_months_are_weighted_by_their_own_years_capacity(fine_curve):
 
 def test_a_country_month_without_capacities_is_refused(fine_curve):
     from vwf.pinn.train import RegionTensors
+
     with pytest.raises(ValueError, match="no grid capacities"):
         RegionTensors.from_cache(_country_cache(fine_curve, capacity_years=[2015]), quiet=True)
 
@@ -622,8 +678,14 @@ def test_the_country_loss_is_the_national_series_error(fine_curve):
     """Checked by hand: aggregate each month with that year's capacities."""
     from vwf.pinn.physics import gauss_hermite
     from vwf.pinn.train import (
-        N_QUAD, RegionTensors, Standardiser, predict_national, region_loss, simulate_monthly,
+        N_QUAD,
+        RegionTensors,
+        Standardiser,
+        predict_national,
+        region_loss,
+        simulate_monthly,
     )
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     model = PhysicsCorrection(14, 4, init_scale=0.0)
     std = Standardiser.fit([r])
@@ -644,35 +706,52 @@ def test_a_turbine_national_series_uses_only_the_units_observed(fine_curve):
     from vwf.pinn.terrain import FEATURES
     from vwf.pinn.train import RegionTensors, _predict_matrix, predict_national
 
-    days = pd.date_range("2015-01-01", periods=59, freq="D")   # January and February
-    meta = pd.DataFrame({
-        "ID": ["a", "b"], "lon": [8.0, 9.0], "lat": [55.0, 56.0],
-        "capacity": [1000.0, 3000.0], "height": [80.0, 80.0],
-        "type": ["onshore"] * 2, "model": ["GE.1.5sle"] * 2,
-        **{f: [1.0, 2.0] for f in FEATURES},
-    })
+    days = pd.date_range("2015-01-01", periods=59, freq="D")  # January and February
+    meta = pd.DataFrame(
+        {
+            "ID": ["a", "b"],
+            "lon": [8.0, 9.0],
+            "lat": [55.0, 56.0],
+            "capacity": [1000.0, 3000.0],
+            "height": [80.0, 80.0],
+            "type": ["onshore"] * 2,
+            "model": ["GE.1.5sle"] * 2,
+            **{f: [1.0, 2.0] for f in FEATURES},
+        }
+    )
     w = np.full((59, 2), 8.0, dtype="float32")
     w[:, 1] = 11.0
     # Unit b is unobserved in February.
-    obs = pd.DataFrame({"ID": ["a", "b", "a"], "year": 2015, "month": [1, 1, 2],
-                        "obs": [0.2, 0.6, 0.3]})
+    obs = pd.DataFrame(
+        {"ID": ["a", "b", "a"], "year": 2015, "month": [1, 1, 2], "obs": [0.2, 0.6, 0.3]}
+    )
     cache = RegionCache(
-        code="ZZ", split="test", dates=days, meta=meta, obs=obs, w_mean=w,
-        w_std=np.ones_like(w), z0=np.full_like(w, 0.05), shear=np.full_like(w, 0.14),
+        code="ZZ",
+        split="test",
+        dates=days,
+        meta=meta,
+        obs=obs,
+        w_mean=w,
+        w_std=np.ones_like(w),
+        z0=np.full_like(w, 0.05),
+        shear=np.full_like(w, 0.14),
         curve_speeds=fine_curve["data$speed"].to_numpy(),
         curve_cf=fine_curve["GE.1.5sle"].to_numpy()[None, :],
-        curve_names=["GE.1.5sle"], turbine_curve=np.zeros(2, dtype="int64"),
+        curve_names=["GE.1.5sle"],
+        turbine_curve=np.zeros(2, dtype="int64"),
     )
     r = RegionTensors.from_cache(cache, quiet=True)
     frame = predict_national(r, None, None)
     sim = _predict_matrix(r, None, None, profile="power", density=False, damp=None, off_curve=None)
     assert frame["cf_obs"].tolist() == pytest.approx([(0.2 * 1000 + 0.6 * 3000) / 4000, 0.3])
     assert frame["cf_sim"].tolist() == pytest.approx(
-        [(sim[0, 0] * 1000 + sim[0, 1] * 3000) / 4000, sim[1, 0]], rel=1e-6)
+        [(sim[0, 0] * 1000 + sim[0, 1] * 3000) / 4000, sim[1, 0]], rel=1e-6
+    )
 
 
 def test_predict_frame_refuses_a_country_region(fine_curve):
     from vwf.pinn.train import RegionTensors, predict_frame
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     with pytest.raises(ValueError, match="predict_national"):
         predict_frame(r, None, None)
@@ -680,6 +759,7 @@ def test_predict_frame_refuses_a_country_region(fine_curve):
 
 def test_features_off_makes_heads_global_and_keeps_the_relief_pin(fine_curve):
     from vwf.pinn.train import RegionTensors, Standardiser
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     std = Standardiser.fit([r], features_off=True)
     assert bool((std.terrain(r) == 0).all()) and bool((std.fleet(r) == 0).all())
@@ -697,6 +777,7 @@ def test_features_off_makes_heads_global_and_keeps_the_relief_pin(fine_curve):
 
 def test_fleet_columns_select_the_efficiency_heads_inputs(fine_curve):
     from vwf.pinn.train import FLEET_FEATURES, RegionTensors, Standardiser, fit
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     default = Standardiser.fit([r])
     explicit = Standardiser.fit([r], fleet_columns=FLEET_FEATURES)
@@ -716,6 +797,7 @@ def test_fleet_columns_select_the_efficiency_heads_inputs(fine_curve):
 # ------------------------------------------------------- terrain switches ---
 def test_relief_off_fixes_the_speedup_at_zero(fine_curve):
     from vwf.pinn.train import RegionTensors, Standardiser
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     std = Standardiser.fit([r], relief_off=True)
     assert bool((std.relief(r) == 0).all())
@@ -731,6 +813,7 @@ def test_relief_off_fixes_the_speedup_at_zero(fine_curve):
 def test_terrain_off_leaves_the_fleet_head_working(fine_curve):
     """The pin still sees relief; only the strength and shear go global."""
     from vwf.pinn.train import RegionTensors, Standardiser
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     r.fleet_raw = torch.tensor([[0.0, 0.0, 0.0, 1.0], [2.0, 2.0, 1.0, 2.0]])
     std = Standardiser.fit([r], terrain_off=True)
@@ -751,8 +834,13 @@ def test_terrain_off_leaves_the_fleet_head_working(fine_curve):
 def test_a_fixed_speedup_replaces_the_learned_one(fine_curve):
     from vwf.pinn.physics import gauss_hermite
     from vwf.pinn.train import (
-        N_QUAD, RegionTensors, Standardiser, attach_fixed_speedup, simulate_monthly,
+        N_QUAD,
+        RegionTensors,
+        Standardiser,
+        attach_fixed_speedup,
+        simulate_monthly,
     )
+
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     model = PhysicsCorrection(14, 4, init_scale=0.0)
     quad = gauss_hermite(N_QUAD)

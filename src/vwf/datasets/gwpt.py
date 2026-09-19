@@ -17,6 +17,7 @@ the other would change which projects a result used:
 Likewise the plant-name key, :func:`plant_key`, takes the word list each
 region's join was built with (:data:`DROP_AR`, :data:`DROP_CL`).
 """
+
 from __future__ import annotations
 
 import re
@@ -46,12 +47,48 @@ COUNTRY_NAME = {
 }
 
 #: Words the Argentina join ignores in plant names.
-DROP_AR = frozenset({"PARQUE", "EOLICO", "EOLICA", "PE", "WIND", "FARM", "DEL", "DE",
-                     "LA", "LOS", "LAS", "EL", "GENNEIA", "SA", "S", "P", "AG"})
+DROP_AR = frozenset(
+    {
+        "PARQUE",
+        "EOLICO",
+        "EOLICA",
+        "PE",
+        "WIND",
+        "FARM",
+        "DEL",
+        "DE",
+        "LA",
+        "LOS",
+        "LAS",
+        "EL",
+        "GENNEIA",
+        "SA",
+        "S",
+        "P",
+        "AG",
+    }
+)
 
 #: Words the Chile join ignores in plant names.
-DROP_CL = frozenset({"PARQUE", "EOLICO", "EOLICA", "PMGD", "PE", "WIND", "FARM",
-                     "CHILE", "ENEL", "DEL", "DE", "LA", "LOS", "LAS", "EL"})
+DROP_CL = frozenset(
+    {
+        "PARQUE",
+        "EOLICO",
+        "EOLICA",
+        "PMGD",
+        "PE",
+        "WIND",
+        "FARM",
+        "CHILE",
+        "ENEL",
+        "DEL",
+        "DE",
+        "LA",
+        "LOS",
+        "LAS",
+        "EL",
+    }
+)
 
 _ROMAN = re.compile(r"I{1,3}V?|IV")
 
@@ -83,8 +120,12 @@ def load_exclusions(path: Path) -> set[str]:
     return set(pd.read_csv(path)["gem_phase_id"].astype(str))
 
 
-def fleet_for(gwpt: pd.DataFrame, country: str, year: int | None,
-              exclusions: set[str] | frozenset[str] = frozenset()) -> pd.DataFrame:
+def fleet_for(
+    gwpt: pd.DataFrame,
+    country: str,
+    year: int | None,
+    exclusions: set[str] | frozenset[str] = frozenset(),
+) -> pd.DataFrame:
     """Operating, geolocated projects for one country, optionally as of a year.
 
     Args:
@@ -126,8 +167,10 @@ def fleet_for(gwpt: pd.DataFrame, country: str, year: int | None,
 
 def operating_projects(gwpt: pd.DataFrame, country: str) -> pd.DataFrame:
     """Every operating row for one ``Country/Area``, compared after stripping."""
-    return gwpt[(gwpt["Country/Area"].astype(str).str.strip() == country)
-                & (gwpt["Status"].astype(str).str.lower() == "operating")]
+    return gwpt[
+        (gwpt["Country/Area"].astype(str).str.strip() == country)
+        & (gwpt["Status"].astype(str).str.lower() == "operating")
+    ]
 
 
 def plant_key(name: str, drop: frozenset[str], *, drop_roman: bool = False) -> str:
@@ -140,13 +183,11 @@ def plant_key(name: str, drop: frozenset[str], *, drop_roman: bool = False) -> s
     """
     s = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode()
     s = re.sub(r"[^A-Za-z0-9 ]", " ", s.upper())
-    toks = [t for t in s.split()
-            if t not in drop and not (drop_roman and _ROMAN.fullmatch(t))]
+    toks = [t for t in s.split() if t not in drop and not (drop_roman and _ROMAN.fullmatch(t))]
     return " ".join(toks).strip()
 
 
-def projects_with_keys(gwpt: pd.DataFrame, country: str,
-                       key: Callable[[str], str]) -> pd.DataFrame:
+def projects_with_keys(gwpt: pd.DataFrame, country: str, key: Callable[[str], str]) -> pd.DataFrame:
     """Operating projects of one country with a join key and numeric capacity.
 
     Returns:

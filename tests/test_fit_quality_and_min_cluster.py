@@ -8,6 +8,7 @@ docs/findings/method-hourly-resolution.md.
 - ``fit_quality`` makes such a fit visible.
 - ``min_cluster_size`` stops a one-plant cluster being fitted in the first place.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -20,12 +21,14 @@ from vwf.harness.corrections import PLAUSIBLE_SCALAR, fit_quality
 
 def _factors(scalars, offsets=None):
     n = len(scalars)
-    return pd.DataFrame({
-        "cluster": range(n),
-        "fixed": ["1/1"] * n,
-        "scalar": scalars,
-        "offset": offsets if offsets is not None else [0.0] * n,
-    })
+    return pd.DataFrame(
+        {
+            "cluster": range(n),
+            "fixed": ["1/1"] * n,
+            "scalar": scalars,
+            "offset": offsets if offsets is not None else [0.0] * n,
+        }
+    )
 
 
 def test_clean_fit_flags_nothing():
@@ -65,21 +68,28 @@ def test_empty_factors_do_not_raise():
 
 # --- min_cluster_size ------------------------------------------------------
 
+
 def _fleet(seed=0, n=40):
     rng = np.random.default_rng(seed)
     # Three tight blobs plus two far outliers that k-means will isolate.
-    core = np.vstack([
-        rng.normal([10.0, 55.0], 0.15, size=(n // 3, 2)),
-        rng.normal([11.0, 56.0], 0.15, size=(n // 3, 2)),
-        rng.normal([12.0, 57.0], 0.15, size=(n // 3, 2)),
-    ])
+    core = np.vstack(
+        [
+            rng.normal([10.0, 55.0], 0.15, size=(n // 3, 2)),
+            rng.normal([11.0, 56.0], 0.15, size=(n // 3, 2)),
+            rng.normal([12.0, 57.0], 0.15, size=(n // 3, 2)),
+        ]
+    )
     outliers = np.array([[20.0, 62.0], [21.5, 63.0]])
     xy = np.vstack([core, outliers])
-    return pd.DataFrame({
-        "ID": [str(i) for i in range(len(xy))],
-        "lon": xy[:, 0], "lat": xy[:, 1],
-        "capacity": 1000.0, "height": 100.0,
-    })
+    return pd.DataFrame(
+        {
+            "ID": [str(i) for i in range(len(xy))],
+            "lon": xy[:, 0],
+            "lat": xy[:, 1],
+            "capacity": 1000.0,
+            "height": 100.0,
+        }
+    )
 
 
 def test_default_is_a_no_op():

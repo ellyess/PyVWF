@@ -23,6 +23,7 @@ assets.publishing.service.gov.uk/media/<hash>/REPD_publication_Qn_YYYY.csv),
 so this scrapes the stable publication page for the current attachment rather
 than hard-coding a URL that would go stale.
 """
+
 import argparse
 import os
 import re
@@ -55,16 +56,19 @@ def output_dir() -> Path:
 
 def find_repd_csv() -> str:
     """Scrape the REPD publication page for the current CSV attachment URL."""
-    req = urllib.request.Request(REPD_PUBLICATION,
-                                 headers={"User-Agent": "pyvwf-fetch"})
+    req = urllib.request.Request(REPD_PUBLICATION, headers={"User-Agent": "pyvwf-fetch"})
     with urllib.request.urlopen(req, timeout=60) as resp:
         html = resp.read().decode("utf-8", errors="replace")
     urls = re.findall(
         r"https://assets\.publishing\.service\.gov\.uk/media/[a-z0-9]+/"
-        r"REPD_publication_[^\"'\s]+\.csv", html)
+        r"REPD_publication_[^\"'\s]+\.csv",
+        html,
+    )
     if not urls:
-        sys.exit("could not find a REPD CSV link on the publication page; the "
-                 f"page layout may have changed; check {REPD_PUBLICATION}")
+        sys.exit(
+            "could not find a REPD CSV link on the publication page; the "
+            f"page layout may have changed; check {REPD_PUBLICATION}"
+        )
     return sorted(set(urls))[-1]
 
 
@@ -78,7 +82,8 @@ def download(url: str, dest: Path) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 

@@ -46,6 +46,7 @@ Usage, from the repository root, one region per process:
         DK output/curve_library_study_2026-09-13/analysis --tag=T1 \
         T0=<dir> T1=<dir>
 """
+
 import json
 import sys
 from pathlib import Path
@@ -72,8 +73,7 @@ from vwf.harness.regions import load_region  # noqa: E402
 from vwf.harness.skill import restrict_to_common_rows  # noqa: E402
 
 
-def drop_run_exclusions(frame: pd.DataFrame, ev: Path, keys: list[str],
-                        scope: str) -> pd.DataFrame:
+def drop_run_exclusions(frame: pd.DataFrame, ev: Path, keys: list[str], scope: str) -> pd.DataFrame:
     """The frame without the rows the run itself excluded from its score.
 
     A run scores every variant on the rows all of its variants can score, and
@@ -133,8 +133,10 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
     for label, ev in runs.items():
         manifest = json.loads((ev / "run_manifest.json").read_text())
         if int(manifest["evaluation_year"]) != year:
-            raise SystemExit(f"{code} {label}: evaluation year {manifest['evaluation_year']} "
-                             f"differs from the baseline's {year}")
+            raise SystemExit(
+                f"{code} {label}: evaluation year {manifest['evaluation_year']} "
+                f"differs from the baseline's {year}"
+            )
         treatments[label] = (manifest.get("era5_roughness") or {}).get("applied")
 
     scope = "national" if is_country else "fleet"
@@ -147,16 +149,21 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
             frame = drop_run_exclusions(frame, ev, keys, scope)
             frames[f"{label}_{kind}"] = frame
             got = rts._score(frame.dropna(subset=["cf_sim", "cf_obs"]), is_country)
-            row = metrics[metrics["variant"] == "uncorrected"] if kind == "uncorrected" \
+            row = (
+                metrics[metrics["variant"] == "uncorrected"]
+                if kind == "uncorrected"
                 else metrics[metrics["variant"] != "uncorrected"]
+            )
             if kind != "uncorrected":
                 ts, k = reported.rsplit("_", 1)
                 row = row[(row["time_res"] == ts) & (row["num_clu"] == int(k))]
             published = float(row.iloc[0]["rmse"])
             point[f"{label}_{kind}"] = got
             if abs(got["rmse"] - published) > 1e-12:
-                raise SystemExit(f"{code} {label} {kind}: rebuilt RMSE {got['rmse']} differs "
-                                 f"from metrics.csv {published}")
+                raise SystemExit(
+                    f"{code} {label} {kind}: rebuilt RMSE {got['rmse']} differs "
+                    f"from metrics.csv {published}"
+                )
 
     common, excluded = restrict_to_common_rows(frames, keys, weight=weight)
     if is_country:
@@ -165,7 +172,7 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
 
         def boot(label):
             d = (common[label]["cf_sim"] - common[label]["cf_obs"]).to_numpy()
-            return rmse_over_rows(d, idx), np.sqrt((d ** 2).mean())
+            return rmse_over_rows(d, idx), np.sqrt((d**2).mean())
     else:
         units = np.array(sorted(common[f"{baseline}_corrected"]["ID"].unique()))
         counts = resample_counts(len(units), seed=bb.SEED, n_draws=bb.N_DRAWS)
@@ -180,9 +187,17 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
 
     def record(quantity, b, pt, paired=False):
         lo, hi = percentile_interval(b)
-        rows.append({"region": code, "quantity": quantity, "estimate": pt,
-                     "ci_lo": lo, "ci_hi": hi, "width": hi - lo,
-                     "consistent_with_zero": bool(lo <= 0 <= hi) if paired else None})
+        rows.append(
+            {
+                "region": code,
+                "quantity": quantity,
+                "estimate": pt,
+                "ci_lo": lo,
+                "ci_hi": hi,
+                "width": hi - lo,
+                "consistent_with_zero": bool(lo <= 0 <= hi) if paired else None,
+            }
+        )
 
     for label in frames:
         b, pt = draws[label]
@@ -207,8 +222,10 @@ def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
     excluded.to_csv(out_dir / f"{code}_{tag}_excluded_rows.csv", index=False)
 
     scored = len(common[f"{baseline}_corrected"])
-    print(f"{code}: conditions {labels}, applied roughness {treatments}, "
-          f"rows scored {scored}, excluded {len(excluded)}")
+    print(
+        f"{code}: conditions {labels}, applied roughness {treatments}, "
+        f"rows scored {scored}, excluded {len(excluded)}"
+    )
     with pd.option_context("display.width", 200, "display.max_columns", 20):
         print(frame.round(6).to_string(index=False))
 
@@ -221,10 +238,13 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. SE")
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("conditions", nargs="+", metavar="NAME=DIR",
-                        help="Each condition's evaluate run, the first being the baseline")
-    parser.add_argument("--tag", default="rerun",
-                        help="Names the output files (default: rerun)")
+    parser.add_argument(
+        "conditions",
+        nargs="+",
+        metavar="NAME=DIR",
+        help="Each condition's evaluate run, the first being the baseline",
+    )
+    parser.add_argument("--tag", default="rerun", help="Names the output files (default: rerun)")
     args = parser.parse_intermixed_args(argv)
     main(args.code, args.out_dir, args.conditions, tag=args.tag)
 

@@ -15,6 +15,7 @@ Standing caveat (config comment, design §2): SCADA records curtailed output,
 so AU corrections absorb curtailment more than European monthly generation
 data does.
 """
+
 from __future__ import annotations
 
 from datetime import timedelta, timezone
@@ -52,8 +53,7 @@ def aest_to_utc(timestamps: pd.Series) -> pd.Series:
     ts = pd.to_datetime(timestamps)
     if getattr(ts.dt, "tz", None) is not None:
         raise ValueError(
-            "AEMO SCADA timestamps must be naive market time (AEST); got "
-            "timezone-aware input"
+            "AEMO SCADA timestamps must be naive market time (AEST); got timezone-aware input"
         )
     return ts.dt.tz_localize(AEST).dt.tz_convert("UTC").dt.tz_localize(None)
 
@@ -103,11 +103,9 @@ def combine_partials(partials: list[pd.DataFrame]) -> pd.DataFrame:
     if not partials:
         raise ValueError("no partials to combine")
     stacked = pd.concat(partials, ignore_index=True)
-    return (
-        stacked.groupby(["ID", "year", "month"], as_index=False)[
-            ["energy_mwh", "n_intervals"]
-        ].sum()
-    )
+    return stacked.groupby(["ID", "year", "month"], as_index=False)[
+        ["energy_mwh", "n_intervals"]
+    ].sum()
 
 
 def finalise_monthly_cf(
@@ -141,9 +139,7 @@ def finalise_monthly_cf(
     # path produce byte-identical frames.
     monthly["year"] = monthly["year"].astype("int64")
     monthly["month"] = monthly["month"].astype("int64")
-    monthly = monthly[
-        (monthly["year"] >= int(year_start)) & (monthly["year"] <= int(year_end))
-    ]
+    monthly = monthly[(monthly["year"] >= int(year_start)) & (monthly["year"] <= int(year_end))]
 
     meta = metadata.copy()
     meta["ID"] = meta["ID"].astype(str)
@@ -153,12 +149,8 @@ def finalise_monthly_cf(
     expected_intervals = hours * 60.0 / SCADA_INTERVAL_MINUTES
 
     # capacity is kW (source contract); energy is MWh: align units.
-    monthly["cf"] = (monthly["energy_mwh"] * 1000.0) / (
-        hours * monthly["capacity"].astype(float)
-    )
-    monthly.loc[monthly["n_intervals"] / expected_intervals < min_coverage, "cf"] = float(
-        "nan"
-    )
+    monthly["cf"] = (monthly["energy_mwh"] * 1000.0) / (hours * monthly["capacity"].astype(float))
+    monthly.loc[monthly["n_intervals"] / expected_intervals < min_coverage, "cf"] = float("nan")
 
     # Commissioning mask: any month that STARTS before the commissioning date
     # is NaN; the first fully post-commissioning month is the first valid one.
@@ -169,9 +161,7 @@ def finalise_monthly_cf(
             monthly["year"].astype(str) + "-" + monthly["month"].astype(str) + "-01"
         )
         commissioned = monthly["ID"].map(commissioning)
-        monthly.loc[
-            commissioned.notna() & (month_start < commissioned), "cf"
-        ] = float("nan")
+        monthly.loc[commissioned.notna() & (month_start < commissioned), "cf"] = float("nan")
 
     # Registered-capacity mask (see docstring): explicit month list wins over
     # everything computed above.
@@ -268,9 +258,7 @@ class AEMONemSource(ObservationSource):
     def __init__(self, country: str = "AU-NEM") -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
 
     @property

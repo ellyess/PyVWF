@@ -1,4 +1,5 @@
 """The regression frame comparator (scripts/analysis/regression_compare.py)."""
+
 import importlib.util
 from pathlib import Path
 
@@ -72,9 +73,9 @@ def test_shape_mismatch_is_structural_fail(tmp_path):
     a.mkdir()
     b.mkdir()
     _factors(a / "factors_fixed_2.csv", [0.8, 0.9])
-    pd.DataFrame(
-        {"cluster": [0], "fixed": ["1/1"], "scalar": [0.8], "offset": [0.0]}
-    ).to_csv(b / "factors_fixed_2.csv", index=False)
+    pd.DataFrame({"cluster": [0], "fixed": ["1/1"], "scalar": [0.8], "offset": [0.0]}).to_csv(
+        b / "factors_fixed_2.csv", index=False
+    )
     rows, any_fail = compare.compare_dirs(a, b, atol=1e-6, label="x")
     assert any_fail
     assert rows[0]["status"] == "STRUCT"

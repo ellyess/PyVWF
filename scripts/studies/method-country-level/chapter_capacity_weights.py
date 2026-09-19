@@ -22,6 +22,7 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/method-country-level/chapter_capacity_weights.py <out_dir>
 """
+
 from pathlib import Path
 
 import numpy as np
@@ -33,9 +34,17 @@ REPO = Path(__file__).resolve().parents[3]
 RUNS = REPO / "output/runs/turbine_grid"
 GWPT = REPO / "input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx"
 
-COUNTRY = {"BE": "Belgium", "ES": "Spain", "FR": "France", "IE": "Ireland",
-           "IT": "Italy", "NL": "Netherlands", "NO": "Norway", "PT": "Portugal",
-           "SE": "Sweden"}
+COUNTRY = {
+    "BE": "Belgium",
+    "ES": "Spain",
+    "FR": "France",
+    "IE": "Ireland",
+    "IT": "Italy",
+    "NL": "Netherlands",
+    "NO": "Norway",
+    "PT": "Portugal",
+    "SE": "Sweden",
+}
 
 YEAR, RADIUS_KM, FLOOR_MW = 2015, 50.0, 3.0
 #: Wrong parameters, each of which must fail to reproduce.
@@ -44,8 +53,10 @@ CONTROLS = ((2016, 50.0), (2015, 25.0))
 
 def haversine_km(lat, lon, lats, lons):
     p1, p2 = np.radians(lat), np.radians(lats)
-    a = (np.sin(np.radians(lats - lat) / 2) ** 2
-         + np.cos(p1) * np.cos(p2) * np.sin(np.radians(lons - lon) / 2) ** 2)
+    a = (
+        np.sin(np.radians(lats - lat) / 2) ** 2
+        + np.cos(p1) * np.cos(p2) * np.sin(np.radians(lons - lon) / 2) ** 2
+    )
     return 6371 * 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
 
@@ -58,8 +69,10 @@ def counted(projects: pd.DataFrame, year: int) -> pd.DataFrame:
 def weights(points: pd.DataFrame, projects: pd.DataFrame, radius: float) -> np.ndarray:
     lats, lons = projects["Latitude"].to_numpy(), projects["Longitude"].to_numpy()
     cap = projects["Capacity (MW)"].to_numpy()
-    summed = [cap[haversine_km(a, b, lats, lons) <= radius].sum()
-              for a, b in zip(points["lat"], points["lon"])]
+    summed = [
+        cap[haversine_km(a, b, lats, lons) <= radius].sum()
+        for a, b in zip(points["lat"], points["lon"])
+    ]
     return np.maximum(summed, FLOOR_MW)
 
 
@@ -100,21 +113,32 @@ def main(out_dir: str, runs: Path = RUNS, gwpt: Path = GWPT) -> None:
             "counted_fleet_mw": round(float(fleet["Capacity (MW)"].sum())),
             "operating_fleet_mw": round(float(fleet.loc[~non_operating, "Capacity (MW)"].sum())),
             "summed_weight_mw": round(float(run_cap.sum())),
-            "weight_over_counted_fleet": round(float(run_cap.sum() / fleet["Capacity (MW)"].sum()), 2),
-            "non_operating_share_of_counted_mw": round(float(
-                fleet.loc[non_operating, "Capacity (MW)"].sum() / fleet["Capacity (MW)"].sum()), 3),
-            "blank_start_share_of_counted_mw": round(float(
-                fleet.loc[blank_start, "Capacity (MW)"].sum() / fleet["Capacity (MW)"].sum()), 3),
-            "non_operating_share_of_weight": round(float(
-                contribution[non_operating].sum() / max(contribution.sum(), 1e-9)), 3),
+            "weight_over_counted_fleet": round(
+                float(run_cap.sum() / fleet["Capacity (MW)"].sum()), 2
+            ),
+            "non_operating_share_of_counted_mw": round(
+                float(
+                    fleet.loc[non_operating, "Capacity (MW)"].sum() / fleet["Capacity (MW)"].sum()
+                ),
+                3,
+            ),
+            "blank_start_share_of_counted_mw": round(
+                float(fleet.loc[blank_start, "Capacity (MW)"].sum() / fleet["Capacity (MW)"].sum()),
+                3,
+            ),
+            "non_operating_share_of_weight": round(
+                float(contribution[non_operating].sum() / max(contribution.sum(), 1e-9)), 3
+            ),
             "points_at_floor": int((run_cap == FLOOR_MW).sum()),
-            "floor_share_of_weight": round(float(
-                (run_cap == FLOOR_MW).sum() * FLOOR_MW / run_cap.sum()), 4),
+            "floor_share_of_weight": round(
+                float((run_cap == FLOOR_MW).sum() * FLOOR_MW / run_cap.sum()), 4
+            ),
         }
         for year, radius in CONTROLS:
             wrong = weights(train, counted(projects, year), radius)
             row[f"control_{year}_{int(radius)}km_max_abs_diff_mw"] = float(
-                np.abs(wrong - run_cap).max())
+                np.abs(wrong - run_cap).max()
+            )
         rows.append(row)
 
     table = pd.DataFrame(rows)
@@ -131,10 +155,15 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--runs", type=Path, default=RUNS,
-                        help=f"The chapter's thesis-era runs (default: {RUNS})")
-    parser.add_argument("--gwpt", type=Path, default=GWPT,
-                        help=f"The Global Wind Power Tracker workbook (default: {GWPT})")
+    parser.add_argument(
+        "--runs", type=Path, default=RUNS, help=f"The chapter's thesis-era runs (default: {RUNS})"
+    )
+    parser.add_argument(
+        "--gwpt",
+        type=Path,
+        default=GWPT,
+        help=f"The Global Wind Power Tracker workbook (default: {GWPT})",
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, runs=args.runs, gwpt=args.gwpt)
 

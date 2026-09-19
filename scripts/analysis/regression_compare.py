@@ -16,6 +16,7 @@ regression. If the frames match, the refactor preserved the method.
 Exit code 0 = every frame within tolerance, 1 = at least one FAIL, 2 = no
 frames found to compare.
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -50,8 +51,14 @@ def compare_dirs(reference: Path, harness: Path, atol: float, label: str):
     for name in names:
         ref_f, run_f = reference / name, harness / name
         if not run_f.is_file():
-            rows.append({"frame": name, "max_abs_diff": None, "status": "MISSING",
-                         "note": "absent in harness output"})
+            rows.append(
+                {
+                    "frame": name,
+                    "max_abs_diff": None,
+                    "status": "MISSING",
+                    "note": "absent in harness output",
+                }
+            )
             any_fail = True
             continue
         mad, note = max_abs_diff(pd.read_csv(ref_f), pd.read_csv(run_f))
@@ -82,9 +89,14 @@ def main():
         print(f"[{args.label}] NO frames found in {reference}")
         sys.exit(2)
 
-    worst = max((r["max_abs_diff"] for r in rows
-                 if isinstance(r["max_abs_diff"], float) and np.isfinite(r["max_abs_diff"])),
-                default=0.0)
+    worst = max(
+        (
+            r["max_abs_diff"]
+            for r in rows
+            if isinstance(r["max_abs_diff"], float) and np.isfinite(r["max_abs_diff"])
+        ),
+        default=0.0,
+    )
     for r in rows:
         mad = r["max_abs_diff"]
         mad_s = "   n/a   " if mad is None else f"{mad:.3e}"

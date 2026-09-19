@@ -7,6 +7,7 @@ region config.
 
 Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -70,7 +71,7 @@ CONFIGS = {{
         if country.upper() == "NO" and config.get("use_bidding_zones", False):
             config_content += f'''    "{country.upper()}": {{
         "country": "{country.upper()}",
-        "name": "{config['name']}",
+        "name": "{config["name"]}",
         "calc_z0": True,
         "cluster_mode": "all",
         "cluster_list": [5],  # 5 bidding zones
@@ -84,9 +85,9 @@ CONFIGS = {{
         "test_obs_path": DATA_DIR / "observations" / "no" / "no_test_{test_year}_aggregated.csv",
         "cluster_geoms_path": DATA_DIR / "grid_points" / "no" / "no_bidding_zones.geojson",
         "turbine_metadata": {{
-            "height": {config['height']},
-            "model": "{config['model']}",
-            "capacity": {config['capacity']},
+            "height": {config["height"]},
+            "model": "{config["model"]}",
+            "capacity": {config["capacity"]},
         }},
         "note": "Uses bidding zones instead of KMeans clustering",
     }},
@@ -95,7 +96,7 @@ CONFIGS = {{
         elif country.upper() == "SE" and config.get("use_bidding_zones", False):
             config_content += f'''    "{country.upper()}": {{
         "country": "{country.upper()}",
-        "name": "{config['name']}",
+        "name": "{config["name"]}",
         "calc_z0": True,
         "cluster_mode": "all",
         "cluster_list": [4],  # 4 bidding zones
@@ -109,19 +110,19 @@ CONFIGS = {{
         "test_obs_path": DATA_DIR / "observations" / "se" / "se_test_{test_year}_aggregated.csv",
         "cluster_geoms_path": DATA_DIR / "grid_points" / "se" / "se_bidding_zones.geojson",
         "turbine_metadata": {{
-            "height": {config['height']},
-            "model": "{config['model']}",
-            "capacity": {config['capacity']},
+            "height": {config["height"]},
+            "model": "{config["model"]}",
+            "capacity": {config["capacity"]},
         }},
         "note": "Uses bidding zones instead of KMeans clustering",
     }},
 '''
         else:
             # Standard configuration for NL, FR, BE
-            num_clusters = config.get('num_clusters', 5)
+            num_clusters = config.get("num_clusters", 5)
             config_content += f'''    "{country.upper()}": {{
         "country": "{country.upper()}",
-        "name": "{config['name']}",
+        "name": "{config["name"]}",
         "calc_z0": True,
         "cluster_mode": "all",
         "cluster_list": [{num_clusters}],
@@ -133,9 +134,9 @@ CONFIGS = {{
         "test_obs_path": DATA_DIR / "observations" / "{country.lower()}" / "{country.lower()}_test_{test_year}.csv",
         "cluster_geoms_path": DATA_DIR / "grid_points" / "{country.lower()}" / "{country.lower()}_correction_regions.geojson",
         "turbine_metadata": {{
-            "height": {config['height']},
-            "model": "{config['model']}",
-            "capacity": {config['capacity']},
+            "height": {config["height"]},
+            "model": "{config["model"]}",
+            "capacity": {config["capacity"]},
         }},
     }},
 '''
@@ -188,7 +189,7 @@ if __name__ == "__main__":
         print("\\nUsage: python pyvwf_config.py NL")
 '''
 
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         f.write(config_content)
 
     print(f"\n✓ Saved PyVWF config: {config_path}")

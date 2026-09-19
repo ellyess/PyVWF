@@ -7,6 +7,7 @@ which is not the condition anyone registered. These tests pin the construction
 that covers both fleets, and the refusal that fires when one unit would need
 two keys.
 """
+
 import importlib.util
 from pathlib import Path
 
@@ -15,7 +16,11 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "curve_library_tables",
-    Path(__file__).resolve().parents[1] / "scripts" / "studies" / "method-curve-library" / "curve_library_tables.py",
+    Path(__file__).resolve().parents[1]
+    / "scripts"
+    / "studies"
+    / "method-curve-library"
+    / "curve_library_tables.py",
 )
 tables = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(tables)
@@ -55,22 +60,19 @@ def test_a_field_the_condition_does_not_read_may_differ(monkeypatch):
     """The country grids carry a per-year capacity, so a grid point is 0 MW in
     the training fleet and 11 MW in the test one. C2 maps a model key to a
     substitute and reads no capacity, so that is not a conflict for C2."""
-    fleets(monkeypatch, frame(["a"], ["X"], capacity=[0.0]),
-           frame(["a"], ["X"], capacity=[11.0]))
+    fleets(monkeypatch, frame(["a"], ["X"], capacity=[0.0]), frame(["a"], ["X"], capacity=[11.0]))
     assert len(tables.load_fleets("XX", "C2").union) == 1
     with pytest.raises(SystemExit):
-        tables.load_fleets("XX", "T2")          # T2 picks a band from the rating
+        tables.load_fleets("XX", "T2")  # T2 picks a band from the rating
 
 
 def test_the_union_row_of_a_shared_unit_is_the_training_one(monkeypatch):
-    fleets(monkeypatch, frame(["a"], ["X"], capacity=[0.0]),
-           frame(["a"], ["X"], capacity=[11.0]))
+    fleets(monkeypatch, frame(["a"], ["X"], capacity=[0.0]), frame(["a"], ["X"], capacity=[11.0]))
     assert float(tables.load_fleets("XX", "C2").union.loc[0, "capacity"]) == 0.0
 
 
 def test_a_written_table_carries_the_membership_and_drops_unmatched_units(tmp_path):
-    fleet = frame(["a", "b"], ["X", "Y"]).assign(in_train=[True, False],
-                                                 in_test=[True, True])
+    fleet = frame(["a", "b"], ["X", "Y"]).assign(in_train=[True, False], in_test=[True, True])
     table = tables.write_table(tmp_path, "T1_XX", fleet, pd.Series(["P", None]))
     assert list(table["ID"]) == ["a"] and list(table["in_train"]) == [True]
     assert (tmp_path / "T1_XX.csv").exists()
@@ -78,8 +80,12 @@ def test_a_written_table_carries_the_membership_and_drops_unmatched_units(tmp_pa
 
 def test_coverage_is_reported_against_each_fleet_separately(tmp_path):
     got = tables.coverage(
-        tables.Fleets(frame(["a", "b", "c"], ["X", "Y", "Z"]),
-                      frame(["a", "b"], ["X", "Y"]), frame(["b", "c"], ["Y", "Z"])),
-        pd.DataFrame({"ID": ["a", "b"], "model": ["P", "Q"]}))
+        tables.Fleets(
+            frame(["a", "b", "c"], ["X", "Y", "Z"]),
+            frame(["a", "b"], ["X", "Y"]),
+            frame(["b", "c"], ["Y", "Z"]),
+        ),
+        pd.DataFrame({"ID": ["a", "b"], "model": ["P", "Q"]}),
+    )
     assert got["reached_train"] == 2 and got["reached_test"] == 1
     assert got["capacity_share_train"] == 1.0 and got["capacity_share_test"] == 0.5

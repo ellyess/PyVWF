@@ -10,6 +10,7 @@ uniform capacities with real ones from the Global Wind Power Tracker.
 
 Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,68 +26,68 @@ COUNTRY_CONFIGS = {
     "NL": {
         "name": "Netherlands",
         "bounds": box(3.3, 50.7, 7.2, 53.6),
-        "height": 100.0,        # Modern onshore fleet
-        "model": "V90",         # Vestas 3MW
-        "capacity": 3.0,        # Average capacity
+        "height": 100.0,  # Modern onshore fleet
+        "model": "V90",  # Vestas 3MW
+        "capacity": 3.0,  # Average capacity
         "grid_resolution": 0.25,  # ~25km grid
-        "num_clusters": 5,      # Spatial regions
+        "num_clusters": 5,  # Spatial regions
     },
     "FR": {
         "name": "France",
         "bounds": box(-5.0, 42.0, 8.5, 51.2),
-        "height": 90.0,         # Mix of old and modern
-        "model": "V80",         # Vestas 2MW
+        "height": 90.0,  # Mix of old and modern
+        "model": "V80",  # Vestas 2MW
         "capacity": 2.5,
-        "grid_resolution": 0.5,   # ~50km grid (larger country)
-        "num_clusters": 10,     # More regions
+        "grid_resolution": 0.5,  # ~50km grid (larger country)
+        "num_clusters": 10,  # More regions
     },
     "BE": {
         "name": "Belgium",
         "bounds": box(2.5, 49.5, 6.4, 51.5),
-        "height": 100.0,        # Modern fleet
+        "height": 100.0,  # Modern fleet
         "model": "V90",
         "capacity": 3.0,
         "grid_resolution": 0.25,
-        "num_clusters": 3,      # Smaller country
+        "num_clusters": 3,  # Smaller country
     },
     "NO": {
         "name": "Norway",
         "bounds": box(4.5, 58.0, 31.0, 71.5),  # Full country (for reference)
-        "height": 80.0,         # Mountain terrain, lower heights
+        "height": 80.0,  # Mountain terrain, lower heights
         "model": "V90",
         "capacity": 3.0,
-        "grid_resolution": 1.0,   # ~100km grid (large country, sparse turbines)
+        "grid_resolution": 1.0,  # ~100km grid (large country, sparse turbines)
         "use_bidding_zones": True,  # ← Use zones instead of KMeans
-        "note": "Norway uses bidding zones (NO_1..NO_5) for market structure"
+        "note": "Norway uses bidding zones (NO_1..NO_5) for market structure",
     },
     # Phase 1 Countries (moderate clusters with bbox optimization)
     "ES": {
         "name": "Spain",
         "bounds": box(-9.5, 36.0, 3.5, 43.8),
-        "height": 90.0,         # Modern fleet
+        "height": 90.0,  # Modern fleet
         "model": "Vestas.V90.2000",  # 2 MW turbine
         "capacity": 2.5,
-        "grid_resolution": 1.0,   # ~100km grid (large country)
-        "num_clusters": 4,      # Increased with bbox optimization
+        "grid_resolution": 1.0,  # ~100km grid (large country)
+        "num_clusters": 4,  # Increased with bbox optimization
     },
     "SE": {
         "name": "Sweden",
         "bounds": box(11.0, 55.3, 24.2, 69.0),  # Full country (for reference)
-        "height": 100.0,        # Modern, tall turbines
+        "height": 100.0,  # Modern, tall turbines
         "model": "Vestas.V90.3000",  # 3 MW turbine
         "capacity": 3.0,
-        "grid_resolution": 1.5,   # ~150km grid (very large country)
+        "grid_resolution": 1.5,  # ~150km grid (very large country)
         "use_bidding_zones": True,  # ← Use zones instead of KMeans
-        "note": "Sweden uses bidding zones (SE_1..SE_4) for market structure"
+        "note": "Sweden uses bidding zones (SE_1..SE_4) for market structure",
     },
     "IT": {
         "name": "Italy",
         "bounds": box(6.6, 36.6, 18.5, 47.1),
-        "height": 80.0,         # Mix of old and modern
+        "height": 80.0,  # Mix of old and modern
         "model": "Vestas.V80.2000",  # 2 MW turbine
         "capacity": 2.0,
-        "grid_resolution": 1.0,   # ~100km grid
-        "num_clusters": 3,      # Increased with bbox optimization
+        "grid_resolution": 1.0,  # ~100km grid
+        "num_clusters": 3,  # Increased with bbox optimization
     },
     "PT": {
         "name": "Portugal",
@@ -94,8 +95,8 @@ COUNTRY_CONFIGS = {
         "height": 80.0,
         "model": "Vestas.V80.2000",  # 2 MW turbine
         "capacity": 2.5,
-        "grid_resolution": 0.5,   # ~50km grid
-        "num_clusters": 3,      # Increased with bbox optimization
+        "grid_resolution": 0.5,  # ~50km grid
+        "num_clusters": 3,  # Increased with bbox optimization
     },
     "IE": {
         "name": "Ireland",
@@ -103,8 +104,8 @@ COUNTRY_CONFIGS = {
         "height": 85.0,
         "model": "Vestas.V90.2000",  # 2 MW turbine
         "capacity": 2.5,
-        "grid_resolution": 0.5,   # ~50km grid
-        "num_clusters": 3,      # Increased with bbox optimization
+        "grid_resolution": 0.5,  # ~50km grid
+        "num_clusters": 3,  # Increased with bbox optimization
     },
 }
 
@@ -183,9 +184,9 @@ def generate_grid_points(
     Returns:
         Tuple of (grid_points_clustered, cluster_geometries).
     """
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"Generating Grid Points for {config['name']} ({country})")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # Special handling for Norway - use bidding zones
     if country.upper() == "NO" and config.get("use_bidding_zones", False):
@@ -221,6 +222,7 @@ def generate_norway_zone_grids(
 
     # Load actual bidding zone geometries
     import geopandas as gpd
+
     zones_path = Path("input/reference/shapes/no_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
@@ -236,28 +238,28 @@ def generate_norway_zone_grids(
 
     # Map zone names: 'NO 1' -> 'NO_1' for consistency
     zone_name_map = {
-        'NO 1': 'NO_1',
-        'NO 2': 'NO_2',
-        'NO 3': 'NO_3',
-        'NO 4': 'NO_4',
-        'NO 5': 'NO_5',
+        "NO 1": "NO_1",
+        "NO 2": "NO_2",
+        "NO 3": "NO_3",
+        "NO 4": "NO_4",
+        "NO 5": "NO_5",
     }
 
     for idx, zone_row in zones_gdf.iterrows():
-        zone_name_orig = zone_row['Price area']
-        zone_id = zone_name_map.get(zone_name_orig, zone_name_orig.replace(' ', '_'))
+        zone_name_orig = zone_row["Price area"]
+        zone_id = zone_name_map.get(zone_name_orig, zone_name_orig.replace(" ", "_"))
         zone_geom = zone_row.geometry
 
         # Extract zone number (NO_1 -> 0, NO_2 -> 1, etc.)
-        zone_num = int(zone_id.split('_')[1]) - 1
+        zone_num = int(zone_id.split("_")[1]) - 1
 
         # Get grid resolution from NORWAY_ZONES config
-        zone_config = NORWAY_ZONES.get(zone_id, {'grid_resolution': 0.5})
-        grid_resolution = zone_config.get('grid_resolution', 0.5)
+        zone_config = NORWAY_ZONES.get(zone_id, {"grid_resolution": 0.5})
+        grid_resolution = zone_config.get("grid_resolution", 0.5)
 
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(f"Zone {zone_id} ({zone_name_orig})")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(f"  Grid resolution: {grid_resolution}°")
         print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
 
@@ -270,49 +272,56 @@ def generate_norway_zone_grids(
             method="grid",
             resolution=grid_resolution,
             add_metadata=True,
-            default_height=config['height'],
-            default_model=config['model'],
-            default_capacity=config['capacity'],
+            default_height=config["height"],
+            default_model=config["model"],
+            default_capacity=config["capacity"],
         )
 
         # Filter grid points to only those inside the actual zone geometry
         # Create point geometries for filtering
         from shapely.geometry import Point as ShapelyPoint
+
         zone_grid_gdf = gpd.GeoDataFrame(
             zone_grid,
-            geometry=[ShapelyPoint(lon, lat) for lon, lat in zip(zone_grid['lon'], zone_grid['lat'])],
-            crs="EPSG:4326"
+            geometry=[
+                ShapelyPoint(lon, lat) for lon, lat in zip(zone_grid["lon"], zone_grid["lat"])
+            ],
+            crs="EPSG:4326",
         )
 
         # Keep only points inside the actual zone geometry
         zone_grid_filtered = zone_grid_gdf[zone_grid_gdf.geometry.within(zone_geom)].copy()
-        zone_grid_filtered.drop(columns=['geometry'], inplace=True)
+        zone_grid_filtered.drop(columns=["geometry"], inplace=True)
 
         # Assign zone as cluster
-        zone_grid_filtered['cluster'] = zone_num
-        zone_grid_filtered['zone'] = zone_id
+        zone_grid_filtered["cluster"] = zone_num
+        zone_grid_filtered["zone"] = zone_id
 
-        print(f"  ✓ Created {len(zone_grid_filtered)} grid points for {zone_id} (filtered from {len(zone_grid)})")
+        print(
+            f"  ✓ Created {len(zone_grid_filtered)} grid points for {zone_id} (filtered from {len(zone_grid)})"
+        )
 
         all_zones_grids.append(zone_grid_filtered)
 
         # Use actual zone geometry
-        zone_geometries.append({
-            'cluster': zone_num,
-            'zone': zone_id,
-            'name': zone_config.get('name', zone_name_orig),
-            'geometry': zone_geom,
-            'n_points': len(zone_grid_filtered)
-        })
+        zone_geometries.append(
+            {
+                "cluster": zone_num,
+                "zone": zone_id,
+                "name": zone_config.get("name", zone_name_orig),
+                "geometry": zone_geom,
+                "n_points": len(zone_grid_filtered),
+            }
+        )
 
     # Combine all zones
     grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
 
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones")
     print("\nZone distribution:")
-    for zone_id in sorted(grid_all_zones['zone'].unique()):
-        count = len(grid_all_zones[grid_all_zones['zone'] == zone_id])
+    for zone_id in sorted(grid_all_zones["zone"].unique()):
+        count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
         print(f"  {zone_id}: {count} points")
 
     # Save grid points
@@ -362,6 +371,7 @@ def generate_sweden_zone_grids(
 
     # Load actual bidding zone geometries
     import geopandas as gpd
+
     zones_path = Path("input/reference/shapes/se_bidding_zones.geojson")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
@@ -376,7 +386,7 @@ def generate_sweden_zone_grids(
 
     for idx, zone_row in zones_gdf.iterrows():
         # Get zone_id from properties (already in SE_1 format from our extraction)
-        zone_id = zone_row.get('zone_id') or zone_row.get('zone_name')
+        zone_id = zone_row.get("zone_id") or zone_row.get("zone_name")
         if not zone_id:
             print(f"  Warning: Missing zone_id for feature {idx}, skipping")
             continue
@@ -384,15 +394,15 @@ def generate_sweden_zone_grids(
         zone_geom = zone_row.geometry
 
         # Extract zone number (SE_1 -> 0, SE_2 -> 1, etc.)
-        zone_num = int(zone_id.split('_')[1]) - 1
+        zone_num = int(zone_id.split("_")[1]) - 1
 
         # Get grid resolution from SWEDEN_ZONES config
-        zone_config = SWEDEN_ZONES.get(zone_id, {'grid_resolution': 0.75})
-        grid_resolution = zone_config.get('grid_resolution', 0.75)
+        zone_config = SWEDEN_ZONES.get(zone_id, {"grid_resolution": 0.75})
+        grid_resolution = zone_config.get("grid_resolution", 0.75)
 
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(f"Zone {zone_id}")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(f"  Grid resolution: {grid_resolution}°")
         print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
 
@@ -405,27 +415,30 @@ def generate_sweden_zone_grids(
             method="grid",
             resolution=grid_resolution,
             add_metadata=True,
-            default_height=config['height'],
-            default_model=config['model'],
-            default_capacity=config['capacity'],
+            default_height=config["height"],
+            default_model=config["model"],
+            default_capacity=config["capacity"],
         )
 
         # Filter grid points to only those inside the actual zone geometry
         # Create point geometries for filtering
         from shapely.geometry import Point as ShapelyPoint
+
         zone_grid_gdf = gpd.GeoDataFrame(
             zone_grid,
-            geometry=[ShapelyPoint(lon, lat) for lon, lat in zip(zone_grid['lon'], zone_grid['lat'])],
-            crs="EPSG:4326"
+            geometry=[
+                ShapelyPoint(lon, lat) for lon, lat in zip(zone_grid["lon"], zone_grid["lat"])
+            ],
+            crs="EPSG:4326",
         )
 
         # Keep only points inside the actual zone geometry
         zone_grid_filtered = zone_grid_gdf[zone_grid_gdf.geometry.within(zone_geom)].copy()
-        zone_grid_filtered.drop(columns=['geometry'], inplace=True)
+        zone_grid_filtered.drop(columns=["geometry"], inplace=True)
 
         # Assign zone as cluster
-        zone_grid_filtered['cluster'] = zone_num
-        zone_grid_filtered['zone'] = zone_id
+        zone_grid_filtered["cluster"] = zone_num
+        zone_grid_filtered["zone"] = zone_id
 
         print(f"  Grid points: {len(zone_grid_filtered)}")
 
@@ -436,22 +449,24 @@ def generate_sweden_zone_grids(
         all_zones_grids.append(zone_grid_filtered)
 
         # Use actual zone geometry
-        zone_geometries.append({
-            'cluster': zone_num,
-            'zone': zone_id,
-            'name': zone_config.get('name', zone_id),
-            'geometry': zone_geom,
-            'n_points': len(zone_grid_filtered)
-        })
+        zone_geometries.append(
+            {
+                "cluster": zone_num,
+                "zone": zone_id,
+                "name": zone_config.get("name", zone_id),
+                "geometry": zone_geom,
+                "n_points": len(zone_grid_filtered),
+            }
+        )
 
     # Combine all zones
     grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
 
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones")
     print("\nZone distribution:")
-    for zone_id in sorted(grid_all_zones['zone'].unique()):
-        count = len(grid_all_zones[grid_all_zones['zone'] == zone_id])
+    for zone_id in sorted(grid_all_zones["zone"].unique()):
+        count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
         print(f"  {zone_id}: {count} points")
 
     # Save grid points
@@ -502,52 +517,54 @@ def generate_norway_zone_grids_fallback(
     zone_geometries = []
 
     for zone_id, zone_config in NORWAY_ZONES.items():
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
         print(f"Zone {zone_id}: {zone_config['name']}")
-        print(f"{'─'*70}")
+        print(f"{'─' * 70}")
 
         # Extract zone number (NO_1 -> 0, NO_2 -> 1, etc.)
-        zone_num = int(zone_id.split('_')[1]) - 1
+        zone_num = int(zone_id.split("_")[1]) - 1
 
         print(f"  Grid resolution: {zone_config['grid_resolution']}°")
         print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
 
         # Create grid for this zone
         zone_grid = create_sampling_points(
-            country_bounds=zone_config['bounds'],
+            country_bounds=zone_config["bounds"],
             method="grid",
-            resolution=zone_config['grid_resolution'],
+            resolution=zone_config["grid_resolution"],
             add_metadata=True,
-            default_height=config['height'],
-            default_model=config['model'],
-            default_capacity=config['capacity'],
+            default_height=config["height"],
+            default_model=config["model"],
+            default_capacity=config["capacity"],
         )
 
         # Assign zone as cluster
-        zone_grid['cluster'] = zone_num
-        zone_grid['zone'] = zone_id
+        zone_grid["cluster"] = zone_num
+        zone_grid["zone"] = zone_id
 
         print(f"  ✓ Created {len(zone_grid)} grid points for {zone_id}")
 
         all_zones_grids.append(zone_grid)
 
         # Create zone geometry (bounding box)
-        zone_geometries.append({
-            'cluster': zone_num,
-            'zone': zone_id,
-            'name': zone_config['name'],
-            'geometry': zone_config['bounds'],
-            'n_points': len(zone_grid)
-        })
+        zone_geometries.append(
+            {
+                "cluster": zone_num,
+                "zone": zone_id,
+                "name": zone_config["name"],
+                "geometry": zone_config["bounds"],
+                "n_points": len(zone_grid),
+            }
+        )
 
     # Combine all zones
     grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
 
-    print(f"\n{'─'*70}")
+    print(f"\n{'─' * 70}")
     print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(NORWAY_ZONES)} zones")
     print("\nZone distribution:")
-    for zone_id in sorted(grid_all_zones['zone'].unique()):
-        count = len(grid_all_zones[grid_all_zones['zone'] == zone_id])
+    for zone_id in sorted(grid_all_zones["zone"].unique()):
+        count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
         print(f"  {zone_id}: {count} points")
 
     # Save grid points
@@ -562,6 +579,7 @@ def generate_norway_zone_grids_fallback(
     if save_geojson:
         try:
             import geopandas as gpd
+
             zone_gdf = gpd.GeoDataFrame(zone_geometries, crs="EPSG:4326")
             geom_path = grid_dir / "no_bidding_zones.geojson"
             zone_gdf.to_file(geom_path, driver="GeoJSON")
@@ -595,20 +613,22 @@ def generate_kmeans_grid(
     """
 
     # Create grid with turbine metadata
-    print(f"\nGrid resolution: {config['grid_resolution']}° (~{config['grid_resolution']*100:.0f} km)")
+    print(
+        f"\nGrid resolution: {config['grid_resolution']}° (~{config['grid_resolution'] * 100:.0f} km)"
+    )
     print("Representative turbine:")
     print(f"  Hub height: {config['height']} m")
     print(f"  Power curve: {config['model']}")
     print(f"  Capacity: {config['capacity']} MW")
 
     grid_points = create_sampling_points(
-        country_bounds=config['bounds'],
+        country_bounds=config["bounds"],
         method="grid",
-        resolution=config['grid_resolution'],
+        resolution=config["grid_resolution"],
         add_metadata=True,
-        default_height=config['height'],
-        default_model=config['model'],
-        default_capacity=config['capacity'],
+        default_height=config["height"],
+        default_model=config["model"],
+        default_capacity=config["capacity"],
     )
 
     print(f"\n✓ Created {len(grid_points)} grid points")
@@ -617,15 +637,15 @@ def generate_kmeans_grid(
     print(f"\nClustering into {config['num_clusters']} regions (Voronoi)...")
     grid_clustered, cluster_geoms = cluster_with_geometries(
         sampling_points=grid_points,
-        num_clusters=config['num_clusters'],
+        num_clusters=config["num_clusters"],
         method="kmeans",
         country_code=country,
         cluster_mode="onshore",
-        geometry_type="voronoi"
+        geometry_type="voronoi",
     )
 
     # Print cluster distribution
-    cluster_counts = grid_clustered['cluster'].value_counts().sort_index()
+    cluster_counts = grid_clustered["cluster"].value_counts().sort_index()
     print("\nCluster distribution:")
     for cluster_id, count in cluster_counts.items():
         print(f"  Cluster {cluster_id}: {count} points")

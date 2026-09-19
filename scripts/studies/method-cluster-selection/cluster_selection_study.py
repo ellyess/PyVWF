@@ -30,6 +30,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYVWF_OFFSET_WORKERS=4 PYTHONPATH=src python \\
         scripts/studies/method-cluster-selection/cluster_selection_study.py <out_dir> [label ...]
 """
+
 import dataclasses
 import time
 from pathlib import Path
@@ -112,30 +113,41 @@ def run_tag(mode: str, name: str) -> str:
     return f"{mode}-{name}"
 
 
-def evaluate_at(spec, out: Path, mode: str, clusters: tuple[int, ...],
-                train_years: tuple[int, int], year: int, name: str) -> pd.DataFrame:
+def evaluate_at(
+    spec,
+    out: Path,
+    mode: str,
+    clusters: tuple[int, ...],
+    train_years: tuple[int, int],
+    year: int,
+    name: str,
+) -> pd.DataFrame:
     """Train at every count and score the given year. Returns metrics.csv."""
     fold_spec = dataclasses.replace(
-        spec, cluster_list=clusters, time_slices=(TIME_SLICE,),
-        era5_path=ERA5_PATH, roughness=ROUGHNESS,
-        train_years=train_years, test_years=(year,),
-        bbox=BBOX.get(spec.code.lower(), spec.bbox))
+        spec,
+        cluster_list=clusters,
+        time_slices=(TIME_SLICE,),
+        era5_path=ERA5_PATH,
+        roughness=ROUGHNESS,
+        train_years=train_years,
+        test_years=(year,),
+        bbox=BBOX.get(spec.code.lower(), spec.bbox),
+    )
     tag = run_tag(mode, name)
     train_dir = driver.run_train(fold_spec, out, mode=mode, run_name=tag)
-    evaluate_dir = driver.run_evaluate(fold_spec, train_dir, out, mode=mode,
-                                       run_name=tag)
+    evaluate_dir = driver.run_evaluate(fold_spec, train_dir, out, mode=mode, run_name=tag)
     metrics = pd.read_csv(evaluate_dir / "metrics.csv")
     # The path fix above should make this impossible. Checked anyway, because a
     # contaminated grid scores as an ordinary result and the first run of this
     # study did exactly that.
-    scored = set(metrics.loc[metrics["variant"] != "uncorrected", "num_clu"]
-                 .astype(int))
+    scored = set(metrics.loc[metrics["variant"] != "uncorrected", "num_clu"].astype(int))
     unexpected = sorted(scored - set(clusters))
     if unexpected:
         raise RuntimeError(
             f"{train_dir} holds factors for {unexpected}, which this run did not "
             f"fit; it asked for {list(clusters)}. Another configuration has "
-            "written to the same run directory.")
+            "written to the same run directory."
+        )
     return metrics
 
 
@@ -149,53 +161,64 @@ def main(out_dir: str, *only: str) -> None:
             continue
         spec = regions.load_region(Path("configs/regions") / f"{stem}.toml")
         started = time.monotonic()
-        print(f"\n=== {label}: train {spec.train_years}, test {spec.test_years}",
-              flush=True)
+        print(f"\n=== {label}: train {spec.train_years}, test {spec.test_years}", flush=True)
 
         plan = folds(spec.train_years)
         grid = grid_for(mode, 10_000)
-        print(f"  {len(plan)} forward-chaining folds, {len(grid)} counts {grid}",
-              flush=True)
+        print(f"  {len(plan)} forward-chaining folds, {len(grid)} counts {grid}", flush=True)
 
         for train_years, year in plan:
             print(f"  fold: train {train_years} validate {year}", flush=True)
-            metrics = evaluate_at(spec, out, mode, grid, train_years, year,
-                                  f"fold-{year}")
+            metrics = evaluate_at(spec, out, mode, grid, train_years, year, f"fold-{year}")
             fitted = metrics[metrics["variant"] != "uncorrected"]
             for _, row in fitted.iterrows():
-                fold_rows.append({"row": label, "fold_year": year,
-                                  "num_clu": int(row["num_clu"]),
-                                  "rmse": float(row["rmse"]),
-                                  "mae": float(row["mae"])})
+                fold_rows.append(
+                    {
+                        "row": label,
+                        "fold_year": year,
+                        "num_clu": int(row["num_clu"]),
+                        "rmse": float(row["rmse"]),
+                        "mae": float(row["mae"]),
+                    }
+                )
 
         scores = pd.DataFrame([r for r in fold_rows if r["row"] == label])
         picks = {m: one_standard_error(scores, m) for m in METRICS}
         selected = min(picks[m][0] for m in METRICS)
         disagree = picks["rmse"][0] != picks["mae"][0]
-        print(f"  selection: rmse {picks['rmse'][0]}, mae {picks['mae'][0]}, "
-              f"taken {selected}{' (disagreed, smaller taken)' if disagree else ''}",
-              flush=True)
+        print(
+            f"  selection: rmse {picks['rmse'][0]}, mae {picks['mae'][0]}, "
+            f"taken {selected}{' (disagreed, smaller taken)' if disagree else ''}",
+            flush=True,
+        )
 
         candidates = sorted({selected, chapter_count, FIXED_BASELINE})
-        final = evaluate_at(spec, out, mode, tuple(candidates), spec.train_years,
-                            int(spec.test_years[0]), "final")
+        final = evaluate_at(
+            spec, out, mode, tuple(candidates), spec.train_years, int(spec.test_years[0]), "final"
+        )
         final.to_csv(out / f"final_{label.replace(' ', '_')}.csv", index=False)
-        at = {int(r["num_clu"]): r for _, r in
-              final[final["variant"] != "uncorrected"].iterrows()}
+        at = {int(r["num_clu"]): r for _, r in final[final["variant"] != "uncorrected"].iterrows()}
         uncorrected = final[final["variant"] == "uncorrected"].iloc[0]
 
-        selections.append({
-            "row": label, "folds": len(plan), "grid": str(grid),
-            "selected": selected, "best_rmse_k": picks["rmse"][1],
-            "selected_by_rmse": picks["rmse"][0], "selected_by_mae": picks["mae"][0],
-            "metrics_disagreed": disagree,
-            "B1_chapter": chapter_count, "B2_fixed": FIXED_BASELINE,
-            "test_mae_selected": float(at[selected]["mae"]),
-            "test_mae_B1": float(at[chapter_count]["mae"]),
-            "test_mae_B2": float(at[FIXED_BASELINE]["mae"]),
-            "test_mae_uncorrected": float(uncorrected["mae"]),
-            "minutes": round((time.monotonic() - started) / 60.0, 1),
-        })
+        selections.append(
+            {
+                "row": label,
+                "folds": len(plan),
+                "grid": str(grid),
+                "selected": selected,
+                "best_rmse_k": picks["rmse"][1],
+                "selected_by_rmse": picks["rmse"][0],
+                "selected_by_mae": picks["mae"][0],
+                "metrics_disagreed": disagree,
+                "B1_chapter": chapter_count,
+                "B2_fixed": FIXED_BASELINE,
+                "test_mae_selected": float(at[selected]["mae"]),
+                "test_mae_B1": float(at[chapter_count]["mae"]),
+                "test_mae_B2": float(at[FIXED_BASELINE]["mae"]),
+                "test_mae_uncorrected": float(uncorrected["mae"]),
+                "minutes": round((time.monotonic() - started) / 60.0, 1),
+            }
+        )
         print(f"  {label} done in {selections[-1]['minutes']} minutes", flush=True)
 
     # Per row, not one file per invocation. A shell loop running one row per
@@ -216,17 +239,35 @@ def main(out_dir: str, *only: str) -> None:
         print("\n=== C-G2, against B2 (k=100), and C-G3, against B1")
         frame["beats_B2"] = frame["test_mae_B2"] - frame["test_mae_selected"]
         frame["beats_B1"] = frame["test_mae_B1"] - frame["test_mae_selected"]
-        print(frame[["row", "selected", "test_mae_selected", "test_mae_B2",
-                     "beats_B2", "test_mae_B1", "beats_B1"]].round(5).to_string(index=False))
-        print(f"  beats B2 by more than 0.002 in "
-              f"{int((frame['beats_B2'] > 0.002).sum())} of {len(frame)}")
-        print(f"  beats B1 by more than 0.002 in "
-              f"{int((frame['beats_B1'] > 0.002).sum())} of {len(frame)}")
-        print(f"  metrics disagreed in {int(frame['metrics_disagreed'].sum())} of "
-              f"{len(frame)}")
-    print("\nForward chaining and the one-standard-error rule both favour fewer "
-          "clusters, so a selection at the bottom of its grid is not evidence "
-          "that the bottom is best.")
+        print(
+            frame[
+                [
+                    "row",
+                    "selected",
+                    "test_mae_selected",
+                    "test_mae_B2",
+                    "beats_B2",
+                    "test_mae_B1",
+                    "beats_B1",
+                ]
+            ]
+            .round(5)
+            .to_string(index=False)
+        )
+        print(
+            f"  beats B2 by more than 0.002 in "
+            f"{int((frame['beats_B2'] > 0.002).sum())} of {len(frame)}"
+        )
+        print(
+            f"  beats B1 by more than 0.002 in "
+            f"{int((frame['beats_B1'] > 0.002).sum())} of {len(frame)}"
+        )
+        print(f"  metrics disagreed in {int(frame['metrics_disagreed'].sum())} of {len(frame)}")
+    print(
+        "\nForward chaining and the one-standard-error rule both favour fewer "
+        "clusters, so a selection at the bottom of its grid is not evidence "
+        "that the bottom is best."
+    )
     print(f"written: {len(frame)} per-row score and selection files under {out}")
 
 
@@ -234,8 +275,9 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir> [label ...]``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the run directories, under output/")
-    parser.add_argument("only", nargs="*", metavar="label",
-                        help="Rows of CONFIGURATIONS to run (default: all)")
+    parser.add_argument(
+        "only", nargs="*", metavar="label", help="Rows of CONFIGURATIONS to run (default: all)"
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, *args.only)
 

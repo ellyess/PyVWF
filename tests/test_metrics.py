@@ -12,6 +12,7 @@ Capacity weighting is exercised explicitly because it is the easiest thing to
 get silently wrong: an unweighted mean over turbines of unequal size looks
 plausible and is off by a few percent.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -29,6 +30,7 @@ from vwf.metrics import (
 # ---------------------------------------------------------------------------
 # Builders for the two on-disk schemas the metrics layer consumes
 # ---------------------------------------------------------------------------
+
 
 def wide_cf(cf_by_id: dict[str, float], years=(2020,), months=12) -> pd.DataFrame:
     """Wide CF frame (`time` + one column per turbine), as written to disk."""
@@ -50,9 +52,7 @@ def long_obs(cf_by_id: dict[str, float], years=(2020,)) -> pd.DataFrame:
 
 
 def fleet(capacities: dict[str, float], **extra) -> pd.DataFrame:
-    df = pd.DataFrame(
-        {"ID": list(capacities), "capacity": list(capacities.values())}
-    )
+    df = pd.DataFrame({"ID": list(capacities), "capacity": list(capacities.values())})
     for col, values in extra.items():
         df[col] = values
     return df
@@ -61,6 +61,7 @@ def fleet(capacities: dict[str, float], **extra) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # weighted_average_vectorized
 # ---------------------------------------------------------------------------
+
 
 def test_weighted_average_equal_weights_is_plain_mean():
     df = pd.DataFrame({"v": [0.1, 0.2, 0.6], "w": [1.0, 1.0, 1.0]})
@@ -84,6 +85,7 @@ def test_weighted_average_is_dominated_by_the_large_turbine():
 # prepare_monthly_data
 # ---------------------------------------------------------------------------
 
+
 def test_prepare_monthly_data_test_schema_melts_to_long():
     sim = wide_cf({"A": 0.4, "B": 0.5})
     obs = wide_cf({"A": 0.3, "B": 0.3})
@@ -99,9 +101,9 @@ def test_prepare_monthly_data_test_schema_melts_to_long():
     "years",
     [
         (2015, 2016, 2017, 2018, 2019),  # the original hard-coded window
-        (2016, 2017, 2018),              # shorter: used to raise ValueError
+        (2016, 2017, 2018),  # shorter: used to raise ValueError
         (2016, 2017, 2018, 2019, 2020),  # 60 months, but shifted by a year
-        (2021,),                         # a single year
+        (2021,),  # a single year
     ],
 )
 def test_prepare_monthly_data_train_preserves_real_years(years):
@@ -249,6 +251,7 @@ def test_calculate_error_does_not_mutate_turb_info():
 # calculate_error: the grouped report modes
 # ---------------------------------------------------------------------------
 
+
 def test_monthly_error_reports_one_diff_per_month_plus_both():
     obs = wide_cf({"A": 0.30, "B": 0.30})
     sim = wide_cf({"A": 0.35, "B": 0.35})
@@ -290,6 +293,7 @@ def test_turbine_error_reports_one_diff_per_turbine():
 # overall_error: sweeps a run directory
 # ---------------------------------------------------------------------------
 
+
 def _write_run(tmp_path, country="DK", year=2020):
     """A run directory holding obs, uncorrected and two corrected variants."""
     cf_dir = tmp_path / "results" / "capacity-factor"
@@ -309,9 +313,7 @@ def test_overall_error_sweeps_clusters_and_resolutions(tmp_path):
     run = _write_run(tmp_path)
     turb = fleet({"A": 1000.0, "B": 1000.0})
 
-    metrics = overall_error(
-        "total", str(run), "DK", turb, [1, 10], ["fixed"], False, 2020
-    )
+    metrics = overall_error("total", str(run), "DK", turb, [1, 10], ["fixed"], False, 2020)
 
     # One uncorrected baseline row + one row per (cluster, time_res) pair
     assert len(metrics) == 3

@@ -5,6 +5,7 @@ matter most pin the silent failures: neutral fills are counted and returned
 rather than substituted quietly, and a broken metric raises rather than
 producing a row of missing values in a results table.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -24,12 +25,14 @@ def surface(scalar=0.8, offset=0.5, axes=("x", "y"), masked=False):
     lon_name, lat_name = axes
     return xr.Dataset(
         {"scalar": ((lat_name, lon_name), s), "offset": ((lat_name, lon_name), o)},
-        coords={lon_name: lon, lat_name: lat})
+        coords={lon_name: lon, lat_name: lat},
+    )
 
 
 def units(ids=("a", "b"), lons=(0.5, 1.5), lats=(50.5, 51.5), capacity=(100.0, 200.0)):
-    return pd.DataFrame({"ID": list(ids), "lon": list(lons), "lat": list(lats),
-                         "capacity": list(capacity)})
+    return pd.DataFrame(
+        {"ID": list(ids), "lon": list(lons), "lat": list(lats), "capacity": list(capacity)}
+    )
 
 
 def test_a_unit_takes_the_correction_at_its_own_position():
@@ -44,7 +47,8 @@ def test_a_unit_off_the_grid_is_neutral_and_counted():
     """The original substituted neutral values silently, so a run in which most
     units got no correction scored as an ordinary result."""
     got, summary = evaluate.corrections_at(
-        surface(), units(ids=("a", "off"), lons=(0.5, 40.0), lats=(50.5, 50.5)))
+        surface(), units(ids=("a", "off"), lons=(0.5, 40.0), lats=(50.5, 50.5))
+    )
     assert got.loc[1, "scalar"] == 1.0 and got.loc[1, "offset"] == 0.0
     assert bool(got.loc[1, "neutral"]) and not bool(got.loc[0, "neutral"])
     assert summary["n_neutral"] == 1 and summary["n_off_grid"] == 1
@@ -55,8 +59,8 @@ def test_a_unit_in_a_masked_region_counts_as_neutral_too():
     """Masked cells hold scalar 1 and offset 0, which is the surface declining
     to answer rather than a correction that happens to be the identity."""
     got, summary = evaluate.corrections_at(
-        surface(masked=True), units(ids=("in", "masked"), lons=(0.5, 3.0),
-                                    lats=(50.5, 50.0)))
+        surface(masked=True), units(ids=("in", "masked"), lons=(0.5, 3.0), lats=(50.5, 50.0))
+    )
     assert summary["n_neutral"] == 1 and summary["n_off_grid"] == 0
     assert bool(got.loc[1, "neutral"])
 
@@ -68,9 +72,10 @@ def test_both_axis_conventions_are_read(axes):
 
 
 def test_a_surface_with_neither_convention_is_refused():
-    bad = xr.Dataset({"scalar": (("a", "b"), np.ones((2, 2))),
-                      "offset": (("a", "b"), np.zeros((2, 2)))},
-                     coords={"a": [0.0, 1.0], "b": [1.0, 2.0]})
+    bad = xr.Dataset(
+        {"scalar": (("a", "b"), np.ones((2, 2))), "offset": (("a", "b"), np.zeros((2, 2)))},
+        coords={"a": [0.0, 1.0], "b": [1.0, 2.0]},
+    )
     with pytest.raises(KeyError, match="expected x and y"):
         evaluate.corrections_at(bad, units())
 
@@ -82,9 +87,11 @@ def test_units_without_the_columns_it_needs_are_refused():
 
 def speeds(ids=("a", "b"), model="M", values=((8.0, 9.0), (10.0, 11.0))):
     times = pd.date_range("2023-01-01", periods=len(values), freq="D")
-    da = xr.DataArray(np.array(values, dtype=float),
-                      dims=("time", "turbine"),
-                      coords={"time": times, "turbine": list(ids)})
+    da = xr.DataArray(
+        np.array(values, dtype=float),
+        dims=("time", "turbine"),
+        coords={"time": times, "turbine": list(ids)},
+    )
     return da.assign_coords(model=("turbine", [model] * len(ids)))
 
 
@@ -98,8 +105,9 @@ def test_the_correction_is_applied_to_speed_before_the_curve():
     0.25 on this curve, not half of the capacity factor at 10, which is 0.25
     either way here only because the curve is linear below rated. The offset is
     what separates them."""
-    corrections = pd.DataFrame({"ID": ["a", "b"], "scalar": [0.5, 1.0],
-                                "offset": [0.0, 0.0], "neutral": [False, False]})
+    corrections = pd.DataFrame(
+        {"ID": ["a", "b"], "scalar": [0.5, 1.0], "offset": [0.0, 0.0], "neutral": [False, False]}
+    )
     got, summary = evaluate.corrected_capacity_factors(speeds(), corrections, curves())
     assert got["a"].iloc[1] == pytest.approx(10.0 * 0.5 / 20.0)
     assert got["b"].iloc[1] == pytest.approx(11.0 / 20.0)
@@ -107,8 +115,7 @@ def test_the_correction_is_applied_to_speed_before_the_curve():
 
 
 def test_a_unit_with_no_correction_is_refused_by_name():
-    corrections = pd.DataFrame({"ID": ["a"], "scalar": [1.0], "offset": [0.0],
-                                "neutral": [False]})
+    corrections = pd.DataFrame({"ID": ["a"], "scalar": [1.0], "offset": [0.0], "neutral": [False]})
     with pytest.raises(ValueError, match="have no correction"):
         evaluate.corrected_capacity_factors(speeds(), corrections, curves())
 
@@ -119,8 +126,9 @@ def test_a_speed_past_the_curve_is_missing_rather_than_clipped_and_is_counted():
     the speed alone, so an over-corrected unit falls off the end of the curve
     table and comes back missing. A missing value then drops out of the metrics
     without trace, which is why the count is returned."""
-    corrections = pd.DataFrame({"ID": ["a", "b"], "scalar": [10.0, 1.0],
-                                "offset": [0.0, 0.0], "neutral": [False, False]})
+    corrections = pd.DataFrame(
+        {"ID": ["a", "b"], "scalar": [10.0, 1.0], "offset": [0.0, 0.0], "neutral": [False, False]}
+    )
     got, summary = evaluate.corrected_capacity_factors(speeds(), corrections, curves())
     assert got["a"].isna().all()
     assert got["b"].notna().all()
@@ -129,8 +137,9 @@ def test_a_speed_past_the_curve_is_missing_rather_than_clipped_and_is_counted():
 
 
 def test_capacity_factors_on_the_curve_stay_inside_zero_and_one():
-    corrections = pd.DataFrame({"ID": ["a", "b"], "scalar": [2.5, 0.1],
-                                "offset": [0.0, 0.0], "neutral": [False, False]})
+    corrections = pd.DataFrame(
+        {"ID": ["a", "b"], "scalar": [2.5, 0.1], "offset": [0.0, 0.0], "neutral": [False, False]}
+    )
     got, _ = evaluate.corrected_capacity_factors(speeds(), corrections, curves())
     values = got[["a", "b"]].to_numpy()
     assert np.nanmin(values) >= 0.0 and np.nanmax(values) <= 1.0

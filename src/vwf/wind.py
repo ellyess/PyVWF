@@ -5,6 +5,7 @@ Performance optimizations:
 - Optional turbine aggregation for massive speedups
 - Vectorized operations where possible
 """
+
 from __future__ import annotations
 
 import warnings
@@ -126,8 +127,13 @@ def off_curve_record(
 
 
 def fit_diagnostics(
-    reanalysis, clus_info: pd.DataFrame, factors: pd.DataFrame, time_res: str,
-    power_curves: pd.DataFrame, seasons=None, years: tuple[int, int] | None = None,
+    reanalysis,
+    clus_info: pd.DataFrame,
+    factors: pd.DataFrame,
+    time_res: str,
+    power_curves: pd.DataFrame,
+    seasons=None,
+    years: tuple[int, int] | None = None,
 ) -> pd.DataFrame:
     """Where a fitted correction sends the speeds it was fitted on.
 
@@ -166,9 +172,9 @@ def fit_diagnostics(
         keep = (times.year >= years[0]) & (times.year <= years[1])
     speeds = np.asarray(ws.values, dtype=float)[keep]
     times = times[keep]
-    slices = add_time_resolution_columns(
-        pd.DataFrame({"month": times.month}), seasons
-    )[time_res].to_numpy()
+    slices = add_time_resolution_columns(pd.DataFrame({"month": times.month}), seasons)[
+        time_res
+    ].to_numpy()
     grid = power_curves["data$speed"].to_numpy(dtype=float)
     top, bottom = float(grid.max()), float(grid.min())
     units = pd.Index(np.asarray(ws["turbine"].values).astype(str))
@@ -177,8 +183,10 @@ def fit_diagnostics(
     capacity = info["capacity"].to_numpy(dtype=float)
     rows = []
     for cl, value, scalar, offset in zip(
-        factors["cluster"], factors[time_res],
-        factors["scalar"].astype(float), factors["offset"].astype(float),
+        factors["cluster"],
+        factors[time_res],
+        factors["scalar"].astype(float),
+        factors["offset"].astype(float),
     ):
         cols = cluster == cl
         rows_t = slices == value
@@ -189,17 +197,22 @@ def fit_diagnostics(
         valid = ~np.isnan(corrected)
         for year in sorted(set(times[rows_t].year)):
             in_year = (times[rows_t].year == year)[:, None] & valid
-            rows.append({
-                "cluster": cl, time_res: value, "year": int(year),
-                "scalar": scalar, "offset": offset,
-                "zero_crossing_speed": (
-                    -offset / scalar if offset < 0 and scalar > 0 else float("nan")
-                ),
-                "unit_steps": int(in_year.sum()),
-                "weight_steps": float(weight[in_year].sum()),
-                "weight_below_zero": float(weight[in_year & (corrected < bottom)].sum()),
-                "weight_above_curve": float(weight[in_year & (corrected > top)].sum()),
-            })
+            rows.append(
+                {
+                    "cluster": cl,
+                    time_res: value,
+                    "year": int(year),
+                    "scalar": scalar,
+                    "offset": offset,
+                    "zero_crossing_speed": (
+                        -offset / scalar if offset < 0 and scalar > 0 else float("nan")
+                    ),
+                    "unit_steps": int(in_year.sum()),
+                    "weight_steps": float(weight[in_year].sum()),
+                    "weight_below_zero": float(weight[in_year & (corrected < bottom)].sum()),
+                    "weight_above_curve": float(weight[in_year & (corrected > top)].sum()),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -297,6 +310,7 @@ def _get_power_curve_cache(powerCurveFile):
     }
     return x, curve_by_model
 
+
 def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFrame:
     """Collapse turbines onto nearest reanalysis grid cell.
 
@@ -363,6 +377,7 @@ def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFr
     )
 
     return out[["ID", "lat", "lon", "height", "capacity", "model"]]
+
 
 def simulate_country_cf(
     reanalysis,
@@ -473,9 +488,15 @@ def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None 
     # ArrowStringArray, which xarray cannot use as an indexable coordinate
     # (it breaks groupby("model") and label-based indexing on the turbine dim).
     ids = np.asarray(turb_info["ID"], dtype=object)
-    lat = xr.DataArray(np.asarray(turb_info["lat"], dtype=float), dims="turbine", coords={"turbine": ids})
-    lon = xr.DataArray(np.asarray(turb_info["lon"], dtype=float), dims="turbine", coords={"turbine": ids})
-    height = xr.DataArray(np.asarray(turb_info["height"], dtype=float), dims="turbine", coords={"turbine": ids})
+    lat = xr.DataArray(
+        np.asarray(turb_info["lat"], dtype=float), dims="turbine", coords={"turbine": ids}
+    )
+    lon = xr.DataArray(
+        np.asarray(turb_info["lon"], dtype=float), dims="turbine", coords={"turbine": ids}
+    )
+    height = xr.DataArray(
+        np.asarray(turb_info["height"], dtype=float), dims="turbine", coords={"turbine": ids}
+    )
 
     # print(f"Interpolating wind speeds for {len(turb_info)} turbines (this may take a few minutes)...")
     sim_ws = ws.interp(lon=lon, lat=lat, height=height, kwargs={"fill_value": None})
@@ -586,7 +607,9 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info, seasons=None):
     # model coord for downstream mapping (coerce to numpy so the coordinate is
     # not a pandas ArrowStringArray, which breaks groupby("model") on pandas>=3)
     ds2 = ds2.assign_coords({"model": ("turbine", np.asarray(turb_info["model"], dtype=object))})
-    ds2 = ds2.assign_coords({"capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float))})
+    ds2 = ds2.assign_coords(
+        {"capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float))}
+    )
 
     return ds2.cor_ws
 
@@ -694,6 +717,7 @@ def train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar=1, offset=0):
     cor_cf = cor_ws.groupby("model").map(speed_to_cf_fast)
     avg_cf = cor_cf.weighted(cor_cf["capacity"]).mean()
     return avg_cf.data
+
 
 def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=0):
     """Simulate a mean capacity factor for training.

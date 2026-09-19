@@ -19,6 +19,7 @@ ways that do not change a geometry.
 Norway and Sweden build their grids from bidding-zone files that are local
 only, so their grid case skips in CI; their observation case runs everywhere.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -75,40 +76,65 @@ def run_main(args: list[str], out: Path, monkeypatch) -> None:
 
 def geometry_summary(path: Path) -> pd.DataFrame:
     import geopandas as gpd
+
     g = gpd.read_file(path)
     b = g.geometry.bounds
-    return pd.DataFrame({
-        "row": range(len(g)),
-        "area": g.geometry.area.round(9),
-        "minx": b.minx.round(9), "miny": b.miny.round(9),
-        "maxx": b.maxx.round(9), "maxy": b.maxy.round(9),
-        "vertices": g.geometry.apply(lambda s: len(s.exterior.coords) if s.geom_type == "Polygon"
-                                     else sum(len(p.exterior.coords) for p in s.geoms)),
-    })
+    return pd.DataFrame(
+        {
+            "row": range(len(g)),
+            "area": g.geometry.area.round(9),
+            "minx": b.minx.round(9),
+            "miny": b.miny.round(9),
+            "maxx": b.maxx.round(9),
+            "maxy": b.maxy.round(9),
+            "vertices": g.geometry.apply(
+                lambda s: (
+                    len(s.exterior.coords)
+                    if s.geom_type == "Polygon"
+                    else sum(len(p.exterior.coords) for p in s.geoms)
+                )
+            ),
+        }
+    )
 
 
 def outputs(out: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(sha256 per data file, geometry summary per GeoJSON)."""
     files = sorted(p for p in out.rglob("*") if p.is_file())
     digests = pd.DataFrame(
-        [(p.relative_to(out).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())
-         for p in files if p.suffix != ".geojson"],
-        columns=["path", "sha256"])
-    geoms = [geometry_summary(p).assign(path=p.relative_to(out).as_posix())
-             for p in files if p.suffix == ".geojson"]
-    geometry = (pd.concat(geoms, ignore_index=True)[["path", "row", "area", "minx", "miny",
-                                                     "maxx", "maxy", "vertices"]]
-                if geoms else pd.DataFrame())
+        [
+            (p.relative_to(out).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())
+            for p in files
+            if p.suffix != ".geojson"
+        ],
+        columns=["path", "sha256"],
+    )
+    geoms = [
+        geometry_summary(p).assign(path=p.relative_to(out).as_posix())
+        for p in files
+        if p.suffix == ".geojson"
+    ]
+    geometry = (
+        pd.concat(geoms, ignore_index=True)[
+            ["path", "row", "area", "minx", "miny", "maxx", "maxy", "vertices"]
+        ]
+        if geoms
+        else pd.DataFrame()
+    )
     return digests, geometry
 
 
 def _zone_files_present() -> bool:
     shapes = ROOT / "input" / "reference" / "shapes"
-    return all((shapes / f).is_file() for f in ("no_bidding_zones.geojson", "se_bidding_zones.geojson"))
+    return all(
+        (shapes / f).is_file() for f in ("no_bidding_zones.geojson", "se_bidding_zones.geojson")
+    )
 
 
-@pytest.mark.parametrize("case", [
-    pytest.param(case, marks=pytest.mark.realdata) if CASES[case][1] else case for case in CASES])
+@pytest.mark.parametrize(
+    "case",
+    [pytest.param(case, marks=pytest.mark.realdata) if CASES[case][1] else case for case in CASES],
+)
 def test_generator_main(case, tmp_path, monkeypatch):
     args, needs_zones = CASES[case]
     if needs_zones and not _zone_files_present():
@@ -117,7 +143,12 @@ def test_generator_main(case, tmp_path, monkeypatch):
     digests, geometry = outputs(tmp_path / "out")
     pd.testing.assert_frame_equal(digests, pd.read_csv(PINS / f"{case}_sha256.csv"))
     if (PINS / f"{case}_geometry.csv").is_file():
-        pd.testing.assert_frame_equal(geometry, pd.read_csv(PINS / f"{case}_geometry.csv"),
-                                      check_dtype=False, rtol=0, atol=1e-9)
+        pd.testing.assert_frame_equal(
+            geometry,
+            pd.read_csv(PINS / f"{case}_geometry.csv"),
+            check_dtype=False,
+            rtol=0,
+            atol=1e-9,
+        )
     else:
         assert geometry.empty

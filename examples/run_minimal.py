@@ -16,6 +16,7 @@ Run from the repository root:
 
     python examples/run_minimal.py
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -95,10 +96,7 @@ def main() -> None:
 
     print("\nPer-cluster capacity factors (synthetic example):\n")
     print(results.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
-    print(
-        f"\nMean |CF error| vs observed:  uncorrected {unc_mae:.4f}  ->  "
-        f"corrected {cor_mae:.4f}"
-    )
+    print(f"\nMean |CF error| vs observed:  uncorrected {unc_mae:.4f}  ->  corrected {cor_mae:.4f}")
     if unc_mae > 0:
         print(
             f"The trained bias correction reduced the mean capacity-factor error "
@@ -111,6 +109,4 @@ def main() -> None:
 if __name__ == "__main__":
     _unc_mae, _cor_mae = main()
     # Sanity guard (also used by CI): the trained correction must reduce error.
-    assert _cor_mae < _unc_mae, (
-        f"bias correction did not reduce error: {_cor_mae} !< {_unc_mae}"
-    )
+    assert _cor_mae < _unc_mae, f"bias correction did not reduce error: {_cor_mae} !< {_unc_mae}"

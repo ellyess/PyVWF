@@ -6,6 +6,7 @@ scorecard row is the case that exposed it: the corrected score covered 55
 plants and the uncorrected one 59, and the four missing plants were the worst.
 These tests pin the rule and its record.
 """
+
 import json
 
 import numpy as np
@@ -26,8 +27,14 @@ KEYS = ["ID", "year", "month"]
 
 def _frame(values: dict[tuple[str, int], float], obs: float = 0.3) -> pd.DataFrame:
     rows = [
-        {"ID": unit, "year": 2019, "month": month, "cf_sim": sim, "cf_obs": obs,
-         "capacity": {"A": 1.0, "B": 2.0, "C": 3.0}[unit]}
+        {
+            "ID": unit,
+            "year": 2019,
+            "month": month,
+            "cf_sim": sim,
+            "cf_obs": obs,
+            "capacity": {"A": 1.0, "B": 2.0, "C": 3.0}[unit],
+        }
         for (unit, month), sim in values.items()
     ]
     return pd.DataFrame(rows)
@@ -36,10 +43,26 @@ def _frame(values: dict[tuple[str, int], float], obs: float = 0.3) -> pd.DataFra
 def _two_conditions():
     """C has no corrected value at all and is the worst unit uncorrected; B
     lacks its corrected value in month 2."""
-    unc = _frame({("A", 1): 0.35, ("A", 2): 0.35, ("B", 1): 0.40, ("B", 2): 0.40,
-                  ("C", 1): 0.90, ("C", 2): 0.90})
-    cor = _frame({("A", 1): 0.31, ("A", 2): 0.31, ("B", 1): 0.32, ("B", 2): np.nan,
-                  ("C", 1): np.nan, ("C", 2): np.nan})
+    unc = _frame(
+        {
+            ("A", 1): 0.35,
+            ("A", 2): 0.35,
+            ("B", 1): 0.40,
+            ("B", 2): 0.40,
+            ("C", 1): 0.90,
+            ("C", 2): 0.90,
+        }
+    )
+    cor = _frame(
+        {
+            ("A", 1): 0.31,
+            ("A", 2): 0.31,
+            ("B", 1): 0.32,
+            ("B", 2): np.nan,
+            ("C", 1): np.nan,
+            ("C", 2): np.nan,
+        }
+    )
     return {"uncorrected": unc, "fixed_2": cor}
 
 
@@ -56,7 +79,9 @@ def test_every_condition_is_scored_on_the_rows_all_can_score():
     assert set(zip(excluded["ID"], excluded["month"])) == {("B", 2), ("C", 1), ("C", 2)}
     assert set(excluded["missing_in"]) == {"fixed_2"}
     assert excluded.set_index(["ID", "month"])["capacity"].to_dict() == {
-        ("B", 2): 2.0, ("C", 1): 3.0, ("C", 2): 3.0,
+        ("B", 2): 2.0,
+        ("C", 1): 3.0,
+        ("C", 2): 3.0,
     }
 
 
@@ -65,10 +90,13 @@ def test_separate_scoring_flattered_the_correction():
     scoring give different gains on this fixture, and the old one is larger
     because it dropped the worst unit from one side only."""
     frames = _two_conditions()
-    old_gain = skill_metrics(frames["uncorrected"])["rmse"] - skill_metrics(frames["fixed_2"])["rmse"]
+    old_gain = (
+        skill_metrics(frames["uncorrected"])["rmse"] - skill_metrics(frames["fixed_2"])["rmse"]
+    )
     restricted, _ = restrict_to_common_rows(frames, KEYS)
     new_gain = (
-        skill_metrics(restricted["uncorrected"])["rmse"] - skill_metrics(restricted["fixed_2"])["rmse"]
+        skill_metrics(restricted["uncorrected"])["rmse"]
+        - skill_metrics(restricted["fixed_2"])["rmse"]
     )
     assert old_gain > new_gain + 0.1
 
@@ -120,7 +148,8 @@ def test_monthly_aggregate_keys_count_rows_without_a_weight():
 
 
 def test_evaluate_scores_variants_on_common_rows_and_records_the_exclusion(
-    synthetic_dk, monkeypatch  # noqa: F811
+    synthetic_dk,  # noqa: F811
+    monkeypatch,
 ):
     """End to end: one unit's corrected values are removed, as a failed
     cluster fit would. Both variants are then scored on the remaining units,

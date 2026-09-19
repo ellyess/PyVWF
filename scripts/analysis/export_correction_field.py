@@ -11,10 +11,12 @@ Thin wrapper over :func:`vwf.harness.export.export_correction_field`.
         --metrics output/validation/.../evaluate-2020-k200/metrics.csv \\
         --out output/exports/DK_correction_field_season_k200.nc
 """
+
 import argparse
 from pathlib import Path
 
 import sys
+
 sys.path.insert(0, "src")
 
 from vwf.harness.export import export_correction_field
@@ -26,8 +28,7 @@ def main() -> int:
     ap.add_argument("--region", required=True, help="path to configs/regions/<code>.toml")
     ap.add_argument("--train-run", required=True, help="train run dir with factors + fleet")
     ap.add_argument("--num-clu", type=int, required=True)
-    ap.add_argument("--time-res", required=True,
-                    choices=["fixed", "season", "bimonth", "month"])
+    ap.add_argument("--time-res", required=True, choices=["fixed", "season", "bimonth", "month"])
     ap.add_argument("--metrics", default=None, help="evaluate metrics.csv to embed as note")
     ap.add_argument("--era5-dir", default=None)
     ap.add_argument("--out", required=True)

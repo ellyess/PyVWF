@@ -24,6 +24,7 @@ the tests pin; this script only assembles the two on-disk tables.
         --eia860-generators input/raw/eia/3_1_Generator_Y2021.xlsx \\
         --uswtdb input/raw/eia/uswtdb_v6_1_20231128.csv
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -44,44 +45,69 @@ from vwf.cli.common import add_input_path
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--eia923", nargs="+", required=True,
-                    help="One or more EIA-923 workbooks (one per year)")
+    ap.add_argument(
+        "--eia923", nargs="+", required=True, help="One or more EIA-923 workbooks (one per year)"
+    )
     ap.add_argument("--eia923-sheet", default="Page 1 Generation and Fuel Data")
-    ap.add_argument("--eia923-header", type=int, default=5,
-                    help="0-based header row of the Page 1 sheet (preamble above)")
+    ap.add_argument(
+        "--eia923-header",
+        type=int,
+        default=5,
+        help="0-based header row of the Page 1 sheet (preamble above)",
+    )
     ap.add_argument("--eia860-plants", required=True, help="EIA-860 plant xlsx")
     ap.add_argument("--eia860-plants-sheet", default="Plant")
     ap.add_argument("--eia860-generators", required=True, help="EIA-860 generator xlsx")
     ap.add_argument("--eia860-generators-sheet", default="Operable")
-    ap.add_argument("--eia860-header", type=int, default=1,
-                    help="0-based header row of the EIA-860 sheets")
+    ap.add_argument(
+        "--eia860-header", type=int, default=1, help="0-based header row of the EIA-860 sheets"
+    )
     ap.add_argument("--uswtdb", default=None, help="USWTDB CSV (hub heights, models)")
     add_input_path(ap, "--out", "observations", "turbine", "US")
-    ap.add_argument("--curve-assignment", choices=["match", "uniform"], default="match",
-                    help="'match' assigns each plant a real library curve by "
-                    "specific power via vwf.data.add_models (as the AU-NEM and "
-                    "European fleets do), falling back to --model where USWTDB "
-                    "has no rotor diameter. 'uniform' gives every plant --model.")
-    ap.add_argument("--height-bin", type=float, default=10.0,
-                    help="Round hub heights to this many metres (0 disables). "
-                    "interpolate_wind builds one height level per UNIQUE hub "
-                    "height, so the 233 raw USWTDB values need ~51 GB; 10 m "
-                    "leaves 12 levels (~2.6 GB) and matches the 10 m binning "
-                    "aggregate_turbines_to_grid already applies.")
-    ap.add_argument("--bbox", type=float, nargs=4, default=None,
-                    metavar=("LON_MIN", "LON_MAX", "LAT_MIN", "LAT_MAX"),
-                    help="Drop plants outside this box (use the region's "
-                    "[era5] bbox, e.g. -125 -66 24 50 for CONUS). EIA covers "
-                    "all states, so without this Alaska/Hawaii plants are "
-                    "silently snapped to the nearest in-domain grid cell.")
-    ap.add_argument("--default-height", type=float, default=100.0,
-                    help="Uniform hub-height fallback, m, for plants USWTDB "
-                    "does not cover")
-    ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",
-                    help="Uniform power-curve key (must be a column of "
-                    "power_curves.csv). Defaults to the bundled open library's "
-                    "most recent market-average utility curve; override with a "
-                    "specific reference or your own licensed key.")
+    ap.add_argument(
+        "--curve-assignment",
+        choices=["match", "uniform"],
+        default="match",
+        help="'match' assigns each plant a real library curve by "
+        "specific power via vwf.data.add_models (as the AU-NEM and "
+        "European fleets do), falling back to --model where USWTDB "
+        "has no rotor diameter. 'uniform' gives every plant --model.",
+    )
+    ap.add_argument(
+        "--height-bin",
+        type=float,
+        default=10.0,
+        help="Round hub heights to this many metres (0 disables). "
+        "interpolate_wind builds one height level per UNIQUE hub "
+        "height, so the 233 raw USWTDB values need ~51 GB; 10 m "
+        "leaves 12 levels (~2.6 GB) and matches the 10 m binning "
+        "aggregate_turbines_to_grid already applies.",
+    )
+    ap.add_argument(
+        "--bbox",
+        type=float,
+        nargs=4,
+        default=None,
+        metavar=("LON_MIN", "LON_MAX", "LAT_MIN", "LAT_MAX"),
+        help="Drop plants outside this box (use the region's "
+        "[era5] bbox, e.g. -125 -66 24 50 for CONUS). EIA covers "
+        "all states, so without this Alaska/Hawaii plants are "
+        "silently snapped to the nearest in-domain grid cell.",
+    )
+    ap.add_argument(
+        "--default-height",
+        type=float,
+        default=100.0,
+        help="Uniform hub-height fallback, m, for plants USWTDB does not cover",
+    )
+    ap.add_argument(
+        "--model",
+        default="2019COE_Market_Average_2.6MW_121",
+        help="Uniform power-curve key (must be a column of "
+        "power_curves.csv). Defaults to the bundled open library's "
+        "most recent market-average utility curve; override with a "
+        "specific reference or your own licensed key.",
+    )
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -196,8 +222,11 @@ def main() -> None:
     print(f"metadata: {len(metadata)} plants -> {out / 'us_md.csv'}")
     print(f"join report -> {out / 'join_report.md'}")
     if gen_no_meta:
-        print(f"NOTE: {len(gen_no_meta)} plants have generation but no coordinates "
-              "and are EXCLUDED from the metadata; see the report.", file=sys.stderr)
+        print(
+            f"NOTE: {len(gen_no_meta)} plants have generation but no coordinates "
+            "and are EXCLUDED from the metadata; see the report.",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":

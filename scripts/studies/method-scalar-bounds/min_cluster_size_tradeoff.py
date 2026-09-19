@@ -36,6 +36,7 @@ partly resting on a fit nobody should trust, which is worth knowing either way.
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -70,16 +71,17 @@ def main(out: Path = OUT) -> int:
 
     for m in SIZES:
         spec = dataclasses.replace(
-            base, cluster_list=(NUM_CLU,), time_slices=(TIME_RES,),
+            base,
+            cluster_list=(NUM_CLU,),
+            time_slices=(TIME_RES,),
             min_cluster_size=m,
         )
         tag = f"min{m}"
         print(f"=== min_cluster_size={m} ===", flush=True)
-        train_dir = run_train(spec, out, source=get_source(spec.source, spec.code),
-                              run_name=tag)
-        eval_dir = run_evaluate(spec, train_dir, out,
-                                source=get_source(spec.source, spec.code),
-                                run_name=tag)
+        train_dir = run_train(spec, out, source=get_source(spec.source, spec.code), run_name=tag)
+        eval_dir = run_evaluate(
+            spec, train_dir, out, source=get_source(spec.source, spec.code), run_name=tag
+        )
 
         factors = pd.read_csv(train_dir / f"factors_{TIME_RES}_{NUM_CLU}.csv")
         fleet = pd.read_csv(train_dir / f"train_turb_info_{NUM_CLU}.csv")
@@ -88,17 +90,21 @@ def main(out: Path = OUT) -> int:
         unc = met[met["variant"] == "uncorrected"].iloc[0]
         cor = met[met["variant"] == spec.correction_model].iloc[0]
 
-        rows.append({
-            "min_cluster_size": m,
-            "clusters_kept": int(fleet["cluster"].nunique()),
-            "smallest_cluster": int(fleet.groupby("cluster").size().min()),
-            "max_scalar": q["max_scalar"],
-            "n_implausible": q["n_implausible_scalar"],
-            "n_failed_offset": q["n_failed_offset"],
-            "unc_rmse": unc["rmse"], "cor_rmse": cor["rmse"],
-            "unc_mbe": unc["mbe"], "cor_mbe": cor["mbe"],
-            "cor_r": cor["pearson_r"],
-        })
+        rows.append(
+            {
+                "min_cluster_size": m,
+                "clusters_kept": int(fleet["cluster"].nunique()),
+                "smallest_cluster": int(fleet.groupby("cluster").size().min()),
+                "max_scalar": q["max_scalar"],
+                "n_implausible": q["n_implausible_scalar"],
+                "n_failed_offset": q["n_failed_offset"],
+                "unc_rmse": unc["rmse"],
+                "cor_rmse": cor["rmse"],
+                "unc_mbe": unc["mbe"],
+                "cor_mbe": cor["mbe"],
+                "cor_r": cor["pearson_r"],
+            }
+        )
 
     t = pd.DataFrame(rows)
     print("\n" + "=" * 96)
@@ -112,21 +118,30 @@ def main(out: Path = OUT) -> int:
     g2 = best["cor_rmse"] < best["unc_rmse"]
     g3 = best["cor_rmse"] < base_row["cor_rmse"] * 1.10
 
-    print(f"\nBaseline (min=1): max scalar {base_row['max_scalar']:.3g}, "
-          f"corrected RMSE {base_row['cor_rmse']:.4f}")
-    print(f"Best merged (min={int(best['min_cluster_size'])}): max scalar "
-          f"{best['max_scalar']:.3g}, corrected RMSE {best['cor_rmse']:.4f}")
+    print(
+        f"\nBaseline (min=1): max scalar {base_row['max_scalar']:.3g}, "
+        f"corrected RMSE {base_row['cor_rmse']:.4f}"
+    )
+    print(
+        f"Best merged (min={int(best['min_cluster_size'])}): max scalar "
+        f"{best['max_scalar']:.3g}, corrected RMSE {best['cor_rmse']:.4f}"
+    )
     print("\nPRE-SPECIFIED GATES")
-    print(f"  G1 severity capped (<10):     {best['max_scalar']:.3g}"
-          f"   [{'PASS' if g1 else 'FAIL'}]")
-    print(f"  G2 beats uncorrected:         {best['cor_rmse']:.4f} vs "
-          f"{best['unc_rmse']:.4f}   [{'PASS' if g2 else 'FAIL'}]")
-    print(f"  G3 within 10% of baseline:    {best['cor_rmse']:.4f} vs "
-          f"{base_row['cor_rmse'] * 1.10:.4f} allowed   [{'PASS' if g3 else 'FAIL'}]")
+    print(
+        f"  G1 severity capped (<10):     {best['max_scalar']:.3g}   [{'PASS' if g1 else 'FAIL'}]"
+    )
+    print(
+        f"  G2 beats uncorrected:         {best['cor_rmse']:.4f} vs "
+        f"{best['unc_rmse']:.4f}   [{'PASS' if g2 else 'FAIL'}]"
+    )
+    print(
+        f"  G3 within 10% of baseline:    {best['cor_rmse']:.4f} vs "
+        f"{base_row['cor_rmse'] * 1.10:.4f} allowed   [{'PASS' if g3 else 'FAIL'}]"
+    )
 
     out.mkdir(parents=True, exist_ok=True)
     t.to_csv(out / "cl_tradeoff.csv", index=False)
-    print(f"\nwrote {out/'cl_tradeoff.csv'}")
+    print(f"\nwrote {out / 'cl_tradeoff.csv'}")
     return 0
 
 
@@ -137,8 +152,12 @@ def cli(argv: list[str] | None = None) -> int:
     over it; its default is the recorded directory.
     """
     parser = make_parser(__doc__)
-    parser.add_argument("--out", type=Path, default=OUT,
-                        help=f"Directory for the runs and the table (default: {OUT})")
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=OUT,
+        help=f"Directory for the runs and the table (default: {OUT})",
+    )
     args = parser.parse_args(argv)
     return main(out=args.out)
 

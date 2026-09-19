@@ -14,6 +14,7 @@ Three things are pinned here:
 
 No test touches the real input CSVs; ``input/`` is not tracked by git.
 """
+
 from calendar import monthrange
 
 import pandas as pd
@@ -96,6 +97,7 @@ def stub_european_loaders(monkeypatch):
 # Registry contract
 # ---------------------------------------------------------------------------
 
+
 def test_builtin_sources_are_registered():
     assert "european-turbine" in available_sources()
     assert "in-memory-country" in available_sources()
@@ -175,6 +177,7 @@ def test_register_rejects_duplicate_name(isolated_registry):
 # The replaced dead branch: country-level with no source
 # ---------------------------------------------------------------------------
 
+
 def test_resolve_country_level_without_source_raises_not_implemented():
     with pytest.raises(NotImplementedError, match="No country-level observation source"):
         resolve("NL", "country")
@@ -197,6 +200,7 @@ def test_train_set_country_level_without_source_raises_not_implemented():
 # ---------------------------------------------------------------------------
 # The European turbine adapter satisfies the contract
 # ---------------------------------------------------------------------------
+
 
 def test_european_source_rejects_unsupported_country():
     with pytest.raises(ValueError, match="supports"):
@@ -251,6 +255,7 @@ def test_prep_country_turbine_passes_year_test_through(stub_european_loaders):
 # ---------------------------------------------------------------------------
 # InMemoryCountrySource
 # ---------------------------------------------------------------------------
+
 
 def _country_observations(periods: int = 48) -> pd.DataFrame:
     index = pd.date_range("2020-01-01", periods=periods, freq="h", tz="UTC")
@@ -307,6 +312,7 @@ def test_in_memory_source_isolates_caller_mutations():
 # A second adapter plugs in without touching the core
 # ---------------------------------------------------------------------------
 
+
 def test_custom_country_source_resolves_and_feeds_prep_country(isolated_registry):
     """Register a brand new region and read it back through the core dispatch."""
 
@@ -356,9 +362,7 @@ def test_custom_source_drives_the_country_level_pipeline(
         def load_observations(self, year_start=None, year_end=None) -> pd.DataFrame:
             return _country_observations()
 
-    monkeypatch.setattr(
-        data, "prep_era5", lambda country, train, calc_z0, **kwargs: reanalysis
-    )
+    monkeypatch.setattr(data, "prep_era5", lambda country, train, calc_z0, **kwargs: reanalysis)
     monkeypatch.setattr(data, "load_power_curves", lambda: power_curve)
 
     gen_cf, turb_info, _, _ = train_set("ZZ", True, obs_level="country")

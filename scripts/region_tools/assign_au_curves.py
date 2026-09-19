@@ -25,6 +25,7 @@ being the AEMONemSource metadata contract with `model` + `model_source`.
 Run with PYVWF_INPUT pointing at the staging dir holding the REAL
 models.csv (add_models resolves the catalog through PyVWFPaths).
 """
+
 import argparse
 from pathlib import Path
 
@@ -51,9 +52,19 @@ def main() -> None:
     tm["rotor_diameter_m"] = pd.to_numeric(tm["rotor_diameter_m"], errors="coerce")
     tm["unit_mw_eff"] = pd.to_numeric(tm["unit_mw_eff"], errors="coerce")
     merged = md.drop(columns=["model"]).merge(
-        tm[["ID", "manufacturer", "model_string", "rotor_diameter_m",
-            "unit_mw_eff", "p_density_wm2", "confidence"]],
-        on="ID", how="left",
+        tm[
+            [
+                "ID",
+                "manufacturer",
+                "model_string",
+                "rotor_diameter_m",
+                "unit_mw_eff",
+                "p_density_wm2",
+                "confidence",
+            ]
+        ],
+        on="ID",
+        how="left",
     )
 
     # ---------------- REAL library ----------------
@@ -76,17 +87,22 @@ def main() -> None:
     real["model_source"] = np.where(real["model"].notna(), "add_models", None)
 
     from vwf.config import PyVWFPaths
+
     cat = pd.read_csv(PyVWFPaths.reference_file("models.csv"))
     cat["mk"] = cat["manufacturer"].astype(str).str.lower()
 
     def real_fill(row):
         if pd.notna(row["model"]):
             return row["model"], row["model_source"]
-        unit_kw = (row["unit_mw_eff"] * 1000.0) if pd.notna(row["unit_mw_eff"]) else row["capacity"] / 50
+        unit_kw = (
+            (row["unit_mw_eff"] * 1000.0) if pd.notna(row["unit_mw_eff"]) else row["capacity"] / 50
+        )
         pool = cat
         src = "fallback-capacity-nearest"
         if pd.notna(row["manufacturer"]):
-            mpool = cat[cat["mk"].str.contains(str(row["manufacturer"]).lower().split()[0], na=False)]
+            mpool = cat[
+                cat["mk"].str.contains(str(row["manufacturer"]).lower().split()[0], na=False)
+            ]
             if len(mpool):
                 pool, src = mpool, "manufacturer-capacity-nearest"
         pick = pool.iloc[(pool["capacity"] - unit_kw).abs().argmin()]
@@ -111,8 +127,19 @@ def main() -> None:
     picks = open_md.apply(open_pick, axis=1, result_type="expand")
     open_md["model"], open_md["model_source"] = picks[0], picks[1]
 
-    base_cols = ["ID", "site_name", "region", "lon", "lat", "height", "capacity",
-                 "model", "model_source", "type", "commissioning_date"]
+    base_cols = [
+        "ID",
+        "site_name",
+        "region",
+        "lon",
+        "lat",
+        "height",
+        "capacity",
+        "model",
+        "model_source",
+        "type",
+        "commissioning_date",
+    ]
     out_dir = Path(args.md).parent
     real[base_cols].to_csv(out_dir / "au_nem_md_real.csv", index=False)
     open_md[base_cols].to_csv(out_dir / "au_nem_md_open.csv", index=False)
@@ -123,7 +150,7 @@ def main() -> None:
         print("top models:", frame["model"].value_counts().head(8).to_dict())
         missing = frame["model"].isna().sum()
         assert missing == 0, f"{name}: {missing} farms without a model"
-    print(f"\nwritten: {out_dir/'au_nem_md_real.csv'} and au_nem_md_open.csv")
+    print(f"\nwritten: {out_dir / 'au_nem_md_real.csv'} and au_nem_md_open.csv")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ MyST. Build with::
     pip install -e ".[docs]"
     sphinx-build -b html docs docs/_build/html -W
 """
+
 from __future__ import annotations
 
 import vwf
@@ -20,13 +21,13 @@ version = ".".join(release.split(".")[:2])
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",      # Google-style docstrings
+    "sphinx.ext.napoleon",  # Google-style docstrings
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     # MathJax is Sphinx's default HTML math renderer; listed explicitly so the
     # dollar-math in index.md keeps rendering if the defaults ever change.
     "sphinx.ext.mathjax",
-    "myst_parser",              # the narrative guides are Markdown
+    "myst_parser",  # the narrative guides are Markdown
 ]
 
 exclude_patterns = [

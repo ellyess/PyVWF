@@ -3,6 +3,7 @@
 This module provides functions to load grid points and observations
 for country-level (ENTSO-E) workflows.
 """
+
 from __future__ import annotations
 
 from typing import cast
@@ -14,9 +15,7 @@ from vwf.config import PyVWFPaths
 
 
 def load_year_specific_grid_points(
-    country: str,
-    years: list[int],
-    base_dir: Path | None = None
+    country: str, years: list[int], base_dir: Path | None = None
 ) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """Load year-specific grid points that reflect capacity changes over time.
 
@@ -59,7 +58,7 @@ def load_year_specific_grid_points(
             continue
 
         year_grid = pd.read_csv(grid_file)
-        year_grid['_year'] = year
+        year_grid["_year"] = year
         all_grid_points.append(year_grid)
 
     if not all_grid_points:
@@ -76,21 +75,25 @@ def load_year_specific_grid_points(
         for year in missing_years:
             if base_grid_file.exists():
                 fallback_grid = pd.read_csv(base_grid_file)
-                fallback_grid['_year'] = year
+                fallback_grid["_year"] = year
                 all_grid_points.append(fallback_grid)
 
     # Concatenate all year-specific grid points
     grid_points_all = pd.concat(all_grid_points, ignore_index=True)
 
     # Create merged version (averaged across years for stability)
-    grid_points_merged = grid_points_all.groupby('ID', as_index=False).first().drop(columns=['_year'], errors='ignore')
+    grid_points_merged = (
+        grid_points_all.groupby("ID", as_index=False)
+        .first()
+        .drop(columns=["_year"], errors="ignore")
+    )
 
     # Create year-specific dictionary. groupby keys are typed as the generic
     # hashable label, so pin them back to int to match the declared return type
     # (`_year` is populated from the loop over `years: list[int]` above).
     grid_points_by_year = {
-        int(cast(int, year)): gp.drop(columns=['_year'], errors='ignore')
-        for year, gp in grid_points_all.groupby('_year')
+        int(cast(int, year)): gp.drop(columns=["_year"], errors="ignore")
+        for year, gp in grid_points_all.groupby("_year")
     }
 
     return grid_points_merged, grid_points_by_year

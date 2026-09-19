@@ -7,6 +7,7 @@ Spanish country row's clusters 0 and 3 did that to more than half of their
 training days while passing both checks. These tests pin the diagnostics that
 record it, and that ``fit_quality`` reports them without setting the dagger.
 """
+
 import json
 
 import numpy as np
@@ -26,25 +27,40 @@ def _reanalysis():
     times = pd.date_range("2015-01-01", "2016-12-31", freq="D")
     shape = (len(times), 3, 3)
     return xr.Dataset(
-        {"wnd100m": (("time", "lat", "lon"), np.full(shape, 8.0)),
-         "roughness": (("time", "lat", "lon"), np.full(shape, 0.05))},
+        {
+            "wnd100m": (("time", "lat", "lon"), np.full(shape, 8.0)),
+            "roughness": (("time", "lat", "lon"), np.full(shape, 0.05)),
+        },
         coords={"time": times, "lat": [55.0, 55.5, 56.0], "lon": [8.0, 8.75, 9.5]},
     )
 
 
 def _fleet():
-    return pd.DataFrame({
-        "ID": ["a", "b", "c"], "lon": [8.2, 8.6, 9.2], "lat": [55.2, 55.6, 55.8],
-        "height": 100.0, "capacity": [1.0, 3.0, 2.0], "model": "m", "cluster": [0, 1, 2],
-    })
+    return pd.DataFrame(
+        {
+            "ID": ["a", "b", "c"],
+            "lon": [8.2, 8.6, 9.2],
+            "lat": [55.2, 55.6, 55.8],
+            "height": 100.0,
+            "capacity": [1.0, 3.0, 2.0],
+            "model": "m",
+            "cluster": [0, 1, 2],
+        }
+    )
 
 
 def _factors():
     # Speeds are 8 m/s everywhere (hub at 100 m). Cluster 0 crosses zero at
     # 9 m/s, so every day goes negative; cluster 2's scalar of 6 sends every day
     # above 40 m/s; cluster 1 is clean.
-    return pd.DataFrame({"cluster": [0, 1, 2], "fixed": "1/1",
-                         "scalar": [1.0, 1.0, 6.0], "offset": [-9.0, 0.5, 0.0]})
+    return pd.DataFrame(
+        {
+            "cluster": [0, 1, 2],
+            "fixed": "1/1",
+            "scalar": [1.0, 1.0, 6.0],
+            "offset": [-9.0, 0.5, 0.0],
+        }
+    )
 
 
 def test_diagnostics_record_where_the_pair_sends_the_training_speeds():
@@ -79,8 +95,10 @@ def test_fit_quality_reports_the_shares_beside_the_dagger():
 
 def test_fit_quality_without_diagnostics_reports_nan():
     q = fit_quality(_factors())
-    assert all(np.isnan(q[k]) for k in
-               ("max_below_zero_share", "max_above_curve_share", "max_period_dropped_share"))
+    assert all(
+        np.isnan(q[k])
+        for k in ("max_below_zero_share", "max_above_curve_share", "max_period_dropped_share")
+    )
 
 
 def test_train_writes_diagnostics_and_evaluate_reports_them(synthetic_dk):  # noqa: F811
@@ -88,12 +106,22 @@ def test_train_writes_diagnostics_and_evaluate_reports_them(synthetic_dk):  # no
     out = synthetic_dk["root"] / "validation"
     train_dir = run_train(spec, out, mode="onshore", run_name="t")
     d = pd.read_csv(train_dir / "fit_diagnostics_fixed_2.csv")
-    assert {"cluster", "fixed", "year", "zero_crossing_speed", "weight_steps",
-            "weight_below_zero", "weight_above_curve"} <= set(d.columns)
+    assert {
+        "cluster",
+        "fixed",
+        "year",
+        "zero_crossing_speed",
+        "weight_steps",
+        "weight_below_zero",
+        "weight_above_curve",
+    } <= set(d.columns)
     assert set(d["year"]) == {2015}
     record = json.loads((train_dir / "run_manifest.json").read_text())["fit_diagnostics"]
-    assert set(record["fixed_2"]) == {"max_below_zero_share", "max_above_curve_share",
-                                      "max_period_dropped_share"}
+    assert set(record["fixed_2"]) == {
+        "max_below_zero_share",
+        "max_above_curve_share",
+        "max_period_dropped_share",
+    }
 
     eval_dir = run_evaluate(spec, train_dir, out, mode="onshore", run_name="e")
     metrics = pd.read_csv(eval_dir / "metrics.csv")

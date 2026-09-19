@@ -7,6 +7,7 @@ every year of the split its own capacities, refusing any grid that is not that
 year's fleet. These tests pin those four things. Nothing here imports torch, so
 this file runs in CI.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,18 +15,31 @@ import pytest
 from test_harness_driver import make_spec
 from vwf.config import PyVWFPaths
 from vwf.pinn.cache import (
-    MW_TO_KW, NATIONAL_ID, RegionCache, _country_observations, load_cache, save_cache,
+    MW_TO_KW,
+    NATIONAL_ID,
+    RegionCache,
+    _country_observations,
+    load_cache,
+    save_cache,
 )
 
 IDS = ["grid_0001", "grid_0002", "grid_0003"]
 
 
 def _grid(path, capacities_mw, *, ids=IDS, shuffle=False):
-    grid = pd.DataFrame({
-        "lat": [50.0, 50.5, 51.0], "lon": [4.0, 4.5, 5.0], "weight": capacities_mw,
-        "ID": ids, "height": 100.0, "model": "Vestas.V90.3000",
-        "capacity": capacities_mw, "type": "onshore", "cluster": [0, 0, 1],
-    })
+    grid = pd.DataFrame(
+        {
+            "lat": [50.0, 50.5, 51.0],
+            "lon": [4.0, 4.5, 5.0],
+            "weight": capacities_mw,
+            "ID": ids,
+            "height": 100.0,
+            "model": "Vestas.V90.3000",
+            "capacity": capacities_mw,
+            "type": "onshore",
+            "cluster": [0, 0, 1],
+        }
+    )
     if shuffle:
         grid = grid.iloc[::-1]
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -37,8 +51,14 @@ def _observations(path, start, end, capacity_mw):
     index = pd.date_range(start, end, freq="h", tz="UTC")
     capacity = np.where(index.day < 16, capacity_mw, 2 * capacity_mw)
     generation = 0.25 * capacity + np.where(index.hour < 12, 10.0, 0.0)
-    frame = pd.DataFrame({"generation_mw": generation, "capacity_mw": capacity,
-                          "capacity_factor": generation / capacity}, index=index)
+    frame = pd.DataFrame(
+        {
+            "generation_mw": generation,
+            "capacity_mw": capacity,
+            "capacity_factor": generation / capacity,
+        },
+        index=index,
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(path)
     return frame
@@ -55,8 +75,14 @@ def country_root(tmp_path, monkeypatch):
     obs = base / "observations" / "zz"
     train = _observations(obs / "zz_train_2015_2016.csv", "2015-01-01", "2017-01-31 23:00", 100.0)
     _observations(obs / "zz_test_2023.csv", "2023-01-01", "2023-12-31 23:00", 300.0)
-    spec = make_spec(code="ZZ", source="entsoe-country", obs_level="country",
-                     obs_unit="country", train_years=(2015, 2016), test_years=(2023,))
+    spec = make_spec(
+        code="ZZ",
+        source="entsoe-country",
+        obs_level="country",
+        obs_unit="country",
+        train_years=(2015, 2016),
+        test_years=(2023,),
+    )
     return spec, base, train
 
 
@@ -112,8 +138,11 @@ def test_a_static_grid_is_refused_for_a_missing_year(country_root):
 
 def test_a_year_with_different_points_is_refused(country_root):
     spec, base, _ = country_root
-    _grid(base / "grid_points" / "zz" / "zz_grid_points_2015.csv", [1.0, 1.0, 1.0],
-          ids=["grid_0001", "grid_0002", "grid_9999"])
+    _grid(
+        base / "grid_points" / "zz" / "zz_grid_points_2015.csv",
+        [1.0, 1.0, 1.0],
+        ids=["grid_0001", "grid_0002", "grid_9999"],
+    )
     with pytest.raises(ValueError, match="different grid points"):
         _country_observations(spec, "train")
 
@@ -122,14 +151,27 @@ def test_a_country_cache_round_trips_and_an_old_cache_loads_as_turbine(tmp_path)
     days = pd.date_range("2015-01-01", periods=31, freq="D")
     w = np.full((31, 2), 7.0, dtype="float32")
     base = dict(
-        dates=days, meta=pd.DataFrame({"ID": ["a", "b"]}),
+        dates=days,
+        meta=pd.DataFrame({"ID": ["a", "b"]}),
         obs=pd.DataFrame({"ID": [NATIONAL_ID], "year": [2015], "month": [1], "obs": [0.3]}),
-        w_mean=w, w_std=w, z0=w, shear=w, curve_speeds=np.arange(3.0),
-        curve_cf=np.zeros((1, 3)), curve_names=["M"], turbine_curve=np.zeros(2, dtype="int64"),
+        w_mean=w,
+        w_std=w,
+        z0=w,
+        shear=w,
+        curve_speeds=np.arange(3.0),
+        curve_cf=np.zeros((1, 3)),
+        curve_names=["M"],
+        turbine_curve=np.zeros(2, dtype="int64"),
     )
-    cache = RegionCache(code="ZZ", split="train", level="country",
-                        capacity_years=np.array([2015]), capacity_by_year=np.array([[1000.0, 2000.0]]),
-                        fleet_record={"level": "country"}, **base)
+    cache = RegionCache(
+        code="ZZ",
+        split="train",
+        level="country",
+        capacity_years=np.array([2015]),
+        capacity_by_year=np.array([[1000.0, 2000.0]]),
+        fleet_record={"level": "country"},
+        **base,
+    )
     save_cache(cache, tmp_path)
     back = load_cache("ZZ", "train", tmp_path)
     assert back.level == "country"

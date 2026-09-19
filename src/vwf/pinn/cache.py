@@ -17,6 +17,7 @@ the same data the incumbent affine correction is fitted to and any difference in
 result is a difference of method. What the cache adds is the within-day wind
 spread and the shear exponent, which the daily-mean pipeline discards.
 """
+
 from __future__ import annotations
 
 import json
@@ -52,17 +53,17 @@ class RegionCache:
 
     code: str
     split: str
-    dates: pd.DatetimeIndex          # (T,)
-    meta: pd.DataFrame               # (N,) turbine metadata + terrain features
-    obs: pd.DataFrame                # long [ID, year, month, obs]
-    w_mean: np.ndarray               # (T, N) daily mean 100 m wind, m/s
-    w_std: np.ndarray                # (T, N) within-day wind spread, m/s
-    z0: np.ndarray                   # (T, N) roughness as the incumbent sees it
-    shear: np.ndarray                # (T, N) 10-100 m power-law exponent
-    curve_speeds: np.ndarray         # (S,) power-curve speed grid, m/s
-    curve_cf: np.ndarray             # (M, S) capacity factor per model
-    curve_names: list[str]           # (M,) model names, index-aligned to curve_cf
-    turbine_curve: np.ndarray        # (N,) index into curve_cf for each turbine
+    dates: pd.DatetimeIndex  # (T,)
+    meta: pd.DataFrame  # (N,) turbine metadata + terrain features
+    obs: pd.DataFrame  # long [ID, year, month, obs]
+    w_mean: np.ndarray  # (T, N) daily mean 100 m wind, m/s
+    w_std: np.ndarray  # (T, N) within-day wind spread, m/s
+    z0: np.ndarray  # (T, N) roughness as the incumbent sees it
+    shear: np.ndarray  # (T, N) 10-100 m power-law exponent
+    curve_speeds: np.ndarray  # (S,) power-curve speed grid, m/s
+    curve_cf: np.ndarray  # (M, S) capacity factor per model
+    curve_names: list[str]  # (M,) model names, index-aligned to curve_cf
+    turbine_curve: np.ndarray  # (N,) index into curve_cf for each turbine
     # What the ERA5 reduction read and applied, and where the fleet lies against
     # the loaded extent. Empty for caches written before it was recorded.
     era5_record: dict[str, Any] = field(default_factory=dict)
@@ -76,9 +77,11 @@ class RegionCache:
     # What the fleet and observations were read from, and curve coverage.
     fleet_record: dict[str, Any] = field(default_factory=dict)
 
-    def __repr__(self) -> str:       # pragma: no cover - convenience only
-        return (f"RegionCache({self.code}/{self.split}: {len(self.meta)} units, "
-                f"{len(self.dates)} days, {len(self.obs)} obs rows)")
+    def __repr__(self) -> str:  # pragma: no cover - convenience only
+        return (
+            f"RegionCache({self.code}/{self.split}: {len(self.meta)} units, "
+            f"{len(self.dates)} days, {len(self.obs)} obs rows)"
+        )
 
 
 def _hourly_dir(spec: RegionSpec) -> Path:
@@ -101,9 +104,7 @@ def _observations(spec: RegionSpec, split: str) -> tuple[pd.DataFrame, pd.DataFr
     is_train = split == "train"
     year_test = None if is_train else int(spec.test_years[0])
     source = resolve_source(spec, "train" if is_train else "test")
-    obs_data, turb_info = prep_country(
-        spec.code, year_test, obs_level="turbine", source=source
-    )
+    obs_data, turb_info = prep_country(spec.code, year_test, obs_level="turbine", source=source)
     obs = clean_obs_data(obs_data, spec.code, is_train)
 
     if is_train:
@@ -163,8 +164,11 @@ def _country_observations(
     obs_raw = source.load_observations()
     monthly = country_cf_to_monthly(obs_raw)
 
-    years = (list(range(int(spec.train_years[0]), int(spec.train_years[-1]) + 1))
-             if is_train else [int(spec.test_years[0])])
+    years = (
+        list(range(int(spec.train_years[0]), int(spec.train_years[-1]) + 1))
+        if is_train
+        else [int(spec.test_years[0])]
+    )
     monthly = monthly[monthly["year"].isin(years)].dropna(subset=["obs"])
     obs = monthly.assign(ID=NATIONAL_ID)[["ID", "year", "month", "obs"]].reset_index(drop=True)
 
@@ -188,8 +192,10 @@ def _country_observations(
                 "split's fleet file, so its capacities cannot be aligned"
             )
         year_grid = year_grid.loc[list(ids)]
-        moved = ~(np.isclose(year_grid["lon"].to_numpy(dtype=float), grid["lon"].to_numpy(dtype=float))
-                  & np.isclose(year_grid["lat"].to_numpy(dtype=float), grid["lat"].to_numpy(dtype=float)))
+        moved = ~(
+            np.isclose(year_grid["lon"].to_numpy(dtype=float), grid["lon"].to_numpy(dtype=float))
+            & np.isclose(year_grid["lat"].to_numpy(dtype=float), grid["lat"].to_numpy(dtype=float))
+        )
         if moved.any():
             raise ValueError(
                 f"{spec.code}: {int(moved.sum())} grid point(s) in {path.name} "
@@ -206,10 +212,12 @@ def _country_observations(
         "observation_target": "energy-weighted national monthly capacity factor",
         "observation_months": int(len(obs)),
         "grid_points": int(len(ids)),
-        "capacity_mw_by_year": {str(y): float(capacity[k].sum() / MW_TO_KW)
-                                for k, y in enumerate(years)},
-        "points_with_capacity_by_year": {str(y): int((capacity[k] > 0).sum())
-                                         for k, y in enumerate(years)},
+        "capacity_mw_by_year": {
+            str(y): float(capacity[k].sum() / MW_TO_KW) for k, y in enumerate(years)
+        },
+        "points_with_capacity_by_year": {
+            str(y): int((capacity[k] > 0).sum()) for k, y in enumerate(years)
+        },
     }
     return grid, obs, np.array(years, dtype="int64"), capacity, record
 
@@ -231,8 +239,9 @@ def prepare_grid(grid: pd.DataFrame) -> pd.DataFrame:
     return grid
 
 
-def _curve_matrix(turb_info: pd.DataFrame) -> tuple[np.ndarray, np.ndarray,
-                                                    list[str], np.ndarray, list[str]]:
+def _curve_matrix(
+    turb_info: pd.DataFrame,
+) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray, list[str]]:
     """Dense capacity-factor curves for the models this fleet actually uses.
 
     Also returns the model keys absent from ``power_curves.csv``, whose units
@@ -254,9 +263,11 @@ def _curve_matrix(turb_info: pd.DataFrame) -> tuple[np.ndarray, np.ndarray,
             missing.append(m)
     if missing:
         # Mirror vwf.wind's warned fallback rather than failing the whole region.
-        print(f"  [curves] {len(missing)} model(s) absent from the library, "
-              f"falling back to {default!r}: {missing[:5]}"
-              f"{' ...' if len(missing) > 5 else ''}")
+        print(
+            f"  [curves] {len(missing)} model(s) absent from the library, "
+            f"falling back to {default!r}: {missing[:5]}"
+            f"{' ...' if len(missing) > 5 else ''}"
+        )
         if default not in names:
             names.append(default)
 
@@ -276,11 +287,15 @@ def build_cache(spec: RegionSpec, split: str = "train") -> RegionCache:
     if split not in ("train", "test"):
         raise ValueError(f"split must be 'train' or 'test', got {split!r}")
 
-    years = (list(range(int(spec.train_years[0]), int(spec.train_years[-1]) + 1))
-             if split == "train" else [int(spec.test_years[0])])
+    years = (
+        list(range(int(spec.train_years[0]), int(spec.train_years[-1]) + 1))
+        if split == "train"
+        else [int(spec.test_years[0])]
+    )
     if spec.obs_level == "country":
-        turb_info, obs, capacity_years, capacity_by_year, fleet_record = (
-            _country_observations(spec, split))
+        turb_info, obs, capacity_years, capacity_by_year, fleet_record = _country_observations(
+            spec, split
+        )
     elif spec.obs_level == "turbine":
         turb_info, obs = _observations(spec, split)
         capacity_years = np.zeros(0, dtype="int64")
@@ -312,16 +327,29 @@ def build_cache(spec: RegionSpec, split: str = "train") -> RegionCache:
             "missing_model_keys": list(missing),
             "units_substituted": int(is_missing.sum()),
             "capacity_share_substituted": (
-                float(turb_info.loc[is_missing, "capacity"].sum()) / total if total > 0 else 0.0),
+                float(turb_info.loc[is_missing, "capacity"].sum()) / total if total > 0 else 0.0
+            ),
         },
     }
     return RegionCache(
-        code=spec.code, split=split, dates=dates, meta=meta, obs=obs,
-        w_mean=w_mean, w_std=w_std, z0=z0, shear=shear,
-        curve_speeds=speeds, curve_cf=cf, curve_names=names,
-        turbine_curve=turbine_curve, era5_record=era5_record,
-        level=spec.obs_level, capacity_years=capacity_years,
-        capacity_by_year=capacity_by_year, fleet_record=fleet_record,
+        code=spec.code,
+        split=split,
+        dates=dates,
+        meta=meta,
+        obs=obs,
+        w_mean=w_mean,
+        w_std=w_std,
+        z0=z0,
+        shear=shear,
+        curve_speeds=speeds,
+        curve_cf=cf,
+        curve_names=names,
+        turbine_curve=turbine_curve,
+        era5_record=era5_record,
+        level=spec.obs_level,
+        capacity_years=capacity_years,
+        capacity_by_year=capacity_by_year,
+        fleet_record=fleet_record,
     )
 
 
@@ -365,15 +393,22 @@ def save_cache(cache: RegionCache, root: str | Path) -> Path:
     np.savez_compressed(
         d / "fields.npz",
         dates=cache.dates.values.astype("datetime64[ns]").astype("int64"),
-        w_mean=cache.w_mean, w_std=cache.w_std, z0=cache.z0, shear=cache.shear,
-        curve_speeds=cache.curve_speeds, curve_cf=cache.curve_cf,
+        w_mean=cache.w_mean,
+        w_std=cache.w_std,
+        z0=cache.z0,
+        shear=cache.shear,
+        curve_speeds=cache.curve_speeds,
+        curve_cf=cache.curve_cf,
         curve_names=np.array(cache.curve_names, dtype=object),
         turbine_curve=cache.turbine_curve,
         level=np.array(cache.level),
-        capacity_years=cache.capacity_years, capacity_by_year=cache.capacity_by_year,
+        capacity_years=cache.capacity_years,
+        capacity_by_year=cache.capacity_by_year,
     )
-    for name, record in ((ERA5_RECORD_NAME, cache.era5_record),
-                         (FLEET_RECORD_NAME, cache.fleet_record)):
+    for name, record in (
+        (ERA5_RECORD_NAME, cache.era5_record),
+        (FLEET_RECORD_NAME, cache.fleet_record),
+    ):
         with open(d / name, "w", encoding="utf-8") as fh:
             json.dump(record, fh, indent=2)
             fh.write("\n")
@@ -390,19 +425,27 @@ def load_cache(code: str, split: str, root: str | Path) -> RegionCache:
         records[name] = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     # Caches written before the country tier carry none of these three arrays.
     level = str(z["level"]) if "level" in z.files else "turbine"
-    capacity_years = (z["capacity_years"] if "capacity_years" in z.files
-                      else np.zeros(0, dtype="int64"))
-    capacity_by_year = (z["capacity_by_year"] if "capacity_by_year" in z.files
-                        else np.zeros((0, 0)))
+    capacity_years = (
+        z["capacity_years"] if "capacity_years" in z.files else np.zeros(0, dtype="int64")
+    )
+    capacity_by_year = z["capacity_by_year"] if "capacity_by_year" in z.files else np.zeros((0, 0))
     return RegionCache(
-        code=code, split=split,
+        code=code,
+        split=split,
         dates=pd.DatetimeIndex(z["dates"].astype("datetime64[ns]")),
         meta=pd.read_csv(d / "meta.csv", dtype={"ID": str}),
         obs=pd.read_csv(d / "obs.csv", dtype={"ID": str}),
-        w_mean=z["w_mean"], w_std=z["w_std"], z0=z["z0"], shear=z["shear"],
-        curve_speeds=z["curve_speeds"], curve_cf=z["curve_cf"],
-        curve_names=list(z["curve_names"]), turbine_curve=z["turbine_curve"],
-        era5_record=records[ERA5_RECORD_NAME], level=level,
-        capacity_years=capacity_years, capacity_by_year=capacity_by_year,
+        w_mean=z["w_mean"],
+        w_std=z["w_std"],
+        z0=z["z0"],
+        shear=z["shear"],
+        curve_speeds=z["curve_speeds"],
+        curve_cf=z["curve_cf"],
+        curve_names=list(z["curve_names"]),
+        turbine_curve=z["turbine_curve"],
+        era5_record=records[ERA5_RECORD_NAME],
+        level=level,
+        capacity_years=capacity_years,
+        capacity_by_year=capacity_by_year,
         fleet_record=records[FLEET_RECORD_NAME],
     )

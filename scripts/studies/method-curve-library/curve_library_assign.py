@@ -25,6 +25,7 @@ T2 moves exactly the units the scorecard's Other brand column counts.
 
 Read-only and importable: the study driver and the tests use the same rules.
 """
+
 import sys
 from pathlib import Path
 
@@ -50,7 +51,11 @@ def specific_power(capacity_kw, diameter_m):
 
 
 def other_brand_assignment(
-    fleet: pd.DataFrame, own: pd.Series, models: pd.DataFrame, *, rating_kw: pd.Series,
+    fleet: pd.DataFrame,
+    own: pd.Series,
+    models: pd.DataFrame,
+    *,
+    rating_kw: pd.Series,
 ) -> pd.DataFrame:
     """The T2 key for every unit, and why it is what it is.
 
@@ -79,8 +84,9 @@ def other_brand_assignment(
     # exactly as the T0 side is. Taking the catalogue's manufacturer column
     # raw would make "Unknown" a brand, and a distributed reference curve a
     # legitimate destination, which it is not.
-    catalogue = catalogue.assign(curve_manufacturer=audit.curve_side_manufacturer(
-        catalogue["model"].astype(str), lut))
+    catalogue = catalogue.assign(
+        curve_manufacturer=audit.curve_side_manufacturer(catalogue["model"].astype(str), lut)
+    )
 
     keys, reasons = [], []
     for i, (klass, own_maker) in enumerate(zip(classes, own)):
@@ -91,10 +97,14 @@ def other_brand_assignment(
             keys.append(t0.iloc[i]), reasons.append("not-same-brand")
             continue
         kw, sp = rating.iloc[i], unit_sp.iloc[i]
-        band = catalogue[catalogue["capacity"].between(kw * SCALE_BAND[0], kw * SCALE_BAND[1])] \
-            if pd.notna(kw) else catalogue.iloc[0:0]
-        other = band[[audit.classify(own_maker, m) == "different-brand"
-                      for m in band["curve_manufacturer"]]]
+        band = (
+            catalogue[catalogue["capacity"].between(kw * SCALE_BAND[0], kw * SCALE_BAND[1])]
+            if pd.notna(kw)
+            else catalogue.iloc[0:0]
+        )
+        other = band[
+            [audit.classify(own_maker, m) == "different-brand" for m in band["curve_manufacturer"]]
+        ]
         if other.empty or pd.isna(sp):
             keys.append(t0.iloc[i]), reasons.append("no-candidate-in-band")
             continue

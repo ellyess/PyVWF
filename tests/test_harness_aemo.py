@@ -4,6 +4,7 @@ All fixtures are synthetic; real AEMO acquisition is Phase 2. The fixtures
 carry AEST-labelled timestamps on purpose: the UTC conversion is part of
 the contract under test, not an implementation detail.
 """
+
 from calendar import monthrange
 
 import numpy as np
@@ -57,9 +58,7 @@ def test_monthly_bins_are_utc_not_market_time():
     1 July is 30 June UTC and must land in JUNE's bin. Month matching in
     market time would put it in July, so the two conventions are
     distinguishable on this fixture."""
-    scada = five_minute_scada(
-        "FARM1", "2019-07-01 00:00", "2019-07-01 10:00", mw=100.0
-    )
+    scada = five_minute_scada("FARM1", "2019-07-01 00:00", "2019-07-01 10:00", mw=100.0)
     wide = scada_to_monthly_cf(scada, METADATA, 2019, 2019, min_coverage=0.0)
     row = wide.iloc[0]
 

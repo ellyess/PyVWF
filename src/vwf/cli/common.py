@@ -15,6 +15,7 @@ Registered study constants are not arguments. A pre-registration fixes its
 seeds, gates and grids in code; a flag would let a run differ from its record
 without trace (``scripts/studies/README.md``).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,7 +29,8 @@ from vwf.config import PyVWFPaths
 def make_parser(doc: str | None, *, prog: str | None = None) -> argparse.ArgumentParser:
     """A parser whose help is the entry point's module docstring, verbatim."""
     return argparse.ArgumentParser(
-        prog=prog, description=doc,
+        prog=prog,
+        description=doc,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
@@ -42,24 +44,29 @@ def input_path(*parts: str) -> Path:
     return Path(PyVWFPaths.INPUT_ROOT).joinpath(*parts)
 
 
-def add_input_path(parser: argparse.ArgumentParser, flag: str, *parts: str,
-                   help: str | None = None) -> None:
+def add_input_path(
+    parser: argparse.ArgumentParser, flag: str, *parts: str, help: str | None = None
+) -> None:
     """Add ``flag`` with a default of :func:`input_path` of ``parts``."""
     default = input_path(*parts)
     text = f"{help} " if help else ""
-    parser.add_argument(flag, type=Path, default=default,
-                        help=f"{text}(default: {default})")
+    parser.add_argument(flag, type=Path, default=default, help=f"{text}(default: {default})")
 
 
-def add_region(parser: argparse.ArgumentParser, *, flag: str = "--region",
-               required: bool = True) -> None:
+def add_region(
+    parser: argparse.ArgumentParser, *, flag: str = "--region", required: bool = True
+) -> None:
     """Add the region config argument: a TOML file under ``configs/regions/``."""
-    parser.add_argument(flag, type=Path, required=required,
-                        help="Region config TOML, e.g. configs/regions/nz.toml")
+    parser.add_argument(
+        flag, type=Path, required=required, help="Region config TOML, e.g. configs/regions/nz.toml"
+    )
 
 
-def run(main: Callable[[argparse.Namespace], int | None],
-        parser: argparse.ArgumentParser, argv: list[str] | None = None) -> int:
+def run(
+    main: Callable[[argparse.Namespace], int | None],
+    parser: argparse.ArgumentParser,
+    argv: list[str] | None = None,
+) -> int:
     """Parse ``argv``, call ``main`` with the arguments, return its exit code.
 
     ``main`` returning None counts as success.
@@ -69,7 +76,8 @@ def run(main: Callable[[argparse.Namespace], int | None],
     return 0 if code is None else int(code)
 
 
-def entry(main: Callable[[argparse.Namespace], int | None],
-          parser: argparse.ArgumentParser) -> None:
+def entry(
+    main: Callable[[argparse.Namespace], int | None], parser: argparse.ArgumentParser
+) -> None:
     """Run :func:`run` on the process's arguments and exit with its code."""
     sys.exit(run(main, parser))

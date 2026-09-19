@@ -5,6 +5,7 @@
 from, and score conditions on common rows the same way. Keeping one copy is
 what makes their records comparable. Nothing here imports torch.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +17,9 @@ import pandas as pd
 
 from vwf.harness.driver import _error_metrics
 from vwf.harness.skill import (
-    collapse_pseudo_replicates, restrict_to_common_rows, skill_metrics,
+    collapse_pseudo_replicates,
+    restrict_to_common_rows,
+    skill_metrics,
     summarise_exclusions,
 )
 
@@ -33,15 +36,15 @@ def resolve_configs(codes, overrides: list[str], configs: Path = CONFIGS) -> dic
         if not sep or not path:
             raise SystemExit(f"--config expects CODE=PATH, got {item!r}")
         named[code] = Path(path)
-    return {c: named.get(c, configs / f"{c.lower().replace('-', '_')}.toml")
-            for c in codes}
+    return {c: named.get(c, configs / f"{c.lower().replace('-', '_')}.toml") for c in codes}
 
 
 def config_record(paths: dict[str, Path]) -> dict:
     """Each config's path and sha256, so the manifest names the exact file."""
-    return {c: {"path": str(p),
-                "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
-            for c, p in paths.items()}
+    return {
+        c: {"path": str(p), "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
+        for c, p in paths.items()
+    }
 
 
 def region_record(r) -> dict[str, Any]:
@@ -71,8 +74,10 @@ def score_on_common_rows(conditions: dict, spec) -> tuple[dict, pd.DataFrame, di
     Returns:
         Metrics per label, the excluded rows, and the exclusion summary.
     """
-    pairs = {label: collapse_pseudo_replicates(frame, spec)
-             for label, (_, _, frame) in conditions.items()}
+    pairs = {
+        label: collapse_pseudo_replicates(frame, spec)
+        for label, (_, _, frame) in conditions.items()
+    }
     restricted, excluded = restrict_to_common_rows(pairs, UNIT_KEYS, weight="capacity")
     summary = summarise_exclusions(pairs, excluded, UNIT_KEYS, weight="capacity", unit="ID")
     metrics = {label: skill_metrics(frame) for label, frame in restricted.items()}
@@ -140,5 +145,10 @@ def level_spatial(frame: pd.DataFrame) -> dict[str, float | int]:
     spatial = float(np.sqrt((w_unit * unit["s"] ** 2).sum() / w_unit.sum()))
     level_rmse = float(np.sqrt(np.average(f["level"] ** 2, weights=f["capacity"])))
     rmse = float(np.sqrt(np.average(f["e"] ** 2, weights=f["capacity"])))
-    return {"spatial_rmse": spatial, "level_rmse": level_rmse, "rmse": rmse,
-            "n_units": int(len(unit)), "n_samples": int(len(f))}
+    return {
+        "spatial_rmse": spatial,
+        "level_rmse": level_rmse,
+        "rmse": rmse,
+        "n_units": int(len(unit)),
+        "n_samples": int(len(f)),
+    }

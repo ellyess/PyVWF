@@ -7,6 +7,7 @@ the simulation could handle. In the Spanish country row, fitted offsets pushed
 more than half of two clusters' days below zero, and the dropped days made the
 corrected capacity factor read high. These tests pin the count and its record.
 """
+
 import json
 
 import numpy as np
@@ -24,9 +25,9 @@ CURVES = pd.DataFrame({"data$speed": np.linspace(0.0, 40.0, 401), "m": 0.5})
 def _frames():
     time = pd.date_range("2016-01-01", "2016-02-29", freq="D")  # 31 + 29 days
     ws = pd.DataFrame({"time": time, "a": 8.0, "b": 8.0})
-    ws.loc[:4, "a"] = -1.0            # 5 January days below the curve
-    ws.loc[31:, "b"] = 45.0           # every February day above it
-    ws.loc[10, "a"] = np.nan          # one day with no speed
+    ws.loc[:4, "a"] = -1.0  # 5 January days below the curve
+    ws.loc[31:, "b"] = 45.0  # every February day above it
+    ws.loc[10, "a"] = np.nan  # one day with no speed
     cf = ws.copy()
     for col in ("a", "b"):
         off = (ws[col] < 0) | (ws[col] > 40) | ws[col].isna()
@@ -53,8 +54,11 @@ def test_a_clean_frame_records_zeros():
     cf = ws.assign(a=0.3)
     r = off_curve_record(ws, cf, pd.Series({"a": 1.0}), CURVES)
     assert r == {
-        "off_curve_below_share": 0.0, "off_curve_above_share": 0.0, "no_speed_share": 0.0,
-        "unit_months_wholly_missing": 0, "unit_months_partly_missing": 0,
+        "off_curve_below_share": 0.0,
+        "off_curve_above_share": 0.0,
+        "no_speed_share": 0.0,
+        "unit_months_wholly_missing": 0,
+        "unit_months_partly_missing": 0,
     }
 
 

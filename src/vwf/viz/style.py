@@ -1,4 +1,3 @@
-
 """
 Shared plotting style for PyVWF figures.
 
@@ -80,10 +79,10 @@ def plot_style(
 
     # Page dimensions (A4, KOMA-Script, BCOR=25mm, DIV=12)
     # textwidth = 418.26 pt = 14.7 cm = 5.787 in
-    FULL_WIDTH = 14.7 * cm   # \textwidth  – use for single-column figures
-    HALF_WIDTH = 7.2 * cm    # ≈ 0.49\textwidth – use for side-by-side subfigures
-    THIRD_WIDTH = 4.6 * cm   # ≈ 0.31\textwidth – use for 3-across subfigure grids
-    MAP_WIDTH = 12.5 * cm    # ≈ 0.85\textwidth – use for maps with margins
+    FULL_WIDTH = 14.7 * cm  # \textwidth  – use for single-column figures
+    HALF_WIDTH = 7.2 * cm  # ≈ 0.49\textwidth – use for side-by-side subfigures
+    THIRD_WIDTH = 4.6 * cm  # ≈ 0.31\textwidth – use for 3-across subfigure grids
+    MAP_WIDTH = 12.5 * cm  # ≈ 0.85\textwidth – use for maps with margins
 
     return {
         "cm": cm,
@@ -97,9 +96,7 @@ def plot_style(
     }
 
 
-def savefig(
-    fig, path, *, close: bool = True, pdf_size_limit_mb: float = 5.0, **kwargs
-):
+def savefig(fig, path, *, close: bool = True, pdf_size_limit_mb: float = 5.0, **kwargs):
     """Save a figure in PDF format with publication defaults, then close it.
 
     Parameters
@@ -118,6 +115,7 @@ def savefig(
     """
     import os
     from pathlib import Path as _P
+
     path = _P(path)
     # Detect rasterised content (e.g. scatter with rasterized=True)
     has_raster = any(
@@ -167,10 +165,12 @@ def apply_spatial_resolution_axis(
 
     if annotate:
         fs = mpl.rcParams.get("xtick.labelsize", 6)
-        ax.annotate("Coarse", xy=(0.02, -0.28), xycoords="axes fraction",
-                    fontsize=fs, ha="left", va="top")
-        ax.annotate("Fine", xy=(0.98, -0.28), xycoords="axes fraction",
-                    fontsize=fs, ha="right", va="top")
+        ax.annotate(
+            "Coarse", xy=(0.02, -0.28), xycoords="axes fraction", fontsize=fs, ha="left", va="top"
+        )
+        ax.annotate(
+            "Fine", xy=(0.98, -0.28), xycoords="axes fraction", fontsize=fs, ha="right", va="top"
+        )
 
 
 def add_resolution_markers(ax: plt.Axes, xvals) -> None:
@@ -188,15 +188,16 @@ def add_resolution_markers(ax: plt.Axes, xvals) -> None:
     y0, y1 = ax.get_ylim()
     y = y1 - 0.02 * (y1 - y0)
 
-    ax.text(x_min, y, "Fine", ha="right", va="top",
-            fontsize=mpl.rcParams.get("xtick.labelsize", 6))
-    ax.text(x_max, y, "Coarse", ha="left", va="top",
-            fontsize=mpl.rcParams.get("xtick.labelsize", 6))
+    ax.text(x_min, y, "Fine", ha="right", va="top", fontsize=mpl.rcParams.get("xtick.labelsize", 6))
+    ax.text(
+        x_max, y, "Coarse", ha="left", va="top", fontsize=mpl.rcParams.get("xtick.labelsize", 6)
+    )
 
 
 # ---------------------------------------------------------------------------
 # Standard-form tick formatting (commas, no scientific notation)
 # ---------------------------------------------------------------------------
+
 
 def _comma_formatter(x, pos):
     """Format tick values with commas (for axes where values < 1,000,000)."""

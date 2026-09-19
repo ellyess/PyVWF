@@ -30,6 +30,7 @@ for provenance, never as the curve key.
     python scripts/process/emi_nz.py
     python scripts/process/emi_nz.py --years 2019 2024   # inclusive window
 """
+
 import argparse
 import glob
 import sys
@@ -50,20 +51,34 @@ from vwf.datasets.emi_nz import (
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     add_input_path(ap, "--raw", "raw", "emi", help="Directory of <YYYYMM>_Generation_MD.csv files")
-    ap.add_argument("--configs", default="configs/curation",
-                    help="Directory holding the curated nz_*.csv tables")
-    ap.add_argument("--years", type=int, nargs=2, default=[2019, 2024],
-                    metavar=("START", "END"), help="Inclusive UTC year window")
+    ap.add_argument(
+        "--configs",
+        default="configs/curation",
+        help="Directory holding the curated nz_*.csv tables",
+    )
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs=2,
+        default=[2019, 2024],
+        metavar=("START", "END"),
+        help="Inclusive UTC year window",
+    )
     add_input_path(ap, "--out", "observations", "turbine", "NZ")
-    ap.add_argument("--fallback-model", default="2019COE_Market_Average_2.6MW_121",
-                    help="Uniform curve key for farms the matcher cannot place "
-                    "(must be a column of power_curves.csv)")
+    ap.add_argument(
+        "--fallback-model",
+        default="2019COE_Market_Average_2.6MW_121",
+        help="Uniform curve key for farms the matcher cannot place "
+        "(must be a column of power_curves.csv)",
+    )
     args = ap.parse_args()
 
     raw_paths = sorted(glob.glob(str(Path(args.raw) / "*_Generation_MD.csv")))
     if not raw_paths:
-        sys.exit(f"no *_Generation_MD.csv under {args.raw}; run "
-                 "scripts/fetch/emi_nz.py first (user-executed).")
+        sys.exit(
+            f"no *_Generation_MD.csv under {args.raw}; run "
+            "scripts/fetch/emi_nz.py first (user-executed)."
+        )
 
     farms, stages, windows = load_curated_tables(Path(args.configs))
     half_hourly, unmapped = wind_half_hourly(raw_paths, gen_code_map(farms))

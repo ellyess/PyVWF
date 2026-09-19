@@ -13,6 +13,7 @@ adapter, registering it, and nothing else.
 
 See ``docs/guides/adding-an-adapter.md`` for a worked example.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

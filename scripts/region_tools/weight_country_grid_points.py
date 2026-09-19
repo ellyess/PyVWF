@@ -24,6 +24,7 @@ Usage:
     PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py NL FR ES
     PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py --all --year 2021
 """
+
 from __future__ import annotations
 
 import argparse
@@ -142,9 +143,7 @@ def report(country: str, grid: pd.DataFrame, weights: pd.Series) -> pd.DataFrame
     by_cluster = frame.groupby("cluster", as_index=False)[["n", "mw"]].sum()
     by_cluster["area_share"] = by_cluster["n"] / by_cluster["n"].sum()
     total_mw = by_cluster["mw"].sum()
-    by_cluster["fleet_share"] = (
-        by_cluster["mw"] / total_mw if total_mw > 0 else np.nan
-    )
+    by_cluster["fleet_share"] = by_cluster["mw"] / total_mw if total_mw > 0 else np.nan
     by_cluster["shift_pp"] = 100 * (by_cluster["fleet_share"] - by_cluster["area_share"])
     return by_cluster
 
@@ -241,7 +240,9 @@ def process(
 ) -> None:
     code = country.upper()
     grid_path = (
-        PyVWFPaths.COUNTRY_LEVEL_DATA / "grid_points" / code.lower()
+        PyVWFPaths.COUNTRY_LEVEL_DATA
+        / "grid_points"
+        / code.lower()
         / f"{code.lower()}_grid_points.csv"
     )
     if not grid_path.is_file():
@@ -254,8 +255,10 @@ def process(
 
     table = report(code, grid, weights)
     as_of = f" as of {year}" if year is not None else ""
-    print(f"\n{code}{as_of}: {len(fleet)} projects, {fleet['mw'].sum():,.0f} MW "
-          f"over {len(grid)} grid points")
+    print(
+        f"\n{code}{as_of}: {len(fleet)} projects, {fleet['mw'].sum():,.0f} MW "
+        f"over {len(grid)} grid points"
+    )
     print(table.round(3).to_string(index=False))
     empty = int((weights == 0).sum())
     print(f"  grid points with no fleet: {empty} of {len(grid)}")
@@ -323,8 +326,11 @@ def main() -> int:
         if args.per_year:
             start, end = args.per_year
             process_per_year(
-                country, gwpt, range(start, end + 1),
-                dry_run=args.dry_run, zone_aware=args.zone_aware,
+                country,
+                gwpt,
+                range(start, end + 1),
+                dry_run=args.dry_run,
+                zone_aware=args.zone_aware,
             )
         else:
             process(

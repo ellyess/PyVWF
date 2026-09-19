@@ -18,6 +18,7 @@ which is a third answer and not a synonym for offshore. Callers that need a
 binary split have to say what they do with ``unknown`` rather than inheriting a
 default from here.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -212,9 +213,7 @@ def add_domain_column(
     if method not in ("spatial_join", "point_in_polygon"):
         raise ValueError(f"Unknown method: {method!r}. Use 'spatial_join' or 'point_in_polygon'.")
     classify = (
-        categorize_points_spatial_join
-        if method == "spatial_join"
-        else categorize_points_by_region
+        categorize_points_spatial_join if method == "spatial_join" else categorize_points_by_region
     )
     df["domain"] = classify(
         df,

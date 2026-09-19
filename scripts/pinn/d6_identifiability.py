@@ -18,6 +18,7 @@ data pins it; divergence at equal loss means it does not.
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d6_identifiability.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -59,10 +60,9 @@ def fit_from(tr, start: float, epochs: int = 60, seed: int = 0):
     loss = None
     for _ in range(epochs):
         opt.zero_grad()
-        loss = torch.stack([
-            T.region_loss(r, m, std, profile="power", quad=quad, generator=gen)
-            for r in tr
-        ]).mean()
+        loss = torch.stack(
+            [T.region_loss(r, m, std, profile="power", quad=quad, generator=gen) for r in tr]
+        ).mean()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(m.parameters(), 5.0)
         opt.step()
@@ -82,16 +82,26 @@ def main():
             m, std, loss = fit_from(tr, start)
             rep = m.report(std.terrain(tr[0]), std.fleet(tr[0]), tr[0].relief)
             k = skill_metrics(T.predict_frame(te, m, std).dropna(subset=["cf_sim"]))
-            rows.append(dict(setup=label, eta_start=start, eta=rep["eta_mean"],
-                             speedup=rep["speedup_mean"], delta=rep["delta_mean"],
-                             train_loss=loss, br_rmse=k["rmse"]))
-            print(f"  eta start {start:.2f} -> eta {rep['eta_mean']:.4f}  "
-                  f"speedup {rep['speedup_mean']:.4f}  loss {loss:.6f}  "
-                  f"BR RMSE {k['rmse']:.4f}")
+            rows.append(
+                dict(
+                    setup=label,
+                    eta_start=start,
+                    eta=rep["eta_mean"],
+                    speedup=rep["speedup_mean"],
+                    delta=rep["delta_mean"],
+                    train_loss=loss,
+                    br_rmse=k["rmse"],
+                )
+            )
+            print(
+                f"  eta start {start:.2f} -> eta {rep['eta_mean']:.4f}  "
+                f"speedup {rep['speedup_mean']:.4f}  loss {loss:.6f}  "
+                f"BR RMSE {k['rmse']:.4f}"
+            )
 
     res = pd.DataFrame(rows)
     res.to_csv(OUT / "d6_identifiability.csv", index=False)
-    print(f"\n{'='*92}\n### Spread across starting points (smaller = better pinned)\n")
+    print(f"\n{'=' * 92}\n### Spread across starting points (smaller = better pinned)\n")
     spread = res.groupby("setup").agg(
         eta_range=("eta", lambda s: s.max() - s.min()),
         speedup_range=("speedup", lambda s: s.max() - s.min()),

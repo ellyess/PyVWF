@@ -6,6 +6,7 @@ observation per cluster the fit is exactly determined and takes the same solver
 the turbine-level path uses. These tests pin the routing between the two, since
 picking the wrong one is silent: both produce a plausible factors table.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -57,6 +58,7 @@ def source(layout, split="train"):
 # The source
 # ---------------------------------------------------------------------------
 
+
 def test_registered():
     assert "entsoe-zonal" in available_sources()
 
@@ -98,6 +100,7 @@ def test_aggregated_suffix_works_for_zones_too(zonal_layout):
 # Routing between the determined and under-determined fits
 # ---------------------------------------------------------------------------
 
+
 def bias_frame(obs_by_cluster):
     return pd.DataFrame(
         {
@@ -126,6 +129,7 @@ def test_a_frame_without_clusters_is_not_per_cluster():
 # ---------------------------------------------------------------------------
 # Aggregation back to a comparable national series
 # ---------------------------------------------------------------------------
+
 
 def test_zonal_monthly_keeps_one_row_per_cluster(zonal_layout):
     monthly = country_zonal_cf_to_monthly(source(zonal_layout).load_observations())
@@ -162,6 +166,7 @@ def test_national_collapse_survives_a_missing_observation(zonal_layout):
 # ---------------------------------------------------------------------------
 # The fit actually takes the other solver
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def country_fixture(tmp_path, monkeypatch):
@@ -219,9 +224,7 @@ def fit_with(grid, obs, monkeypatch, forbid):
     )
 
 
-def test_per_cluster_observations_do_not_use_the_joint_optimiser(
-    country_fixture, monkeypatch
-):
+def test_per_cluster_observations_do_not_use_the_joint_optimiser(country_fixture, monkeypatch):
     """The whole point of a zonal source: each cluster's offset is determined by
     its own constraint, so the under-determined joint fit must not run."""
     grid, times = country_fixture
@@ -238,9 +241,7 @@ def test_per_cluster_observations_do_not_use_the_joint_optimiser(
     assert factors["scalar"].nunique() == 2
 
 
-def test_one_national_observation_still_uses_the_joint_optimiser(
-    country_fixture, monkeypatch
-):
+def test_one_national_observation_still_uses_the_joint_optimiser(country_fixture, monkeypatch):
     grid, times = country_fixture
     obs = pd.DataFrame({"capacity_factor": 0.22}, index=times)
     factors, _ = fit_with(grid, obs, monkeypatch, "find_offset")

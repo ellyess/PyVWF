@@ -17,6 +17,7 @@ The fixture writes the on-disk layout the loaders expect, rather than
 monkeypatching the loaders, so the schema contract is exercised too: if the
 expected filename or column set changes, these fail.
 """
+
 from __future__ import annotations
 
 from calendar import monthrange
@@ -97,7 +98,7 @@ def _write_fleet(dk_dir):
             {
                 "ID": f"t{i}",
                 "manufacturer": "Synthetic",
-                "capacity": 2000.0,     # kW
+                "capacity": 2000.0,  # kW
                 "diameter": 80.0,
                 "height": 100.0,
                 "lon": lon,
@@ -142,10 +143,9 @@ def synthetic_dk(tmp_path, monkeypatch):
 # train_set / cluster_train_set: the data-preparation layer
 # ---------------------------------------------------------------------------
 
+
 def test_train_set_pairs_observations_with_simulations(synthetic_dk):
-    gen_cf, turb_info, reanalysis, power_curves = train_set(
-        "DK", calc_z0=True, mode="onshore"
-    )
+    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
 
     assert {"ID", "year", "month", "obs", "sim"} <= set(gen_cf.columns)
     assert len(turb_info) == len(synthetic_dk["fleet"])
@@ -197,14 +197,13 @@ def test_cluster_train_set_respects_temporal_resolution(synthetic_dk):
 
     assert set(fixed["time_slice"].unique()) == {"1/1"}
     assert set(int(m) for m in monthly["time_slice"].unique()) == set(range(1, 13))
-    assert set(seasonal["time_slice"].unique()) == {
-        "winter", "spring", "summer", "autumn"
-    }
+    assert set(seasonal["time_slice"].unique()) == {"winter", "spring", "summer", "autumn"}
 
 
 # ---------------------------------------------------------------------------
 # PyVWF.train + simulate_cf: the full orchestration
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def trained_model(synthetic_dk):
@@ -216,11 +215,11 @@ def trained_model(synthetic_dk):
     model = PyVWF(
         str(synthetic_dk["root"] / "out"),
         "DK",
-        True,             # correct
-        True,             # calc_z0
+        True,  # correct
+        True,  # calc_z0
         "onshore",
-        [2],              # cluster_list
-        ["fixed"],        # time_res_list
+        [2],  # cluster_list
+        ["fixed"],  # time_res_list
     )
     model.train(dask_n_workers=0)
     return model, synthetic_dk
@@ -228,9 +227,7 @@ def trained_model(synthetic_dk):
 
 def test_train_writes_correction_factors(trained_model):
     model, _ = trained_model
-    factors_path = (
-        f"{model.directory_path}/training/correction-factors/DK_factors_fixed_2.csv"
-    )
+    factors_path = f"{model.directory_path}/training/correction-factors/DK_factors_fixed_2.csv"
     factors = pd.read_csv(factors_path)
 
     assert {"cluster", "scalar", "offset"} <= set(factors.columns)
@@ -330,10 +327,7 @@ def test_simulate_cf_is_idempotent(trained_model):
     model, _ = trained_model
     model.simulate_cf(YEAR_TEST)
 
-    cf_path = (
-        f"{model.directory_path}/results/capacity-factor/"
-        f"DK_{YEAR_TEST}_fixed_2_cor_cf.csv"
-    )
+    cf_path = f"{model.directory_path}/results/capacity-factor/DK_{YEAR_TEST}_fixed_2_cor_cf.csv"
     first = pd.read_csv(cf_path)
 
     model.simulate_cf(YEAR_TEST)

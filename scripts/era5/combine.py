@@ -22,6 +22,7 @@ speed-of-mean-components), and roughness is derived from the hourly 10 m/100 m
 shear exactly as ``vwf.datasets.era5.prep_era5`` does; prep_era5 detects the
 precomputed ``wnd100m``/``roughness`` and skips recomputation.
 """
+
 import argparse
 import os
 import sys
@@ -66,17 +67,25 @@ def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:
     combined = xr.concat(days, dim="time").sortby("time")
     enc = {v: {"zlib": True, "complevel": 4} for v in combined.data_vars}
     combined.to_netcdf(target, encoding=enc)
-    print(f"{year}: {combined.sizes['time']} days -> {target.name} "
-          f"({target.stat().st_size / 1e6:.0f} MB)")
+    print(
+        f"{year}: {combined.sizes['time']} days -> {target.name} "
+        f"({target.stat().st_size / 1e6:.0f} MB)"
+    )
     return target
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--region", required=True, help="Region code (e.g. br, us, au)")
-    ap.add_argument("--years", type=int, nargs="+", default=None,
-                    help="Override the year span (default: train[0]..test[-1])")
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Override the year span (default: train[0]..test[-1])",
+    )
     args = ap.parse_args()
 
     try:

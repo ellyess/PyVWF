@@ -32,6 +32,7 @@ here rather than rediscovered:
 
 Raw responses land in <input-root>/raw/cen/ (input/ is git-ignored).
 """
+
 import argparse
 import json
 import os
@@ -95,8 +96,10 @@ def get(path: str, params: dict, *, timeout: int = 300) -> dict:
         except urllib.error.HTTPError as exc:
             body = exc.read()[:300].decode("utf-8", errors="replace")
             if exc.code == 429 and wait is not None:
-                print(f"    rate limited; sleeping {wait}s "
-                      f"(attempt {attempt + 1}/{len(BACKOFF_S)})", flush=True)
+                print(
+                    f"    rate limited; sleeping {wait}s (attempt {attempt + 1}/{len(BACKOFF_S)})",
+                    flush=True,
+                )
                 time.sleep(wait)
                 continue
             # Never echo the URL: it carries the key.
@@ -127,8 +130,7 @@ def wind_rows(records: list) -> list:
     Matched on the exact technology label, case-insensitively. A substring
     test on 'lica' is WRONG: it also matches 'Hidráulica'.
     """
-    return [r for r in records
-            if str(r.get("tipo_tecnologia", "")).strip().lower() == WIND.lower()]
+    return [r for r in records if str(r.get("tipo_tecnologia", "")).strip().lower() == WIND.lower()]
 
 
 def fetch_day(date: str, *, page_size: int = 20000) -> list:
@@ -140,10 +142,15 @@ def fetch_day(date: str, *, page_size: int = 20000) -> list:
     (~65 plants x 24 h). If the response ever reports more than one page, that
     silently truncates, so it raises instead.
     """
-    payload = get(GEN_REAL, {
-        "startDate": date, "endDate": date,
-        "tipoTecnologia": WIND, "pageSize": page_size,
-    })
+    payload = get(
+        GEN_REAL,
+        {
+            "startDate": date,
+            "endDate": date,
+            "tipoTecnologia": WIND,
+            "pageSize": page_size,
+        },
+    )
     total_pages = payload.get("totalPages") or 1
     if total_pages > 1:
         raise RuntimeError(
@@ -162,8 +169,10 @@ def probe() -> None:
     if not day:
         sys.exit("no wind rows for 2024-06-01: is the key for the SIP plan?")
     plants = {r["id_central"] for r in day}
-    print(f"2024-06-01: {len(day)} wind rows, {len(plants)} plants, "
-          f"{len({r.get('hora') for r in day})} hours")
+    print(
+        f"2024-06-01: {len(day)} wind rows, {len(plants)} plants, "
+        f"{len({r.get('hora') for r in day})} hours"
+    )
     print(f"generation fields: {sorted(day[0].keys())}")
     print("\nsample row:")
     print(" ", json.dumps(day[0], ensure_ascii=False)[:300])
@@ -181,13 +190,13 @@ def probe() -> None:
     print("capacity and technology labels")
     print("-" * 70)
     caps = {r["central"]: r.get("potencia_maxima") for r in day}
-    print(f"plants carrying potencia_maxima: "
-          f"{sum(1 for v in caps.values() if v not in (None, '', '-'))}/{len(caps)}")
-    print("subtipo_tecnologia:",
-          Counter(r.get("subtipo_tecnologia") for r in day).most_common(5))
+    print(
+        f"plants carrying potencia_maxima: "
+        f"{sum(1 for v in caps.values() if v not in (None, '', '-'))}/{len(caps)}"
+    )
+    print("subtipo_tecnologia:", Counter(r.get("subtipo_tecnologia") for r in day).most_common(5))
     print("\nlargest plants by potencia_maxima:")
-    ranked = sorted(caps.items(),
-                    key=lambda kv: float(kv[1] or 0), reverse=True)[:8]
+    ranked = sorted(caps.items(), key=lambda kv: float(kv[1] or 0), reverse=True)[:8]
     for name, cap in ranked:
         print(f"  {name[:44]:44s} {cap} MW")
 
@@ -203,6 +212,7 @@ def fetch_generation(out_dir: Path, y0: int, y1: int) -> None:
     """One JSON file per month of wind generation, resumable."""
     out_dir.mkdir(parents=True, exist_ok=True)
     import calendar
+
     for year in range(y0, y1 + 1):
         for month in range(1, 13):
             dest = out_dir / f"cen_gen_{year}_{month:02d}.json"
@@ -216,19 +226,21 @@ def fetch_generation(out_dir: Path, y0: int, y1: int) -> None:
             if collected:
                 dest.write_text(json.dumps(collected, ensure_ascii=False))
                 n = len({r["id_central"] for r in collected})
-                print(f"  {year}-{month:02d}: {len(collected)} rows, {n} plants",
-                      flush=True)
+                print(f"  {year}-{month:02d}: {len(collected)} rows, {n} plants", flush=True)
             else:
-                print(f"  {year}-{month:02d}: empty (before fleet history?)",
-                      flush=True)
+                print(f"  {year}-{month:02d}: empty (before fleet history?)", flush=True)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--probe", action="store_true",
-                    help="Verification run; writes nothing")
-    ap.add_argument("--years", type=int, nargs=2, metavar=("START", "END"),
-                    help="Fetch per-plant wind generation for this window")
+    ap.add_argument("--probe", action="store_true", help="Verification run; writes nothing")
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="Fetch per-plant wind generation for this window",
+    )
     args = ap.parse_args()
 
     out_dir = Path(os.environ.get("PYVWF_INPUT", "input")) / "raw/cen"

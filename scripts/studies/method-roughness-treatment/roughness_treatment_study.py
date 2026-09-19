@@ -28,6 +28,7 @@ Usage, from the repository root, one region per process:
     PYTHONPATH=src python scripts/studies/method-roughness-treatment/roughness_treatment_study.py <CODE> \
         <R0 evaluate dir> <R1 evaluate dir> <out_dir>
 """
+
 import json
 import sys
 from pathlib import Path
@@ -60,11 +61,12 @@ G1_RESOLVED_WIDTH = 0.004
 
 def _frames(ev: Path, spec, obs, turb_info, reported):
     """The uncorrected and reported-corrected paired frames of one run."""
+
     def pairs(sim_cf):
         if spec.obs_level == "country":
             return driver.country_pairs(sim_cf, obs, turb_info)
-        return collapse_pseudo_replicates(
-            driver.tidy_eval_frame(sim_cf, obs, turb_info), spec)
+        return collapse_pseudo_replicates(driver.tidy_eval_frame(sim_cf, obs, turb_info), spec)
+
     return {
         "uncorrected": pairs(pd.read_csv(ev / "unc_cf.csv")),
         "corrected": pairs(pd.read_csv(ev / f"cor_cf_{reported}.csv")),
@@ -101,8 +103,11 @@ def main(code, r0_dir, r1_dir, out_dir):
         for label, frame in _frames(ev, spec, obs, turb_info, reported).items():
             frames[f"{name}_{label}"] = frame
             got = _score(frame.dropna(subset=["cf_sim", "cf_obs"]), is_country)
-            row = metrics[metrics["variant"] == "uncorrected"] if label == "uncorrected" else \
-                metrics[metrics["variant"] != "uncorrected"]
+            row = (
+                metrics[metrics["variant"] == "uncorrected"]
+                if label == "uncorrected"
+                else metrics[metrics["variant"] != "uncorrected"]
+            )
             if label != "uncorrected":
                 ts, k = reported.rsplit("_", 1)
                 row = row[(row["time_res"] == ts) & (row["num_clu"] == int(k))]
@@ -122,7 +127,7 @@ def main(code, r0_dir, r1_dir, out_dir):
 
         def boot(label):
             d = (common[label]["cf_sim"] - common[label]["cf_obs"]).to_numpy()
-            return rmse_over_rows(d, idx), np.sqrt((d ** 2).mean())
+            return rmse_over_rows(d, idx), np.sqrt((d**2).mean())
     else:
         units = np.array(sorted(common["R0_corrected"]["ID"].unique()))
         n = len(units)
@@ -137,8 +142,16 @@ def main(code, r0_dir, r1_dir, out_dir):
     rows = []
     for label, (b, pt) in draws.items():
         lo, hi = percentile_interval(b)
-        rows.append({"region": code, "quantity": f"{label} RMSE", "estimate": pt,
-                     "ci_lo": lo, "ci_hi": hi, "width": hi - lo})
+        rows.append(
+            {
+                "region": code,
+                "quantity": f"{label} RMSE",
+                "estimate": pt,
+                "ci_lo": lo,
+                "ci_hi": hi,
+                "width": hi - lo,
+            }
+        )
     comparisons = {
         "corrected RMSE, R1 minus R0": (draws["R1_corrected"], draws["R0_corrected"]),
         "uncorrected RMSE, R1 minus R0": (draws["R1_uncorrected"], draws["R0_uncorrected"]),
@@ -146,9 +159,17 @@ def main(code, r0_dir, r1_dir, out_dir):
     verdicts = {}
     for name, ((b1, p1), (b0, p0)) in comparisons.items():
         lo, hi = percentile_interval(b1 - b0)
-        rows.append({"region": code, "quantity": name, "estimate": p1 - p0,
-                     "ci_lo": lo, "ci_hi": hi, "width": hi - lo,
-                     "consistent_with_zero": bool(lo <= 0 <= hi)})
+        rows.append(
+            {
+                "region": code,
+                "quantity": name,
+                "estimate": p1 - p0,
+                "ci_lo": lo,
+                "ci_hi": hi,
+                "width": hi - lo,
+                "consistent_with_zero": bool(lo <= 0 <= hi),
+            }
+        )
         if name.startswith("corrected"):
             if lo > 0 or hi < 0:
                 verdicts["gate"] = "resolved: " + ("R0 better" if p1 - p0 > 0 else "R1 better")
@@ -160,9 +181,17 @@ def main(code, r0_dir, r1_dir, out_dir):
     for name in ("R0", "R1"):
         (bu, pu), (bc, pc) = draws[f"{name}_uncorrected"], draws[f"{name}_corrected"]
         lo, hi = percentile_interval(bu - bc)
-        rows.append({"region": code, "quantity": f"{name} correction gain", "estimate": pu - pc,
-                     "ci_lo": lo, "ci_hi": hi, "width": hi - lo,
-                     "consistent_with_zero": bool(lo <= 0 <= hi)})
+        rows.append(
+            {
+                "region": code,
+                "quantity": f"{name} correction gain",
+                "estimate": pu - pc,
+                "ci_lo": lo,
+                "ci_hi": hi,
+                "width": hi - lo,
+                "consistent_with_zero": bool(lo <= 0 <= hi),
+            }
+        )
 
     out = pd.DataFrame(rows)
     out.to_csv(out_dir / f"{code}_roughness_comparison.csv", index=False)
@@ -171,20 +200,36 @@ def main(code, r0_dir, r1_dir, out_dir):
     for name, ev in runs.items():
         m = pd.read_csv(ev / "metrics.csv")
         for _, r in m.iterrows():
-            losses.append({
-                "region": code, "condition": name, "variant": r["variant"],
-                "time_res": r["time_res"], "num_clu": r["num_clu"],
-                **{c: r[c] for c in (
-                    "off_curve_below_share", "off_curve_above_share", "no_speed_share",
-                    "unit_months_wholly_missing", "unit_months_partly_missing",
-                    "max_below_zero_share", "max_above_curve_share",
-                    "max_period_dropped_share") if c in m.columns},
-            })
+            losses.append(
+                {
+                    "region": code,
+                    "condition": name,
+                    "variant": r["variant"],
+                    "time_res": r["time_res"],
+                    "num_clu": r["num_clu"],
+                    **{
+                        c: r[c]
+                        for c in (
+                            "off_curve_below_share",
+                            "off_curve_above_share",
+                            "no_speed_share",
+                            "unit_months_wholly_missing",
+                            "unit_months_partly_missing",
+                            "max_below_zero_share",
+                            "max_above_curve_share",
+                            "max_period_dropped_share",
+                        )
+                        if c in m.columns
+                    },
+                }
+            )
     pd.DataFrame(losses).to_csv(out_dir / f"{code}_roughness_losses.csv", index=False)
     excluded.to_csv(out_dir / f"{code}_roughness_excluded_rows.csv", index=False)
     with pd.option_context("display.width", 200, "display.float_format", "{:.4f}".format):
-        print(f"{code}: rows scored {len(common['R0_corrected'])}, "
-              f"excluded {len(excluded)}; gate: {verdicts.get('gate')}")
+        print(
+            f"{code}: rows scored {len(common['R0_corrected'])}, "
+            f"excluded {len(excluded)}; gate: {verdicts.get('gate')}"
+        )
         print(out.to_string(index=False))
 
 

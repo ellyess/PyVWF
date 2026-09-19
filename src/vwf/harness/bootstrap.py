@@ -21,6 +21,7 @@ The intervals understate the uncertainty: they are conditional on one test
 year, months are not independent, and neighbouring units share weather. The
 studies that use them say so.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -74,12 +75,15 @@ def unit_sums(frame: pd.DataFrame, units: np.ndarray) -> pd.DataFrame:
         frame: Rows with ``ID``, ``capacity``, ``cf_sim`` and ``cf_obs``.
         units: The unit order the draw counts follow.
     """
-    g = frame.assign(w=frame["capacity"],
-                     e=frame["capacity"] * (frame["cf_sim"] - frame["cf_obs"]) ** 2)
+    g = frame.assign(
+        w=frame["capacity"], e=frame["capacity"] * (frame["cf_sim"] - frame["cf_obs"]) ** 2
+    )
     return g.groupby("ID")[["w", "e"]].sum().reindex(units, fill_value=0.0)
 
 
-def percentile_interval(draws: np.ndarray, q: tuple[float, float] = (2.5, 97.5)) -> tuple[float, float]:
+def percentile_interval(
+    draws: np.ndarray, q: tuple[float, float] = (2.5, 97.5)
+) -> tuple[float, float]:
     """The percentile interval of ``draws``; 95% by default.
 
     The percentiles are given as numbers rather than derived from a level,

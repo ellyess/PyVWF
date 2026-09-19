@@ -22,6 +22,7 @@ Usage:
     PYTHONPATH=src python scripts/region_tools/assign_country_zones.py SE --dry-run
     PYTHONPATH=src python scripts/region_tools/assign_country_zones.py SE NO
 """
+
 from __future__ import annotations
 
 import argparse
@@ -93,8 +94,7 @@ def process(country: str, *, dry_run: bool) -> None:
     zones = load_zones(code)
     grid_dir = PyVWFPaths.COUNTRY_LEVEL_DATA / "grid_points" / code.lower()
     paths = sorted(
-        p for p in grid_dir.glob(f"{code.lower()}_grid_points*.csv")
-        if ".bak." not in p.name
+        p for p in grid_dir.glob(f"{code.lower()}_grid_points*.csv") if ".bak." not in p.name
     )
     if not paths:
         print(f"{code}: no grid points under {grid_dir}")
@@ -107,8 +107,10 @@ def process(country: str, *, dry_run: bool) -> None:
         moved = int((grid["cluster"] != new).sum())
         after = grid.assign(cluster=new).groupby("cluster")["capacity"].sum().round(0)
 
-        print(f"  {path.name}: {moved}/{len(grid)} moved, {fallbacks} nearest-polygon "
-              f"fallback(s); MW by zone {after.to_dict()}")
+        print(
+            f"  {path.name}: {moved}/{len(grid)} moved, {fallbacks} nearest-polygon "
+            f"fallback(s); MW by zone {after.to_dict()}"
+        )
 
         if dry_run:
             continue
@@ -126,8 +128,10 @@ def main() -> int:
     for country in args.countries:
         process(country, dry_run=args.dry_run)
     if not args.dry_run:
-        print("\nRe-run weight_country_grid_points.py --zone-aware so fleet capacity "
-              "is not summed across a zone boundary.")
+        print(
+            "\nRe-run weight_country_grid_points.py --zone-aware so fleet capacity "
+            "is not summed across a zone boundary."
+        )
     return 0
 
 

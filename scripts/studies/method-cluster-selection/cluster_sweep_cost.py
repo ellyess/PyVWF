@@ -31,6 +31,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-cluster-selection/cluster_sweep_cost.py <region-stem> <out_dir>
 """
+
 import dataclasses
 import time
 from pathlib import Path
@@ -69,34 +70,51 @@ def main(stem: str, out_dir: str, mode: str = "all", pool: Path = POOL) -> None:
     grid = grid_for(spec, mode, pool)
 
     swept = dataclasses.replace(
-        spec, cluster_list=grid, time_slices=(TIME_SLICE,),
-        era5_path=ERA5_PATH, roughness=ROUGHNESS)
-    print(f"{swept.code} {mode}: {len(grid)} cluster counts {grid}, "
-          f"slice {TIME_SLICE}, archive {ERA5_PATH}, roughness {ROUGHNESS}",
-          flush=True)
+        spec, cluster_list=grid, time_slices=(TIME_SLICE,), era5_path=ERA5_PATH, roughness=ROUGHNESS
+    )
+    print(
+        f"{swept.code} {mode}: {len(grid)} cluster counts {grid}, "
+        f"slice {TIME_SLICE}, archive {ERA5_PATH}, roughness {ROUGHNESS}",
+        flush=True,
+    )
     print(f"  train {swept.train_years}, test {swept.test_years}", flush=True)
 
     started = time.monotonic()
     train_dir = driver.run_train(swept, out, mode=mode, run_name="sweep-cost")
     trained = time.monotonic()
-    evaluate_dir = driver.run_evaluate(swept, train_dir, out, mode=mode,
-                                       run_name="sweep-cost")
+    evaluate_dir = driver.run_evaluate(swept, train_dir, out, mode=mode, run_name="sweep-cost")
     finished = time.monotonic()
 
     metrics = pd.read_csv(evaluate_dir / "metrics.csv")
     with pd.option_context("display.width", 250, "display.max_columns", 30):
-        columns = [c for c in ("variant", "num_clu", "time_res", "MBE", "MAE", "RMSE",
-                               "r", "Units", "Samples", "fit_quality",
-                               "substituted_capacity_share", "extrapolated_capacity_share",
-                               "excluded_share")
-                   if c in metrics.columns]
+        columns = [
+            c
+            for c in (
+                "variant",
+                "num_clu",
+                "time_res",
+                "MBE",
+                "MAE",
+                "RMSE",
+                "r",
+                "Units",
+                "Samples",
+                "fit_quality",
+                "substituted_capacity_share",
+                "extrapolated_capacity_share",
+                "excluded_share",
+            )
+            if c in metrics.columns
+        ]
         print("\n=== every row of metrics.csv")
         print(metrics[columns].to_string(index=False))
 
     fitted = len(grid)
     print(f"\n=== cost, {swept.code} {mode}")
-    print(f"  train      {trained - started:8.1f} s for {fitted} cluster counts "
-          f"({(trained - started) / fitted:.1f} s each)")
+    print(
+        f"  train      {trained - started:8.1f} s for {fitted} cluster counts "
+        f"({(trained - started) / fitted:.1f} s each)"
+    )
     print(f"  evaluate   {finished - trained:8.1f} s")
     print(f"  total      {finished - started:8.1f} s")
     print(f"\ntrain: {train_dir}\nevaluate: {evaluate_dir}")
@@ -107,10 +125,19 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("stem", metavar="region-stem", help="A maintained config, e.g. be")
     parser.add_argument("out_dir", help="Directory for the runs, under output/")
-    parser.add_argument("mode", nargs="?", default="all", choices=("all", "onshore", "offshore"),
-                        help="Fleet mode (default: all)")
-    parser.add_argument("--pool", type=Path, default=POOL,
-                        help=f"The control-point pool, for a country-level grid (default: {POOL})")
+    parser.add_argument(
+        "mode",
+        nargs="?",
+        default="all",
+        choices=("all", "onshore", "offshore"),
+        help="Fleet mode (default: all)",
+    )
+    parser.add_argument(
+        "--pool",
+        type=Path,
+        default=POOL,
+        help=f"The control-point pool, for a country-level grid (default: {POOL})",
+    )
     args = parser.parse_args(argv)
     main(args.stem, args.out_dir, args.mode, pool=args.pool)
 

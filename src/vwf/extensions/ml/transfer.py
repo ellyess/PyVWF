@@ -13,6 +13,7 @@ elevation, not the surface roughness length z0 that ``CONTEXT.md`` calls
 roughness. The column keeps its name because the recorded feature sets and
 outputs use it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -31,8 +32,16 @@ RF_KW = dict(n_estimators=100, max_depth=10, min_samples_split=10)
 SEEDS = [0, 1, 2, 3, 42]
 
 #: Terrain and position (the primary set).
-SET_A = ["elevation", "slope", "aspect", "roughness", "curvature",
-         "abs_lat", "lon_norm", "lat_norm"]
+SET_A = [
+    "elevation",
+    "slope",
+    "aspect",
+    "roughness",
+    "curvature",
+    "abs_lat",
+    "lon_norm",
+    "lat_norm",
+]
 #: Terrain only.
 SET_B = ["elevation", "slope", "aspect", "roughness", "curvature"]
 #: The primary set plus fleet descriptors.
@@ -58,11 +67,17 @@ def build_centroids(runs: dict, root: Path) -> pd.DataFrame:
         fac = pd.read_csv(d / f"factors_fixed_{k}.csv")
         assert fac["cluster"].is_unique, f"one row per cluster expected: {region}"
 
-        g = turb.groupby("cluster").agg(
-            lon=("lon", "mean"), lat=("lat", "mean"),
-            mean_height=("height", "mean"),
-            capacity=("capacity", "sum"), n_plants=("ID", "count"),
-        ).reset_index()
+        g = (
+            turb.groupby("cluster")
+            .agg(
+                lon=("lon", "mean"),
+                lat=("lat", "mean"),
+                mean_height=("height", "mean"),
+                capacity=("capacity", "sum"),
+                n_plants=("ID", "count"),
+            )
+            .reset_index()
+        )
         g = g.merge(fac[["cluster", "scalar", "offset"]], on="cluster")
         g["region"] = region
         rows.append(g)
@@ -96,12 +111,11 @@ def terrain_features(df: pd.DataFrame, etopo_path: Path) -> pd.DataFrame:
         slope = np.rad2deg(np.arctan(np.sqrt(grad_lat**2 + grad_lon**2)))
         aspect = (90 - np.rad2deg(np.arctan2(grad_lon, grad_lat))) % 360
         mean_elev = uniform_filter(elev, size=3, mode="nearest")
-        roughness = np.sqrt(uniform_filter((elev - mean_elev) ** 2, size=3,
-                                           mode="nearest"))
-        curvature = (np.gradient(grad_lat, dlat_m, axis=0)
-                     + np.gradient(grad_lon, dlon_m, axis=1))
-        fields = dict(elevation=elev, slope=slope, aspect=aspect,
-                      roughness=roughness, curvature=curvature)
+        roughness = np.sqrt(uniform_filter((elev - mean_elev) ** 2, size=3, mode="nearest"))
+        curvature = np.gradient(grad_lat, dlat_m, axis=0) + np.gradient(grad_lon, dlon_m, axis=1)
+        fields = dict(
+            elevation=elev, slope=slope, aspect=aspect, roughness=roughness, curvature=curvature
+        )
         ii = np.searchsorted(z.lat.values, sub.lat.to_numpy()).clip(0, elev.shape[0] - 1)
         jj = np.searchsorted(z.lon.values, sub.lon.to_numpy()).clip(0, elev.shape[1] - 1)
         feat = {name: arr[ii, jj] for name, arr in fields.items()}
@@ -125,9 +139,12 @@ def loro(df, feats, target, seeds=SEEDS):
         for s in seeds:
             r2, mae = rf_eval(tr, te, feats, target, s)
             recs.append(dict(holdout=region, seed=s, r2=r2, mae=mae))
-    r = pd.DataFrame(recs).groupby("holdout").agg(
-        r2_mean=("r2", "mean"), r2_std=("r2", "std"),
-        mae_mean=("mae", "mean")).reset_index()
+    r = (
+        pd.DataFrame(recs)
+        .groupby("holdout")
+        .agg(r2_mean=("r2", "mean"), r2_std=("r2", "std"), mae_mean=("mae", "mean"))
+        .reset_index()
+    )
     return r
 
 

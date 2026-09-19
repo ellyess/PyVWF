@@ -24,6 +24,7 @@ Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
          scripts/pinn/loco.py --cache <cache root> --out <dir> --config CODE=PATH ...
      Add --report-only to recompute the summary and gates from the CSVs.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,12 +61,19 @@ def fold_table(raw: pd.DataFrame) -> pd.DataFrame:
     """Per fold and arm: mean national RMSE, seed SD, and mean squared error."""
     nat = raw[raw["scope"] == "national"].copy()
     nat["mse"] = nat["rmse"] ** 2
-    return (nat.groupby(["fold", "arm"])
-               .agg(rmse=("rmse", "mean"), rmse_sd=("rmse", "std"),
-                    mse=("mse", "mean"), mbe=("mbe", "mean"),
-                    r=("pearson_r", "mean"), n_months=("n_months", "first"),
-                    seeds=("seed", "nunique"))
-               .reset_index())
+    return (
+        nat.groupby(["fold", "arm"])
+        .agg(
+            rmse=("rmse", "mean"),
+            rmse_sd=("rmse", "std"),
+            mse=("mse", "mean"),
+            mbe=("mbe", "mean"),
+            r=("pearson_r", "mean"),
+            n_months=("n_months", "first"),
+            seeds=("seed", "nunique"),
+        )
+        .reset_index()
+    )
 
 
 def gates(raw: pd.DataFrame, gated: list[str]) -> dict:
@@ -79,11 +87,13 @@ def gates(raw: pd.DataFrame, gated: list[str]) -> dict:
         off = t.loc[(f, "features-off")]
         inc = t.loc[(f, "in-country")]
         ratio = recovery_ratio(unc.mse, tr.mse, inc.mse)
-        sd = float(np.sqrt(np.nanmean([tr.rmse_sd ** 2, off.rmse_sd ** 2])))
+        sd = float(np.sqrt(np.nanmean([tr.rmse_sd**2, off.rmse_sd**2])))
         margin = max(0.002, 2.0 * sd)
         row = {
-            "uncorrected": float(unc.rmse), "transfer": float(tr.rmse),
-            "features_off": float(off.rmse), "in_country": float(inc.rmse),
+            "uncorrected": float(unc.rmse),
+            "transfer": float(tr.rmse),
+            "features_off": float(off.rmse),
+            "in_country": float(inc.rmse),
             "transfer_below_uncorrected": bool(tr.rmse < unc.rmse),
             "transfer_worse_by_10pct": bool(tr.rmse > 1.10 * unc.rmse),
             "recovery_ratio": ratio,
@@ -99,11 +109,18 @@ def gates(raw: pd.DataFrame, gated: list[str]) -> dict:
             recovered += ratio >= 0.5
         beats += row["transfer_beats_features_off"]
     n = len(gated)
-    out["G1"] = {"below": below, "worse_by_10pct": worse10, "of": n,
-                 "pass": bool(below >= 7 and worse10 == 0)}
-    out["G2"] = {"defined": defined, "recovered_at_least_half": int(recovered),
-                 "readable": bool(defined >= 5),
-                 "pass": bool(defined >= 5 and recovered > defined / 2)}
+    out["G1"] = {
+        "below": below,
+        "worse_by_10pct": worse10,
+        "of": n,
+        "pass": bool(below >= 7 and worse10 == 0),
+    }
+    out["G2"] = {
+        "defined": defined,
+        "recovered_at_least_half": int(recovered),
+        "readable": bool(defined >= 5),
+        "pass": bool(defined >= 5 and recovered > defined / 2),
+    }
     out["G3"] = {"beats": beats, "of": n, "pass": bool(beats >= 5)}
     return out
 
@@ -129,12 +146,24 @@ def report(out: Path, tag: str, gated: list[str]) -> None:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--folds", nargs="+", default=GATED + FLAGGED)
-    ap.add_argument("--pool", nargs="+", default=GATED,
-                    help="countries every fold trains on, minus the fold itself")
-    ap.add_argument("--extra-pool", nargs="+", default=[],
-                    help="regions added to every fold's pool (the world study)")
-    ap.add_argument("--flagged", nargs="+", default=FLAGGED,
-                    help="folds scored but never trained on, and outside the gates")
+    ap.add_argument(
+        "--pool",
+        nargs="+",
+        default=GATED,
+        help="countries every fold trains on, minus the fold itself",
+    )
+    ap.add_argument(
+        "--extra-pool",
+        nargs="+",
+        default=[],
+        help="regions added to every fold's pool (the world study)",
+    )
+    ap.add_argument(
+        "--flagged",
+        nargs="+",
+        default=FLAGGED,
+        help="folds scored but never trained on, and outside the gates",
+    )
     ap.add_argument("--arms", nargs="+", default=ARMS, choices=ARMS)
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2, 3, 42])
     ap.add_argument("--epochs", type=int, default=60)
@@ -146,8 +175,11 @@ def main():
     ap.add_argument("--tag", default="europe")
     ap.add_argument("--registration", default=None)
     ap.add_argument("--allow-dirty", action="store_true")
-    ap.add_argument("--report-only", action="store_true",
-                    help="recompute the summary and gates from an existing run")
+    ap.add_argument(
+        "--report-only",
+        action="store_true",
+        help="recompute the summary and gates from an existing run",
+    )
     args = ap.parse_args()
     out = Path(args.out)
     gated = [f for f in args.folds if f not in args.flagged]
@@ -161,14 +193,19 @@ def main():
     from vwf.harness.provenance import build_manifest, write_manifest
     from vwf.harness.regions import load_region
     from vwf.pinn.runs import (
-        config_record, region_record, resolve_configs, score_national_on_common_months,
+        config_record,
+        region_record,
+        resolve_configs,
+        score_national_on_common_months,
         score_on_common_rows,
     )
     from vwf.pinn.train import fit, load_regions, off_curve_shares, predict_frame, predict_national
 
     if build_manifest()["git_dirty"] and not args.allow_dirty:
-        raise SystemExit("refusing to run on a dirty tree: every result would be "
-                         "unattributable. Commit first, or pass --allow-dirty.")
+        raise SystemExit(
+            "refusing to run on a dirty tree: every result would be "
+            "unattributable. Commit first, or pass --allow-dirty."
+        )
     overlap = sorted(set(args.flagged) & set(args.pool + args.extra_pool))
     if overlap:
         raise SystemExit(f"flagged folds may not be in any pool: {overlap}")
@@ -184,31 +221,49 @@ def main():
             raise SystemExit(f"{config_paths[c]} is region {spec.code}, not {c}")
     train_sets = {c: load_regions([c], "train", args.cache, quiet=True)[0] for c in codes}
     test_sets = {c: load_regions([c], "test", args.cache, quiet=True)[0] for c in args.folds}
-    print("caches loaded:", {c: f"{r.level[0]}{r.n_units}" for c, r in train_sets.items()},
-          flush=True)
+    print(
+        "caches loaded:", {c: f"{r.level[0]}{r.n_units}" for c, r in train_sets.items()}, flush=True
+    )
 
     pools = {f: [c for c in [*args.pool, *args.extra_pool] if c != f] for f in args.folds}
-    write_manifest(out, build_manifest(extra={
-        "run_mode": "pinn-loco",
-        "tag": args.tag,
-        "registration": args.registration,
-        "argv": sys.argv[1:],
-        "torch_version": torch.__version__,
-        "cache": str(args.cache),
-        "configs": config_record(config_paths),
-        "settings": {
-            "folds": args.folds, "gated": gated, "flagged": args.flagged,
-            "pool": args.pool, "extra_pool": args.extra_pool, "pools_by_fold": pools,
-            "arms": args.arms, "seeds": args.seeds, "epochs": args.epochs,
-            "hidden": hidden, "profile": "power", "density": False, "wake": False,
-            "bound_scale": 1.0, "fleet_columns": list(fleet_columns),
-        },
-        "regions": {
-            c: {"train": region_record(train_sets[c]),
-                **({"test": region_record(test_sets[c])} if c in test_sets else {})}
-            for c in codes
-        },
-    }))
+    write_manifest(
+        out,
+        build_manifest(
+            extra={
+                "run_mode": "pinn-loco",
+                "tag": args.tag,
+                "registration": args.registration,
+                "argv": sys.argv[1:],
+                "torch_version": torch.__version__,
+                "cache": str(args.cache),
+                "configs": config_record(config_paths),
+                "settings": {
+                    "folds": args.folds,
+                    "gated": gated,
+                    "flagged": args.flagged,
+                    "pool": args.pool,
+                    "extra_pool": args.extra_pool,
+                    "pools_by_fold": pools,
+                    "arms": args.arms,
+                    "seeds": args.seeds,
+                    "epochs": args.epochs,
+                    "hidden": hidden,
+                    "profile": "power",
+                    "density": False,
+                    "wake": False,
+                    "bound_scale": 1.0,
+                    "fleet_columns": list(fleet_columns),
+                },
+                "regions": {
+                    c: {
+                        "train": region_record(train_sets[c]),
+                        **({"test": region_record(test_sets[c])} if c in test_sets else {}),
+                    }
+                    for c in codes
+                },
+            }
+        ),
+    )
 
     rows, predictions, physics, records = [], [], [], {}
     for fold in args.folds:
@@ -220,7 +275,11 @@ def main():
         off_curve: dict = {}
 
         tally: dict = {}
-        national["uncorrected"] = ("uncorrected", -1, predict_national(te, None, None, off_curve=tally))
+        national["uncorrected"] = (
+            "uncorrected",
+            -1,
+            predict_national(te, None, None, off_curve=tally),
+        )
         off_curve["uncorrected"] = off_curve_shares(tally)
         if te.level == "turbine":
             units["uncorrected"] = ("uncorrected", -1, predict_frame(te, None, None))
@@ -233,10 +292,17 @@ def main():
         for arm in args.arms:
             train_codes, features_off = arm_specs[arm]
             for seed in args.seeds:
-                model, std, hist = fit([train_sets[c] for c in train_codes], hidden=hidden,
-                                       physics=True, profile="power", epochs=args.epochs,
-                                       seed=seed, verbose=False, fleet_columns=fleet_columns,
-                                       features_off=features_off)
+                model, std, hist = fit(
+                    [train_sets[c] for c in train_codes],
+                    hidden=hidden,
+                    physics=True,
+                    profile="power",
+                    epochs=args.epochs,
+                    seed=seed,
+                    verbose=False,
+                    fleet_columns=fleet_columns,
+                    features_off=features_off,
+                )
                 label = f"{arm}/seed{seed}"
                 tally = {}
                 national[label] = (arm, seed, predict_national(te, model, std, off_curve=tally))
@@ -249,17 +315,37 @@ def main():
 
         metrics, excluded, summary = score_national_on_common_months(national)
         for label, (arm, seed, frame) in national.items():
-            rows.append(dict(fold=fold, level=te.level, scope="national", arm=arm, seed=seed,
-                             **metrics[label], **off_curve[label]))
+            rows.append(
+                dict(
+                    fold=fold,
+                    level=te.level,
+                    scope="national",
+                    arm=arm,
+                    seed=seed,
+                    **metrics[label],
+                    **off_curve[label],
+                )
+            )
             predictions.append(frame.assign(fold=fold, arm=arm, seed=seed))
-        record = {"national_common_months": summary,
-                  "national_months_excluded": excluded.to_dict("records"),
-                  "off_curve": off_curve, "pool": pools[fold]}
+        record = {
+            "national_common_months": summary,
+            "national_months_excluded": excluded.to_dict("records"),
+            "off_curve": off_curve,
+            "pool": pools[fold],
+        }
         if units:
             u_metrics, u_excluded, u_summary = score_on_common_rows(units, spec)
             for label, (arm, seed, _) in units.items():
-                rows.append(dict(fold=fold, level=te.level, scope="units", arm=arm, seed=seed,
-                                 **u_metrics[label]))
+                rows.append(
+                    dict(
+                        fold=fold,
+                        level=te.level,
+                        scope="units",
+                        arm=arm,
+                        seed=seed,
+                        **u_metrics[label],
+                    )
+                )
             record["unit_common_rows"] = u_summary
         records[fold] = record
         del national, units
@@ -267,15 +353,19 @@ def main():
         raw = pd.DataFrame(rows)
         raw.to_csv(out / f"loco_{args.tag}_raw.csv", index=False)
         pd.concat(predictions, ignore_index=True).to_csv(
-            out / f"loco_{args.tag}_national.csv", index=False)
+            out / f"loco_{args.tag}_national.csv", index=False
+        )
         pd.DataFrame(physics).to_csv(out / f"loco_{args.tag}_physics.csv", index=False)
         with open(out / f"loco_{args.tag}_record.json", "w", encoding="utf-8") as fh:
             json.dump(records, fh, indent=2, default=str)
             fh.write("\n")
         nat = raw[(raw.fold == fold) & (raw.scope == "national")]
         for arm, g in nat.groupby("arm", sort=False):
-            print(f"  {arm:13s} national RMSE {g.rmse.mean():.5f} +- {g.rmse.std() if len(g) > 1 else 0:.5f}"
-                  f"  MBE {g.mbe.mean():+.5f}  months {int(g.n_months.iloc[0])}", flush=True)
+            print(
+                f"  {arm:13s} national RMSE {g.rmse.mean():.5f} +- {g.rmse.std() if len(g) > 1 else 0:.5f}"
+                f"  MBE {g.mbe.mean():+.5f}  months {int(g.n_months.iloc[0])}",
+                flush=True,
+            )
         print(f"  [{time.time() - t0:.0f}s]", flush=True)
 
     if set(args.arms) == set(ARMS):

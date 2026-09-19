@@ -1,4 +1,5 @@
 """Bias correction utilities for PyVWF."""
+
 import numpy as np
 from scipy.optimize import minimize, minimize_scalar
 
@@ -29,7 +30,7 @@ def calculate_scalar(gen_cf, time_res):
     # This was causing double-weighting issues where scalars were influenced by turbine size
     # rather than just representing the meteorological bias at that location
 
-    def weighted_avg(group_df, whole_df, values, weights, required=('obs', 'sim')):
+    def weighted_avg(group_df, whole_df, values, weights, required=("obs", "sim")):
         """Compute a weighted average for a group, over the ROWS THAT HAVE A VALUE.
 
         ``sim`` exists for every turbine but ``obs`` does not. Dividing by the
@@ -61,21 +62,24 @@ def calculate_scalar(gen_cf, time_res):
         # (an empty sum is 0.0 by default), and NaN/0 keeps that NaN.
         return (v[present] * w[present]).sum(min_count=1) / w[present].sum()
 
-    df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
-                            "obs": lambda x: weighted_avg(x, gen_cf, 'obs', 'capacity'),
-                            "sim": lambda x: weighted_avg(x, gen_cf, 'sim', 'capacity'),
-                            })
+    df = gen_cf.groupby([time_res, "cluster", "year"]).agg(
+        {
+            "obs": lambda x: weighted_avg(x, gen_cf, "obs", "capacity"),
+            "sim": lambda x: weighted_avg(x, gen_cf, "sim", "capacity"),
+        }
+    )
 
-    df['scalar'] = df['obs'] / df['sim']
+    df["scalar"] = df["obs"] / df["sim"]
 
     # Constrain scalars to prevent extreme corrections
     # Values outside [0.5, 1.5] indicate potential overfitting or data issues
     # df['scalar'] = df['scalar'].clip(lower=0.1, upper=2.0)
 
     df = df.reset_index()
-    df.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
+    df.columns = ["time_slice", "cluster", "year", "obs", "sim", "scalar"]
 
-    return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
+    return df[["year", "time_slice", "cluster", "obs", "sim", "scalar"]]
+
 
 #: Largest capacity-factor residual a returned offset may leave. The step-size
 #: test alone cannot see this: the step shrinks whether or not the error did,
@@ -87,21 +91,37 @@ def calculate_scalar(gen_cf, time_res):
 MAX_OFFSET_RESIDUAL = 1e-4
 
 
-def find_offset_iterative(row, offset_arrays, max_iter=100, tolerance=0.002,
-                          initial_step=10.0, residual_tolerance=MAX_OFFSET_RESIDUAL):
+def find_offset_iterative(
+    row,
+    offset_arrays,
+    max_iter=100,
+    tolerance=0.002,
+    initial_step=10.0,
+    residual_tolerance=MAX_OFFSET_RESIDUAL,
+):
     """The offset search the correction fits with, for one row.
 
     Public entry to :func:`_find_offset_iterative`, for studies that probe the
     search itself; arguments and result are the same.
     """
-    return _find_offset_iterative(row, offset_arrays, max_iter=max_iter, tolerance=tolerance,
-                                  initial_step=initial_step,
-                                  residual_tolerance=residual_tolerance)
+    return _find_offset_iterative(
+        row,
+        offset_arrays,
+        max_iter=max_iter,
+        tolerance=tolerance,
+        initial_step=initial_step,
+        residual_tolerance=residual_tolerance,
+    )
 
 
-def _find_offset_iterative(row, offset_arrays,
-                           max_iter=100, tolerance=0.002, initial_step=10.0,
-                           residual_tolerance=MAX_OFFSET_RESIDUAL):
+def _find_offset_iterative(
+    row,
+    offset_arrays,
+    max_iter=100,
+    tolerance=0.002,
+    initial_step=10.0,
+    residual_tolerance=MAX_OFFSET_RESIDUAL,
+):
     """Fast iterative optimization using cube root step sizing.
 
     Args:
@@ -156,8 +176,7 @@ def _find_offset_iterative(row, offset_arrays,
     return np.nan
 
 
-def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3),
-                       residual_tolerance=MAX_OFFSET_RESIDUAL):
+def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3), residual_tolerance=MAX_OFFSET_RESIDUAL):
     """Robust scipy optimization fallback.
 
     Args:
@@ -173,6 +192,7 @@ def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3),
         minimum of the squared error, which on a bounded interval can be an
         endpoint rather than a zero, so the residual is checked as well.
     """
+
     def objective(offset):
         """Squared error between observed and simulated CF."""
         sim_cf = fast_simulate_cf(offset_arrays, row.scalar, offset)
@@ -180,10 +200,7 @@ def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3),
 
     try:
         result = minimize_scalar(
-            objective,
-            bounds=bounds,
-            method='bounded',
-            options={'xatol': 0.001}
+            objective, bounds=bounds, method="bounded", options={"xatol": 0.001}
         )
 
         if not result.success:
@@ -196,10 +213,19 @@ def _find_offset_scipy(row, offset_arrays, bounds=(-3, 3),
         return np.nan
 
 
-def find_offset(row, turb_info, reanalysis, powerCurveFile,
-                max_iter=100, tolerance=0.002, initial_step=10.0,
-                bounds=(-10, 10), use_scipy_fallback=True, verbose=False,
-                seasons=None):
+def find_offset(
+    row,
+    turb_info,
+    reanalysis,
+    powerCurveFile,
+    max_iter=100,
+    tolerance=0.002,
+    initial_step=10.0,
+    bounds=(-10, 10),
+    use_scipy_fallback=True,
+    verbose=False,
+    seasons=None,
+):
     """Optimize the additive offset correction factor.
 
     Uses a hybrid approach: fast iterative method with scipy fallback for robustness.
@@ -223,23 +249,24 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile,
         float: Best-fit offset value (or np.nan if all methods fail).
     """
     # Parse time slice to months
-    months = parse_time_slice(row['time_slice'], seasons)
+    months = parse_time_slice(row["time_slice"], seasons)
 
     # Pre-filter reanalysis data once
     reanalysis_filtered = reanalysis.sel(
         time=np.logical_and(
-            reanalysis.time.dt.year == row.year,
-            reanalysis.time.dt.month.isin(months)
+            reanalysis.time.dt.year == row.year, reanalysis.time.dt.month.isin(months)
         )
     )
 
     # Pre-filter cluster turbines once
-    cluster_turbs = turb_info.loc[turb_info['cluster'] == row.cluster].copy()
+    cluster_turbs = turb_info.loc[turb_info["cluster"] == row.cluster].copy()
 
     # Handle case where cluster filtering returns empty
     if len(cluster_turbs) == 0:
         if verbose:
-            print(f"Warning: No turbines found for cluster={row.cluster} (available: {sorted(turb_info['cluster'].unique())})")
+            print(
+                f"Warning: No turbines found for cluster={row.cluster} (available: {sorted(turb_info['cluster'].unique())})"
+            )
         return np.nan
 
     # Pre-compute interpolated wind speeds once for this row
@@ -249,25 +276,32 @@ def find_offset(row, turb_info, reanalysis, powerCurveFile,
     offset_arrays = prepare_offset_arrays(unc_ws, powerCurveFile)
 
     # Try fast iterative method first
-    offset = _find_offset_iterative(
-        row, offset_arrays, max_iter, tolerance, initial_step
-    )
+    offset = _find_offset_iterative(row, offset_arrays, max_iter, tolerance, initial_step)
 
     # If failed and fallback enabled, use scipy
     if np.isnan(offset) and use_scipy_fallback:
-        offset = _find_offset_scipy(
-            row, offset_arrays, bounds
-        )
+        offset = _find_offset_scipy(row, offset_arrays, bounds)
 
     # Optional warning for failed optimizations
     if verbose and np.isnan(offset):
-        print(f"Warning: Offset optimization failed for cluster={row.cluster}, "
-              f"year={row.year}, time_slice={row['time_slice']}")
+        print(
+            f"Warning: Offset optimization failed for cluster={row.cluster}, "
+            f"year={row.year}, time_slice={row['time_slice']}"
+        )
 
     return offset
 
 
-def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_cluster, turb_info, reanalysis, powerCurveFile, seasons=None):
+def find_offsets_country_level(
+    year,
+    time_slice,
+    obs_country_cf,
+    scalars_by_cluster,
+    turb_info,
+    reanalysis,
+    powerCurveFile,
+    seasons=None,
+):
     """Optimize offsets for all clusters in country-level mode.
 
     For country-level data, all clusters share the same country-wide observation.
@@ -294,17 +328,14 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
 
     # Filter reanalysis to time period
     reanalysis_period = reanalysis.sel(
-        time=np.logical_and(
-            reanalysis.time.dt.year == year,
-            reanalysis.time.dt.month.isin(months)
-        )
+        time=np.logical_and(reanalysis.time.dt.year == year, reanalysis.time.dt.month.isin(months))
     )
 
     # Get cluster IDs
-    clusters = sorted(turb_info['cluster'].unique())
+    clusters = sorted(turb_info["cluster"].unique())
 
     # Get capacity weights for aggregation
-    capacity_by_cluster = turb_info.groupby('cluster')['capacity'].sum()
+    capacity_by_cluster = turb_info.groupby("cluster")["capacity"].sum()
 
     def objective(offsets):
         """Objective function: squared error between simulated and observed country CF."""
@@ -316,18 +347,14 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
             offset = offsets[i]
 
             # Get turbines in this cluster
-            cluster_turbs = turb_info[turb_info['cluster'] == cluster_id]
+            cluster_turbs = turb_info[turb_info["cluster"] == cluster_id]
 
             if len(cluster_turbs) == 0:
                 continue
 
             # Simulate with this cluster's corrections
             mean_cf = train_simulate_wind(
-                reanalysis_period,
-                cluster_turbs,
-                powerCurveFile,
-                scalar,
-                offset
+                reanalysis_period, cluster_turbs, powerCurveFile, scalar, offset
             )
 
             cluster_cfs.append(mean_cf)
@@ -337,7 +364,9 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
         if len(cluster_cfs) == 0 or sum(cluster_weights) == 0:
             return 1e6  # Large penalty
 
-        country_cf_sim = sum(cf * w for cf, w in zip(cluster_cfs, cluster_weights)) / sum(cluster_weights)
+        country_cf_sim = sum(cf * w for cf, w in zip(cluster_cfs, cluster_weights)) / sum(
+            cluster_weights
+        )
 
         # Return squared error
         error = (country_cf_sim - obs_country_cf) ** 2
@@ -352,11 +381,7 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
     # Optimize
     try:
         result = minimize(
-            objective,
-            x0,
-            method='L-BFGS-B',
-            bounds=bounds,
-            options={'maxiter': 50, 'ftol': 1e-6}
+            objective, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 50, "ftol": 1e-6}
         )
 
         # Return dict mapping cluster to offset
@@ -365,6 +390,8 @@ def find_offsets_country_level(year, time_slice, obs_country_cf, scalars_by_clus
         return offsets_dict
 
     except Exception as e:
-        print(f"  Warning: Offset optimization failed for year={year}, time_slice={time_slice}: {e}")
+        print(
+            f"  Warning: Offset optimization failed for year={year}, time_slice={time_slice}: {e}"
+        )
         # Return zero offsets as fallback
         return {cluster_id: 0.0 for cluster_id in clusters}

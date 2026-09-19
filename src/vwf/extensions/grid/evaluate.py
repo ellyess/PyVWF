@@ -31,6 +31,7 @@ conversion", and the code clips the resulting capacity factor to 0 and 1
 instead, leaving the speed unclipped. That is recorded in
 ``docs/design/manuscript-chapters-45.md`` and the behaviour here is the code's.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -49,8 +50,7 @@ def _axes(grid: xr.Dataset) -> tuple[str, str]:
     for lon, lat in (("x", "y"), ("lon", "lat")):
         if lon in grid.dims and lat in grid.dims:
             return lon, lat
-    raise KeyError(
-        f"surface has dims {list(grid.dims)}; expected x and y, or lon and lat")
+    raise KeyError(f"surface has dims {list(grid.dims)}; expected x and y, or lon and lat")
 
 
 def corrections_at(grid: xr.Dataset, units: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
@@ -73,8 +73,10 @@ def corrections_at(grid: xr.Dataset, units: pd.DataFrame) -> tuple[pd.DataFrame,
         if column not in units.columns:
             raise ValueError(f"units are missing {column!r}")
     lon_name, lat_name = _axes(grid)
-    at = {lon_name: xr.DataArray(units["lon"].to_numpy(float), dims="points"),
-          lat_name: xr.DataArray(units["lat"].to_numpy(float), dims="points")}
+    at = {
+        lon_name: xr.DataArray(units["lon"].to_numpy(float), dims="points"),
+        lat_name: xr.DataArray(units["lat"].to_numpy(float), dims="points"),
+    }
     # coords= rather than **at: xarray accepts both, and the keyword form has
     # mypy resolve the axis names against interp's own parameters.
     scalar = np.asarray(grid["scalar"].interp(coords=at, method="linear").values)
@@ -82,20 +84,26 @@ def corrections_at(grid: xr.Dataset, units: pd.DataFrame) -> tuple[pd.DataFrame,
 
     missing = np.isnan(scalar) | np.isnan(offset)
     neutral = missing | ((scalar == NEUTRAL_SCALAR) & (offset == NEUTRAL_OFFSET))
-    frame = pd.DataFrame({
-        "ID": units["ID"].astype(str).to_numpy(),
-        "scalar": np.where(missing, NEUTRAL_SCALAR, scalar),
-        "offset": np.where(missing, NEUTRAL_OFFSET, offset),
-        "neutral": neutral})
-    summary = {"n_units": int(len(frame)), "n_neutral": int(neutral.sum()),
-               "neutral_share": float(neutral.mean()) if len(frame) else float("nan"),
-               "n_off_grid": int(missing.sum())}
+    frame = pd.DataFrame(
+        {
+            "ID": units["ID"].astype(str).to_numpy(),
+            "scalar": np.where(missing, NEUTRAL_SCALAR, scalar),
+            "offset": np.where(missing, NEUTRAL_OFFSET, offset),
+            "neutral": neutral,
+        }
+    )
+    summary = {
+        "n_units": int(len(frame)),
+        "n_neutral": int(neutral.sum()),
+        "neutral_share": float(neutral.mean()) if len(frame) else float("nan"),
+        "n_off_grid": int(missing.sum()),
+    }
     return frame, summary
 
 
-def corrected_capacity_factors(uncorrected_speed: xr.DataArray,
-                               corrections: pd.DataFrame,
-                               power_curves: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def corrected_capacity_factors(
+    uncorrected_speed: xr.DataArray, corrections: pd.DataFrame, power_curves: pd.DataFrame
+) -> tuple[pd.DataFrame, dict]:
     """Apply the correction at wind-speed level and convert through the curves.
 
     Args:
@@ -126,35 +134,35 @@ def corrected_capacity_factors(uncorrected_speed: xr.DataArray,
     if absent:
         raise ValueError(
             f"{len(absent)} of {len(ids)} units in the wind speeds have no correction, "
-            f"for example {absent[:5]}. The two sides key on different units.")
+            f"for example {absent[:5]}. The two sides key on different units."
+        )
 
     coords = {"turbine": uncorrected_speed.turbine.values}
-    scalars = xr.DataArray(lookup.loc[ids, "scalar"].to_numpy(float),
-                           dims="turbine", coords=coords)
-    offsets = xr.DataArray(lookup.loc[ids, "offset"].to_numpy(float),
-                           dims="turbine", coords=coords)
+    scalars = xr.DataArray(lookup.loc[ids, "scalar"].to_numpy(float), dims="turbine", coords=coords)
+    offsets = xr.DataArray(lookup.loc[ids, "offset"].to_numpy(float), dims="turbine", coords=coords)
     corrected = uncorrected_speed * scalars + offsets
 
     _, curve_by_model = _get_power_curve_cache(power_curves)
 
     def to_cf(block: xr.DataArray) -> xr.DataArray:
         curve = curve_by_model[block.model[0].item()]
-        return xr.DataArray(np.clip(curve(block.data), 0.0, 1.0),
-                            coords=block.coords, dims=block.dims)
+        return xr.DataArray(
+            np.clip(curve(block.data), 0.0, 1.0), coords=block.coords, dims=block.dims
+        )
 
     frame = corrected.groupby("model").map(to_cf).to_pandas()
-    assert isinstance(frame, pd.DataFrame)   # time by turbine, so never a Series
+    assert isinstance(frame, pd.DataFrame)  # time by turbine, so never a Series
     wide = frame.reset_index()
     wide.columns = [str(c) for c in wide.columns]
     values = wide.drop(columns=["time"]).to_numpy(dtype=float)
-    summary = {"n_off_curve": int(np.isnan(values).sum()),
-               "off_curve_share": float(np.isnan(values).mean()) if values.size
-               else float("nan")}
+    summary = {
+        "n_off_curve": int(np.isnan(values).sum()),
+        "off_curve_share": float(np.isnan(values).mean()) if values.size else float("nan"),
+    }
     return wide, summary
 
 
-def turbine_skill(simulated: pd.DataFrame, observed: pd.DataFrame,
-                  units: pd.DataFrame) -> dict:
+def turbine_skill(simulated: pd.DataFrame, observed: pd.DataFrame, units: pd.DataFrame) -> dict:
     """Capacity-weighted per-unit error, by the pipeline's own definition.
 
     Delegates to :func:`vwf.metrics.calculate_error`, so a gridded correction
@@ -162,13 +170,11 @@ def turbine_skill(simulated: pd.DataFrame, observed: pd.DataFrame,
     original wrapped the same call in a bare ``except Exception`` that returned
     missing values; a failure here raises.
     """
-    rmse, mae, mbe = calculate_error("total", simulated.copy(), observed.copy(),
-                                     units.copy())
+    rmse, mae, mbe = calculate_error("total", simulated.copy(), observed.copy(), units.copy())
     return {"mae": float(mae), "rmse": float(rmse), "bias": float(mbe)}
 
 
-def country_skill(simulated: pd.DataFrame, observed: pd.DataFrame,
-                  units: pd.DataFrame) -> dict:
+def country_skill(simulated: pd.DataFrame, observed: pd.DataFrame, units: pd.DataFrame) -> dict:
     """Capacity-weighted national monthly error.
 
     Grid points are aggregated to one national series by capacity, monthly, and
@@ -189,32 +195,35 @@ def country_skill(simulated: pd.DataFrame, observed: pd.DataFrame,
     if not columns:
         raise ValueError(
             "no simulated grid point matches a unit with a capacity; the two sides key "
-            "on different identifiers")
+            "on different identifiers"
+        )
 
     weights = capacity[[str(c) for c in columns]].to_numpy(float)
     values = sim[columns].to_numpy(float)
     present = ~np.isnan(values)
     total = np.where(present, weights, 0.0).sum(axis=1)
     sim["cf_sim"] = np.where(
-        total > 0, np.where(present, values * weights, 0.0).sum(axis=1) / total, np.nan)
+        total > 0, np.where(present, values * weights, 0.0).sum(axis=1) / total, np.nan
+    )
 
-    monthly = (sim.assign(ym=sim["time"].dt.to_period("M"))
-               .groupby("ym")["cf_sim"].mean())
-    observed_monthly = (obs.assign(ym=obs["time"].dt.to_period("M"))
-                        .groupby("ym")["obs"].mean())
+    monthly = sim.assign(ym=sim["time"].dt.to_period("M")).groupby("ym")["cf_sim"].mean()
+    observed_monthly = obs.assign(ym=obs["time"].dt.to_period("M")).groupby("ym")["obs"].mean()
     paired = pd.concat([monthly, observed_monthly.rename("cf_obs")], axis=1).dropna()
     if paired.empty:
         raise ValueError("no month has both a simulated and an observed value")
 
     difference = paired["cf_sim"] - paired["cf_obs"]
-    return {"mae": float(difference.abs().mean()),
-            "rmse": float(np.sqrt((difference ** 2).mean())),
-            "bias": float(difference.mean()),
-            "n_months": int(len(paired))}
+    return {
+        "mae": float(difference.abs().mean()),
+        "rmse": float(np.sqrt((difference**2).mean())),
+        "bias": float(difference.mean()),
+        "n_months": int(len(paired)),
+    }
 
 
-def skill(simulated: pd.DataFrame, observed: pd.DataFrame, units: pd.DataFrame,
-          obs_level: str) -> dict:
+def skill(
+    simulated: pd.DataFrame, observed: pd.DataFrame, units: pd.DataFrame, obs_level: str
+) -> dict:
     """Whichever skill the observation level calls for."""
     if obs_level == "turbine":
         return turbine_skill(simulated, observed, units)

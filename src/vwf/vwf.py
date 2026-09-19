@@ -1,4 +1,5 @@
 """Core PyVWF training and simulation workflow."""
+
 import os
 
 # Prevent OpenBLAS/MKL thread contention when using Dask process workers.
@@ -25,9 +26,7 @@ import vwf.wind as wind
 
 import vwf.correction as correction
 
-from vwf.clustering import (
-    cluster_turbines
-)
+from vwf.clustering import cluster_turbines
 
 from vwf.sources import InMemoryCountrySource, ObservationSource
 
@@ -265,11 +264,7 @@ class PyVWF:
         Raises:
             ValueError: If the country-level frames have not been loaded yet.
         """
-        if (
-            self.grid_points is None
-            or self.obs_data_train is None
-            or self.obs_data_test is None
-        ):
+        if self.grid_points is None or self.obs_data_train is None or self.obs_data_test is None:
             raise ValueError(
                 "Country-level data has not been loaded. Call load_country_data() "
                 "or load_country_data_with_year_specific() first."
@@ -312,9 +307,9 @@ class PyVWF:
 
         print("✓ Loaded country-level data:")
         print(f"  Grid points: {len(self.grid_points)} points")
-        if 'cluster' in self.grid_points.columns:
+        if "cluster" in self.grid_points.columns:
             print(f"  Clusters: {self.grid_points['cluster'].nunique()}")
-        if 'zone' in self.grid_points.columns:
+        if "zone" in self.grid_points.columns:
             print(f"  Zones: {list(self.grid_points['zone'].unique())}")
         print(f"  Training observations: {len(self.obs_data_train)} timesteps")
         print(f"  Test observations: {len(self.obs_data_test)} timesteps")
@@ -362,12 +357,20 @@ class PyVWF:
         if not isinstance(obs_train.index, pd.DatetimeIndex):
             obs_train.index = pd.to_datetime(obs_train.index, utc=True)
         else:
-            obs_train.index = obs_train.index.tz_convert('UTC') if obs_train.index.tz is not None else obs_train.index
+            obs_train.index = (
+                obs_train.index.tz_convert("UTC")
+                if obs_train.index.tz is not None
+                else obs_train.index
+            )
 
         if not isinstance(obs_test.index, pd.DatetimeIndex):
             obs_test.index = pd.to_datetime(obs_test.index, utc=True)
         else:
-            obs_test.index = obs_test.index.tz_convert('UTC') if obs_test.index.tz is not None else obs_test.index
+            obs_test.index = (
+                obs_test.index.tz_convert("UTC")
+                if obs_test.index.tz is not None
+                else obs_test.index
+            )
 
         # Get unique years from training data
         train_years = sorted(obs_train.index.year.unique())
@@ -380,7 +383,7 @@ class PyVWF:
         self.grid_points, self.grid_points_by_year = load_year_specific_grid_points(
             self.country,
             train_years,
-            base_dir=grid_points_dir.parent.parent if grid_points_dir else None
+            base_dir=grid_points_dir.parent.parent if grid_points_dir else None,
         )
 
         # Store observations
@@ -391,7 +394,7 @@ class PyVWF:
         print("\n✓ Loaded country-level data with year-specific grid points:")
         print(f"  Grid points: {len(self.grid_points)} unique points")
         print(f"  Year-specific variants: {len(self.grid_points_by_year)} years")
-        if 'cluster' in self.grid_points.columns:
+        if "cluster" in self.grid_points.columns:
             print(f"  Clusters: {self.grid_points['cluster'].nunique()}")
         print(f"  Training observations: {len(self.obs_data_train)} timesteps")
         print(f"  Test observations: {len(self.obs_data_test)} timesteps")
@@ -459,23 +462,29 @@ class PyVWF:
             return self
 
         # For country-level with year-specific grid points: merge year-specific capacity
-        if self.obs_level == "country" and hasattr(self, 'grid_points_by_year') and self.grid_points_by_year:
+        if (
+            self.obs_level == "country"
+            and hasattr(self, "grid_points_by_year")
+            and self.grid_points_by_year
+        ):
             print("  Merging year-specific grid point capacities...")
 
             # For each year in gen_cf, merge the corresponding year-specific capacity
             year_capacities = []
             for year, grid_pts_year in self.grid_points_by_year.items():
-                year_caps = grid_pts_year[['ID', 'capacity']].copy()
-                year_caps['year'] = year
+                year_caps = grid_pts_year[["ID", "capacity"]].copy()
+                year_caps["year"] = year
                 year_capacities.append(year_caps)
 
             if year_capacities:
                 year_capacity_df = pd.concat(year_capacities, ignore_index=True)
 
                 # Drop the old capacity column and merge year-specific capacity
-                gen_cf = gen_cf.drop(columns=['capacity'], errors='ignore')
-                gen_cf = gen_cf.merge(year_capacity_df, on=['ID', 'year'], how='left')
-                print(f"  ✓ Merged year-specific capacities for {len(self.grid_points_by_year)} years")
+                gen_cf = gen_cf.drop(columns=["capacity"], errors="ignore")
+                gen_cf = gen_cf.merge(year_capacity_df, on=["ID", "year"], how="left")
+                print(
+                    f"  ✓ Merged year-specific capacities for {len(self.grid_points_by_year)} years"
+                )
 
         turb_info_train.to_csv(
             self.directory_path
@@ -515,11 +524,15 @@ class PyVWF:
             # Calculate offsets
             if self.obs_level == "turbine":
                 # Skip rows with zero or missing observations (can't optimize)
-                valid_obs = train_bias_df[train_bias_df['obs'].notna() & (train_bias_df['obs'] > 0)].copy()
+                valid_obs = train_bias_df[
+                    train_bias_df["obs"].notna() & (train_bias_df["obs"] > 0)
+                ].copy()
 
                 if len(valid_obs) == 0:
-                    print("  Warning: No valid observations for offset optimization (all obs=0 or NaN)")
-                    train_bias_df['offset'] = 0.0
+                    print(
+                        "  Warning: No valid observations for offset optimization (all obs=0 or NaN)"
+                    )
+                    train_bias_df["offset"] = 0.0
                 else:
                     # parallelisation to find offset
                     def find_offset_parallel(df, clus_info_arg, reanalysis_arg, power_curves_arg):
@@ -596,34 +609,35 @@ class PyVWF:
                         valid_obs = ddf.compute(scheduler="processes")
 
                     # Merge back with zero-obs and NaN-obs rows
-                    zero_obs = train_bias_df[(train_bias_df['obs'] == 0)].copy()
-                    zero_obs['offset'] = 0.0
-                    nan_obs = train_bias_df[train_bias_df['obs'].isna()].copy()
-                    nan_obs['offset'] = np.nan
-                    train_bias_df = pd.concat([valid_obs, zero_obs, nan_obs], ignore_index=True).sort_index()
+                    zero_obs = train_bias_df[(train_bias_df["obs"] == 0)].copy()
+                    zero_obs["offset"] = 0.0
+                    nan_obs = train_bias_df[train_bias_df["obs"].isna()].copy()
+                    nan_obs["offset"] = np.nan
+                    train_bias_df = pd.concat(
+                        [valid_obs, zero_obs, nan_obs], ignore_index=True
+                    ).sort_index()
             else:
                 # Country-level: optimize offsets for all clusters simultaneously
                 print("  Optimizing offsets for country-level data...")
 
                 # Group by year and time_slice
-                unique_periods = train_bias_df[['year', time_res]].drop_duplicates()
+                unique_periods = train_bias_df[["year", time_res]].drop_duplicates()
 
                 offsets_list = []
 
                 for _, period_row in unique_periods.iterrows():
-                    year = period_row['year']
+                    year = period_row["year"]
                     time_slice = period_row[time_res]
 
                     # Get observed country CF for this period
                     period_data = train_bias_df[
-                        (train_bias_df['year'] == year) &
-                        (train_bias_df[time_res] == time_slice)
+                        (train_bias_df["year"] == year) & (train_bias_df[time_res] == time_slice)
                     ]
 
-                    obs_country_cf = period_data['obs'].iloc[0]  # Same for all clusters
+                    obs_country_cf = period_data["obs"].iloc[0]  # Same for all clusters
 
                     # Get scalars for each cluster
-                    scalars_by_cluster = dict(zip(period_data['cluster'], period_data['scalar']))
+                    scalars_by_cluster = dict(zip(period_data["cluster"], period_data["scalar"]))
 
                     # Optimize offsets for all clusters
                     offsets_dict = correction.find_offsets_country_level(
@@ -633,25 +647,25 @@ class PyVWF:
                         scalars_by_cluster=scalars_by_cluster,
                         turb_info=clus_info,
                         reanalysis=reanalysis,
-                        powerCurveFile=power_curves
+                        powerCurveFile=power_curves,
                     )
 
                     # Store offsets
                     for cluster_id, offset in offsets_dict.items():
-                        offsets_list.append({
-                            'year': year,
-                            time_res: time_slice,
-                            'cluster': cluster_id,
-                            'offset': offset
-                        })
+                        offsets_list.append(
+                            {
+                                "year": year,
+                                time_res: time_slice,
+                                "cluster": cluster_id,
+                                "offset": offset,
+                            }
+                        )
 
                 # Merge offsets back into train_bias_df
                 offsets_df = pd.DataFrame(offsets_list)
-                train_bias_df = train_bias_df.drop(columns=['offset'], errors='ignore')
+                train_bias_df = train_bias_df.drop(columns=["offset"], errors="ignore")
                 train_bias_df = train_bias_df.merge(
-                    offsets_df,
-                    on=['year', time_res, 'cluster'],
-                    how='left'
+                    offsets_df, on=["year", time_res, "cluster"], how="left"
                 )
 
                 print(f"  ✓ Optimized offsets for {len(unique_periods)} periods")
@@ -823,7 +837,9 @@ class PyVWF:
                         + ".csv"
                     )
 
-                    cor_ws, cor_cf = wind.simulate_wind(reanalysis, clus_info, power_curves, bc_factors, time_res)
+                    cor_ws, cor_cf = wind.simulate_wind(
+                        reanalysis, clus_info, power_curves, bc_factors, time_res
+                    )
                     cor_cf.to_csv(out_path, index=None)
 
                     end_time = time.time()

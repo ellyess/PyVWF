@@ -5,6 +5,7 @@ matters most is the first: the control-point set is an argument, so a holdout
 is the same call with rows removed and runs through the route the product uses.
 Both registered studies depend on that being true.
 """
+
 import json
 
 import numpy as np
@@ -17,26 +18,53 @@ from vwf.extensions.grid import surface
 
 def shapes(tmp_path):
     """Onshore 0 to 4 east, offshore 4 to 8 east, both 50 to 54 north."""
+
     def write(name, lon0, lon1):
         path = tmp_path / f"{name}.geojson"
-        path.write_text(json.dumps({"type": "FeatureCollection", "features": [{
-            "type": "Feature", "properties": {},
-            "geometry": {"type": "Polygon", "coordinates": [[
-                [lon0, 50], [lon1, 50], [lon1, 54], [lon0, 54], [lon0, 50]]]}}]}))
+        path.write_text(
+            json.dumps(
+                {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                    [[lon0, 50], [lon1, 50], [lon1, 54], [lon0, 54], [lon0, 50]]
+                                ],
+                            },
+                        }
+                    ],
+                }
+            )
+        )
         return path
+
     return write("onshore", 0, 4), write("offshore", 4, 8)
 
 
 def control(n_on=8, n_off=6, scalar_on=0.8, scalar_off=1.2):
     rng = np.random.default_rng(0)
-    on = pd.DataFrame({
-        "lon": rng.uniform(0.5, 3.5, n_on), "lat": rng.uniform(50.5, 53.5, n_on),
-        "scalar": scalar_on + rng.normal(0, 0.02, n_on),
-        "offset": rng.normal(0.3, 0.02, n_on), "cluster_mode": "onshore"})
-    off = pd.DataFrame({
-        "lon": rng.uniform(4.5, 7.5, n_off), "lat": rng.uniform(50.5, 53.5, n_off),
-        "scalar": scalar_off + rng.normal(0, 0.02, n_off),
-        "offset": rng.normal(-0.3, 0.02, n_off), "cluster_mode": "offshore"})
+    on = pd.DataFrame(
+        {
+            "lon": rng.uniform(0.5, 3.5, n_on),
+            "lat": rng.uniform(50.5, 53.5, n_on),
+            "scalar": scalar_on + rng.normal(0, 0.02, n_on),
+            "offset": rng.normal(0.3, 0.02, n_on),
+            "cluster_mode": "onshore",
+        }
+    )
+    off = pd.DataFrame(
+        {
+            "lon": rng.uniform(4.5, 7.5, n_off),
+            "lat": rng.uniform(50.5, 53.5, n_off),
+            "scalar": scalar_off + rng.normal(0, 0.02, n_off),
+            "offset": rng.normal(-0.3, 0.02, n_off),
+            "cluster_mode": "offshore",
+        }
+    )
     return pd.concat([on, off], ignore_index=True)
 
 
@@ -47,8 +75,14 @@ GRID_LAT = np.arange(49.0, 55.01, 0.5)
 def build(tmp_path, points=None, **kw):
     on, off = shapes(tmp_path)
     return surface.correction_surface(
-        control() if points is None else points, GRID_LON, GRID_LAT,
-        onshore_geojson=on, offshore_geojson=off, method=kw.pop("method", "idw"), **kw)
+        control() if points is None else points,
+        GRID_LON,
+        GRID_LAT,
+        onshore_geojson=on,
+        offshore_geojson=off,
+        method=kw.pop("method", "idw"),
+        **kw,
+    )
 
 
 def test_the_control_point_set_is_an_argument_so_a_holdout_is_the_same_call(tmp_path):
@@ -89,8 +123,8 @@ def test_a_cell_outside_both_areas_takes_its_nearest_control_point_domain(tmp_pa
     visible. South of both shapes, the nearer pool is whichever is nearer in
     longitude."""
     got = build(tmp_path)
-    west = got.sel(lon=1.0, lat=49.0, method="nearest")   # below the onshore box
-    east = got.sel(lon=7.0, lat=49.0, method="nearest")   # below the offshore box
+    west = got.sel(lon=1.0, lat=49.0, method="nearest")  # below the onshore box
+    east = got.sel(lon=7.0, lat=49.0, method="nearest")  # below the offshore box
     assert not bool(west["is_onshore_area"]) and not bool(west["is_offshore_area"])
     assert bool(west["nearest_is_onshore"]) and not bool(east["nearest_is_onshore"])
     assert float(west["scalar"]) < 1.0 and float(east["scalar"]) > 1.0
@@ -98,8 +132,7 @@ def test_a_cell_outside_both_areas_takes_its_nearest_control_point_domain(tmp_pa
 
 def test_the_support_variables_say_how_much_data_a_cell_rests_on(tmp_path):
     got = build(tmp_path)
-    for name in ("distance_to_control_deg", "distance_to_control_km",
-                 "n_control_within_horizon"):
+    for name in ("distance_to_control_deg", "distance_to_control_km", "n_control_within_horizon"):
         assert name in got
     near = got.sel(lon=2.0, lat=52.0, method="nearest")
     far = got.sel(lon=9.0, lat=49.0, method="nearest")
@@ -108,8 +141,7 @@ def test_the_support_variables_say_how_much_data_a_cell_rests_on(tmp_path):
     # The two metrics are not interchangeable and the file says so.
     assert got["distance_to_control_km"].attrs["units"] == "km"
     assert got["distance_to_control_deg"].attrs["units"] == "degree"
-    assert float(got["distance_to_control_km"].max()) > float(
-        got["distance_to_control_deg"].max())
+    assert float(got["distance_to_control_km"].max()) > float(got["distance_to_control_deg"].max())
 
 
 def test_the_horizon_is_recorded_as_provenance_not_as_safety(tmp_path):
@@ -180,8 +212,7 @@ def test_an_unknown_method_is_refused(tmp_path):
 
 def test_kriging_runs_through_the_shared_definition(tmp_path):
     pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
-    got = build(tmp_path, method="kriging", n_closest_onshore=None,
-                n_closest_offshore=None)
+    got = build(tmp_path, method="kriging", n_closest_onshore=None, n_closest_offshore=None)
     assert got.attrs["method"] == "kriging"
     assert got.attrs["coordinates_type"] == "geographic"
     assert np.isfinite(got["scalar"].values).all()
@@ -195,9 +226,13 @@ def test_a_cutout_gives_up_its_axes_with_or_without_the_extra_variables():
     assert list(lon) == [1.0, 2.0] and list(lat) == [50.0, 51.0]
 
     full = xr.Dataset(
-        {"height": (("y", "x"), np.zeros((2, 2))),
-         "lat": (("y", "x"), np.zeros((2, 2))), "lon": (("y", "x"), np.zeros((2, 2)))},
-        coords={"x": [1.0, 2.0], "y": [50.0, 51.0]})
+        {
+            "height": (("y", "x"), np.zeros((2, 2))),
+            "lat": (("y", "x"), np.zeros((2, 2))),
+            "lon": (("y", "x"), np.zeros((2, 2))),
+        },
+        coords={"x": [1.0, 2.0], "y": [50.0, 51.0]},
+    )
     lon, lat = surface.cutout_lonlat(full)
     assert list(lon) == [1.0, 2.0]
 
@@ -209,11 +244,31 @@ def test_a_cell_inside_two_overlapping_polygons_of_one_file_matches_once(tmp_pat
     """offshore_shapes.geojson holds 44 overlapping pairs. Unioning before the
     join is what keeps this free of the defect fixed in vwf.geospatial."""
     path = tmp_path / "overlapping.geojson"
-    path.write_text(json.dumps({"type": "FeatureCollection", "features": [
-        {"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": [[
-            [0, 50], [4, 50], [4, 54], [0, 54], [0, 50]]]}},
-        {"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": [[
-            [2, 50], [6, 50], [6, 54], [2, 54], [2, 50]]]}}]}))
+    path.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": {},
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [[[0, 50], [4, 50], [4, 54], [0, 54], [0, 50]]],
+                        },
+                    },
+                    {
+                        "type": "Feature",
+                        "properties": {},
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [[[2, 50], [6, 50], [6, 54], [2, 54], [2, 50]]],
+                        },
+                    },
+                ],
+            }
+        )
+    )
     mask = surface.area_mask(GRID_LON, GRID_LAT, path, name="m")
     assert mask.shape == (len(GRID_LAT), len(GRID_LON))
     assert bool(mask.sel(lon=3.0, lat=52.0)) and not bool(mask.sel(lon=8.0, lat=52.0))
@@ -246,8 +301,10 @@ def test_the_flag_catches_a_defect_sitting_on_top_of_the_control_points(tmp_path
     assert float(got["zero_crossing_speed"].values[onshore].max()) > 4.0
     # The cells the flag rejects are the close ones, which is the point.
     rejected = ~got["plausible"].values
-    assert (got["distance_to_control_deg"].values[rejected].mean()
-            < got["distance_to_control_deg"].values[~rejected].mean())
+    assert (
+        got["distance_to_control_deg"].values[rejected].mean()
+        < got["distance_to_control_deg"].values[~rejected].mean()
+    )
 
 
 def test_a_degenerate_scalar_is_flagged_by_the_projects_own_bounds(tmp_path):
@@ -269,8 +326,7 @@ def test_an_ordinary_surface_is_plausible_everywhere(tmp_path):
 
 def test_kriging_carries_its_own_variance_onto_the_grid(tmp_path):
     pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
-    got = build(tmp_path, method="kriging", n_closest_onshore=None,
-                n_closest_offshore=None)
+    got = build(tmp_path, method="kriging", n_closest_onshore=None, n_closest_offshore=None)
     assert "scalar_variance" in got and "offset_variance" in got
     assert (got["scalar_variance"].values >= 0).all()
     # Variance grows away from the points, which is why it is not the guard:
@@ -290,13 +346,14 @@ def test_the_declared_and_shape_splits_disagree_and_it_is_only_reported(tmp_path
     declared mode; this function exists so the disagreement is visible."""
     on, off = shapes(tmp_path)
     points = control()
-    points.loc[0, "lon"] = 6.0          # declared onshore, inside the offshore shape
+    points.loc[0, "lon"] = 6.0  # declared onshore, inside the offshore shape
     differ = surface.domain_disagreement(points, onshore_geojson=on, offshore_geojson=off)
     assert len(differ) >= 1
     assert differ.iloc[0]["declared"] == "onshore"
     assert differ.iloc[0]["by_shapes"] == "offshore"
-    got = surface.correction_surface(points, GRID_LON, GRID_LAT, onshore_geojson=on,
-                                     offshore_geojson=off, method="idw")
+    got = surface.correction_surface(
+        points, GRID_LON, GRID_LAT, onshore_geojson=on, offshore_geojson=off, method="idw"
+    )
     assert got.attrs["n_control_points_onshore"] == 8
 
 

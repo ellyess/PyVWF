@@ -8,6 +8,7 @@ derives it per timestep. Which is better is under test
 tests pin the switch, the fallback when no stored field exists, and the record
 of what was actually applied.
 """
+
 import json
 
 import numpy as np
@@ -53,8 +54,7 @@ def test_stored_is_the_default_and_is_static(tmp_path):
 
 
 def test_derived_ignores_the_stored_field_and_varies_in_time(tmp_path):
-    ds = prep_era5("ZZ", False, True, era5_dir=_combined_file(tmp_path / "e"),
-                   roughness="derived")
+    ds = prep_era5("ZZ", False, True, era5_dir=_combined_file(tmp_path / "e"), roughness="derived")
     assert ds.attrs["pyvwf_roughness_treatment"] == "derived"
     # z0 = exp((w100 ln10 - w10 ln100) / (w100 - w10)), with w100 = 7, w10 = 5.
     expected = np.exp((7 * np.log(10) - 5 * np.log(100)) / (7 - 5))
@@ -77,8 +77,9 @@ def test_derived_without_the_10m_winds_says_what_is_missing(tmp_path):
 
 def test_an_unknown_treatment_is_refused(tmp_path):
     with pytest.raises(ValueError, match="roughness must be one of"):
-        prep_era5("ZZ", False, True, era5_dir=_combined_file(tmp_path / "e"),
-                  roughness="annual-mean")
+        prep_era5(
+            "ZZ", False, True, era5_dir=_combined_file(tmp_path / "e"), roughness="annual-mean"
+        )
 
 
 def test_region_config_parses_the_treatment(tmp_path):
@@ -94,10 +95,12 @@ def test_region_config_parses_the_treatment(tmp_path):
     without = base.replace('roughness = "derived"\n', "")
     (tmp_path / "absent.toml").write_text(without)
     (tmp_path / "derived.toml").write_text(
-        without.replace("[era5]\n", '[era5]\nroughness = "derived"\n', 1))
+        without.replace("[era5]\n", '[era5]\nroughness = "derived"\n', 1)
+    )
     (tmp_path / "bad.toml").write_text(
-        without.replace("[era5]\n", '[era5]\nroughness = "annual"\n', 1))
-    assert load_region(tmp_path / "absent.toml").roughness == "stored"   # default
+        without.replace("[era5]\n", '[era5]\nroughness = "annual"\n', 1)
+    )
+    assert load_region(tmp_path / "absent.toml").roughness == "stored"  # default
     assert load_region(tmp_path / "derived.toml").roughness == "derived"
     with pytest.raises(ValueError, match="roughness"):
         load_region(tmp_path / "bad.toml")
@@ -108,9 +111,19 @@ def test_every_european_row_asks_for_the_per_timestep_treatment():
     European rows were re-run on the derived treatment on 2026-09-13
     (docs/findings/method-eu-rerun.md), and a configuration that quietly went
     back to the stored annual mean would be a silent method change."""
-    european = ["de_k100", "dk_k100", "uk_k50", "fr_country", "be_country",
-                "ie_country", "se_country", "no_country", "es_country",
-                "it_country", "pt_country"]
+    european = [
+        "de_k100",
+        "dk_k100",
+        "uk_k50",
+        "fr_country",
+        "be_country",
+        "ie_country",
+        "se_country",
+        "no_country",
+        "es_country",
+        "it_country",
+        "pt_country",
+    ]
     for stem in european:
         spec = load_region(f"configs/regions/scorecard/{stem}.toml")
         assert spec.roughness == "derived", stem

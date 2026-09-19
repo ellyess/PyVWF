@@ -1,4 +1,5 @@
 """Run-manifest provenance (docs/design/harness.md §6)."""
+
 import json
 import shutil
 from importlib import resources
@@ -118,7 +119,8 @@ def test_manifest_records_the_python_and_library_versions(empty_input_root, tmp_
     assert env["packages"]["pandas"] == pandas.__version__
     assert env["packages"]["scikit-learn"] == sklearn.__version__
     # It survives the write, and an absent optional package is recorded as None.
-    loaded = json.loads(write_manifest(tmp_path / "run", build_manifest())
-                        .read_text())["environment"]["packages"]
+    loaded = json.loads(write_manifest(tmp_path / "run", build_manifest()).read_text())[
+        "environment"
+    ]["packages"]
     assert set(loaded) >= {"numpy", "pandas", "scikit-learn", "torch"}
     assert all(v is None or isinstance(v, str) for v in loaded.values())

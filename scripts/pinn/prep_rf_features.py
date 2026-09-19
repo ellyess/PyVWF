@@ -10,6 +10,7 @@ out-of-memory kill would cost hours rather than a minute.
 
 Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/prep_rf_features.py
 """
+
 from __future__ import annotations
 
 import gc
@@ -24,7 +25,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from vwf.pinn.cache import load_cache  # noqa: E402
 from analysis.ml_transfer_retest import (  # noqa: E402
-    RUNS, build_centroids, terrain_features,
+    RUNS,
+    build_centroids,
+    terrain_features,
 )
 
 CACHE = ROOT / "output" / "pinn" / "cache"
@@ -37,13 +40,14 @@ def main():
 
     centroids = build_centroids(RUNS)
     for x in ("lon", "lat"):
-        centroids[f"{x}_norm"] = ((centroids[x] - centroids[x].min())
-                                  / (centroids[x].max() - centroids[x].min()))
+        centroids[f"{x}_norm"] = (centroids[x] - centroids[x].min()) / (
+            centroids[x].max() - centroids[x].min()
+        )
     lon_lo, lon_hi = centroids.lon.min(), centroids.lon.max()
     lat_lo, lat_hi = centroids.lat.min(), centroids.lat.max()
     centroids = terrain_features(centroids)
     centroids.to_csv(OUT / "centroids.csv", index=False)
-    print(f"centroids: {centroids.shape} -> {OUT/'centroids.csv'}")
+    print(f"centroids: {centroids.shape} -> {OUT / 'centroids.csv'}")
     del centroids
     gc.collect()
 
@@ -60,7 +64,7 @@ def main():
         units["abs_lat"] = units["lat"].abs()
         feats = terrain_features(units)
         feats.to_csv(OUT / f"units_{code}.csv", index=False)
-        print(f"{code}: {feats.shape} -> {OUT/f'units_{code}.csv'}")
+        print(f"{code}: {feats.shape} -> {OUT / f'units_{code}.csv'}")
         del units, feats, meta
         gc.collect()
 

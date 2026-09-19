@@ -5,6 +5,7 @@ This module provides functions for:
 - Adding temporal resolution columns to DataFrames
 - Time period definitions and mappings
 """
+
 from calendar import monthrange
 from collections.abc import Iterable
 
@@ -13,17 +14,17 @@ import pandas as pd
 
 # Time slice to month mapping (used by both turbine-level and country-level)
 TIME_SLICE_MAPPING = {
-    'spring': [3, 4, 5],
-    'summer': [6, 7, 8],
-    'autumn': [9, 10, 11],
-    'winter': [1, 2, 12],
-    '1/6': [1, 2],
-    '2/6': [3, 4],
-    '3/6': [5, 6],
-    '4/6': [7, 8],
-    '5/6': [9, 10],
-    '6/6': [11, 12],
-    '1/1': list(range(1, 13)),
+    "spring": [3, 4, 5],
+    "summer": [6, 7, 8],
+    "autumn": [9, 10, 11],
+    "winter": [1, 2, 12],
+    "1/6": [1, 2],
+    "2/6": [3, 4],
+    "3/6": [5, 6],
+    "4/6": [7, 8],
+    "5/6": [9, 10],
+    "6/6": [11, 12],
+    "1/1": list(range(1, 13)),
 }
 
 
@@ -113,9 +114,7 @@ def add_time_resolution_columns(df: pd.DataFrame, seasons=None) -> pd.DataFrame:
 
     # Explicit season definitions override the NH map.
     if seasons is not None:
-        month_to_season = {
-            month: name for name, months in seasons.items() for month in months
-        }
+        month_to_season = {month: name for name, months in seasons.items() for month in months}
         df["season"] = df["month"].map(month_to_season)
 
     # Fixed resolution for all months
@@ -143,5 +142,6 @@ def month_days(years, months) -> pd.Series:
         pairs: Iterable[tuple] = zip(years, months)
     else:
         pairs = ((y, months) for y in years)
-    return pd.Series([monthrange(int(y), int(m))[1] for y, m in pairs],
-                     index=years.index, dtype="int64")
+    return pd.Series(
+        [monthrange(int(y), int(m))[1] for y, m in pairs], index=years.index, dtype="int64"
+    )

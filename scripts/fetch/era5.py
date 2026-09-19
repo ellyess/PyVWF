@@ -125,6 +125,7 @@ chunk that must be persisted or the request is orphaned on a restart. The
 resume rule here is "a month is done when its file exists", which needs no
 state at all, and the thread pool keeps that property.
 """
+
 import argparse
 import os
 import sys
@@ -195,21 +196,27 @@ def resolve_spec(args) -> tuple[DownloadSpec, list[int]]:
     ``--bbox`` and ``--years`` are all required: nothing can supply them.
     """
     if args.region is None:
-        missing = [n for n, v in
-                   (("--code", args.code), ("--bbox", args.bbox), ("--years", args.years))
-                   if not v]
+        missing = [
+            n
+            for n, v in (("--code", args.code), ("--bbox", args.bbox), ("--years", args.years))
+            if not v
+        ]
         if missing:
             sys.exit(f"without --region these are required: {', '.join(missing)}")
         code = args.code
-        return DownloadSpec(code, check_bbox(args.bbox),
-                            args.file_tag or code.upper()), sorted(args.years)
+        return DownloadSpec(code, check_bbox(args.bbox), args.file_tag or code.upper()), sorted(
+            args.years
+        )
 
     try:
         spec = load_region_by_code(args.region)
     except (FileNotFoundError, ValueError) as exc:
         sys.exit(str(exc))
-    years = sorted(args.years) if args.years else list(
-        range(spec.train_years[0], spec.test_years[-1] + 1))
+    years = (
+        sorted(args.years)
+        if args.years
+        else list(range(spec.train_years[0], spec.test_years[-1] + 1))
+    )
     return DownloadSpec(
         args.code or spec.code,
         check_bbox(args.bbox) if args.bbox else tuple(spec.bbox),
@@ -255,7 +262,7 @@ def plan_chunks(todo, chunk_months: int):
     for year, grp in groupby(todo, key=lambda t: t[0]):
         items = list(grp)
         for i in range(0, len(items), chunk_months):
-            chunks.append((year, items[i:i + chunk_months]))
+            chunks.append((year, items[i : i + chunk_months]))
     return chunks
 
 
@@ -278,7 +285,7 @@ def split_and_write(part_path: Path, chunk) -> list[Path]:
     with xr.open_dataset(part_path) as ds:
         tname = "valid_time" if "valid_time" in ds.coords else "time"
         month_of = ds[tname].dt.month.values
-        for (_, m, path) in chunk:
+        for _, m, path in chunk:
             idx = np.nonzero(month_of == m)[0]
             if idx.size == 0:
                 raise ValueError(f"chunk download is missing month {m:02d}")
@@ -319,11 +326,21 @@ def fetch_chunk(clients, spec, out_dir: Path, tag: str, year: int, chunk) -> dic
     fetches only what is missing.
     """
     months = [m for (_, m, _) in chunk]
-    span = (f"{year}-{months[0]:02d}" if len(months) == 1
-            else f"{year}-{months[0]:02d}..{months[-1]:02d}")
+    span = (
+        f"{year}-{months[0]:02d}"
+        if len(months) == 1
+        else f"{year}-{months[0]:02d}..{months[-1]:02d}"
+    )
     part = out_dir / f".era5_{tag}_{year}_{months[0]:02d}_chunk.nc.part"
-    result = {"year": year, "months": months, "span": span,
-              "written": [], "mb": 0.0, "seconds": 0.0, "error": None}
+    result = {
+        "year": year,
+        "months": months,
+        "span": span,
+        "written": [],
+        "mb": 0.0,
+        "seconds": 0.0,
+        "error": None,
+    }
     # Printed on submission as well as on completion: a chunk waits minutes in
     # the CDS queue, and a run that prints nothing until the first one lands
     # looks hung. Lines carry their span, since workers interleave.
@@ -331,7 +348,7 @@ def fetch_chunk(clients, spec, out_dir: Path, tag: str, year: int, chunk) -> dic
     t0 = time.time()
     try:
         clients().retrieve(DATASET, chunk_request(spec, year, months), str(part))
-        with SPLIT_LOCK:                       # netCDF is not thread-safe
+        with SPLIT_LOCK:  # netCDF is not thread-safe
             written = split_and_write(part, chunk)
         result["written"] = written
         result["mb"] = sum(p.stat().st_size for p in written) / 1e6
@@ -344,42 +361,73 @@ def fetch_chunk(clients, spec, out_dir: Path, tag: str, year: int, chunk) -> dic
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--region", default=None,
-                    help="Region code (e.g. cl, ar, nz). Omit to fetch a bare box, "
-                         "which then needs --code, --bbox and --years")
-    ap.add_argument("--years", type=int, nargs="+", default=None,
-                    help="Override the year span (default: train[0]..test[-1])")
-    ap.add_argument("--bbox", type=float, nargs=4, default=None,
-                    metavar=("W", "E", "S", "N"),
-                    help="Override the bounding box, in config order [W, E, S, N]")
-    ap.add_argument("--code", default=None,
-                    help="Override the region code. Files key on --file-tag, not on "
-                         "this, since a code may carry a hyphen (AU-NEM writes "
-                         "era5_au_*)")
-    ap.add_argument("--file-tag", default=None,
-                    help="Override the output directory under <input-root>/era5/")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--region",
+        default=None,
+        help="Region code (e.g. cl, ar, nz). Omit to fetch a bare box, "
+        "which then needs --code, --bbox and --years",
+    )
+    ap.add_argument(
+        "--years",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Override the year span (default: train[0]..test[-1])",
+    )
+    ap.add_argument(
+        "--bbox",
+        type=float,
+        nargs=4,
+        default=None,
+        metavar=("W", "E", "S", "N"),
+        help="Override the bounding box, in config order [W, E, S, N]",
+    )
+    ap.add_argument(
+        "--code",
+        default=None,
+        help="Override the region code. Files key on --file-tag, not on "
+        "this, since a code may carry a hyphen (AU-NEM writes "
+        "era5_au_*)",
+    )
+    ap.add_argument(
+        "--file-tag", default=None, help="Override the output directory under <input-root>/era5/"
+    )
     ap.add_argument("--months", type=int, nargs="+", default=list(range(1, 13)))
-    ap.add_argument("--chunk-months", type=int, default=3,
-                    help="Months per CDS request within a year (1-12, default 3, "
-                         "the largest accepted by the CDS cost limit; 6+ is "
-                         "rejected). 1 restores one-request-per-month.")
-    ap.add_argument("--workers", type=int, default=1,
-                    help=f"Requests in flight at once (1-{MAX_WORKERS}, default 1). "
-                         "The CDS queue dominates wall-clock time, so a small pool "
-                         "overlaps it; see the module docstring for why the cap is "
-                         f"{MAX_WORKERS} and {RECOMMENDED_WORKERS} is recommended")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Print the request plan and exit without submitting")
+    ap.add_argument(
+        "--chunk-months",
+        type=int,
+        default=3,
+        help="Months per CDS request within a year (1-12, default 3, "
+        "the largest accepted by the CDS cost limit; 6+ is "
+        "rejected). 1 restores one-request-per-month.",
+    )
+    ap.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help=f"Requests in flight at once (1-{MAX_WORKERS}, default 1). "
+        "The CDS queue dominates wall-clock time, so a small pool "
+        "overlaps it; see the module docstring for why the cap is "
+        f"{MAX_WORKERS} and {RECOMMENDED_WORKERS} is recommended",
+    )
+    ap.add_argument(
+        "--dry-run", action="store_true", help="Print the request plan and exit without submitting"
+    )
     args = ap.parse_args()
 
     if not 1 <= args.chunk_months <= MAX_CHUNK_MONTHS:
-        sys.exit(f"--chunk-months must be 1..{MAX_CHUNK_MONTHS} "
-                 f"(a full year is the largest request under the CDS field cap)")
+        sys.exit(
+            f"--chunk-months must be 1..{MAX_CHUNK_MONTHS} "
+            f"(a full year is the largest request under the CDS field cap)"
+        )
     if not 1 <= args.workers <= MAX_WORKERS:
-        sys.exit(f"--workers must be 1..{MAX_WORKERS}; the limit is a judgement "
-                 "about an undocumented CDS limit, not a published figure")
+        sys.exit(
+            f"--workers must be 1..{MAX_WORKERS}; the limit is a judgement "
+            "about an undocumented CDS limit, not a published figure"
+        )
 
     spec, years = resolve_spec(args)
     # Filenames key on file_tag, not the region code: AU-NEM writes era5_au_*.
@@ -387,16 +435,17 @@ def main() -> None:
     out_dir = output_dir(spec)
 
     plan = [
-        (y, m, out_dir / f"era5_{tag}_{y}_{m:02d}.nc")
-        for y in years for m in sorted(args.months)
+        (y, m, out_dir / f"era5_{tag}_{y}_{m:02d}.nc") for y in years for m in sorted(args.months)
     ]
     todo = [(y, m, p) for y, m, p in plan if not p.is_file()]
     chunks = plan_chunks(todo, args.chunk_months)
     print(f"Region {spec.code}: bbox {spec.bbox} -> CDS area {cds_area(spec.bbox)}")
     print(f"Output directory: {out_dir}")
-    print(f"{len(plan)} month(s) in plan, {len(plan) - len(todo)} already present, "
-          f"{len(todo)} to fetch in {len(chunks)} request(s) "
-          f"(up to {args.chunk_months} month(s) each).")
+    print(
+        f"{len(plan)} month(s) in plan, {len(plan) - len(todo)} already present, "
+        f"{len(todo)} to fetch in {len(chunks)} request(s) "
+        f"(up to {args.chunk_months} month(s) each)."
+    )
 
     if args.dry_run:
         for year, chunk in chunks:
@@ -415,8 +464,10 @@ def main() -> None:
     done = 0
     failures = []
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = [pool.submit(fetch_chunk, clients, spec, out_dir, tag, year, chunk)
-                   for year, chunk in chunks]
+        futures = [
+            pool.submit(fetch_chunk, clients, spec, out_dir, tag, year, chunk)
+            for year, chunk in chunks
+        ]
         # No cancellation on failure: one refused chunk must not lose the
         # others, and every month it did not write is simply fetched again by
         # the next run.
@@ -425,16 +476,20 @@ def main() -> None:
             done += 1
             span = result["span"]
             if result["error"] is None:
-                print(f"[{done}/{len(chunks)}] {span} done in {result['seconds']:.0f}s "
-                      f"-> {len(result['written'])} file(s), {result['mb']:.0f} MB",
-                      flush=True)
+                print(
+                    f"[{done}/{len(chunks)}] {span} done in {result['seconds']:.0f}s "
+                    f"-> {len(result['written'])} file(s), {result['mb']:.0f} MB",
+                    flush=True,
+                )
             else:
                 failures.append((result["year"], result["months"], result["error"]))
                 print(f"[{done}/{len(chunks)}] {span} FAILED: {result['error']}", flush=True)
 
     if failures:
-        print(f"\n{len(failures)} request(s) failed; re-run to retry just those "
-              f"(completed months are skipped):")
+        print(
+            f"\n{len(failures)} request(s) failed; re-run to retry just those "
+            f"(completed months are skipped):"
+        )
         for year, months, err in failures:
             print(f"  {year} {months}: {err[:100]}")
         sys.exit(1)

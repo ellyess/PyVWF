@@ -69,6 +69,7 @@ UK, US, BR, AU-NEM and NZ; the default for the others):
 
     PYTHONPATH=src python scripts/analysis/baseline_bootstrap.py <CODE> <out_dir>
 """
+
 import json
 from pathlib import Path
 
@@ -91,18 +92,44 @@ N_DRAWS = 1000
 SEED = 20260911
 BACKFILL = Path("output/validation/curve_resolution_backfill_2026-09-11")
 CONFIGS = {
-    "BE": "be_country", "ES": "es_country", "FR": "fr_country", "IE": "ie_country",
-    "IT": "it_country", "NO": "no_country", "PT": "pt_country", "SE": "se_country",
-    "DE": "de_k100", "DK": "dk_k100", "UK": "uk_k50", "US": "us_k250",
-    "BR": "br_k60", "AU-NEM": "au_nem_k45", "NZ": "nz_k7", "CL": "cl_k10", "AR": "ar_k10",
+    "BE": "be_country",
+    "ES": "es_country",
+    "FR": "fr_country",
+    "IE": "ie_country",
+    "IT": "it_country",
+    "NO": "no_country",
+    "PT": "pt_country",
+    "SE": "se_country",
+    "DE": "de_k100",
+    "DK": "dk_k100",
+    "UK": "uk_k50",
+    "US": "us_k250",
+    "BR": "br_k60",
+    "AU-NEM": "au_nem_k45",
+    "NZ": "nz_k7",
+    "CL": "cl_k10",
+    "AR": "ar_k10",
 }
 # The scorecard's reported configuration per row, from its Best cfg column. NO
 # names no winning configuration; its row shows fixed_4 (RMSE 0.039, MBE -0.030).
 REPORTED = {
-    "FR": "fixed_10", "BE": "season_3", "ES": "fixed_4", "IE": "season_1",
-    "SE": "fixed_4", "IT": "season_3", "PT": "season_1", "NO": "fixed_4",
-    "DE": "fixed_100", "DK": "season_100", "UK": "fixed_50", "US": "fixed_250",
-    "BR": "fixed_60", "AU-NEM": "season_45", "NZ": "fixed_7", "CL": "fixed_10", "AR": "fixed_10",
+    "FR": "fixed_10",
+    "BE": "season_3",
+    "ES": "fixed_4",
+    "IE": "season_1",
+    "SE": "fixed_4",
+    "IT": "season_3",
+    "PT": "season_1",
+    "NO": "fixed_4",
+    "DE": "fixed_100",
+    "DK": "season_100",
+    "UK": "fixed_50",
+    "US": "fixed_250",
+    "BR": "fixed_60",
+    "AU-NEM": "season_45",
+    "NZ": "fixed_7",
+    "CL": "fixed_10",
+    "AR": "fixed_10",
 }
 
 
@@ -142,15 +169,27 @@ def main(code, out_dir, backfill=BACKFILL):
             row = metrics[metrics.variant == "uncorrected"].iloc[0]
         else:
             ts, k = name.rsplit("_", 1)
-            row = metrics[(metrics.time_res == ts) & (metrics.num_clu == int(k))
-                          & (metrics.variant != "uncorrected")].iloc[0]
+            row = metrics[
+                (metrics.time_res == ts)
+                & (metrics.num_clu == int(k))
+                & (metrics.variant != "uncorrected")
+            ].iloc[0]
         if spec.obs_level == "country":
             got = country_skill(sim, obs, turb_info)
         else:
-            got = skill_metrics(collapse_pseudo_replicates(tidy_eval_frame(sim, obs, turb_info), spec))
+            got = skill_metrics(
+                collapse_pseudo_replicates(tidy_eval_frame(sim, obs, turb_info), spec)
+            )
         for m in ("rmse", "mbe"):
-            repro.append({"variant": name, "metric": m, "metrics_csv": row[m], "rebuilt": got[m],
-                          "abs_diff": abs(row[m] - got[m])})
+            repro.append(
+                {
+                    "variant": name,
+                    "metric": m,
+                    "metrics_csv": row[m],
+                    "rebuilt": got[m],
+                    "abs_diff": abs(row[m] - got[m]),
+                }
+            )
         point[name] = got
     repro = pd.DataFrame(repro)
     if repro.abs_diff.max() > 1e-12:
@@ -166,17 +205,24 @@ def main(code, out_dir, backfill=BACKFILL):
 
         def boot_rmse(name):
             d = (series[name].cf_sim - series[name].cf_obs).to_numpy()
-            return rmse_over_rows(d, idx), np.sqrt((d ** 2).mean())
+            return rmse_over_rows(d, idx), np.sqrt((d**2).mean())
+
         n_resampled = n
     else:
-        tidy = {nm: collapse_pseudo_replicates(tidy_eval_frame(s, obs, turb_info), spec)
-                .dropna(subset=["cf_sim", "cf_obs", "capacity"]) for nm, s in frames.items()}
+        tidy = {
+            nm: collapse_pseudo_replicates(tidy_eval_frame(s, obs, turb_info), spec).dropna(
+                subset=["cf_sim", "cf_obs", "capacity"]
+            )
+            for nm, s in frames.items()
+        }
         units = np.array(sorted(tidy["uncorrected"].ID.unique()))
         n = len(units)
         counts = resample_counts(n, seed=SEED, n_draws=N_DRAWS)
 
         def boot_rmse(name):
-            t = tidy[name].assign(w=lambda f: f.capacity, e=lambda f: f.capacity * (f.cf_sim - f.cf_obs) ** 2)
+            t = tidy[name].assign(
+                w=lambda f: f.capacity, e=lambda f: f.capacity * (f.cf_sim - f.cf_obs) ** 2
+            )
             # A unit with no complete row in this condition (all NaN, as in a
             # failed-offset cluster) is dropped by skill_metrics; weight 0 here
             # is the same thing. Units are those of the uncorrected frame.
@@ -190,6 +236,7 @@ def main(code, out_dir, backfill=BACKFILL):
             g = g.reindex(units, fill_value=0.0)
             w, e = g.w.to_numpy(), g.e.to_numpy()
             return weighted_rmse(counts, e, w), np.sqrt(e.sum() / w.sum())
+
         n_resampled = n
 
     boot = {nm: boot_rmse(nm) for nm in frames}
@@ -199,10 +246,20 @@ def main(code, out_dir, backfill=BACKFILL):
 
     def add(quantity, draws_, est):
         lo, hi = percentile_interval(draws_)
-        rows.append({"region": code, "level": spec.obs_level, "resampled": n_resampled,
-                     "quantity": quantity, "estimate": est, "ci_lo": lo, "ci_hi": hi,
-                     "width": hi - lo, "sd": float(np.std(draws_, ddof=1)),
-                     "consistent_with_zero": bool(lo <= 0 <= hi) if "minus" in quantity else None})
+        rows.append(
+            {
+                "region": code,
+                "level": spec.obs_level,
+                "resampled": n_resampled,
+                "quantity": quantity,
+                "estimate": est,
+                "ci_lo": lo,
+                "ci_hi": hi,
+                "width": hi - lo,
+                "sd": float(np.std(draws_, ddof=1)),
+                "consistent_with_zero": bool(lo <= 0 <= hi) if "minus" in quantity else None,
+            }
+        )
 
     u, u_pt = boot["uncorrected"]
     c, c_pt = boot[reported]
@@ -222,8 +279,10 @@ def main(code, out_dir, backfill=BACKFILL):
     out_dir.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(out_dir / f"{code}_bootstrap.csv", index=False)
     repro.assign(region=code).to_csv(out_dir / f"{code}_reproduction.csv", index=False)
-    print(f"{code}: reproduced {len(repro)} metric values (max abs diff {repro.abs_diff.max():.1e}); "
-          f"reported {reported}; resampled {n_resampled}")
+    print(
+        f"{code}: reproduced {len(repro)} metric values (max abs diff {repro.abs_diff.max():.1e}); "
+        f"reported {reported}; resampled {n_resampled}"
+    )
 
 
 def cli(argv: list[str] | None = None) -> None:
@@ -231,8 +290,12 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--backfill", type=Path, default=BACKFILL,
-                        help=f"The rows' evaluate runs (default: {BACKFILL})")
+    parser.add_argument(
+        "--backfill",
+        type=Path,
+        default=BACKFILL,
+        help=f"The rows' evaluate runs (default: {BACKFILL})",
+    )
     args = parser.parse_args(argv)
     main(args.code, args.out_dir, backfill=args.backfill)
 

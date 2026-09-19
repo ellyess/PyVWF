@@ -24,6 +24,7 @@ it can place is T1's coverage, reported per region and gating the region in
 
 Read-only, and importable: the study driver and the tests use the same rules.
 """
+
 import re
 import unicodedata
 
@@ -112,7 +113,8 @@ def build_index(models) -> dict[str, str]:
 #: model number and the two can no longer be told apart ("V110-2.0" becomes
 #: "v11020", from which nothing can be recovered).
 TRAILING_RATING = re.compile(
-    r"[\s\-_/]+(?P<value>\d+(?:[.,]\d+)?)\s*(?P<unit>mw|kw)?\s*$", re.IGNORECASE)
+    r"[\s\-_/]+(?P<value>\d+(?:[.,]\d+)?)\s*(?P<unit>mw|kw)?\s*$", re.IGNORECASE
+)
 #: Below this, an unlabelled trailing rating is read as megawatts and above it
 #: as kilowatts. No machine in these registers is rated between 100 kW and
 #: 100 MW, so the split is unambiguous for the data, and a register that writes
@@ -158,7 +160,7 @@ def rating_in_kilowatts(text: object) -> str:
     kw = value * 1000 if unit == "mw" or (not unit and value < MW_BELOW) else value
     if kw != int(kw):
         return ""
-    return normalise(raw[:found.start()]) + str(int(kw))
+    return normalise(raw[: found.start()]) + str(int(kw))
 
 
 def register_forms(manufacturer: object, model: object) -> set[str]:
@@ -176,10 +178,9 @@ def register_forms(manufacturer: object, model: object) -> set[str]:
     machine = model_raw if model_raw not in UNKNOWN else ""
     bare = without_trailing_rating(model) if machine else ""
     in_kw = rating_in_kilowatts(model) if machine else ""
-    forms = {maker + machine, machine, maker, maker + bare, bare,
-             maker + in_kw, in_kw}
+    forms = {maker + machine, machine, maker, maker + bare, bare, maker + in_kw, in_kw}
     if machine.startswith(maker) and maker:
-        forms.add(machine)                      # the maker repeated in the name
+        forms.add(machine)  # the maker repeated in the name
         forms.add(bare)
     return {f for f in forms if f and f not in UNKNOWN}
 

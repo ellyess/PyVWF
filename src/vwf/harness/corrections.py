@@ -12,6 +12,7 @@ Season handling: every entry point takes an optional ``seasons`` mapping
 ``None`` reproduces the legacy Northern-Hemisphere behaviour exactly; the
 harness always passes the region's explicit definitions.
 """
+
 from __future__ import annotations
 
 import os
@@ -61,21 +62,30 @@ def _off_curve_quality(diagnostics: pd.DataFrame | None) -> dict:
     """The worst off-curve shares in a ``wind.fit_diagnostics`` table."""
     nan = float("nan")
     if diagnostics is None or diagnostics.empty:
-        return {"max_below_zero_share": nan, "max_above_curve_share": nan,
-                "max_period_dropped_share": nan}
+        return {
+            "max_below_zero_share": nan,
+            "max_above_curve_share": nan,
+            "max_period_dropped_share": nan,
+        }
     slice_col = [c for c in diagnostics.columns if c in ("fixed", "season", "bimonth", "month")][0]
     per_cluster = diagnostics.groupby(["cluster", slice_col])[
-        ["weight_steps", "weight_below_zero", "weight_above_curve"]].sum()
+        ["weight_steps", "weight_below_zero", "weight_above_curve"]
+    ].sum()
     per_period = diagnostics.groupby([slice_col, "year"])[
-        ["weight_steps", "weight_below_zero", "weight_above_curve"]].sum()
+        ["weight_steps", "weight_below_zero", "weight_above_curve"]
+    ].sum()
 
     def worst(num: pd.Series, den: pd.Series) -> float:
         share = (num / den.where(den > 0)).dropna()
         return float(share.max()) if len(share) else nan
 
     return {
-        "max_below_zero_share": worst(per_cluster["weight_below_zero"], per_cluster["weight_steps"]),
-        "max_above_curve_share": worst(per_cluster["weight_above_curve"], per_cluster["weight_steps"]),
+        "max_below_zero_share": worst(
+            per_cluster["weight_below_zero"], per_cluster["weight_steps"]
+        ),
+        "max_above_curve_share": worst(
+            per_cluster["weight_above_curve"], per_cluster["weight_steps"]
+        ),
         # The share of a whole period's capacity-weighted steps that the fitted
         # factors drop: for a country-level fit, the share of that period's
         # objective computed on nothing.
@@ -117,9 +127,13 @@ def fit_quality(
     """
     if factors is None or factors.empty or "scalar" not in factors.columns:
         return {
-            "n_clusters": 0, "n_implausible_scalar": 0, "n_failed_offset": 0,
-            "max_scalar": float("nan"), "min_scalar": float("nan"),
-            "degenerate_clusters": "", **_off_curve_quality(None),
+            "n_clusters": 0,
+            "n_implausible_scalar": 0,
+            "n_failed_offset": 0,
+            "max_scalar": float("nan"),
+            "min_scalar": float("nan"),
+            "degenerate_clusters": "",
+            **_off_curve_quality(None),
         }
     low, high = scalar_bounds
     s = pd.to_numeric(factors["scalar"], errors="coerce")
@@ -132,9 +146,7 @@ def fit_quality(
     else:
         failed_offset = pd.Series(False, index=factors.index)
 
-    flagged = sorted(
-        {int(c) for c in factors.loc[bad_scalar | failed_offset, "cluster"].dropna()}
-    )
+    flagged = sorted({int(c) for c in factors.loc[bad_scalar | failed_offset, "cluster"].dropna()})
     return {
         "n_clusters": int(factors["cluster"].nunique()),
         "n_implausible_scalar": int(bad_scalar.sum()),
@@ -169,6 +181,7 @@ def _fit_offsets(
     Returns:
         A ``Series`` of offsets indexed like ``valid``.
     """
+
     def _sequential() -> pd.Series:
         return valid.apply(
             correction.find_offset,
@@ -197,9 +210,7 @@ def _fit_offsets(
 
     npartitions = max(workers * 4, 1)
     try:
-        cluster = LocalCluster(
-            n_workers=workers, threads_per_worker=1, processes=True
-        )
+        cluster = LocalCluster(n_workers=workers, threads_per_worker=1, processes=True)
         client = Client(cluster)
         try:
             ddf = dd.from_pandas(valid, npartitions=npartitions)
@@ -221,6 +232,7 @@ def _fit_offsets(
             cluster.close()
     except Exception:
         return _sequential()
+
 
 _CORRECTIONS: dict[str, type["CorrectionModel"]] = {}
 
@@ -357,13 +369,15 @@ class AffineWindCorrection(CorrectionModel):
 
         gen_cf = _override_season_column(gen_cf, seasons)
         train_bias_df, clus_info = cluster_train_set(
-            gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level,
+            gen_cf,
+            time_res,
+            num_clusters,
+            turb_info,
+            obs_level=obs_level,
             min_cluster_size=min_cluster_size,
         )
 
-        if obs_level == "country" and country_obs_is_per_cluster(
-            train_bias_df, time_res
-        ):
+        if obs_level == "country" and country_obs_is_per_cluster(train_bias_df, time_res):
             # Each cluster has its own observation (a zonal source), so each
             # offset is determined by one constraint. That is the turbine-level
             # problem, so it takes the turbine-level solver rather than the
@@ -390,9 +404,7 @@ class AffineWindCorrection(CorrectionModel):
                     year=period["year"],
                     time_slice=period[time_res],
                     obs_country_cf=period_data["obs"].iloc[0],
-                    scalars_by_cluster=dict(
-                        zip(period_data["cluster"], period_data["scalar"])
-                    ),
+                    scalars_by_cluster=dict(zip(period_data["cluster"], period_data["scalar"])),
                     turb_info=clus_info,
                     reanalysis=reanalysis,
                     powerCurveFile=power_curves,
@@ -416,22 +428,16 @@ class AffineWindCorrection(CorrectionModel):
         # Sequential offset fit, mirroring PyVWF.train(dask_n_workers=0):
         # optimise rows with usable observations, zero-fill obs == 0, keep
         # NaN observations NaN.
-        valid = train_bias_df[
-            train_bias_df["obs"].notna() & (train_bias_df["obs"] > 0)
-        ].copy()
+        valid = train_bias_df[train_bias_df["obs"].notna() & (train_bias_df["obs"] > 0)].copy()
         if len(valid) == 0:
             train_bias_df["offset"] = 0.0
         else:
-            valid["offset"] = _fit_offsets(
-                valid, clus_info, reanalysis, power_curves, seasons
-            )
+            valid["offset"] = _fit_offsets(valid, clus_info, reanalysis, power_curves, seasons)
             zero_obs = train_bias_df[train_bias_df["obs"] == 0].copy()
             zero_obs["offset"] = 0.0
             nan_obs = train_bias_df[train_bias_df["obs"].isna()].copy()
             nan_obs["offset"] = np.nan
-            train_bias_df = pd.concat(
-                [valid, zero_obs, nan_obs], ignore_index=True
-            ).sort_index()
+            train_bias_df = pd.concat([valid, zero_obs, nan_obs], ignore_index=True).sort_index()
 
         factors = format_bc_factors(train_bias_df, time_res)
         return factors, clus_info
@@ -460,9 +466,7 @@ class AffineWindCorrection(CorrectionModel):
         if len(valid) == 0:
             frame["offset"] = 0.0
         else:
-            valid["offset"] = _fit_offsets(
-                valid, clus_info, reanalysis, power_curves, seasons
-            )
+            valid["offset"] = _fit_offsets(valid, clus_info, reanalysis, power_curves, seasons)
             zero_obs = frame[frame["obs"] == 0].copy()
             zero_obs["offset"] = 0.0
             nan_obs = frame[frame["obs"].isna()].copy()
@@ -534,7 +538,11 @@ class ScalarOnlyWindCorrection(AffineWindCorrection):
 
         gen_cf = _override_season_column(gen_cf, seasons)
         train_bias_df, clus_info = cluster_train_set(
-            gen_cf, time_res, num_clusters, turb_info, obs_level=obs_level,
+            gen_cf,
+            time_res,
+            num_clusters,
+            turb_info,
+            obs_level=obs_level,
             min_cluster_size=min_cluster_size,
         )
         train_bias_df = train_bias_df.copy()
@@ -588,9 +596,14 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         min_cluster_size: int = 1,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         factors, clus_info = super().fit(
-            gen_cf, turb_info, reanalysis, power_curves,
-            num_clusters=num_clusters, time_res=time_res,
-            seasons=seasons, obs_level=obs_level,
+            gen_cf,
+            turb_info,
+            reanalysis,
+            power_curves,
+            num_clusters=num_clusters,
+            time_res=time_res,
+            seasons=seasons,
+            obs_level=obs_level,
             min_cluster_size=min_cluster_size,
         )
 
@@ -615,14 +628,8 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         obs_level: str,
     ) -> pd.DataFrame:
         """Per-cluster ``obs_level / affine_corrected_level``, clipped to (0, 1]."""
-        cluster_of = (
-            clus_info.assign(ID=clus_info["ID"].astype(str))
-            .set_index("ID")["cluster"]
-        )
-        cap_of = (
-            clus_info.assign(ID=clus_info["ID"].astype(str))
-            .set_index("ID")["capacity"]
-        )
+        cluster_of = clus_info.assign(ID=clus_info["ID"].astype(str)).set_index("ID")["cluster"]
+        cap_of = clus_info.assign(ID=clus_info["ID"].astype(str)).set_index("ID")["capacity"]
 
         # Corrected sim: wide (time x ID) -> capacity-weighted mean CF per cluster.
         sim = cor_cf.melt(id_vars="time", var_name="ID", value_name="cf")
@@ -671,13 +678,8 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
             return cor_ws, cor_cf
 
         # Scale each grid point's corrected CF by its cluster's availability.
-        avail_of = (
-            factors.drop_duplicates("cluster").set_index("cluster")["avail"]
-        )
-        cluster_of = (
-            clus_info.assign(ID=clus_info["ID"].astype(str))
-            .set_index("ID")["cluster"]
-        )
+        avail_of = factors.drop_duplicates("cluster").set_index("cluster")["avail"]
+        cluster_of = clus_info.assign(ID=clus_info["ID"].astype(str)).set_index("ID")["cluster"]
         scaled = cor_cf.copy()
         for col in scaled.columns:
             if col == "time":

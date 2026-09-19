@@ -55,6 +55,7 @@ with ``PYVWF_INPUT`` as in the row's manifest:
 
 Output: ``<CODE>_off_curve_sensitivity.csv``, one row per variant and basis.
 """
+
 import json
 import sys
 import warnings
@@ -88,8 +89,13 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     published = pd.read_csv(ev / "metrics.csv")
 
     obs_cf, turb_info, reanalysis, power_curves = val_set(
-        spec.code, True, "all", year_test=year, obs_level=spec.obs_level,
-        source=driver.resolve_source(spec, "test"), era5_dir=driver.era5_dir(spec),
+        spec.code,
+        True,
+        "all",
+        year_test=year,
+        obs_level=spec.obs_level,
+        source=driver.resolve_source(spec, "test"),
+        era5_dir=driver.era5_dir(spec),
         bbox=spec.bbox,
     )
     top_speed = float(load_power_curves().iloc[:, 0].max())
@@ -98,8 +104,11 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     def pairs(sim_cf):
         if is_country:
             return {"national": driver.country_pairs(sim_cf, obs_cf, turb_info)}
-        return {"fleet": collapse_pseudo_replicates(
-            driver.tidy_eval_frame(sim_cf, obs_cf, turb_info), spec)}
+        return {
+            "fleet": collapse_pseudo_replicates(
+                driver.tidy_eval_frame(sim_cf, obs_cf, turb_info), spec
+            )
+        }
 
     unc = pd.read_csv(ev / "unc_cf.csv", parse_dates=["time"])
     ucols = [c for c in unc.columns if c != "time"]
@@ -108,8 +117,13 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     unc_cf = unc_cf.set_index("time")
     unc_ws.columns = unc_ws.columns.astype(str)
     unc_cf.columns = unc_cf.columns.astype(str)
-    if not np.allclose(unc_cf.loc[unc["time"], ucols].to_numpy(), unc[ucols].to_numpy(),
-                       equal_nan=True, rtol=0, atol=1e-12):
+    if not np.allclose(
+        unc_cf.loc[unc["time"], ucols].to_numpy(),
+        unc[ucols].to_numpy(),
+        equal_nan=True,
+        rtol=0,
+        atol=1e-12,
+    ):
         raise SystemExit(f"{code}: recomputed uncorrected CF differs from unc_cf.csv")
     uws = unc_ws.loc[unc["time"], ucols].to_numpy()
     unc_values = unc[ucols].to_numpy(copy=True)
@@ -124,22 +138,34 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     # grid. Hubs above 100 m are not tested.
     ids = np.asarray(turb_info["ID"], dtype=object)
     at = {
-        "lon": xr.DataArray(np.asarray(turb_info["lon"], float), dims="turbine", coords={"turbine": ids}),
-        "lat": xr.DataArray(np.asarray(turb_info["lat"], float), dims="turbine", coords={"turbine": ids}),
+        "lon": xr.DataArray(
+            np.asarray(turb_info["lon"], float), dims="turbine", coords={"turbine": ids}
+        ),
+        "lat": xr.DataArray(
+            np.asarray(turb_info["lat"], float), dims="turbine", coords={"turbine": ids}
+        ),
     }
-    ws100 = reanalysis["wnd100m"].interp(**at, kwargs={"fill_value": None}).transpose("time", "turbine")
+    ws100 = (
+        reanalysis["wnd100m"].interp(**at, kwargs={"fill_value": None}).transpose("time", "turbine")
+    )
     ws100 = ws100.to_pandas()
     ws100.columns = ws100.columns.astype(str)
     ws100 = ws100.loc[unc["time"], ucols].to_numpy()
-    hub = np.asarray(turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID").loc[ucols, "height"], float)
+    hub = np.asarray(
+        turb_info.assign(ID=turb_info["ID"].astype(str)).set_index("ID").loc[ucols, "height"], float
+    )
     with np.errstate(divide="ignore", invalid="ignore"):
         ratio = uws / ws100
     tested = np.broadcast_to(hub[None, :] <= 100.0, ratio.shape) & (ws100 > 0)
     profile_invalid = int((tested & ((ratio <= 0) | (ratio > 1))).sum())
     profile_tested = int(tested.sum())
 
-    base = {"label": "uncorrected", "extra": {}, "pairs": pairs(unc),
-            "head": {"variant": "uncorrected", "num_clu": 1, "time_res": "none"}}
+    base = {
+        "label": "uncorrected",
+        "extra": {},
+        "pairs": pairs(unc),
+        "head": {"variant": "uncorrected", "num_clu": 1, "time_res": "none"},
+    }
     base_filled = {**base, "pairs": pairs(unc_filled)}
     saved_variants, filled_variants, off_curve = [], [], {}
     for path in sorted(ev.glob("cor_cf_*.csv")):
@@ -150,10 +176,12 @@ def main(code, out_dir, backfill=bb.BACKFILL):
             clus_info = assign_country_clusters(turb_info, int(num_clu))
         else:
             fleet = pd.read_csv(train_dir / f"train_turb_info_{num_clu}.csv")
-            clus_info = cluster_turbines(int(num_clu), fleet, False, turb_info,
-                                         min_cluster_size=spec.min_cluster_size)
-        cor_ws, cor_cf = model.apply(reanalysis, clus_info, power_curves, factors, time_res,
-                                     seasons=spec.seasons)
+            clus_info = cluster_turbines(
+                int(num_clu), fleet, False, turb_info, min_cluster_size=spec.min_cluster_size
+            )
+        cor_ws, cor_cf = model.apply(
+            reanalysis, clus_info, power_curves, factors, time_res, seasons=spec.seasons
+        )
         saved = pd.read_csv(path, parse_dates=["time"])
         cols = [c for c in saved.columns if c != "time"]
         cor_cf = cor_cf.set_index("time")
@@ -162,7 +190,9 @@ def main(code, out_dir, backfill=bb.BACKFILL):
         cor_ws.columns = cor_ws.columns.astype(str)
         cor_cf = cor_cf.loc[saved["time"], cols]
         cor_ws = cor_ws.loc[saved["time"], cols]
-        if not np.allclose(cor_cf.to_numpy(), saved[cols].to_numpy(), equal_nan=True, rtol=0, atol=1e-12):
+        if not np.allclose(
+            cor_cf.to_numpy(), saved[cols].to_numpy(), equal_nan=True, rtol=0, atol=1e-12
+        ):
             raise SystemExit(f"{code} {label}: recomputed corrected CF differs from {path.name}")
 
         ws = cor_ws.to_numpy()
@@ -177,8 +207,11 @@ def main(code, out_dir, backfill=bb.BACKFILL):
         filled_variants.append({"label": label, "extra": {}, "head": head, "pairs": pairs(filled)})
 
     rows = []
-    bases = (("common", base, saved_variants), ("zero_fill", base, filled_variants),
-             ("zero_fill_both", base_filled, filled_variants))
+    bases = (
+        ("common", base, saved_variants),
+        ("zero_fill", base, filled_variants),
+        ("zero_fill_both", base_filled, filled_variants),
+    )
     for basis, base_variant, variants in bases:
         scratch = out_dir / f"{code}_{basis}"
         scratch.mkdir(exist_ok=True)
@@ -190,33 +223,70 @@ def main(code, out_dir, backfill=bb.BACKFILL):
         # Mean CFs over the rows scored, which score_on_common_rows does not return.
         keys, weight, _ = driver.SCOPE_KEYS[scope]
         restricted, _ = restrict_to_common_rows(
-            {k: f[scope] for k, f in frames.items()}, keys, weight=weight)
+            {k: f[scope] for k, f in frames.items()}, keys, weight=weight
+        )
         for row, label in zip(scored, frames):
             r = restricted[label]
             w = r[weight] if weight else pd.Series(1.0, index=r.index)
-            rows.append({
-                "region": code, "basis": basis, "label": label,
-                "reported": label == bb.REPORTED[code],
-                "rmse": row["rmse"], "mbe": row["mbe"], "pearson_r": row["pearson_r"],
-                "mean_sim_cf": float(np.average(r["cf_sim"], weights=w)),
-                "mean_obs_cf": float(np.average(r["cf_obs"], weights=w)),
-                "n_rows": len(r),
-                "off_curve_values_filled": (
-                    off_curve.get(label, 0) if basis != "common" and label != "uncorrected"
-                    else int(unc_outside.sum()) if basis == "zero_fill_both" else 0),
-                "unit_days_profile_invalid": profile_invalid, "unit_days_tested": profile_tested,
-            })
+            rows.append(
+                {
+                    "region": code,
+                    "basis": basis,
+                    "label": label,
+                    "reported": label == bb.REPORTED[code],
+                    "rmse": row["rmse"],
+                    "mbe": row["mbe"],
+                    "pearson_r": row["pearson_r"],
+                    "mean_sim_cf": float(np.average(r["cf_sim"], weights=w)),
+                    "mean_obs_cf": float(np.average(r["cf_obs"], weights=w)),
+                    "n_rows": len(r),
+                    "off_curve_values_filled": (
+                        off_curve.get(label, 0)
+                        if basis != "common" and label != "uncorrected"
+                        else int(unc_outside.sum())
+                        if basis == "zero_fill_both"
+                        else 0
+                    ),
+                    "unit_days_profile_invalid": profile_invalid,
+                    "unit_days_tested": profile_tested,
+                }
+            )
     for _, p in published.iterrows():
-        label = "uncorrected" if p["variant"] == "uncorrected" else f"{p['time_res']}_{p['num_clu']}"
-        rows.append({"region": code, "basis": "published", "label": label,
-                     "reported": label == bb.REPORTED[code], "rmse": p["rmse"], "mbe": p["mbe"],
-                     "pearson_r": p["pearson_r"]})
+        label = (
+            "uncorrected" if p["variant"] == "uncorrected" else f"{p['time_res']}_{p['num_clu']}"
+        )
+        rows.append(
+            {
+                "region": code,
+                "basis": "published",
+                "label": label,
+                "reported": label == bb.REPORTED[code],
+                "rmse": p["rmse"],
+                "mbe": p["mbe"],
+                "pearson_r": p["pearson_r"],
+            }
+        )
     out = pd.DataFrame(rows)
     out.to_csv(out_dir / f"{code}_off_curve_sensitivity.csv", index=False)
     rep = out[out["reported"] | (out["label"] == "uncorrected")]
     with pd.option_context("display.width", 200):
-        print(rep[["basis", "label", "rmse", "mbe", "pearson_r", "mean_sim_cf", "mean_obs_cf",
-                   "n_rows", "off_curve_values_filled"]].round(4).to_string(index=False))
+        print(
+            rep[
+                [
+                    "basis",
+                    "label",
+                    "rmse",
+                    "mbe",
+                    "pearson_r",
+                    "mean_sim_cf",
+                    "mean_obs_cf",
+                    "n_rows",
+                    "off_curve_values_filled",
+                ]
+            ]
+            .round(4)
+            .to_string(index=False)
+        )
 
 
 def cli(argv: list[str] | None = None) -> None:
@@ -224,8 +294,12 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--backfill", type=Path, default=bb.BACKFILL,
-                        help=f"The rows' evaluate runs (default: {bb.BACKFILL})")
+    parser.add_argument(
+        "--backfill",
+        type=Path,
+        default=bb.BACKFILL,
+        help=f"The rows' evaluate runs (default: {bb.BACKFILL})",
+    )
     args = parser.parse_args(argv)
     main(args.code, args.out_dir, backfill=args.backfill)
 

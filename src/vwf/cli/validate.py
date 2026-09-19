@@ -15,6 +15,7 @@ Examples:
 
 ``scripts/analysis/validate_region.py`` runs the same command from a checkout.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,13 +56,22 @@ def execute(args: argparse.Namespace) -> None:
         run_dir = run_train(spec, args.out, mode=args.mode, run_name=args.run_name)
     elif args.command == "evaluate":
         run_dir = run_evaluate(
-            spec, args.train_run, args.out,
-            year=args.year, mode=args.mode, run_name=args.run_name,
+            spec,
+            args.train_run,
+            args.out,
+            year=args.year,
+            mode=args.mode,
+            run_name=args.run_name,
         )
     else:
         run_dir = run_transfer(
-            load_region(args.source_region), args.source_run, spec, args.out,
-            year=args.year, mode=args.mode, run_name=args.run_name,
+            load_region(args.source_region),
+            args.source_run,
+            spec,
+            args.out,
+            year=args.year,
+            mode=args.mode,
+            run_name=args.run_name,
         )
     print(f"Run complete: {run_dir}")
 

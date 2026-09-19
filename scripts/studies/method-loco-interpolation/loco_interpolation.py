@@ -24,6 +24,7 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/method-loco-interpolation/loco_interpolation.py <out_dir>
 """
+
 from pathlib import Path
 
 import numpy as np
@@ -52,8 +53,7 @@ def folds(pool: pd.DataFrame) -> dict[str, np.ndarray]:
     combining follows it rather than inventing a partition.
     """
     country = pool["country_code"].str.split("-").str[0]
-    return {name: np.flatnonzero((country == name).to_numpy())
-            for name in sorted(country.unique())}
+    return {name: np.flatnonzero((country == name).to_numpy()) for name in sorted(country.unique())}
 
 
 def skill(predicted: np.ndarray, actual: np.ndarray) -> dict:
@@ -65,11 +65,13 @@ def skill(predicted: np.ndarray, actual: np.ndarray) -> dict:
     study exists to make.
     """
     error = predicted - actual
-    ss_res = float((error ** 2).sum())
+    ss_res = float((error**2).sum())
     ss_tot = float(((actual - actual.mean()) ** 2).sum())
-    return {"mae": float(np.abs(error).mean()),
-            "rmse": float(np.sqrt((error ** 2).mean())),
-            "r2": float(1 - ss_res / ss_tot) if ss_tot > 0 else float("nan")}
+    return {
+        "mae": float(np.abs(error).mean()),
+        "rmse": float(np.sqrt((error**2).mean())),
+        "r2": float(1 - ss_res / ss_tot) if ss_tot > 0 else float("nan"),
+    }
 
 
 def predict(method: str, train: pd.DataFrame, test: pd.DataFrame, metric: str):
@@ -95,38 +97,56 @@ def main(out_dir: str, pool_path: Path = POOL) -> None:
     for name, index in folds(pool).items():
         test = pool.iloc[index]
         train = pool.drop(index=pool.index[index])
-        km = interp.distance_to_nearest(train, test["lon"], test["lat"],
-                                        metric="great_circle")
-        deg = interp.distance_to_nearest(train, test["lon"], test["lat"],
-                                         metric="degrees")
-        geometry.append({
-            "fold": name, "n": len(test),
-            "km_to_nearest_min": float(km.min()), "km_to_nearest_median": float(np.median(km)),
-            "km_to_nearest_max": float(km.max()),
-            "deg_to_nearest_median": float(np.median(deg)),
-            "share_beyond_mask": float((deg > MASK_DEG).mean()),
-        })
+        km = interp.distance_to_nearest(train, test["lon"], test["lat"], metric="great_circle")
+        deg = interp.distance_to_nearest(train, test["lon"], test["lat"], metric="degrees")
+        geometry.append(
+            {
+                "fold": name,
+                "n": len(test),
+                "km_to_nearest_min": float(km.min()),
+                "km_to_nearest_median": float(np.median(km)),
+                "km_to_nearest_max": float(km.max()),
+                "deg_to_nearest_median": float(np.median(deg)),
+                "share_beyond_mask": float((deg > MASK_DEG).mean()),
+            }
+        )
         for metric in METRICS:
             for method in ("idw", "kriging", "nearest", "rbf"):
                 try:
                     scalar, offset = predict(method, train, test, metric)
                 except Exception as error:  # recorded, never silently skipped
-                    rows.append({"fold": name, "n": len(test), "metric": metric,
-                                 "method": method, "failed": f"{type(error).__name__}: {error}"})
+                    rows.append(
+                        {
+                            "fold": name,
+                            "n": len(test),
+                            "metric": metric,
+                            "method": method,
+                            "failed": f"{type(error).__name__}: {error}",
+                        }
+                    )
                     continue
-                row = {"fold": name, "n": len(test), "metric": metric, "method": method,
-                       "metric_applies": method != "rbf"}
-                for key, value in skill(np.asarray(scalar),
-                                        test["scalar"].to_numpy()).items():
+                row = {
+                    "fold": name,
+                    "n": len(test),
+                    "metric": metric,
+                    "method": method,
+                    "metric_applies": method != "rbf",
+                }
+                for key, value in skill(np.asarray(scalar), test["scalar"].to_numpy()).items():
                     row[f"scalar_{key}"] = value
                 positive = (np.asarray(scalar) > 0) & (test["scalar"].to_numpy() > 0)
                 row["scalar_log_mae"] = (
-                    float(np.abs(np.log(np.asarray(scalar)[positive])
-                                 - np.log(test["scalar"].to_numpy()[positive])).mean())
-                    if positive.any() else float("nan"))
+                    float(
+                        np.abs(
+                            np.log(np.asarray(scalar)[positive])
+                            - np.log(test["scalar"].to_numpy()[positive])
+                        ).mean()
+                    )
+                    if positive.any()
+                    else float("nan")
+                )
                 row["scalar_log_n"] = int(positive.sum())
-                for key, value in skill(np.asarray(offset),
-                                        test["offset"].to_numpy()).items():
+                for key, value in skill(np.asarray(offset), test["offset"].to_numpy()).items():
                     row[f"offset_{key}"] = value
                 rows.append(row)
 
@@ -140,14 +160,17 @@ def main(out_dir: str, pool_path: Path = POOL) -> None:
         for metric in METRICS:
             print(f"\n=== {metric}: scalar MAE by fold and method")
             part = frame[frame["metric"] == metric]
-            print(part.pivot(index="fold", columns="method", values="scalar_mae")
-                  .round(4).to_string())
+            print(
+                part.pivot(index="fold", columns="method", values="scalar_mae").round(4).to_string()
+            )
             print(f"--- {metric}: offset MAE")
-            print(part.pivot(index="fold", columns="method", values="offset_mae")
-                  .round(4).to_string())
+            print(
+                part.pivot(index="fold", columns="method", values="offset_mae").round(4).to_string()
+            )
             print(f"--- {metric}: scalar R2")
-            print(part.pivot(index="fold", columns="method", values="scalar_r2")
-                  .round(3).to_string())
+            print(
+                part.pivot(index="fold", columns="method", values="scalar_r2").round(3).to_string()
+            )
     print(f"\nwritten: {out / 'loco_scores.csv'}, {out / 'loco_fold_geometry.csv'}")
 
 
@@ -155,8 +178,9 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--pool", type=Path, default=POOL,
-                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument(
+        "--pool", type=Path, default=POOL, help=f"The control-point pool (default: {POOL})"
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, pool_path=args.pool)
 

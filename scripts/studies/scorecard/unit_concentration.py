@@ -48,6 +48,7 @@ as in the row's manifest:
 
     PYTHONPATH=src python scripts/studies/scorecard/unit_concentration.py <CODE> <out_dir>
 """
+
 import json
 import sys
 from pathlib import Path
@@ -92,9 +93,13 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     def rmse(e, ww):
         return np.sqrt(e.sum() / ww.sum())
 
-    out = {"region": code, "units": n, "units_with_weight_mismatch": out_mismatch,
-           "units_missing_when_corrected": out_missing,
-           "capacity_effective_n": float(w.sum() ** 2 / (w**2).sum())}
+    out = {
+        "region": code,
+        "units": n,
+        "units_with_weight_mismatch": out_mismatch,
+        "units_missing_when_corrected": out_missing,
+        "capacity_effective_n": float(w.sum() ** 2 / (w**2).sum()),
+    }
     top1pct = max(1, int(np.ceil(0.01 * n)))
     out["top1pct_n_units"] = top1pct
     for k, g in (("unc", u), ("cor", c)):
@@ -109,7 +114,10 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     E_u, E_c, A_u, A_c, W, Wc = u.e.sum(), c.e.sum(), u.a.sum(), c.a.sum(), w.sum(), wc.sum()
     loo_rmse = np.sqrt((E_u - u.e.values) / (W - w)) - np.sqrt((E_c - c.e.values) / (Wc - wc))
     loo_mae = (A_u - u.a.values) / (W - w) - (A_c - c.a.values) / (Wc - wc)
-    out["loo_rmse_gain_min"], out["loo_rmse_gain_max"] = float(loo_rmse.min()), float(loo_rmse.max())
+    out["loo_rmse_gain_min"], out["loo_rmse_gain_max"] = (
+        float(loo_rmse.min()),
+        float(loo_rmse.max()),
+    )
     out["loo_mae_gain_min"], out["loo_mae_gain_max"] = float(loo_mae.min()), float(loo_mae.max())
     top_c = (c.e / c.e.sum()).sort_values(ascending=False).index[0]
     out["gain_rmse_without_top_cor_unit"] = float(loo_rmse[list(units).index(top_c)])
@@ -118,20 +126,26 @@ def main(code, out_dir, backfill=bb.BACKFILL):
     order = np.argsort(np.array(units.astype(str)))
     counts = resample_counts(n, seed=bb.SEED, n_draws=bb.N_DRAWS)
     uu, cc = u.iloc[order], c.iloc[order]
-    g_rmse = weighted_rmse(counts, uu.e.values, uu.w.values) - weighted_rmse(counts, cc.e.values, cc.w.values)
-    g_mae = weighted_mean(counts, uu.a.values, uu.w.values) - weighted_mean(counts, cc.a.values, cc.w.values)
+    g_rmse = weighted_rmse(counts, uu.e.values, uu.w.values) - weighted_rmse(
+        counts, cc.e.values, cc.w.values
+    )
+    g_mae = weighted_mean(counts, uu.a.values, uu.w.values) - weighted_mean(
+        counts, cc.a.values, cc.w.values
+    )
     out["rmse_gain_ci_lo"], out["rmse_gain_ci_hi"] = percentile_interval(g_rmse)
     out["mae_gain_ci_lo"], out["mae_gain_ci_hi"] = percentile_interval(g_mae)
 
     top5 = (c.e / c.e.sum()).sort_values(ascending=False).head(5).index
-    detail = pd.DataFrame({
-        "rank": range(1, 6),
-        "capacity_weight_share": (u.w[top5] / W).values,
-        "unc_sse_share": (u.e[top5] / E_u).values,
-        "cor_sse_share": (c.e[top5] / E_c).values,
-        "unit_rmse_unc": np.sqrt(u.e[top5] / u.w[top5]).values,
-        "unit_rmse_cor": np.sqrt(c.e[top5] / c.w[top5]).values,
-    })
+    detail = pd.DataFrame(
+        {
+            "rank": range(1, 6),
+            "capacity_weight_share": (u.w[top5] / W).values,
+            "unc_sse_share": (u.e[top5] / E_u).values,
+            "cor_sse_share": (c.e[top5] / E_c).values,
+            "unit_rmse_unc": np.sqrt(u.e[top5] / u.w[top5]).values,
+            "unit_rmse_cor": np.sqrt(c.e[top5] / c.w[top5]).values,
+        }
+    )
     out_dir = Path(out_dir)
     pd.DataFrame([out]).to_csv(out_dir / f"{code}_concentration.csv", index=False)
     detail.to_csv(out_dir / f"{code}_top5_units.csv", index=False)
@@ -145,8 +159,12 @@ def cli(argv: list[str] | None = None) -> None:
     parser = make_parser(__doc__)
     parser.add_argument("code", help="Scorecard row, a key of CONFIGS, e.g. DK")
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--backfill", type=Path, default=bb.BACKFILL,
-                        help=f"The rows' evaluate runs (default: {bb.BACKFILL})")
+    parser.add_argument(
+        "--backfill",
+        type=Path,
+        default=bb.BACKFILL,
+        help=f"The rows' evaluate runs (default: {bb.BACKFILL})",
+    )
     args = parser.parse_args(argv)
     main(args.code, args.out_dir, backfill=args.backfill)
 

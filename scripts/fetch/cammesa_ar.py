@@ -33,6 +33,7 @@ else in the validation set covers.
 Output: <input-root>/raw/cammesa/ (the ZIP and the extracted workbook) and a
 tidy long CSV `ar_wind_monthly.csv` with columns ID, year, month, gwh.
 """
+
 import argparse
 import io
 import os
@@ -44,7 +45,7 @@ import pandas as pd
 
 URL = "https://cammesaweb.cammesa.com/erenovables/?wpdmdl=37500"
 SHEET = "Tabla Resumen x Central"
-HEADER_ROW = 4          # verified; the sheet has a title block above it
+HEADER_ROW = 4  # verified; the sheet has a title block above it
 WIND = "EOLICO"
 
 
@@ -82,8 +83,12 @@ def load_wind(blob: bytes) -> tuple[pd.DataFrame, list[str]]:
 
 
 def tidy(wind: pd.DataFrame, months: list[str]) -> pd.DataFrame:
-    long = wind.melt(id_vars=["central", "region", "provincia"],
-                     value_vars=months, var_name="month_ts", value_name="gwh")
+    long = wind.melt(
+        id_vars=["central", "region", "provincia"],
+        value_vars=months,
+        var_name="month_ts",
+        value_name="gwh",
+    )
     long["gwh"] = pd.to_numeric(long["gwh"], errors="coerce")
     ts = pd.to_datetime(long["month_ts"])
     long["year"], long["month"] = ts.dt.year, ts.dt.month
@@ -94,8 +99,9 @@ def tidy(wind: pd.DataFrame, months: list[str]) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--probe", action="store_true",
-                    help="Report coverage and exit without writing the CSV")
+    ap.add_argument(
+        "--probe", action="store_true", help="Report coverage and exit without writing the CSV"
+    )
     ap.add_argument("--out", default=None, help="Output directory")
     args = ap.parse_args()
 
@@ -123,8 +129,10 @@ def main() -> None:
     dest = out / "ar_wind_monthly.csv"
     long.to_csv(dest, index=False)
     print(f"\n{len(long)} plant-months -> {dest}")
-    print("Coordinates/capacity/hub heights are NOT in this file: join the "
-          "Global Wind Power Tracker before building the region.")
+    print(
+        "Coordinates/capacity/hub heights are NOT in this file: join the "
+        "Global Wind Power Tracker before building the region."
+    )
 
 
 if __name__ == "__main__":

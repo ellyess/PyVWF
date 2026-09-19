@@ -33,6 +33,7 @@ Usage:
     PYTHONPATH=src python scripts/region_tools/apply_turbine_specs.py CL \\
         --specs configs/curation/cl_turbine_specs.csv
 """
+
 from __future__ import annotations
 
 import argparse
@@ -108,16 +109,14 @@ def apply_specs(md: pd.DataFrame, specs: pd.DataFrame) -> pd.DataFrame:
     if "hub_height_m" in joined.columns:
         h = pd.to_numeric(joined["hub_height_m"], errors="coerce")
         matched["height"] = h.where(h.notna(), DEFAULT_HEIGHT)
-        matched["height_source"] = np.where(
-            h.notna(), "spec-table", "default-uniform"
-        )
+        matched["height_source"] = np.where(h.notna(), "spec-table", "default-uniform")
     else:
         matched["height"] = DEFAULT_HEIGHT
         matched["height_source"] = "default-uniform"
 
-    return matched.drop(columns=["turbine_count", "rotor_diameter_m",
-                                 "hub_height_m", "unit_mw"],
-                        errors="ignore")
+    return matched.drop(
+        columns=["turbine_count", "rotor_diameter_m", "hub_height_m", "unit_mw"], errors="ignore"
+    )
 
 
 def summarise(code: str, before: pd.DataFrame, after: pd.DataFrame) -> None:
@@ -125,10 +124,11 @@ def summarise(code: str, before: pd.DataFrame, after: pd.DataFrame) -> None:
     matched = after["model_source"].eq("matched-scale-and-specific-power")
     real_h = after["height_source"].eq("spec-table")
     print(f"\n{code}: {len(after)} plants")
-    print(f"  curves: {after['model'].nunique()} distinct (was "
-          f"{before['model'].nunique()})")
-    print(f"  matched to a real curve: {matched.sum()}/{len(after)} plants, "
-          f"{100 * cap[matched].sum() / cap.sum():.0f}% of capacity")
+    print(f"  curves: {after['model'].nunique()} distinct (was {before['model'].nunique()})")
+    print(
+        f"  matched to a real curve: {matched.sum()}/{len(after)} plants, "
+        f"{100 * cap[matched].sum() / cap.sum():.0f}% of capacity"
+    )
     print(f"  real hub height: {real_h.sum()}/{len(after)} plants")
     src = after["model_source"].value_counts().to_dict()
     print(f"  model_source: {src}")
@@ -141,8 +141,7 @@ def summarise(code: str, before: pd.DataFrame, after: pd.DataFrame) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("region", help="region code, e.g. CL AR AU-NEM")
-    parser.add_argument("--specs", type=Path, required=True,
-                        help="per-farm turbine spec CSV")
+    parser.add_argument("--specs", type=Path, required=True, help="per-farm turbine spec CSV")
     parser.add_argument("--dry-run", action="store_true", help="report only")
     args = parser.parse_args()
 

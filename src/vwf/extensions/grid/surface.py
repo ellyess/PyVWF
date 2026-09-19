@@ -39,6 +39,7 @@ Differences from the original, all deliberate:
   kind of wrong a user acts on: the whole method depends on correcting speed
   before the power curve.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -55,10 +56,16 @@ from vwf.harness.corrections import PLAUSIBLE_SCALAR
 
 #: Values a domain column may carry, and what each means.
 DOMAIN_ALIASES = {
-    "onshore": "onshore", "land": "onshore", "inland": "onshore",
-    "false": "onshore", "0": "onshore",
-    "offshore": "offshore", "sea": "offshore", "ocean": "offshore",
-    "true": "offshore", "1": "offshore",
+    "onshore": "onshore",
+    "land": "onshore",
+    "inland": "onshore",
+    "false": "onshore",
+    "0": "onshore",
+    "offshore": "offshore",
+    "sea": "offshore",
+    "ocean": "offshore",
+    "true": "offshore",
+    "1": "offshore",
 }
 
 #: Country-level control points carry this mode and belong with the onshore
@@ -95,9 +102,13 @@ def zero_crossing_speed(scalar, offset):
     return (-offset / scalar).where((offset < 0) & (scalar > 0))
 
 
-def within_plausible_bounds(scalar, offset, *,
-                            scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
-                            max_crossing: float = MAX_ZERO_CROSSING_SPEED):
+def within_plausible_bounds(
+    scalar,
+    offset,
+    *,
+    scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
+    max_crossing: float = MAX_ZERO_CROSSING_SPEED,
+):
     """True where a pair is plausible: the surface's screen.
 
     Plausible means a scalar inside ``scalar_bounds`` and no zero crossing
@@ -108,9 +119,13 @@ def within_plausible_bounds(scalar, offset, *,
     return (scalar >= low) & (scalar <= high) & (crossing.isnull() | (crossing <= max_crossing))
 
 
-def flag_implausible(scalar, offset, *,
-                     scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
-                     max_crossing: float = MAX_ZERO_CROSSING_SPEED):
+def flag_implausible(
+    scalar,
+    offset,
+    *,
+    scalar_bounds: tuple[float, float] = PLAUSIBLE_SCALAR,
+    max_crossing: float = MAX_ZERO_CROSSING_SPEED,
+):
     """True where a pair is implausible: the study scripts' screen.
 
     Implausible means a scalar outside ``scalar_bounds`` or a zero crossing
@@ -121,7 +136,6 @@ def flag_implausible(scalar, offset, *,
     low, high = scalar_bounds
     crossing = zero_crossing_speed(scalar, offset)
     return (scalar < low) | (scalar > high) | (crossing > max_crossing)
-
 
 
 def normalise_domain(series: pd.Series) -> pd.Series:
@@ -143,14 +157,17 @@ def declared_domains(points: pd.DataFrame, *, domain_col: str = "cluster_mode") 
     if domain_col not in points.columns:
         raise ValueError(
             f"no {domain_col!r} column; the declared split needs one. Pass "
-            "domain_col, or use domain_disagreement to see what the shapes say.")
+            "domain_col, or use domain_disagreement to see what the shapes say."
+        )
     mode = points[domain_col].astype(str).str.lower().str.strip()
-    return pd.Series(np.where(mode == "offshore", "offshore", "onshore"),
-                     index=points.index, name="domain")
+    return pd.Series(
+        np.where(mode == "offshore", "offshore", "onshore"), index=points.index, name="domain"
+    )
 
 
-def domain_disagreement(points: pd.DataFrame, *, onshore_geojson, offshore_geojson,
-                        domain_col: str = "cluster_mode") -> pd.DataFrame:
+def domain_disagreement(
+    points: pd.DataFrame, *, onshore_geojson, offshore_geojson, domain_col: str = "cluster_mode"
+) -> pd.DataFrame:
     """Where the declared mode and the region shapes disagree.
 
     Reported, never acted on. On the chapter's 1,729 control points the two
@@ -163,10 +180,12 @@ def domain_disagreement(points: pd.DataFrame, *, onshore_geojson, offshore_geojs
     """
     declared = declared_domains(points, domain_col=domain_col)
     by_shapes = categorize_points_spatial_join(
-        points, onshore_geojson=onshore_geojson, offshore_geojson=offshore_geojson)
+        points, onshore_geojson=onshore_geojson, offshore_geojson=offshore_geojson
+    )
     differ = declared.to_numpy() != by_shapes.to_numpy()
-    return points.loc[differ].assign(declared=declared[differ].to_numpy(),
-                                     by_shapes=by_shapes[differ].to_numpy())
+    return points.loc[differ].assign(
+        declared=declared[differ].to_numpy(), by_shapes=by_shapes[differ].to_numpy()
+    )
 
 
 def cutout_lonlat(ds: xr.Dataset) -> tuple[np.ndarray, np.ndarray]:
@@ -198,17 +217,24 @@ def area_mask(lon: np.ndarray, lat: np.ndarray, geojson_path, *, name: str) -> x
     lon_grid, lat_grid = np.meshgrid(lon, lat)
     cells = gpd.GeoDataFrame(
         {"position": np.arange(lon_grid.size)},
-        geometry=gpd.points_from_xy(lon_grid.ravel(), lat_grid.ravel()), crs="EPSG:4326")
+        geometry=gpd.points_from_xy(lon_grid.ravel(), lat_grid.ravel()),
+        crs="EPSG:4326",
+    )
     inside = np.zeros(lon_grid.size, dtype=bool)
     joined = gpd.sjoin(cells, polygon, predicate="within", how="inner")
     if len(joined):
         inside[joined["position"].to_numpy(dtype=int)] = True
-    return xr.DataArray(inside.reshape(lat_grid.shape),
-                        coords={"lat": lat, "lon": lon}, dims=("lat", "lon"), name=name)
+    return xr.DataArray(
+        inside.reshape(lat_grid.shape),
+        coords={"lat": lat, "lon": lon},
+        dims=("lat", "lon"),
+        name=name,
+    )
 
 
-def spatial_bin_average(points: pd.DataFrame, *, ddeg: float,
-                        value_cols: tuple[str, ...] = ("scalar", "offset")) -> pd.DataFrame:
+def spatial_bin_average(
+    points: pd.DataFrame, *, ddeg: float, value_cols: tuple[str, ...] = ("scalar", "offset")
+) -> pd.DataFrame:
     """Average points within coarse lon and lat bins, to thin a dense set.
 
     Thinning changes the answer and the caller is told how much by the returned
@@ -217,8 +243,9 @@ def spatial_bin_average(points: pd.DataFrame, *, ddeg: float,
     kept = points[["lon", "lat", *value_cols]].dropna().copy()
     kept["lon_bin"] = np.floor(kept["lon"] / ddeg).astype(int)
     kept["lat_bin"] = np.floor(kept["lat"] / ddeg).astype(int)
-    return (kept.groupby(["lon_bin", "lat_bin"], as_index=False)
-            [["lon", "lat", *value_cols]].mean(numeric_only=True))
+    return kept.groupby(["lon_bin", "lat_bin"], as_index=False)[["lon", "lat", *value_cols]].mean(
+        numeric_only=True
+    )
 
 
 def _on_grid(values, lon: np.ndarray, lat: np.ndarray) -> xr.DataArray:
@@ -232,9 +259,14 @@ def _on_grid(values, lon: np.ndarray, lat: np.ndarray) -> xr.DataArray:
     return xr.DataArray(values, coords={"lat": lat, "lon": lon}, dims=("lat", "lon"))
 
 
-def control_support(control_points: pd.DataFrame, domain: pd.Series,
-                    lon: np.ndarray, lat: np.ndarray, *,
-                    horizon: float = INFORMATION_HORIZON_DEG) -> dict[str, xr.DataArray]:
+def control_support(
+    control_points: pd.DataFrame,
+    domain: pd.Series,
+    lon: np.ndarray,
+    lat: np.ndarray,
+    *,
+    horizon: float = INFORMATION_HORIZON_DEG,
+) -> dict[str, xr.DataArray]:
     """How much data each grid cell's correction rests on.
 
     The chapter shipped a surface with no way to ask this of a cell, and its
@@ -268,8 +300,7 @@ def control_support(control_points: pd.DataFrame, domain: pd.Series,
     return {
         "distance_to_control_deg": _on_grid(degrees.min(axis=1).reshape(shape), x, y),
         "distance_to_control_km": _on_grid(kilometres.min(axis=1).reshape(shape), x, y),
-        "n_control_within_horizon": _on_grid(
-            (degrees <= horizon).sum(axis=1).reshape(shape), x, y),
+        "n_control_within_horizon": _on_grid((degrees <= horizon).sum(axis=1).reshape(shape), x, y),
         "nearest_is_onshore": _on_grid(onshore.reshape(shape), x, y),
     }
 
@@ -353,14 +384,17 @@ def correction_surface(
         raise ValueError(f"control points are missing {missing}")
 
     domain = declared_domains(control_points, domain_col=domain_col)
-    pools = {"onshore": control_points[domain == "onshore"].copy(),
-             "offshore": control_points[domain == "offshore"].copy()}
+    pools = {
+        "onshore": control_points[domain == "onshore"].copy(),
+        "offshore": control_points[domain == "offshore"].copy(),
+    }
     for name, pool in pools.items():
         if len(pool) < 5:
             raise ValueError(
                 f"the {name} pool has {len(pool)} control points and needs at least 5 to "
                 "fit a variogram. Denmark offshore's documented failure is what two "
-                "points does; refusing is better than producing a surface from it.")
+                "points does; refusing is better than producing a surface from it."
+            )
 
     thinned = {}
     if len(pools["onshore"]) > thin_onshore_above:
@@ -368,19 +402,26 @@ def correction_surface(
         pools["onshore"] = spatial_bin_average(pools["onshore"], ddeg=thin_bin_ddeg)
         thinned = {"onshore_thinned_from": before, "onshore_thin_bin_ddeg": thin_bin_ddeg}
 
-    masks = {"onshore": area_mask(lon, lat, onshore_geojson, name="is_onshore_area"),
-             "offshore": area_mask(lon, lat, offshore_geojson, name="is_offshore_area")}
+    masks = {
+        "onshore": area_mask(lon, lat, onshore_geojson, name="is_onshore_area"),
+        "offshore": area_mask(lon, lat, offshore_geojson, name="is_offshore_area"),
+    }
     windows = {"onshore": n_closest_onshore, "offshore": n_closest_offshore}
 
     raw, fields, variances = {}, {}, {}
     for name, pool in pools.items():
         if method == "kriging":
             scalar, offset, scalar_var, offset_var = interp.to_grid(
-                interp.kriging_at, pool, lon, lat, variogram_model=variogram_model,
-                coordinates_type=coordinates_type, n_closest_points=windows[name],
-                with_variance=True)
-            variances[name] = {"scalar_variance": scalar_var,
-                               "offset_variance": offset_var}
+                interp.kriging_at,
+                pool,
+                lon,
+                lat,
+                variogram_model=variogram_model,
+                coordinates_type=coordinates_type,
+                n_closest_points=windows[name],
+                with_variance=True,
+            )
+            variances[name] = {"scalar_variance": scalar_var, "offset_variance": offset_var}
         elif method == "idw":
             scalar, offset = interp.to_grid(interp.idw_at, pool, lon, lat)
         else:
@@ -389,8 +430,7 @@ def correction_surface(
             raw[f"{label}_{name}"] = _on_grid(values, lon, lat)
             fields[f"{label}_{name}"] = raw[f"{label}_{name}"].where(masks[name])
 
-    support = control_support(control_points, domain, lon, lat,
-                              horizon=information_horizon_deg)
+    support = control_support(control_points, domain, lon, lat, horizon=information_horizon_deg)
     inside = masks["onshore"] | masks["offshore"]
 
     combined = {}
@@ -399,20 +439,28 @@ def correction_surface(
         # takes the surface of whichever domain its nearest control point
         # belongs to, which is a choice: the alternative, filling with unity,
         # is what this replaces.
-        outside = xr.where(support["nearest_is_onshore"],
-                           raw[f"{label}_onshore"], raw[f"{label}_offshore"])
-        joined = xr.where(masks["onshore"], raw[f"{label}_onshore"],
-                          xr.where(masks["offshore"], raw[f"{label}_offshore"], outside))
+        outside = xr.where(
+            support["nearest_is_onshore"], raw[f"{label}_onshore"], raw[f"{label}_offshore"]
+        )
+        joined = xr.where(
+            masks["onshore"],
+            raw[f"{label}_onshore"],
+            xr.where(masks["offshore"], raw[f"{label}_offshore"], outside),
+        )
         if neutral_outside_areas:
             joined = joined.where(inside, other=neutral)
         combined[label] = joined.rename(label)
 
     low, high = scalar_bounds
     crossing = zero_crossing_speed(combined["scalar"], combined["offset"]).rename(
-        "zero_crossing_speed")
+        "zero_crossing_speed"
+    )
     plausible = within_plausible_bounds(
-        combined["scalar"], combined["offset"], scalar_bounds=scalar_bounds,
-        max_crossing=max_zero_crossing_speed).rename("plausible")
+        combined["scalar"],
+        combined["offset"],
+        scalar_bounds=scalar_bounds,
+        max_crossing=max_zero_crossing_speed,
+    ).rename("plausible")
 
     variance_fields = {}
     for name, pair in variances.items():
@@ -421,47 +469,61 @@ def correction_surface(
     if variances:
         for label in ("scalar_variance", "offset_variance"):
             variance_fields[label] = xr.where(
-                support["nearest_is_onshore"], variance_fields[f"{label}_onshore"],
-                variance_fields[f"{label}_offshore"]).rename(label)
+                support["nearest_is_onshore"],
+                variance_fields[f"{label}_onshore"],
+                variance_fields[f"{label}_offshore"],
+            ).rename(label)
 
-    out = xr.Dataset({f"is_{name}_area": mask for name, mask in masks.items()}
-                     | fields | combined | support | variance_fields
-                     | {"zero_crossing_speed": crossing, "plausible": plausible})
+    out = xr.Dataset(
+        {f"is_{name}_area": mask for name, mask in masks.items()}
+        | fields
+        | combined
+        | support
+        | variance_fields
+        | {"zero_crossing_speed": crossing, "plausible": plausible}
+    )
     out["scalar"].attrs.update(
         long_name="PyVWF scalar correction",
         description="Multiplicative correction applied to WIND SPEED, before the power "
-                    "curve. Corrected speed = scalar * speed + offset.")
+        "curve. Corrected speed = scalar * speed + offset.",
+    )
     out["offset"].attrs.update(
         long_name="PyVWF offset correction",
         units="m s-1",
-        description="Additive correction applied to WIND SPEED, before the power curve.")
+        description="Additive correction applied to WIND SPEED, before the power curve.",
+    )
     out["distance_to_control_deg"].attrs.update(
         long_name="Euclidean distance to the nearest control point",
         units="degree",
         description="The metric the information horizon is stated in. NOT "
-                    "interchangeable with distance_to_control_km.")
+        "interchangeable with distance_to_control_km.",
+    )
     out["distance_to_control_km"].attrs.update(
         long_name="Great-circle distance to the nearest control point",
         units="km",
         description="Provided because degrees of longitude shorten toward the pole, "
-                    "so the two metrics order cells differently.")
+        "so the two metrics order cells differently.",
+    )
     out["n_control_within_horizon"].attrs.update(
         long_name="Control points within the information horizon",
         description="Separates a cell between several clusters from one trailing off "
-                    "a single cluster at the same distance.")
+        "a single cluster at the same distance.",
+    )
     out["zero_crossing_speed"].attrs.update(
         long_name="Speed below which the correction returns a negative speed",
         units="m s-1",
         description="-offset / scalar where the offset is negative, else missing. "
-                    "Below it the corrected speed has no value on the power curve.")
+        "Below it the corrected speed has no value on the power curve.",
+    )
     out["plausible"].attrs.update(
         long_name="The correction at this cell is usable",
         description=f"False where the scalar leaves [{low}, {high}], the project's "
-                    f"definition of a degenerate fit, or the zero crossing exceeds "
-                    f"{max_zero_crossing_speed} m/s. Filter on this rather than on "
-                    "distance: a 5 degree cut catches under half the unusable cells "
-                    "and discards thousands of sound ones "
-                    "(docs/findings/method-distance-mask.md).")
+        f"definition of a degenerate fit, or the zero crossing exceeds "
+        f"{max_zero_crossing_speed} m/s. Filter on this rather than on "
+        "distance: a 5 degree cut catches under half the unusable cells "
+        "and discards thousands of sound ones "
+        "(docs/findings/method-distance-mask.md).",
+    )
     out.attrs.update(
         title="PyVWF gridded bias correction field",
         usage="v_corrected = v_ERA5 * scalar + offset, applied before the power curve",
@@ -472,8 +534,11 @@ def correction_surface(
         n_control_points_onshore=int(len(pools["onshore"])),
         n_control_points_offshore=int(len(pools["offshore"])),
         domain_split="declared cluster_mode; country-level points to onshore",
-        outside_areas=("neutral" if neutral_outside_areas
-                       else "corrected from the nearest control point's domain"),
+        outside_areas=(
+            "neutral"
+            if neutral_outside_areas
+            else "corrected from the nearest control point's domain"
+        ),
         neutral_scalar=NEUTRAL_SCALAR,
         neutral_offset=NEUTRAL_OFFSET,
         information_horizon_deg=float(information_horizon_deg),
@@ -483,12 +548,14 @@ def correction_surface(
             "statement about provenance, not about safety: use `plausible` for safety, "
             "since a cut here removes under half the unusable cells and thousands of "
             "sound ones. See docs/findings/method-distance-mask.md and the "
-            "leave-one-country-out result it cites."),
+            "leave-one-country-out result it cites."
+        ),
         recommended_filter=(
             "Filter on is_onshore_area or is_offshore_area for cells a fleet could "
             "occupy, and on plausible for cells whose correction is usable. Do not "
             "filter on distance_to_control_deg for safety; use it to say how much "
-            "local information a value carries."),
+            "local information a value carries."
+        ),
         n_closest_onshore=str(n_closest_onshore),
         n_closest_offshore=str(n_closest_offshore),
         **{k: str(v) for k, v in thinned.items()},

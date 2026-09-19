@@ -4,6 +4,7 @@ This adapter wraps the existing CSV loaders in :mod:`vwf.loaders.turbine_loaders
 and reproduces the metadata and capacity-factor preparation that
 ``vwf.data.prep_country`` performed inline before the source refactor.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -50,9 +51,7 @@ class EuropeanTurbineSource(ObservationSource):
     def __init__(self, country: str) -> None:
         country = country.upper()
         if country not in self.countries:
-            raise ValueError(
-                f"{type(self).__name__} supports {self.countries}, got {country!r}"
-            )
+            raise ValueError(f"{type(self).__name__} supports {self.countries}, got {country!r}")
         self.country: str = country
         self._metadata: pd.DataFrame | None = None
 
@@ -102,12 +101,16 @@ class EuropeanTurbineSource(ObservationSource):
         obs_gen = load_turbine_observations(self.country, int(year_start), int(year_end)).copy()
 
         if not {"ID", "year"}.issubset(obs_gen.columns):
-            raise ValueError("Turbine observations must contain columns ['ID','year', ...months...]")
+            raise ValueError(
+                "Turbine observations must contain columns ['ID','year', ...months...]"
+            )
 
         # Standardise month columns to obs_1..obs_12 (if not already)
         month_cols = [c for c in obs_gen.columns if c not in ["ID", "year"]]
         if not any(str(c).startswith("obs_") for c in month_cols):
-            obs_gen.columns = [f"obs_{c}" if c not in ["ID", "year"] else c for c in obs_gen.columns]
+            obs_gen.columns = [
+                f"obs_{c}" if c not in ["ID", "year"] else c for c in obs_gen.columns
+            ]
 
         obs_gen["ID"] = obs_gen["ID"].astype(str)
         obs_gen["year"] = pd.to_numeric(obs_gen["year"], errors="coerce").astype("Int64")

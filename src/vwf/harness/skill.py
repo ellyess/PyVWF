@@ -13,6 +13,7 @@ turbine rows) must be collapsed to independent stations with
 Conditions compared with each other are scored on the same rows: see
 :func:`restrict_to_common_rows`.
 """
+
 from __future__ import annotations
 
 import re

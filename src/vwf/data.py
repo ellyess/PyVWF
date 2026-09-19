@@ -40,6 +40,7 @@ Examples:
         ...     source=source,
         ... )
 """
+
 from typing import cast
 
 import numpy as np
@@ -48,10 +49,10 @@ import difflib
 
 import vwf.wind as wind
 from vwf.datasets.era5 import prep_era5
+
 # from vwf.datasets.era5 import prep_era5_daily_cached
 from vwf.clustering import cluster_turbines
 import vwf.correction as correction
-
 
 
 # Import from new utility modules
@@ -63,6 +64,7 @@ from vwf.sources.base import ObsLevel
 # ============================================================================
 # INTERNAL HELPERS
 # ============================================================================
+
 
 def _default_power_curve(power_curves: pd.DataFrame) -> str:
     """Pick a default turbine model from a power curve table.
@@ -79,6 +81,7 @@ def _default_power_curve(power_curves: pd.DataFrame) -> str:
 # ============================================================================
 # DATA PREPROCESSING AND ORCHESTRATION
 # ============================================================================
+
 
 def prep_country(
     country,
@@ -115,9 +118,7 @@ def prep_country(
         # validate here rather than letting an unrecognised value fall through
         # the registry as a confusing "no source for this country".
         if obs_level not in ("turbine", "country"):
-            raise ValueError(
-                f"obs_level must be 'turbine' or 'country', got {obs_level!r}"
-            )
+            raise ValueError(f"obs_level must be 'turbine' or 'country', got {obs_level!r}")
         source = resolve(country, cast(ObsLevel, obs_level))
 
     turb_info = source.load_metadata()
@@ -131,6 +132,7 @@ def prep_country(
 # ============================================================================
 # DATA CLEANING AND UTILITIES
 # ============================================================================
+
 
 def clean_obs_data(df, country, train=False):
     """Clean turbine observations for modeling.
@@ -184,6 +186,7 @@ def load_power_curves():
 # MAIN ORCHESTRATION FUNCTIONS
 # ============================================================================
 
+
 def prepare_country_fleet(turb_info, power_curves, fix_turb=None):
     """Coerce and filter country-level grid points into a simulable fleet.
 
@@ -214,9 +217,9 @@ def prepare_country_fleet(turb_info, power_curves, fix_turb=None):
     for column in ("capacity", "height", "lon", "lat"):
         turb_info[column] = pd.to_numeric(turb_info[column], errors="coerce")
 
-    return turb_info.dropna(
-        subset=["capacity", "height", "lon", "lat", "model"]
-    ).reset_index(drop=True)
+    return turb_info.dropna(subset=["capacity", "height", "lon", "lat", "model"]).reset_index(
+        drop=True
+    )
 
 
 def country_cf_to_monthly(obs):
@@ -260,9 +263,11 @@ def country_cf_to_monthly(obs):
             # A row missing either side contributes to neither, so a gap does
             # not silently deflate the month.
             usable = energy.notna() & possible.notna()
-            grouped = pd.DataFrame(
-                {"energy": energy.where(usable), "possible": possible.where(usable)}
-            ).resample("ME").sum(min_count=1)
+            grouped = (
+                pd.DataFrame({"energy": energy.where(usable), "possible": possible.where(usable)})
+                .resample("ME")
+                .sum(min_count=1)
+            )
             return _month_index_to_columns(grouped["energy"] / grouped["possible"])
 
     return _month_index_to_columns(obs["capacity_factor"].resample("ME").mean())
@@ -390,8 +395,15 @@ def train_set(
         turb_info["model"] = fix_turb
 
     # prep era5 + curves once
-    reanalysis = prep_era5(country, True, calc_z0, bbox=bbox, era5_dir=era5_dir,
-                           allow_extrapolation=allow_extrapolation, roughness=roughness)
+    reanalysis = prep_era5(
+        country,
+        True,
+        calc_z0,
+        bbox=bbox,
+        era5_dir=era5_dir,
+        allow_extrapolation=allow_extrapolation,
+        roughness=roughness,
+    )
     power_curves = load_power_curves()
 
     # -------------------------
@@ -400,16 +412,14 @@ def train_set(
     if obs_level == "country":
         # Country-level observations arrive as a DatetimeIndexed capacity-factor
         # series (ENTSO-E derived, for example) from the observation source.
-        if 'capacity_factor' not in obs_data.columns:
+        if "capacity_factor" not in obs_data.columns:
             raise ValueError("Country-level observations must have a 'capacity_factor' column")
 
         # Energy-weighted monthly capacity factor, matching the monthly energy
         # basis the turbine-level observations already use.
         zonal = "cluster" in obs_data.columns
         obs_country = (
-            country_zonal_cf_to_monthly(obs_data)
-            if zonal
-            else country_cf_to_monthly(obs_data)
+            country_zonal_cf_to_monthly(obs_data) if zonal else country_cf_to_monthly(obs_data)
         )
 
         turb_info = prepare_country_fleet(turb_info, power_curves, fix_turb)
@@ -423,11 +433,7 @@ def train_set(
         sim_cf = sim_cf.dropna(subset=["time"]).reset_index(drop=True)
 
         # Melt to long format (time x ID)
-        sim_long = sim_cf.melt(
-            id_vars=["time"],
-            var_name="ID",
-            value_name="sim"
-        )
+        sim_long = sim_cf.melt(id_vars=["time"], var_name="ID", value_name="sim")
         sim_long["year"] = sim_long["time"].dt.year.astype(int)
         sim_long["month"] = sim_long["time"].dt.month.astype(int)
         sim_long = sim_long[["year", "month", "ID", "sim"]]
@@ -440,9 +446,7 @@ def train_set(
                 on="ID",
                 how="left",
             )
-            gen_cf = sim_long.merge(
-                obs_country, on=["year", "month", "cluster"], how="inner"
-            )
+            gen_cf = sim_long.merge(obs_country, on=["year", "month", "cluster"], how="inner")
             gen_cf = gen_cf.drop(columns=["cluster"])
         else:
             # Merge with country-wide observations (same obs for all grid points)
@@ -460,14 +464,29 @@ def train_set(
     year_star = obs_cf.year.min()
     year_end = obs_cf.year.max()
 
-    obs_cf = obs_cf[obs_cf.groupby("ID").ID.transform("count") == ((year_end - year_star) + 1)].reset_index(drop=True)
+    obs_cf = obs_cf[
+        obs_cf.groupby("ID").ID.transform("count") == ((year_end - year_star) + 1)
+    ].reset_index(drop=True)
 
-    obs_cf = obs_cf[[
-        "ID", "year",
-        "obs_1","obs_2","obs_3","obs_4","obs_5","obs_6",
-        "obs_7","obs_8","obs_9","obs_10","obs_11","obs_12"
-    ]]
-    obs_cf.columns = ["ID","year","1","2","3","4","5","6","7","8","9","10","11","12"]
+    obs_cf = obs_cf[
+        [
+            "ID",
+            "year",
+            "obs_1",
+            "obs_2",
+            "obs_3",
+            "obs_4",
+            "obs_5",
+            "obs_6",
+            "obs_7",
+            "obs_8",
+            "obs_9",
+            "obs_10",
+            "obs_11",
+            "obs_12",
+        ]
+    ]
+    obs_cf.columns = ["ID", "year", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
 
     obs_cf = obs_cf.loc[obs_cf["ID"].isin(turb_info["ID"])].reset_index(drop=True)
     obs_cf = obs_cf.melt(id_vars=["ID", "year"], var_name="month", value_name="obs")
@@ -500,8 +519,20 @@ def train_set(
     return gen_cf, turb_info, reanalysis, power_curves
 
 
-def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_level: str = "turbine", source: ObservationSource | None = None, era5_dir=None, bbox=None, allow_extrapolation=False,
-             roughness="stored"):
+def val_set(
+    country,
+    calc_z0,
+    mode="all",
+    year_test=None,
+    fix_turb=None,
+    *,
+    obs_level: str = "turbine",
+    source: ObservationSource | None = None,
+    era5_dir=None,
+    bbox=None,
+    allow_extrapolation=False,
+    roughness="stored",
+):
     """Prepare validation data for a country.
 
     Args:
@@ -524,12 +555,26 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
         Tuple of observations, turbine metadata, reanalysis, and power curves.
     """
     power_curves = load_power_curves()
-    obs, turb_info = val_obs_and_fleet(country, year_test, mode, fix_turb, obs_level=obs_level,
-                                       source=source, power_curves=power_curves)
+    obs, turb_info = val_obs_and_fleet(
+        country,
+        year_test,
+        mode,
+        fix_turb,
+        obs_level=obs_level,
+        source=source,
+        power_curves=power_curves,
+    )
 
     # preping era5 for val
-    reanalysis = prep_era5(country, False, calc_z0, bbox=bbox, era5_dir=era5_dir,
-                           allow_extrapolation=allow_extrapolation, roughness=roughness)
+    reanalysis = prep_era5(
+        country,
+        False,
+        calc_z0,
+        bbox=bbox,
+        era5_dir=era5_dir,
+        allow_extrapolation=allow_extrapolation,
+        roughness=roughness,
+    )
 
     # Filter to test year only
     if year_test is not None:
@@ -538,9 +583,16 @@ def val_set(country, calc_z0, mode="all", year_test=None, fix_turb=None, *, obs_
     return obs, turb_info, reanalysis, power_curves
 
 
-def val_obs_and_fleet(country, year_test, mode="all", fix_turb=None, *, obs_level: str = "turbine",
-                      source: ObservationSource | None = None,
-                      power_curves: pd.DataFrame | None = None):
+def val_obs_and_fleet(
+    country,
+    year_test,
+    mode="all",
+    fix_turb=None,
+    *,
+    obs_level: str = "turbine",
+    source: ObservationSource | None = None,
+    power_curves: pd.DataFrame | None = None,
+):
     """The observations and fleet of :func:`val_set`, without the reanalysis.
 
     What an evaluation scores against, for analyses that re-score recorded
@@ -582,7 +634,7 @@ def val_obs_and_fleet(country, year_test, mode="all", fix_turb=None, *, obs_leve
 
         # Convert timezone-aware to naive UTC (remove timezone info)
         if obs_country.index.tz is not None:
-            obs_country.index = obs_country.index.tz_convert('UTC').tz_localize(None)
+            obs_country.index = obs_country.index.tz_convert("UTC").tz_localize(None)
 
         # Format for validation output
         # Same fleet preparation as train_set: evaluation must score the fleet
@@ -594,9 +646,9 @@ def val_obs_and_fleet(country, year_test, mode="all", fix_turb=None, *, obs_leve
             # run is, or the two are not comparable.
             obs_country = country_zonal_to_national(obs_country, turb_info)
 
-        obs_country['time'] = obs_country.index
-        obs_country = obs_country.rename(columns={'capacity_factor': 'obs'})
-        obs_country = obs_country[['time', 'obs']].sort_values('time')
+        obs_country["time"] = obs_country.index
+        obs_country = obs_country.rename(columns={"capacity_factor": "obs"})
+        obs_country = obs_country[["time", "obs"]].sort_values("time")
 
         return obs_country, turb_info
 
@@ -647,8 +699,7 @@ def assign_country_clusters(turb_info, num_clu):
     """
     if "cluster" not in turb_info.columns:
         raise ValueError(
-            "country-level metadata needs a 'cluster' column; no clustering "
-            "step runs on this path"
+            "country-level metadata needs a 'cluster' column; no clustering step runs on this path"
         )
 
     turb_info = turb_info.copy()
@@ -709,8 +760,9 @@ def _country_cluster_means(gen_cf, time_res):
     return means.dropna(subset=["obs", "sim"]).reset_index(drop=True)
 
 
-def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = "turbine",
-                      min_cluster_size: int = 1):
+def cluster_train_set(
+    gen_cf, time_res, num_clu, turb_info, *, obs_level: str = "turbine", min_cluster_size: int = 1
+):
     """Aggregate the training pairs to one resolution and fit its corrections.
 
     One call handles one ``(num_clu, time_res)`` combination: the paired
@@ -764,12 +816,7 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
         merge_cols = ["ID", "cluster"]
         if "capacity" in turb_info.columns:
             merge_cols.append("capacity")
-        gen_cf_with_cluster = pd.merge(
-            gen_cf,
-            turb_info[merge_cols],
-            on="ID",
-            how="left"
-        )
+        gen_cf_with_cluster = pd.merge(gen_cf, turb_info[merge_cols], on="ID", how="left")
 
         # Capacity-weighted mean within each cluster, matching the aggregation
         # used by find_offsets_country_level and by the harness skill metric.
@@ -792,9 +839,7 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
     # turbine-level existing behavior
     gen_cf = gen_cf.groupby(["year", time_res, "ID"], as_index=False)[["obs", "sim"]].mean()
 
-    clus_info = cluster_turbines(
-        num_clu, turb_info, True, min_cluster_size=min_cluster_size
-    )
+    clus_info = cluster_turbines(num_clu, turb_info, True, min_cluster_size=min_cluster_size)
     gen_cf = pd.merge(
         gen_cf,
         clus_info[["ID", "cluster", "lon", "lat", "capacity", "height", "model"]],
@@ -810,6 +855,7 @@ def cluster_train_set(gen_cf, time_res, num_clu, turb_info, *, obs_level: str = 
 # ============================================================================
 # SUPPORTING UTILITY FUNCTIONS
 # ============================================================================
+
 
 def interp_nans(df, limit):
     """Interpolate NaNs in long-form observations.
@@ -867,7 +913,9 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
         df[c] = pd.to_numeric(df[c], errors="coerce")
 
     # Drop rows missing core numeric fields
-    df = df.dropna(subset=["ID", "capacity", "diameter", "height", "lon", "lat"]).reset_index(drop=True)
+    df = df.dropna(subset=["ID", "capacity", "diameter", "height", "lon", "lat"]).reset_index(
+        drop=True
+    )
 
     # Remove unrealistic turbines
     df = df.loc[df["height"] >= 1].reset_index(drop=True)
@@ -893,7 +941,9 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
     # Create candidate pairs by manufacturer similarity, then pick closest p_density
     # (This keeps your original logic but makes it robust.)
     cand = models.assign(
-        match=models["manufacturer"].apply(lambda x: difflib.get_close_matches(x, df["manufacturer"].tolist(), cutoff=0.3, n=50))
+        match=models["manufacturer"].apply(
+            lambda x: difflib.get_close_matches(x, df["manufacturer"].tolist(), cutoff=0.3, n=50)
+        )
     ).explode("match")
 
     if cand["match"].isna().all():
@@ -916,7 +966,9 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
         # accept manufacturer-based match only if close enough
         merged["model"] = merged["model"].where(merged["closest"] < 1, pd.NA)
 
-        df = merged[["ID", "type", "capacity", "diameter", "height", "lon", "lat", "p_density", "model"]].copy()
+        df = merged[
+            ["ID", "type", "capacity", "diameter", "height", "lon", "lat", "p_density", "model"]
+        ].copy()
 
     # --- Final fallback: nearest p_density across all models ---
     # merge_asof requires sorted keys
@@ -965,10 +1017,9 @@ def format_bc_factors(train_bias_df, time_res):
 
     # Both scalar and offset: per (cluster, time_res), aggregated across years
     # This captures seasonal spatial patterns that repeat annually
-    bc_factors = train_bias_df.groupby(["cluster", time_res], as_index=False).agg({
-        "scalar": "mean",
-        "offset": "mean"
-    })
+    bc_factors = train_bias_df.groupby(["cluster", time_res], as_index=False).agg(
+        {"scalar": "mean", "offset": "mean"}
+    )
 
     # Handle NaN values (zero offset BEFORE setting scalar, so the isna check works)
     bc_factors.loc[bc_factors["scalar"].isna(), "offset"] = 0

@@ -11,6 +11,7 @@ curves is only reportable from a manifest whose ``curve_library.library`` is
 Provenance is diagnostic, not load-bearing: :func:`write_manifest_safe` never
 raises, so a manifest failure can never abort a run.
 """
+
 from __future__ import annotations
 
 import functools
@@ -41,9 +42,21 @@ MANIFEST_NAME = "run_manifest.json"
 #: scikit-learn 1.7.2 and 1.9.1, and pandas 3 changed the last digit of
 #: unit-level sums. Optional extras are recorded when installed.
 ENVIRONMENT_PACKAGES = (
-    "numpy", "pandas", "scipy", "scikit-learn", "xarray", "dask", "netCDF4",
-    "bottleneck", "geopandas", "shapely", "pyproj", "matplotlib",
-    "torch", "pykrige", "rasterio",
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "xarray",
+    "dask",
+    "netCDF4",
+    "bottleneck",
+    "geopandas",
+    "shapely",
+    "pyproj",
+    "matplotlib",
+    "torch",
+    "pykrige",
+    "rasterio",
 )
 
 
@@ -91,9 +104,8 @@ def curve_library_identity() -> dict[str, Any]:
 
     curves_sha = _sha256(curves_path)
     models_sha = _sha256(models_path)
-    synthetic = (
-        curves_sha == _bundled_hash("power_curves.csv")
-        and models_sha == _bundled_hash("models.csv")
+    synthetic = curves_sha == _bundled_hash("power_curves.csv") and models_sha == _bundled_hash(
+        "models.csv"
     )
 
     n_curves = max(len(pd.read_csv(curves_path, nrows=0).columns) - 1, 0)
@@ -164,8 +176,15 @@ def curve_resolution(fleet: pd.DataFrame, power_curves: pd.DataFrame) -> pd.Data
         underclaiming as :func:`curve_library_identity` does.
     """
     columns = [
-        "requested", "n_units", "capacity", "capacity_share", "assigned_by",
-        "status", "curve_used", "curve_sha256", "origin",
+        "requested",
+        "n_units",
+        "capacity",
+        "capacity_share",
+        "assigned_by",
+        "status",
+        "curve_used",
+        "curve_sha256",
+        "origin",
     ]
     present = set(power_curves.columns) - {"data$speed"}
     fallback = default_curve_key(power_curves)
@@ -181,17 +200,18 @@ def curve_resolution(fleet: pd.DataFrame, power_curves: pd.DataFrame) -> pd.Data
         capacity = pd.Series(1.0, index=fleet.index)
     source_col = next((c for c in _ASSIGNMENT_COLUMNS if c in fleet.columns), None)
     assigned = (
-        fleet[source_col].astype(object).where(fleet[source_col].notna(), "unrecorded")
-        .astype(str)
+        fleet[source_col].astype(object).where(fleet[source_col].notna(), "unrecorded").astype(str)
         if source_col is not None
         else pd.Series("as-given", index=fleet.index)
     )
 
-    frame = pd.DataFrame({
-        "requested": requested.to_numpy(),
-        "capacity": capacity.to_numpy(dtype=float),
-        "assigned_by": assigned.to_numpy(),
-    })
+    frame = pd.DataFrame(
+        {
+            "requested": requested.to_numpy(),
+            "capacity": capacity.to_numpy(dtype=float),
+            "assigned_by": assigned.to_numpy(),
+        }
+    )
     total = float(frame["capacity"].sum())
     bundled = _bundled_curve_hashes()
 
@@ -201,17 +221,19 @@ def curve_resolution(fleet: pd.DataFrame, power_curves: pd.DataFrame) -> pd.Data
         used = key if resolved else fallback
         sha = _curve_hash(power_curves[used]) if used is not None else None
         cap = float(group["capacity"].sum())
-        rows.append({
-            "requested": key,
-            "n_units": int(len(group)),
-            "capacity": cap,
-            "capacity_share": cap / total if total > 0 else float("nan"),
-            "assigned_by": ";".join(sorted(set(group["assigned_by"]))),
-            "status": "resolved" if resolved else "substituted",
-            "curve_used": used,
-            "curve_sha256": sha,
-            "origin": None if sha is None else ("open" if sha in bundled else "external"),
-        })
+        rows.append(
+            {
+                "requested": key,
+                "n_units": int(len(group)),
+                "capacity": cap,
+                "capacity_share": cap / total if total > 0 else float("nan"),
+                "assigned_by": ";".join(sorted(set(group["assigned_by"]))),
+                "status": "resolved" if resolved else "substituted",
+                "curve_used": used,
+                "curve_sha256": sha,
+                "origin": None if sha is None else ("open" if sha in bundled else "external"),
+            }
+        )
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -230,8 +252,9 @@ def summarise_curve_resolution(resolution: pd.DataFrame) -> dict[str, Any]:
         "substituted_capacity_share": float(share[substituted].sum()),
         "substitutions": {
             str(k): str(v)
-            for k, v in zip(resolution.loc[substituted, "requested"],
-                            resolution.loc[substituted, "curve_used"])
+            for k, v in zip(
+                resolution.loc[substituted, "requested"], resolution.loc[substituted, "curve_used"]
+            )
         },
         "open_capacity_share": float(share[resolution["origin"] == "open"].sum()),
         "external_capacity_share": float(share[resolution["origin"] == "external"].sum()),
@@ -244,12 +267,18 @@ def _git_state() -> dict[str, Any]:
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, timeout=10, check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
         ).stdout.strip()
         dirty = bool(
             subprocess.run(
                 ["git", "status", "--porcelain"],
-                capture_output=True, text=True, timeout=10, check=True,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=True,
             ).stdout.strip()
         )
         return {"git_commit": commit, "git_dirty": dirty}

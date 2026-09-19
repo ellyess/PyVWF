@@ -11,6 +11,7 @@ attribute again.
 ``scripts/pinn/`` is exempt: it is deferred until the turbine-only study runs
 (issue #12), and is tidied then.
 """
+
 from __future__ import annotations
 
 import ast
@@ -65,8 +66,11 @@ def test_the_detector_finds_what_it_should_and_nothing_else():
         "w._get_power_curve_cache\n"
     )
     assert private_vwf_references(bad) == [
-        "vwf.harness.driver._tidy_eval_frame", "driver..._SCOPE_KEYS",
-        "vwf..._find_offset_iterative", "w..._get_power_curve_cache"]
+        "vwf.harness.driver._tidy_eval_frame",
+        "driver..._SCOPE_KEYS",
+        "vwf..._find_offset_iterative",
+        "w..._get_power_curve_cache",
+    ]
     good = (
         "from vwf.harness import driver\n"
         "import other as o\n"
@@ -92,6 +96,7 @@ def test_scripts_use_public_vwf_names(rel):
 
 def test_the_driver_wrappers_are_the_harness_functions():
     from vwf.harness import driver
+
     assert driver.SCOPE_KEYS is driver._SCOPE_KEYS
     for public, private in [
         (driver.era5_dir, driver._era5_dir),
@@ -110,8 +115,9 @@ def test_the_other_wrappers_are_the_functions_they_wrap():
     from vwf import correction, wind
     from vwf.datasets import cen_cl
 
-    assert inspect.signature(correction.find_offset_iterative) == \
-        inspect.signature(correction._find_offset_iterative)
+    assert inspect.signature(correction.find_offset_iterative) == inspect.signature(
+        correction._find_offset_iterative
+    )
     curves = pd.DataFrame({"data$speed": np.arange(0.0, 5.0), "M1": np.linspace(0, 1, 5)})
     got, want = wind.power_curve_arrays(curves), wind._get_power_curve_cache(curves)
     np.testing.assert_array_equal(got[0], want[0])

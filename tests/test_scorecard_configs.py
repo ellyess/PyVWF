@@ -10,6 +10,7 @@ These tests close that. They read the region codes out of the scorecard's own
 tables rather than from a list kept beside them, so a new row is covered the
 day it is published.
 """
+
 import re
 from pathlib import Path
 
@@ -25,8 +26,7 @@ ROW = re.compile(r"^\|\s*[A-Z][A-Za-z .]*\(([A-Z][A-Z-]*)\)")
 
 
 def scorecard_codes() -> set[str]:
-    return {m.group(1) for line in SCORECARD.read_text().splitlines()
-            if (m := ROW.match(line))}
+    return {m.group(1) for line in SCORECARD.read_text().splitlines() if (m := ROW.match(line))}
 
 
 def committed_configs() -> list[Path]:
@@ -49,7 +49,7 @@ def test_every_committed_scorecard_config_loads():
     paths = committed_configs()
     assert paths, "no scorecard configurations are committed"
     for path in paths:
-        load_region(path)          # raises with the file named if it does not
+        load_region(path)  # raises with the file named if it does not
 
 
 def test_every_superseded_config_still_loads():
@@ -109,8 +109,9 @@ def test_the_best_cfg_column_is_readable():
     assert ("DE", 100, "fixed") in found and ("FR", 10, "fixed") in found
 
 
-@pytest.mark.parametrize("code, clusters, slice_", rows_with_a_configuration(),
-                         ids=lambda v: str(v))
+@pytest.mark.parametrize(
+    "code, clusters, slice_", rows_with_a_configuration(), ids=lambda v: str(v)
+)
 def test_the_configuration_a_row_reports_is_one_its_config_can_produce(code, clusters, slice_):
     """The Best cfg column names a variant. The committed configuration has to
     be able to produce it, or the row cites a run that configuration cannot

@@ -25,6 +25,7 @@ region config and any of the four time slices, and (unlike that demo, which
 emitted a full applied time series) exports the compact static factor field that
 is the actual drop-in product.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -60,31 +61,32 @@ def _nearest_centroid(lon: np.ndarray, lat: np.ndarray, centroids: pd.DataFrame)
     """Cluster id and distance-to-centroid (km) for every cell of a lon/lat grid."""
     lon2d, lat2d = np.meshgrid(lon, lat)
     coslat = np.cos(np.radians(lat2d))
-    dists = np.stack([
-        np.hypot((lon2d - c.lon) * 111.0 * coslat, (lat2d - c.lat) * 111.0)
-        for c in centroids.itertuples()
-    ])
+    dists = np.stack(
+        [
+            np.hypot((lon2d - c.lon) * 111.0 * coslat, (lat2d - c.lat) * 111.0)
+            for c in centroids.itertuples()
+        ]
+    )
     cluster_2d = centroids.index.values[np.argmin(dists, axis=0)]
     km_2d = dists.min(axis=0).astype("float32")
     return cluster_2d, km_2d
 
 
-def _validation_note(
-    metrics_csv: Path | None, num_clu: int, time_res: str, model: str
-) -> str:
+def _validation_note(metrics_csv: Path | None, num_clu: int, time_res: str, model: str) -> str:
     """One-line uncorrected-vs-corrected summary for this (k, slice), from metrics.csv."""
     if metrics_csv is None or not Path(metrics_csv).exists():
         return "not attached (pass --metrics to embed the held-out validation result)"
     m = pd.read_csv(metrics_csv)
     # Prefer the fleet/national scope; fall back to whatever is present.
-    scope = "fleet" if "fleet" in m.get("scope", pd.Series()).values else (
-        "national" if "national" in m.get("scope", pd.Series()).values else None
+    scope = (
+        "fleet"
+        if "fleet" in m.get("scope", pd.Series()).values
+        else ("national" if "national" in m.get("scope", pd.Series()).values else None)
     )
     if scope is not None:
         m = m[m["scope"] == scope]
     unc = m[m["variant"] == "uncorrected"]
-    cor = m[(m["variant"] == model) & (m["num_clu"] == num_clu)
-            & (m["time_res"] == time_res)]
+    cor = m[(m["variant"] == model) & (m["num_clu"] == num_clu) & (m["time_res"] == time_res)]
     if unc.empty or cor.empty:
         return "metrics.csv present but no matching rows for this (k, slice)"
     u, c = unc.iloc[0], cor.iloc[0]
@@ -99,8 +101,11 @@ def _validation_note(
 def _git_commit() -> str:
     try:
         return subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
-            timeout=10, check=True,
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
         ).stdout.strip()
     except Exception:
         return "unknown"
@@ -148,7 +153,9 @@ def export_correction_field(
 
     cluster_2d, km_2d = _nearest_centroid(lon, lat, centroids)
     n_train_2d = np.vectorize(lambda c: int(n_train.get(c, 0)))(cluster_2d).astype("int16")
-    cap_train_2d = np.vectorize(lambda c: float(cap_train.get(c, 0.0)))(cluster_2d).astype("float32")
+    cap_train_2d = np.vectorize(lambda c: float(cap_train.get(c, 0.0)))(cluster_2d).astype(
+        "float32"
+    )
 
     labels = _order_slices(list(factors[time_res].drop_duplicates()), time_res, spec)
     scal = np.empty((len(labels), *cluster_2d.shape), dtype="float32")
@@ -174,9 +181,7 @@ def export_correction_field(
     # shipped as its own layer: without this a scalar of 80 would land silently
     # in a downstream atlite pipeline.
     quality = fit_quality(factors)
-    bad_clusters = {
-        int(c) for c in quality["degenerate_clusters"].split(",") if c != ""
-    }
+    bad_clusters = {int(c) for c in quality["degenerate_clusters"].split(",") if c != ""}
     degenerate_2d = np.isin(cluster_2d, list(bad_clusters)).astype("int8")
     if bad_clusters:
         warnings.warn(
@@ -192,7 +197,9 @@ def export_correction_field(
     dims2d = ("lat", "lon")
     coords = {"slice": slice_coord, "lat": lat, "lon": lon}
     note = _validation_note(
-        Path(metrics_csv) if metrics_csv else None, num_clu, time_res,
+        Path(metrics_csv) if metrics_csv else None,
+        num_clu,
+        time_res,
         spec.correction_model,
     )
 
@@ -201,7 +208,7 @@ def export_correction_field(
             "scalar": xr.DataArray(scal, coords=coords, dims=("slice", *dims2d)).assign_attrs(
                 units="1",
                 long_name="affine wind-speed correction multiplier (cor_ws = "
-                          "scalar * era5_ws + offset), nearest trained cluster",
+                "scalar * era5_ws + offset), nearest trained cluster",
             ),
             "offset": xr.DataArray(off, coords=coords, dims=("slice", *dims2d)).assign_attrs(
                 units="m s-1",
@@ -215,42 +222,42 @@ def export_correction_field(
             ).assign_attrs(
                 units="km",
                 long_name="distance from this cell to its applied cluster's centroid; "
-                          "large values flag extrapolation beyond the training fleet",
+                "large values flag extrapolation beyond the training fleet",
             ),
             "cluster_n_train": xr.DataArray(
                 n_train_2d, coords={"lat": lat, "lon": lon}, dims=dims2d
             ).assign_attrs(
                 units="1",
                 long_name="number of training farms behind the applied cluster; low "
-                          "counts (especially 1) mean the correction here rests on thin "
-                          "support and should be treated as indicative",
+                "counts (especially 1) mean the correction here rests on thin "
+                "support and should be treated as indicative",
             ),
             "cluster_capacity_mw": xr.DataArray(
                 cap_train_2d, coords={"lat": lat, "lon": lon}, dims=dims2d
             ).assign_attrs(
                 units="MW",
                 long_name="installed capacity behind the applied cluster in the training "
-                          "fleet (a second measure of how well-supported the correction is)",
+                "fleet (a second measure of how well-supported the correction is)",
             ),
             "degenerate": xr.DataArray(
                 degenerate_2d, coords={"lat": lat, "lon": lon}, dims=dims2d
             ).assign_attrs(
                 units="1",
                 long_name="1 where the applied cluster's fit is not physically "
-                          "believable: a wind scalar outside "
-                          f"{PLAUSIBLE_SCALAR[0]} to {PLAUSIBLE_SCALAR[1]}, or an "
-                          "offset that failed to converge. Such a cluster can still "
-                          "score well on aggregated skill metrics, so treat these "
-                          "cells as unusable rather than merely uncertain.",
+                "believable: a wind scalar outside "
+                f"{PLAUSIBLE_SCALAR[0]} to {PLAUSIBLE_SCALAR[1]}, or an "
+                "offset that failed to converge. Such a cluster can still "
+                "score well on aggregated skill metrics, so treat these "
+                "cells as unusable rather than merely uncertain.",
             ),
         },
         attrs={
             "title": f"PyVWF gridded wind-speed correction field, {spec.name}",
             "summary": f"Per-cluster affine wind-speed corrections ({spec.correction_model}, "
-                       f"{num_clu} clusters x {time_res} slices) trained on observed wind-farm "
-                       f"capacity factors and mapped to the ERA5 0.25deg grid by nearest cluster "
-                       f"centroid. Apply as cor_ws = scalar * era5_ws + offset before a power "
-                       f"curve; drops into an atlite wind pipeline at wind-speed level.",
+            f"{num_clu} clusters x {time_res} slices) trained on observed wind-farm "
+            f"capacity factors and mapped to the ERA5 0.25deg grid by nearest cluster "
+            f"centroid. Apply as cor_ws = scalar * era5_ws + offset before a power "
+            f"curve; drops into an atlite wind pipeline at wind-speed level.",
             "region_code": spec.code,
             "region_name": spec.name,
             "correction_model": spec.correction_model,
@@ -261,35 +268,35 @@ def export_correction_field(
             ),
             "validation_note": note,
             "confidence_layers": "Per-cell trust is carried by four fields: degenerate "
-                                 "(the fit is not believable at all), km_to_centroid "
-                                 "(distance from the training fleet), cluster_n_train and "
-                                 "cluster_capacity_mw (how much observed data trained the "
-                                 "applied cluster). A cell that is far from the fleet or "
-                                 "drawn from a one-farm cluster is indicative only. A "
-                                 "per-cluster held-out error layer is a planned addition.",
+            "(the fit is not believable at all), km_to_centroid "
+            "(distance from the training fleet), cluster_n_train and "
+            "cluster_capacity_mw (how much observed data trained the "
+            "applied cluster). A cell that is far from the fleet or "
+            "drawn from a one-farm cluster is indicative only. A "
+            "per-cluster held-out error layer is a planned addition.",
             "EXTRAPOLATION_CAVEAT": "Corrections were trained at wind-farm locations and "
-                                    "extended to the grid by nearest cluster centroid. Cells "
-                                    "far from any training farm (see km_to_centroid) carry "
-                                    "extrapolated corrections of undemonstrated validity; "
-                                    "consult km_to_centroid before using a cell, and treat "
-                                    "cells beyond the fleet's spatial footprint as indicative "
-                                    "only.",
+            "extended to the grid by nearest cluster centroid. Cells "
+            "far from any training farm (see km_to_centroid) carry "
+            "extrapolated corrections of undemonstrated validity; "
+            "consult km_to_centroid before using a cell, and treat "
+            "cells beyond the fleet's spatial footprint as indicative "
+            "only.",
             "usage": "cor_ws = scalar * era5_wnd100m + offset, then evaluate a power curve at "
-                     "hub height. scalar/offset vary by the 'slice' coordinate (this file's "
-                     f"time resolution is '{time_res}').",
+            "hub height. scalar/offset vary by the 'slice' coordinate (this file's "
+            f"time resolution is '{time_res}').",
             "content_note": "Only fitted parameters (scalars, offsets) are included; no "
-                            "power-curve content and no observation records. Redistributable "
-                            "under the attributions below.",
+            "power-curve content and no observation records. Redistributable "
+            "under the attributions below.",
             "pyvwf_version": vwf.__version__,
             "git_commit": _git_commit(),
             "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "attribution_era5": "Grid derived from ERA5. Contains modified Copernicus Climate "
-                                "Change Service information. Neither the European Commission nor "
-                                "ECMWF is responsible for any use of this data.",
+            "Change Service information. Neither the European Commission nor "
+            "ECMWF is responsible for any use of this data.",
             "attribution_observations": f"Correction factors trained on {spec.code} wind-farm "
-                                        f"capacity-factor observations via the '{spec.source}' "
-                                        f"source adapter; see the region's runbook for the "
-                                        f"upstream provider and its terms.",
+            f"capacity-factor observations via the '{spec.source}' "
+            f"source adapter; see the region's runbook for the "
+            f"upstream provider and its terms.",
             "history": "vwf.harness.export.export_correction_field",
         },
     )

@@ -7,6 +7,7 @@ of its variants can score and writes the rest to ``scoring_exclusions.csv``. So
 the check has to apply each run's own exclusions before comparing, or it
 refuses a sound run for using the scoring convention it was written under.
 """
+
 import importlib.util
 from pathlib import Path
 
@@ -23,14 +24,21 @@ KEYS = ["ID", "year", "month"]
 
 
 def frame():
-    return pd.DataFrame({"ID": ["a", "a", "b"], "year": [2022, 2022, 2022],
-                         "month": [1, 2, 1], "cf_sim": [0.3, 0.4, 0.5],
-                         "cf_obs": [0.31, 0.39, 0.52]})
+    return pd.DataFrame(
+        {
+            "ID": ["a", "a", "b"],
+            "year": [2022, 2022, 2022],
+            "month": [1, 2, 1],
+            "cf_sim": [0.3, 0.4, 0.5],
+            "cf_obs": [0.31, 0.39, 0.52],
+        }
+    )
 
 
 def exclusions(tmp_path, rows):
     pd.DataFrame(rows, columns=["scope", "ID", "year", "month"]).to_csv(
-        tmp_path / "scoring_exclusions.csv", index=False)
+        tmp_path / "scoring_exclusions.csv", index=False
+    )
     return tmp_path
 
 

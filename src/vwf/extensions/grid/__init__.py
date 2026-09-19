@@ -7,6 +7,7 @@ and ``docs/findings/method-offshore-pool-prereg.md``.
 
 Needs the ``grid`` extra for kriging: ``pip install -e '.[grid]'``.
 """
+
 from vwf.extensions.grid.evaluate import (
     corrected_capacity_factors,
     corrections_at,

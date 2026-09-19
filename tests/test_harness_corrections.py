@@ -5,6 +5,7 @@ with seasons=None must reproduce the legacy turbine-level pipeline
 bit for bit (exact frame equality, no tolerances). If that pin ever breaks,
 the harness is no longer measuring the validated method.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -62,9 +63,7 @@ def test_register_rejects_duplicates_and_non_models():
 
 def test_affine_golden_regression_bit_for_bit(synthetic_dk):
     """AffineWindCorrection(seasons=None) == the legacy path, exactly."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set(
-        "DK", calc_z0=True, mode="onshore"
-    )
+    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
 
     # --- legacy path, as PyVWF.train(dask_n_workers=0) runs it ---
     bias_df, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
@@ -116,6 +115,7 @@ def test_affine_fit_rejects_unknown_obs_level():
 # to DIFFER, not merely to be individually plausible.
 # ---------------------------------------------------------------------------
 
+
 def _july_wind_and_factors():
     """Constant 10 m/s winds in July, with a factors table whose winter and
     summer scalars differ by 4x, so hemisphere mix-ups are unmissable."""
@@ -165,9 +165,7 @@ def test_correct_wind_speed_uses_explicit_seasons():
 
 def test_simulate_wind_forwards_seasons(synthetic_dk):
     """seasons= must flow through simulate_wind to the correction merge."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set(
-        "DK", calc_z0=True, mode="onshore"
-    )
+    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
     _, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
     factors = pd.DataFrame(
         {
@@ -177,9 +175,7 @@ def test_simulate_wind_forwards_seasons(synthetic_dk):
             "offset": [0.0] * 8,
         }
     )
-    ws_default, _ = wind.simulate_wind(
-        reanalysis, clus_info, power_curves, factors, "season"
-    )
+    ws_default, _ = wind.simulate_wind(reanalysis, clus_info, power_curves, factors, "season")
     ws_sh, _ = wind.simulate_wind(
         reanalysis, clus_info, power_curves, factors, "season", seasons=SH_SEASONS
     )
@@ -195,6 +191,7 @@ def test_simulate_wind_forwards_seasons(synthetic_dk):
 # scaled-affine: affine plus a per-cluster availability (loss) factor
 # ---------------------------------------------------------------------------
 
+
 def test_scaled_affine_is_registered():
     assert "scaled-affine" in available_corrections()
 
@@ -203,16 +200,16 @@ def test_scaled_affine_reduces_to_affine_when_no_loss(synthetic_dk):
     """On a fleet the affine correction already levels, every availability is
     1.0, so scaled-affine must match affine. The synthetic-DK fixture is such a
     fleet: it is planted with a wind-speed bias and nothing else."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set(
-        "DK", calc_z0=True, mode="onshore"
-    )
+    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
     affine = get_correction("affine-wind")
     scaled = get_correction("scaled-affine")
 
-    a_fac, a_ci = affine.fit(gen_cf, turb_info, reanalysis, power_curves,
-                             num_clusters=2, time_res="fixed")
-    s_fac, s_ci = scaled.fit(gen_cf, turb_info, reanalysis, power_curves,
-                             num_clusters=2, time_res="fixed")
+    a_fac, a_ci = affine.fit(
+        gen_cf, turb_info, reanalysis, power_curves, num_clusters=2, time_res="fixed"
+    )
+    s_fac, s_ci = scaled.fit(
+        gen_cf, turb_info, reanalysis, power_curves, num_clusters=2, time_res="fixed"
+    )
 
     assert "avail" in s_fac.columns
     # No planted loss, so availability sits at its ceiling for every cluster.
@@ -238,14 +235,13 @@ def test_scaled_affine_availability_is_redundant_with_the_offset(synthetic_dk):
     availability term only bites when the affine fit cannot reach the level, not
     in the ordinary case. Halving every observation is exactly such an ordinary
     level shift, and availability stays at its ceiling."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set(
-        "DK", calc_z0=True, mode="onshore"
-    )
+    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
     scaled = get_correction("scaled-affine")
     lossy = gen_cf.copy()
     lossy["obs"] = lossy["obs"] * 0.5
-    fac, _ = scaled.fit(lossy, turb_info, reanalysis, power_curves,
-                        num_clusters=2, time_res="fixed")
+    fac, _ = scaled.fit(
+        lossy, turb_info, reanalysis, power_curves, num_clusters=2, time_res="fixed"
+    )
     assert (fac["avail"] > 0.9).all()
 
 
@@ -263,17 +259,23 @@ def test_fit_availability_is_obs_over_corrected_level_clipped():
     from vwf.harness.corrections import ScaledAffineWindCorrection
 
     times = pd.date_range("2020-01-01", periods=6, freq="MS")
-    clus_info = pd.DataFrame({
-        "ID": ["a", "b"], "cluster": [0, 1], "capacity": [1000.0, 1000.0],
-    })
+    clus_info = pd.DataFrame(
+        {
+            "ID": ["a", "b"],
+            "cluster": [0, 1],
+            "capacity": [1000.0, 1000.0],
+        }
+    )
     # Cluster 0 sim 0.40, cluster 1 sim 0.20.
     cor_cf = _wide_cf(times, {"a": 0.40, "b": 0.20})
     # Cluster 0 observed 0.20 (sim over-predicts 2x -> a = 0.5);
     # cluster 1 observed 0.40 (sim under-predicts -> a clipped to 1).
-    gen_cf = pd.DataFrame({
-        "ID": ["a"] * 6 + ["b"] * 6,
-        "obs": [0.20] * 6 + [0.40] * 6,
-    })
+    gen_cf = pd.DataFrame(
+        {
+            "ID": ["a"] * 6 + ["b"] * 6,
+            "obs": [0.20] * 6 + [0.40] * 6,
+        }
+    )
     avail = ScaledAffineWindCorrection._fit_availability(
         cor_cf, gen_cf, clus_info, obs_level="turbine"
     ).set_index("cluster")["avail"]
@@ -286,11 +288,17 @@ def test_scaled_affine_apply_scales_by_cluster_availability():
     from vwf.harness.corrections import ScaledAffineWindCorrection
 
     model = ScaledAffineWindCorrection()
-    clus_info = pd.DataFrame({
-        "ID": ["a", "b"], "cluster": [0, 1], "capacity": [1.0, 1.0],
-        "lat": [55.0, 56.0], "lon": [8.0, 9.0], "height": [100.0, 100.0],
-        "model": ["m", "m"],
-    })
+    clus_info = pd.DataFrame(
+        {
+            "ID": ["a", "b"],
+            "cluster": [0, 1],
+            "capacity": [1.0, 1.0],
+            "lat": [55.0, 56.0],
+            "lon": [8.0, 9.0],
+            "height": [100.0, 100.0],
+            "model": ["m", "m"],
+        }
+    )
     times = pd.date_range("2020-01-01", periods=3, freq="MS")
 
     class _Affine:
@@ -299,12 +307,19 @@ def test_scaled_affine_apply_scales_by_cluster_availability():
 
     # Patch the parent apply to a known corrected CF, then check scaling.
     import vwf.harness.corrections as c
+
     orig = c.AffineWindCorrection.apply
     c.AffineWindCorrection.apply = lambda self, *a, **k: _Affine().apply()
     try:
-        factors = pd.DataFrame({"cluster": [0, 1], "fixed": ["1/1", "1/1"],
-                                "scalar": [1.0, 1.0], "offset": [0.0, 0.0],
-                                "avail": [0.5, 1.0]})
+        factors = pd.DataFrame(
+            {
+                "cluster": [0, 1],
+                "fixed": ["1/1", "1/1"],
+                "scalar": [1.0, 1.0],
+                "offset": [0.0, 0.0],
+                "avail": [0.5, 1.0],
+            }
+        )
         _, cf = model.apply(None, clus_info, None, factors, "fixed")
     finally:
         c.AffineWindCorrection.apply = orig

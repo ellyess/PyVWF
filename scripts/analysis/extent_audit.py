@@ -30,6 +30,7 @@ Usage, from the repository root:
 
 With no codes it audits every row in ``baseline_bootstrap.CONFIGS``.
 """
+
 from pathlib import Path
 
 import pandas as pd
@@ -51,8 +52,12 @@ def audit(code: str) -> dict:
     # The extent is a property of the files and the box, not of a year or of
     # the roughness, so the wind fields are loaded without deriving z0.
     reanalysis = prep_era5(
-        spec.code, train=False, calc_z0=False, bbox=spec.bbox,
-        era5_dir=era5_dir(spec), allow_extrapolation=True,
+        spec.code,
+        train=False,
+        calc_z0=False,
+        bbox=spec.bbox,
+        era5_dir=era5_dir(spec),
+        allow_extrapolation=True,
     )
     record = loaded_extent_coverage(reanalysis, turb_info)
     lon_min, lon_max, lat_min, lat_max = record["loaded_extent"]
@@ -61,8 +66,10 @@ def audit(code: str) -> dict:
         "config": bb.CONFIGS[code],
         "test_year": year,
         "bbox": ", ".join(str(v) for v in spec.bbox),
-        "loaded_lon_min": lon_min, "loaded_lon_max": lon_max,
-        "loaded_lat_min": lat_min, "loaded_lat_max": lat_max,
+        "loaded_lon_min": lon_min,
+        "loaded_lon_max": lon_max,
+        "loaded_lat_min": lat_min,
+        "loaded_lat_max": lat_max,
         "units": record["units"],
         "units_outside": record["units_outside_loaded_extent"],
         "capacity_share_outside": record["capacity_share_outside_loaded_extent"],
@@ -77,22 +84,31 @@ def main(out_dir: str, codes: list[str]) -> None:
     for code in codes or list(bb.CONFIGS):
         rows.append(audit(code))
         r = rows[-1]
-        print(f"{code}: {r['units_outside']} of {r['units']} units outside, "
-              f"{r['capacity_share_outside']:.4%} of capacity, "
-              f"up to {r['max_degrees_outside']:.2f} degrees", flush=True)
+        print(
+            f"{code}: {r['units_outside']} of {r['units']} units outside, "
+            f"{r['capacity_share_outside']:.4%} of capacity, "
+            f"up to {r['max_degrees_outside']:.2f} degrees",
+            flush=True,
+        )
     frame = pd.DataFrame(rows)
     frame.to_csv(out / "extent_audit.csv", index=False)
     outside = frame.loc[frame["units_outside"] > 0, "code"].tolist()
-    print(f"\n{len(outside)} of {len(frame)} rows audited carry extrapolated winds: "
-          f"{', '.join(outside) if outside else 'none'}")
+    print(
+        f"\n{len(outside)} of {len(frame)} rows audited carry extrapolated winds: "
+        f"{', '.join(outside) if outside else 'none'}"
+    )
 
 
 def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir> [CODE ...]``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("codes", nargs="*", metavar="CODE",
-                        help="Scorecard rows to audit (default: every row in CONFIGS)")
+    parser.add_argument(
+        "codes",
+        nargs="*",
+        metavar="CODE",
+        help="Scorecard rows to audit (default: every row in CONFIGS)",
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, args.codes)
 

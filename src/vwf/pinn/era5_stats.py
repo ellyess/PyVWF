@@ -13,6 +13,7 @@ wind-speed bias. Here the daily standard deviation is retained alongside the
 daily mean, so the forward model can integrate the power curve over the
 within-day distribution instead of evaluating it at a point.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -72,15 +73,15 @@ def _hourly_fields(
     whenever a region requests a stored field from files that have none.
     """
     if roughness not in ROUGHNESS_TREATMENTS:
-        raise ValueError(
-            f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}"
-        )
+        raise ValueError(f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}")
     # cast: numpy's stubs type np.sqrt on a DataArray as ndarray, while at
     # runtime xarray returns a DataArray. Using ** 0.5 instead would type
     # cleanly but is not guaranteed to round identically to sqrt, and this
     # field is pinned bit-for-bit against prep_era5.
-    wnd100 = cast(xr.DataArray, ds["wnd100m"] if "wnd100m" in ds.data_vars
-                  else np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2))
+    wnd100 = cast(
+        xr.DataArray,
+        ds["wnd100m"] if "wnd100m" in ds.data_vars else np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2),
+    )
 
     if {"u10", "v10"} <= set(ds.data_vars):
         wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(min=1e-3)
@@ -112,7 +113,7 @@ def _hourly_fields(
         wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(min=1e-4)
         w100 = wnd100.clip(min=1e-4)
         num = w100 * np.log(10.0) - wnd10 * np.log(100.0)
-        denom = (w100 - wnd10)
+        denom = w100 - wnd10
         denom = denom.where(np.abs(denom) > 1e-4)
         z0_log = (num / denom).where(lambda a: a < 0)
         z0_log = z0_log.bfill("time").clip(min=np.log(1e-6), max=np.log(_Z0_MAX))
@@ -167,9 +168,7 @@ def daily_stats_at_points(
     plon = xr.DataArray(np.asarray(lon, dtype=float), dims="point")
     plat = xr.DataArray(np.asarray(lat, dtype=float), dims="point")
 
-    chunks: list[
-        tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-    ] = []
+    chunks: list[tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = []
     applied: set[str] = set()
     lon_seen: list[float] = []
     lat_seen: list[float] = []
@@ -204,20 +203,20 @@ def daily_stats_at_points(
         lon_seen += [float(daily.lon.min()), float(daily.lon.max())]
         lat_seen += [float(daily.lat.min()), float(daily.lat.max())]
         at = daily.interp(lon=plon, lat=plat)
-        chunks.append((
-            pd.DatetimeIndex(at.time.values),
-            at["w_mean"].values.astype("float32"),
-            at["w_std"].values.astype("float32"),
-            at["z0_mean"].values.astype("float32"),
-            at["shear"].values.astype("float32"),
-        ))
+        chunks.append(
+            (
+                pd.DatetimeIndex(at.time.values),
+                at["w_mean"].values.astype("float32"),
+                at["w_std"].values.astype("float32"),
+                at["z0_mean"].values.astype("float32"),
+                at["shear"].values.astype("float32"),
+            )
+        )
         ds.close()
         del daily, at
 
     if not chunks:
-        raise FileNotFoundError(
-            f"no ERA5 files under {hourly_dir} covered years {sorted(wanted)}"
-        )
+        raise FileNotFoundError(f"no ERA5 files under {hourly_dir} covered years {sorted(wanted)}")
 
     dates = pd.DatetimeIndex(np.concatenate([c[0].values for c in chunks]))
     order = np.argsort(dates.values)

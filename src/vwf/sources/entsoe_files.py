@@ -13,6 +13,7 @@ Like :class:`~vwf.sources.in_memory.InMemoryCountrySource` it is
 caller-constructed (``countries`` is empty, so it is never auto-resolved): the
 driver builds one per split, because train and test read different files.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -154,6 +155,5 @@ class EntsoeFileSource(ObservationSource):
         # Kept, not discarded: the clipped-row count is the difference between
         # a metric computed on every observation and one computed on the rows
         # that survived a ceiling, and it has to travel with the number.
-        self.obs_report = check_country_cf(
-            obs, f"{self.country} {self.split} ({path.name})")
+        self.obs_report = check_country_cf(obs, f"{self.country} {self.split} ({path.name})")
         return obs

@@ -10,6 +10,7 @@ The cases that matter are the ones where the register and the library disagree
 about how to write the same machine, and the ones where they look like they
 agree and do not.
 """
+
 import importlib.util
 from pathlib import Path
 
@@ -18,19 +19,44 @@ import pytest
 
 _SPEC = importlib.util.spec_from_file_location(
     "curve_library_match",
-    Path(__file__).resolve().parents[1] / "scripts" / "studies" / "method-curve-library" / "curve_library_match.py",
+    Path(__file__).resolve().parents[1]
+    / "scripts"
+    / "studies"
+    / "method-curve-library"
+    / "curve_library_match.py",
 )
 matcher = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(matcher)
 
 #: A slice of the licensed library, shaped as models.csv is.
-LIBRARY = pd.DataFrame({
-    "manufacturer": ["Vestas", "Vestas", "Vestas", "Bonus", "REpower", "Siemens",
-                     "GE", "GE", "Nordex", "Neg Micon"],
-    "model": ["Vestas.V47.660", "Vestas.V90.3000", "Vestas.V110.2000", "Bonus.B44.600",
-              "REpower.MM82.2000", "Siemens.SWT.2.3.93", "GE.1.5sle", "GE.1.5s",
-              "Nordex.N90.2500", "NegMicon.NM48.750"],
-})
+LIBRARY = pd.DataFrame(
+    {
+        "manufacturer": [
+            "Vestas",
+            "Vestas",
+            "Vestas",
+            "Bonus",
+            "REpower",
+            "Siemens",
+            "GE",
+            "GE",
+            "Nordex",
+            "Neg Micon",
+        ],
+        "model": [
+            "Vestas.V47.660",
+            "Vestas.V90.3000",
+            "Vestas.V110.2000",
+            "Bonus.B44.600",
+            "REpower.MM82.2000",
+            "Siemens.SWT.2.3.93",
+            "GE.1.5sle",
+            "GE.1.5s",
+            "Nordex.N90.2500",
+            "NegMicon.NM48.750",
+        ],
+    }
+)
 
 
 @pytest.fixture(scope="module")
@@ -93,16 +119,18 @@ def test_a_machine_the_library_does_not_carry_matches_nothing(index):
 
 def test_an_ambiguous_form_is_dropped_rather_than_resolved():
     """Two keys sharing a form without their ratings is not an exact match."""
-    ambiguous = pd.DataFrame({
-        "manufacturer": ["Vestas", "Vestas"],
-        "model": ["Vestas.V80.1800", "Vestas.V80.2000"],
-    })
+    ambiguous = pd.DataFrame(
+        {
+            "manufacturer": ["Vestas", "Vestas"],
+            "model": ["Vestas.V80.1800", "Vestas.V80.2000"],
+        }
+    )
     index = matcher.build_index(ambiguous)
-    assert matcher.match("Vestas", "V80", index) is None          # which one?
+    assert matcher.match("Vestas", "V80", index) is None  # which one?
     assert matcher.match("Vestas", "V80-2.0", index) == "Vestas.V80.2000"
 
 
 def test_the_manufacturer_aliases_are_applied(index):
     assert matcher.canonical_manufacturer("Vestas Wind Systems A/S") == "vestas"
     assert matcher.canonical_manufacturer("GE Wind") == "ge"
-    assert matcher.canonical_manufacturer("Nordex") == "nordex"   # already agrees
+    assert matcher.canonical_manufacturer("Nordex") == "nordex"  # already agrees

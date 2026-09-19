@@ -39,6 +39,7 @@ production, so the pinned default is the reproducible choice.
 Downloads are resumable: existing files are skipped, partials land in a .part
 file and are renamed only on success.
 """
+
 import argparse
 import os
 import sys
@@ -48,8 +49,8 @@ from pathlib import Path
 # Stable ens.dk media ids for the ultimo-2022 register snapshot (verified: the
 # served content-disposition filenames and byte sizes match the committed
 # Denmark inputs exactly).
-ANLAEG_URL = "https://ens.dk/media/4945/download"        # -> anlaeg.xlsx
-MAANEDSDATA_URL = "https://ens.dk/media/4948/download"   # -> maanedsdata (2002-2020)
+ANLAEG_URL = "https://ens.dk/media/4945/download"  # -> anlaeg.xlsx
+MAANEDSDATA_URL = "https://ens.dk/media/4948/download"  # -> maanedsdata (2002-2020)
 
 
 def output_dir() -> Path:
@@ -67,14 +68,17 @@ def download(url: str, dest: Path) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--anlaeg-url", default=ANLAEG_URL,
-                    help="Override the master-data-register URL (for a newer snapshot)")
-    ap.add_argument("--maanedsdata-url", default=MAANEDSDATA_URL,
-                    help="Override the monthly-production URL")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Print the plan and exit")
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--anlaeg-url",
+        default=ANLAEG_URL,
+        help="Override the master-data-register URL (for a newer snapshot)",
+    )
+    ap.add_argument(
+        "--maanedsdata-url", default=MAANEDSDATA_URL, help="Override the monthly-production URL"
+    )
+    ap.add_argument("--dry-run", action="store_true", help="Print the plan and exit")
     args = ap.parse_args()
 
     out = output_dir()
@@ -84,8 +88,7 @@ def main() -> None:
     ]
     todo = [(u, p) for u, p in plan if not p.is_file()]
     print(f"Output directory: {out}")
-    print(f"{len(plan)} file(s), {len(plan) - len(todo)} already present, "
-          f"{len(todo)} to fetch.")
+    print(f"{len(plan)} file(s), {len(plan) - len(todo)} already present, {len(todo)} to fetch.")
     if args.dry_run:
         for u, p in todo:
             print(f"  would fetch {u} -> {p.name}")

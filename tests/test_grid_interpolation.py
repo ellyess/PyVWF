@@ -6,6 +6,7 @@ tests that matter most are the two at the end: that the port reproduces the
 chapter's own published cross-validation scores, and that the grid-wise and
 point-wise routes cannot disagree because there is only one implementation.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,10 +14,12 @@ import pytest
 from vwf.extensions.grid import interpolation as interp
 
 
-def points(lons=(0.0, 1.0, 2.0), lats=(50.0, 50.0, 50.0),
-           scalar=(1.0, 2.0, 3.0), offset=(0.0, 1.0, 2.0)):
-    return pd.DataFrame({"lon": list(lons), "lat": list(lats),
-                         "scalar": list(scalar), "offset": list(offset)})
+def points(
+    lons=(0.0, 1.0, 2.0), lats=(50.0, 50.0, 50.0), scalar=(1.0, 2.0, 3.0), offset=(0.0, 1.0, 2.0)
+):
+    return pd.DataFrame(
+        {"lon": list(lons), "lat": list(lats), "scalar": list(scalar), "offset": list(offset)}
+    )
 
 
 def test_a_target_on_a_control_point_takes_its_value():
@@ -77,24 +80,39 @@ def test_the_grid_route_and_the_point_route_agree_because_they_are_one():
 
 
 def test_rbf_runs_and_is_exact_at_its_control_points():
-    s, _ = interp.rbf_at(points(lons=(0.0, 1.0, 2.0, 3.0), lats=(50.0, 50.5, 51.0, 50.2),
-                                scalar=(1.0, 2.0, 3.0, 4.0), offset=(0.0, 1.0, 2.0, 3.0)),
-                         [1.0], [50.5])
+    s, _ = interp.rbf_at(
+        points(
+            lons=(0.0, 1.0, 2.0, 3.0),
+            lats=(50.0, 50.5, 51.0, 50.2),
+            scalar=(1.0, 2.0, 3.0, 4.0),
+            offset=(0.0, 1.0, 2.0, 3.0),
+        ),
+        [1.0],
+        [50.5],
+    )
     assert s[0] == pytest.approx(2.0, abs=1e-6)
 
 
 def test_kriging_needs_its_extra_and_returns_a_value_per_target():
     pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
-    frame = points(lons=(0.0, 1.0, 2.0, 3.0, 1.5), lats=(50.0, 50.5, 51.0, 50.2, 50.8),
-                   scalar=(1.0, 2.0, 3.0, 4.0, 2.5), offset=(0.0, 1.0, 2.0, 3.0, 1.5))
+    frame = points(
+        lons=(0.0, 1.0, 2.0, 3.0, 1.5),
+        lats=(50.0, 50.5, 51.0, 50.2, 50.8),
+        scalar=(1.0, 2.0, 3.0, 4.0, 2.5),
+        offset=(0.0, 1.0, 2.0, 3.0, 1.5),
+    )
     (s, o) = interp.kriging_at(frame, [1.2, 2.2], [50.4, 50.6])
     assert len(s) == 2 and len(o) == 2 and np.isfinite(s).all()
 
 
 def test_kriging_can_return_its_variance_for_the_mask():
     pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
-    frame = points(lons=(0.0, 1.0, 2.0, 3.0, 1.5), lats=(50.0, 50.5, 51.0, 50.2, 50.8),
-                   scalar=(1.0, 2.0, 3.0, 4.0, 2.5), offset=(0.0, 1.0, 2.0, 3.0, 1.5))
+    frame = points(
+        lons=(0.0, 1.0, 2.0, 3.0, 1.5),
+        lats=(50.0, 50.5, 51.0, 50.2, 50.8),
+        scalar=(1.0, 2.0, 3.0, 4.0, 2.5),
+        offset=(0.0, 1.0, 2.0, 3.0, 1.5),
+    )
     (s, _), (var_s, _) = interp.kriging_at(frame, [1.2], [50.4], with_variance=True)
     assert len(s) == 1 and len(var_s) == 1 and var_s[0] >= 0
 
@@ -121,6 +139,7 @@ def test_it_reproduces_the_chapter_s_published_cross_validation(tmp_path):
     gate.
     """
     from pathlib import Path
+
     pool = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
     scores = Path("output/pyvwf_to_grid/grid_comparison/cv_scores.csv")
     if not (pool.exists() and scores.exists()):
@@ -185,18 +204,25 @@ def test_a_moving_window_wider_than_the_pool_becomes_global_kriging():
     and the combination was never run. A window covering everything is global
     kriging, so capping to the pool is the same estimator, not an approximation."""
     pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
-    frame = points(lons=(0.0, 1.0, 2.0, 3.0, 1.5, 2.5), lats=(50.0, 50.5, 51.0, 50.2, 50.8, 51.4),
-                   scalar=(1.0, 2.0, 3.0, 4.0, 2.5, 3.5), offset=(0.0, 1.0, 2.0, 3.0, 1.5, 2.5))
-    wide, = [interp.kriging_at(frame, [1.2], [50.4], n_closest_points=n)[0][0]
-             for n in (80,)]
+    frame = points(
+        lons=(0.0, 1.0, 2.0, 3.0, 1.5, 2.5),
+        lats=(50.0, 50.5, 51.0, 50.2, 50.8, 51.4),
+        scalar=(1.0, 2.0, 3.0, 4.0, 2.5, 3.5),
+        offset=(0.0, 1.0, 2.0, 3.0, 1.5, 2.5),
+    )
+    (wide,) = [interp.kriging_at(frame, [1.2], [50.4], n_closest_points=n)[0][0] for n in (80,)]
     globally = interp.kriging_at(frame, [1.2], [50.4])[0][0]
     assert wide == pytest.approx(globally)
 
 
 def test_a_moving_window_inside_the_pool_is_kept():
     pytest.importorskip("pykrige", reason="kriging is in the 'grid' extra")
-    frame = points(lons=(0.0, 1.0, 2.0, 3.0, 1.5, 9.0), lats=(50.0, 50.5, 51.0, 50.2, 50.8, 59.0),
-                   scalar=(1.0, 2.0, 3.0, 4.0, 2.5, 99.0), offset=(0.0, 1.0, 2.0, 3.0, 1.5, 9.0))
+    frame = points(
+        lons=(0.0, 1.0, 2.0, 3.0, 1.5, 9.0),
+        lats=(50.0, 50.5, 51.0, 50.2, 50.8, 59.0),
+        scalar=(1.0, 2.0, 3.0, 4.0, 2.5, 99.0),
+        offset=(0.0, 1.0, 2.0, 3.0, 1.5, 9.0),
+    )
     local = interp.kriging_at(frame, [1.2], [50.4], n_closest_points=3)[0][0]
     globally = interp.kriging_at(frame, [1.2], [50.4])[0][0]
     assert local != pytest.approx(globally)

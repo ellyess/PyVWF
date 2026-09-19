@@ -25,6 +25,7 @@ Every zone found is loaded; a zone whose file is missing for this split is
 reported rather than silently dropped, because a missing zone shifts the
 national aggregate the metrics are scored against.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar

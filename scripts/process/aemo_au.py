@@ -24,6 +24,7 @@ time, through the same audited code path the tests pin.
         --gen-info "input/raw/aemo/NEM Generation Information Apr 2026.xlsx" \\
         --gwpt input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx
 """
+
 import argparse
 import io
 import sys
@@ -59,16 +60,26 @@ def main() -> None:
     ap.add_argument("--gen-info", required=True, help="Generation Information xlsx")
     ap.add_argument("--gwpt", required=True, help="Global Wind Power Tracker xlsx")
     add_input_path(ap, "--out", "observations", "turbine", "AU_NEM")
-    ap.add_argument("--height", type=float, default=100.0,
-                    help="Uniform hub height default, m (no per-farm data yet)")
-    ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",
-                    help="Uniform power-curve key (must be a column of "
-                    "power_curves.csv). Defaults to the bundled open library's "
-                    "most recent market-average utility curve; override with a "
-                    "specific reference or your own licensed key.")
-    ap.add_argument("--aliases", default="configs/curation/aemo_au_aliases.csv",
-                    help="CSV with columns duid,targets: human-approved phase-aware "
-                    "alias overrides ('' to disable)")
+    ap.add_argument(
+        "--height",
+        type=float,
+        default=100.0,
+        help="Uniform hub height default, m (no per-farm data yet)",
+    )
+    ap.add_argument(
+        "--model",
+        default="2019COE_Market_Average_2.6MW_121",
+        help="Uniform power-curve key (must be a column of "
+        "power_curves.csv). Defaults to the bundled open library's "
+        "most recent market-average utility curve; override with a "
+        "specific reference or your own licensed key.",
+    )
+    ap.add_argument(
+        "--aliases",
+        default="configs/curation/aemo_au_aliases.csv",
+        help="CSV with columns duid,targets: human-approved phase-aware "
+        "alias overrides ('' to disable)",
+    )
     args = ap.parse_args()
 
     raw = Path(args.raw)
@@ -110,8 +121,10 @@ def main() -> None:
     wind_duids = set(metadata["ID"])
     archives = sorted(raw.glob("scada/PUBLIC_DVD_DISPATCH_UNIT_SCADA_*.zip"))
     if not archives:
-        print(f"No SCADA archives under {raw}/scada: metadata written, "
-              "partials skipped.", file=sys.stderr)
+        print(
+            f"No SCADA archives under {raw}/scada: metadata written, partials skipped.",
+            file=sys.stderr,
+        )
     partials = []
     for i, archive in enumerate(archives, 1):
         table = read_zipped_mms(archive)
@@ -126,30 +139,33 @@ def main() -> None:
     if partials:
         combined = combine_partials(partials)
         combined.to_csv(out / "au_nem_scada_monthly_partials.csv", index=False)
-        print(f"partials: {len(combined)} (DUID, month) rows -> "
-              f"{out / 'au_nem_scada_monthly_partials.csv'}")
+        print(
+            f"partials: {len(combined)} (DUID, month) rows -> "
+            f"{out / 'au_nem_scada_monthly_partials.csv'}"
+        )
 
     # --- registered-capacity mask ------------------------------------------
     cap_archives = sorted(raw.glob("dudetail_cap/PUBLIC_DVD_DUDETAIL_*.zip"))
     if cap_archives and combined is not None:
-        hist = registered_capacity_history(
-            pd.concat([read_zipped_mms(a) for a in cap_archives])
-        )
+        hist = registered_capacity_history(pd.concat([read_zipped_mms(a) for a in cap_archives]))
         hist = hist[hist["DUID"].isin(wind_duids)]
         mask = capacity_mask_months(hist, combined)
         mask.to_csv(out / "au_nem_capacity_mask.csv", index=False)
         no_hist = sorted(wind_duids - set(hist["DUID"]))
-        print(f"capacity mask: {len(mask)} farm-months masked "
-              f"({dict(mask['reason'].value_counts())}); "
-              f"DUIDs without capacity history (static nameplate kept): {len(no_hist)}")
+        print(
+            f"capacity mask: {len(mask)} farm-months masked "
+            f"({dict(mask['reason'].value_counts())}); "
+            f"DUIDs without capacity history (static nameplate kept): {len(no_hist)}"
+        )
     elif combined is not None:
-        print("No DUDETAIL archives found: capacity mask SKIPPED; observed CFs "
-              "carry staged-commissioning bias.", file=sys.stderr)
+        print(
+            "No DUDETAIL archives found: capacity mask SKIPPED; observed CFs "
+            "carry staged-commissioning bias.",
+            file=sys.stderr,
+        )
 
     # --- join report ----------------------------------------------------------
-    matched = matched.assign(
-        capacity_ratio=matched["capacity_mw"] / matched["gwpt_capacity_mw"]
-    )
+    matched = matched.assign(capacity_ratio=matched["capacity_mw"] / matched["gwpt_capacity_mw"])
     suspicious = matched[(matched["capacity_ratio"] < 0.6) | (matched["capacity_ratio"] > 1.7)]
     lines = [
         "# AU-NEM fleet join report",
@@ -167,23 +183,31 @@ def main() -> None:
         "",
         "## Unmatched Generation Information DUIDs (need aliases or have no GWPT entry)",
         unmatched_fleet[["ID", "site_name", "region", "capacity_mw"]].to_string(index=False)
-        if len(unmatched_fleet) else "(none)",
+        if len(unmatched_fleet)
+        else "(none)",
         "",
         "## Capacity-suspicious matches",
-        suspicious[["ID", "site_name", "gwpt_name", "capacity_mw", "gwpt_capacity_mw"]]
-        .to_string(index=False) if len(suspicious) else "(none)",
+        suspicious[["ID", "site_name", "gwpt_name", "capacity_mw", "gwpt_capacity_mw"]].to_string(
+            index=False
+        )
+        if len(suspicious)
+        else "(none)",
         "",
         "## Unmatched GWPT projects (context only; many are non-NEM, e.g. WA)",
         unmatched_gwpt[["gwpt_name", "gwpt_capacity_mw"]].to_string(index=False)
-        if len(unmatched_gwpt) else "(none)",
+        if len(unmatched_gwpt)
+        else "(none)",
         "",
     ]
     (out / "join_report.md").write_text("\n".join(lines))
     print(f"metadata: {len(metadata)} farms -> {out / 'au_nem_md.csv'}")
     print(f"join report -> {out / 'join_report.md'}")
     if len(unmatched_fleet):
-        print(f"NOTE: {len(unmatched_fleet)} DUIDs lack coordinates and are "
-              "EXCLUDED from the metadata; see the report.", file=sys.stderr)
+        print(
+            f"NOTE: {len(unmatched_fleet)} DUIDs lack coordinates and are "
+            "EXCLUDED from the metadata; see the report.",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":

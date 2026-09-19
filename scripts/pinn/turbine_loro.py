@@ -26,6 +26,7 @@ Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
          --config CODE=PATH ...
      Add --report-only to recompute the summary and gates from the CSVs.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,18 +61,26 @@ SWITCHES = {
 def margin(sd_a: float, sd_b: float) -> float:
     """The registered noise margin between two arms' seed means."""
     sds = [x for x in (sd_a, sd_b) if np.isfinite(x)]
-    pooled = np.sqrt(np.mean([x ** 2 for x in sds])) if sds else 0.0
+    pooled = np.sqrt(np.mean([x**2 for x in sds])) if sds else 0.0
     return max(0.002, 2.0 * pooled)
 
 
 def arm_table(raw: pd.DataFrame) -> pd.DataFrame:
     """Per fold and arm: seed means and seed SDs of each metric."""
-    return (raw.groupby(["fold", "arm"])
-               .agg(spatial=("spatial_rmse", "mean"), spatial_sd=("spatial_rmse", "std"),
-                    level=("level_rmse", "mean"), rmse=("rmse", "mean"),
-                    rmse_sd=("rmse", "std"), mbe=("mbe", "mean"),
-                    n_units=("n_units", "first"), seeds=("seed", "nunique"))
-               .reset_index())
+    return (
+        raw.groupby(["fold", "arm"])
+        .agg(
+            spatial=("spatial_rmse", "mean"),
+            spatial_sd=("spatial_rmse", "std"),
+            level=("level_rmse", "mean"),
+            rmse=("rmse", "mean"),
+            rmse_sd=("rmse", "std"),
+            mbe=("mbe", "mean"),
+            n_units=("n_units", "first"),
+            seeds=("seed", "nunique"),
+        )
+        .reset_index()
+    )
 
 
 def gates(raw: pd.DataFrame, gated: list[str], control: str) -> dict:
@@ -97,13 +106,22 @@ def gates(raw: pd.DataFrame, gated: list[str], control: str) -> dict:
         counts["T5"] += t5
         counts["T4_below"] += below
         counts["T4_worse10"] += worse10
-        out["folds"][f] = {"T1": [t1, d1, m1], "T2": [t2, d2, m2], "T5": [t5, d5, m5],
-                           "T4_below": below, "T4_worse10": worse10}
+        out["folds"][f] = {
+            "T1": [t1, d1, m1],
+            "T2": [t2, d2, m2],
+            "T5": [t5, d5, m5],
+            "T4_below": below,
+            "T4_worse10": worse10,
+        }
     n = len(gated)
     out["T1"] = {"count": counts["T1"], "of": n, "pass": counts["T1"] >= 5}
     out["T2"] = {"count": counts["T2"], "of": n, "pass": counts["T2"] >= 5}
-    out["T4"] = {"below": counts["T4_below"], "worse_by_10pct": counts["T4_worse10"], "of": n,
-                 "pass": counts["T4_below"] >= 5 and counts["T4_worse10"] == 0}
+    out["T4"] = {
+        "below": counts["T4_below"],
+        "worse_by_10pct": counts["T4_worse10"],
+        "of": n,
+        "pass": counts["T4_below"] >= 5 and counts["T4_worse10"] == 0,
+    }
     out["T5"] = {"count": counts["T5"], "of": n, "pass": counts["T5"] >= 5}
     if control in set(t.index.get_level_values(0)):
         base = t.loc[(control, "no-terrain")]
@@ -111,8 +129,11 @@ def gates(raw: pd.DataFrame, gated: list[str], control: str) -> dict:
         for arm in ("full", "relief-only"):
             a = t.loc[(control, arm)]
             m = margin(a.spatial_sd, base.spatial_sd)
-            checks[arm] = [bool(abs(a.spatial - base.spatial) <= m),
-                           float(a.spatial - base.spatial), m]
+            checks[arm] = [
+                bool(abs(a.spatial - base.spatial) <= m),
+                float(a.spatial - base.spatial),
+                m,
+            ]
         out["T3"] = {"arms": checks, "pass": all(v[0] for v in checks.values())}
     return out
 
@@ -121,8 +142,11 @@ def report(out: Path, tag: str) -> None:
     raw = pd.read_csv(out / f"turbine_{tag}_raw.csv")
     pd.set_option("display.width", 220)
     t = arm_table(raw)
-    for col, title in (("spatial", "Spatial RMSE"), ("level", "Level RMSE"),
-                       ("rmse", "Per-unit RMSE")):
+    for col, title in (
+        ("spatial", "Spatial RMSE"),
+        ("level", "Level RMSE"),
+        ("rmse", "Per-unit RMSE"),
+    ):
         print(f"\n### {title}, test year, mean over seeds\n")
         print(t.pivot(index="fold", columns="arm", values=col).round(5).to_string())
     g = gates(raw, [f for f in GATED if f in set(raw.fold)], CONTROL)
@@ -168,11 +192,19 @@ def main():
     from vwf.harness.regions import load_region
     from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
     from vwf.pinn.runs import (
-        UNIT_KEYS, config_record, level_spatial, region_record, resolve_configs,
+        UNIT_KEYS,
+        config_record,
+        level_spatial,
+        region_record,
+        resolve_configs,
         score_national_on_common_months,
     )
     from vwf.pinn.train import (
-        attach_fixed_speedup, fit, load_regions, predict_frame, predict_national,
+        attach_fixed_speedup,
+        fit,
+        load_regions,
+        predict_frame,
+        predict_national,
     )
 
     if build_manifest()["git_dirty"] and not args.allow_dirty:
@@ -186,41 +218,86 @@ def main():
     specs = {c: load_region(config_paths[c]) for c in codes}
     for c, spec in specs.items():
         if spec.code != c or spec.obs_level != "turbine":
-            raise SystemExit(f"{config_paths[c]} is {spec.code}/{spec.obs_level}, "
-                             f"not a turbine-level {c}")
+            raise SystemExit(
+                f"{config_paths[c]} is {spec.code}/{spec.obs_level}, not a turbine-level {c}"
+            )
 
     def ratios(code, split):
         table = pd.read_csv(Path(args.gwa) / f"{code}_{split}.csv", dtype={"ID": str})
         return table.set_index("ID")["ratio"]
 
-    train = {c: attach_fixed_speedup(load_regions([c], "train", args.cache, quiet=True)[0],
-                                     ratios(c, "train")) for c in codes}
-    test = {c: attach_fixed_speedup(load_regions([c], "test", args.cache, quiet=True)[0],
-                                    ratios(c, "test")) for c in codes}
-    countries = ({c: load_regions([c], "test", args.cache, quiet=True)[0] for c in extra}
-                 if secondary else {})
+    train = {
+        c: attach_fixed_speedup(
+            load_regions([c], "train", args.cache, quiet=True)[0], ratios(c, "train")
+        )
+        for c in codes
+    }
+    test = {
+        c: attach_fixed_speedup(
+            load_regions([c], "test", args.cache, quiet=True)[0], ratios(c, "test")
+        )
+        for c in codes
+    }
+    countries = (
+        {c: load_regions([c], "test", args.cache, quiet=True)[0] for c in extra}
+        if secondary
+        else {}
+    )
     gwa_record = json.loads((Path(args.gwa) / "gwa_record.json").read_text(encoding="utf-8"))
     print("caches loaded:", {c: r.n_units for c, r in train.items()}, flush=True)
 
-    write_manifest(out, build_manifest(extra={
-        "run_mode": "pinn-turbine-loro", "tag": args.tag, "registration": args.registration,
-        "argv": sys.argv[1:], "torch_version": torch.__version__, "cache": args.cache,
-        "gwa": args.gwa, "gwa_record": gwa_record,
-        "configs": config_record(config_paths),
-        "settings": {"regions": codes, "gated": GATED, "control": CONTROL, "arms": args.arms,
-                     "seeds": args.seeds, "epochs": args.epochs, "hidden": hidden,
-                     "profile": "power", "density": False, "wake": False,
-                     "bound_scale": 1.0, "fleet_columns": list(FLEET),
-                     "secondary": secondary, "country_folds": extra},
-        "regions": {c: {"train": region_record(train[c]), "test": region_record(test[c])}
-                    for c in codes},
-    }))
+    write_manifest(
+        out,
+        build_manifest(
+            extra={
+                "run_mode": "pinn-turbine-loro",
+                "tag": args.tag,
+                "registration": args.registration,
+                "argv": sys.argv[1:],
+                "torch_version": torch.__version__,
+                "cache": args.cache,
+                "gwa": args.gwa,
+                "gwa_record": gwa_record,
+                "configs": config_record(config_paths),
+                "settings": {
+                    "regions": codes,
+                    "gated": GATED,
+                    "control": CONTROL,
+                    "arms": args.arms,
+                    "seeds": args.seeds,
+                    "epochs": args.epochs,
+                    "hidden": hidden,
+                    "profile": "power",
+                    "density": False,
+                    "wake": False,
+                    "bound_scale": 1.0,
+                    "fleet_columns": list(FLEET),
+                    "secondary": secondary,
+                    "country_folds": extra,
+                },
+                "regions": {
+                    c: {"train": region_record(train[c]), "test": region_record(test[c])}
+                    for c in codes
+                },
+            }
+        ),
+    )
 
     def fitted(regions, arm, seed):
         terrain_off, relief_off, fixed = SWITCHES[arm]
-        return fit(regions, hidden=hidden, physics=True, profile="power",
-                   epochs=args.epochs, seed=seed, verbose=False, fleet_columns=FLEET,
-                   terrain_off=terrain_off, relief_off=relief_off, fixed_speedup=fixed)
+        return fit(
+            regions,
+            hidden=hidden,
+            physics=True,
+            profile="power",
+            epochs=args.epochs,
+            seed=seed,
+            verbose=False,
+            fleet_columns=FLEET,
+            terrain_off=terrain_off,
+            relief_off=relief_off,
+            fixed_speedup=fixed,
+        )
 
     rows, physics, records = [], [], {}
     for fold in codes:
@@ -238,8 +315,9 @@ def main():
                     rep = model.report(std.terrain(te), std.fleet(te), std.relief(te), te.capdens)
                 physics.append(dict(fold=fold, arm=arm, seed=seed, final_loss=hist[-1], **rep))
 
-        pairs = {k: collapse_pseudo_replicates(frame, spec)
-                 for k, (_, _, frame) in conditions.items()}
+        pairs = {
+            k: collapse_pseudo_replicates(frame, spec) for k, (_, _, frame) in conditions.items()
+        }
         restricted, excluded = restrict_to_common_rows(pairs, UNIT_KEYS, weight="capacity")
         for label, (arm, seed, _) in conditions.items():
             f = restricted[label]
@@ -255,8 +333,11 @@ def main():
             fh.write("\n")
         sub = raw[raw.fold == fold].groupby("arm", sort=False)
         for arm, g in sub:
-            print(f"  {arm:12s} spatial {g.spatial_rmse.mean():.5f}  level {g.level_rmse.mean():.5f}"
-                  f"  per-unit {g.rmse.mean():.5f}", flush=True)
+            print(
+                f"  {arm:12s} spatial {g.spatial_rmse.mean():.5f}  level {g.level_rmse.mean():.5f}"
+                f"  per-unit {g.rmse.mean():.5f}",
+                flush=True,
+            )
         print(f"  [{time.time() - t0:.0f}s]", flush=True)
 
     if secondary:
@@ -265,8 +346,7 @@ def main():
         for arm in ("no-terrain", "relief-only", "full"):
             for seed in args.seeds:
                 model, std, _ = fitted([train[c] for c in codes], arm, seed)
-                conds = {c: (arm, seed, predict_national(countries[c], model, std))
-                         for c in extra}
+                conds = {c: (arm, seed, predict_national(countries[c], model, std)) for c in extra}
                 for c, (a, s, frame) in conds.items():
                     metrics, _, _ = score_national_on_common_months({"x": (a, s, frame)})
                     sec.append(dict(fold=c, arm=arm, seed=seed, **metrics["x"]))

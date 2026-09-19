@@ -23,6 +23,7 @@ implausible CF (a whole-fleet Argentine median CF sits near 0.38; a plant
 whose median exceeds ``CAP_SUSPECT_CF`` almost certainly matched a too-small
 GWPT capacity and must be re-curated, not trusted).
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -83,8 +84,7 @@ def monthly_cf_from_gwh(
     df["cf"] = df["gwh"] * 1000.0 / (df["capacity_mw"] * days * 24.0)
 
     wide = (
-        df.pivot_table(index=["ID", "year"], columns="month", values="cf",
-                       aggfunc="first")
+        df.pivot_table(index=["ID", "year"], columns="month", values="cf", aggfunc="first")
         .reindex(columns=range(1, 13))
         .reset_index()
     )
@@ -92,9 +92,7 @@ def monthly_cf_from_gwh(
     return wide
 
 
-def capacity_suspect_ids(
-    wide: pd.DataFrame, *, threshold: float = CAP_SUSPECT_CF
-) -> list[str]:
+def capacity_suspect_ids(wide: pd.DataFrame, *, threshold: float = CAP_SUSPECT_CF) -> list[str]:
     """Plant IDs whose median monthly CF exceeds ``threshold``.
 
     A too-low capacity from the join inflates every month's CF, so an
@@ -129,8 +127,11 @@ def strip_commissioning_prefix(
     """
     out = wide.sort_values(["ID", "year"]).copy()
     for _, block in out.groupby("ID"):
-        cells = [(row.name, f"obs_{m}", row[f"obs_{m}"])
-                 for _, row in block.iterrows() for m in range(1, 13)]
+        cells = [
+            (row.name, f"obs_{m}", row[f"obs_{m}"])
+            for _, row in block.iterrows()
+            for m in range(1, 13)
+        ]
         for idx, col, val in cells:
             if pd.notna(val) and val >= threshold:
                 break
@@ -183,8 +184,9 @@ def build_ar_metadata(
     j["ID"] = j["ID"].astype(str)
     md = md.merge(j[["ID", "lon", "lat", "capacity_mw"]], on="ID", how="left")
 
-    bad = md[md["lon"].isna() | md["lat"].isna()
-             | md["capacity_mw"].isna() | (md["capacity_mw"] <= 0)]
+    bad = md[
+        md["lon"].isna() | md["lat"].isna() | md["capacity_mw"].isna() | (md["capacity_mw"] <= 0)
+    ]
     bad = bad[~bad["ID"].isin(set(exclude))]
     if len(bad):
         raise ValueError(
@@ -194,8 +196,9 @@ def build_ar_metadata(
             "(ID,lon,lat,capacity_mw) or the exclude list; never leave a plant "
             "without a location (mis-located) or capacity (no CF denominator)."
         )
-    md = md[md["lon"].notna() & md["lat"].notna()
-            & md["capacity_mw"].notna() & (md["capacity_mw"] > 0)].copy()
+    md = md[
+        md["lon"].notna() & md["lat"].notna() & md["capacity_mw"].notna() & (md["capacity_mw"] > 0)
+    ].copy()
 
     md["height"] = float(height)
     md["height_source"] = "default-uniform"
@@ -204,8 +207,20 @@ def build_ar_metadata(
     md["capacity"] = pd.to_numeric(md["capacity_mw"], errors="coerce") * 1000.0
     md["type"] = "onshore"
     return md[
-        ["ID", "site_name", "lon", "lat", "height", "capacity", "model",
-         "type", "height_source", "model_source", "region", "provincia"]
+        [
+            "ID",
+            "site_name",
+            "lon",
+            "lat",
+            "height",
+            "capacity",
+            "model",
+            "type",
+            "height_source",
+            "model_source",
+            "region",
+            "provincia",
+        ]
     ].reset_index(drop=True)
 
 
@@ -232,10 +247,19 @@ def join_coords_caps(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFra
         ``(join, unmatched)``: a frame with ``ID``, ``lon``, ``lat``,
         ``capacity_mw`` and ``gwpt_name``, and the IDs with no match.
     """
-    ov = ({str(i): (lo, la, c) for i, lo, la, c in zip(
-        overrides["ID"].astype(str), overrides["lon"].astype(float),
-        overrides["lat"].astype(float), overrides["capacity_mw"].astype(float))}
-        if len(overrides) else {})
+    ov = (
+        {
+            str(i): (lo, la, c)
+            for i, lo, la, c in zip(
+                overrides["ID"].astype(str),
+                overrides["lon"].astype(float),
+                overrides["lat"].astype(float),
+                overrides["capacity_mw"].astype(float),
+            )
+        }
+        if len(overrides)
+        else {}
+    )
     rows, unmatched = [], []
     for f in fleet.itertuples():
         fid, nm = str(f.ID), ar_plant_key(f.site_name)
@@ -248,8 +272,9 @@ def join_coords_caps(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFra
             cand = g[g["norm"].apply(lambda x: bool(x) and (x in nm or nm in x))]
         if len(cand):
             best = cand.nlargest(1, "cap").iloc[0]  # phase-split: take full-farm cap
-            rows.append((fid, best["Longitude"], best["Latitude"], best["cap"],
-                         best["Project Name"]))
+            rows.append(
+                (fid, best["Longitude"], best["Latitude"], best["cap"], best["Project Name"])
+            )
         else:
             unmatched.append(fid)
     join = pd.DataFrame(rows, columns=["ID", "lon", "lat", "capacity_mw", "gwpt_name"])

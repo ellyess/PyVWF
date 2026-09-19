@@ -69,6 +69,7 @@ shares can be regenerated from the runs that produced them.
 Usage (from the repository root, ``src`` on the path):
     python scripts/analysis/curve_match_audit.py --out <csv>
 """
+
 from __future__ import annotations
 
 import argparse
@@ -84,16 +85,29 @@ REFRESH = Path("output/validation/refresh_2026-08-24")
 #: the two runs behind the DK and NZ correlations in method-country-level.md
 #: section 7.
 RUNS = {
-    **{c: REFRESH / c / "train-refresh" for c in
-       ["DE", "DK", "UK", "US", "BR", "AU-NEM", "NZ", "CL", "AR"]},
+    **{
+        c: REFRESH / c / "train-refresh"
+        for c in ["DE", "DK", "UK", "US", "BR", "AU-NEM", "NZ", "CL", "AR"]
+    },
     "DK (train-ppopen)": Path("output/validation/DK/train-ppopen"),
     "NZ (train-k147)": Path("output/validation/NZ/train-k147"),
 }
 
 #: Manufacturer strings in the curve libraries that are not a commercial brand:
 #: research reference designs, national-lab composites and placeholders.
-REFERENCE = {"bar", "cf", "doe", "dtu", "iea", "leanwind", "nps", "nrel", "sd",
-             "swift", "reference"}
+REFERENCE = {
+    "bar",
+    "cf",
+    "doe",
+    "dtu",
+    "iea",
+    "leanwind",
+    "nps",
+    "nrel",
+    "sd",
+    "swift",
+    "reference",
+}
 #: Curve-side label for a model no source identifies.
 UNRECORDED = "unrecorded"
 ALIASES = {"vestasv": "vestas", "anbonus": "bonus"}
@@ -127,6 +141,7 @@ def own_manufacturer(region: str, fleet: pd.DataFrame) -> tuple[pd.Series, str]:
     base = region.split(" ")[0]
     if base in {"DK", "DE", "UK"}:
         from vwf.loaders import load_turbine_metadata
+
         md = load_turbine_metadata(base)
         lut = md.assign(ID=md["ID"].astype(str)).set_index("ID")["manufacturer"]
         return ids.map(lut), f"load_turbine_metadata('{base}').manufacturer"
@@ -134,8 +149,11 @@ def own_manufacturer(region: str, fleet: pd.DataFrame) -> tuple[pd.Series, str]:
         return fleet["true_model"], "fleet true_model"
     if base == "US":
         return fleet["uswtdb_model"], "fleet uswtdb_model"
-    spec = {"AU-NEM": "au_turbine_models.csv", "CL": "cl_turbine_specs.csv",
-            "AR": "ar_turbine_specs.csv"}.get(base)
+    spec = {
+        "AU-NEM": "au_turbine_models.csv",
+        "CL": "cl_turbine_specs.csv",
+        "AR": "ar_turbine_specs.csv",
+    }.get(base)
     if spec:
         s = pd.read_csv(Path("configs/curation") / spec)
         lut = s.assign(ID=s["ID"].astype(str)).drop_duplicates("ID").set_index("ID")["manufacturer"]
@@ -151,6 +169,7 @@ def curve_side_manufacturer(keys: pd.Series, lut: pd.Series) -> pd.Series:
     key; otherwise nothing identifies the curve and it cannot be checked.
     """
     from importlib import resources
+
     prov = pd.read_csv(str(resources.files("vwf.resources") / "power_curves_provenance.csv"))
     man = keys.map(lut)
     unknown = man.isna() | man.astype(str).str.strip().str.lower().isin(UNKNOWN)
@@ -165,9 +184,12 @@ def _models_file(lib: dict) -> Path:
     Manifest paths predate the input/ reorganisation of 2026-07-23 for the older
     runs, so the hash, not the path, identifies the file.
     """
-    candidates = [Path(lib["models_path"]), Path("input/reference/models.csv"),
-                  Path("input/combined/reference/models.csv"),
-                  Path("src/vwf/resources/models.csv")]
+    candidates = [
+        Path(lib["models_path"]),
+        Path("input/reference/models.csv"),
+        Path("input/combined/reference/models.csv"),
+        Path("src/vwf/resources/models.csv"),
+    ]
     for c in candidates:
         if c.is_file() and hashlib.sha256(c.read_bytes()).hexdigest() == lib["models_sha256"]:
             return c
@@ -189,21 +211,40 @@ def audit(region: str, run_dir: Path) -> dict:
     cap = pd.to_numeric(fleet["capacity"], errors="coerce").fillna(0.0)
     total = cap.sum()
 
-    row = {"region": region, "fleet_file": str(fleet_file), "library": lib["library"],
-           "models_file": str(models_file),
-           "own_manufacturer_source": source, "n_units": len(fleet)}
+    row = {
+        "region": region,
+        "fleet_file": str(fleet_file),
+        "library": lib["library"],
+        "models_file": str(models_file),
+        "own_manufacturer_source": source,
+        "n_units": len(fleet),
+    }
     row["curve_unrecorded_units"] = int((model_manufacturer == UNRECORDED).sum())
     for c in ["same", "different-brand", "different-reference", "unverifiable"]:
         m = cls == c
         row[f"{c}_cap_share"] = float(cap[m].sum() / total) if total else float("nan")
         row[f"{c}_units"] = int(m.sum())
-    pairs = (pd.DataFrame({"own": own.astype(str), "curve_manufacturer": model_manufacturer,
-                           "model": fleet["model"], "cap": cap, "cls": cls})
-             .query("cls == 'different-brand'")
-             .groupby(["own", "curve_manufacturer"])["cap"].sum().sort_values(ascending=False))
+    pairs = (
+        pd.DataFrame(
+            {
+                "own": own.astype(str),
+                "curve_manufacturer": model_manufacturer,
+                "model": fleet["model"],
+                "cap": cap,
+                "cls": cls,
+            }
+        )
+        .query("cls == 'different-brand'")
+        .groupby(["own", "curve_manufacturer"])["cap"]
+        .sum()
+        .sort_values(ascending=False)
+    )
     row["top_different_brand_pairs"] = "; ".join(
-        f"{o} -> {m} ({c / total:.1%})" for (o, m), c in pairs.head(4).items())
-    row["different_cap_share"] = row["different-brand_cap_share"] + row["different-reference_cap_share"]
+        f"{o} -> {m} ({c / total:.1%})" for (o, m), c in pairs.head(4).items()
+    )
+    row["different_cap_share"] = (
+        row["different-brand_cap_share"] + row["different-reference_cap_share"]
+    )
     row["different_units"] = row["different-brand_units"] + row["different-reference_units"]
     return row
 
@@ -215,12 +256,24 @@ def main() -> None:
     table = pd.DataFrame([audit(r, d) for r, d in RUNS.items()])
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(args.out, index=False)
-    cols = ["region", "library", "n_units", "same_cap_share", "same_units",
-            "different_cap_share", "different_units", "different-brand_cap_share",
-            "different-brand_units", "different-reference_cap_share",
-            "different-reference_units", "unverifiable_cap_share", "unverifiable_units"]
-    with pd.option_context("display.width", 250, "display.max_columns", 20,
-                           "display.float_format", "{:.3f}".format):
+    cols = [
+        "region",
+        "library",
+        "n_units",
+        "same_cap_share",
+        "same_units",
+        "different_cap_share",
+        "different_units",
+        "different-brand_cap_share",
+        "different-brand_units",
+        "different-reference_cap_share",
+        "different-reference_units",
+        "unverifiable_cap_share",
+        "unverifiable_units",
+    ]
+    with pd.option_context(
+        "display.width", 250, "display.max_columns", 20, "display.float_format", "{:.3f}".format
+    ):
         print(table[cols].to_string(index=False))
 
 

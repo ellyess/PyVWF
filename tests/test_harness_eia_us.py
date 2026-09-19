@@ -3,6 +3,7 @@ commissioning screens, registry wiring.
 
 All fixtures are synthetic; real EIA acquisition is Phase 2.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -57,9 +58,7 @@ def test_annual_respondents_dropped_by_default():
     dropped = netgen_to_monthly_cf(netgen, METADATA, 2020, 2020)
     assert dropped.iloc[0][[f"obs_{m}" for m in range(1, 13)]].isna().all()
 
-    kept = netgen_to_monthly_cf(
-        netgen, METADATA, 2020, 2020, drop_annual_respondents=False
-    )
+    kept = netgen_to_monthly_cf(netgen, METADATA, 2020, 2020, drop_annual_respondents=False)
     assert kept.iloc[0]["obs_6"] == pytest.approx(0.5, rel=1e-6)
 
 
@@ -123,9 +122,7 @@ def test_source_end_to_end_from_files(tmp_path, monkeypatch):
     data_dir = tmp_path / "US"
     data_dir.mkdir(parents=True)
     METADATA.to_csv(data_dir / "us_md.csv", index=False)
-    monthly_netgen("100", 2020, mwh=25_000.0).to_csv(
-        data_dir / "us_eia923_netgen.csv", index=False
-    )
+    monthly_netgen("100", 2020, mwh=25_000.0).to_csv(data_dir / "us_eia923_netgen.csv", index=False)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
 
     src = EIAUSSource()

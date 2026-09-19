@@ -27,6 +27,7 @@ Usage, from the repository root:
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py <out_dir>
 """
+
 import importlib.util
 from pathlib import Path
 
@@ -37,7 +38,8 @@ from vwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    "ml_transfer_retest", REPO / "scripts" / "analysis" / "ml_transfer_retest.py")
+    "ml_transfer_retest", REPO / "scripts" / "analysis" / "ml_transfer_retest.py"
+)
 _ml = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_ml)
 
@@ -53,8 +55,13 @@ BINS = 8
 CANDIDATES = {"US": 250, "BR": 60, "CL": 10, "AR": 10, "NZ": 7, "AU-NEM": 45}
 
 #: The pool's own country codes carry the mode; the LOCO folds do not.
-FOLD_OF = {"DE-onshore": "DE", "DK-onshore": "DK", "DK-offshore": "DK",
-           "UK-onshore": "UK", "UK-offshore": "UK"}
+FOLD_OF = {
+    "DE-onshore": "DE",
+    "DK-onshore": "DK",
+    "DK-offshore": "DK",
+    "UK-onshore": "UK",
+    "UK-offshore": "UK",
+}
 
 
 def featurise(frame: pd.DataFrame, region: str) -> pd.DataFrame:
@@ -63,12 +70,12 @@ def featurise(frame: pd.DataFrame, region: str) -> pd.DataFrame:
 
 def cells(z: np.ndarray) -> set:
     edges = np.linspace(-3, 3, BINS + 1)
-    return {tuple(r) for r in np.stack([np.digitize(z[:, i], edges)
-                                        for i in range(z.shape[1])], 1)}
+    return {tuple(r) for r in np.stack([np.digitize(z[:, i], edges) for i in range(z.shape[1])], 1)}
 
 
-def main(out_dir: str, pool_path: Path = POOL, loco_path: Path = LOCO,
-         refresh: Path = REFRESH) -> None:
+def main(
+    out_dir: str, pool_path: Path = POOL, loco_path: Path = LOCO, refresh: Path = REFRESH
+) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     pool = pd.read_csv(pool_path)
@@ -78,11 +85,18 @@ def main(out_dir: str, pool_path: Path = POOL, loco_path: Path = LOCO,
     mu = pool[list(FEATURES)].mean()
     sd = pool[list(FEATURES)].std().replace(0, 1.0)
     z_pool = ((pool[list(FEATURES)] - mu) / sd).to_numpy()
-    print(f"=== the pool: {len(pool)} points, {len(cells(z_pool))} occupied cells "
-          f"of {BINS ** len(FEATURES)}")
+    print(
+        f"=== the pool: {len(pool)} points, {len(cells(z_pool))} occupied cells "
+        f"of {BINS ** len(FEATURES)}"
+    )
     print("\n  feature ranges, raw units")
-    print(pool[list(FEATURES)].describe().loc[["min", "25%", "50%", "75%", "max"]]
-          .round(2).to_string())
+    print(
+        pool[list(FEATURES)]
+        .describe()
+        .loc[["min", "25%", "50%", "75%", "max"]]
+        .round(2)
+        .to_string()
+    )
 
     print("\n=== 2. what other regions would add")
     rows = []
@@ -94,11 +108,17 @@ def main(out_dir: str, pool_path: Path = POOL, loco_path: Path = LOCO,
         other = featurise(pd.read_csv(f), region)
         z = ((other[list(FEATURES)] - mu) / sd).to_numpy()
         new = cells(z) - base
-        rows.append({"region": region, "points": len(other),
-                     "cells": len(cells(z)), "cells_new_to_europe": len(new),
-                     "share_of_its_cells_new": round(len(new) / max(len(cells(z)), 1), 3),
-                     "max_elevation": round(float(other["elevation"].max()), 0),
-                     "max_roughness": round(float(other["roughness"].max()), 1)})
+        rows.append(
+            {
+                "region": region,
+                "points": len(other),
+                "cells": len(cells(z)),
+                "cells_new_to_europe": len(new),
+                "share_of_its_cells_new": round(len(new) / max(len(cells(z)), 1), 3),
+                "max_elevation": round(float(other["elevation"].max()), 0),
+                "max_roughness": round(float(other["roughness"].max()), 1),
+            }
+        )
     added = pd.DataFrame(rows).sort_values("cells_new_to_europe", ascending=False)
     print(added.to_string(index=False))
     added.to_csv(out / "candidate_regions.csv", index=False)
@@ -113,42 +133,72 @@ def main(out_dir: str, pool_path: Path = POOL, loco_path: Path = LOCO,
         zh = ((held[list(FEATURES)] - mu) / sd).to_numpy()
         d = np.sqrt(((zh[:, None, :] - zt[None, :, :]) ** 2).sum(-1)).min(1)
         skill = loco[loco.fold == fold]
-        rows.append({"fold": fold, "points": len(held),
-                     "feature_distance_median": round(float(np.median(d)), 3),
-                     "feature_distance_90pct": round(float(np.percentile(d, 90)), 3),
-                     "share_outside_training_cells": round(float(
-                         np.mean([tuple(r) not in cells(zt) for r in
-                                  np.stack([np.digitize(zh[:, i],
-                                                        np.linspace(-3, 3, BINS + 1))
-                                            for i in range(zh.shape[1])], 1)])), 3),
-                     "loco_mae": round(float(skill["from_reference_mae"].iloc[0]), 3)
-                     if len(skill) else np.nan,
-                     "loco_r2": round(float(skill["from_reference_r2"].iloc[0]), 3)
-                     if len(skill) else np.nan})
+        rows.append(
+            {
+                "fold": fold,
+                "points": len(held),
+                "feature_distance_median": round(float(np.median(d)), 3),
+                "feature_distance_90pct": round(float(np.percentile(d, 90)), 3),
+                "share_outside_training_cells": round(
+                    float(
+                        np.mean(
+                            [
+                                tuple(r) not in cells(zt)
+                                for r in np.stack(
+                                    [
+                                        np.digitize(zh[:, i], np.linspace(-3, 3, BINS + 1))
+                                        for i in range(zh.shape[1])
+                                    ],
+                                    1,
+                                )
+                            ]
+                        )
+                    ),
+                    3,
+                ),
+                "loco_mae": round(float(skill["from_reference_mae"].iloc[0]), 3)
+                if len(skill)
+                else np.nan,
+                "loco_r2": round(float(skill["from_reference_r2"].iloc[0]), 3)
+                if len(skill)
+                else np.nan,
+            }
+        )
     table = pd.DataFrame(rows).sort_values("loco_mae")
     print(table.to_string(index=False))
     table.to_csv(out / "fold_coverage.csv", index=False)
 
     ok = table.dropna(subset=["loco_mae"])
-    for col in ("feature_distance_median", "feature_distance_90pct",
-                "share_outside_training_cells"):
+    for col in (
+        "feature_distance_median",
+        "feature_distance_90pct",
+        "share_outside_training_cells",
+    ):
         r = float(ok[col].corr(ok["loco_mae"]))
         rho = float(ok[col].corr(ok["loco_mae"], method="spearman"))
         print(f"  {col} against LOCO MAE: pearson {r:+.3f}, spearman {rho:+.3f}")
-    print("\nIf these are near zero, coverage does not explain the holdouts "
-          "either, and that is the result.")
+    print(
+        "\nIf these are near zero, coverage does not explain the holdouts "
+        "either, and that is the result."
+    )
 
 
 def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--pool", type=Path, default=POOL,
-                        help=f"The control-point pool (default: {POOL})")
-    parser.add_argument("--loco", type=Path, default=LOCO,
-                        help=f"The LOCO reference-wind scores (default: {LOCO})")
-    parser.add_argument("--refresh", type=Path, default=REFRESH,
-                        help=f"The refresh runs holding each region's fleet (default: {REFRESH})")
+    parser.add_argument(
+        "--pool", type=Path, default=POOL, help=f"The control-point pool (default: {POOL})"
+    )
+    parser.add_argument(
+        "--loco", type=Path, default=LOCO, help=f"The LOCO reference-wind scores (default: {LOCO})"
+    )
+    parser.add_argument(
+        "--refresh",
+        type=Path,
+        default=REFRESH,
+        help=f"The refresh runs holding each region's fleet (default: {REFRESH})",
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, pool_path=args.pool, loco_path=args.loco, refresh=args.refresh)
 

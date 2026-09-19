@@ -24,6 +24,7 @@ loudly on any plant still lacking a coordinate.
     python scripts/process/cen_cl.py
     python scripts/process/cen_cl.py --years 2021 2024
 """
+
 import argparse
 import glob
 import json
@@ -43,31 +44,44 @@ from vwf.datasets.cen_cl import (
     wind_fleet_from_generation,
 )
 
+
 def load_generation(raw_dir: Path, y0: int, y1: int) -> pd.DataFrame:
     paths = sorted(glob.glob(str(raw_dir / "cen_gen_*.json")))
     paths = [p for p in paths if y0 <= int(Path(p).stem.split("_")[-2]) <= y1]
     if not paths:
-        sys.exit(f"no cen_gen_*.json under {raw_dir} for {y0}-{y1}; run "
-                 "scripts/fetch/cen_cl.py --years first.")
-    return pd.concat([pd.DataFrame(json.load(open(p))) for p in paths],
-                     ignore_index=True)
+        sys.exit(
+            f"no cen_gen_*.json under {raw_dir} for {y0}-{y1}; run "
+            "scripts/fetch/cen_cl.py --years first."
+        )
+    return pd.concat([pd.DataFrame(json.load(open(p))) for p in paths], ignore_index=True)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     add_input_path(ap, "--raw", "raw", "cen")
-    add_input_path(ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx")
+    add_input_path(
+        ap, "--gwpt", "reference", "gwpt", "Global-Wind-Power-Tracker-February-2026.xlsx"
+    )
     ap.add_argument("--overrides", default="configs/curation/cl_coord_overrides.csv")
-    ap.add_argument("--exclusions", default="configs/curation/cl_fleet_exclusions.csv",
-                    help="Plants dropped from the fleet, one row each with its reason; add a row "
-                    "to the coordinate overrides instead to reinstate one whose location is verified")
-    ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024],
-                    metavar=("START", "END"))
+    ap.add_argument(
+        "--exclusions",
+        default="configs/curation/cl_fleet_exclusions.csv",
+        help="Plants dropped from the fleet, one row each with its reason; add a row "
+        "to the coordinate overrides instead to reinstate one whose location is verified",
+    )
+    ap.add_argument("--years", type=int, nargs=2, default=[2021, 2024], metavar=("START", "END"))
     add_input_path(ap, "--out", "observations", "turbine", "CL")
-    ap.add_argument("--height", type=float, default=100.0,
-                    help="Uniform hub-height default, m (CEN has no hub height)")
-    ap.add_argument("--model", default="2019COE_Market_Average_2.6MW_121",
-                    help="Uniform power-curve key (a column of power_curves.csv)")
+    ap.add_argument(
+        "--height",
+        type=float,
+        default=100.0,
+        help="Uniform hub-height default, m (CEN has no hub height)",
+    )
+    ap.add_argument(
+        "--model",
+        default="2019COE_Market_Average_2.6MW_121",
+        help="Uniform power-curve key (a column of power_curves.csv)",
+    )
     args = ap.parse_args()
 
     y0, y1 = args.years
@@ -77,7 +91,9 @@ def main() -> None:
 
     g = projects_with_keys(load_gwpt(Path(args.gwpt)), "Chile", cl_plant_key)
     ov_path = Path(args.overrides)
-    overrides = pd.read_csv(ov_path) if ov_path.is_file() else pd.DataFrame(columns=["ID", "lon", "lat"])
+    overrides = (
+        pd.read_csv(ov_path) if ov_path.is_file() else pd.DataFrame(columns=["ID", "lon", "lat"])
+    )
     coords, residual = match_coordinates(fleet, g, overrides)
 
     out = Path(args.out)
@@ -85,16 +101,21 @@ def main() -> None:
     obs.to_csv(out / "cl_obs.csv", index=False)
     residual.to_csv(out / "cl_coord_residual.csv", index=False)
 
-    print(f"CEN wind plants: {len(fleet)} | auto/override-matched: {len(coords)} "
-          f"| residual (need curation): {len(residual)}")
+    print(
+        f"CEN wind plants: {len(fleet)} | auto/override-matched: {len(coords)} "
+        f"| residual (need curation): {len(residual)}"
+    )
     if len(residual):
-        print(f"  -> fill configs/curation/cl_coord_overrides.csv (ID,lon,lat) from "
-              f"{out/'cl_coord_residual.csv'} then re-run.")
+        print(
+            f"  -> fill configs/curation/cl_coord_overrides.csv (ID,lon,lat) from "
+            f"{out / 'cl_coord_residual.csv'} then re-run."
+        )
 
     exclude = tuple(pd.read_csv(args.exclusions, dtype=str)["ID"])
     try:
-        md = build_cl_metadata(fleet, coords.rename(columns={}), height=args.height,
-                               model=args.model, exclude=exclude)
+        md = build_cl_metadata(
+            fleet, coords.rename(columns={}), height=args.height, model=args.model, exclude=exclude
+        )
     except ValueError as exc:
         (out / "cl_md.csv").unlink(missing_ok=True)
         print(f"\nmetadata NOT written: {exc}", file=sys.stderr)
@@ -102,22 +123,27 @@ def main() -> None:
 
     md.to_csv(out / "cl_md.csv", index=False)
     lines = [
-        "# Chile (CEN) join report", "",
-        f"- wind plants: {len(fleet)}; matched to GWPT: {len(coords)}; "
-        f"metadata rows: {len(md)}",
-        f"- capacity: {md['capacity'].sum()/1e6:.2f} GW; "
+        "# Chile (CEN) join report",
+        "",
+        f"- wind plants: {len(fleet)}; matched to GWPT: {len(coords)}; metadata rows: {len(md)}",
+        f"- capacity: {md['capacity'].sum() / 1e6:.2f} GW; "
         f"lat {md['lat'].min():.1f}..{md['lat'].max():.1f}",
         "- height/model are uniform defaults (CEN has neither); coords from GWPT.",
-        "", "## matches", "",
-        "| ID | CEN plant | cap MW | GWPT match |", "|---|---|---|---|",
+        "",
+        "## matches",
+        "",
+        "| ID | CEN plant | cap MW | GWPT match |",
+        "|---|---|---|---|",
     ]
     cap_by_id = dict(zip(fleet["ID"].astype(str), fleet["capacity_mw"]))
     for r in coords.itertuples():
-        lines.append(f"| {r.ID} | {fleet.loc[fleet['ID'].astype(str)==r.ID,'site_name'].iloc[0]} "
-                     f"| {cap_by_id.get(r.ID,'')} | {r.gwpt_name} |")
+        lines.append(
+            f"| {r.ID} | {fleet.loc[fleet['ID'].astype(str) == r.ID, 'site_name'].iloc[0]} "
+            f"| {cap_by_id.get(r.ID, '')} | {r.gwpt_name} |"
+        )
     (out / "join_report.md").write_text("\n".join(lines))
-    print(f"metadata: {len(md)} plants -> {out/'cl_md.csv'}")
-    print(f"observations -> {out/'cl_obs.csv'} | join report -> {out/'join_report.md'}")
+    print(f"metadata: {len(md)} plants -> {out / 'cl_md.csv'}")
+    print(f"observations -> {out / 'cl_obs.csv'} | join report -> {out / 'join_report.md'}")
 
 
 if __name__ == "__main__":

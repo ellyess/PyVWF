@@ -28,6 +28,7 @@ Usage, from the repository root:
 
     PYTHONPATH=src python scripts/studies/method-correction-identifiability/loco_reference_wind.py <out_dir>
 """
+
 import importlib.util
 from pathlib import Path
 
@@ -39,7 +40,9 @@ from vwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    "loco_interpolation", REPO / "scripts" / "studies" / "method-loco-interpolation" / "loco_interpolation.py")
+    "loco_interpolation",
+    REPO / "scripts" / "studies" / "method-loco-interpolation" / "loco_interpolation.py",
+)
 _loco = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_loco)
 
@@ -58,8 +61,9 @@ def as_reference(frame: pd.DataFrame) -> pd.DataFrame:
     ``(a, b)``, so nothing is lost and only the conditioning changes.
     """
     v1, v2 = REFERENCE_WINDS
-    return frame.assign(scalar=frame["scalar"] * v1 + frame["offset"],
-                        offset=frame["scalar"] * v2 + frame["offset"])
+    return frame.assign(
+        scalar=frame["scalar"] * v1 + frame["offset"], offset=frame["scalar"] * v2 + frame["offset"]
+    )
 
 
 def main(out_dir: str, pool_path: Path = POOL) -> None:
@@ -72,21 +76,31 @@ def main(out_dir: str, pool_path: Path = POOL) -> None:
     ref = as_reference(pool)
     for name, col in (("u8", "scalar"), ("u12", "offset")):
         grand = float(ref[col].mean())
-        within = float(ref.groupby("country_code")[col]
-                       .apply(lambda s: ((s - s.mean()) ** 2).sum()).sum())
-        between = float(ref.groupby("country_code")[col]
-                        .apply(lambda s: len(s) * (s.mean() - grand) ** 2).sum())
-        print(f"  {name}: mean {grand:.3f}, within-row share of variance "
-              f"{within / (within + between):.3f}, between-row "
-              f"{between / (within + between):.3f}")
+        within = float(
+            ref.groupby("country_code")[col].apply(lambda s: ((s - s.mean()) ** 2).sum()).sum()
+        )
+        between = float(
+            ref.groupby("country_code")[col].apply(lambda s: len(s) * (s.mean() - grand) ** 2).sum()
+        )
+        print(
+            f"  {name}: mean {grand:.3f}, within-row share of variance "
+            f"{within / (within + between):.3f}, between-row "
+            f"{between / (within + between):.3f}"
+        )
     for col in ("scalar", "offset"):
         grand = float(pool[col].mean())
-        within = float(pool.groupby("country_code")[col]
-                       .apply(lambda s: ((s - s.mean()) ** 2).sum()).sum())
-        between = float(pool.groupby("country_code")[col]
-                        .apply(lambda s: len(s) * (s.mean() - grand) ** 2).sum())
-        print(f"  {col}: mean {grand:.3f}, within-row share {within / (within + between):.3f}, "
-              f"between-row {between / (within + between):.3f}")
+        within = float(
+            pool.groupby("country_code")[col].apply(lambda s: ((s - s.mean()) ** 2).sum()).sum()
+        )
+        between = float(
+            pool.groupby("country_code")[col]
+            .apply(lambda s: len(s) * (s.mean() - grand) ** 2)
+            .sum()
+        )
+        print(
+            f"  {col}: mean {grand:.3f}, within-row share {within / (within + between):.3f}, "
+            f"between-row {between / (within + between):.3f}"
+        )
 
     rows = []
     for name, index in _loco.folds(pool).items():
@@ -98,41 +112,66 @@ def main(out_dir: str, pool_path: Path = POOL) -> None:
                 try:
                     a_hat, b_hat = _loco.predict(method, train_c, test_c, metric)
                     u1_hat, u2_hat = _loco.predict(method, train_r, test_r, metric)
-                except Exception as error:   # recorded, never silently skipped
-                    rows.append({"fold": name, "metric": metric, "method": method,
-                                 "failed": f"{type(error).__name__}: {error}"})
+                except Exception as error:  # recorded, never silently skipped
+                    rows.append(
+                        {
+                            "fold": name,
+                            "metric": metric,
+                            "method": method,
+                            "failed": f"{type(error).__name__}: {error}",
+                        }
+                    )
                     continue
                 # The coefficient prediction, converted into the same units, so
                 # the two are compared on one scale.
                 converted = np.asarray(a_hat) * v1 + np.asarray(b_hat)
                 actual = test_r["scalar"].to_numpy()
-                row = {"fold": name, "n": len(test_c), "metric": metric,
-                       "method": method}
-                for prefix, pred in (("from_coefficients", converted),
-                                     ("from_reference", np.asarray(u1_hat))):
+                row = {"fold": name, "n": len(test_c), "metric": metric, "method": method}
+                for prefix, pred in (
+                    ("from_coefficients", converted),
+                    ("from_reference", np.asarray(u1_hat)),
+                ):
                     for key, value in _loco.skill(pred, actual).items():
                         row[f"{prefix}_{key}"] = value
-                row["prediction_difference"] = float(
-                    np.abs(converted - np.asarray(u1_hat)).max())
+                row["prediction_difference"] = float(np.abs(converted - np.asarray(u1_hat)).max())
                 rows.append(row)
 
     frame = pd.DataFrame(rows)
     frame.to_csv(out / "loco_reference_wind.csv", index=False)
     done = frame[frame.get("failed").isna()] if "failed" in frame else frame
     with pd.option_context("display.width", 250, "display.max_columns", 30):
-        print(f"\n=== do the two bases predict the same thing? "
-              f"(largest disagreement at {v1:g} m/s, per method)")
-        print(done.groupby("method")["prediction_difference"]
-              .describe()[["max"]].round(9).to_string())
+        print(
+            f"\n=== do the two bases predict the same thing? "
+            f"(largest disagreement at {v1:g} m/s, per method)"
+        )
+        print(
+            done.groupby("method")["prediction_difference"].describe()[["max"]].round(9).to_string()
+        )
         print("\n=== error at the reference wind, by method, averaged over folds")
-        cols = ["from_coefficients_mae", "from_reference_mae",
-                "from_coefficients_r2", "from_reference_r2"]
+        cols = [
+            "from_coefficients_mae",
+            "from_reference_mae",
+            "from_coefficients_r2",
+            "from_reference_r2",
+        ]
         print(done.groupby(["metric", "method"])[cols].mean().round(4).to_string())
         print("\n=== every fold, great circle")
         gc = done[done.metric == "great_circle"]
-        print(gc[["fold", "n", "method", "from_coefficients_mae",
-                  "from_reference_mae", "from_coefficients_r2",
-                  "from_reference_r2"]].round(4).to_string(index=False))
+        print(
+            gc[
+                [
+                    "fold",
+                    "n",
+                    "method",
+                    "from_coefficients_mae",
+                    "from_reference_mae",
+                    "from_coefficients_r2",
+                    "from_reference_r2",
+                ]
+            ]
+            .round(4)
+            .to_string(index=False)
+        )
     print(f"\nwritten: {out / 'loco_reference_wind.csv'}")
 
 
@@ -140,8 +179,9 @@ def cli(argv: list[str] | None = None) -> None:
     """Parse the recorded command line, ``<out_dir>``, and run :func:`main`."""
     parser = make_parser(__doc__)
     parser.add_argument("out_dir", help="Directory for the outputs, under output/")
-    parser.add_argument("--pool", type=Path, default=POOL,
-                        help=f"The control-point pool (default: {POOL})")
+    parser.add_argument(
+        "--pool", type=Path, default=POOL, help=f"The control-point pool (default: {POOL})"
+    )
     args = parser.parse_args(argv)
     main(args.out_dir, pool_path=args.pool)
 

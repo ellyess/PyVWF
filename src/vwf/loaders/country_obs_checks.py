@@ -15,6 +15,7 @@ The thresholds are deliberately loose. They are a floor on physical
 possibility, not a judgement about whether a country's wind resource is well
 modelled.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -94,8 +95,9 @@ DRIFT_MIN_YEARS = 3
 MAX_MISSING_FRACTION = 0.05
 
 
-def longest_unchanged_run(capacity: pd.Series, index: pd.DatetimeIndex
-                          ) -> tuple[int, tuple[int, int] | None]:
+def longest_unchanged_run(
+    capacity: pd.Series, index: pd.DatetimeIndex
+) -> tuple[int, tuple[int, int] | None]:
     """The longest run of consecutive calendar years holding one capacity.
 
     Args:
@@ -276,9 +278,7 @@ def check_country_cf(
 
     mean_cf = float(valid.mean()) if len(valid) else float("nan")
     peak_cf = float(valid.max()) if len(valid) else float("nan")
-    frac_clipped = (
-        float((valid >= CLIP_CEILING - 1e-9).mean()) if len(valid) else float("nan")
-    )
+    frac_clipped = float((valid >= CLIP_CEILING - 1e-9).mean()) if len(valid) else float("nan")
 
     failures: list[str] = []
     warnings_: list[str] = []
@@ -297,22 +297,24 @@ def check_country_cf(
         n_above, share_above = int(above.sum()), float(above.mean())
         monthly_over = _months_above_one(valid, index) if n_above else []
         if n_above:
-            where = (f"{n_above} of {len(valid)} rows ({share_above:.3%}) "
-                     f"exceed 1, peak {peak_cf:.3f}")
+            where = (
+                f"{n_above} of {len(valid)} rows ({share_above:.3%}) exceed 1, peak {peak_cf:.3f}"
+            )
             if monthly_over or share_above > FAIL_SHARE_ABOVE_MAX_CF:
-                months = (f"; {len(monthly_over)} calendar month"
-                          f"{'' if len(monthly_over) == 1 else 's'} have a MEAN "
-                          f"above 1 ({', '.join(monthly_over[:4])}"
-                          f"{', ...' if len(monthly_over) > 4 else ''})"
-                          if monthly_over else "")
+                months = (
+                    f"; {len(monthly_over)} calendar month"
+                    f"{'' if len(monthly_over) == 1 else 's'} have a MEAN "
+                    f"above 1 ({', '.join(monthly_over[:4])}"
+                    f"{', ...' if len(monthly_over) > 4 else ''})"
+                    if monthly_over
+                    else ""
+                )
                 failures.append(
-                    f"{where}{months}; generation and capacity are not on a "
-                    "consistent basis"
+                    f"{where}{months}; generation and capacity are not on a consistent basis"
                 )
             elif share_above > WARN_SHARE_ABOVE_MAX_CF:
                 warnings_.append(
-                    f"{where}; the denominator does not track the fleet within "
-                    "the year"
+                    f"{where}; the denominator does not track the fleet within the year"
                 )
             else:
                 notes.append(
@@ -328,8 +330,7 @@ def check_country_cf(
                 f"the {CLIP_CEILING} clip ceiling, so the true value is discarded "
                 "rather than wrong"
             )
-            (failures if frac_clipped > WARN_SHARE_ABOVE_MAX_CF
-             else notes).append(message)
+            (failures if frac_clipped > WARN_SHARE_ABOVE_MAX_CF else notes).append(message)
 
         if (
             step_hours is not None
@@ -377,13 +378,16 @@ def check_country_cf(
                 # and so passed Portugal at 15.5% and Sweden at 19.9%, both of
                 # which hold one number for five straight years while their
                 # fleets grew.
-                kept = index[pd.to_numeric(obs["capacity_mw"], errors="coerce")
-                             .notna().to_numpy()]
+                kept = index[pd.to_numeric(obs["capacity_mw"], errors="coerce").notna().to_numpy()]
                 unchanged_years, span = longest_unchanged_run(cap, kept)
                 unchanged_span = span
                 if unchanged_years >= MAX_UNCHANGED_YEARS and span is not None:
-                    held = float(pd.Series(cap.to_numpy(), index=kept)
-                                 .groupby(kept.year).median().loc[span[0]])
+                    held = float(
+                        pd.Series(cap.to_numpy(), index=kept)
+                        .groupby(kept.year)
+                        .median()
+                        .loc[span[0]]
+                    )
                     failures.append(
                         f"installed capacity is unchanged at {held:.0f} MW across "
                         f"{unchanged_years} consecutive years ({span[0]} to "
@@ -402,8 +406,9 @@ def check_country_cf(
         frac_missing=frac_missing,
         n_clipped=n_clipped if len(valid) else 0,
         longest_unchanged_years=unchanged_years,
-        unchanged_span="" if unchanged_span is None
-                       else f"{unchanged_span[0]} to {unchanged_span[1]}",
+        unchanged_span=""
+        if unchanged_span is None
+        else f"{unchanged_span[0]} to {unchanged_span[1]}",
         failures=failures,
         warnings_=warnings_,
         notes=notes,

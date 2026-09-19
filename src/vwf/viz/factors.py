@@ -23,6 +23,7 @@ Free functions; they take the factors table and turbine metadata the package
 itself produces and return a ``matplotlib.figure.Figure`` so the caller
 decides what to do next (``fig.savefig(...)``, further tweaks, etc.).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -97,8 +98,7 @@ def _select_period(factors: pd.DataFrame, period) -> pd.DataFrame:
     if sel.empty:
         available = sorted(factors[slice_cols[0]].astype(str).unique())
         raise ValueError(
-            f"period {period!r} not found in column {slice_cols[0]!r}; "
-            f"available: {available}"
+            f"period {period!r} not found in column {slice_cols[0]!r}; available: {available}"
         )
     return sel
 
@@ -205,9 +205,7 @@ def plot_correction_factor_map(
         geometry_type="voronoi",
     )
     if cluster_gdf is None:
-        raise ImportError(
-            "geopandas is required for plot_correction_factor_map"
-        )
+        raise ImportError("geopandas is required for plot_correction_factor_map")
 
     cells = cluster_gdf.merge(per_cluster, on="cluster", how="left")
     cells = cells[~cells.geometry.is_empty & cells.geometry.notna()]
@@ -235,14 +233,16 @@ def plot_correction_factor_map(
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
         fig.colorbar(
-            sm, ax=ax, orientation="horizontal", fraction=0.046, pad=0.04,
+            sm,
+            ax=ax,
+            orientation="horizontal",
+            fraction=0.046,
+            pad=0.04,
             label=label,
         )
 
     suffix = f" ({period})" if period is not None else ""
-    fig.suptitle(
-        f"Learned correction factors, {n_clu} clusters{suffix}", fontsize=10
-    )
+    fig.suptitle(f"Learned correction factors, {n_clu} clusters{suffix}", fontsize=10)
     return fig
 
 
@@ -289,16 +289,25 @@ def plot_factor_joint(
 
     fig = plt.figure(figsize=figsize, layout="constrained")
     gs = fig.add_gridspec(
-        2, 2, width_ratios=(4, 1), height_ratios=(1, 4),
-        hspace=0.02, wspace=0.02,
+        2,
+        2,
+        width_ratios=(4, 1),
+        height_ratios=(1, 4),
+        hspace=0.02,
+        wspace=0.02,
     )
     ax = fig.add_subplot(gs[1, 0])
     ax_hx = fig.add_subplot(gs[0, 0], sharex=ax)
     ax_hy = fig.add_subplot(gs[1, 1], sharey=ax)
 
     ax.scatter(
-        scalar, offset, s=14, color=color, alpha=0.7,
-        edgecolor="black", linewidths=0.3,
+        scalar,
+        offset,
+        s=14,
+        color=color,
+        alpha=0.7,
+        edgecolor="black",
+        linewidths=0.3,
     )
     # Neutral cross: the correction is a no-op at (1, 0)
     ax.axvline(1.0, color="grey", linewidth=0.8, linestyle="--", zorder=0)
@@ -324,7 +333,5 @@ def plot_factor_joint(
 
     suffix = f" ({period})" if period is not None else ""
     n_clu = int(sel["cluster"].nunique())
-    fig.suptitle(
-        f"Learned correction factors, {n_clu} clusters{suffix}", fontsize=10
-    )
+    fig.suptitle(f"Learned correction factors, {n_clu} clusters{suffix}", fontsize=10)
     return fig

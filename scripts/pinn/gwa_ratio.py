@@ -15,6 +15,7 @@ Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/gwa_ratio.py \
          --cache output/pinn_loco_2026-09-16/cache --gwa input/raw/gwa4 \
          --out output/pinn_turbine_2026-09-18/gwa
 """
+
 import argparse
 import hashlib
 import json
@@ -28,8 +29,17 @@ from vwf.harness.provenance import build_manifest, write_manifest  # noqa: E402
 from vwf.pinn.cache import load_cache  # noqa: E402
 from vwf.pinn.gwa import RATIO_BOUNDS, gwa_ratio  # noqa: E402
 
-ISO3 = {"DK": "DNK", "DE": "DEU", "UK": "GBR", "US": "USA", "BR": "BRA",
-        "AR": "ARG", "AU-NEM": "AUS", "CL": "CHL", "NZ": "NZL"}
+ISO3 = {
+    "DK": "DNK",
+    "DE": "DEU",
+    "UK": "GBR",
+    "US": "USA",
+    "BR": "BRA",
+    "AR": "ARG",
+    "AU-NEM": "AUS",
+    "CL": "CHL",
+    "NZ": "NZL",
+}
 RADIUS_KM = 2.5
 
 
@@ -52,15 +62,18 @@ def main():
     record, rasters = {}, {}
     for code in args.regions:
         raster = Path(args.gwa) / f"{ISO3[code]}_wind-speed_100m.tif"
-        rasters[code] = {"path": str(raster),
-                         "sha256": hashlib.sha256(raster.read_bytes()).hexdigest()}
+        rasters[code] = {
+            "path": str(raster),
+            "sha256": hashlib.sha256(raster.read_bytes()).hexdigest(),
+        }
         for split in args.splits:
             cache = load_cache(code, split, args.cache)
             meta = cache.meta
             with np.errstate(invalid="ignore"):
                 era5_mean = np.nanmean(np.asarray(cache.w_mean, dtype=float), axis=0)
-            table = gwa_ratio(meta["ID"], meta["lon"], meta["lat"], era5_mean, raster,
-                              radius_km=RADIUS_KM)
+            table = gwa_ratio(
+                meta["ID"], meta["lon"], meta["lat"], era5_mean, raster, radius_km=RADIUS_KM
+            )
             table["capacity"] = meta["capacity"].to_numpy(dtype=float)
             table.to_csv(out / f"{code}_{split}.csv", index=False)
             cap = table["capacity"].sum()
@@ -77,11 +90,20 @@ def main():
     with open(out / "gwa_record.json", "w", encoding="utf-8") as fh:
         json.dump(record, fh, indent=2)
         fh.write("\n")
-    write_manifest(out, build_manifest(extra={
-        "run_mode": "pinn-gwa-ratio", "argv": sys.argv[1:], "cache": args.cache,
-        "radius_km": RADIUS_KM, "ratio_bounds": list(RATIO_BOUNDS), "rasters": rasters,
-        "record": record,
-    }))
+    write_manifest(
+        out,
+        build_manifest(
+            extra={
+                "run_mode": "pinn-gwa-ratio",
+                "argv": sys.argv[1:],
+                "cache": args.cache,
+                "radius_km": RADIUS_KM,
+                "ratio_bounds": list(RATIO_BOUNDS),
+                "rasters": rasters,
+                "record": record,
+            }
+        ),
+    )
 
 
 if __name__ == "__main__":

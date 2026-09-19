@@ -12,6 +12,7 @@ the cells within a radius of the unit, and ``E`` is the unit's mean ERA5 100 m
 speed. It is clipped to the speed-up's own bounds, and a unit with no atlas
 value within the radius gets 1. Nothing here imports torch.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,8 +26,9 @@ KM_PER_DEG = np.pi * EARTH_R_KM / 180.0
 RATIO_BOUNDS = (0.67, 2.46)
 
 
-def atlas_means(raster_path: str | Path, lon: np.ndarray, lat: np.ndarray,
-                radius_km: float = 2.5) -> np.ndarray:
+def atlas_means(
+    raster_path: str | Path, lon: np.ndarray, lat: np.ndarray, radius_km: float = 2.5
+) -> np.ndarray:
     """Mean atlas value over the cells whose centres lie within ``radius_km``.
 
     Cells equal to the raster's nodata value, not finite, or not above zero are
@@ -67,8 +69,15 @@ def atlas_means(raster_path: str | Path, lon: np.ndarray, lat: np.ndarray,
     return out
 
 
-def gwa_ratio(ids, lon, lat, era5_mean, raster_path, radius_km: float = 2.5,
-              bounds: tuple[float, float] = RATIO_BOUNDS) -> pd.DataFrame:
+def gwa_ratio(
+    ids,
+    lon,
+    lat,
+    era5_mean,
+    raster_path,
+    radius_km: float = 2.5,
+    bounds: tuple[float, float] = RATIO_BOUNDS,
+) -> pd.DataFrame:
     """The clipped atlas-to-ERA5 ratio per unit, with how each value arose.
 
     Returns:
@@ -81,6 +90,14 @@ def gwa_ratio(ids, lon, lat, era5_mean, raster_path, radius_km: float = 2.5,
     neutral = ~(np.isfinite(raw) & (raw > 0))
     ratio = np.where(neutral, 1.0, np.clip(raw, *bounds))
     clipped = ~neutral & ((raw < bounds[0]) | (raw > bounds[1]))
-    return pd.DataFrame({"ID": [str(i) for i in ids], "gwa_mean": gwa, "era5_mean": era5,
-                         "ratio_raw": raw, "ratio": ratio, "clipped": clipped,
-                         "neutral": neutral})
+    return pd.DataFrame(
+        {
+            "ID": [str(i) for i in ids],
+            "gwa_mean": gwa,
+            "era5_mean": era5,
+            "ratio_raw": raw,
+            "ratio": ratio,
+            "clipped": clipped,
+            "neutral": neutral,
+        }
+    )

@@ -11,6 +11,7 @@ numerically, and records both decisions in the harness's own format.
 Nothing here imports torch, so this file runs in CI, unlike
 ``test_pinn_physics.py``.
 """
+
 from types import SimpleNamespace
 
 import numpy as np
@@ -110,8 +111,14 @@ def test_the_loaded_extent_and_a_unit_beyond_it_are_recorded(tmp_path):
     assert np.isfinite(w[:, 0]).all()
     assert np.isnan(w[:, 1]).all()
 
-    fleet = pd.DataFrame({"ID": ["in", "out"], "lon": [8.25, 9.4],
-                          "lat": [55.25, 55.25], "capacity": [3000.0, 1000.0]})
+    fleet = pd.DataFrame(
+        {
+            "ID": ["in", "out"],
+            "lon": [8.25, 9.4],
+            "lat": [55.25, 55.25],
+            "capacity": [3000.0, 1000.0],
+        }
+    )
     spec = SimpleNamespace(bbox=(8.0, 8.5, 55.0, 55.5), allow_extrapolation=True)
     record = era5_record_for(reduction, fleet, spec)
     extent = record["era5_extent"]

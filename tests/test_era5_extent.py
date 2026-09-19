@@ -7,6 +7,7 @@ degrees beyond it, with nothing recorded. These tests pin the refusal, the
 opt-in and its record, and the load-time check that the data covers the
 requested bbox.
 """
+
 import json
 import warnings
 
@@ -45,10 +46,16 @@ def _grid(allow=None):
 
 
 def _units(lons, lats, capacity=(1.0, 3.0)):
-    return pd.DataFrame({
-        "ID": [f"u{i}" for i in range(len(lons))], "lon": lons, "lat": lats,
-        "height": 100.0, "capacity": list(capacity), "model": "m",
-    })
+    return pd.DataFrame(
+        {
+            "ID": [f"u{i}" for i in range(len(lons))],
+            "lon": lons,
+            "lat": lats,
+            "height": 100.0,
+            "capacity": list(capacity),
+            "model": "m",
+        }
+    )
 
 
 def test_coverage_counts_units_outside_the_loaded_extent():
@@ -99,15 +106,21 @@ def test_prep_era5_warns_when_the_data_stops_short_of_the_bbox(tmp_path):
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
         warnings.filterwarnings("ignore", message=".*BUNDLED.*")
-        ds = prep_era5("ZZ", False, True, bbox=(8.0, 9.5, 55.0, 56.0),
-                       era5_dir=tmp_path / "era5", allow_extrapolation=True)
+        ds = prep_era5(
+            "ZZ",
+            False,
+            True,
+            bbox=(8.0, 9.5, 55.0, 56.0),
+            era5_dir=tmp_path / "era5",
+            allow_extrapolation=True,
+        )
     assert ds.attrs[EXTRAPOLATION_ATTR] is True
 
 
 def test_region_config_parses_the_opt_in(tmp_path):
     base = open("configs/regions/scorecard/fr_country.toml").read()
     on = base.replace("[era5]\n", "[era5]\nallow_extrapolation = true\n", 1)
-    bad = base.replace("[era5]\n", "[era5]\nallow_extrapolation = \"yes\"\n", 1)
+    bad = base.replace("[era5]\n", '[era5]\nallow_extrapolation = "yes"\n', 1)
     (tmp_path / "on.toml").write_text(on)
     (tmp_path / "bad.toml").write_text(bad)
     assert load_region("configs/regions/scorecard/fr_country.toml").allow_extrapolation is False
@@ -117,21 +130,35 @@ def test_region_config_parses_the_opt_in(tmp_path):
 
 
 def _country_run(synthetic_dk, spec):  # noqa: F811
-    grid = pd.DataFrame({
-        "ID": ["g0", "g1", "g2", "g3"],
-        # g3 lies half a degree east of the synthetic grid's 9.5E edge.
-        "lon": [8.1, 8.3, 9.2, 10.0], "lat": [55.2, 55.4, 55.6, 55.8],
-        "height": [100.0] * 4, "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
-        "model": ["2019COE_Market_Average_2.6MW_121"] * 4,
-        "cluster": [0, 0, 1, 1], "type": ["onshore"] * 4,
-    })
+    grid = pd.DataFrame(
+        {
+            "ID": ["g0", "g1", "g2", "g3"],
+            # g3 lies half a degree east of the synthetic grid's 9.5E edge.
+            "lon": [8.1, 8.3, 9.2, 10.0],
+            "lat": [55.2, 55.4, 55.6, 55.8],
+            "height": [100.0] * 4,
+            "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
+            "model": ["2019COE_Market_Average_2.6MW_121"] * 4,
+            "cluster": [0, 0, 1, 1],
+            "type": ["onshore"] * 4,
+        }
+    )
     train_idx = pd.date_range("2015-01-01", "2015-12-31 23:00", freq="h", tz="UTC")
     test_idx = pd.date_range("2016-01-01", "2016-12-31 23:00", freq="h", tz="UTC")
     out = synthetic_dk["root"] / "extent"
-    train_dir = run_train(spec, out, source=InMemoryCountrySource(
-        grid, pd.DataFrame({"capacity_factor": 0.2}, index=train_idx)), run_name="t")
-    eval_dir = run_evaluate(spec, train_dir, out, source=InMemoryCountrySource(
-        grid, pd.DataFrame({"capacity_factor": 0.2}, index=test_idx)), run_name="e")
+    train_dir = run_train(
+        spec,
+        out,
+        source=InMemoryCountrySource(grid, pd.DataFrame({"capacity_factor": 0.2}, index=train_idx)),
+        run_name="t",
+    )
+    eval_dir = run_evaluate(
+        spec,
+        train_dir,
+        out,
+        source=InMemoryCountrySource(grid, pd.DataFrame({"capacity_factor": 0.2}, index=test_idx)),
+        run_name="e",
+    )
     return train_dir, eval_dir
 
 
@@ -142,8 +169,12 @@ def test_a_harness_run_outside_the_extent_is_refused(synthetic_dk):  # noqa: F81
 
 
 def test_an_opted_in_run_records_the_extrapolated_share(synthetic_dk):  # noqa: F811
-    spec = make_spec(source="in-memory-country", obs_level="country", obs_unit="country",
-                     allow_extrapolation=True)
+    spec = make_spec(
+        source="in-memory-country",
+        obs_level="country",
+        obs_unit="country",
+        allow_extrapolation=True,
+    )
     with pytest.warns(UserWarning, match="simulated from extrapolated winds"):
         train_dir, eval_dir = _country_run(synthetic_dk, spec)
     for run in (train_dir, eval_dir):

@@ -7,6 +7,7 @@ implementation detail. NZ DST anchors used (from the zone database, not
 hardcoded in the code under test): 2023-04-02 fall-back (50 periods),
 2023-09-24 spring-forward (46 periods).
 """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -31,6 +32,7 @@ from vwf.sources.emi_nz import EMINewZealandSource, apply_month_mask
 # Trading-period -> UTC mapping
 # ---------------------------------------------------------------------------
 
+
 def test_day_start_utc_winter_and_summer_offsets():
     # NZST (winter) is UTC+12; NZDT (summer) is UTC+13.
     starts = day_start_utc(pd.Series(["2023-06-15", "2023-01-15"]))
@@ -39,9 +41,7 @@ def test_day_start_utc_winter_and_summer_offsets():
 
 
 def test_expected_trading_periods_dst_days():
-    n = expected_trading_periods(
-        pd.Series(["2023-06-15", "2023-04-02", "2023-09-24"])
-    )
+    n = expected_trading_periods(pd.Series(["2023-06-15", "2023-04-02", "2023-09-24"]))
     assert n.tolist() == [48, 50, 46]
 
 
@@ -49,12 +49,10 @@ def test_trading_periods_are_contiguous_across_fall_back():
     """TP50 of the fall-back day must end exactly where the next day's TP1
     starts: sequential elapsed-time mapping, no gap and no double-count. A
     local-clock mapping (midnight + (n-1)*30min of wall time) would fail here."""
-    end_of_long_day = trading_period_start_utc(
-        pd.Series(["2023-04-02"]), pd.Series([50])
-    ).iloc[0] + pd.Timedelta(minutes=30)
-    next_day_tp1 = trading_period_start_utc(
-        pd.Series(["2023-04-03"]), pd.Series([1])
-    ).iloc[0]
+    end_of_long_day = trading_period_start_utc(pd.Series(["2023-04-02"]), pd.Series([50])).iloc[
+        0
+    ] + pd.Timedelta(minutes=30)
+    next_day_tp1 = trading_period_start_utc(pd.Series(["2023-04-03"]), pd.Series([1])).iloc[0]
     assert end_of_long_day == next_day_tp1
 
 
@@ -66,6 +64,7 @@ def test_tp_out_of_range_raises():
 # ---------------------------------------------------------------------------
 # Generation_MD melt
 # ---------------------------------------------------------------------------
+
 
 def gen_md_day(plant, date, kwh, *, n_periods=48):
     """One wide Generation_MD row: constant kWh in each existing period."""
@@ -102,6 +101,7 @@ def test_melt_accepts_full_fall_back_day():
 # Capacity history and monthly CF
 # ---------------------------------------------------------------------------
 
+
 def _register_two_stage():
     """Two units of one farm: 50 MW from 2019, +50 MW from 1 July 2020."""
     return pd.DataFrame(
@@ -137,11 +137,9 @@ def test_capacity_history_steps_at_second_unit():
 def test_monthly_cf_uses_then_current_capacity():
     """Half-build months must divide by the then-current 50 MW, not the final
     100 MW: a static-nameplate denominator would halve the CF and fail here."""
-    times = pd.date_range("2020-03-01", "2020-04-01", freq="30min",
-                          inclusive="left")
+    times = pd.date_range("2020-03-01", "2020-04-01", freq="30min", inclusive="left")
     # CF 0.4 against 50 MW: kwh = 50_000 kW * 0.5 h * 0.4
-    hh = pd.DataFrame({"ID": "wf_a", "timestamp": times,
-                       "kwh": 50_000 * 0.5 * 0.4})
+    hh = pd.DataFrame({"ID": "wf_a", "timestamp": times, "kwh": 50_000 * 0.5 * 0.4})
     wide = monthly_cf(hh, _history(), 2020, 2020, min_coverage=0.0)
     assert wide.iloc[0]["obs_3"] == pytest.approx(0.4, abs=1e-9)
 
@@ -154,8 +152,7 @@ def test_monthly_bins_are_utc_not_nz_local():
     hh = half_hourly_from_generation_md(gen, id_col="Gen_Code")
     hh = hh.rename(columns={"Gen_Code": "ID"})
     hist = pd.DataFrame(
-        {"ID": ["wf_a"], "effective_from": [pd.Timestamp("2019-01-01")],
-         "capacity": [50_000.0]}
+        {"ID": ["wf_a"], "effective_from": [pd.Timestamp("2019-01-01")], "capacity": [50_000.0]}
     )
     wide = monthly_cf(hh, hist, 2023, 2023, min_coverage=0.0)
     row = wide[wide["year"] == 2023].iloc[0]
@@ -164,12 +161,10 @@ def test_monthly_bins_are_utc_not_nz_local():
 
 
 def test_low_coverage_month_is_nan():
-    times = pd.date_range("2020-03-01", "2020-03-10", freq="30min",
-                          inclusive="left")
+    times = pd.date_range("2020-03-01", "2020-03-10", freq="30min", inclusive="left")
     hh = pd.DataFrame({"ID": "wf_a", "timestamp": times, "kwh": 1000.0})
     hist = pd.DataFrame(
-        {"ID": ["wf_a"], "effective_from": [pd.Timestamp("2019-01-01")],
-         "capacity": [50_000.0]}
+        {"ID": ["wf_a"], "effective_from": [pd.Timestamp("2019-01-01")], "capacity": [50_000.0]}
     )
     strict = monthly_cf(hh, hist, 2020, 2020)
     loose = monthly_cf(hh, hist, 2020, 2020, min_coverage=0.0)
@@ -178,8 +173,7 @@ def test_low_coverage_month_is_nan():
 
 
 def test_pre_registration_generation_is_dropped():
-    times = pd.date_range("2018-06-01", "2018-06-02", freq="30min",
-                          inclusive="left")
+    times = pd.date_range("2018-06-01", "2018-06-02", freq="30min", inclusive="left")
     hh = pd.DataFrame({"ID": "wf_a", "timestamp": times, "kwh": 1000.0})
     wide = monthly_cf(hh, _history(), 2018, 2018, min_coverage=0.0)
     assert len(wide) == 0 or np.isnan(wide.iloc[0]["obs_6"])
@@ -188,7 +182,7 @@ def test_pre_registration_generation_is_dropped():
 def test_below_final_build_mask_lists_ramp_months_only():
     mask = below_final_build_mask(_history(), 2020, 2020)
     masked = set(zip(mask["year"], mask["month"]))
-    assert (2020, 6) in masked      # still 50 of 100 MW
+    assert (2020, 6) in masked  # still 50 of 100 MW
     assert (2020, 7) not in masked  # full build from 1 July
     assert (2020, 12) not in masked
 
@@ -197,10 +191,14 @@ def test_below_final_build_mask_lists_ramp_months_only():
 # Source finalisation and registry
 # ---------------------------------------------------------------------------
 
+
 def _wide_obs():
     return pd.DataFrame(
-        {"ID": ["wf_a", "wf_a"], "year": [2020, 2021],
-         **{f"obs_{m}": [0.4, 0.5] for m in range(1, 13)}}
+        {
+            "ID": ["wf_a", "wf_a"],
+            "year": [2020, 2021],
+            **{f"obs_{m}": [0.4, 0.5] for m in range(1, 13)},
+        }
     )
 
 
@@ -218,9 +216,15 @@ def test_source_resolves_for_nz(monkeypatch, tmp_path):
     nz_dir = tmp_path / "NZ"
     nz_dir.mkdir()
     md = pd.DataFrame(
-        {"ID": ["wf_a"], "lon": [175.0], "lat": [-40.0], "height": [80.0],
-         "capacity": [100_000.0], "model": ["Vestas_V90_3000_90"],
-         "type": ["onshore"]}
+        {
+            "ID": ["wf_a"],
+            "lon": [175.0],
+            "lat": [-40.0],
+            "height": [80.0],
+            "capacity": [100_000.0],
+            "model": ["Vestas_V90_3000_90"],
+            "type": ["onshore"],
+        }
     )
     md.to_csv(nz_dir / "nz_md.csv", index=False)
     _wide_obs().to_csv(nz_dir / "nz_obs.csv", index=False)

@@ -1,4 +1,5 @@
 """AU-NEM raw-data processing: MMS parsing, fleet join, chunked partials."""
+
 import io
 
 import numpy as np
@@ -63,19 +64,32 @@ def gen_info_frame():
     return pd.DataFrame(
         {
             "Site Name": [
-                "Boco Rock Wind Farm", "Boco Rock Wind Farm",  # 2 unit groups, 1 DUID
-                "Ararat Wind Farm", "Proposed Farm", "Gas Plant", "WA Wind Farm",
+                "Boco Rock Wind Farm",
+                "Boco Rock Wind Farm",  # 2 unit groups, 1 DUID
+                "Ararat Wind Farm",
+                "Proposed Farm",
+                "Gas Plant",
+                "WA Wind Farm",
             ],
             "Technology Type": ["Wind", "Wind", "Wind", "Wind", "Gas Turbine", "Wind"],
             "DUID": ["BOCORWF1", "BOCORWF1", "ARWF1", None, "GAS1", "WAWF1"],
             "Commitment Status": [
-                "In Service", "In Service", "In Service", "Publicly Announced",
-                "In Service", "In Service",
+                "In Service",
+                "In Service",
+                "In Service",
+                "Publicly Announced",
+                "In Service",
+                "In Service",
             ],
             "Region": ["NSW1", "NSW1", "VIC1", "VIC1", "VIC1", "WEM"],
             "Agg Nameplate Capacity (MW AC)": [14.40, 98.60, 240.0, 100.0, 300.0, 50.0],
             "Full Commercial Use Date": [
-                pd.NaT, pd.NaT, pd.Timestamp("2017-06-01"), pd.NaT, pd.NaT, pd.NaT,
+                pd.NaT,
+                pd.NaT,
+                pd.Timestamp("2017-06-01"),
+                pd.NaT,
+                pd.NaT,
+                pd.NaT,
             ],
         }
     )
@@ -97,8 +111,11 @@ def gwpt_frame():
             "Country/Area": ["Australia"] * 4 + ["Germany"],
             "Status": ["operating", "operating", "operating", "construction", "operating"],
             "Project Name": [
-                "Ararat wind farm", "Boco Rock wind farm", "Boco Rock wind farm",
-                "Future farm", "Deutsch Windpark",
+                "Ararat wind farm",
+                "Boco Rock wind farm",
+                "Boco Rock wind farm",
+                "Future farm",
+                "Deutsch Windpark",
             ],
             "Capacity (MW)": [240.0, 60.0, 53.0, 90.0, 40.0],
             "Latitude": [-37.24, -36.90, -36.94, -35.0, 52.0],
@@ -127,8 +144,7 @@ def test_join_and_metadata_contract():
     assert len(matched) == 2 and len(unmatched_fleet) == 0 and len(unmatched_gwpt) == 0
 
     md = build_au_metadata(matched, height=100.0, model="2019COE_Market_Average_2.6MW_121")
-    required = {"ID", "lon", "lat", "height", "capacity", "model", "type",
-                "commissioning_date"}
+    required = {"ID", "lon", "lat", "height", "capacity", "model", "type", "commissioning_date"}
     assert required <= set(md.columns)
     boco = md[md["ID"] == "BOCORWF1"].iloc[0]
     assert boco["capacity"] == pytest.approx(113_000.0)  # MW -> kW
@@ -158,8 +174,12 @@ def test_duid_aliases_project_phase_and_below_threshold():
         {
             "Country/Area": ["Australia"] * 4,
             "Status": ["mothballed", "operating", "operating", "operating"],
-            "Project Name": ["Alpha wind farm", "Beta wind farm", "Beta wind farm",
-                             "Epsilon wind farm"],
+            "Project Name": [
+                "Alpha wind farm",
+                "Beta wind farm",
+                "Beta wind farm",
+                "Epsilon wind farm",
+            ],
             "Phase Name": ["--", "1", "2", "--"],
             "Capacity (MW)": [100.0, 50.0, 48.0, 20.0],
             "Latitude": [-37.0, -36.0, -36.5, -38.0],
@@ -178,9 +198,9 @@ def test_duid_aliases_project_phase_and_below_threshold():
         }
     )
     alias_map = {
-        "AAWF1": "Alpha wind farm",                    # any-status project
-        "BBWF1": "Beta wind farm|1",                   # single phase
-        "CCWF1": "BT:Gamma wind farm",                 # below threshold
+        "AAWF1": "Alpha wind farm",  # any-status project
+        "BBWF1": "Beta wind farm|1",  # single phase
+        "CCWF1": "BT:Gamma wind farm",  # below threshold
         "DDWF1": "Alpha wind farm;Epsilon wind farm",  # multi-target centroid
     }
     matched, still = resolve_duid_aliases(unmatched, alias_map, gwpt_data, gwpt_below)
@@ -202,14 +222,25 @@ def test_duid_alias_typo_fails_loudly():
     from vwf.datasets.aemo_au import resolve_duid_aliases
 
     unmatched = pd.DataFrame(
-        {"ID": ["AAWF1"], "site_name": ["Alpha"], "region": ["VIC1"],
-         "capacity_mw": [100.0], "fcud": [pd.NaT]}
+        {
+            "ID": ["AAWF1"],
+            "site_name": ["Alpha"],
+            "region": ["VIC1"],
+            "capacity_mw": [100.0],
+            "fcud": [pd.NaT],
+        }
     )
     gwpt_data = pd.DataFrame(
-        {"Country/Area": ["Australia"], "Status": ["operating"],
-         "Project Name": ["Alpha wind farm"], "Phase Name": ["--"],
-         "Capacity (MW)": [100.0], "Latitude": [-37.0], "Longitude": [143.0],
-         "Start year": [2020]}
+        {
+            "Country/Area": ["Australia"],
+            "Status": ["operating"],
+            "Project Name": ["Alpha wind farm"],
+            "Phase Name": ["--"],
+            "Capacity (MW)": [100.0],
+            "Latitude": [-37.0],
+            "Longitude": [143.0],
+            "Start year": [2020],
+        }
     )
     with pytest.raises(ValueError, match="matched no GWPT row"):
         resolve_duid_aliases(unmatched, {"AAWF1": "Alpah wind farm"}, gwpt_data)
@@ -220,6 +251,7 @@ def test_duid_alias_typo_fails_loudly():
 # straddle UTC months. Must-distinguish: the straddle is real on this
 # fixture, and recombination fixes it.
 # ---------------------------------------------------------------------------
+
 
 def five_min(start, end, duid, mw):
     times = pd.date_range(start, end, freq="5min", inclusive="left")
@@ -245,7 +277,7 @@ def test_chunked_partials_equal_one_shot_across_utc_boundary():
     # (00:00-09:55 AEST on 1 Feb is 31 Jan UTC), so naive per-chunk months
     # would double-report January. Distinguishable, not vacuous.
     feb_partial = scada_partial_aggregate(chunk_feb)
-    assert ((feb_partial["month"] == 1).any())
+    assert (feb_partial["month"] == 1).any()
 
 
 def test_fast_path_equals_raw_scada_path(tmp_path, monkeypatch):
@@ -254,8 +286,13 @@ def test_fast_path_equals_raw_scada_path(tmp_path, monkeypatch):
     scada = five_min("2021-01-01", "2022-01-01", "F1", 25.0)
     metadata = pd.DataFrame(
         {
-            "ID": ["F1"], "lon": [149.0], "lat": [-35.0], "height": [100.0],
-            "capacity": [100_000.0], "model": ["M"], "type": ["onshore"],
+            "ID": ["F1"],
+            "lon": [149.0],
+            "lat": [-35.0],
+            "height": [100.0],
+            "capacity": [100_000.0],
+            "model": ["M"],
+            "type": ["onshore"],
         }
     )
     data_dir = tmp_path / "AU_NEM"
@@ -310,9 +347,9 @@ def test_capacity_history_and_mask_reasons():
     mask = capacity_mask_months(hist, scada_months)
     by_key = {(r["year"], r["month"]): r["reason"] for _, r in mask.iterrows()}
     assert by_key[(2020, 12)] == "pre-registration"
-    assert by_key[(2021, 2)] == "below-final-build"   # at 50 of final 100
-    assert by_key[(2021, 3)] == "mid-month-change"    # 50 -> 100 on 15 March
-    assert (2021, 6) not in by_key                    # fully built: kept
+    assert by_key[(2021, 2)] == "below-final-build"  # at 50 of final 100
+    assert by_key[(2021, 3)] == "mid-month-change"  # 50 -> 100 on 15 March
+    assert (2021, 6) not in by_key  # fully built: kept
 
 
 def test_capacity_mask_flows_through_source(tmp_path, monkeypatch):
@@ -320,8 +357,15 @@ def test_capacity_mask_flows_through_source(tmp_path, monkeypatch):
     without it the same month has a value."""
     scada = five_min("2021-01-01", "2022-01-01", "F1", 25.0)
     metadata = pd.DataFrame(
-        {"ID": ["F1"], "lon": [149.0], "lat": [-35.0], "height": [100.0],
-         "capacity": [100_000.0], "model": ["M"], "type": ["onshore"]}
+        {
+            "ID": ["F1"],
+            "lon": [149.0],
+            "lat": [-35.0],
+            "height": [100.0],
+            "capacity": [100_000.0],
+            "model": ["M"],
+            "type": ["onshore"],
+        }
     )
     data_dir = tmp_path / "AU_NEM"
     data_dir.mkdir()
@@ -332,9 +376,9 @@ def test_capacity_mask_flows_through_source(tmp_path, monkeypatch):
     unmasked = AEMONemSource().load_observations(2021, 2021)
     assert unmasked.iloc[0]["obs_6"] == pytest.approx(0.25, abs=0.005)
 
-    pd.DataFrame({"ID": ["F1"], "year": [2021], "month": [6],
-                  "reason": ["below-final-build"]}).to_csv(
-        data_dir / "au_nem_capacity_mask.csv", index=False)
+    pd.DataFrame(
+        {"ID": ["F1"], "year": [2021], "month": [6], "reason": ["below-final-build"]}
+    ).to_csv(data_dir / "au_nem_capacity_mask.csv", index=False)
     masked = AEMONemSource().load_observations(2021, 2021)
     assert np.isnan(masked.iloc[0]["obs_6"])
     # ...and only that month: July untouched.
@@ -349,10 +393,12 @@ def test_partials_compose_with_full_transform():
     metadata = pd.DataFrame({"ID": ["F1"], "capacity": [100_000.0]})
     direct = scada_to_monthly_cf(scada, metadata, 2021, 2021)
 
-    halves = [scada.iloc[: len(scada) // 2], scada.iloc[len(scada) // 2:]]
+    halves = [scada.iloc[: len(scada) // 2], scada.iloc[len(scada) // 2 :]]
     via_partials = finalise_monthly_cf(
         combine_partials([scada_partial_aggregate(h) for h in halves]),
-        metadata, 2021, 2021,
+        metadata,
+        2021,
+        2021,
     )
     pd.testing.assert_frame_equal(direct, via_partials)
     assert not np.isnan(direct.iloc[0]["obs_3"])
