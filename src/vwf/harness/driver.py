@@ -24,7 +24,13 @@ import pandas as pd
 import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
-from vwf.data import assign_country_clusters, train_set, val_obs_and_fleet, val_set
+from vwf.data import (
+    assign_country_clusters,
+    min_accepted_years,
+    train_set,
+    val_obs_and_fleet,
+    val_set,
+)
 from vwf.harness.corrections import fit_quality, get_correction
 from vwf.provenance import (
     CURVE_RESOLUTION_NAME,
@@ -237,6 +243,30 @@ def _tidy_eval_frame(
     return merged.merge(capacity, on="ID", how="left")
 
 
+def _record_accepted_years(factors: pd.DataFrame, time_res: str, n_training_years: int) -> dict:
+    """How many accepted years each factor rests on, for the manifest (#28).
+
+    The same counts are the factors table's ``n_years`` column; the manifest
+    carries them so a run's record says, without the table, which factors rest
+    on fewer than all their training years, which were refused, and which were
+    never fitted and carry the identity.
+    """
+    per_slice: dict[str, dict[str, int]] = {}
+    for slice_label, cluster, n in zip(factors[time_res], factors["cluster"], factors["n_years"]):
+        per_slice.setdefault(str(slice_label), {})[str(cluster)] = int(n)
+    refused = factors["scalar"].isna() & factors["offset"].isna()
+    unfitted = (factors["n_years"] == 0) & ~refused
+    partial = (factors["n_years"] < n_training_years) & ~refused & ~unfitted
+    return {
+        "training_years": n_training_years,
+        "min_accepted_years": min_accepted_years(n_training_years),
+        "n_partial": int(partial.sum()),
+        "n_refused": int(refused.sum()),
+        "n_unfitted": int(unfitted.sum()),
+        "per_factor": per_slice,
+    }
+
+
 def run_train(
     spec: RegionSpec,
     out_root: str | Path,
@@ -270,6 +300,7 @@ def run_train(
     curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
     era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
     fit_record: dict[str, dict] = {}
+    accepted_years: dict[str, dict] = {}
 
     for num_clu in spec.cluster_list:
         for time_res in spec.time_slices:
@@ -285,6 +316,9 @@ def run_train(
                 min_cluster_size=spec.min_cluster_size,
             )
             factors.to_csv(run_dir / f"factors_{time_res}_{num_clu}.csv", index=False)
+            accepted_years[f"{time_res}_{num_clu}"] = _record_accepted_years(
+                factors, time_res, spec.train_years[1] - spec.train_years[0] + 1
+            )
             clus_info.to_csv(run_dir / f"train_turb_info_{num_clu}.csv", index=False)
             # What the fitted pairs do to the speeds they were fitted on: a pair
             # that sends training days off the curve drops them from its own
@@ -314,6 +348,7 @@ def run_train(
             "curve_resolution": curves,
             "era5_extent": era5_extent,
             "fit_diagnostics": fit_record,
+            "accepted_years": accepted_years,
             "observation_quality": _record_observation_quality(source),
             "era5_roughness": _record_roughness(reanalysis, spec),
         },
@@ -772,6 +807,14 @@ def collapse_factors(
     The collapse is CAPACITY-weighted over source clusters (design §7.1):
     weights are the installed capacity behind each cluster in the SOURCE
     region's training fleet, never an unweighted mean.
+
+    Only fitted clusters enter the sums and the weights. A refused factor or a
+    failed offset (NaN in either parameter) is left out: a NaN term drops out
+    of a pandas sum, so keeping its weight would pull the collapsed scalar and
+    offset toward zero by that cluster's capacity share. An unfitted cluster
+    (``n_years`` 0, carrying the identity) is left out too, since the identity
+    is not a correction learned from the source. A slice where no cluster is
+    fitted collapses to NaN.
     """
     merged = factors.copy()
     merged["_w"] = merged["cluster"].map(cluster_capacity)
@@ -781,15 +824,19 @@ def collapse_factors(
             f"no capacity weight for cluster(s) {missing}: the factors table and "
             "the source training fleet disagree"
         )
-    merged["_ws"] = merged["scalar"] * merged["_w"]
-    merged["_wo"] = merged["offset"] * merged["_w"]
+    usable = merged["scalar"].notna() & merged["offset"].notna()
+    if "n_years" in merged.columns:
+        usable &= merged["n_years"] > 0
+    merged["_w"] = merged["_w"].where(usable, 0.0)
+    merged["_ws"] = merged["scalar"].where(usable, 0.0) * merged["_w"]
+    merged["_wo"] = merged["offset"].where(usable, 0.0) * merged["_w"]
     grouped = merged.groupby(time_res, as_index=False)[["_ws", "_wo", "_w"]].sum()
     collapsed = pd.DataFrame(
         {
             "cluster": 0,
             time_res: grouped[time_res],
-            "scalar": grouped["_ws"] / grouped["_w"],
-            "offset": grouped["_wo"] / grouped["_w"],
+            "scalar": grouped["_ws"] / grouped["_w"].where(grouped["_w"] > 0),
+            "offset": grouped["_wo"] / grouped["_w"].where(grouped["_w"] > 0),
         }
     )
     return collapsed

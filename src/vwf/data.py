@@ -41,6 +41,7 @@ Examples:
         ... )
 """
 
+import math
 from typing import cast
 
 import numpy as np
@@ -851,29 +852,87 @@ def interp_nans(df, limit):
     return df.reset_index(drop=True)
 
 
+#: Share of the training years a factor's accepted years must exceed. A factor
+#: is the mean of per-year fits, and a mean over one year of three is a
+#: different estimate from a mean over three, with nothing in the table to tell
+#: them apart (a US cluster kept a fixed factor from 2019 alone once its 2020
+#: and 2021 roots fell outside the offset search's bounds; issue #28). The
+#: maintainer set the rule as a simple majority, strictly more than half: two
+#: of three, three of four, three of five.
+MIN_ACCEPTED_YEAR_SHARE = 0.5
+
+
+def min_accepted_years(n_training_years: int) -> int:
+    """Fewest accepted years a factor needs: strictly more than the share."""
+    return math.floor(n_training_years * MIN_ACCEPTED_YEAR_SHARE) + 1
+
+
 def format_bc_factors(train_bias_df, time_res):
-    """Aggregate bias correction factors by cluster and time slice.
+    """Aggregate the per-year fits into one factor per cluster and time slice.
 
-    Scalar: varies by (cluster, time_res) - captures temporal/seasonal variation per cluster
-    Offset: varies by (cluster, time_res) - captures systematic spatial bias per season/period
+    Each factor averages its scalar and its offset over one set of years: the
+    **accepted years**, those whose offset was fitted and accepted. A year with
+    no usable observation (NaN or zero) is not a fit and is not in the set, and
+    neither is a year whose offset the search refused. Averaging both
+    parameters over the same set keeps the pair consistent: an offset solved
+    against one year's scalar is never applied with another year's.
 
-    Both are aggregated across years to form a repeatable seasonal pattern.
+    Two cases have no factor to average, and they are kept apart:
+
+    - **Unfitted:** no training year has a usable observation, so no fit was
+      attempted. The cluster gets the identity, scalar 1 and offset 0, with
+      ``n_years`` 0: its units keep their uncorrected values.
+    - **Refused:** fits were attempted, but the accepted years are not a
+      majority of the training years (:func:`min_accepted_years`). Scalar and
+      offset are NaN, so its units get no corrected values, and
+      :func:`vwf.harness.corrections.fit_quality` counts it as a failed offset.
+      Before issue #28 a partial set was averaged silently.
+
+    Args:
+        train_bias_df: Per-year fits, with columns in the order ``year``, the
+            slice, ``cluster``, ``obs``, ``sim``, ``scalar``, ``offset``.
+        time_res: Name of the slice column in the result.
+
+    Returns:
+        DataFrame with ``cluster``, ``time_res``, ``scalar``, ``offset`` and
+        ``n_years``, the number of accepted years the factor rests on.
     """
-    train_bias_df = train_bias_df.drop(["obs", "sim"], axis=1)
-    train_bias_df["scalar"] = train_bias_df["scalar"].replace(0, np.nan)
-    train_bias_df.columns = ["year", time_res, "cluster", "scalar", "offset"]
+    obs = train_bias_df["obs"]
+    df = train_bias_df.drop(["obs", "sim"], axis=1)
+    df.columns = ["year", time_res, "cluster", "scalar", "offset"]
+    # A zero scalar comes from a zero observation; it is no fit either.
+    df["scalar"] = df["scalar"].replace(0, np.nan)
 
-    # Both scalar and offset: per (cluster, time_res), aggregated across years
-    # This captures seasonal spatial patterns that repeat annually
-    bc_factors = train_bias_df.groupby(["cluster", time_res], as_index=False).agg(
-        {"scalar": "mean", "offset": "mean"}
+    usable_obs = obs.notna().to_numpy() & (obs.fillna(0) > 0).to_numpy()
+    accepted = (
+        usable_obs
+        & np.isfinite(df["scalar"].to_numpy(dtype=float))
+        & df["offset"].notna().to_numpy()
     )
+    keys = ["cluster", time_res]
+    attempted = df[usable_obs].groupby(keys, as_index=False).size().rename(columns={"size": "_n"})
+    bc_factors = (
+        df[keys]
+        .drop_duplicates()
+        .sort_values(keys)
+        .merge(
+            df[accepted]
+            .groupby(keys, as_index=False)
+            .agg(scalar=("scalar", "mean"), offset=("offset", "mean"), n_years=("year", "nunique")),
+            on=keys,
+            how="left",
+        )
+        .merge(attempted, on=keys, how="left")
+        .reset_index(drop=True)
+    )
+    bc_factors["n_years"] = bc_factors["n_years"].fillna(0).astype(int)
 
-    # Handle NaN values (zero offset BEFORE setting scalar, so the isna check works)
-    bc_factors.loc[bc_factors["scalar"].isna(), "offset"] = 0
-    bc_factors.loc[bc_factors["scalar"].isna(), "scalar"] = 1
-
-    return bc_factors
+    unfitted = bc_factors["_n"].isna()
+    refused = ~unfitted & (bc_factors["n_years"] < min_accepted_years(int(df["year"].nunique())))
+    bc_factors.loc[refused, ["scalar", "offset"]] = np.nan
+    bc_factors.loc[unfitted, "scalar"] = 1.0
+    bc_factors.loc[unfitted, "offset"] = 0.0
+    return bc_factors.drop(columns="_n")
 
 
 def add_times(df):
