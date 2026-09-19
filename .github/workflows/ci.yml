@@ -94,6 +94,49 @@ jobs:
       - name: Run minimal example (end-to-end on bundled synthetic data)
         run: python examples/run_minimal.py
 
+  examples:
+    name: Examples (every file)
+    runs-on: ubuntu-latest
+    # examples/ holds only what CI executes on bundled data. This job runs every
+    # Python file in it, so an example that needs local data fails here.
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run every example
+        # Sorted, so data/generate_example_data.py regenerates the bundled data
+        # before run_minimal.py reads it.
+        env:
+          MPLBACKEND: Agg
+        run: |
+          for f in $(git ls-files 'examples/*.py' | sort); do
+            echo "::group::$f"
+            python "$f"
+            echo "::endgroup::"
+          done
+
+      - name: The regenerated example data matches the committed data
+        # The CSVs byte for byte; the NetCDF by its data, since its bytes carry
+        # library metadata.
+        run: |
+          git diff --exit-code -- 'examples/*.csv'
+          git show HEAD:examples/data/era5/era5_example.nc > /tmp/committed.nc
+          python -c "import xarray as xr; assert xr.open_dataset('/tmp/committed.nc').identical(xr.open_dataset('examples/data/era5/era5_example.nc'))"
+
+      - name: No example writes over any other tracked file
+        run: git diff --exit-code -- . ':!examples/data/era5/era5_example.nc'
+
   docs:
     name: Docs (build)
     runs-on: ubuntu-latest

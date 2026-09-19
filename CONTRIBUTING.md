@@ -70,6 +70,8 @@ and every push to `main`:
 - the suite plus `examples/run_minimal.py` on Python 3.10 to 3.12, installed
   from `pyproject.toml` so the declared dependencies are exercised as a fresh
   `pip install` would get them, with coverage gated;
+- every file in `examples/`, which then must leave the tracked tree unchanged,
+  with the regenerated example data equal to the committed data;
 - a Sphinx build of the docs with `-W`, so a broken docstring or an orphaned
   page fails rather than quietly degrading the site;
 - an sdist and wheel build, `twine` metadata validation, then a clean-environment

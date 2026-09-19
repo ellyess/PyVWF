@@ -82,6 +82,10 @@ consumers and go without a deprecation period.
 
 ### Added
 
+- **A CI job that runs every file in `examples/`**, and fails if one writes
+  over a tracked file or if the regenerated example data differs from the
+  committed data.
+
 - **A test that every relative Markdown link resolves**, anchor included
   (`tests/test_markdown_links.py`), since Sphinx checks neither the unpublished
   pages nor anchors.
