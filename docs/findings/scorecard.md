@@ -301,18 +301,17 @@ which does not exist.
 
 All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 2026-08-24, one region per process. Runs are in
-`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The AR
-row is an exception since 2026-09-11: it comes from an evaluate-only re-run of
-the same training directory on the common-row harness, at commit `bbaf5b3`
-from a clean tree (`output/validation/common_row_rerun_2026-09-11/`). The CL
-row is the exception since 2026-09-19: it was re-run, training and evaluation,
-with the bracketed offset search (#18), at commit `201c62e` from a clean tree
-(`output/validation/bracketed_2026-09-19/CL/`). The US row was re-run that way
-too, then again the same day under the accepted-years rule (#28), at commit
-`0fd6574` from a clean tree (`output/validation/accepted_years_2026-09-19/US/`),
-which is the run it reports. The figures the
-dated notices above quote for the US and CL were measured on the runs those
-rows replaced, and are superseded rather than re-measured; that includes the
+`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The
+four daggered rows, US, CL, AR and BR, are the exception since 2026-09-19:
+each was re-run, training and evaluation, with the bracketed offset search
+(#18) and the accepted-years rule (#28), at commit `0fd6574` from a clean tree
+(`output/validation/accepted_years_2026-09-19/<CODE>/`). Before that, the US
+and CL rows came from a re-run with the bracketed search alone, at `201c62e`
+(`output/validation/bracketed_2026-09-19/`), and the AR row from an
+evaluate-only re-run on the common-row harness, at `bbaf5b3`
+(`output/validation/common_row_rerun_2026-09-11/`). The figures the dated
+notices above quote for those four rows were measured on the runs they
+replaced, and are superseded rather than re-measured; that includes the
 resampled gain intervals. Each row
 was run from the single-configuration file committed under
 `configs/regions/scorecard/` (`<code>_k<N>.toml` or `<code>_country.toml`), which
@@ -434,13 +433,13 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed | per timestep | 40.0% | 8.9% | 0.0% |
 | Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 15.0% | 1.7% | 3.1% |
-| Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
+| Brazil (BR) | 151 complexes (140 scored) | 2021-23 → 2024 | 0.130 | **0.097** | -0.037 | -0.014 | 0.79 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
 | United States (US) | 520 plants (512 scored) | 2019-21 → 2022 | 0.108 | **0.096** | +0.024 | +0.023 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
 | United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.146 | **0.115** ‡ | +0.038 | -0.038 | 0.70 | k50 fixed | per timestep | 21.8% | 7.5% | 0.0% |
 | New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
 | Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | per timestep | 3.5% | 91.6% | 0.0% |
-| Argentina (AR) | 59 plants | 2021-23 → 2024 | 0.150 | **0.133** | +0.011 | +0.001 | 0.43 | k10 fixed † | per timestep | 0.2% | 96.7% | 0.0% |
+| Argentina (AR) | 59 plants (57 scored) | 2021-23 → 2024 | 0.140 | **0.122** | +0.025 | +0.004 | 0.44 | k10 fixed † | per timestep | 0.2% | 96.7% | 0.0% |
 
 **‡ Gain not distinguishable from zero when the test year's units are resampled;
 see the correction notices above.**
@@ -468,23 +467,23 @@ offsets required to converge):
 
 | Region | Config | Max scalar | Implausible scalars | Failed offsets |
 |---|---|---|---|---|
-| Chile (CL) | k10 fixed | **80.23** | 3 | **2** |
+| Chile (CL) | k10 fixed | **3.25** | 1 | **2** |
 | United States (US) | k250 fixed | 2.72 | 0 | **5** |
-| Argentina (AR) | k10 fixed | **15.53** | 1 | 0 |
-| Brazil (BR) | k60 fixed | **4.82** | 2 | 0 |
+| Argentina (AR) | k10 fixed | 1.29 | 0 | **1** |
+| Brazil (BR) | k60 fixed | 2.87 | 0 | **2** |
 
 The other five are clean: DE 2.79, AU-NEM 2.64, UK 1.86, NZ 1.81, DK 1.15, all
 inside the ceiling with no failed offsets, as is every country-level fit below.
 
 Since 2026-09-19 (#28) a factor averages its scalar and offset over its
 accepted years, and a factor whose accepted years are not a majority of its
-training years is refused and carries no scalar. The US row is re-run under
-that rule, so its maximum scalar covers applied factors only: the 46.39 it
-showed before belonged to cluster 38, now refused, and all five of its
-degenerate clusters are refused factors, counted as failed offsets, which is
-why the row keeps its dagger with a maximum scalar inside the bounds. The CL,
-AR and BR rows predate the rule; CL's 80.23 is a refused cluster's scalar
-that a re-run would no longer show.
+training years is refused and carries no scalar. All four daggered rows are
+re-run under that rule, so each maximum scalar covers applied factors only.
+The scalars these rows showed before belonged to clusters now refused: the
+US's 46.39 (cluster 38), CL's 80.23 (cluster 6), AR's 15.53 (cluster 7) and
+BR's 4.82 (cluster 27). The US, AR and BR rows keep their daggers through
+failed offsets alone, with maximum scalars inside the bounds; CL keeps its
+through two refused clusters and an applied scalar of 3.25 (cluster 2).
 These figures travel in `metrics.csv` automatically, so a future run cannot hide
 them.
 
@@ -494,8 +493,10 @@ to 3 clears the failed offset and still beats uncorrected (0.1069 against
 0.1226) but leaves a scalar of 39.3, and raising it to 5 collapses the
 correction entirely (0.2366 against an uncorrected 0.1226). The same document
 reports the exported Chile field flagging 717 of 2,697 grid cells, 26.6%, as
-degenerate. A corrected RMSE of 0.104 that contains a wind scalar of 80 is not a
-result to quote without this context.
+degenerate. Two of its ten clusters are now refused (6 and 8, whose per-year
+scalars reached 80 and 29), so their plants carry no corrected values, and a
+third applies a scalar of 3.25. A corrected RMSE of 0.104 from that fit is not
+a result to quote without this context.
 
 Read this as: across four continents, on fleets the model never saw, the
 correction lowers capacity-factor RMSE and drives the systematic bias (MBE)
@@ -571,9 +572,10 @@ additive spatial bias (`method-country-level.md`).
 
 - **Four of the nine turbine-level rows rest on degenerate fits** (CL, US, AR,
   BR). The aggregate metric is real; the underlying per-cluster factors are not
-  usable. Chile carries a fitted wind scalar of 80.23 with one offset that never
-  converged, and the United States carries 46.39. Neither is visible in the
-  skill metric, which is the point.
+  usable. Chile refuses two of its ten clusters and applies a scalar of 3.25
+  in a third; the United States refuses five of 250, Brazil two of 60 and
+  Argentina one of 10. None of that is visible in the skill metric, which is
+  the point.
 - **An aggregate that barely moves does not mean the fit did not move.** A
   change of fitting code moved the United States' headline RMSE by 0.0005 while
   more than doubling its worst fitted scalar, from 20.54 to 46.39. Check
@@ -586,9 +588,9 @@ additive spatial bias (`method-country-level.md`).
   once real turbine curves are used, and CL is unstable at low k. The k=10 row
   reported above is itself degenerate, so "use k=1 or k>=8" is not sufficient
   guidance: check `fit_quality` rather than the cluster count. AR is usable
-  only after its capacity denominators were rebuilt; a northern cluster still
-  fits an extreme scalar that a higher-resolution wind product, not more data,
-  would fix (`region-south-america.md`).
+  only after its capacity denominators were rebuilt; a northern cluster fitted
+  an extreme scalar that a higher-resolution wind product, not more data, would
+  fix, and since 2026-09-19 its factor is refused (`region-south-america.md`).
 - **NO gets worse; NL is excluded** (an ENTSO-E coverage defect makes its CF
   series unusable). Reporting either as a corrected region would be false.
 - **US carries an unscreened curtailment confound** (ERCOT/SPP); its near-zero
