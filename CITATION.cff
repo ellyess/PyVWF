@@ -32,8 +32,8 @@ keywords:
   - reanalysis
 license: BSD-3-Clause
 repository-code: "https://github.com/ellyess/PyVWF"
-version: 0.5.1
-date-released: "2026-09-11"
+version: 0.6.0
+date-released: "2026-09-19"
 doi: 10.5281/zenodo.21236619
 identifiers:
   - type: doi

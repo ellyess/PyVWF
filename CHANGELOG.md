@@ -6,11 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 PyVWF adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the major version is 0, the public API may change in a minor release.
 
-The version is defined once, in `vwf.__version__`; `pyproject.toml` reads it
-from there, and `tests/test_packaging.py` asserts that `CITATION.cff` and the
-newest release in this file stay in step with it.
+The version is defined once, in `vwf/_version.py`, and re-exported as
+`vwf.__version__`; `pyproject.toml` reads it from there, and
+`tests/test_packaging.py` asserts that `CITATION.cff` and the newest release in
+this file stay in step with it.
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-09-19
 
 Changes since 0.5.1 make the power curve behind every number a recorded fact: a
 run says which curve each unit was actually simulated on, and the scorecard
@@ -42,7 +45,7 @@ across borders are tested and eliminated. Two registered studies are closed
 without results, one blocked on observation files that do not exist and one
 void because its gates were written against comparators that did not.
 
-The repository is being restructured so that each file has one purpose and a
+The repository was restructured so that each file has one purpose and a
 newcomer can add a region, a data source or a study without reading the whole
 tree. A repository audit scaffolded it and was deleted when it finished; its
 durable content lives in `docs/CONTEXT.md`, `docs/README.md`, the guides and
@@ -875,7 +878,8 @@ changes the numbers the evaluation layer reports.
   evaluation metrics, the `pyvwf-train` console script, and the distributional
   diagnostics (`plot_cf_distribution`, `plot_qq`) in `vwf.viz`.
 
-[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/ellyess/PyVWF/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ellyess/PyVWF/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/ellyess/PyVWF/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/ellyess/PyVWF/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ellyess/PyVWF/compare/v0.3.0...v0.4.0

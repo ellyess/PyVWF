@@ -6,4 +6,4 @@ in the legacy class and matplotlib. ``vwf.__version__`` re-exports it, and
 ``pyproject.toml`` reads it from here.
 """
 
-__version__ = "0.5.1"
+__version__ = "0.6.0"
