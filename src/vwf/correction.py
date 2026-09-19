@@ -24,7 +24,7 @@ def calculate_scalar(gen_cf, time_res):
     #                         "obs": "mean",
     #                         "sim": "mean",
     #                         })
-    
+
     # OLD APPROACH: Capacity-weighted averaging (commented out)
     # This was causing double-weighting issues where scalars were influenced by turbine size
     # rather than just representing the meteorological bias at that location
@@ -60,23 +60,23 @@ def calculate_scalar(gen_cf, time_res):
         # min_count=1 so an all-missing group returns NaN rather than 0.0
         # (an empty sum is 0.0 by default), and NaN/0 keeps that NaN.
         return (v[present] * w[present]).sum(min_count=1) / w[present].sum()
-        
+
     df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
                             "obs": lambda x: weighted_avg(x, gen_cf, 'obs', 'capacity'),
                             "sim": lambda x: weighted_avg(x, gen_cf, 'sim', 'capacity'),
                             })
-        
+
     df['scalar'] = df['obs'] / df['sim']
-    
+
     # Constrain scalars to prevent extreme corrections
     # Values outside [0.5, 1.5] indicate potential overfitting or data issues
     # df['scalar'] = df['scalar'].clip(lower=0.1, upper=2.0)
-    
+
     df = df.reset_index()
     df.columns = ['time_slice', 'cluster', 'year', 'obs', 'sim', 'scalar']
-        
+
     return df[['year', 'time_slice', 'cluster', 'obs', 'sim', 'scalar']]
-    
+
 #: Largest capacity-factor residual a returned offset may leave. The step-size
 #: test alone cannot see this: the step shrinks whether or not the error did,
 #: so a search that never reached the root still passes it. A genuine

@@ -125,4 +125,3 @@ fits well in sample. NL and IE fail this audit; see
 
 [`data-sources.md`](data-sources.md) describes the file layout the generator
 writes.
-

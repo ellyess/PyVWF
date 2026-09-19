@@ -260,8 +260,8 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
 
     # Fallback (should not reach here)
     raise ValueError(f"Unknown error type: {type}")
-    
-    
+
+
 def overall_error(type, run, country, turb_info, cluster_list, time_res_list, train, *args):
     """Compute overall error metrics across clustering and time-resolution settings.
 
@@ -284,7 +284,7 @@ def overall_error(type, run, country, turb_info, cluster_list, time_res_list, tr
     mbe_all = []
     cluster_all = []
     time_all = []
-    
+
     if train:
         obs_cf = pd.read_csv(run+'/results/capacity-factor/'+country+'_train_obs_cf.csv')
         unc_cf = pd.read_csv(run+'/results/capacity-factor/'+country+'_train_unc_cf.csv', parse_dates=['time'])
@@ -292,34 +292,34 @@ def overall_error(type, run, country, turb_info, cluster_list, time_res_list, tr
         year_test = args[0]
         obs_cf = pd.read_csv(run+'/results/capacity-factor/'+country+"_"+str(year_test)+'_obs_cf.csv', parse_dates=['time'])
         unc_cf = pd.read_csv(run+'/results/capacity-factor/'+country+"_"+str(year_test)+'_unc_cf.csv', parse_dates=['time'])
-    
+
     rmse, mae, mbe = calculate_error(type, unc_cf, obs_cf, turb_info, train)
-    
+
     rmse_all.append(rmse)
     mae_all.append(mae)
     mbe_all.append(mbe)
     cluster_all.append(1)
     time_all.append('uncorrected')
-    
+
     for num_clu in cluster_list:
         for time_res in time_res_list:
             if train:
                 cor_cf = pd.read_csv(run+'/results/capacity-factor/'+country+'_train_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', parse_dates=['time'])
             else:
                 cor_cf = pd.read_csv(run+'/results/capacity-factor/'+country+"_"+str(year_test)+'_'+time_res+'_'+str(num_clu)+'_cor_cf.csv', parse_dates=['time'])
-                
+
             rmse, mae, mbe = calculate_error(type, cor_cf, obs_cf, turb_info, train)
-            
+
             rmse_all.append(rmse)
             mae_all.append(mae)
             mbe_all.append(mbe)
             cluster_all.append(num_clu)
             time_all.append(time_res)
-    
-    
-    df_metrics = pd.DataFrame(list(zip(np.ravel(cluster_all), np.ravel(time_all), np.ravel(rmse_all), np.ravel(mae_all), np.ravel(mbe_all))), 
+
+
+    df_metrics = pd.DataFrame(list(zip(np.ravel(cluster_all), np.ravel(time_all), np.ravel(rmse_all), np.ravel(mae_all), np.ravel(mbe_all))),
                  columns =['num_clu', 'time_res', 'rmse', 'mae', 'mbe'])
-    
+
     # if train == True:
     #     df_metrics.to_csv(run+'/results/'+country+'_train_metrics.csv', index = None)
     # else:

@@ -28,7 +28,7 @@ def unify_time_coordinate(ds):
             ds = ds.drop_vars("time")                     # remove existing time first
             ds = ds.rename({"valid_time": "time"})        # now rename safely
 
-    # CASE 2: only valid_time exists 
+    # CASE 2: only valid_time exists
     elif "valid_time" in ds.coords and "time" not in ds.coords:
         # print("Only valid_time exists → renaming to time")
         ds = ds.rename({"valid_time": "time"})
@@ -36,7 +36,7 @@ def unify_time_coordinate(ds):
     # CASE 3: only time exists → nothing to do
     else:
         pass
-    
+
     # Fix dimensions if needed
     if "valid_time" in ds.dims:
         ds = ds.rename_dims({"valid_time": "time"})
@@ -247,7 +247,7 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
                 print("Using pre-calculated roughness (z0) from combined ERA5 files")
             else:
                 print("Using pre-calculated roughness from combined ERA5 files")
-            
+
             applied = "stored"
             # Drop unnecessary wind component variables
             ds = ds.drop_vars(
@@ -258,9 +258,9 @@ def prep_era5(country, train=False, calc_z0=True, bbox=None, era5_dir=None,
             applied = "derived"
             # Calculate roughness from wind shear (fallback if not preprocessed)
             print("Calculating surface roughness from 10m/100m wind shear...")
-            
+
             wnd10m = np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)
-            
+
             wnd10m  = wnd10m.clip(min=1e-4)
             ds["wnd100m"] = ds["wnd100m"].clip(min=1e-4)
 

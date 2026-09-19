@@ -120,7 +120,7 @@ class PyVWF:
             directory_path = os.path.join("output", "run")
         else:
             directory_path = path
-        
+
         run = country
 
         if correct:
@@ -354,7 +354,7 @@ class PyVWF:
             >>> model.train(False)
         """
         from vwf.loaders import load_year_specific_grid_points
-        
+
         if self.obs_level != "country":
             raise ValueError("load_country_data_with_year_specific() requires obs_level='country'")
 
@@ -363,7 +363,7 @@ class PyVWF:
             obs_train.index = pd.to_datetime(obs_train.index, utc=True)
         else:
             obs_train.index = obs_train.index.tz_convert('UTC') if obs_train.index.tz is not None else obs_train.index
-            
+
         if not isinstance(obs_test.index, pd.DatetimeIndex):
             obs_test.index = pd.to_datetime(obs_test.index, utc=True)
         else:
@@ -378,7 +378,7 @@ class PyVWF:
         # grid_points_dir is input/observations/country/grid_points/{country}/
         # So we need .parent.parent to get base_dir
         self.grid_points, self.grid_points_by_year = load_year_specific_grid_points(
-            self.country, 
+            self.country,
             train_years,
             base_dir=grid_points_dir.parent.parent if grid_points_dir else None
         )
@@ -461,17 +461,17 @@ class PyVWF:
         # For country-level with year-specific grid points: merge year-specific capacity
         if self.obs_level == "country" and hasattr(self, 'grid_points_by_year') and self.grid_points_by_year:
             print("  Merging year-specific grid point capacities...")
-            
+
             # For each year in gen_cf, merge the corresponding year-specific capacity
             year_capacities = []
             for year, grid_pts_year in self.grid_points_by_year.items():
                 year_caps = grid_pts_year[['ID', 'capacity']].copy()
                 year_caps['year'] = year
                 year_capacities.append(year_caps)
-            
+
             if year_capacities:
                 year_capacity_df = pd.concat(year_capacities, ignore_index=True)
-                
+
                 # Drop the old capacity column and merge year-specific capacity
                 gen_cf = gen_cf.drop(columns=['capacity'], errors='ignore')
                 gen_cf = gen_cf.merge(year_capacity_df, on=['ID', 'year'], how='left')

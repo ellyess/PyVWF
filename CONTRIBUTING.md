@@ -43,6 +43,14 @@ Two markers split it:
   absent, which includes CI.
 - `slow` tests are pins that take seconds per case.
 
+Install the commit hooks once, after the dev extra. They run `ruff check`,
+`ruff format`, the whitespace and file checks and `nbstripout` on each commit:
+
+```bash
+pre-commit install
+pre-commit run --all-files   # the same checks over the whole tree
+```
+
 ```bash
 pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
 pytest                                  # every test: what CI runs on a manual dispatch

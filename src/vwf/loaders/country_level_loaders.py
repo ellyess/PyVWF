@@ -53,7 +53,7 @@ def load_year_specific_grid_points(
 
     for year in sorted(years):
         grid_file = grid_points_dir / f"{country.lower()}_grid_points_{year}.csv"
-        
+
         if not grid_file.exists():
             missing_years.append(year)
             continue
@@ -72,7 +72,7 @@ def load_year_specific_grid_points(
     # For missing years, try to use base grid points or nearest available year
     if missing_years:
         base_grid_file = grid_points_dir / f"{country.lower()}_grid_points.csv"
-        
+
         for year in missing_years:
             if base_grid_file.exists():
                 fallback_grid = pd.read_csv(base_grid_file)
@@ -84,7 +84,7 @@ def load_year_specific_grid_points(
 
     # Create merged version (averaged across years for stability)
     grid_points_merged = grid_points_all.groupby('ID', as_index=False).first().drop(columns=['_year'], errors='ignore')
-    
+
     # Create year-specific dictionary. groupby keys are typed as the generic
     # hashable label, so pin them back to int to match the declared return type
     # (`_year` is populated from the loop over `years: list[int]` above).

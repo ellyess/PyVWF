@@ -710,5 +710,3 @@ def train_simulate_wind(reanalysis, turb_info, powerCurveFile, scalar=1, offset=
     """
     unc_ws = interpolate_wind(reanalysis, turb_info)
     return train_simulate_wind_from_ws(unc_ws, powerCurveFile, scalar, offset)
-
-

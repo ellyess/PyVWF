@@ -986,4 +986,3 @@ def add_times(df):
     df["month"] = df["month"].astype(int)
     df["year"] = df["year"].astype(int)
     return df
-

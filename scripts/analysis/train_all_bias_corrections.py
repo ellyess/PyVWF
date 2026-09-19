@@ -58,11 +58,11 @@ def get_training_sets():
         'calc_z0': True,
         'save_train_cf': True,
         'per_country_config': {
-            'DK_onshore': { 'cluster_list': [1,2,3,5,7,10,20,50,70,100,200,500,700,800,900,1000,2000,3000,3300]}, 
+            'DK_onshore': { 'cluster_list': [1,2,3,5,7,10,20,50,70,100,200,500,700,800,900,1000,2000,3000,3300]},
             'DK_offshore': { 'cluster_list': [1,2,3,5]},
         }
     }
-    
+
     # -------------------------------------------------------------------------
     # TURBINE-LEVEL: UK Offshore Research Run (2015-2018 → 2019)
     # -------------------------------------------------------------------------
@@ -216,7 +216,7 @@ def get_training_sets():
             'use_config': True,
             'use_year_specific_weighting': True,  # Toggle year-specific capacity weighting
         }
-        
+
         configs['country_grid_2015_2021_2023_no_weight'] = {
             'name': 'Country-Level Grid Research (2015-2021 → 2023) - No Weighting',
             'obs_level': 'country',
@@ -428,7 +428,7 @@ def train_country_level(country: str, config: dict, output_dir: Path,
 
     country_config = country_configs[country]
     use_year_specific = config.get('use_year_specific_weighting', False)
-    
+
     print(f"Country: {country_config['name']}")
     print(f"Training years: {config['train_years'][0]}-{config['train_years'][1]}")
     print(f"Test year: {config['test_year']}")
@@ -459,7 +459,7 @@ def train_country_level(country: str, config: dict, output_dir: Path,
             obs_train.index = pd.to_datetime(obs_train.index, utc=True)
         else:
             obs_train.index = obs_train.index.tz_convert('UTC') if obs_train.index.tz is not None else obs_train.index
-            
+
         if not isinstance(obs_test.index, pd.DatetimeIndex):
             obs_test.index = pd.to_datetime(obs_test.index, utc=True)
         else:
@@ -485,7 +485,7 @@ def train_country_level(country: str, config: dict, output_dir: Path,
             print(f"\nLoading year-specific grid points for {country}...")
             grid_points_dir = Path(country_config['grid_points_path']).parent
             model.load_country_data_with_year_specific(
-                obs_train, 
+                obs_train,
                 obs_test,
                 grid_points_dir=grid_points_dir
             )
