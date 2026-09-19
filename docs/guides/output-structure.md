@@ -31,10 +31,21 @@ One row per `(cluster, time-slice)`, with the fitted parameters:
 | `<slice>` | Time-slice key (`fixed`, `season`, …) |
 | `scalar` | Multiplicative wind correction |
 | `offset` | Additive wind correction (m/s) |
+| `n_years` | Accepted years the factor rests on |
 | `avail` | Availability factor (`scaled-affine` only) |
 
 `<slice>` is the time resolution and `<k>` the cluster count, matching a
 `cluster_list` × `time_slices` entry in the config.
+
+Each factor averages its scalar and its offset over the same accepted years:
+the training years whose offset was fitted and accepted. A year with no
+usable observation is not an accepted year, and neither is a year whose offset
+search refused. A factor that rests on fewer than two thirds of the training
+years, rounded up, is refused: its `scalar` and `offset` are empty, its units
+get no corrected values, and `metrics.csv` counts it in `n_failed_offset`.
+With three training years a factor needs two; with five, it needs four. The
+train manifest's `accepted_years` block holds each factors file's counts, per
+factor, with the minimum and the number of partial and refused factors.
 
 ## Fit diagnostics (`fit_diagnostics_<slice>_<k>.csv`)
 

@@ -121,8 +121,9 @@ def test_country_level_fit_is_a_delegation_wrapper(synthetic_dk):
         obs_level="country",
     )
 
-    assert set(factors.columns) == {"cluster", "fixed", "scalar", "offset"}
+    assert set(factors.columns) == {"cluster", "fixed", "scalar", "offset", "n_years"}
     assert sorted(factors["cluster"]) == [0, 1]
+    assert (factors["n_years"] == 1).all()  # the one training year, accepted
     # Planted bias: synthetic winds over-predict a 0.2 CF, so the fitted
     # correction must pull the simulation down.
     assert (factors["scalar"] < 1.0).all()

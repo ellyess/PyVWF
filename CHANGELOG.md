@@ -13,6 +13,22 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Changed
+
+- **A factor rests on one set of accepted years, or is refused (#28).** Each
+  factor averages its scalar and its offset over the same years: those whose
+  offset was fitted and accepted. A year with no usable observation is no
+  longer counted in the offset mean as an unfitted zero, and the scalar is no
+  longer averaged over years whose offset was refused. A factor resting on
+  fewer than two thirds of the training years, rounded up, is refused, and a
+  cluster with no usable year is refused rather than given the identity. The
+  factors table gains `n_years` and the train manifest an `accepted_years`
+  block. What moved: on the DK k=100 and CL k=10 pins no offset or scalar
+  that was applied moves and no cluster is newly refused; CL's two clusters
+  already refused now report no scalar either, where they showed the
+  implausible values of the years they were refused in. Both pins are
+  re-recorded. Rows with partial clusters, such as the US, move when re-run.
+
 ### Breaking
 
 - **`find_offset` has one offset search.** A bracketed root search replaces
