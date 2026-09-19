@@ -82,6 +82,9 @@ consumers and go without a deprecation period.
 
 ### Added
 
+- **Dependabot** opens weekly update pull requests for the GitHub Actions and
+  the pip dependencies, with the development tooling grouped.
+
 - **A CI job that runs every file in `examples/`**, and fails if one writes
   over a tracked file or if the regenerated example data differs from the
   committed data.

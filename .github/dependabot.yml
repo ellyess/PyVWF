@@ -1,0 +1,32 @@
+# Weekly update pull requests for the GitHub Actions the workflows use and for
+# the pip dependencies declared in pyproject.toml. Each arrives as a pull
+# request, so CI runs on it before anything merges.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Tooling moves often and rarely changes a result; one pull request.
+      dev-tooling:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "pandas-stubs"
+          - "pre-commit"
+          - "import-linter"
+          - "deptry"
+          - "vulture"
+          - "sphinx*"
+          - "myst-parser"
