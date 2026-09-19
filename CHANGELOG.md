@@ -22,6 +22,16 @@ this file stay in step with it.
   removed. The identifiability study that probes the iterative search keeps its
   own copy of it.
 
+### Changed
+
+- **The machine-learning transfer pin is recorded under scikit-learn 1.9.1**,
+  the version CI's Python 3.11 and 3.12 jobs resolve, instead of 1.7.2. What
+  moved: the leave-one-region-out scores the driver prints, in the third
+  decimal; the centroid table does not move. Why: the 1.7.2 restriction
+  existed only to match the published table in `method-ml-transfer.md`, which
+  is superseded. The real-data layer still skips under any other version,
+  because its digest cannot tell a version change from a code change.
+
 ### Fixed
 
 - **The offset search returns a root or nothing (#18).** The iterative search
