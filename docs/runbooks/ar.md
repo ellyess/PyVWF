@@ -75,3 +75,13 @@ Trains 2021-2023, tests 2024. On the cleaned fleet the affine correction helps
   (standing caveat).
 - **Southern Hemisphere.** Seasons are explicit SH in the config; Patagonia's
   westerlies have modest seasonal amplitude.
+
+## Licence
+
+The generation data are public CAMMESA downloads (the [source table](../guides/data-sources.md#source-urls)). Nothing from them
+is committed. Coordinates and capacities come from the Global Wind Power
+Tracker (Global Energy Monitor, CC-BY-4.0), which requires attribution. The
+committed curation tables are `configs/curation/ar_turbine_specs.csv`, every
+row of which cites its source in `source_url`; `ar_coord_overrides.csv`,
+which carries a `note` per row but no source column; and
+`ar_fleet_exclusions.csv`, which gives each excluded code's reason.
