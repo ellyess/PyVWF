@@ -111,6 +111,7 @@ def test_an_empty_control_set_is_refused(fn):
         fn(points().iloc[0:0], [0.5], [50.0])
 
 
+@pytest.mark.realdata
 def test_it_reproduces_the_chapter_s_published_cross_validation(tmp_path):
     """The check that matters: the same control points, the same folds and the
     same arithmetic as thesis chapter 4, against the scores it published.

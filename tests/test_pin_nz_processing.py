@@ -173,6 +173,7 @@ def test_script_refuses_an_unmapped_wind_gen_code(tmp_path):
 # The whole script, on the real EMI downloads (local only)
 # --------------------------------------------------------------------------
 
+@pytest.mark.realdata
 @pytest.mark.skipif(not any(RAW_EMI.glob("*_Generation_MD.csv")),
                     reason="the EMI Generation_MD downloads are local only")
 def test_script_reproduces_the_production_files(tmp_path):

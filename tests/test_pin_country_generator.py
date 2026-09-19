@@ -107,7 +107,8 @@ def _zone_files_present() -> bool:
     return all((shapes / f).is_file() for f in ("no_bidding_zones.geojson", "se_bidding_zones.geojson"))
 
 
-@pytest.mark.parametrize("case", list(CASES))
+@pytest.mark.parametrize("case", [
+    pytest.param(case, marks=pytest.mark.realdata) if CASES[case][1] else case for case in CASES])
 def test_generator_main(case, tmp_path, monkeypatch):
     args, needs_zones = CASES[case]
     if needs_zones and not _zone_files_present():

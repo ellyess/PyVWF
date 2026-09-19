@@ -35,10 +35,17 @@ conda activate pyvwf
 
 ## Running the tests and linter
 
-The test suite uses synthetic data and needs no ERA5 downloads or API access:
+The test suite uses synthetic data and needs no ERA5 downloads or API access.
+Two markers split it:
+
+- `realdata` tests read git-ignored data under `input/` or `output/`, such as
+  the pins that reproduce recorded study outputs. They skip where the data is
+  absent, which includes CI.
+- `slow` tests are pins that take seconds per case.
 
 ```bash
-pytest                     # run all tests
+pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
+pytest                                  # every test: what CI runs on a manual dispatch
 pytest --cov=vwf           # with coverage
 ruff check src/vwf tests   # lint
 mypy                       # type check; needs pandas-stubs, from the dev extra

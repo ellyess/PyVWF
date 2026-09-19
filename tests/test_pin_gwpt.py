@@ -125,6 +125,7 @@ def filter_results(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
     return out
 
 
+@pytest.mark.realdata
 @needs_gwpt
 def test_gwpt_filters_on_the_real_workbook():
     pins = _filter_pins()
@@ -141,6 +142,7 @@ def _process(script: str, out: Path, root: str) -> None:
     assert done.returncode == 0, done.stderr[-2000:]
 
 
+@pytest.mark.realdata
 @needs_gwpt
 @pytest.mark.parametrize("script, code", [("cammesa_ar", "AR"), ("cen_cl", "CL")])
 def test_processing_chain_reproduces_production(script, code, tmp_path):

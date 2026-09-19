@@ -146,6 +146,7 @@ def test_centroids_and_terrain_features(frame):
                                   check_dtype=False, rtol=0, atol=1e-12)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("name", ["loro_scalar", "loro_offset", "summary_scalar", "summary_offset"])
 def test_forest_and_variance_results(frame, name):
     got = model_results(frame)[name]
@@ -180,6 +181,7 @@ def run_real(tmp_path: Path) -> tuple[str, str]:
     return stdout, centroids
 
 
+@pytest.mark.realdata
 @pytest.mark.skipif(not _real_inputs_present(),
                     reason="the July factor files and the ETOPO grid are local only")
 def test_script_on_the_real_inputs(tmp_path):

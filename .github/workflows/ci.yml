@@ -63,7 +63,15 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest tests -q --cov=vwf --cov-report=term-missing
+        # The fast set on pushes and pull requests; every test on a manual
+        # dispatch. The realdata tests skip here either way, since the data they
+        # read is git-ignored; the markers are in pyproject.toml.
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            pytest tests -q --cov=vwf --cov-report=term-missing
+          else
+            pytest tests -q --cov=vwf --cov-report=term-missing -m "not slow and not realdata"
+          fi
 
       - name: Run minimal example (end-to-end on bundled synthetic data)
         run: python examples/run_minimal.py
