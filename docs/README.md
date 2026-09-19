@@ -19,6 +19,7 @@ category, so a name never repeats it: the training guide is
 | [`design/`](design) | Why the code is shaped as it is. Published. | argumentative | `<component>.md` |
 | [`findings/`](findings) | Research records, one question each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | argumentative | `<type>-<subject>.md` |
 | [`api.md`](api.md), [`CONTEXT.md`](CONTEXT.md) | The API reference, and the controlled vocabulary. Published. | reference | fixed names |
+| [`publications.md`](publications.md) | The published results, legacy, with the commit that produced each. Published. | reference | fixed name |
 
 ### Where a new document goes
 
@@ -59,6 +60,7 @@ which is right. These are the homes of the facts most often repeated:
 | Fetching and combining ERA5 | `guides/data-sources.md`, section 3 |
 | The approved term for a concept | `CONTEXT.md` |
 | The rules for agents | `AGENTS.md` |
+| The commit behind a published result | `publications.md` |
 
 `findings/` names carry their document type as a prefix, so two files sharing a
 prefix share a shape:

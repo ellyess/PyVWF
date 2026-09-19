@@ -111,6 +111,8 @@ Chile, k=10, fixed slice, held-out 2024. Uncorrected baseline RMSE 0.1226.
 | 3 | 7 | 3 | 39.28 | 2 | **0** | 0.1069 | 0.0000 | 0.376 |
 | 5 | 4 | 5 | **5.50** | 1 | 0 | **0.2366** | +0.0753 | 0.183 |
 
+*[2026-09-19: this recorded table is superseded; a rerun at HEAD (`171f751`) gives the values in [the comment on issue #17](https://github.com/ellyess/PyVWF/issues/17#issuecomment-5738518376).]*
+
 Gates, evaluated on the best-RMSE merged variant (min=3):
 
 - **G1** severity capped below 10: 39.3. **FAIL**

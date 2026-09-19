@@ -22,10 +22,14 @@ Two layers:
 
 The real-data forest scores depend on the scikit-learn version, although the
 synthetic ones do not: under 1.9.1 the leave-one-region-out table moves in the
-third decimal (US scalar R2 -1.059 against -1.049), while the centroid table
-is identical. The published table in ``method-ml-transfer.md`` matches 1.7.2
-exactly, so the real-data layer is pinned to that version and skips under any
-other.
+third decimal from 1.7.2's (US scalar R2 -1.059 against -1.049), while the
+centroid table is identical. The real-data layer is recorded under the version
+CI's current Python jobs resolve, and skips under any other, because its
+digest cannot distinguish a version change from a code change. It is a change
+detector, not a guard (see CONTRIBUTING.md): when CI moves to a new
+scikit-learn, re-record it under that version. It was first recorded under
+1.7.2, the version the published table in ``method-ml-transfer.md`` matches;
+that table is superseded.
 """
 
 from __future__ import annotations
@@ -46,10 +50,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "analysis" / "ml_transfer_retest.py"
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "ml_transfer"
 
-# Recorded at 286c164 from a run on the real inputs (see the local test),
-# under scikit-learn 1.7.2, the version the published table matches.
-REAL_SKLEARN = "1.7.2"
-REAL_STDOUT_SHA256 = "5453fed60ea4ad2414c0b6ea10c26f4d710c8cdf0eb541e0ad07b29ef747f1f8"
+# Recorded at 3d1fe5a from a run on the real inputs (see the local test),
+# under scikit-learn 1.9.1 and pandas 3.0.6, the versions CI's Python 3.11 and
+# 3.12 jobs resolve.
+REAL_SKLEARN = "1.9.1"
+REAL_STDOUT_SHA256 = "08a27e8202d3d2abc78e1d6b28eb71dbc6e09cde44e8f4fefce25b8e382a06db"
 REAL_CENTROIDS_SHA256 = "d2c897729da1d59ad597883de95c7bed14f77426e5aef30af59983cfd66c2bea"
 
 

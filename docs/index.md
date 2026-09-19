@@ -79,6 +79,7 @@ design/undefined-roughness-in-complex-terrain
 
 api
 CONTEXT
+publications
 ```
 
 ## Citing PyVWF

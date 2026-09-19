@@ -22,6 +22,16 @@ this file stay in step with it.
   removed. The identifiability study that probes the iterative search keeps its
   own copy of it.
 
+### Changed
+
+- **The machine-learning transfer pin is recorded under scikit-learn 1.9.1**,
+  the version CI's Python 3.11 and 3.12 jobs resolve, instead of 1.7.2. What
+  moved: the leave-one-region-out scores the driver prints, in the third
+  decimal; the centroid table does not move. Why: the 1.7.2 restriction
+  existed only to match the published table in `method-ml-transfer.md`, which
+  is superseded. The real-data layer still skips under any other version,
+  because its digest cannot tell a version change from a code change.
+
 ### Fixed
 
 - **The offset search returns a root or nothing (#18).** The iterative search
@@ -40,6 +50,16 @@ this file stay in step with it.
 
 ### Documentation
 
+- **Real-data pins are change detectors, not guards.** `CONTRIBUTING.md`
+  states the policy under the test markers: the repository aims at the most
+  accurate results it can produce, published results are legacy, and a
+  deliberate improvement that moves a pinned output re-records the fixture in
+  the same commit and says in this file what moved and why.
+- **`docs/publications.md` lists the published results**, the 2024 Energy
+  paper and the thesis, with the commit that produced each and the annotated
+  tag proposed for it. The thesis DOI is added when it is deposited.
+- **`method-scalar-bounds.md` marks its `min_cluster_size` table superseded**
+  (#17), and points at the rerun recorded on the issue.
 - **Every scorecard region has a runbook with a licence section.** The US, BR,
   NZ, CL and AR runbooks gain one, stating each source's terms, what is
   committed from it, and which committed curation tables cite a source per
