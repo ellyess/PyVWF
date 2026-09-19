@@ -38,6 +38,13 @@ this file stay in step with it.
   is unmoved. The real-data pins of both configurations' fixed-slice
   factors, recorded before the change, are re-recorded with it.
 
+### Documentation
+
+- **Every scorecard region has a runbook with a licence section.** The US, BR,
+  NZ, CL and AR runbooks gain one, stating each source's terms, what is
+  committed from it, and which committed curation tables cite a source per
+  row. New runbooks cover AU-NEM and the eight country-level regions.
+
 ## [0.6.0] - 2026-09-19
 
 Changes since 0.5.1 make the power curve behind every number a recorded fact: a

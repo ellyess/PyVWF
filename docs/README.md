@@ -15,7 +15,7 @@ category, so a name never repeats it: the training guide is
 | Folder or file | Holds | Kind | Naming |
 |---|---|---|---|
 | [`guides/`](guides) | How to use PyVWF: data, training, outputs, and extending it with a region, an adapter or a study (`adding-a-*.md`). Maintained, and published to the site. | procedural | `<topic>.md` |
-| [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | procedural | `<iso-code>.md` |
+| [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | procedural | `<iso-code>.md`; `au_nem.md` and `entsoe.md` for the NEM and the country-level regions |
 | [`design/`](design) | Why the code is shaped as it is. Published. | argumentative | `<component>.md` |
 | [`findings/`](findings) | Research records, one question each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | argumentative | `<type>-<subject>.md` |
 | [`api.md`](api.md), [`CONTEXT.md`](CONTEXT.md) | The API reference, and the controlled vocabulary. Published. | reference | fixed names |

@@ -45,12 +45,12 @@ resolves it to an adapter in `src/vwf/sources/`. Every source is reduced to a
 | Spain (hist.) | ES-WS | `windstats` | WindStats generation + GWPT coordinates | mixed | (none) → `process/windstats.py` | [ES](../runbooks/es.md) |
 | United States | US | `eia-us` | EIA-923 netgen + EIA-860 + USWTDB heights | open | (none) → `process/eia_us.py` | [US](../runbooks/us.md) |
 | Brazil | BR | `ons-br` | ONS `FATOR_CAPACIDADE` hourly CF + constrained-off | open | (none) → `process/ons_br.py` | [BR](../runbooks/br.md) |
-| Australia (NEM) | AU-NEM | `aemo-nem` | AEMO NEMWEB 5-min SCADA + Generation Information | open | `fetch/aemo_au.sh` → `process/aemo_au.py` | (none) |
+| Australia (NEM) | AU-NEM | `aemo-nem` | AEMO NEMWEB 5-min SCADA + Generation Information | open | `fetch/aemo_au.sh` → `process/aemo_au.py` | [AU-NEM](../runbooks/au_nem.md) |
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 9 ENTSO-E countries | BE ES FR IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | (none) |
-| Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | open | `datasets/generate_country_level_training_data.py` | (none) |
+| 9 ENTSO-E countries | BE ES FR IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
 
 ## 2. What the processing does (per region)
 
