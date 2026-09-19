@@ -13,6 +13,15 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Breaking
+
+- **`find_offset` has one offset search.** A bracketed root search replaces
+  the iterative search and its scipy fallback, so `find_offset` loses its
+  `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
+  and `vwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
+  removed. The identifiability study that probes the iterative search keeps its
+  own copy of it.
+
 ### Changed
 
 - **A factor rests on one set of accepted years, or is refused (#28).** Each
@@ -29,18 +38,6 @@ this file stay in step with it.
   report no scalar either, where they showed the implausible values of the
   years they were refused in. Both pins are re-recorded. Rows with partial
   clusters, such as the US, move when re-run.
-
-### Breaking
-
-- **`find_offset` has one offset search.** A bracketed root search replaces
-  the iterative search and its scipy fallback, so `find_offset` loses its
-  `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
-  and `vwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
-  removed. The identifiability study that probes the iterative search keeps its
-  own copy of it.
-
-### Changed
-
 - **The US and CL scorecard rows are re-run with the bracketed offset search**,
   training and evaluation, from a clean tree. What moved: in the US, four
   clusters whose old offsets were roots beyond the search bounds, or were not
@@ -68,7 +65,7 @@ this file stay in step with it.
   leaving out refused factors, failed offsets and unfitted clusters, whose
   identity is not a correction learned from the source. What moves: any transfer from a source with a failed offset or a
   refused factor, such as CL; no pin reads a transfer.
-- **The offset search returns a root or nothing (#18). The iterative search
+- **The offset search returns a root or nothing (#18).** The iterative search
   stopped short of the root by up to its last step, its residual test refused
   some of those genuine fits, and the minimising fallback could return a value
   at the search bound that was not a root. The search now steps out from zero
