@@ -6,7 +6,7 @@ at one speed is exactly the shape of a result that looks like physics and is
 arithmetic, so this probes it before anything is built on it.
 
 **The condition, fixed here before the probe runs.** The offset search
-`vwf.correction.find_offset_iterative` starts at ``offset = 0`` with a step of
+The iterative offset search (`iterative_search` below) starts at ``offset = 0`` with a step of
 ``sign(obs - sim) * 10.0`` m/s and halves whenever a proposed step exceeds the
 last. If the fitted offset depends on that schedule, the pivot is where the
 tie-break lands and is an artefact. **If re-solving from several different
@@ -40,7 +40,6 @@ import numpy as np
 import pandas as pd
 
 from vwf.cli.common import make_parser
-from vwf.correction import find_offset_iterative
 from vwf.curves import load_power_curves
 from vwf.datasets.era5 import prep_era5
 from vwf.harness import regions
@@ -69,6 +68,75 @@ ROWS = {
     "UK": ("uk", "onshore", 300, "train-onshore-final"),
 }
 BBOX = {"dk": (7.5, 15.4, 54.0, 58.2)}
+
+
+# The iterative offset search this study probes, copied verbatim from
+# vwf.correction at 3d1fe5a (then _find_offset_iterative), with its residual
+# tolerance. vwf replaced it with a bracketed root search (issue #18); the copy
+# keeps this study's record reproducible, since its subject is this search.
+MAX_OFFSET_RESIDUAL = 1e-4
+
+
+def iterative_search(
+    row,
+    offset_arrays,
+    max_iter=100,
+    tolerance=0.002,
+    initial_step=10.0,
+    residual_tolerance=MAX_OFFSET_RESIDUAL,
+):
+    """Fast iterative optimization using cube root step sizing.
+
+    Args:
+        row: Row with year, cluster, time_slice, obs, sim, scalar
+        offset_arrays: Pre-extracted numpy arrays from prepare_offset_arrays
+        max_iter: Maximum iterations (default: 100)
+        tolerance: Convergence tolerance on the STEP, in m/s
+        initial_step: Initial step size (default: 10.0 m/s)
+        residual_tolerance: Largest capacity-factor residual a returned offset
+            may leave. See :data:`MAX_OFFSET_RESIDUAL`.
+
+    Returns:
+        float: Optimized offset, or np.nan when the step converged without the
+        residual doing so. **The step-size test is not sufficient on its own.**
+        Each proposed step is clamped to the previous magnitude, so a search
+        started below the natural step size, which is the cube root of a
+        capacity-factor error and never exceeds about 0.7 m/s, halves its way
+        to the tolerance without ever reaching the root. Probed at
+        ``initial_step=0.25`` that returns offsets wrong by up to 7.2 m/s while
+        reporting success (``docs/findings/method-correction-identifiability.md``).
+    """
+    step = np.sign(row.obs - row.sim) * initial_step
+    step_prev = step
+    offset = 0.0
+
+    for _ in range(max_iter):
+        # Check convergence
+        if np.abs(step) <= tolerance:
+            residual = row.obs - fast_simulate_cf(offset_arrays, row.scalar, offset)
+            if np.abs(residual) > residual_tolerance:
+                return np.nan
+            return offset
+
+        # Simulate with current offset using fast numpy path
+        mean_sim_cf = fast_simulate_cf(offset_arrays, row.scalar, offset)
+
+        # Calculate error and step (cube root for power ~ wind^3)
+        error = row.obs - mean_sim_cf
+        step = np.cbrt(error)
+
+        # Prevent oscillation
+        if np.sign(step) != np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
+            step = -step_prev / 2
+        elif np.sign(step) == np.sign(step_prev) and np.abs(step) > np.abs(step_prev):
+            step = step_prev / 2
+
+        # Update
+        step_prev = step
+        offset += step
+
+    # Failed to converge - fall back to scipy
+    return np.nan
 
 
 def pivot(a: np.ndarray, b: np.ndarray) -> float:
@@ -150,7 +218,7 @@ def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_
                     key = (
                         f"offset_from_{step:g}" if cap == 100 else f"offset_from_{step:g}_iter{cap}"
                     )
-                    row[key] = find_offset_iterative(probe, arrays, max_iter=cap, initial_step=step)
+                    row[key] = iterative_search(probe, arrays, max_iter=cap, initial_step=step)
             rows.append(row)
         frame = pd.DataFrame(rows)
         frame["row"] = label

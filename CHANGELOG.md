@@ -13,6 +13,31 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Breaking
+
+- **`find_offset` has one offset search.** A bracketed root search replaces
+  the iterative search and its scipy fallback, so `find_offset` loses its
+  `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
+  and `vwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
+  removed. The identifiability study that probes the iterative search keeps its
+  own copy of it.
+
+### Fixed
+
+- **The offset search returns a root or nothing (#18).** The iterative search
+  stopped short of the root by up to its last step, its residual test refused
+  some of those genuine fits, and the minimising fallback could return a value
+  at the search bound that was not a root. The search now steps out from zero
+  to bracket a sign change and solves it with Brent's method. It refuses an
+  offset when no sign change lies inside the bounds, when the root is at a
+  bound, and when the residual at the root is not near zero, as at a jump in
+  the power curve. What moved: on the DK and CL scorecard configurations,
+  every fixed-slice offset the old search accepted, by a small refinement
+  toward its root, because the old search stopped short of it. Scalars do not
+  move, the set of refused fits is unchanged, and the golden regression test
+  is unmoved. The real-data pins of both configurations' fixed-slice
+  factors, recorded before the change, are re-recorded with it.
+
 ## [0.6.0] - 2026-09-19
 
 Changes since 0.5.1 make the power curve behind every number a recorded fact: a
@@ -27,7 +52,11 @@ a corrected variant lacks some values.
 Since 2026-09-15 two behaviour changes join them. The offset search now tests
 the residual it leaves rather than the size of its last step, so a search that
 never reaches the root refuses instead of reporting success; the golden
-regression test is unmoved, so no fit in this repository was affected. And the
+regression test is unmoved, so no fit in this repository was affected. [Corrected
+2026-09-19: false. The residual test also refused genuine fits that the search
+had left short of the root, and its fallback returned a closer root, so fitted
+offsets outside the golden test moved by small refinements, the Chile row's
+among them. See issue #18.] And the
 gridded correction surface answers at every cell instead of filling some with
 the identity, carrying per-cell distance, support count, kriging variance and a
 plausibility flag so that a user can tell a correction that declined to answer
