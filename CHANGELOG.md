@@ -24,6 +24,15 @@ this file stay in step with it.
 
 ### Changed
 
+- **The US and CL scorecard rows are re-run with the bracketed offset search**,
+  training and evaluation, from a clean tree. What moved: in the US, four
+  clusters whose old offsets were roots beyond the search bounds, or were not
+  roots, are now refused, so their plants leave the common rows and both the
+  uncorrected and the corrected scores move slightly; their scalars do not
+  move. CL's reported row does not move at displayed precision; its cluster 8,
+  whose old offset averaged values that were not roots, is now refused, and
+  its plants were already outside the common rows. No pin reads these runs;
+  the CL fixed-slice factors equal the pin re-recorded with the search.
 - **The machine-learning transfer pin is recorded under scikit-learn 1.9.1**,
   the version CI's Python 3.11 and 3.12 jobs resolve, instead of 1.7.2. What
   moved: the leave-one-region-out scores the driver prints, in the third

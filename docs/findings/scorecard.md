@@ -301,11 +301,16 @@ which does not exist.
 
 All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 2026-08-24, one region per process. Runs are in
-`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The CL
-and AR rows are the exception since 2026-09-11: they come from an
-evaluate-only re-run of the same training directories on the common-row
-harness, at commit `bbaf5b3` from a clean tree
-(`output/validation/common_row_rerun_2026-09-11/`). Each row
+`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The AR
+row is an exception since 2026-09-11: it comes from an evaluate-only re-run of
+the same training directory on the common-row harness, at commit `bbaf5b3`
+from a clean tree (`output/validation/common_row_rerun_2026-09-11/`). The US and
+CL rows are the exception since 2026-09-19: both were re-run, training and
+evaluation, with the bracketed offset search (#18), at commit `201c62e` from a
+clean tree (`output/validation/bracketed_2026-09-19/<CODE>/`). The figures the
+dated notices above quote for the US and CL were measured on the runs those
+rows replaced, and are superseded rather than re-measured; that includes the
+resampled gain intervals. Each row
 was run from the single-configuration file committed under
 `configs/regions/scorecard/` (`<code>_k<N>.toml` or `<code>_country.toml`), which
 fixes the cluster count and time slice the row reports. For the eight
@@ -427,7 +432,7 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed | per timestep | 40.0% | 8.9% | 0.0% |
 | Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 15.0% | 1.7% | 3.1% |
 | Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
-| United States (US) | 520 plants | 2019-21 → 2022 | 0.110 | **0.097** | +0.022 | +0.024 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
+| United States (US) | 520 plants (515 scored) | 2019-21 → 2022 | 0.108 | **0.096** | +0.024 | +0.023 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
 | United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.146 | **0.115** ‡ | +0.038 | -0.038 | 0.70 | k50 fixed | per timestep | 21.8% | 7.5% | 0.0% |
 | New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
@@ -460,8 +465,8 @@ offsets required to converge):
 
 | Region | Config | Max scalar | Implausible scalars | Failed offsets |
 |---|---|---|---|---|
-| Chile (CL) | k10 fixed | **80.23** | 3 | **1** |
-| United States (US) | k250 fixed | **46.39** | 5 | 0 |
+| Chile (CL) | k10 fixed | **80.23** | 3 | **2** |
+| United States (US) | k250 fixed | **46.39** | 5 | **4** |
 | Argentina (AR) | k10 fixed | **15.53** | 1 | 0 |
 | Brazil (BR) | k60 fixed | **4.82** | 2 | 0 |
 
