@@ -304,10 +304,13 @@ All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
 `output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The AR
 row is an exception since 2026-09-11: it comes from an evaluate-only re-run of
 the same training directory on the common-row harness, at commit `bbaf5b3`
-from a clean tree (`output/validation/common_row_rerun_2026-09-11/`). The US and
-CL rows are the exception since 2026-09-19: both were re-run, training and
-evaluation, with the bracketed offset search (#18), at commit `201c62e` from a
-clean tree (`output/validation/bracketed_2026-09-19/<CODE>/`). The figures the
+from a clean tree (`output/validation/common_row_rerun_2026-09-11/`). The CL
+row is the exception since 2026-09-19: it was re-run, training and evaluation,
+with the bracketed offset search (#18), at commit `201c62e` from a clean tree
+(`output/validation/bracketed_2026-09-19/CL/`). The US row was re-run that way
+too, then again the same day under the accepted-years rule (#28), at commit
+`0fd6574` from a clean tree (`output/validation/accepted_years_2026-09-19/US/`),
+which is the run it reports. The figures the
 dated notices above quote for the US and CL were measured on the runs those
 rows replaced, and are superseded rather than re-measured; that includes the
 resampled gain intervals. Each row
@@ -432,7 +435,7 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed | per timestep | 40.0% | 8.9% | 0.0% |
 | Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 15.0% | 1.7% | 3.1% |
 | Brazil (BR) | 151 complexes | 2021-23 → 2024 | 0.139 | **0.105** | -0.046 | -0.015 | 0.72 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
-| United States (US) | 520 plants (515 scored) | 2019-21 → 2022 | 0.108 | **0.096** | +0.024 | +0.023 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
+| United States (US) | 520 plants (512 scored) | 2019-21 → 2022 | 0.108 | **0.096** | +0.024 | +0.023 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
 | Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
 | United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.146 | **0.115** ‡ | +0.038 | -0.038 | 0.70 | k50 fixed | per timestep | 21.8% | 7.5% | 0.0% |
 | New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
@@ -466,12 +469,22 @@ offsets required to converge):
 | Region | Config | Max scalar | Implausible scalars | Failed offsets |
 |---|---|---|---|---|
 | Chile (CL) | k10 fixed | **80.23** | 3 | **2** |
-| United States (US) | k250 fixed | **46.39** | 5 | **4** |
+| United States (US) | k250 fixed | 2.72 | 0 | **5** |
 | Argentina (AR) | k10 fixed | **15.53** | 1 | 0 |
 | Brazil (BR) | k60 fixed | **4.82** | 2 | 0 |
 
 The other five are clean: DE 2.79, AU-NEM 2.64, UK 1.86, NZ 1.81, DK 1.15, all
 inside the ceiling with no failed offsets, as is every country-level fit below.
+
+Since 2026-09-19 (#28) a factor averages its scalar and offset over its
+accepted years, and a factor whose accepted years are not a majority of its
+training years is refused and carries no scalar. The US row is re-run under
+that rule, so its maximum scalar covers applied factors only: the 46.39 it
+showed before belonged to cluster 38, now refused, and all five of its
+degenerate clusters are refused factors, counted as failed offsets, which is
+why the row keeps its dagger with a maximum scalar inside the bounds. The CL,
+AR and BR rows predate the rule; CL's 80.23 is a refused cluster's scalar
+that a re-run would no longer show.
 These figures travel in `metrics.csv` automatically, so a future run cannot hide
 them.
 

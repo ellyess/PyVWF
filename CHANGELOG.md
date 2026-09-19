@@ -38,6 +38,16 @@ this file stay in step with it.
   report no scalar either, where they showed the implausible values of the
   years they were refused in. Both pins are re-recorded. Rows with partial
   clusters, such as the US, move when re-run.
+- **The US scorecard row is re-run under the accepted-years rule** (#28),
+  training and evaluation, from a clean tree. What moved: one more fixed-slice
+  cluster is refused, having one accepted year of three, and one factor is
+  re-averaged over its two accepted years, so a few more plants leave the
+  common rows and the scores move slightly, not at displayed precision except
+  the count of plants scored. Refused factors no longer report a scalar, so
+  the row's maximum scalar falls inside the plausible range and its count of
+  implausible scalars to zero, while its failed offsets rise by one; its
+  degenerate clusters are unchanged and it keeps its dagger. No pin reads this
+  run.
 - **The US and CL scorecard rows are re-run with the bracketed offset search**,
   training and evaluation, from a clean tree. What moved: in the US, four
   clusters whose old offsets were roots beyond the search bounds, or were not
