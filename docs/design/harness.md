@@ -165,6 +165,12 @@ quantiles; and seasonal-cycle RMSE against the mean monthly climatology. All
 reported before and after correction, in sample and held out. Legacy
 `vwf/metrics.py` is untouched and the harness does not call it.
 
+The two paths therefore define the error metrics twice, in `vwf/metrics.py`
+and `vwf/harness/skill.py`, and share no code. Both are live: the legacy path
+reproduces the thesis-era runs, the harness produces everything since. A change
+to how a metric is defined has to be made in both, or the two paths stop being
+comparable.
+
 ## Run provenance
 
 Every harness run writes `run_manifest.json`: package version, git commit and

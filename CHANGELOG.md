@@ -44,8 +44,10 @@ void because its gates were written against comparators that did not.
 
 The repository is being restructured so that each file has one purpose and a
 newcomer can add a region, a data source or a study without reading the whole
-tree. The audit behind it is `docs/design/repo-audit.md`. None of it changes a
-number: the golden regression test and every test file pass at each step.
+tree. A repository audit scaffolded it and was deleted when it finished; its
+durable content lives in `docs/CONTEXT.md`, `docs/README.md`, the guides and
+`.importlinter`, and its open items are issue #19. None of it changes a number:
+the golden regression test and every test file pass at each step.
 
 ### Breaking
 
