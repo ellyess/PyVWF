@@ -31,10 +31,12 @@ this file stay in step with it.
   to bracket a sign change and solves it with Brent's method. It refuses an
   offset when no sign change lies inside the bounds, when the root is at a
   bound, and when the residual at the root is not near zero, as at a jump in
-  the power curve. Fitted offsets move by small refinements; scalars do not
-  move, the set of refused fits is unchanged on the DK and CL scorecard
-  configurations, and the golden regression test is unmoved. A slow test pins
-  the fixed-slice factors of both configurations.
+  the power curve. What moved: on the DK and CL scorecard configurations,
+  every fixed-slice offset the old search accepted, by a small refinement
+  toward its root, because the old search stopped short of it. Scalars do not
+  move, the set of refused fits is unchanged, and the golden regression test
+  is unmoved. The real-data pins of both configurations' fixed-slice
+  factors, recorded before the change, are re-recorded with it.
 
 ## [0.6.0] - 2026-09-19
 

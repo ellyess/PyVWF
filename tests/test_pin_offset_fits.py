@@ -6,7 +6,9 @@ them to a fallback that lands elsewhere. Replacing the search will move every
 factor a little. These cases pin the factors as the search produces them, so
 the change's effect on each cluster is measured rather than assumed: the DK
 scorecard row's configuration (k=100) and the CL row's (k=10), both on the
-fixed slice alone.
+fixed slice alone. They are change detectors, not guards (see
+CONTRIBUTING.md): the fixtures were recorded on main before the bracketed
+search, and re-recorded in the commit that introduced it.
 
 Each case trains in its own process with the input root its row runs on, and
 compares ``factors_fixed_<k>.csv`` byte for byte with the recorded file. The
