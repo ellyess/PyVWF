@@ -59,7 +59,14 @@ this file stay in step with it.
 
 ### Fixed
 
-- **The offset search returns a root or nothing (#18).** The iterative search
+- **A transfer's collapse leaves out clusters with no factor.** The
+  capacity-weighted collapse to one factor per slice kept the weight of a
+  cluster whose scalar or offset was NaN while its terms dropped out of the
+  sums, which pulled the collapsed scalar and offset toward zero by that
+  cluster's capacity share. Such clusters are now left out of the weights
+  too. What moves: any transfer from a source with a failed offset or a
+  refused factor, such as CL; no pin reads a transfer.
+- **The offset search returns a root or nothing (#18). The iterative search
   stopped short of the root by up to its last step, its residual test refused
   some of those genuine fits, and the minimising fallback could return a value
   at the search bound that was not a root. The search now steps out from zero

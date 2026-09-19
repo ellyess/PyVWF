@@ -803,6 +803,12 @@ def collapse_factors(
     The collapse is CAPACITY-weighted over source clusters (design §7.1):
     weights are the installed capacity behind each cluster in the SOURCE
     region's training fleet, never an unweighted mean.
+
+    A cluster with no factor to apply (a refused factor or a failed offset,
+    NaN in either parameter) is left out of both the sums and the weights. A
+    NaN term drops out of a pandas sum, so keeping its weight would pull the
+    collapsed scalar and offset toward zero by that cluster's capacity share.
+    A slice where no cluster has a factor collapses to NaN.
     """
     merged = factors.copy()
     merged["_w"] = merged["cluster"].map(cluster_capacity)
@@ -812,15 +818,17 @@ def collapse_factors(
             f"no capacity weight for cluster(s) {missing}: the factors table and "
             "the source training fleet disagree"
         )
-    merged["_ws"] = merged["scalar"] * merged["_w"]
-    merged["_wo"] = merged["offset"] * merged["_w"]
+    usable = merged["scalar"].notna() & merged["offset"].notna()
+    merged["_w"] = merged["_w"].where(usable, 0.0)
+    merged["_ws"] = merged["scalar"].where(usable, 0.0) * merged["_w"]
+    merged["_wo"] = merged["offset"].where(usable, 0.0) * merged["_w"]
     grouped = merged.groupby(time_res, as_index=False)[["_ws", "_wo", "_w"]].sum()
     collapsed = pd.DataFrame(
         {
             "cluster": 0,
             time_res: grouped[time_res],
-            "scalar": grouped["_ws"] / grouped["_w"],
-            "offset": grouped["_wo"] / grouped["_w"],
+            "scalar": grouped["_ws"] / grouped["_w"].where(grouped["_w"] > 0),
+            "offset": grouped["_wo"] / grouped["_w"].where(grouped["_w"] > 0),
         }
     )
     return collapsed
