@@ -55,6 +55,9 @@ this file stay in step with it.
   accurate results it can produce, published results are legacy, and a
   deliberate improvement that moves a pinned output re-records the fixture in
   the same commit and says in this file what moved and why.
+- **`docs/publications.md` lists the published results**, the 2024 Energy
+  paper and the thesis, with the commit that produced each and the annotated
+  tag proposed for it. The thesis DOI is added when it is deposited.
 - **`method-scalar-bounds.md` marks its `min_cluster_size` table superseded**
   (#17), and points at the rerun recorded on the issue.
 

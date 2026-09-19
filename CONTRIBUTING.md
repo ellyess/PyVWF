@@ -45,10 +45,11 @@ Two markers split it:
 
 **Real-data pins are change detectors, not guards.** The repository aims at
 the most accurate results it can produce, not at reproducing earlier ones.
-Published results are legacy, and a recorded output is superseded by a better
-one rather than preserved. A pin records what the code produces now, so that a
-change to it is seen and measured, not so that the change is prevented. When a
-deliberate improvement changes a pinned output:
+[Published results](docs/publications.md) are legacy, and a recorded output
+is superseded by a better one rather than preserved. A pin records what the
+code produces now, so that a change to it is seen and measured, not so that
+the change is prevented. When a deliberate improvement changes a pinned
+output:
 
 - re-record the fixture in the same commit as the change;
 - say in the CHANGELOG, under `[Unreleased]`, what moved and why;
