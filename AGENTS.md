@@ -92,9 +92,10 @@ They live in `.claude/skills/`.
   full-precision originals it was going to be checked against, leaving only a
   log rounded to five decimals, so bit-identity became unverifiable. Both are
   the same error: acting on a path without checking what else is under it.
-- **Read the checks before the commit command, not after.** Run ruff, the test
-  files the change touches and, for `src/vwf`, mypy with `pandas-stubs`, and
-  read the output; then write the message. A message that says a check passed
+- **Read the checks before the commit command, not after.** Run the
+  pre-commit hooks (ruff check and format among them), the test files the
+  change touches and, for `src/vwf`, mypy with `pandas-stubs` and
+  `lint-imports`, and read the output; then write the message. A message that says a check passed
   is a claim about output already seen. Amending works only while the commit
   is still local.
 - **Keep negative results.** Every result states its training years and its

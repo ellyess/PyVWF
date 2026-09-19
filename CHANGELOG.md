@@ -84,25 +84,27 @@ consumers and go without a deprecation period.
 
 ### Added
 
+- **Pre-commit hooks** (`.pre-commit-config.yaml`): `ruff check`,
+  `ruff format`, large-file, TOML and YAML checks, final newlines, trailing
+  whitespace and `nbstripout`. The tree was formatted once with `ruff format`,
+  a layout-only commit listed in `.git-blame-ignore-revs`.
+- **Test markers**: `realdata` for tests that read git-ignored data, `slow`
+  for pins that take seconds per case. CONTRIBUTING.md gives the fast and the
+  full command.
 - **Dependabot** opens weekly update pull requests for the GitHub Actions and
   the pip dependencies, with the development tooling grouped.
-
 - **A CI job that runs every file in `examples/`**, and fails if one writes
   over a tracked file or if the regenerated example data differs from the
   committed data.
-
 - **A test that every relative Markdown link resolves**, anchor included
   (`tests/test_markdown_links.py`), since Sphinx checks neither the unpublished
   pages nor anchors.
-
 - **deptry and vulture in CI.** Every import in `src/` is declared and every
   declared dependency is used or listed with its reason; dead code in `src/` is
   reported at confidence 80. Two unused `ml` extra packages and two
   interface-required parameters are listed, not removed.
-
 - **Import contracts** in `.importlinter`, checked in CI by `lint-imports`: the
   layers of `vwf`, of `vwf.harness` and of `vwf.pinn`, with no exceptions.
-
 - **A switch for the temporal treatment of the roughness.**
   `[era5] roughness = "stored"` (the default, and what every existing run did)
   or `"derived"`. `"derived"` ignores a stored roughness field and inverts the
@@ -179,12 +181,10 @@ consumers and go without a deprecation period.
   collisions that had already caused errors, among them four senses of
   "fallback" and "curve table" meaning two different files. Procedural
   documents use only its terms. Nothing loads it automatically yet.
-
 - **A `touchdesigner` extra** for `scripts/analysis/export_voronoi_frames.py`,
   which exports a cluster sweep as Voronoi cells for animated maps. It declares
   the one dependency the script imported without declaring, and the
   visualisation guide now documents the export.
-
 - **Every run manifest records its environment**: the Python version and the
   installed versions of the scientific stack (numpy, pandas, scipy,
   scikit-learn, xarray and the rest), in an `environment` block, with an
@@ -226,6 +226,10 @@ consumers and go without a deprecation period.
 
 ### Changed
 
+- **CI checks more and runs less by default.** Its lint job covers `scripts/`
+  and `examples/` as well as `src/` and `tests/`, checks formatting, and runs
+  `lint-imports`, `deptry` and `vulture`. Pushes and pull requests run the fast
+  test set; a manual dispatch runs every test.
 - **A unit outside the loaded ERA5 extent stops the run.** `interpolate_wind`
   extrapolated winds linearly past the grid without a warning, and the IT, PT
   and ES country rows were simulated that way. It now raises
@@ -237,11 +241,9 @@ consumers and go without a deprecation period.
   permission travels with the loaded dataset, so every path that simulates is
   covered. Passing the check means the units lie inside the loaded extent. It
   does not verify the data in those cells.
-
 - **`vwf.clustering` imports shapely and geopandas directly.** Both became core
   dependencies long ago, so the fallbacks for a missing geopandas could not
   run.
-
 - **The process scripts resolve their default paths under `PYVWF_INPUT`.**
   This changes where they read and write by default, and only when
   `PYVWF_INPUT` names a root other than `input/`: `scripts/process/*.py` and
@@ -283,7 +285,6 @@ consumers and go without a deprecation period.
 - **`examples/quick_run.py`**, a three-line alias of the `pyvwf-train` console
   script that needs Denmark's data and so cannot run in CI. The DK runbook now
   gives the `pyvwf-train` command. `examples/` holds only what CI executes.
-
 - **`PIPELINE.md`.** Its true content is now the "Legacy batch path" section of
   `docs/guides/training.md`. Its table of configuration sets was stale; the
   guide sends the reader to `train_all_bias_corrections.py --list` instead.
@@ -304,7 +305,6 @@ consumers and go without a deprecation period.
   reader imports `tomli` on 3.10, which only the dev extra declared, so a plain
   install could not import `vwf.harness`. It is now a core dependency on
   Python before 3.11.
-
 - **The variants of a run are compared on the same rows.** `run_evaluate` and
   `run_transfer` scored each variant on its own complete rows. So a corrected
   variant with no value for some units, such as those in a cluster whose offset
@@ -380,7 +380,6 @@ consumers and go without a deprecation period.
   re-run. NO and SE keep their rows, with their smaller extrapolated shares
   stated. `method-country-level.md` carries the notice, and the README drops
   the three from its national-level line.
-
 - **`mypy` passes again under the current pandas stubs.** A stubs release on
   2026-09-14 typed `groupby(...).apply` more widely, and one return needed a
   cast. No runtime change.
@@ -398,7 +397,6 @@ consumers and go without a deprecation period.
 - **The API reference covers the harness and every adapter.** It documented
   the legacy `PyVWF` class as "the entry point", nothing of `vwf.harness`,
   and four of the fourteen `vwf.sources` modules.
-
 - **Three defects found by the repository audit.** The documented
   `docker compose` command wrote its results inside the container, where
   `--rm` deleted them; it now passes `--out /data/output/validation`.
@@ -406,7 +404,6 @@ consumers and go without a deprecation period.
   on every run; it now writes to `output/viz_demo/` unless given
   `--out docs/img`. The method citation on the documentation site omitted two
   of its six authors.
-
 - **One home per fact.** `docs/README.md` states the Diataxis placement rule
   and names the home of each fact documents most often repeat; the others now
   link to it. The training guide gains "Choose the input root", the one
@@ -422,7 +419,6 @@ consumers and go without a deprecation period.
   `design/harness.md` showed flags the driver does not have. The README
   quickstart and `examples/quick_run.py` write under the git-ignored `output/`
   rather than `outputs/`.
-
 - **Three extension guides.** `docs/guides/adding-a-region.md` (renamed from
   `adding-an-observation-source.md`, a rejected term) lists every file a new
   region touches, and now covers a country-level region end to end, including
@@ -431,7 +427,6 @@ consumers and go without a deprecation period.
   and the order of commits. The procedure it replaces in
   `scripts/studies/README.md` and the country-level steps in `data-sources.md`
   now live only there.
-
 - **The eleven European rows were re-run on the per-timestep roughness and a
   wider ERA5 box, and Spain, Italy and Portugal have returned from
   suspension.** The plan was registered before the download completed and

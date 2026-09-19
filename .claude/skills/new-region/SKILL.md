@@ -121,9 +121,10 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 
 - Write `src/vwf/sources/$1.py` with `@register`, and its import line in
   `src/vwf/sources/__init__.py`.
-- Write the adapter tests, and a row in the guide's built-in adapter table.
+- Write the adapter tests, and a row in the built-in adapters table of
+  `docs/guides/adding-an-adapter.md`.
 - Check: `vwf.sources.get_source("<registry-name>", "<CODE>")` resolves. The
-  tests pass. `ruff check src/vwf tests` passes.
+  tests pass. `pre-commit run --all-files` and `lint-imports` pass.
 - Stop: code review.
 
 ### 5. Runs

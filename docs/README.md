@@ -49,6 +49,7 @@ which is right. These are the homes of the facts most often repeated:
 |---|---|
 | Installing PyVWF | the project README for users; `CONTRIBUTING.md` for developers |
 | Running the tests and the other CI checks | `CONTRIBUTING.md` |
+| Which module may import which | `.importlinter`, at the repository root |
 | Choosing the input root (`PYVWF_INPUT`) | `guides/training.md` |
 | Running a region through the harness | `guides/training.md` |
 | The legacy batch path | the last section of `guides/training.md` |
