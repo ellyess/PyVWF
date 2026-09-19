@@ -127,15 +127,34 @@ jobs:
           done
 
       - name: The regenerated example data matches the committed data
-        # The CSVs byte for byte; the NetCDF by its data, since its bytes carry
-        # library metadata.
+        # To a relative 1e-12, not byte for byte: the synthetic observations go
+        # through transcendental functions whose last bit differs between the
+        # macOS and Linux maths libraries, so a regeneration on one platform
+        # differs from the other's in the sixteenth significant digit. The
+        # NetCDF is compared by its values, since its bytes carry library
+        # metadata.
         run: |
-          git diff --exit-code -- 'examples/*.csv'
-          git show HEAD:examples/data/era5/era5_example.nc > /tmp/committed.nc
-          python -c "import xarray as xr; assert xr.open_dataset('/tmp/committed.nc').identical(xr.open_dataset('examples/data/era5/era5_example.nc'))"
+          mkdir -p /tmp/committed
+          for f in $(git ls-files 'examples/data/*.csv' 'examples/data/*.nc'); do
+            git show "HEAD:$f" > "/tmp/committed/$(basename "$f")"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          import xarray as xr
+          for new in sorted(Path("examples/data").rglob("*.csv")):
+              pd.testing.assert_frame_equal(
+                  pd.read_csv(new), pd.read_csv(Path("/tmp/committed") / new.name),
+                  check_exact=False, rtol=1e-12, atol=0)
+          for new in sorted(Path("examples/data").rglob("*.nc")):
+              xr.testing.assert_allclose(
+                  xr.open_dataset(new), xr.open_dataset(Path("/tmp/committed") / new.name),
+                  rtol=1e-12, atol=0)
+          print("example data matches")
+          PY
 
       - name: No example writes over any other tracked file
-        run: git diff --exit-code -- . ':!examples/data/era5/era5_example.nc'
+        run: git diff --exit-code -- . ':!examples/data/*.csv' ':!examples/data/*/*.nc'
 
   docs:
     name: Docs (build)
