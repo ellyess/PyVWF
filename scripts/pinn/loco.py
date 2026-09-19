@@ -190,7 +190,7 @@ def main():
 
     import torch
 
-    from vwf.harness.provenance import build_manifest, write_manifest
+    from vwf.provenance import build_manifest, write_manifest
     from vwf.harness.regions import load_region
     from vwf.pinn.runs import (
         config_record,

@@ -228,10 +228,10 @@ def default_curve_key(power_curves: pd.DataFrame) -> str | None:
 
     It is the table's first model column, and its identity decides results:
     every unit whose model is missing from the table is simulated on this
-    curve (see ``_CurveByModel``), and ``vwf.data._default_power_curve`` assigns
+    curve (see ``_CurveByModel``), and ``vwf.curves._default_power_curve`` assigns
     it to a country grid with no ``model`` column. For the bundled library it
     is a 100 kW distributed-wind machine, which is what every country-level run
-    on that library simulated with. ``vwf.harness.provenance.curve_resolution``
+    on that library simulated with. ``vwf.provenance.curve_resolution``
     calls this too, so the resolution log cannot disagree with the simulation,
     and ``tests/test_curve_resolution.py`` pins its value for the bundled
     library so that reordering the table cannot change results unnoticed.

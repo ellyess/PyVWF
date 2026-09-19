@@ -25,7 +25,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.harness.provenance import build_manifest, write_manifest  # noqa: E402
+from vwf.provenance import build_manifest, write_manifest  # noqa: E402
 from vwf.pinn.cache import load_cache  # noqa: E402
 from vwf.pinn.gwa import RATIO_BOUNDS, gwa_ratio  # noqa: E402
 

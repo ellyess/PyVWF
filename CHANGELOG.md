@@ -49,6 +49,14 @@ number: the golden regression test and every test file pass at each step.
 
 ### Breaking
 
+- **`vwf.harness.provenance` is now `vwf.provenance`**, and **`load_power_curves`
+  and `add_models` moved from `vwf.data` to `vwf.curves`.** Both moves put a
+  module below the code that uses it: the legacy `PyVWF` class wrote its
+  manifest through the harness, and two adapters imported `vwf.data` lazily to
+  dodge a cycle. `vwf.data` still uses both functions but no longer exports
+  them. The version now lives in `vwf/_version.py`; `vwf.__version__` is
+  unchanged.
+
 PyVWF is not published on PyPI, so these removals have no downstream
 consumers and go without a deprecation period.
 
@@ -73,6 +81,9 @@ consumers and go without a deprecation period.
   what they were wrapped into.
 
 ### Added
+
+- **Import contracts** in `.importlinter`, checked in CI by `lint-imports`: the
+  layers of `vwf`, of `vwf.harness` and of `vwf.pinn`, with no exceptions.
 
 - **A switch for the temporal treatment of the roughness.**
   `[era5] roughness = "stored"` (the default, and what every existing run did)

@@ -188,7 +188,7 @@ def main():
 
     import torch
 
-    from vwf.harness.provenance import build_manifest, write_manifest
+    from vwf.provenance import build_manifest, write_manifest
     from vwf.harness.regions import load_region
     from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
     from vwf.pinn.runs import (

@@ -370,7 +370,7 @@ def assign_curves_from_library(metadata: pd.DataFrame, *, fallback_model: str) -
     The US fleet spans roughly 200-390 W/m2 of specific power, so a single
     uniform curve mis-specifies where most plants reach rated power.
 
-    This deliberately does NOT call :func:`vwf.data.add_models`. That matches
+    This deliberately does NOT call :func:`vwf.curves.add_models`. That matches
     on specific power alone, which is safe against a utility-only catalogue
     (as AU-NEM's licensed library is) but not against the BUNDLED OPEN
     library, which also carries distributed machines down to 1 kW. A 1.5 kW

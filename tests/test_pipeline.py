@@ -310,7 +310,7 @@ def test_legacy_runs_write_a_provenance_manifest(trained_model):
 def test_manifest_failure_never_aborts_a_run(trained_model, monkeypatch, capsys):
     """The never-abort condition (design §6): a manifest-write failure logs a
     warning and the run completes."""
-    import vwf.harness.provenance as provenance
+    import vwf.provenance as provenance
 
     def boom(*args, **kwargs):
         raise RuntimeError("disk full (simulated)")

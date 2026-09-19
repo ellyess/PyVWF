@@ -1,7 +1,7 @@
 """Cross-manufacturer curve matching, per fitted fleet.
 
 A unit can resolve to a curve its ``power_curves.csv`` contains and still be
-simulated on the wrong machine: ``vwf.data.add_models`` and ``assign_curves_from_library`` match
+simulated on the wrong machine: ``vwf.curves.add_models`` and ``assign_curves_from_library`` match
 on specific power, and the manufacturer tier of ``add_models`` is fuzzy enough
 to cross brands. This compares each unit's own manufacturer with the
 manufacturer of the curve it was assigned, over the training fleet a run fitted.

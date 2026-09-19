@@ -69,7 +69,7 @@ def main() -> None:
         choices=["match", "uniform"],
         default="match",
         help="'match' assigns each plant a real library curve by "
-        "specific power via vwf.data.add_models (as the AU-NEM and "
+        "specific power via vwf.curves.add_models (as the AU-NEM and "
         "European fleets do), falling back to --model where USWTDB "
         "has no rotor diameter. 'uniform' gives every plant --model.",
     )

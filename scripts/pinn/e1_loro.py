@@ -52,7 +52,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from sklearn.ensemble import RandomForestRegressor  # noqa: E402
 
-from vwf.harness.provenance import build_manifest, write_manifest  # noqa: E402
+from vwf.provenance import build_manifest, write_manifest  # noqa: E402
 from vwf.harness.regions import load_region  # noqa: E402
 from vwf.pinn.physics import expected_cf, hub_wind_ratio, monthly_mean  # noqa: E402
 from vwf.pinn.runs import (  # noqa: E402

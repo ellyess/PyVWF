@@ -24,7 +24,7 @@ import pandas as pd
 import pytest
 
 from vwf.config import PyVWFPaths
-from vwf.data import add_models, load_power_curves
+from vwf.curves import add_models, load_power_curves
 
 
 @pytest.fixture

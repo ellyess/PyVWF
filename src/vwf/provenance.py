@@ -25,15 +25,17 @@ import warnings
 from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
-import vwf
+from vwf._version import __version__
 from vwf.config import PyVWFPaths
-from vwf.harness.regions import RegionSpec
 from vwf.wind import default_curve_key
+
+if TYPE_CHECKING:  # annotations only: the harness sits above this module
+    from vwf.harness.regions import RegionSpec
 
 MANIFEST_NAME = "run_manifest.json"
 
@@ -125,7 +127,7 @@ def curve_library_identity() -> dict[str, Any]:
 #: How a unit's model key got onto the fleet, read from the first of these
 #: columns the fleet carries: ``model_source`` is written into the metadata by
 #: the process scripts that call ``assign_curves_from_library``, and
-#: ``model_match`` by :func:`vwf.data.add_models` at load time.
+#: ``model_match`` by :func:`vwf.curves.add_models` at load time.
 _ASSIGNMENT_COLUMNS = ("model_source", "model_match")
 
 CURVE_RESOLUTION_NAME = "curve_resolution.csv"
@@ -317,7 +319,7 @@ def build_manifest(
         extra: Additional top-level entries (legacy run parameters, notes).
     """
     manifest: dict[str, Any] = {
-        "pyvwf_version": vwf.__version__,
+        "pyvwf_version": __version__,
         **_git_state(),
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "platform": platform.platform(),

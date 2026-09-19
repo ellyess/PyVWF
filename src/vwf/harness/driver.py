@@ -26,7 +26,7 @@ from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
 from vwf.data import assign_country_clusters, train_set, val_obs_and_fleet, val_set
 from vwf.harness.corrections import fit_quality, get_correction
-from vwf.harness.provenance import (
+from vwf.provenance import (
     CURVE_RESOLUTION_NAME,
     curve_resolution,
     summarise_curve_resolution,

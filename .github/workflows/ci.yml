@@ -38,6 +38,11 @@ jobs:
       - name: Type check (mypy)
         run: mypy
 
+      - name: Import layers (import-linter)
+        # The layering of src/vwf, in .importlinter: a module imports only from
+        # the layers below it.
+        run: lint-imports
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

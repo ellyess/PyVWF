@@ -19,9 +19,9 @@ import test_pipeline as tp
 import vwf.wind as wind
 from test_harness_driver import make_spec
 from vwf.config import PyVWFPaths
-from vwf.data import _default_power_curve, add_models
+from vwf.curves import _default_power_curve, add_models
 from vwf.harness.driver import run_evaluate, run_train, run_transfer
-from vwf.harness.provenance import curve_resolution, summarise_curve_resolution
+from vwf.provenance import curve_resolution, summarise_curve_resolution
 from vwf.sources import InMemoryCountrySource, get_source
 
 #: The curve the bundled library substitutes for any model it lacks. Pinned

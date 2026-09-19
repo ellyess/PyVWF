@@ -41,7 +41,7 @@ import pandas as pd
 
 from vwf.cli.common import make_parser
 from vwf.datasets.era5 import prep_era5
-from vwf.data import load_power_curves
+from vwf.curves import load_power_curves
 from vwf.extensions.grid import evaluate, surface
 from vwf.geospatial import categorize_points_spatial_join
 from vwf.wind import interpolate_wind

@@ -30,6 +30,7 @@ from typing import ClassVar
 
 import pandas as pd
 
+from vwf.curves import add_models
 from vwf.time_utils import month_days
 
 from vwf.sources.base import ObservationSource, ObsLevel
@@ -132,8 +133,6 @@ class ClientCsvTurbineSource(ObservationSource):
                     "'diameter' to match one. Provide either a power-curve key "
                     "per site or a rotor diameter (plus manufacturer if known)."
                 )
-            from vwf.data import add_models  # lazy: vwf.data imports this package
-
             if "manufacturer" not in md.columns:
                 md["manufacturer"] = ""
             md = add_models(md)

@@ -56,7 +56,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the
 import baseline_bootstrap as bb
 from vwf.cli.common import make_parser
 from vwf.clustering import cluster_turbines
-from vwf.data import assign_country_clusters, load_power_curves, val_set
+from vwf.data import assign_country_clusters, val_set
+from vwf.curves import load_power_curves
 from vwf.harness.corrections import fit_quality, get_correction
 from vwf.harness.driver import era5_dir, resolve_source
 from vwf.harness.regions import load_region

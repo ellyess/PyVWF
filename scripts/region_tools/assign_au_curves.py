@@ -5,7 +5,7 @@ Two strategies, per the D2 rulings:
 
 REAL library (PRIMARY, the gate):
     The method-consistent, D1-validated path: farms with a sourced rotor
-    diameter go through the SAME vwf.data.add_models logic as every other
+    diameter go through the SAME vwf.curves.add_models logic as every other
     region (fuzzy manufacturer + nearest p_density, global p_density
     fallback), fed with per-turbine capacity. Manufacturer-only farms match
     within manufacturer by nearest per-turbine RATED CAPACITY; fallback
@@ -42,7 +42,7 @@ def main() -> None:
     ap.add_argument("--open-curves", required=True, help="open power-curve CSV path")
     args = ap.parse_args()
 
-    from vwf.data import add_models  # resolves models.csv via PYVWF_INPUT
+    from vwf.curves import add_models  # resolves models.csv via PYVWF_INPUT
 
     md = pd.read_csv(args.md, parse_dates=["commissioning_date"])
     tm = pd.read_csv(args.models_csv)

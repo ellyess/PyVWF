@@ -11,6 +11,7 @@ from typing import ClassVar
 
 import pandas as pd
 
+from vwf.curves import add_models
 from vwf.time_utils import month_days
 
 from vwf.loaders.turbine_loaders import load_turbine_metadata, load_turbine_observations
@@ -64,7 +65,7 @@ class EuropeanTurbineSource(ObservationSource):
         """Load turbine metadata and assign a power-curve model to each turbine.
 
         The raw country file is cleaned by the country loader, then
-        :func:`vwf.data.add_models` matches every turbine to a curve in the
+        :func:`vwf.curves.add_models` matches every turbine to a curve in the
         model catalog by manufacturer and specific power. The result is
         loaded once per instance and cached; callers get a copy.
 
@@ -74,10 +75,6 @@ class EuropeanTurbineSource(ObservationSource):
             the assigned ``model``.
         """
         if self._metadata is None:
-            # Imported lazily: vwf.data imports this package at module scope, so a
-            # top-level import here would close the cycle.
-            from vwf.data import add_models
-
             self._metadata = add_models(load_turbine_metadata(self.country))
         return self._metadata.copy()
 

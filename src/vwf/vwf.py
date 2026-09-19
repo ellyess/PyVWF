@@ -239,7 +239,7 @@ class PyVWF:
         """
         try:
             # Imported lazily so a broken/absent harness cannot break PyVWF.
-            from vwf.harness.provenance import write_manifest_safe
+            from vwf.provenance import write_manifest_safe
 
             write_manifest_safe(
                 self.directory_path,

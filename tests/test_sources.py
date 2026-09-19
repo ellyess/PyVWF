@@ -88,8 +88,8 @@ def stub_european_loaders(monkeypatch):
 
     monkeypatch.setattr(european, "load_turbine_metadata", fake_metadata)
     monkeypatch.setattr(european, "load_turbine_observations", fake_observations)
-    # add_models is resolved lazily from vwf.data inside load_metadata.
-    monkeypatch.setattr(data, "add_models", lambda df: df)
+    # The adapter imports add_models from vwf.curves at module scope.
+    monkeypatch.setattr(european, "add_models", lambda df: df)
     return calls
 
 

@@ -30,7 +30,8 @@ import pandas as pd
 import xarray as xr
 
 from vwf.config import PyVWFPaths
-from vwf.data import clean_obs_data, country_cf_to_monthly, load_power_curves, prep_country
+from vwf.data import clean_obs_data, country_cf_to_monthly, prep_country
+from vwf.curves import load_power_curves
 from vwf.harness.driver import resolve_source
 from vwf.harness.regions import RegionSpec
 from vwf.sources.entsoe_files import EntsoeFileSource

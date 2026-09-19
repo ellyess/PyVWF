@@ -48,7 +48,7 @@ import xarray as xr
 
 from vwf.cli.common import make_parser
 from vwf.config import BoundingBoxes
-from vwf.data import load_power_curves
+from vwf.curves import load_power_curves
 from vwf.datasets.era5 import prep_era5
 from vwf.extensions.grid import evaluate, interpolation as interp, surface
 from vwf.wind import interpolate_wind

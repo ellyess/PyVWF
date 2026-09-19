@@ -44,7 +44,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
 from vwf.cli.common import make_parser
-from vwf.data import cluster_train_set, load_power_curves, train_set
+from vwf.data import cluster_train_set, train_set
+from vwf.curves import load_power_curves
 from vwf.harness import driver
 from vwf.harness.regions import load_region
 from vwf.wind import power_curve_arrays, interpolate_wind

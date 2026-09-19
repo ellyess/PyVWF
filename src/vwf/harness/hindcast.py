@@ -29,7 +29,8 @@ import pandas as pd
 import vwf.wind as wind
 from vwf.clustering import cluster_turbines
 from vwf.config import PyVWFPaths
-from vwf.data import load_power_curves, val_set
+from vwf.data import val_set
+from vwf.curves import load_power_curves
 from vwf.harness.corrections import get_correction
 from vwf.harness.regions import RegionSpec
 from vwf.datasets.era5 import prep_era5

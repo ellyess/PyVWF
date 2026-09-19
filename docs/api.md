@@ -28,7 +28,7 @@ config. The commands are in {doc}`guides/training`, and the design in
 .. automodule:: vwf.harness.skill
    :members:
 
-.. automodule:: vwf.harness.provenance
+.. automodule:: vwf.provenance
    :members:
 
 .. automodule:: vwf.harness.bootstrap
@@ -112,7 +112,10 @@ reanalysis, and power curves.
 ```{eval-rst}
 .. automodule:: vwf.data
    :members: train_set, val_set, val_obs_and_fleet, cluster_train_set, prep_country,
-             clean_obs_data, add_models, interp_nans, load_power_curves
+             clean_obs_data, interp_nans
+
+.. automodule:: vwf.curves
+   :members: load_power_curves, add_models
 ```
 
 ## Wind simulation

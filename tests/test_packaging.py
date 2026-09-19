@@ -1,7 +1,7 @@
 """Packaging invariants: one version, semantically formatted, no drift.
 
-``vwf.__version__`` is the single source of truth; ``pyproject.toml`` reads it
-dynamically. ``CITATION.cff`` cannot, so it is the one place a stale version can
+``vwf/_version.py`` is the single source of truth: ``vwf.__version__``
+re-exports it, and ``pyproject.toml`` reads it dynamically. ``CITATION.cff`` cannot, so it is the one place a stale version can
 hide; these tests fail loudly when it drifts.
 
 Optional dependencies get the same treatment from the other side: the data
@@ -54,7 +54,12 @@ def test_pyproject_reads_version_from_package(pyproject):
         "vwf.__version__ remains the single source of truth"
     )
     assert "version" in project["dynamic"]
-    assert pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "vwf.__version__"
+    assert (
+        pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "vwf._version.__version__"
+    )
+    from vwf._version import __version__
+
+    assert vwf.__version__ is __version__
 
 
 def test_citation_version_matches_package():

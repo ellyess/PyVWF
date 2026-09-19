@@ -41,7 +41,7 @@ import pandas as pd
 
 from vwf.cli.common import make_parser
 from vwf.correction import find_offset_iterative
-from vwf.data import load_power_curves
+from vwf.curves import load_power_curves
 from vwf.datasets.era5 import prep_era5
 from vwf.harness import regions
 from vwf.wind import fast_simulate_cf, interpolate_wind, prepare_offset_arrays

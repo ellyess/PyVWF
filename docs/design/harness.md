@@ -27,7 +27,8 @@ src/vwf/harness/regions.py       # RegionSpec dataclass + TOML loader/validator
 src/vwf/harness/corrections.py   # CorrectionModel ABC, registry, AffineWindCorrection
 src/vwf/harness/driver.py        # run_train / run_evaluate / run_transfer
 src/vwf/harness/skill.py         # skill metrics on tidy frames
-src/vwf/harness/provenance.py    # run_manifest.json + curve-library identity
+src/vwf/harness/bootstrap.py     # paired bootstrap resampling
+src/vwf/provenance.py            # run_manifest.json + curve-library identity (both paths)
 src/vwf/harness/export.py        # gridded correction fields
 src/vwf/harness/hindcast.py      # applying fitted factors to other years
 src/vwf/sources/                 # one ObservationSource adapter per data family

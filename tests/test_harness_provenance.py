@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from vwf.config import PyVWFPaths
-from vwf.harness.provenance import (
+from vwf.provenance import (
     MANIFEST_NAME,
     build_manifest,
     curve_library_identity,

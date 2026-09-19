@@ -37,7 +37,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import vwf
+from vwf._version import __version__
 from vwf.config import PyVWFPaths
 from vwf.datasets.era5 import prep_era5
 from vwf.harness.corrections import PLAUSIBLE_SCALAR, fit_quality
@@ -287,7 +287,7 @@ def export_correction_field(
             "content_note": "Only fitted parameters (scalars, offsets) are included; no "
             "power-curve content and no observation records. Redistributable "
             "under the attributions below.",
-            "pyvwf_version": vwf.__version__,
+            "pyvwf_version": __version__,
             "git_commit": _git_commit(),
             "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "attribution_era5": "Grid derived from ERA5. Contains modified Copernicus Climate "
