@@ -58,7 +58,7 @@ The tree was reformatted once with `ruff format`. To keep that commit out of
 pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
 pytest                                  # every test: what CI runs on a manual dispatch
 pytest --cov=vwf           # with coverage
-ruff check src/vwf tests   # lint
+ruff check src tests scripts examples   # lint, as CI does
 mypy                       # type check; needs pandas-stubs, from the dev extra
 ```
 
@@ -102,7 +102,7 @@ versioning and stays in step with `CITATION.cff`.
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
-4. Ensure `pytest` and `ruff check src/vwf tests` pass locally.
+4. Ensure `pytest` and `ruff check src tests scripts examples` pass locally.
 5. Open a pull request describing the change and its motivation. Link any
    related issue.
 

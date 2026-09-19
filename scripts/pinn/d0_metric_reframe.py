@@ -117,7 +117,7 @@ def main():
             .round(3)
             .to_string(index=False)
         )
-        print(f"\n  RMSE (lower better):")
+        print("\n  RMSE (lower better):")
         print(
             sub[["holdout", "rmse_identity", "rmse_pooled", "rmse_ml"]]
             .round(3)

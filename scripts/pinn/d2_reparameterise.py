@@ -37,7 +37,6 @@ from sklearn.ensemble import RandomForestRegressor
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from analysis.ml_transfer_retest import (  # noqa: E402
-    RUNS,
     SEEDS,
     SET_A,
     RF_KW,
@@ -216,8 +215,8 @@ def main():
         )
     wsp = pd.DataFrame(rows)
     print(wsp.round(3).to_string(index=False))
-    print(f"\n  skill = 1 - MSE/MSE_uncorrected in m/s over 4-20 m/s;")
-    print(f"  positive means the transferred correction beats leaving ERA5 alone.")
+    print("\n  skill = 1 - MSE/MSE_uncorrected in m/s over 4-20 m/s;")
+    print("  positive means the transferred correction beats leaving ERA5 alone.")
     print(f"  free  > 0 in {int((wsp.skill_free > 0).sum())}/5 regions")
     print(f"  ridge > 0 in {int((wsp.skill_ridge > 0).sum())}/5 regions")
     wsp.to_csv(OUT / "d2_windspace.csv", index=False)

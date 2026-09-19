@@ -91,7 +91,6 @@ def subgrid_features(df: pd.DataFrame) -> pd.DataFrame:
                     exposure=((z_site - z_cell) / z_std) if z_std and z_std > 1 else 0.0,
                 )
             )
-        etopo_lat_res = dlat
     out = pd.DataFrame(recs).set_index("index")
     print(
         f'  ETOPO grid: dlat={dlat * 3600:.0f}" dlon={dlon * 3600:.0f}"  '
@@ -172,7 +171,7 @@ def main():
     ]
     print(top.round(2).to_string(index=False))
 
-    print(f"\n### The 12 smallest scalars\n")
+    print("\n### The 12 smallest scalars\n")
     bot = df.nsmallest(12, "scalar")[
         [
             "region",
