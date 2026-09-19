@@ -2,7 +2,7 @@
 
 Phase 1 of the extensibility restructure. It records what every tracked file
 is for, who uses it, and what should happen to it. It changes no code. Terms
-follow [`CONTEXT.md`](../../CONTEXT.md). "Study" is not yet a term there; here
+follow [`CONTEXT.md`](../CONTEXT.md). "Study" is not yet a term there; here
 it means one question with its own findings document, pre-registration and
 driver scripts. Section 7 proposes adding it.
 

@@ -82,6 +82,10 @@ consumers and go without a deprecation period.
 
 ### Added
 
+- **A test that every relative Markdown link resolves**, anchor included
+  (`tests/test_markdown_links.py`), since Sphinx checks neither the unpublished
+  pages nor anchors.
+
 - **deptry and vulture in CI.** Every import in `src/` is declared and every
   declared dependency is used or listed with its reason; dead code in `src/` is
   reported at confidence 80. Two unused `ml` extra packages and two
