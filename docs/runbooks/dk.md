@@ -71,6 +71,16 @@ every metric, the anchor the other regions are read against
 the shared European box (`era5/EU`), already on disk; there is no DK-specific
 ERA5 fetch.
 
+The legacy `PyVWF` path runs Denmark through the `pyvwf-train` console script.
+It trains, then simulates one test year:
+
+```bash
+pyvwf-train --outdir output/demo_DK_2020 --country DK --year-test 2020 --calc-z0
+```
+
+The harness above is the path for new work. The legacy path is described in
+the [training guide](../guides/training.md#legacy-batch-path).
+
 ## Notes
 
 - **UTM → lon/lat.** The register gives ETRS89 / UTM 32N X/Y; the processor

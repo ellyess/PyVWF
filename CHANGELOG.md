@@ -251,6 +251,10 @@ consumers and go without a deprecation period.
 
 ### Removed
 
+- **`examples/quick_run.py`**, a three-line alias of the `pyvwf-train` console
+  script that needs Denmark's data and so cannot run in CI. The DK runbook now
+  gives the `pyvwf-train` command. `examples/` holds only what CI executes.
+
 - **`PIPELINE.md`.** Its true content is now the "Legacy batch path" section of
   `docs/guides/training.md`. Its table of configuration sets was stale; the
   guide sends the reader to `train_all_bias_corrections.py --list` instead.

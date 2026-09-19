@@ -1,6 +1,6 @@
 """``pyvwf-train``: train bias corrections and simulate a year of CF for one country.
 
-Mirrors the ``examples/quick_run.py`` flow:
+The steps:
     1) instantiate PyVWF with an output directory
     2) train the correction factors
     3) simulate the capacity factor time series for the test year
