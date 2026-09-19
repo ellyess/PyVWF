@@ -56,7 +56,6 @@ pip install -e ".[data]"    # + ENTSO-E client and Excel/Parquet readers
 pip install -e ".[dev]"     # + pytest, ruff, mypy
 pip install -e ".[docs]"    # + sphinx, myst-parser
 pip install -e ".[grid]"    # + pykrige, rasterio, for the gridded correction surfaces
-pip install -e ".[ml]"      # + xgboost, lightgbm, for a model comparison not yet ported
 pip install -e ".[pinn]"    # + torch, for the experimental physics-informed correction
 pip install -e ".[touchdesigner]"  # + mapbox-earcut, for animated cluster maps
 ```

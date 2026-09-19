@@ -89,14 +89,6 @@ grid = [
     "rasterio>=1.3.0",
 ]
 
-# Gradient boosting for the machine-learning model comparison, which is not
-# yet ported. vwf.extensions.ml itself needs nothing here: its random forest
-# comes from scikit-learn, a core dependency.
-ml = [
-    "xgboost>=2.0.0",
-    "lightgbm>=4.0.0",
-]
-
 # The TouchDesigner export (scripts/analysis/export_voronoi_frames.py) only:
 # earcut triangulates the clipped Voronoi cells, because TouchDesigner's own
 # Python has numpy but no scipy or shapely, so every polygon has to arrive as
@@ -229,11 +221,8 @@ mapbox-earcut = "mapbox_earcut"
 # - netCDF4, bottleneck: xarray's backends, loaded by name, never imported;
 # - openpyxl, pyarrow: pandas' Excel and Parquet engines, likewise;
 # - cdsapi, mapbox-earcut: used only by scripts/ (fetch/era5.py,
-#   analysis/export_voronoi_frames.py), which deptry does not scan;
-# - xgboost, lightgbm: the ml extra, which nothing imports. Reported
-#   2026-09-19 as unused; kept until the maintainer decides.
-DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi", "mapbox-earcut",
-          "xgboost", "lightgbm"]
+#   analysis/export_voronoi_frames.py), which deptry does not scan.
+DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi", "mapbox-earcut"]
 
 [tool.vulture]
 # Dead-code scan of src/ at a conservative confidence; CI runs `vulture`.

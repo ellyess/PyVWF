@@ -51,6 +51,11 @@ the golden regression test and every test file pass at each step.
 
 ### Breaking
 
+- **Removed the `ml` extra.** It declared `xgboost` and `lightgbm` for a model
+  comparison that was never ported, and nothing imported either;
+  `vwf.extensions.ml` needs only scikit-learn, a core dependency. The extra
+  returns with the model comparison, when that is ported.
+
 - **`vwf.harness.provenance` is now `vwf.provenance`**, and **`load_power_curves`
   and `add_models` moved from `vwf.data` to `vwf.curves`.** Both moves put a
   module below the code that uses it: the legacy `PyVWF` class wrote its
