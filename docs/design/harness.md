@@ -32,8 +32,10 @@ src/vwf/provenance.py            # run_manifest.json + curve-library identity (b
 src/vwf/harness/export.py        # gridded correction fields
 src/vwf/harness/hindcast.py      # applying fitted factors to other years
 src/vwf/sources/                 # one ObservationSource adapter per data family
+src/vwf/metrics.py               # the weighted-mean primitive, shared by both paths
 configs/regions/*.toml           # one file per region
-scripts/analysis/validate_region.py   # driver CLI: train / evaluate / transfer
+src/vwf/cli/validate.py          # the pyvwf-validate console entry point
+scripts/analysis/validate_region.py   # the same CLI, from a checkout
 ```
 
 `configs/` lives at the repository root and is versioned: these are experiment
@@ -54,17 +56,18 @@ name = "Australia (National Electricity Market)"
 source = "aemo-nem"        # ObservationSource registry name
 obs_level = "turbine"      # which training branch runs: "turbine" | "country"
 obs_unit = "farm"          # the true independent measurement unit
-train_years = [2018, 2022] # inclusive
+train_years = [2020, 2022] # inclusive
 test_years  = [2023]
 
 [era5]
-path = "era5/AU"           # relative to PYVWF_INPUT
+path = "era5/AU"           # relative to PYVWF_INPUT; prep_era5 globs *.nc here
 bbox = [129.0, 154.0, -44.0, -10.0]   # lon_min, lon_max, lat_min, lat_max
-file_tag = "AU"            # era5_combined_{year}_{tag}.nc
+file_tag = "AU"            # the fetch's directory and filename prefix, not a
+                           # selector: era5/<tag>/era5_<tag>_<YYYY>_<MM>.nc
 
 [correction]
 model = "affine-wind"      # CorrectionModel registry name
-cluster_list = [5]
+cluster_list = [1, 15]
 time_slices = ["fixed", "season"]
 
 [seasons]                  # explicit month groups, no hemisphere heuristics
@@ -128,6 +131,17 @@ carries divergent `cf_obs` values**: divergent rows are not replicates of one
 measurement, and averaging them would fabricate an observation. A wrong regex
 fails loudly at evaluation time instead of silently mis-pooling.
 
+The collapse weights a station by the rows that **have** a simulated value,
+not by its whole capacity. Dividing by the whole capacity scales a station
+down by the share of it that is missing, and a station with no value at all
+comes out as exactly zero, because an empty pandas sum is 0.0 and a zero is a
+value, so the station-month stays in the scored rows instead of leaving them
+through the common-row rule. Only a NaN leaves. The station's own capacity
+still weights it in the fleet metric, because a capacity factor does not
+depend on how much of the station carries a value. Refused factors made this
+reachable, and it moved a UK row's reported RMSE by 0.022 before it was
+fixed.
+
 ## ERA5 extraction
 
 Two additive changes to `vwf/datasets/era5.py`. Longitude is normalised to
@@ -143,13 +157,22 @@ class CorrectionModel(ABC):
     name: ClassVar[str]
 
     @abstractmethod
-    def fit(self, gen_cf, clus_info, reanalysis, power_curves, time_res) -> pd.DataFrame:
-        """Return a factors table, one row per cluster x slice x year."""
+    def fit(self, gen_cf, turb_info, reanalysis, power_curves, *, num_clusters,
+            time_res, seasons=None, obs_level="turbine", min_cluster_size=1
+            ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Return a factors table, one row per (cluster, slice), and the
+        cluster assignments it fitted them on."""
 
     @abstractmethod
-    def apply(self, unc_ws, factors, time_res) -> "xr.Dataset":
-        """Return corrected wind speeds for simulation."""
+    def apply(self, reanalysis, clus_info, power_curves, factors, time_res, *,
+              seasons=None) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Return corrected wind speeds and the capacity factors they give."""
 ```
+
+`fit` returns the cluster assignments beside the factors because evaluate has
+to reproduce the fit's clusters exactly, and a factors row carries one scalar
+and one offset averaged over its accepted years rather than one row per year
+(see [Factors](../guides/output-structure.md#factors-factors_slice_kcsv)).
 
 `AffineWindCorrection` is a thin delegate to the existing `vwf.correction` and
 `vwf.wind` paths, pinned by a golden regression test that requires bit-for-bit
@@ -162,14 +185,21 @@ From one tidy frame (`time, ID, cf_sim, cf_obs, capacity, region`): MBE, MAE,
 RMSE and Pearson r, capacity-weighted where applicable; a capacity-factor
 distribution comparison by 1-D Earth mover's distance with exported Q-Q
 quantiles; and seasonal-cycle RMSE against the mean monthly climatology. All
-reported before and after correction, in sample and held out. Legacy
-`vwf/metrics.py` is untouched and the harness does not call it.
+reported before and after correction, in sample and held out.
 
-The two paths therefore define the error metrics twice, in `vwf/metrics.py`
-and `vwf/harness/skill.py`, and share no code. Both are live: the legacy path
-reproduces the thesis-era runs, the harness produces everything since. A change
-to how a metric is defined has to be made in both, or the two paths stop being
-comparable.
+The two paths define the **error metrics** twice, in `vwf/metrics.py`
+(`calculate_error`, `overall_error`) and `vwf/harness/skill.py`
+(`skill_metrics`). Both are live: the legacy path reproduces the thesis-era
+runs, the harness produces everything since. A change to how a metric is
+defined has to be made in both, or the two paths stop being comparable.
+
+They no longer share **no** code. `vwf.metrics.weighted_mean` and
+`weighted_mean_by` are the one weighted-mean primitive, at the bottom of the
+layering in `.importlinter`, and ten modules across both paths import them,
+`harness/skill.py`, `driver.py`, `corrections.py` and `hindcast.py` among
+them. One helper means a missing value is treated the same way everywhere: it
+leaves both the sum and the weights, and a group where nothing has a value is
+NaN rather than zero.
 
 ## Run provenance
 
@@ -210,9 +240,13 @@ region's factors have no cluster correspondence in the target. Transfer is
 therefore defined as exactly this, and the driver implements nothing else:
 
 1. Collapse the source factors to one scalar and one offset per time slice, as
-   the **capacity-weighted** mean over source clusters, never an unweighted one.
-   Multi-year factors are averaged over training years within (cluster, slice)
-   first.
+   the **capacity-weighted** mean over source clusters, never an unweighted
+   one. Only fitted clusters enter the sums and the weights. A refused factor,
+   a failed offset and an unfitted cluster are each left out: a NaN term drops
+   out of a pandas sum, so keeping its weight would pull the collapsed pair
+   toward zero by that cluster's capacity share, and an unfitted cluster
+   carries the identity, which is not a correction learned from the source. A
+   slice where no cluster is fitted collapses to NaN.
 2. Apply that single pair uniformly to every site in the target region for the
    matching slice.
 3. **Seasonal slices match by season name, not by month.** Australian

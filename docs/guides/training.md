@@ -2,7 +2,7 @@
 
 PyVWF trains and evaluates one **region** at a time through the validation
 harness. A region is a single TOML file in `configs/regions/`; the harness reads
-it, fits correction factors on the training years, and scores them on the
+it, fits its factors on the training years, and scores them on the
 test year, which the fit never sees. The design is in
 [`design/harness.md`](../design/harness.md).
 
@@ -18,6 +18,7 @@ name = "New Zealand (EMI-dispatched fleet)"
 [observations]
 source = "emi-nz"          # adapter in src/vwf/sources/
 obs_level = "turbine"      # "turbine" or "country"
+obs_unit = "farm"          # turbine, farm, plant, complex or country
 train_years = [2019, 2023] # inclusive
 test_years = [2024]
 
@@ -39,20 +40,25 @@ spring = [9, 10, 11]
 ```
 
 Seasons are always explicit so a Southern-Hemisphere region is never scored
-against Northern-Hemisphere months.
+against Northern-Hemisphere months. Every key above is required. The optional
+ones are `min_cluster_size`, `roughness`, `allow_extrapolation`,
+`location_resolution`, `pseudo_replicated_rows`, `station_id_regex` and
+`time_convention`; `src/vwf/harness/regions.py` gives each one's default.
 
 ## Run it
 
 ```bash
 # Train: fit factors for every (cluster, slice) combination in the config
-python scripts/analysis/validate_region.py train \
-    --region configs/regions/nz.toml
+pyvwf-validate train --region configs/regions/nz.toml
 
 # Evaluate: score a trained run against the test year
-python scripts/analysis/validate_region.py evaluate \
-    --region configs/regions/nz.toml \
+pyvwf-validate evaluate --region configs/regions/nz.toml \
     --train-run output/validation/NZ/train-<timestamp>
 ```
+
+`pyvwf-validate` is installed with the package. In a checkout without an
+install, `python scripts/analysis/validate_region.py` takes the same
+arguments.
 
 Set `PYVWF_INPUT` on both commands when the run uses another input root; see
 [Choose the input root](#choose-the-input-root).
@@ -102,11 +108,16 @@ Selected by `[correction] model`:
 
 ## Cluster counts
 
-`cluster_list` fits each spatial resolution in one run. `k`-means needs
-`k ≤ n_farms` reaching the trainer, and `k` near that ceiling is
-one-farm-per-cluster (a fake plateau, `docs/findings/region-us-br.md`). For
+`cluster_list` fits each cluster count in one run. `k`-means needs `k` at most
+the number of units reaching the trainer, and `k` near that ceiling is
+one-unit-per-cluster (a fake plateau, `docs/findings/region-us-br.md`). For
 country-level regions, `cluster_list` must be `1` or the grid's own cluster
 count (see [A country-level region](adding-a-region.md#a-country-level-region)).
+
+A high cluster count also makes a refused factor more likely. A cluster whose
+accepted years are not a strict majority of the training years is refused: it
+carries no scalar and no offset, and its units get no corrected values. See
+[Factors](output-structure.md#factors-factors_slice_kcsv).
 
 ## Transfer runs
 
@@ -114,7 +125,7 @@ count (see [A country-level region](adding-a-region.md#a-country-level-region)).
 AU↔Europe pair, the only pairing that has been validated:
 
 ```bash
-python scripts/analysis/validate_region.py transfer \
+pyvwf-validate transfer \
     --region configs/regions/uk.toml \
     --source-region configs/regions/au_nem.toml \
     --source-run output/validation/AU-NEM/train-<timestamp>

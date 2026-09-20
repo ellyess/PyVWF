@@ -82,5 +82,17 @@ myst_enable_extensions = ["colon_fence", "deflist", "dollarmath"]
 myst_heading_anchors = 3
 suppress_warnings = ["myst.xref_missing"]
 
-html_theme = "sphinx_rtd_theme"
+# Furo: a light and dark theme with a two-column layout, so the page's own
+# headings stay visible beside the site navigation. It needs no custom CSS
+# here: the guides carry no diagrams of their own, and the one Mermaid
+# flowchart in the project README is rendered by GitHub rather than by Sphinx,
+# because README.md is excluded from this build.
+html_theme = "furo"
 html_title = f"PyVWF {release}"
+html_theme_options = {
+    # Puts a "view this page's source" link on every page, pointing at the
+    # Markdown in the repository rather than at the generated reStructuredText.
+    "source_repository": "https://github.com/ellyess/PyVWF/",
+    "source_branch": "main",
+    "source_directory": "docs/",
+}

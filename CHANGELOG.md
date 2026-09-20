@@ -132,6 +132,12 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The documentation site uses the Furo theme.** It gives a light and a dark
+  mode with a toggle, and a second sidebar holding the current page's own
+  headings, where the previous theme put them in the left sidebar under the
+  page's entry. Wide tables now scroll inside the content column rather than
+  running past it. `furo` replaces `sphinx-rtd-theme` in the `docs` extra,
+  which is what Read the Docs installs, and no custom CSS is added.
 - **The README is a front door rather than a second copy of the guides.** It
   keeps what it is, the workflow diagram, installing, the quickstart, the
   results, the limitations that decide whether to use it, and the citation,

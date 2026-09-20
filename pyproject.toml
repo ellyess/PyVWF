@@ -114,7 +114,7 @@ dev = [
 
 docs = [
     "sphinx>=6.0.0",
-    "sphinx-rtd-theme>=1.2.0",
+    "furo>=2024.1.29",  # the site theme; .readthedocs.yaml installs this extra
     "myst-parser>=2.0.0",  # the narrative guides in docs/ are Markdown
 ]
 

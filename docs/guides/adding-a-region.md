@@ -42,9 +42,9 @@ copy. Chile (`cen-cl`) is the cross-check.
 Between steps 13 and 14, run the region through the harness:
 
 ```bash
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=<input root> pyvwf-validate train \
     --region configs/regions/<stem>.toml
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=<input root> pyvwf-validate evaluate \
     --region configs/regions/<stem>.toml --train-run output/validation/<CODE>/train-<stamp>
 ```
 
@@ -72,7 +72,7 @@ unit the same curve.
 | Route | Where | Used by |
 |---|---|---|
 | `vwf.datasets.eia_us.assign_curves_from_library` | processing time | US, NZ, and CL and AR through `scripts/region_tools/apply_turbine_specs.py` |
-| `vwf.data.add_models` | load time, inside the adapter; processing time through `scripts/region_tools/assign_au_curves.py` | DE, DK, UK (`european-turbine`), `client-csv-turbine`, and AU-NEM |
+| `vwf.curves.add_models` | load time, inside the adapter; processing time through `scripts/region_tools/assign_au_curves.py` | DE, DK, UK (`european-turbine`), `client-csv-turbine`, and AU-NEM |
 | One default curve for every unit | processing time | BR |
 
 The first route keeps onshore models rated 0.5 to 2 times the unit's
@@ -110,7 +110,7 @@ path. Their inputs are built by one module, not by `scripts/fetch/` and
 | 2 | Three tables in `src/vwf/datasets/` | For a country outside the nine: `country_grid.COUNTRY_CONFIGS` (outline box, grid resolution, representative turbine, cluster count), `gwpt.COUNTRY_NAME` (its GWPT country name, for step 5) and, if absent, `fetch_entsoe_capacity_factors.COUNTRY_CODES` (its ENTSO-E area code). |
 | 3 | `configs/regions/<stem>.toml` | `source = "entsoe-country"`, `obs_level = "country"`, `obs_unit = "country"`, the years, the reanalysis box and the correction settings. |
 | 4 | `python -m vwf.datasets.generate_country_level_training_data --countries <CODE>` | Writes the grid points and the ENTSO-E observations under `<input-root>/observations/country/`. The fetch needs the `data` extra. Pass `ENTSOE_API_KEY` in the environment for this one command. |
-| 5 | `scripts/region_tools/weight_country_grid_points.py` | Replaces the uniform synthetic capacity with GWPT capacity. Add `--per-year` so each year sees its own fleet. Add `--zone-aware` for a region with bidding zones. |
+| 5 | `scripts/region_tools/weight_country_grid_points.py` | Replaces the uniform synthetic capacity with GWPT capacity. Add `--per-year <start> <end>`, an inclusive pair, so each year sees its own fleet. Add `--zone-aware` beside it for a region with bidding zones; it needs `--per-year`. |
 | 6 | `scripts/analysis/audit_country_observations.py` | Checks the observed series. Run it before you trust any fit. |
 | 7 | `tests/test_harness_regions.py` | Raise the shipped-config count. Pin the region's `obs_level`. |
 | 8 | `docs/findings/scorecard.md` row, and its scorecard config | As for a turbine-level region: `configs/regions/scorecard/<stem>_country.toml`. |
@@ -120,8 +120,9 @@ raises. The value `1` gives one national cluster, an exactly determined fit.
 
 The audit in step 6 matters because the affine correction absorbs a constant
 observation error into the scalar. A uniformly wrong series therefore still
-fits well in sample. NL and IE fail this audit; see
-[`method-country-level.md`](../findings/method-country-level.md).
+fits well in sample. NL fails this audit and is excluded. IE failed it once,
+on a frozen capacity denominator, and was repaired; it is now a scorecard row.
+Both are in [`method-country-level.md`](../findings/method-country-level.md).
 
 [`data-sources.md`](data-sources.md) describes the file layout the generator
 writes.
