@@ -31,11 +31,11 @@ Paths are defined centrally in [`src/vwf/config.py`](../../src/vwf/config.py)
 
 ---
 
-## 1. Observation sources by region
+## 1. Data sources by region
 
-Each region declares its source in `configs/regions/<code>.toml`; the harness
-resolves it to an adapter in `src/vwf/sources/`. Every source is reduced to a
-**monthly capacity factor** before correction.
+Each region declares its data source in `configs/regions/<code>.toml`; the
+harness resolves it to an adapter in `src/vwf/sources/`. Every data source is
+reduced to a **monthly capacity factor** before correction.
 
 | Region | Code | Adapter | Source | Lic. | Fetch → Process | Runbook |
 |---|---|---|:---:|:---:|---|---|
