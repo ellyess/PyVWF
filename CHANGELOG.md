@@ -132,6 +132,32 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The README is a front door rather than a second copy of the guides.** It
+  keeps what it is, the workflow diagram, installing, the quickstart, the
+  results, the limitations that decide whether to use it, and the citation,
+  and links the guide that owns each of the rest. The validated-regions table
+  is dropped for a summary and a link to the scorecard, which is its home and
+  which the table had fallen behind. The quickstart names `pyvwf-validate`,
+  the console script an installed user has, rather than the checkout-only
+  script. A Read the Docs badge, a licence section and a link to
+  `docs/publications.md` are added.
+- **Three documents take what left the README.**
+  `docs/guides/installation.md` holds the two install routes and what each
+  extra adds, `docs/guides/docker.md` holds the image whole, from the mounts
+  and the uid handling to the build arguments and what CI checks, and
+  `docs/design/limitations.md` holds the full limitations list and the
+  reproducibility record. Each is a new home in `docs/README.md`'s table.
+- **`docs/publications.md` records the archived JOSS submission.** A new
+  section names `paper/paper.md`, its outcome, the commit whose text was
+  submitted and the tag on it, so a reader who finds the file knows it is not
+  a current description of the software.
+- **`CONTRIBUTING.md` names every check the lint job runs.** It listed `ruff`
+  and `mypy` and left out `lint-imports`, `deptry` and `vulture`.
+- **`docs/index.md` and `CONTRIBUTING.md` lose two errors.** The site's front
+  page called the method a linear correction, where `docs/CONTEXT.md`'s
+  approved term is the affine correction, and it repeated both citations in
+  full rather than linking them. The pull-request checklist asked for a bare
+  `pytest`, where CI runs the fast set.
 - **The terrain wind-deficit study is read and written up** (#26):
   `method-terrain-wind-deficit.md` carries the result, the deviations and the
   recommendation the registered gates map to, and the pre-registration's

@@ -4,24 +4,26 @@ PyVWF is an open Python framework that turns atmospheric reanalysis (e.g. ERA5)
 into **bias-corrected** wind power generation. It re-implements the Virtual Wind
 Farm (VWF) methodology behind [Renewables.ninja](https://www.renewables.ninja/),
 and, unlike API-only tools, exposes the full *training* workflow for the
-correction factors.
+factors.
 
 Raw reanalysis winds carry systematic, location-dependent biases. PyVWF learns a
-per-cluster, per-time-slice linear correction of the wind speed
+per-cluster, per-time-slice affine correction of the wind speed
 
 $$w_{\text{corrected}} = \alpha \cdot w + \beta$$
 
 from observed generation, then converts the corrected wind to power through a
 turbine power curve. The factors $\alpha$ (scalar) and $\beta$ (offset) are
-yours to inspect, map, and retrain at whatever spatial and temporal resolution
-your observations support.
+yours to inspect, map, and retrain at whatever spatial resolution and time
+slice your observations support.
 
 ## Where to start
 
 - **New here?** The [project README](https://github.com/ellyess/PyVWF#readme)
-  covers installation and a Denmark quickstart.
+  says what PyVWF is and what it is for, in two minutes.
+- **Installing it?** The {doc}`installation guide <guides/installation>` covers
+  the two routes and the six extras, and {doc}`guides/docker` covers the image.
 - **Want to see it run?** `python examples/run_minimal.py` executes the whole
-  workflow end-to-end in under a minute on bundled data (synthetic weather and
+  workflow end-to-end in a few seconds on bundled data (synthetic weather and
   observations, open-library power curves), with no ERA5 download and no private
   turbine data.
 - **Looking for a function?** Go to the {doc}`api`.
@@ -36,6 +38,7 @@ your observations support.
 :maxdepth: 1
 :caption: Guides
 
+guides/installation
 guides/data-sources
 guides/training
 guides/output-structure
@@ -44,6 +47,7 @@ guides/adding-a-region
 guides/adding-an-adapter
 guides/adding-a-study
 guides/your-own-data
+guides/docker
 ```
 
 ```{toctree}
@@ -69,6 +73,7 @@ runbooks/tr
 :caption: Design
 
 design/harness
+design/limitations
 design/roughness-temporal-treatment
 design/undefined-roughness-in-complex-terrain
 ```
@@ -84,19 +89,8 @@ publications
 
 ## Citing PyVWF
 
-Please cite both the software and the method paper.
-
-**The software** (concept DOI: always resolves to the latest release):
-
-> Benmoufok, E. F., Warder, S. C., and Piggott, M. D. *PyVWF: An open Python
-> framework for bias-corrected wind power simulation from reanalysis data.*
-> Zenodo. [doi:10.5281/zenodo.21236619](https://doi.org/10.5281/zenodo.21236619)
-
-**The method:**
-
-> Benmoufok, E. F., Warder, S. C., Zhu, E., Bhaskaran, B., Staffell, I., and
-> Piggott, M. D. (2024). *Improving wind power modelling through granular
-> spatial and temporal bias correction of reanalysis data.* Energy.
-> [doi:10.1016/j.energy.2024.133759](https://doi.org/10.1016/j.energy.2024.133759)
-
-Machine-readable metadata for both lives in `CITATION.cff`.
+Cite both the software and the method paper. Both references, with the concept
+DOI that resolves to the latest release, are in the
+[project README](https://github.com/ellyess/PyVWF#citation) and, machine
+readable, in `CITATION.cff`. The commit behind each published result is in
+{doc}`publications`.
