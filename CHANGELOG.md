@@ -115,6 +115,24 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The bootstrap pins compare to a tolerance on both pandas versions**
+  (`tests/test_pin_bootstrap_reproduction.py`). They were byte-for-byte under
+  pandas 2, and had been failing the UK rows since `d68b542` put every
+  weighted mean behind one helper: the reassociated sum moved six diagnostic
+  columns of that row in their last bit. No figure any of those files reports
+  changed, so no scorecard row, correction notice or findings document is
+  affected, and the recorded files stand. Both versions now compare each file
+  as a table, non-numeric columns exactly and numeric ones to 1e-15, which is
+  the tolerance pandas 3 already needed for the same reason. Checked against a
+  movement it must still catch as well as one it must not.
+- **Every entry point says which input root it read.** `vwf.cli.common`
+  announces the resolved root and how it was chosen, `PYVWF_INPUT` or the
+  default, and names any input-path flag sent outside it. Which root a run
+  read decides its numbers, because the curve library differs between
+  `input/` and `input/combined`, and nothing in a run's output said so. To
+  stderr, so that an entry point whose stdout a caller parses is unaffected,
+  and silenced by `PYVWF_QUIET_ROOT`.
+
 - **Two argparse help strings named a path the code does not use.**
   `train_all_bias_corrections.py` advertised `--outdir` as defaulting to
   `out/runs` where the default is `output/runs`, and
