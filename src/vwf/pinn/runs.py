@@ -22,6 +22,7 @@ from vwf.harness.skill import (
     skill_metrics,
     summarise_exclusions,
 )
+from vwf.metrics import weighted_mean
 
 CONFIGS = Path(__file__).resolve().parents[3] / "configs" / "regions"
 UNIT_KEYS = ["ID", "year", "month"]
@@ -142,9 +143,9 @@ def level_spatial(frame: pd.DataFrame) -> dict[str, float | int]:
     f["dev"] = f["e"] - f["level"]
     unit = f.groupby("ID").agg(s=("dev", "mean"), cap=("capacity", "mean"), n=("dev", "size"))
     w_unit = unit["cap"] * unit["n"]
-    spatial = float(np.sqrt((w_unit * unit["s"] ** 2).sum() / w_unit.sum()))
-    level_rmse = float(np.sqrt(np.average(f["level"] ** 2, weights=f["capacity"])))
-    rmse = float(np.sqrt(np.average(f["e"] ** 2, weights=f["capacity"])))
+    spatial = float(np.sqrt(weighted_mean(unit["s"] ** 2, w_unit)))
+    level_rmse = float(np.sqrt(weighted_mean(f["level"] ** 2, f["capacity"])))
+    rmse = float(np.sqrt(weighted_mean(f["e"] ** 2, f["capacity"])))
     return {
         "spatial_rmse": spatial,
         "level_rmse": level_rmse,

@@ -29,6 +29,7 @@ from __future__ import annotations
 import re
 
 import pandas as pd
+from vwf.metrics import weighted_mean
 
 #: The NEM regions; the Generation Information workbook also lists WEM (WA)
 #: projects in other files, but its Region column for this sheet is NEM-only.
@@ -282,8 +283,8 @@ def resolve_duid_aliases(
                 "fcud": fleet_row["fcud"],
                 "gwpt_name": str(targets),
                 "gwpt_capacity_mw": float(cap.sum()),
-                "lat": float((lat * weights).sum() / weights.sum()),
-                "lon": float((lon * weights).sum() / weights.sum()),
+                "lat": weighted_mean(lat, weights),
+                "lon": weighted_mean(lon, weights),
                 "start_year": start,
                 "match_source": "alias",
             }

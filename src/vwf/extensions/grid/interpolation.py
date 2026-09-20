@@ -34,6 +34,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy.interpolate import RBFInterpolator
+from vwf.metrics import weighted_mean
 
 #: The chapter's IDW exponent.
 IDW_POWER = 2.0
@@ -174,9 +175,10 @@ def idw_at(
             weights = 1.0 / dist_k**power
         exact = ~np.isfinite(weights).all(axis=1)
         weights = np.where(np.isfinite(weights), weights, 0.0)
-        total = weights.sum(axis=1, keepdims=True)
         for c in VALUE_COLUMNS:
-            out[c][start : start + len(chunk)] = (weights * take[c]).sum(axis=1) / total.ravel()
+            # A control point with no value for this column weighs on neither
+            # side (weighted_mean), where it used to carry the whole cell to NaN.
+            out[c][start : start + len(chunk)] = weighted_mean(take[c], weights, axis=1)
 
         # A target sitting exactly on a control point takes that point's value
         # rather than a weighted average of an infinity. Applied to every
