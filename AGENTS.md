@@ -92,6 +92,19 @@ They live in `.claude/skills/`.
   full-precision originals it was going to be checked against, leaving only a
   log rounded to five decimals, so bit-identity became unverifiable. Both are
   the same error: acting on a path without checking what else is under it.
+- **Run the real-data pins when you touch the code they cover, and read
+  their output.** The `realdata` tests skip where their inputs are absent,
+  which includes CI, so no pull request check will tell you that a pin moved.
+  Before committing a change under `vwf/harness/`, `vwf/metrics.py`,
+  `vwf/correction.py` or `vwf/data.py`, run `pytest -m realdata` and state the
+  counts in the pull request. A pin that moves is re-recorded in the same
+  commit, with the size of the movement in the message. Rerun a row the way
+  its test runs it: `tests/test_pin_bootstrap_reproduction.py` sets
+  `PYVWF_INPUT` per row, and rerunning a combined-library row under the
+  default input root produces a difference that looks exactly like a code
+  change. That mistake has been made: a UK pin was reported as moving by
+  0.0014 in MBE when the row had simply been run on the wrong curve library,
+  and the real movement was 1e-16.
 - **Read the checks before the commit command, not after.** Run the
   pre-commit hooks (ruff check and format among them), the test files the
   change touches and, for `src/vwf`, mypy with `pandas-stubs` and

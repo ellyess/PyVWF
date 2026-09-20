@@ -62,6 +62,29 @@ output:
 A pinned output that moves without a deliberate change is a regression until
 shown otherwise, which is the case the detector exists for.
 
+**Run the real-data set when you touch the code the pins cover.** The pins
+that read real inputs carry the `realdata` marker, and they skip where the
+inputs are absent, which includes CI. So continuous integration cannot tell
+you that a pin moved: only a local run can. A pull request that changes
+anything under `vwf/harness/`, `vwf/metrics.py`, `vwf/correction.py` or
+`vwf/data.py` runs them and states the result in its description:
+
+```bash
+pytest -m realdata            # every pin that reads local inputs
+```
+
+State the counts, and for each pin that moved, the size of the movement.
+"No pin moved" is a claim about output you have seen, not an expectation.
+Where the inputs for a pin are absent, say which ones skipped, so a reader
+knows what was not covered.
+
+**Resolve each row's input root the way its test does.** A row that runs on
+`input/combined` and is rerun under the default `input/` produces a different
+answer, because the curve library differs, and the difference looks exactly
+like a code change. `tests/test_pin_bootstrap_reproduction.py` sets
+`PYVWF_INPUT` per row for this reason. Read what the test passes rather than
+assuming the default.
+
 Install the commit hooks once, after the dev extra. They run `ruff check`,
 `ruff format`, the whitespace and file checks and `nbstripout` on each commit:
 
