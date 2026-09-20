@@ -14,8 +14,69 @@ import numpy as np
 import pandas as pd
 
 
+def weighted_mean(values, weights, *, axis=None):
+    """The weighted mean of the entries that have both a value and a weight.
+
+    Every weighted mean in the package goes through this function, so that a
+    missing value is treated the same way everywhere. Two rules:
+
+    - **A missing entry leaves both the sum and the weights.** Keeping its
+      weight in the denominator would scale the result down by the missing
+      share of weight, which is not a mean of anything.
+    - **Where nothing has a value the result is NaN, never zero.** An empty
+      numpy or pandas sum is 0.0, and a zero is a value: downstream code
+      scores it instead of skipping it. That is how four UK stations came to
+      be scored at zero output against an observed 0.38 for a whole year
+      (:func:`vwf.harness.skill.collapse_pseudo_replicates`).
+
+    A non-finite or non-positive total weight also gives NaN, so a group with
+    no capacity behind it does not divide by zero.
+
+    Args:
+        values: Values to average. Array-like, or any shape broadcastable
+            against ``weights``.
+        weights: Weights, of the same shape as ``values`` or broadcastable to
+            it (capacity, in most of this package).
+        axis: Axis to reduce, as in numpy. ``None`` reduces everything and
+            returns a float; an int returns an array over the other axes.
+
+    Returns:
+        float or numpy.ndarray: The weighted mean, NaN where nothing has a
+        value and a weight.
+    """
+    v = np.asarray(values, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    # numpy broadcasts w against v where the shapes differ; broadcasting it
+    # explicitly first would change how the products associate in the sum, and
+    # the results of runs already recorded would move in their last digit.
+    present = np.isfinite(v) & np.isfinite(w)
+    total = np.where(present, w, 0.0).sum(axis=axis)
+    numerator = np.where(present, v * w, 0.0).sum(axis=axis)
+    usable = total > 0
+    with np.errstate(invalid="ignore", divide="ignore"):
+        out = np.where(usable, numerator / np.where(usable, total, 1.0), np.nan)
+    return float(out) if axis is None else out
+
+
+def weighted_mean_by(frame, value_col, weight_col, by):
+    """:func:`weighted_mean` per group of ``frame``, as a Series indexed by ``by``.
+
+    A thin wrapper: the rule lives in :func:`weighted_mean` and this only
+    groups the rows.
+    """
+    grouped = frame.groupby(by, sort=True)
+    return grouped.apply(
+        lambda g: weighted_mean(g[value_col], g[weight_col]),
+        include_groups=False,
+    )
+
+
 def weighted_average_vectorized(df, value_col, weight_col):
-    """Compute weighted average efficiently (vectorized).
+    """Compute a weighted average of one column by another.
+
+    Delegates to :func:`weighted_mean`, so a row with a missing value or
+    weight is left out of both the sum and the weights rather than diluting
+    the result.
 
     Args:
         df: Input DataFrame.
@@ -23,14 +84,9 @@ def weighted_average_vectorized(df, value_col, weight_col):
         weight_col: Column name with weights.
 
     Returns:
-        Weighted average as a float.
-
-    Note:
-        This is ~10x faster than lambda-based approach for large DataFrames.
+        Weighted average as a float, NaN where no row has both.
     """
-    values = df[value_col].to_numpy()
-    weights = df[weight_col].to_numpy()
-    return np.sum(values * weights) / np.sum(weights)
+    return weighted_mean(df[value_col], df[weight_col])
 
 
 def prepare_monthly_data(df_sim, df_obs, train=False):

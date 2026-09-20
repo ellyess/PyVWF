@@ -51,6 +51,7 @@ from vwf.sources import (
     ObservationSource,
     get_source,
 )
+from vwf.metrics import weighted_mean
 
 #: The transfer pair set that has been validated: AU-NEM against Europe, in
 #: either direction. Other pairings are untested rather than unsupported.
@@ -657,9 +658,7 @@ def _zone_aggregate(sim_cf: pd.DataFrame, members: pd.DataFrame) -> pd.Series:
 
     caps = cap[[str(c) for c in valid]].to_numpy(float)
     vals = sim_cf[valid].to_numpy(float)
-    present = ~np.isnan(vals)
-    wsum = np.where(present, caps, 0.0).sum(axis=1)
-    agg = np.where(wsum > 0, np.where(present, vals * caps, 0.0).sum(axis=1) / wsum, np.nan)
+    agg = weighted_mean(vals, caps, axis=1)
 
     frame = pd.DataFrame({"time": pd.to_datetime(sim_cf["time"]), "cf_sim": agg})
     return frame.groupby(frame["time"].dt.to_period("M"))["cf_sim"].mean()
@@ -784,9 +783,7 @@ def _country_pairs(
     sim = sim_cf.copy()
     sim["time"] = pd.to_datetime(sim["time"])
     vals = sim[valid].to_numpy(float)
-    present = ~np.isnan(vals)
-    wsum = np.where(present, caps, 0.0).sum(axis=1)
-    country = np.where(wsum > 0, np.where(present, vals * caps, 0.0).sum(axis=1) / wsum, np.nan)
+    country = weighted_mean(vals, caps, axis=1)
     sim_country = pd.DataFrame({"time": sim["time"], "cf_sim": country})
     sim_country["ym"] = sim_country["time"].dt.to_period("M")
     sim_m = sim_country.groupby("ym")["cf_sim"].mean()

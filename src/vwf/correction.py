@@ -5,6 +5,7 @@ from scipy.optimize import brentq, minimize
 
 from vwf.wind import interpolate_wind, train_simulate_wind, prepare_offset_arrays, fast_simulate_cf
 from vwf.time_utils import parse_time_slice
+from vwf.metrics import weighted_mean
 
 
 def calculate_scalar(gen_cf, time_res):
@@ -60,7 +61,9 @@ def calculate_scalar(gen_cf, time_res):
         v = whole_df.loc[idx, values]
         # min_count=1 so an all-missing group returns NaN rather than 0.0
         # (an empty sum is 0.0 by default), and NaN/0 keeps that NaN.
-        return (v[present] * w[present]).sum(min_count=1) / w[present].sum()
+        # The mask is shared across ``required``, so it is applied here rather
+        # than left to weighted_mean's own per-value masking.
+        return weighted_mean(v.where(present), w.where(present))
 
     df = gen_cf.groupby([time_res, "cluster", "year"]).agg(
         {

@@ -34,6 +34,7 @@ from vwf.pinn.physics import (
     monthly_mean,
 )
 from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES
+from vwf.metrics import weighted_mean
 
 FLEET_FEATURES = ("log_capdens_10km", "log_capdens_50km", "is_offshore", "log_height")
 N_QUAD = 5  # Gauss-Hermite nodes; the curves are already smooth
@@ -737,16 +738,15 @@ def predict_national(
     if r.level == "country":
         assert r.cap_weights is not None and r.obs_national is not None
         w = r.cap_weights.numpy().astype("float64")
-        sim = (pred * w).sum(axis=1) / np.clip(w.sum(axis=1), 1e-9, None)
+        sim = weighted_mean(pred, w, axis=1)
         obs = r.obs_national.numpy().astype("float64")
     else:
         o = r.obs.numpy().astype("float64")
         seen = np.isfinite(o)
-        w = np.where(seen, r.capacity.numpy().astype("float64")[None, :], 0.0)
-        total = w.sum(axis=1)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            sim = np.where(total > 0, (np.where(seen, pred, 0.0) * w).sum(axis=1) / total, np.nan)
-            obs = np.where(total > 0, (np.where(seen, o, 0.0) * w).sum(axis=1) / total, np.nan)
+        # A unit with no observation this month weighs on neither side.
+        w = np.where(seen, r.capacity.numpy().astype("float64")[None, :], np.nan)
+        sim = weighted_mean(pred, w, axis=1)
+        obs = weighted_mean(o, w, axis=1)
     frame = pd.DataFrame({"year": years, "month": months, "cf_sim": sim, "cf_obs": obs})
     return frame.dropna(subset=["cf_obs"]).reset_index(drop=True)
 

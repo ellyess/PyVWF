@@ -38,7 +38,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from vwf.metrics import calculate_error
+from vwf.metrics import calculate_error, weighted_mean
 from vwf.wind import _get_power_curve_cache
 
 #: What a unit gets where the surface declines to answer.
@@ -200,11 +200,7 @@ def country_skill(simulated: pd.DataFrame, observed: pd.DataFrame, units: pd.Dat
 
     weights = capacity[[str(c) for c in columns]].to_numpy(float)
     values = sim[columns].to_numpy(float)
-    present = ~np.isnan(values)
-    total = np.where(present, weights, 0.0).sum(axis=1)
-    sim["cf_sim"] = np.where(
-        total > 0, np.where(present, values * weights, 0.0).sum(axis=1) / total, np.nan
-    )
+    sim["cf_sim"] = weighted_mean(values, weights, axis=1)
 
     monthly = sim.assign(ym=sim["time"].dt.to_period("M")).groupby("ym")["cf_sim"].mean()
     observed_monthly = obs.assign(ym=obs["time"].dt.to_period("M")).groupby("ym")["obs"].mean()

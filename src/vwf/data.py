@@ -60,6 +60,7 @@ from vwf.curves import _default_power_curve, load_power_curves
 from vwf.time_utils import add_time_resolution_columns
 from vwf.sources import ObservationSource, resolve
 from vwf.sources.base import ObsLevel
+from vwf.metrics import weighted_mean
 
 # ============================================================================
 # INTERNAL HELPERS
@@ -723,7 +724,7 @@ def _country_cluster_means(gen_cf, time_res):
             present = v.notna() & w.notna() & (w > 0)
             wsum = w[present].sum()
             if wsum > 0:
-                out[col] = (v[present] * w[present]).sum() / wsum
+                out[col] = weighted_mean(v.where(present), w.where(present))
             elif no_capacity_data:
                 out[col] = v.mean()
             else:
