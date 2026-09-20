@@ -3,7 +3,7 @@
 `vwf.viz` turns a run's outputs into diagnostic figures: how well the corrected
 simulation reproduces the observed capacity-factor distribution, what the
 correction learned spatially, and how error responds to cluster count and
-temporal resolution.
+time slice.
 
 `load_results()` reads any PyVWF run directory back into a `Results` object, so
 the plot functions are self-contained. A data-free reproduction of every figure
@@ -15,7 +15,7 @@ below is in [`examples/viz_demo.py`](../../examples/viz_demo.py).
 from vwf.viz import load_results, plot_cf_distribution, plot_qq
 
 res = load_results("output/DK", country="DK", year=2020)
-sims = {"uncorrected": res.uncorrected, "linear": res.corrected[(1000, "bimonth")]}
+sims = {"uncorrected": res.uncorrected, "corrected": res.corrected[(1000, "bimonth")]}
 
 plot_cf_distribution(res.obs, sims).savefig("cf_distribution.png", dpi=150)
 plot_qq(res.obs, sims).savefig("cf_qq.png", dpi=150)
@@ -84,21 +84,20 @@ fig = plot_sim_vs_obs(
 
 `plot_error_vs_clusters()` takes the tidy metrics table written by
 `scripts/analysis/evaluate_all_pyvwf_runs.py` and plots error against cluster
-count, one line per temporal resolution, with the uncorrected error as a
-reference.
+count, one line per time slice, with the uncorrected error as a reference.
 
 ```python
 import pandas as pd
 from vwf.viz import plot_error_vs_clusters
 
-metrics = pd.read_csv("output/DK/pyvwf_evaluation_metrics.csv")
+metrics = pd.read_csv("output/runs/turbine_grid/pyvwf_evaluation_metrics.csv")
 plot_error_vs_clusters(metrics[metrics["country"] == "DK"]).savefig("error_vs_clusters.png", dpi=150)
 ```
 
 ![Error vs clusters](../img/viz_error_vs_clusters.png)
 
-Bear in mind that with one held-out test year per region, the shape of this
-curve is more informative than its exact minimum.
+Bear in mind that with one test year per region, the shape of this curve is
+more informative than its exact minimum.
 
 ## Animated cluster maps in TouchDesigner
 
@@ -107,7 +106,7 @@ curve is more informative than its exact minimum.
 frame for every cluster count. Each frame holds the Voronoi cells of the
 cluster centroids, clipped to the region and coloured by the fitted scalar.
 
-These cells reproduce the clusters exactly. Training clusters turbines by
+These cells reproduce the clusters exactly. Training clusters the units by
 k-means in longitude and latitude, so each unit belongs to its nearest
 centroid.
 

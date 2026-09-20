@@ -8,25 +8,26 @@ source module.
 
 ## What you provide
 
-**1. Fleet metadata** (one row per site). Column names are remappable, so you can
+**1. Fleet metadata** (one row per unit). Column names are remappable, so you can
 keep your own headers and supply a `column_map`. Required after mapping:
 
 | Standard column | Meaning |
 | --- | --- |
-| `ID` | Site identifier (string) |
+| `ID` | Unit identifier (string) |
 | `lon`, `lat` | Location, degrees |
 | `capacity` | Rated capacity (kW, or MW with `capacity_unit="mw"`) |
 | `height` | Hub height, metres (> 1) |
 
-Plus **one of**: a `model` power-curve key per site (used directly), or a rotor
-`diameter`, in which case a curve is matched from the library by specific power
-using the same routine the Danish and German fleets use (a `manufacturer` column
-sharpens the match). Optional `type` (`onshore`/`offshore`) defaults to onshore.
+Plus **one of**: a `model` key per unit (used directly), or a rotor
+`diameter`, in which case a curve is matched from the curve library by specific
+power through `vwf.curves.add_models`, the same routine the Danish and German
+fleets use (a `manufacturer` column sharpens the match). Optional `type`
+(`onshore`/`offshore`) defaults to onshore.
 
-**2. Monthly generation** (long form, one row per site-month), with columns `ID`,
-`year`, `month`, and a value column that is either generated energy (default;
-converted to capacity factor using the site capacity and the hours in the month)
-or a capacity factor directly (`generation_is_cf=True`).
+**2. Monthly generation** (long form, one row per unit-month), with columns
+`ID`, `year`, `month`, and a value column that is either generated energy
+(default; converted to capacity factor using the unit's capacity and the hours
+in the month) or a capacity factor directly (`generation_is_cf=True`).
 
 ## Worked example
 
@@ -87,7 +88,7 @@ region-agnostic; only the ERA5 box and the two CSVs change.
 
 ## Handling private data
 
-The input tree is git-ignored, so private turbine or SCADA data stays out of
+The input root is git-ignored, so private turbine or SCADA data stays out of
 version control if you keep it there. Nothing on this path writes your raw
 generation records into an output artefact: the correction field and the metrics
 contain fitted parameters and skill scores only. As with any PyVWF result, treat
