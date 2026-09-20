@@ -164,7 +164,7 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
                     ),
                     "etopo": Path("input/reference/terrain/etopo_global.nc"),
                     "audit": Path("scripts/analysis/curve_match_audit.py"),
-                    "out": Path("output/terrain_wind_deficit_2026-09-20"),
+                    "out": Path("output/terrain_wind_deficit_2026-09-20_corrected"),
                 },
             ),
         ),

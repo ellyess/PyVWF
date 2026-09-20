@@ -91,11 +91,15 @@ intervals from 1,000 draws of plants with replacement, seed 20260919.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| G1 relation | rho(R, Y) at least 0.20 over 2019 to 2021, with an interval that excludes zero | |
-| G2 tail | the median fleet percentile of `R` over the plants of clusters 15, 27, 38, 102, 109, 156, 183, 232 and 236 is at least 75 | |
-| G3 curve control | among model keys with at least 3 plants on each side of the fleet median of `R`, the median `Y` of the high-`R` plants exceeds that of the low-`R` plants for at least two thirds of the keys; at least 5 such keys must exist, or G3 is not assessable | |
-| G4 matching control | G1 holds with every plant classed other brand or unverifiable removed | |
-| G5 confirmation | on 2022 alone, rho(R, Y) is positive with an interval that excludes zero | |
+| G1 relation | rho(R, Y) at least 0.20 over 2019 to 2021, with an interval that excludes zero | **PASS**, 0.488 [0.393, 0.576] |
+| G2 tail | the median fleet percentile of `R` over the plants of clusters 15, 27, 38, 102, 109, 156, 183, 232 and 236 is at least 75 | **PASS**, 95.1 |
+| G3 curve control | among model keys with at least 3 plants on each side of the fleet median of `R`, the median `Y` of the high-`R` plants exceeds that of the low-`R` plants for at least two thirds of the keys; at least 5 such keys must exist, or G3 is not assessable | **PASS**, 16 of 21 keys |
+| G4 matching control | G1 holds with every plant classed other brand or unverifiable removed | **PASS**, 0.437 [0.304, ...]; read once as not assessable on a miscomputed precondition, see the findings document's Deviations |
+| G5 confirmation | on 2022 alone, rho(R, Y) is positive with an interval that excludes zero | **PASS**, 0.424 [0.324, 0.519] |
+
+Read on 2026-09-20 from `output/terrain_wind_deficit_2026-09-20_corrected/`;
+`method-terrain-wind-deficit.md` carries the result, the deviations and the
+recommendation.
 
 G2 names its clusters here, before `R` exists, so the case cannot be chosen by
 its answer. They are the eight clusters of issue #26 whose roots lay beyond
