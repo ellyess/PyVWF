@@ -118,6 +118,43 @@ added to `scripts/pinn/turbine_loro.py` for this deviation; every other region
 still comes from `--cache`. The GWA ratio script runs on both directories, so
 DE's ratios are computed at the moved locations.
 
+### Reported check, not a gate: does moving the locations help?
+
+**Recorded before the run starts.** The rebuild changes DE's locations for
+about 70% of its capacity and leaves the rest on postcode centroids, so the
+full DE fold mixes two resolutions and cannot say on its own whether the
+move helped. Three figures are therefore reported together for the DE
+holdout, on the same arms and seeds:
+
+1. **Mixed fleet, MaStR run.** The DE fold as the study runs it, on
+   `cache_mastr`, scored on the whole fleet. This is the figure the study
+   reports.
+2. **Matched units, MaStR run.** The same run, scored on the matched units
+   alone (`--score-subset DE=.../de_fleet_override.csv`).
+3. **Matched units, centroid run.** The same fold, same pool, same arms and
+   seeds, on the previous centroid caches, scored on those same units
+   (`--folds DE --tag de-centroid`, no cache override).
+
+2 against 3 is the comparison that isolates the locations: identical units,
+identical observations, identical training pool, and the only difference is
+where those units stand and how tall they are. 1 is reported beside them so
+the mixed-fleet figure the study carries is never read as though it were
+that comparison.
+
+**What each outcome would mean for the location hypothesis**, written down
+before the numbers exist:
+
+| Matched units, MaStR against centroid | Mixed fleet against the centroid fold | Reading |
+|---|---|---|
+| better | better | The locations were a real limit on the DE fold, and the rebuild relieves part of it. The residual gap to other folds is then about the 30% still on centroids, not about Germany being different. |
+| better | not better | The move helps where it reaches and the unmoved 70% of units dilute it. The mixed figure understates the method, and the DE result stays caveated on resolution rather than on the model. |
+| no change | either | Location resolution was not what held the DE fold back at this scale. The postcode caveat stands as a caveat but stops being the leading explanation, and the German gap needs another one. |
+| worse | either | Something in the rebuild is wrong, not informative: the same units cannot genuinely simulate worse from their own coordinates than from a postcode centroid. The first suspects are the match itself (a wrong unit's coordinates), the hub heights, and the ERA5 interpolation at the new points. No claim would be made from it without that being settled. |
+
+The check reports RMSE, its level and spatial decomposition and MBE, as the
+study's own metrics section defines them. It gates nothing, and it cannot
+change a gate's outcome.
+
 **The gates, arms and predictions do not change.**
 
 ## Folds

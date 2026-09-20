@@ -181,6 +181,22 @@ def main():
         "is rebuilt on MaStR coordinates and hub heights in its own directory "
         "(issue #12), and the other regions' caches are untouched.",
     )
+    ap.add_argument(
+        "--score-subset",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="also score CODE's fold on the units named in PATH (a CSV with an "
+        "ID column), reported beside the full fleet as subset=named. Reported, "
+        "not gated: the MaStR location check of issue #12.",
+    )
+    ap.add_argument(
+        "--folds",
+        nargs="+",
+        default=None,
+        help="score these folds only, leaving the training pool as --regions "
+        "defines it. Used to repeat one fold on another cache.",
+    )
     ap.add_argument("--gwa", required=True, help="directory written by gwa_ratio.py")
     ap.add_argument("--out", required=True)
     ap.add_argument("--tag", default="primary")
@@ -246,6 +262,18 @@ def main():
     def cache_for(code):
         return cache_of.get(code, args.cache)
 
+    subsets = {}
+    for item in args.score_subset:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--score-subset expects CODE=PATH, got {item!r}")
+        subsets[code] = set(pd.read_csv(path, dtype={"ID": str})["ID"].astype(str))
+
+    folds = list(codes) if args.folds is None else [c for c in codes if c in set(args.folds)]
+    missing = set(args.folds or []) - set(codes)
+    if missing:
+        raise SystemExit(f"--folds names regions this run does not load: {sorted(missing)}")
+
     def ratios(code, split):
         table = pd.read_csv(Path(args.gwa) / f"{code}_{split}.csv", dtype={"ID": str})
         return table.set_index("ID")["ratio"]
@@ -299,6 +327,8 @@ def main():
                     "fleet_columns": list(FLEET),
                     "secondary": secondary,
                     "country_folds": extra,
+                    "folds": folds,
+                    "score_subsets": {c: len(ids) for c, ids in subsets.items()},
                 },
                 "regions": {
                     c: {"train": region_record(train[c]), "test": region_record(test[c])}
@@ -325,7 +355,7 @@ def main():
         )
 
     rows, physics, records = [], [], {}
-    for fold in codes:
+    for fold in folds:
         t0 = time.time()
         te, spec = test[fold], specs[fold]
         pool = [c for c in codes if c != fold]
@@ -348,8 +378,28 @@ def main():
             f = restricted[label]
             m = level_spatial(f)
             m["mbe"] = float(np.average(f.cf_sim - f.cf_obs, weights=f.capacity))
-            rows.append(dict(fold=fold, arm=arm, seed=seed, **m))
+            rows.append(dict(fold=fold, arm=arm, seed=seed, subset="all", **m))
+            named = subsets.get(fold)
+            if named:
+                # The same arms and seeds, scored on the named units only, so
+                # the subset can be compared with the same units elsewhere.
+                g = f[f["ID"].astype(str).isin(named)]
+                if len(g):
+                    m = level_spatial(g)
+                    m["mbe"] = float(np.average(g.cf_sim - g.cf_obs, weights=g.capacity))
+                    rows.append(dict(fold=fold, arm=arm, seed=seed, subset="named", **m))
         records[fold] = {"pool": pool, "rows_excluded": int(len(excluded))}
+        if fold in subsets:
+            scored = restricted["uncorrected"]
+            named_rows = scored["ID"].astype(str).isin(subsets[fold])
+            records[fold]["named_subset"] = {
+                "units_named": len(subsets[fold]),
+                "rows_named": int(named_rows.sum()),
+                "rows_all": int(len(scored)),
+                "capacity_share": float(
+                    scored.loc[named_rows, "capacity"].sum() / scored["capacity"].sum()
+                ),
+            }
         raw = pd.DataFrame(rows)
         raw.to_csv(out / f"turbine_{args.tag}_raw.csv", index=False)
         pd.DataFrame(physics).to_csv(out / f"turbine_{args.tag}_physics.csv", index=False)
