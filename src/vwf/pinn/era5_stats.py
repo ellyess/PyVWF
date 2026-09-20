@@ -48,7 +48,7 @@ def _open_normalised(path: Path, bbox) -> xr.Dataset:
 
 
 def _hourly_fields(
-    ds: xr.Dataset, roughness: str = "stored"
+    ds: xr.Dataset, roughness: str = "derived"
 ) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, str]:
     """Hourly 100 m wind, the roughness the incumbent uses, and the shear exponent.
 
@@ -128,7 +128,7 @@ def daily_stats_at_points(
     lon: np.ndarray,
     lat: np.ndarray,
     years: range | list[int],
-    roughness: str = "stored",
+    roughness: str = "derived",
 ) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
     """Daily mean wind, within-day wind spread, and daily mean roughness.
 

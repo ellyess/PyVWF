@@ -1,12 +1,14 @@
 """Which temporal treatment of the roughness a run applies, and what it records.
 
-Every region derives the roughness length from the 10 m to 100 m shear, but the
-European files carry one annual mean of it per year while every other region
-derives it per timestep. Which is better is under test
-(``docs/findings/method-roughness-treatment-prereg.md``); until that reports,
-``stored`` is the default because it is what every existing run did. These
-tests pin the switch, the fallback when no stored field exists, and the record
-of what was actually applied.
+Every region derives the roughness length from the 10 m to 100 m shear. The
+question is whether the result varies in time, and the per-timestep derivation
+is the method, adopted on 2026-09-12
+(``docs/findings/method-roughness-treatment.md``). So ``derived`` is the
+default, and ``stored`` has to be asked for: the ``era5/EU`` archive stores an
+annual mean, the superseded treatment, and the daily pre-combined files store a
+per-timestep roughness they also cannot re-derive. These tests pin the default,
+the switch, the fallback when no stored field exists, and the record of what
+was actually applied.
 """
 
 import json
@@ -44,8 +46,19 @@ def _combined_file(path, with_z0=True, with_10m=True):
     return path
 
 
-def test_stored_is_the_default_and_is_static(tmp_path):
+def test_derived_is_the_default_even_where_a_field_is_stored(tmp_path):
+    """The file carries a static z0 of 0.25 and the default ignores it.
+
+    This is the case the default change is about: before it, a file with a
+    stored field silently applied the annual mean.
+    """
     ds = prep_era5("ZZ", False, True, era5_dir=_combined_file(tmp_path / "e"))
+    assert ds.attrs["pyvwf_roughness_treatment"] == "derived"
+    assert float(ds["roughness"].max()) != pytest.approx(0.25)
+
+
+def test_stored_is_used_when_it_is_asked_for_and_is_static(tmp_path):
+    ds = prep_era5("ZZ", False, True, era5_dir=_combined_file(tmp_path / "e"), roughness="stored")
     assert ds.attrs["pyvwf_roughness_treatment"] == "stored"
     # The stored field is one value per cell for the whole year. The daily
     # resample broadcasts it over time, so the test is that it does not vary.
@@ -97,11 +110,15 @@ def test_region_config_parses_the_treatment(tmp_path):
     (tmp_path / "derived.toml").write_text(
         without.replace("[era5]\n", '[era5]\nroughness = "derived"\n', 1)
     )
+    (tmp_path / "stored.toml").write_text(
+        without.replace("[era5]\n", '[era5]\nroughness = "stored"\n', 1)
+    )
     (tmp_path / "bad.toml").write_text(
         without.replace("[era5]\n", '[era5]\nroughness = "annual"\n', 1)
     )
-    assert load_region(tmp_path / "absent.toml").roughness == "stored"  # default
+    assert load_region(tmp_path / "absent.toml").roughness == "derived"  # default
     assert load_region(tmp_path / "derived.toml").roughness == "derived"
+    assert load_region(tmp_path / "stored.toml").roughness == "stored"
     with pytest.raises(ValueError, match="roughness"):
         load_region(tmp_path / "bad.toml")
 
@@ -132,8 +149,18 @@ def test_every_european_row_asks_for_the_per_timestep_treatment():
 
 def test_a_run_records_what_it_asked_for_and_what_it_applied(synthetic_dk):  # noqa: F811
     """The synthetic ERA5 carries no stored field, so a run that asks for one
-    is derived, and the record has to show both."""
-    spec = make_spec()
+    is derived, and the record has to show both. The request has to be explicit
+    now that "derived" is the default, or the two could never differ here."""
+    spec = make_spec(roughness="stored")
     train_dir = run_train(spec, synthetic_dk["root"] / "validation", mode="onshore", run_name="t")
     record = json.loads((train_dir / "run_manifest.json").read_text())["era5_roughness"]
     assert record == {"requested": "stored", "applied": "derived"}
+
+
+def test_a_default_run_records_the_derived_treatment(synthetic_dk):  # noqa: F811
+    """A run that asks for nothing now asks for, and applies, the method."""
+    train_dir = run_train(
+        make_spec(), synthetic_dk["root"] / "validation", mode="onshore", run_name="d"
+    )
+    record = json.loads((train_dir / "run_manifest.json").read_text())["era5_roughness"]
+    assert record == {"requested": "derived", "applied": "derived"}

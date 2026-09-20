@@ -105,7 +105,12 @@ def test_prep_era5_respects_precomputed_wnd100m(tmp_path):
         coords={"time": times, "lat": lats, "lon": lons},
     ).to_netcdf(era5_dir / "combined.nc")
 
-    ds = prep_era5("ZZ", calc_z0=True, bbox=(4.0, 8.0, 49.0, 53.0), era5_dir=era5_dir)
+    # roughness="stored" because the fixture is shaped like a daily pre-combined
+    # file: it carries a roughness and no 10 m winds, so the default "derived"
+    # has nothing to invert and refuses.
+    ds = prep_era5(
+        "ZZ", calc_z0=True, bbox=(4.0, 8.0, 49.0, 53.0), era5_dir=era5_dir, roughness="stored"
+    )
     assert ds["wnd100m"].to_numpy() == pytest.approx(10.0)  # kept, not recomputed to 5
 
 

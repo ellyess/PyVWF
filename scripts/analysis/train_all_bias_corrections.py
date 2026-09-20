@@ -562,7 +562,7 @@ def train_configuration_set(
     Args:
         prefix: Prefix for this training set
         config: Training configuration
-        base_dir: Base output directory (out/runs)
+        base_dir: Base output directory (output/runs)
         country_configs: Country-level configurations (if applicable)
 
     Returns:
@@ -616,7 +616,7 @@ def main():
         "--outdir",
         type=str,
         default="output/runs",
-        help="Base output directory (default: out/runs)",
+        help="Base output directory (default: output/runs)",
     )
     parser.add_argument(
         "--list",

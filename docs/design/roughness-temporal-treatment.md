@@ -24,13 +24,20 @@ block; the European re-run moved them to `era5/EU_2026-09` with
 eleven scorecard configs to that pair. Until that re-run the annual mean was
 the majority treatment and covered every European row.
 
-**The maintained configs have not followed.** Every
-`configs/regions/<stem>.toml` for a European region still names `era5/EU` and
-sets no `roughness` key, so it defaults to `stored` and applies the annual
-mean. A reader who runs one of those files, as the guides tell them to, gets
-the superseded treatment rather than the method. Only the scorecard configs
-under `configs/regions/scorecard/` carry the method's pair. This is logged as
-work on the configs, not on the documents.
+**The default follows the method.** `prep_era5` derives the roughness per
+timestep unless a caller asks for `stored`, so a region that says nothing
+gets the method. Until this changed, the default was `stored` and every
+maintained `configs/regions/<stem>.toml` for a European region still named
+`era5/EU`, so a reader who ran one of those files, as the guides tell them to,
+got the superseded treatment while the scorecard configs alone carried the
+method's pair. Those thirteen files now name `era5/EU_2026-09` and need no
+`roughness` key.
+
+**Route C has to ask.** `era5/US_daily` and `era5/BR_daily` carry no 10 m
+winds, so the per-timestep derivation has nothing to invert and refuses. Those
+files already hold a per-timestep roughness, computed ahead of time, and
+`roughness = "stored"` is how a run reads it. The four configurations on that
+route set the key explicitly and say why.
 
 **B and C are the same treatment, computed at different stages.** Both derive
 z0 hour by hour and average it to daily, with the same clipping. They differ

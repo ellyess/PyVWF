@@ -339,7 +339,7 @@ def train_set(
     era5_dir=None,
     bbox=None,
     allow_extrapolation=False,
-    roughness="stored",
+    roughness="derived",
 ):
     """Prepare training inputs for PyVWF.
 
@@ -506,7 +506,7 @@ def val_set(
     era5_dir=None,
     bbox=None,
     allow_extrapolation=False,
-    roughness="stored",
+    roughness="derived",
 ):
     """Prepare validation data for a country.
 
@@ -524,7 +524,7 @@ def val_set(
             the legacy BoundingBoxes lookup.
         allow_extrapolation: Forwarded to prep_era5. Default False refuses
             units outside the loaded ERA5 extent.
-        roughness: Forwarded to prep_era5: "stored" (default) or "derived".
+        roughness: Forwarded to prep_era5: "derived" (default) or "stored".
 
     Returns:
         Tuple of observations, turbine metadata, reanalysis, and power curves.

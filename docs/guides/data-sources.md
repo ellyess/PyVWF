@@ -144,13 +144,11 @@ python src/vwf/datasets/combine_era5_files.py --all-years --add-roughness \
 ```
 
 The archive is kept unchanged, so the rows published on it stay reproducible.
-Every European scorecard config now reads `era5/EU_2026-09` instead, which
-carries no roughness field and a wider box, so `prep_era5` derives the
-roughness per timestep. The maintained `configs/regions/<stem>.toml` files for
-those regions still name `era5/EU`, so running one applies the superseded
-annual-mean treatment; take the configuration from
-`configs/regions/scorecard/` to reproduce a published row. The reasons, and
-the three routes, are in
+No shipped configuration reads it any more. Every European config, maintained
+and scorecard alike, reads `era5/EU_2026-09`, which carries no roughness field
+and a wider box, so `prep_era5` derives the roughness per timestep. That is
+also the default now, so a region asks for nothing. The reasons, and the three
+routes, are in
 [`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
 
 **Coordinates and capacity: Global Wind Power Tracker (GWPT).** Global Energy
