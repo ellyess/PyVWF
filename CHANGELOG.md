@@ -77,6 +77,18 @@ this file stay in step with it.
 
 ### Fixed
 
+- **A station scored on some of its rows is no longer scored on its whole
+  capacity, and one scored on none is missing rather than zero.** Where a
+  region's rows are pseudo-replicates of one station (the UK), the collapse
+  divided the capacity-weighted sum of the rows that had a simulated value by
+  the station's whole capacity, so a station whose cluster was refused had its
+  capacity factor scaled down by the missing share, and a station with no
+  value at all came out as exactly zero, because an empty pandas sum is 0.0. A
+  zero is a value, so those station-months stayed in the scored rows instead
+  of leaving them. The weights now run over the rows that have a value, and a
+  station with none is NaN. The country-level path already did this. What
+  moved: the UK row, whose two refused clusters left four stations scoring
+  zero against an observed capacity factor; no other region collapses rows.
 - **A transfer's collapse leaves out clusters with no factor.** The
   capacity-weighted collapse to one factor per slice kept the weight of a
   cluster whose scalar or offset was NaN while its terms dropped out of the

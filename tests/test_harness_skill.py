@@ -135,6 +135,51 @@ def test_collapse_pseudo_replicates_uk_shape():
     assert metrics["n_units"] == 2
 
 
+def test_collapse_weights_only_the_rows_that_have_a_value():
+    """A refused cluster blanks some of a station's rows (issue #28).
+
+    The station's capacity factor is the weighted mean over the rows that have
+    a value. Dividing by the station's whole capacity would scale it down by
+    the missing share: 0.4*1/4 = 0.1 here, against the correct 0.4.
+    """
+    spec = make_spec(pseudo_replicated_rows=True, station_id_regex=r"^(.+)-\d+$")
+    df = pd.DataFrame(
+        {
+            "ID": ["S1-1", "S1-2", "S1-3"],
+            "year": [2019] * 3,
+            "month": [1] * 3,
+            "cf_obs": [0.30] * 3,
+            "cf_sim": [np.nan, np.nan, 0.40],
+            "capacity": [2.0, 1.0, 1.0],
+        }
+    )
+    collapsed = collapse_pseudo_replicates(df, spec)
+    assert collapsed.iloc[0]["cf_sim"] == pytest.approx(0.40)
+    assert collapsed.iloc[0]["capacity"] == pytest.approx(4.0)  # the station's own capacity
+
+
+def test_a_station_with_no_value_collapses_to_nan_not_zero():
+    """Every row refused leaves the station missing, so it leaves the scored rows.
+
+    An empty pandas sum is 0.0, which scored four UK stations, 48
+    station-months, as zero output against an observed 0.38 instead of
+    excluding them.
+    """
+    spec = make_spec(pseudo_replicated_rows=True, station_id_regex=r"^(.+)-\d+$")
+    df = pd.DataFrame(
+        {
+            "ID": ["S1-1", "S1-2"],
+            "year": [2019, 2019],
+            "month": [1, 1],
+            "cf_obs": [0.30, 0.30],
+            "cf_sim": [np.nan, np.nan],
+            "capacity": [2.0, 2.0],
+        }
+    )
+    collapsed = collapse_pseudo_replicates(df, spec)
+    assert np.isnan(collapsed.iloc[0]["cf_sim"])
+
+
 def test_collapse_refuses_divergent_obs_within_station():
     """Identity guard: rows of one station-time group with DIFFERENT obs are
     not pseudo-replicates; collapsing them would fabricate an observation."""
