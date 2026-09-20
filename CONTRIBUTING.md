@@ -84,8 +84,10 @@ mypy                       # type check; needs pandas-stubs, from the dev extra
 Continuous integration (`.github/workflows/ci.yml`) runs, for every pull request
 and every push to `main`:
 
-- `ruff` and `mypy` (the package ships `py.typed`, so type information reaches
-  downstream users);
+- `ruff check` and `ruff format --check` over `src tests scripts examples`,
+  then `mypy` (the package ships `py.typed`, so type information reaches
+  downstream users), `lint-imports` for the layering in `.importlinter`,
+  `deptry src` for declared dependencies, and `vulture` for dead code;
 - the suite plus `examples/run_minimal.py` on Python 3.10 to 3.12, installed
   from `pyproject.toml` so the declared dependencies are exercised as a fresh
   `pip install` would get them, with coverage gated;

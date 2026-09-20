@@ -147,6 +147,12 @@ this file stay in step with it.
   and the uid handling to the build arguments and what CI checks, and
   `docs/design/limitations.md` holds the full limitations list and the
   reproducibility record. Each is a new home in `docs/README.md`'s table.
+- **`docs/publications.md` records the archived JOSS submission.** A new
+  section names `paper/paper.md`, its outcome, the commit whose text was
+  submitted and the tag on it, so a reader who finds the file knows it is not
+  a current description of the software.
+- **`CONTRIBUTING.md` names every check the lint job runs.** It listed `ruff`
+  and `mypy` and left out `lint-imports`, `deptry` and `vulture`.
 - **`docs/index.md` and `CONTRIBUTING.md` lose two errors.** The site's front
   page called the method a linear correction, where `docs/CONTEXT.md`'s
   approved term is the affine correction, and it repeated both citations in
