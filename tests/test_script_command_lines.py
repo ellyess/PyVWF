@@ -194,6 +194,19 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
+    "scripts/pinn/mastr_match.py": [
+        (
+            [],
+            (
+                "main",
+                (),
+                {
+                    "archive": Path("input/raw/mastr/Gesamtdatenexport_20260918_26.1.zip"),
+                    "out": Path("output/pinn_turbine_2026-09-18/mastr"),
+                },
+            ),
+        ),
+    ],
     "scripts/studies/method-terrain-wind-deficit/terrain_deficit.py": [
         # The registered command line takes no arguments: every path is a flag
         # whose default is the registered one, and the years, clusters, seed
