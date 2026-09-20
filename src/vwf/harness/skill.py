@@ -89,18 +89,36 @@ def collapse_pseudo_replicates(df: pd.DataFrame, spec: RegionSpec) -> pd.DataFra
 
     # Vectorised capacity-weighted collapse (groupby.apply(include_groups=...)
     # would need pandas >= 2.2; the project supports >= 2.0).
+    #
+    # The weights run over the rows that HAVE a simulated value, and the
+    # weighted sum keeps NaN when none does (``min_count=1``). A row without a
+    # value belongs to a cluster whose factor was refused; dividing by the
+    # station's whole capacity instead would scale the station's capacity
+    # factor down by the missing share, and a station with no value at all
+    # would come out as exactly zero rather than missing, because an empty
+    # pandas sum is 0.0. That is what happened to four UK stations, 48
+    # station-months, when the accepted-years rule refused two clusters: they
+    # scored a corrected CF of 0.0 against an observed 0.38 and stayed in the
+    # scored rows, because only a NaN leaves the common rows. ``capacity``
+    # stays the station's whole capacity: it weights the station in the fleet
+    # metric, and a capacity factor does not depend on how much of the station
+    # carries a value.
     df["_sim_x_cap"] = df["cf_sim"] * df["capacity"]
+    df["_cap_with_value"] = df["capacity"].where(df["cf_sim"].notna())
     grouped = df.groupby(["ID", *time_cols], as_index=False).agg(
         cf_obs=("cf_obs", "first"),
-        cf_sim=("cf_sim", "mean"),  # fallback where total capacity is zero
+        cf_sim=("cf_sim", "mean"),  # fallback where the weights sum to zero
         capacity=("capacity", "sum"),
         _sim_x_cap=("_sim_x_cap", "sum"),
+        _cap_with_value=("_cap_with_value", "sum"),
+        _n_values=("cf_sim", "count"),
     )
-    positive = grouped["capacity"] > 0
+    positive = (grouped["_cap_with_value"] > 0) & (grouped["_n_values"] > 0)
     grouped.loc[positive, "cf_sim"] = (
-        grouped.loc[positive, "_sim_x_cap"] / grouped.loc[positive, "capacity"]
+        grouped.loc[positive, "_sim_x_cap"] / grouped.loc[positive, "_cap_with_value"]
     )
-    return grouped.drop(columns=["_sim_x_cap"])
+    grouped.loc[grouped["_n_values"] == 0, "cf_sim"] = np.nan
+    return grouped.drop(columns=["_sim_x_cap", "_cap_with_value", "_n_values"])
 
 
 def skill_metrics(df: pd.DataFrame, *, weighted: bool = True) -> dict[str, float]:

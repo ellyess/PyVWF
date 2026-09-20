@@ -147,6 +147,28 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
+    "scripts/studies/method-terrain-wind-deficit/terrain_deficit.py": [
+        # The registered command line takes no arguments: every path is a flag
+        # whose default is the registered one, and the years, clusters, seed
+        # and gates are constants (method-terrain-wind-deficit-prereg.md).
+        (
+            [],
+            (
+                "main",
+                (),
+                {
+                    "config": Path("configs/regions/scorecard/us_k250.toml"),
+                    "train_run": Path("output/validation/bracketed_2026-09-19/US/train-bracketed"),
+                    "evaluate_run": Path(
+                        "output/validation/bracketed_2026-09-19/US/evaluate-2022-bracketed"
+                    ),
+                    "etopo": Path("input/reference/terrain/etopo_global.nc"),
+                    "audit": Path("scripts/analysis/curve_match_audit.py"),
+                    "out": Path("output/terrain_wind_deficit_2026-09-20"),
+                },
+            ),
+        ),
+    ],
     "scripts/studies/method-cluster-selection/cluster_selection_study.py": [
         (
             ["output/cluster_selection_2026-09-15"],

@@ -24,6 +24,15 @@ this file stay in step with it.
 
 ### Changed
 
+- **Every scorecard row comes from one refresh**, at one commit, in one dated
+  run directory: all seventeen re-run, training and evaluation, from a clean
+  tree, where the rows previously came from three runs at three commits. What
+  moved: DE, UK and AU-NEM each refuse a cluster whose accepted years are not
+  a majority, so those units leave every variant's scored rows and both the
+  uncorrected and the corrected figures of those three rows move; they join
+  the daggered rows, and the fit-quality table gains them. The other fourteen
+  rows do not move at the precision the scorecard reports. The scorecard says
+  beside each fleet how many units the row scores.
 - **A factor rests on one set of accepted years, or is refused (#28).** Each
   factor averages its scalar and its offset over the same years: those whose
   offset was fitted and accepted. A year with no usable observation is no
@@ -77,6 +86,18 @@ this file stay in step with it.
 
 ### Fixed
 
+- **A station scored on some of its rows is no longer scored on its whole
+  capacity, and one scored on none is missing rather than zero.** Where a
+  region's rows are pseudo-replicates of one station (the UK), the collapse
+  divided the capacity-weighted sum of the rows that had a simulated value by
+  the station's whole capacity, so a station whose cluster was refused had its
+  capacity factor scaled down by the missing share, and a station with no
+  value at all came out as exactly zero, because an empty pandas sum is 0.0. A
+  zero is a value, so those station-months stayed in the scored rows instead
+  of leaving them. The weights now run over the rows that have a value, and a
+  station with none is NaN. The country-level path already did this. What
+  moved: the UK row, whose two refused clusters left four stations scoring
+  zero against an observed capacity factor; no other region collapses rows.
 - **A transfer's collapse leaves out clusters with no factor.** The
   capacity-weighted collapse to one factor per slice kept the weight of a
   cluster whose scalar or offset was NaN while its terms dropped out of the
@@ -101,6 +122,11 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The terrain wind-deficit study has its driver** (#26),
+  `scripts/studies/method-terrain-wind-deficit/terrain_deficit.py`, with its
+  recorded command line pinned. Committed before it runs, as the study guide
+  requires; the registered gates, years, clusters and seed are constants in
+  it, and every path is a flag.
 - **The terrain wind-deficit study is registered** (#26): the question,
   measures, gates, predictions and the package recommendation under each
   outcome, in `docs/findings/method-terrain-wind-deficit-prereg.md`, committed
