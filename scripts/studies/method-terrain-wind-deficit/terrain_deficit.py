@@ -49,7 +49,7 @@ TRAIN_RUN = Path("output/validation/bracketed_2026-09-19/US/train-bracketed")
 EVALUATE_RUN = Path("output/validation/bracketed_2026-09-19/US/evaluate-2022-bracketed")
 ETOPO = Path("input/reference/terrain/etopo_global.nc")
 AUDIT = Path("scripts/analysis/curve_match_audit.py")
-OUT = Path("output/terrain_wind_deficit_2026-09-20")
+OUT = Path("output/terrain_wind_deficit_2026-09-20_corrected")
 
 #: Registered in the pre-registration; none of these is a flag.
 TRAIN_YEARS = (2019, 2020, 2021)
@@ -66,7 +66,10 @@ G3_MIN_KEYS = 5
 G3_MIN_SHARE = 2 / 3
 #: The scorecard's US other-brand share of capacity. The per-plant classes are
 #: rebuilt here, so they are checked against the published aggregate before G4
-#: is read; a mismatch makes G4 unassessable rather than wrong.
+#: is read; a mismatch makes G4 unassessable rather than wrong. The share is
+#: taken over the FITTED FLEET, as the curve-match audit takes it. The first
+#: run took it over the plants with an outcome instead, a third of the fleet,
+#: which reads 0.476 and made G4 unassessable on a miscomputed precondition.
 PUBLISHED_OTHER_BRAND_SHARE = 0.483
 #: The recommendation boundary of the pre-registration's consequences section.
 REGIME_MIN_RHO = 0.40
@@ -266,15 +269,38 @@ def main(
         .merge(deficit[["ID", "Y", "months"]], on="ID")
     )
 
-    share = (
-        table.loc[table["curve_class"] == "different-brand", "capacity"].sum()
-        / table["capacity"].sum()
+    fleet_capacity = pd.to_numeric(fleet["capacity"], errors="coerce").fillna(0.0)
+    share = float(
+        fleet_capacity[classes.to_numpy() == "different-brand"].sum() / fleet_capacity.sum()
     )
     g4_assessable = abs(round(share, 3) - PUBLISHED_OTHER_BRAND_SHARE) < 0.0005
 
     print(f"plants with an outcome: {len(table)} of {len(fleet)} in the fitted fleet")
-    print(f"other-brand share of capacity: {share:.3f} (published {PUBLISHED_OTHER_BRAND_SHARE})")
+    print(
+        f"other-brand share of capacity, fitted fleet: {share:.4f} "
+        f"(published {PUBLISHED_OTHER_BRAND_SHARE})"
+    )
     print(table[["R", "H", "Y"]].describe().to_string())
+
+    # Reported, not gated: the plants with an outcome are the ones that report
+    # monthly, and nothing says they sit in the same terrain as the fleet. The
+    # direction matters for reading the relation: relief higher among them
+    # would mean the relation is measured on rougher ground than the fleet's.
+    fleet_relief = terrain.merge(fleet[["ID", "capacity"]], on="ID")
+    scored = fleet_relief[fleet_relief["ID"].isin(table["ID"])]
+    coverage = pd.DataFrame(
+        {
+            "population": ["fitted fleet", "with an outcome"],
+            "plants": [len(fleet_relief), len(scored)],
+            "R_median": [fleet_relief["R"].median(), scored["R"].median()],
+            "R_mean": [fleet_relief["R"].mean(), scored["R"].mean()],
+            "R_p90": [fleet_relief["R"].quantile(0.9), scored["R"].quantile(0.9)],
+        }
+    )
+    direction = "higher" if scored["R"].median() > fleet_relief["R"].median() else "lower or equal"
+    print("\nRelief of the plants with an outcome against the fitted fleet (reported, not gated):")
+    print(coverage.to_string(index=False))
+    print(f"  median relief among the scored plants is {direction} than the fleet's")
 
     x, y = table["R"].to_numpy(), table["Y"].to_numpy()
     rho, low, high = bootstrap_rho(x, y)
@@ -336,10 +362,11 @@ def main(
 
     out.mkdir(parents=True, exist_ok=True)
     table.to_csv(out / "us_plant_deficit.csv", index=False)
+    coverage.to_csv(out / "us_relief_coverage.csv", index=False)
     keys.to_csv(out / "us_within_key_control.csv", index=False)
     confirm.to_csv(out / "us_confirmation_2022.csv", index=False)
     gates.to_csv(out / "us_gates.csv", index=False)
-    print(f"\nwrote {out}/us_plant_deficit.csv and three more")
+    print(f"\nwrote {out}/us_plant_deficit.csv and four more")
     return 0
 
 
