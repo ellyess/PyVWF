@@ -56,7 +56,7 @@ longitude -10 to 30 and latitude 35 to 72 at 0.25 degrees, 161 by 149 cells,
 **The grid, added 2026-09-16.** The 1,729 control points are on the
 **uniform** grids, which is what the chapter used. The maintained
 fleet-weighted grids that replaced them hold far fewer points per country and
-are the workstream's fleet from `../design/manuscript-chapters-45.md` D0
+are the workstream's fleet from [`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md) D0
 onward, so every band, count and distribution here describes the chapter's pool
 rather than the current one.
 
@@ -237,7 +237,7 @@ That is the case against the mask, and it does not need the stronger claim the
 notice above withdraws. A guard on the correction's own behaviour removes the
 2,659 and keeps the 21,330, which is what a per-cell plausibility flag is for.
 That is a design consequence and is recorded in
-`../design/manuscript-chapters-45.md`.
+[`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md).
 
 **What the mask does support is a claim about provenance, not safety.** Beyond
 5 degrees the value is the pool mean, so it carries no information about the

@@ -40,7 +40,7 @@ Per gate:
   bands, not countries, so "in at least 10 of the 12 folds" does not map onto
   them, no per-country figure exists to compare with, and the chapter's
   published longitude-band numbers are uniform-grid baselines, which
-  `../design/manuscript-chapters-45.md` D0 has since made historical. No
+  [`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md) D0 has since made historical. No
   longitude-band run exists under `output/`.
 - **L2 is readable and its restriction is ambiguous.** The pool-mean baseline
   needs no choice. But the gate restricts to the folds "whose held-out points
@@ -74,7 +74,7 @@ error that voided this one.
 ## Amendment, 2026-09-15: the chapter comparison is dropped, and this re-runs on the rebuilt pool
 
 The workstream's founding assumption
-(`../design/manuscript-chapters-45.md`, D0) is that country-level results are
+([`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md), D0) is that country-level results are
 computed on the maintained fleet-weighted grids, and that the chapter's
 figures, computed on the uniform grids, are a historical baseline rather than a
 target. This study reads the control-point pool, which is built from the
@@ -97,7 +97,7 @@ uniform grids, so:
   country tier cannot be selected while the national study is blocked on
   training windows, and the transfer synthesis removed the pool as the leading
   suspect. See the dated note under D0 in
-  `../design/manuscript-chapters-45.md`. The study is also void on its own
+  [`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md). The study is also void on its own
   gates, above.]*
 
 ## Why this exists

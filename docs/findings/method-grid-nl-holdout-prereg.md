@@ -67,7 +67,7 @@ and it does bound what the numbers mean about the Netherlands.
 
 ## Amendment, 2026-09-15: both grids, and why only here
 
-The workstream's founding assumption (`../design/manuscript-chapters-45.md`,
+The workstream's founding assumption ([`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md),
 D0) is that country-level results are computed on the maintained fleet-weighted
 grids and the chapter is a historical baseline. That would ordinarily retire a
 reproduction gate. It does not here: this study exists to test the chapter's
@@ -82,7 +82,7 @@ H-G3's "the uniform grid the chapter used" was ambiguous, and one reading
 would void the study on a mismatch of its own making. The chapter's grid is
 the uniform lattice **with capacities that vary by point**: a Global Wind Power
 Tracker radius sum at 2015, reproduced exactly from the chapter's run
-directories (`../design/manuscript-chapters-45.md`, D0's correction notice of
+directories ([`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md), D0's correction notice of
 this date). The files named `nl_grid_points.uniform.bak.csv` carry the same
 lattice at uniform capacity, and are **not** the chapter's grid.
 

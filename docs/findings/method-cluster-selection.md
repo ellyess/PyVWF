@@ -191,7 +191,7 @@ the thing the pool exists for.
 describes a plan. The one pool is the chapter's 1,729, the country tier cannot
 be selected while the national study is blocked on training windows, and how
 to build a defensible pool is an open question. See the dated note under D0 in
-`../design/manuscript-chapters-45.md`.]*
+[`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md).]*
 
 Two of the selections would also have been poor choices for a pool on their own
 terms. **Denmark onshore at 200 against the chapter's 884 drops 684 control

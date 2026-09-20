@@ -10,7 +10,7 @@ follow `CONTEXT.md`.
 which is what the chapter used and what the control-point pool is built from.
 The maintained fleet-weighted grids that replaced them hold far fewer points
 per country, Belgium 44 against 105 and Italy 28 against 110, and are the
-workstream's fleet from `../design/manuscript-chapters-45.md` D0 onward. These
+workstream's fleet from [`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md) D0 onward. These
 numbers describe the chapter's pool and are not current-fleet results.
 
 **[Correction notice, 2026-09-13. The self-weight table below was published

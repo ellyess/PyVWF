@@ -182,7 +182,7 @@ of the fleet on 10.5%. In Norway two entire clusters contain no wind at all.
 loaded in July 2026, and is correct about them: the files backed up on
 2026-07-23 as `*_grid_points.uniform.bak.csv` carry one capacity per country at
 every point. **It does not describe thesis chapter 4's country-level runs**, and
-it was later read as though it did (`../design/manuscript-chapters-45.md`, D0,
+it was later read as though it did ([`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md), D0,
 which carries the correction notice). The chapter's runs,
 `output/runs/turbine_grid/*-obs_country-*` of 2026-02-13, used the same point
 sets with weights that vary by point: for each point, the summed capacity of
