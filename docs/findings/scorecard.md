@@ -299,20 +299,23 @@ derived from terrain data; it is not, and the code has no terrain option. The
 usage line in `combine_era5_files.py` offered `--roughness-source terrain`,
 which does not exist.
 
-All rows were produced by PyVWF v0.4.0 at commit `41462e9` from a clean tree on
-2026-08-24, one region per process. Runs are in
-`output/validation/refresh_2026-08-24/<CODE>/`, outside the repository. The
-four daggered rows, US, CL, AR and BR, are the exception since 2026-09-19:
-each was re-run, training and evaluation, with the bracketed offset search
-(#18) and the accepted-years rule (#28), at commit `0fd6574` from a clean tree
-(`output/validation/accepted_years_2026-09-19/<CODE>/`). Before that, the US
-and CL rows came from a re-run with the bracketed search alone, at `201c62e`
-(`output/validation/bracketed_2026-09-19/`), and the AR row from an
-evaluate-only re-run on the common-row harness, at `bbaf5b3`
-(`output/validation/common_row_rerun_2026-09-11/`). The figures the dated
-notices above quote for those four rows were measured on the runs they
-replaced, and are superseded rather than re-measured; that includes the
-resampled gain intervals. Each row
+**Every row comes from one refresh.** All seventeen were re-run, training and
+evaluation, on 2026-09-20 at commit `967b485` from a clean tree, one step per
+process, into `output/validation/refresh_2026-09-20/<CODE>/`, outside the
+repository. Every manifest records that commit with `git_dirty: false`. Before
+this the rows came from three different runs at three commits: the 2026-08-24
+refresh at `41462e9` (AU-NEM and NZ), the European re-run at `b5d47d0` (DE, DK,
+UK and the eight country rows) and the accepted-years re-runs at `0fd6574`
+(US, CL, AR and BR).
+
+**The scored set changed where refused clusters dropped plants.** A cluster
+whose accepted years are not a majority of its training years is refused, its
+units get no corrected values, and the common-row rule then drops those
+units from every variant, the uncorrected one included. So the uncorrected
+figures of DE, UK and AU-NEM move as well as the corrected ones, and the
+count each row scores is now given beside its fleet. The figures the dated
+notices above quote are superseded rather than re-measured, the resampled
+gain intervals among them. Each row
 was run from the single-configuration file committed under
 `configs/regions/scorecard/` (`<code>_k<N>.toml` or `<code>_country.toml`), which
 fixes the cluster count and time slice the row reports. For the eight
@@ -334,6 +337,10 @@ only that library contains, and are not reproducible by a third party. The
 other three (BR, AU-NEM, NZ) simulate only on curves the open library also
 contains: re-run on the open library on 2026-09-11, each reproduced its
 `metrics.csv` byte for byte (`output/validation/open_library_check_2026-09-11/`).
+That check was made against the runs those rows reported then; the curves each
+unit resolves have not changed since, and each row's `curve_resolution.csv`
+records them for the 2026-09-20 runs, but the byte comparison has not been
+repeated.
 The remaining ten (CL, AR and the eight country-level regions) were run on the
 bundled open library. The country-level grid points name Vestas models that the
 open library does not contain, so every unit in those eight rows fell back to a
@@ -431,12 +438,12 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 
 | Region | Fleet (test) | Train → test | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Corr r | Best cfg | Roughness | Other brand | Reference curve | Unverifiable |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Germany (DE) | 4814 turbines | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed | per timestep | 40.0% | 8.9% | 0.0% |
+| Germany (DE) | 4814 turbines (4807 scored) | 2015-18 → 2019 | 0.086 | **0.057** | +0.043 | +0.001 | 0.86 | k100 fixed † | per timestep | 40.0% | 8.9% | 0.0% |
 | Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 15.0% | 1.7% | 3.1% |
 | Brazil (BR) | 151 complexes (140 scored) | 2021-23 → 2024 | 0.130 | **0.097** | -0.037 | -0.014 | 0.79 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
 | United States (US) | 520 plants (512 scored) | 2019-21 → 2022 | 0.108 | **0.096** | +0.024 | +0.023 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
-| Australia (AU-NEM) | 77 farms | 2020-22 → 2023 | 0.115 | **0.094** | +0.009 | -0.006 | 0.61 | k45 season | per timestep | 2.8% | 84.5% | 4.5% |
-| United Kingdom (UK) | 348 farms | 2015-18 → 2019 | 0.146 | **0.115** ‡ | +0.038 | -0.038 | 0.70 | k50 fixed | per timestep | 21.8% | 7.5% | 0.0% |
+| Australia (AU-NEM) | 77 farms (75 scored) | 2020-22 → 2023 | 0.116 | **0.093** | +0.009 | -0.005 | 0.62 | k45 season † | per timestep | 2.8% | 84.5% | 4.5% |
+| United Kingdom (UK) | 348 farms (344 scored) | 2015-18 → 2019 | 0.139 | **0.116** ‡ | +0.028 | -0.037 | 0.70 | k50 fixed † | per timestep | 21.8% | 7.5% | 0.0% |
 | New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
 | Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | per timestep | 3.5% | 91.6% | 0.0% |
 | Argentina (AR) | 59 plants (57 scored) | 2021-23 → 2024 | 0.140 | **0.122** | +0.025 | +0.004 | 0.44 | k10 fixed † | per timestep | 0.2% | 96.7% | 0.0% |
@@ -468,22 +475,29 @@ offsets required to converge):
 | Region | Config | Max scalar | Implausible scalars | Failed offsets |
 |---|---|---|---|---|
 | Chile (CL) | k10 fixed | **3.25** | 1 | **2** |
-| United States (US) | k250 fixed | 2.72 | 0 | **5** |
-| Argentina (AR) | k10 fixed | 1.29 | 0 | **1** |
 | Brazil (BR) | k60 fixed | 2.87 | 0 | **2** |
+| United States (US) | k250 fixed | 2.72 | 0 | **5** |
+| Australia (AU-NEM) | k45 season | 2.64 | 0 | **4** |
+| United Kingdom (UK) | k50 fixed | 1.86 | 0 | **2** |
+| Germany (DE) | k100 fixed | 1.35 | 0 | **1** |
+| Argentina (AR) | k10 fixed | 1.29 | 0 | **1** |
 
-The other five are clean: DE 2.79, AU-NEM 2.64, UK 1.86, NZ 1.81, DK 1.15, all
-inside the ceiling with no failed offsets, as is every country-level fit below.
+The other two are clean: NZ 1.81 and DK 1.14, inside the ceiling with no
+failed offsets, as is every country-level fit below. DE, UK and AU-NEM joined
+the list in the 2026-09-20 refresh: each refuses a cluster whose accepted
+years are not a majority of its training years, and a refused factor counts as
+a failed offset. Every maximum scalar in the table is now inside the
+plausible range except Chile's.
 
 Since 2026-09-19 (#28) a factor averages its scalar and offset over its
 accepted years, and a factor whose accepted years are not a majority of its
-training years is refused and carries no scalar. All four daggered rows are
-re-run under that rule, so each maximum scalar covers applied factors only.
-The scalars these rows showed before belonged to clusters now refused: the
-US's 46.39 (cluster 38), CL's 80.23 (cluster 6), AR's 15.53 (cluster 7) and
-BR's 4.82 (cluster 27). The US, AR and BR rows keep their daggers through
-failed offsets alone, with maximum scalars inside the bounds; CL keeps its
-through two refused clusters and an applied scalar of 3.25 (cluster 2).
+training years is refused and carries no scalar, so every maximum scalar in
+the table covers applied factors only. The scalars four of these rows showed
+before belonged to clusters now refused: the US's 46.39 (cluster 38), CL's
+80.23 (cluster 6), AR's 15.53 (cluster 7) and BR's 4.82 (cluster 27), and
+DE's 2.79 (cluster 70). Six rows carry their daggers through failed offsets
+alone, with maximum scalars inside the bounds; CL keeps its through two
+refused clusters and an applied scalar of 3.25 (cluster 2).
 These figures travel in `metrics.csv` automatically, so a future run cannot hide
 them.
 
@@ -570,12 +584,14 @@ additive spatial bias (`method-country-level.md`).
 
 ## What must NOT be overclaimed
 
-- **Four of the nine turbine-level rows rest on degenerate fits** (CL, US, AR,
-  BR). The aggregate metric is real; the underlying per-cluster factors are not
-  usable. Chile refuses two of its ten clusters and applies a scalar of 3.25
-  in a third; the United States refuses five of 250, Brazil two of 60 and
-  Argentina one of 10. None of that is visible in the skill metric, which is
-  the point.
+- **Seven of the nine turbine-level rows rest on degenerate fits** (CL, US,
+  AR, BR, and since the 2026-09-20 refresh DE, UK and AU-NEM). The aggregate
+  metric is real; the underlying per-cluster factors are not all usable. Chile
+  refuses two of its ten clusters and applies a scalar of 3.25 in a third; the
+  United States refuses five of 250, Brazil two of 60, Australia one of 45,
+  the United Kingdom two of 50, Germany one of 100 and Argentina one of 10.
+  None of that is visible in the skill metric, which is the point. Only DK and
+  NZ are clean.
 - **An aggregate that barely moves does not mean the fit did not move.** A
   change of fitting code moved the United States' headline RMSE by 0.0005 while
   more than doubling its worst fitted scalar, from 20.54 to 46.39. Check

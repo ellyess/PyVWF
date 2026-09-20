@@ -24,6 +24,15 @@ this file stay in step with it.
 
 ### Changed
 
+- **Every scorecard row comes from one refresh**, at one commit, in one dated
+  run directory: all seventeen re-run, training and evaluation, from a clean
+  tree, where the rows previously came from three runs at three commits. What
+  moved: DE, UK and AU-NEM each refuse a cluster whose accepted years are not
+  a majority, so those units leave every variant's scored rows and both the
+  uncorrected and the corrected figures of those three rows move; they join
+  the daggered rows, and the fit-quality table gains them. The other fourteen
+  rows do not move at the precision the scorecard reports. The scorecard says
+  beside each fleet how many units the row scores.
 - **A factor rests on one set of accepted years, or is refused (#28).** Each
   factor averages its scalar and its offset over the same years: those whose
   offset was fitted and accepted. A year with no usable observation is no
