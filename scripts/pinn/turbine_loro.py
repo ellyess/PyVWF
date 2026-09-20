@@ -172,6 +172,15 @@ def main():
     ap.add_argument("--hidden", type=int, default=0)
     ap.add_argument("--config", action="append", default=[], metavar="CODE=PATH")
     ap.add_argument("--cache", required=True)
+    ap.add_argument(
+        "--cache-override",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="read CODE's cache from PATH instead of --cache; repeatable. DE "
+        "is rebuilt on MaStR coordinates and hub heights in its own directory "
+        "(issue #12), and the other regions' caches are untouched.",
+    )
     ap.add_argument("--gwa", required=True, help="directory written by gwa_ratio.py")
     ap.add_argument("--out", required=True)
     ap.add_argument("--tag", default="primary")
@@ -222,24 +231,39 @@ def main():
                 f"{config_paths[c]} is {spec.code}/{spec.obs_level}, not a turbine-level {c}"
             )
 
+    cache_of = {}
+    for item in args.cache_override:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--cache-override expects CODE=PATH, got {item!r}")
+        cache_of[code] = path
+    unknown = set(cache_of) - set(codes) - set(extra)
+    if unknown:
+        raise SystemExit(
+            f"--cache-override names regions this run does not load: {sorted(unknown)}"
+        )
+
+    def cache_for(code):
+        return cache_of.get(code, args.cache)
+
     def ratios(code, split):
         table = pd.read_csv(Path(args.gwa) / f"{code}_{split}.csv", dtype={"ID": str})
         return table.set_index("ID")["ratio"]
 
     train = {
         c: attach_fixed_speedup(
-            load_regions([c], "train", args.cache, quiet=True)[0], ratios(c, "train")
+            load_regions([c], "train", cache_for(c), quiet=True)[0], ratios(c, "train")
         )
         for c in codes
     }
     test = {
         c: attach_fixed_speedup(
-            load_regions([c], "test", args.cache, quiet=True)[0], ratios(c, "test")
+            load_regions([c], "test", cache_for(c), quiet=True)[0], ratios(c, "test")
         )
         for c in codes
     }
     countries = (
-        {c: load_regions([c], "test", args.cache, quiet=True)[0] for c in extra}
+        {c: load_regions([c], "test", cache_for(c), quiet=True)[0] for c in extra}
         if secondary
         else {}
     )
@@ -256,6 +280,7 @@ def main():
                 "argv": sys.argv[1:],
                 "torch_version": torch.__version__,
                 "cache": args.cache,
+                "cache_overrides": cache_of,
                 "gwa": args.gwa,
                 "gwa_record": gwa_record,
                 "configs": config_record(config_paths),

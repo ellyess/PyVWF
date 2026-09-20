@@ -79,6 +79,47 @@ If the match fails, the DE fold runs on the caches as they stand, and the
 postcode resolution is a caveat on the DE result. Either way the gates, arms and
 predictions do not change.
 
+### Deviation, 2026-09-20: the match, and what was rebuilt
+
+**Recorded before any fit.** The MaStR export completed on 2026-09-18 at the
+size its README states. `scripts/pinn/mastr_match.py` (`c4c6dc1`) parsed
+`EinheitenWind.xml`: 43,540 wind units, 42,234 with a coordinate.
+
+**The match is on postcode, capacity, commissioning date and rotor diameter,
+not model.** This registration named model, and the German register has none:
+it records a manufacturer, a rating, a rotor diameter and a date, and no model
+designation (`scorecard.md`). Rotor diameter stands in for it and hub height
+breaks ties. A pair must clear 2% on rating, 2 m on rotor and 400 days on the
+commissioning date, inside one postcode, and each MaStR unit is used at most
+once.
+
+**Match rate.** 6,206 of the register's 11,433 turbines, 54.3%. On the fleets
+the caches use it is higher, because the register holds machines that were
+dismantled before MaStR began: **72.0% of the DE training fleet's 4,288 units
+and 70.9% of its capacity**, and 64.9% of the test fleet's 4,814 units and
+60.4% of its capacity. Unmatched: 4,697 with no candidate within tolerance and
+530 in a postcode MaStR does not cover. The rate rises with commissioning
+decade across the register: 7% for the 1980s, 38% for the 1990s, 69% for the
+2000s, 80% for the 2010s.
+
+**What was rebuilt.** The DE caches only, at `14722be` from a clean tree, into
+`output/pinn_turbine_2026-09-18/cache_mastr/`, with the same
+`configs/regions/scorecard/de_k100.toml` the existing caches used, so
+locations and hub heights are the only inputs that change. Train: 3,074 of
+4,288 units moved, 70.7% of capacity, 579 to 3,297 distinct locations. Test:
+3,114 of 4,814 moved, 60.2% of capacity, 622 to 3,410. A unit the match did
+not cover keeps its postcode centroid, so **the DE fold runs on a fleet of
+mixed location resolution**, and that is a caveat on the DE result rather than
+on the study. Every other region's cache is untouched.
+
+**Commands that change.** The turbine study reads DE from the rebuilt
+directory with `--cache-override DE=output/pinn_turbine_2026-09-18/cache_mastr`,
+added to `scripts/pinn/turbine_loro.py` for this deviation; every other region
+still comes from `--cache`. The GWA ratio script runs on both directories, so
+DE's ratios are computed at the moved locations.
+
+**The gates, arms and predictions do not change.**
+
 ## Folds
 
 Nine turbine-level regions, one held out at a time. Each is trained on its
@@ -295,9 +336,19 @@ PYTHONPATH=src /opt/anaconda3/bin/python -u scripts/pinn/gwa_ratio.py \
   --out output/pinn_turbine_2026-09-18/gwa
 ```
 
+Then, for the rebuilt German caches (deviation of 2026-09-20), into the same
+ratio directory:
+
+```bash
+PYTHONPATH=src /opt/anaconda3/bin/python -u scripts/pinn/gwa_ratio.py \
+  --cache output/pinn_turbine_2026-09-18/cache_mastr --gwa input/raw/gwa4 \
+  --out output/pinn_turbine_2026-09-18/gwa
+```
+
 ```bash
 PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
   scripts/pinn/turbine_loro.py --tag primary \
+  --cache-override DE=output/pinn_turbine_2026-09-18/cache_mastr \
   --cache output/pinn_loco_2026-09-16/cache \
   --gwa output/pinn_turbine_2026-09-18/gwa \
   --out output/pinn_turbine_2026-09-18/study \
