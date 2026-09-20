@@ -7,7 +7,7 @@ it was in `scripts/analysis/`, the path any command below uses;
 output under `output/domain_split_2026-09-15/` records no commit; the driver's
 last commit before it was written is `f305b28`. The study is void, as this
 registration records; the S1 and S2 figures are cited in
-`docs/design/manuscript-chapters-45.md`.
+[`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md).
 
 **Date:** 2026-09-13. Registered before the study runs, with the four figures
 already in hand declared below.
@@ -27,7 +27,7 @@ treatment. Restating a gate after seeing which way the miss went is the error
 this registration was written to prevent, so it was not restated.
 
 **It is now void for a second and larger reason.** The workstream's founding
-assumption (`../design/manuscript-chapters-45.md`, D0) is that country-level
+assumption ([`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md), D0) is that country-level
 results are computed on the maintained fleet-weighted grids, while every figure
 in this study, and the control-point pool it interpolates, is on the uniform
 grids. **If this study is ever re-founded it is on the maintained grids and

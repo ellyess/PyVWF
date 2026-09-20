@@ -28,8 +28,10 @@ row of missing values in a results table rather than stopping.
 One prose and code difference is reproduced rather than resolved: the chapter
 says corrected wind speeds are "clipped to physically admissible bounds before
 conversion", and the code clips the resulting capacity factor to 0 and 1
-instead, leaving the speed unclipped. That is recorded in
-``docs/design/manuscript-chapters-45.md`` and the behaviour here is the code's.
+instead, leaving the speed unclipped. That is recorded in the maintainer's
+manuscript note, kept untracked, at
+``https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md``
+(T0, row 3); the behaviour here is the code's.
 """
 
 from __future__ import annotations

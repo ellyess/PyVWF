@@ -123,6 +123,12 @@ docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
 # goes in a GitHub issue.
 /STATUS.md
 
+# The maintainer's private research notes. They record decisions that are not
+# yet made, about work outside this repository, and they are not documentation
+# for anyone else. docs/README.md says where they sit. manuscript-chapters-45.md
+# was tracked until ce20ead; the findings that cite it link to that version.
+/docs/design/manuscript-chapters-45.md
+
 # Commercial / career material never belongs in this public repo. The working
 # copies live outside the repository entirely (../../Career/); these patterns are
 # a safety net in case anything is ever dropped in here by mistake.

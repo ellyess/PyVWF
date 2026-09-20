@@ -132,6 +132,22 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The maintainer's manuscript note is out of version control.**
+  `docs/design/manuscript-chapters-45.md` records decisions not yet made about
+  work outside this repository, and is not documentation for anyone else. It is
+  git-ignored and stays on disk, as `STATUS.md` is. The fourteen citations
+  across nine findings documents, and one in a `vwf.extensions.grid` docstring,
+  now link to its last tracked version rather than to a path the repository no
+  longer has. `docs/README.md` states the policy, and `docs/conf.py` excludes
+  every git-ignored page rather than that one by name, so a local build with a
+  private note on disk still passes `-W`.
+- **Brazil's undefined-roughness figures are sourced, and two are corrected.**
+  `undefined-roughness-in-complex-terrain.md` gave a distance with no source and
+  called 85 days the longest consecutive run. Recomputed from the region's own
+  input: 85 is the year's total for the worst cell and the longest run is 73,
+  and the closest undefined cell to the fleet is 1,290 km away, which is the
+  13.2 degrees the document already quoted. The method, the two input hashes
+  and the date travel with the numbers.
 - **The documentation site uses the Furo theme.** It gives a light and a dark
   mode with a toggle, and a second sidebar holding the current page's own
   headings, where the previous theme put them in the left sidebar under the

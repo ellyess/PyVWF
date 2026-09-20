@@ -10,6 +10,9 @@ MyST. Build with::
 
 from __future__ import annotations
 
+import subprocess
+from pathlib import Path
+
 import vwf
 
 project = "PyVWF"
@@ -45,11 +48,35 @@ exclude_patterns = [
     # reasoning rather than the number. The maintained documentation is
     # guides/, runbooks/ and design/, all of which are in the toctree.
     "findings/**",
-    # A working plan kept in design/ for its history, but not explanation for
-    # a reader new to the project: the open decision register for the thesis
-    # chapters 4 and 5 manuscript.
-    "design/manuscript-chapters-45.md",
 ]
+
+
+def _untracked_pages() -> list[str]:
+    """Pages under ``docs/`` that git ignores, relative to this folder.
+
+    The maintainer's private working notes are kept untracked and stay on
+    disk (``docs/README.md``, "Private working notes are kept untracked").
+    They are absent from a CI or Read the Docs checkout, so the site never
+    sees them, but a local build would pick one up and fail ``-W`` on an
+    orphan page. Asking git which files it ignores implements the policy
+    rather than naming one file, so a new note needs no edit here. Any git
+    failure returns nothing, which leaves the build exactly as it was.
+    """
+    here = Path(__file__).parent
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "--others", "--ignored", "--exclude-standard", "--", "."],
+            cwd=here,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return [line for line in out.splitlines() if line.endswith(".md")]
+
+
+exclude_patterns += _untracked_pages()
 
 autosummary_generate = True
 autodoc_member_order = "bysource"

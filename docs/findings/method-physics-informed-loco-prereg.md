@@ -172,7 +172,7 @@ B's G1 to G3 are computed and reported, not gated.
 - **The thesis's interpolation and machine-learning leave-one-country-out**
   exist in coefficient space only. Scoring them in capacity factor would need
   the chapter pool refitted on today's pipeline, costed as P1 in
-  `docs/design/manuscript-chapters-45.md`. That is follow-on work, not a
+  [`manuscript-chapters-45.md`](https://github.com/ellyess/PyVWF/blob/ce20ead0716ffcbe2ad132d616f14c288cbc679d/docs/design/manuscript-chapters-45.md). That is follow-on work, not a
   comparator here.
 
 ## Caveats written in advance
