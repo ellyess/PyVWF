@@ -1,8 +1,8 @@
 # PyVWF documentation
 
 New to the project? Read the [project README](../README.md) first, for what
-PyVWF is, how to install it, and a Denmark quickstart. The full documentation
-site is built from this folder and hosted at
+PyVWF is, what it is for, and the quickstart. The full documentation site is
+built from this folder and hosted at
 [pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/); [`index.md`](index.md)
 is its front page and the canonical contents list.
 
@@ -14,7 +14,7 @@ category, so a name never repeats it: the training guide is
 
 | Folder or file | Holds | Kind | Naming |
 |---|---|---|---|
-| [`guides/`](guides) | How to use PyVWF: data, training, outputs, and extending it with a region, an adapter or a study (`adding-a-*.md`). Maintained, and published to the site. | procedural | `<topic>.md` |
+| [`guides/`](guides) | How to use PyVWF: installing it, data, training, outputs, Docker, and extending it with a region, an adapter or a study (`adding-a-*.md`). Maintained, and published to the site. | procedural | `<topic>.md` |
 | [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | procedural | `<iso-code>.md`; `au_nem.md` and `entsoe.md` for the NEM and the country-level regions |
 | [`design/`](design) | Why the code is shaped as it is. Published. | argumentative | `<component>.md` |
 | [`findings/`](findings) | Research records, one question each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | argumentative | `<type>-<subject>.md` |
@@ -48,7 +48,9 @@ which is right. These are the homes of the facts most often repeated:
 
 | Fact | Home |
 |---|---|
-| Installing PyVWF | the project README for users; `CONTRIBUTING.md` for developers |
+| Installing PyVWF, and what each extra adds | `guides/installation.md` |
+| Running PyVWF in a container | `guides/docker.md` |
+| What PyVWF does not do, and what its numbers do not support | `design/limitations.md` |
 | Running the tests and the other CI checks | `CONTRIBUTING.md` |
 | Which module may import which | `.importlinter`, at the repository root |
 | Choosing the input root (`PYVWF_INPUT`) | `guides/training.md` |

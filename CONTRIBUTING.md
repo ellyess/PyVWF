@@ -33,6 +33,9 @@ conda env create -f environment.yaml
 conda activate pyvwf
 ```
 
+Both routes, and what each of the six extras adds, are in
+[docs/guides/installation.md](docs/guides/installation.md).
+
 ## Running the tests and linter
 
 The test suite uses synthetic data and needs no ERA5 downloads or API access.
@@ -95,7 +98,8 @@ and every push to `main`:
   install and import of the wheel with no repository on `sys.path`;
 - a Docker build, which runs the image's default command on bundled data and
   checks that the example corrected something, that the console script and
-  the curve library resolve, and that the image does not run as root.
+  the curve library resolve, and that the image does not run as root
+  ([docs/guides/docker.md](docs/guides/docker.md)).
 
 CI installs neither the `data` extra nor the other optional extras, so the
 suite and the example must pass without them. Tests that need `torch`,
@@ -121,7 +125,8 @@ versioning and stays in step with `CITATION.cff`.
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
-4. Ensure `pytest` and `ruff check src tests scripts examples` pass locally.
+4. Ensure `pytest -m "not slow and not realdata"` and `ruff check src tests
+   scripts examples` pass locally. That is the set CI runs on a pull request.
 5. Open a pull request describing the change and its motivation. Link any
    related issue.
 
