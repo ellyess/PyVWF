@@ -122,6 +122,11 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The terrain wind-deficit study has its driver** (#26),
+  `scripts/studies/method-terrain-wind-deficit/terrain_deficit.py`, with its
+  recorded command line pinned. Committed before it runs, as the study guide
+  requires; the registered gates, years, clusters and seed are constants in
+  it, and every path is a flag.
 - **The terrain wind-deficit study is registered** (#26): the question,
   measures, gates, predictions and the package recommendation under each
   outcome, in `docs/findings/method-terrain-wind-deficit-prereg.md`, committed
