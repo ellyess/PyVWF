@@ -7,7 +7,7 @@ the `--run-name` you pass).
 ```text
 output/validation/<CODE>/
 ├── train-<stamp>/
-│   ├── factors_<slice>_<k>.csv        # correction factors, one per (slice, cluster count)
+│   ├── factors_<slice>_<k>.csv        # the fitted factors, one file per (slice, cluster count)
 │   ├── train_turb_info_<k>.csv        # training fleet with cluster assignments
 │   ├── fit_diagnostics_<slice>_<k>.csv # where the fitted factors send the training speeds
 │   ├── curve_resolution.csv           # which power curve each model key resolved to
@@ -34,7 +34,7 @@ One row per `(cluster, time-slice)`, with the fitted parameters:
 | `n_years` | Accepted years the factor rests on |
 | `avail` | Availability factor (`scaled-affine` only) |
 
-`<slice>` is the time resolution and `<k>` the cluster count, matching a
+`<slice>` is the time slice and `<k>` the cluster count, matching a
 `cluster_list` × `time_slices` entry in the config.
 
 Each factor averages its scalar and its offset over the same accepted years:
@@ -91,13 +91,19 @@ the test year:
 | `substituted_capacity_share` | Share of fleet capacity simulated on a curve other than the one its model key names (see below) |
 | `excluded_share` | Share of scorable rows left out because some variant has no value for them (see below) |
 | `extrapolated_capacity_share` | Share of fleet capacity outside the loaded ERA5 extent (see below). Zero unless the region opted in |
+| `n_clusters`, `n_implausible_scalar`, `n_failed_offset` | From `fit_quality`: the clusters in the factors file, how many carry a scalar outside 0.2 to 3.0, and how many have no offset. A refused factor counts as a failed offset |
+| `max_scalar`, `min_scalar` | The largest and smallest applied scalar. A refused factor has none, so neither covers one |
+| `degenerate_clusters` | The flagged cluster indices, comma-joined so they survive a CSV round trip |
+| `observations_clipped_share` | Share of the observed series discarded at the fetcher's 1.5 capacity-factor ceiling. The metric is then computed over fewer observations than `n_samples` suggests |
 | `max_below_zero_share`, `max_above_curve_share` | From the fit diagnostics: the worst share of one cluster's training steps its pair sends below 0 m/s, and above the curve. Recorded beside the dagger; they do not set it |
 | `max_period_dropped_share` | The worst share of one training period's capacity-weighted steps the fitted factors drop. For a country-level fit, the share of that period's objective computed on nothing |
 | `off_curve_below_share`, `off_curve_above_share`, `no_speed_share` | Capacity-weighted shares of this variant's simulated unit-steps below the power curve, above it, and with no speed (see below) |
 | `unit_months_wholly_missing`, `unit_months_partly_missing` | Unit-months with every step missing, and with some but not all (see below) |
 
 Read the uncorrected row first: judge the correction against the bias structure
-it starts from, not in isolation.
+it starts from, not in isolation. Then read the `fit_quality` columns: a row
+can improve while the fit behind it is degenerate. The scorecard's markers are
+set from these columns, by the rules in [`docs/README.md`](../README.md).
 
 ## Manifest (`run_manifest.json`)
 
@@ -118,10 +124,10 @@ stored ahead of time. The route per ERA5 directory is in
 
 ## Curve resolution (`curve_resolution.csv`)
 
-Which curve every unit was actually simulated on. A model key the curve table
-lacks does not stop a run: the unit is simulated on the table's first column
-(`vwf.wind.default_curve_key`, a 100 kW distributed-wind turbine in the bundled
-library) with a one-off warning. This file is the record of that, one row per
+Which curve every unit was actually simulated on. A model key missing from
+`power_curves.csv` does not stop a run: the unit is simulated on the fallback
+curve, that file's first column (`vwf.wind.default_curve_key`, a 100 kW
+distributed-wind turbine in the open library), with a one-off warning. This file is the record of that, one row per
 model key the fleet requests:
 
 | Column | Meaning |
@@ -129,7 +135,7 @@ model key the fleet requests:
 | `requested` | The model key the units carry |
 | `n_units`, `capacity`, `capacity_share` | How much of the fleet carries it |
 | `assigned_by` | How the key got onto the fleet: the metadata's `model_source`, the `add_models` tier (`fuzzy-manufacturer+specific-power` or `specific-power-only`), or `as-given` |
-| `status` | `resolved` (the table has the key) or `substituted` |
+| `status` | `resolved` (`power_curves.csv` has the key) or `substituted` |
 | `curve_used` | The key whose curve was used |
 | `curve_sha256` | Hash of that curve's values |
 | `origin` | `open` if the values match a curve in the bundled open library, else `external` (under `input/combined`, the licensed library) |
@@ -140,6 +146,21 @@ substitution map, the open and external shares of capacity, and capacity by
 into every row of `metrics.csv`. A non-zero share also raises a warning at run
 time. Any result from a run with a non-zero share was not simulated on the
 fleet's own curves, and should be read with that share beside it.
+
+`resolved` means `power_curves.csv` has the key, not that the key names the
+right machine. `vwf.curves.add_models` matches manufacturers fuzzily, and can
+assign another manufacturer's model at the same specific power (see its
+docstring). That shows up in `assigned_by`, not in `status`.
+
+**Known gaps.** This file is written by the harness's train, evaluate and
+transfer runs only:
+
+- `vwf.harness.hindcast.run_hindcast` returns frames and writes no run
+  directory or manifest, so there is nowhere to put the record.
+- The legacy `PyVWF` path uses the same fallback curve but is not wired to
+  this file.
+
+In both, a substitution is visible only as the run-time warning.
 
 ## Loaded ERA5 extent (`era5_extent`)
 
@@ -219,17 +240,3 @@ The file is written for every run, with a header only when nothing is excluded.
 The manifest's `common_row_scoring` block gives, per scope, the rows scorable,
 scored and excluded, the excluded share and the units with every row excluded.
 A non-zero share also raises a warning at run time.
-
-**Known gaps.** Coverage is the harness's train, evaluate and transfer runs
-only:
-
-- `vwf.harness.hindcast.run_hindcast` returns frames and writes no run
-  directory or manifest, so there is nowhere to put the record.
-- The legacy `PyVWF` path shares the fallback but is not wired to the log.
-
-In both, a substitution is still visible only as the run-time warning.
-
-`resolved` means the table has the key, not that the key names the right
-machine. `add_models` matches manufacturers fuzzily, and can assign a different
-manufacturer's model at the same specific power (see its docstring). That shows
-up in `assigned_by`, not in `status`.
