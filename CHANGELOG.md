@@ -132,6 +132,15 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The README is a front door rather than a second copy of the guides.** It
+  keeps what it is, the workflow diagram, installing, the quickstart, the
+  results, the limitations that decide whether to use it, and the citation,
+  and links the guide that owns each of the rest. The validated-regions table
+  is dropped for a summary and a link to the scorecard, which is its home and
+  which the table had fallen behind. The quickstart names `pyvwf-validate`,
+  the console script an installed user has, rather than the checkout-only
+  script. A Read the Docs badge, a licence section and a link to
+  `docs/publications.md` are added.
 - **Three documents take what left the README.**
   `docs/guides/installation.md` holds the two install routes and what each
   extra adds, `docs/guides/docker.md` holds the image whole, from the mounts
