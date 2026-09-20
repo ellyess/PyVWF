@@ -72,11 +72,11 @@ source lacks them. The region-specific work:
 - **US**: EIA-923 net generation, EIA-860 nameplate + coordinates, USWTDB hub
   heights. Drops annual (`A`) respondents (imputed months); `--bbox` must match
   the ERA5 box or out-of-domain plants snap to the wrong cell. Curves matched to
-  the library by scale + specific power.
+  the curve library by rating band and specific power.
 - **BR**: ONS publishes CF per *complex* (collector-substation coordinates and
   time-varying capacity in the same file). A constrained-off (`RESTRICAO_COFF`)
-  series builds a curtailment mask; the Nordeste curtails heavily. Uniform
-  representative curve.
+  series builds a curtailment mask; the Nordeste curtails heavily. One default
+  curve for every unit.
 - **AU-NEM**: 5-min SCADA summed to monthly energy, AEST → UTC, over
   Generation Information nameplate. Real turbine specs
   (`configs/curation/au_turbine_models.csv`) drive matched curves.
@@ -144,8 +144,13 @@ python src/vwf/datasets/combine_era5_files.py --all-years --add-roughness \
 ```
 
 The archive is kept unchanged, so the rows published on it stay reproducible.
-New work uses `era5/EU_2026-09`, which carries no roughness field, so
-`prep_era5` derives it per timestep. The reasons are in
+Every European scorecard config now reads `era5/EU_2026-09` instead, which
+carries no roughness field and a wider box, so `prep_era5` derives the
+roughness per timestep. The maintained `configs/regions/<stem>.toml` files for
+those regions still name `era5/EU`, so running one applies the superseded
+annual-mean treatment; take the configuration from
+`configs/regions/scorecard/` to reproduce a published row. The reasons, and
+the three routes, are in
 [`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
 
 **Coordinates and capacity: Global Wind Power Tracker (GWPT).** Global Energy

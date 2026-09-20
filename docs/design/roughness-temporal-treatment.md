@@ -10,16 +10,27 @@ formula. It is whether the result of the formula varies in time.
 
 There are three routes, not two, and they produce two distinct treatments:
 
-| Route | How it is produced | What the file carries | Rows |
+| Route | How it is produced | What the file carries | Scorecard rows |
 |---|---|---|---|
-| **A, annual mean** | The hourly z0 is computed, then averaged over the year into a single static field, in `src/vwf/datasets/combine_era5_files.py` | hourly winds and a stored `z0`, one field per year | DE, DK, UK and the eight country-level regions, which all read `era5/EU`: 11 |
-| **B, per timestep at load** | The hourly z0 is computed in `vwf.datasets.era5.prep_era5` when the file carries no roughness, then averaged to daily with the winds | hourly winds only | AU-NEM, NZ, CL, AR: 4 |
+| **A, annual mean** | The hourly z0 is computed, then averaged over the year into a single static field, in `src/vwf/datasets/combine_era5_files.py` | hourly winds and a stored `z0`, one field per year | none |
+| **B, per timestep at load** | The hourly z0 is computed in `vwf.datasets.era5.prep_era5` when the file carries no roughness, then averaged to daily with the winds | hourly winds only | DE, DK, UK, the eight country-level regions, AU-NEM, NZ, CL and AR: 15 |
 | **C, per timestep, stored daily** | The hourly z0 is computed in `scripts/era5/combine.py` and averaged to daily there, so the file arrives with it | daily `wnd100m` and `roughness`, and **no 10 m winds** | US, BR: 2 |
 
-So eleven of the seventeen scorecard rows apply a climatological roughness and
-six apply one that varies through the year. The annual mean is the majority
-treatment, not the exception: it covers every European row, including the three
-turbine-level rows that carry the most units.
+**All seventeen scorecard rows now apply the per-timestep treatment**, fifteen
+by route B and two by route C. Route A produced the eleven European rows
+published before 2026-09-13, which the scorecard keeps in its superseded
+block; the European re-run moved them to `era5/EU_2026-09` with
+`roughness = "derived"`, and `tests/test_roughness_treatment.py` pins all
+eleven scorecard configs to that pair. Until that re-run the annual mean was
+the majority treatment and covered every European row.
+
+**The maintained configs have not followed.** Every
+`configs/regions/<stem>.toml` for a European region still names `era5/EU` and
+sets no `roughness` key, so it defaults to `stored` and applies the annual
+mean. A reader who runs one of those files, as the guides tell them to, gets
+the superseded treatment rather than the method. Only the scorecard configs
+under `configs/regions/scorecard/` carry the method's pair. This is logged as
+work on the configs, not on the documents.
 
 **B and C are the same treatment, computed at different stages.** Both derive
 z0 hour by hour and average it to daily, with the same clipping. They differ
@@ -28,7 +39,8 @@ across the whole loaded record, `combine.py` within one month file, so an
 undefined hour at a month's end can be filled in B and not in C. That is an
 edge-level difference and has not been measured.
 
-**The record cannot tell A from C.** A run's manifest reports
+**The record cannot tell A from C.** This matters for the archive rather
+than for a new run, since no current row is on route A. A run's manifest reports
 `era5_roughness.applied` as `stored` whenever the file carries a roughness
 field, so the US and Brazilian rows, which are on the per-timestep treatment,
 are labelled exactly as the European rows, which are not. Reading the manifest
@@ -44,7 +56,7 @@ Two pieces of candidate work follow, and neither is started:
 - whether the manifest should record which kind of stored roughness a run
   applied, rather than only that one was stored;
 - whether the US and Brazilian rows should move to the raw-monthly route, as
-  AU-NEM, NZ, CL and AR use, so that they can answer the question and carry an
+  the other fifteen rows use, so that they can answer the question and carry an
   unambiguous label. The cost is load time and memory on two continent-sized
   boxes, which is why the daily pre-combine exists.
 
@@ -60,11 +72,13 @@ which treatment a result used.
 ## The consequence for reading results
 
 Results from the two groups are not directly comparable. The scorecard is an
-index of per-region results and invites reading rows against each other; half
-the rows differ from the other half in an input, not only in fleet,
-observations and climate. Any statement that ranks or contrasts regions
-inherits this, including work that pools regions, such as transfer between
-regions and the physics-informed study.
+index of per-region results and invites reading rows against each other, and
+until the European re-run of 2026-09-13 half the rows differed from the other
+half in an input, not only in fleet, observations and climate. Every current
+row is on one treatment, so the split no longer confounds the table. It still
+confounds any comparison that reaches back to a superseded row, and any work
+that pooled regions before the re-run, such as transfer between regions and
+the physics-informed study.
 
 A paper drawn from work that uses these results has to state which temporal
 treatment produced them. The equation alone does not say.
@@ -119,8 +133,7 @@ Two consequences, and neither follows the split between the treatments:
 - **Some rows cannot show the treatment at all.** AU-NEM and BR give every unit
   a hub height of exactly 100 m, as do the BE and SE grids, so the factor is
   identically 1 and the roughness cancels. These rows are insensitive to the
-  question by construction, and two of them already apply the per-timestep
-  treatment.
+  question by construction.
 - **No country-level row can test it.** Every one gives its grid points a
   single uniform height between 80 and 100 m, where the whole span above is
   worth at most 1.3% of the speed. A null from such a row says the treatment
