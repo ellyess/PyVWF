@@ -29,6 +29,7 @@ from vwf.data import (
     country_obs_is_per_cluster,
     format_bc_factors,
 )
+from vwf.metrics import weighted_mean_by
 
 #: Rows below this count fit sequentially regardless of the worker setting: the
 #: dask cluster startup and scatter cost only pays off on large offset fits.
@@ -645,10 +646,7 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         sim = sim.dropna(subset=["cf", "cluster", "cap"])
         # include_groups is real in pandas 2.2+ but absent from pandas-stubs'
         # apply overloads, so the call is correct and the stub is behind.
-        sim_level = sim.groupby("cluster").apply(  # type: ignore[call-overload]
-            lambda g: (g["cf"] * g["cap"]).sum() / g["cap"].sum(),
-            include_groups=False,
-        )
+        sim_level = weighted_mean_by(sim, "cf", "cap", "cluster")
 
         # Observed level per cluster, on the same capacity-weighted basis.
         obs = gen_cf.copy()
@@ -656,10 +654,7 @@ class ScaledAffineWindCorrection(AffineWindCorrection):
         obs["cluster"] = obs["ID"].map(cluster_of)
         obs["cap"] = obs["ID"].map(cap_of)
         obs = obs.dropna(subset=["obs", "cluster", "cap"])
-        obs_level_by = obs.groupby("cluster").apply(  # type: ignore[call-overload]
-            lambda g: (g["obs"] * g["cap"]).sum() / g["cap"].sum(),
-            include_groups=False,
-        )
+        obs_level_by = weighted_mean_by(obs, "obs", "cap", "cluster")
 
         avail = (obs_level_by / sim_level).clip(upper=1.0)
         # A cluster with no usable corrected sim (all NaN) keeps availability 1,

@@ -49,6 +49,7 @@ from __future__ import annotations
 import calendar
 
 import pandas as pd
+from vwf.metrics import weighted_mean
 
 #: Rated-capacity band a candidate curve must fall in, as a multiple of the
 #: plant's per-turbine kW. Matching on specific power alone assigns a 1 kW
@@ -307,7 +308,7 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
             # No capacity weights available: fall back to a plain mean of the
             # values that exist, rather than dropping the plant's height.
             return float(v.dropna().mean()) if v.notna().any() else float("nan")
-        return float((v[mask] * w[mask]).sum() / w[mask].sum())
+        return weighted_mean(v, w)
 
     rows = []
     for plant_id, group in df.groupby("ID"):

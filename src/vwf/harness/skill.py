@@ -23,6 +23,7 @@ import pandas as pd
 from scipy.stats import wasserstein_distance
 
 from vwf.harness.regions import RegionSpec
+from vwf.metrics import weighted_mean, weighted_mean_by
 
 _REQUIRED = ("ID", "cf_sim", "cf_obs", "capacity")
 
@@ -103,22 +104,16 @@ def collapse_pseudo_replicates(df: pd.DataFrame, spec: RegionSpec) -> pd.DataFra
     # stays the station's whole capacity: it weights the station in the fleet
     # metric, and a capacity factor does not depend on how much of the station
     # carries a value.
-    df["_sim_x_cap"] = df["cf_sim"] * df["capacity"]
-    df["_cap_with_value"] = df["capacity"].where(df["cf_sim"].notna())
-    grouped = df.groupby(["ID", *time_cols], as_index=False).agg(
+    keys = ["ID", *time_cols]
+    grouped = df.groupby(keys, as_index=False).agg(
         cf_obs=("cf_obs", "first"),
-        cf_sim=("cf_sim", "mean"),  # fallback where the weights sum to zero
+        cf_sim=("cf_sim", "mean"),  # replaced below; the shape is what is kept
         capacity=("capacity", "sum"),
-        _sim_x_cap=("_sim_x_cap", "sum"),
-        _cap_with_value=("_cap_with_value", "sum"),
-        _n_values=("cf_sim", "count"),
     )
-    positive = (grouped["_cap_with_value"] > 0) & (grouped["_n_values"] > 0)
-    grouped.loc[positive, "cf_sim"] = (
-        grouped.loc[positive, "_sim_x_cap"] / grouped.loc[positive, "_cap_with_value"]
-    )
-    grouped.loc[grouped["_n_values"] == 0, "cf_sim"] = np.nan
-    return grouped.drop(columns=["_sim_x_cap", "_cap_with_value", "_n_values"])
+    station_cf = weighted_mean_by(df, "cf_sim", "capacity", keys).rename("_cf")
+    grouped = grouped.merge(station_cf.reset_index(), on=keys, how="left")
+    grouped["cf_sim"] = grouped.pop("_cf")
+    return grouped
 
 
 def skill_metrics(df: pd.DataFrame, *, weighted: bool = True) -> dict[str, float]:
@@ -149,9 +144,9 @@ def skill_metrics(df: pd.DataFrame, *, weighted: bool = True) -> dict[str, float
     if weights.sum() <= 0:
         raise ValueError("capacity weights sum to zero")
 
-    mbe = float(np.average(diff, weights=weights))
-    mae = float(np.average(np.abs(diff), weights=weights))
-    rmse = float(np.sqrt(np.average(diff**2, weights=weights)))
+    mbe = weighted_mean(diff, weights)
+    mae = weighted_mean(np.abs(diff), weights)
+    rmse = float(np.sqrt(weighted_mean(diff**2, weights)))
     if len(data) > 1 and np.std(sim) > 0 and np.std(obs) > 0:
         pearson = float(np.corrcoef(sim, obs)[0, 1])
     else:

@@ -23,7 +23,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 import vwf.wind as wind
@@ -34,6 +33,7 @@ from vwf.curves import load_power_curves
 from vwf.harness.corrections import get_correction
 from vwf.harness.regions import RegionSpec
 from vwf.datasets.era5 import prep_era5
+from vwf.metrics import weighted_mean
 
 
 def _national_monthly(cf_wide: pd.DataFrame, turb_info: pd.DataFrame) -> pd.Series:
@@ -46,9 +46,7 @@ def _national_monthly(cf_wide: pd.DataFrame, turb_info: pd.DataFrame) -> pd.Seri
     cols = [c for c in cf_wide.columns if c != "time" and str(c) in cap.index]
     caps = cap[[str(c) for c in cols]].to_numpy(float)
     vals = cf_wide[cols].to_numpy(float)
-    present = ~np.isnan(vals)
-    wsum = np.where(present, caps, 0.0).sum(axis=1)
-    nat = np.where(wsum > 0, np.where(present, vals * caps, 0.0).sum(axis=1) / wsum, np.nan)
+    nat = weighted_mean(vals, caps, axis=1)
     frame = pd.DataFrame({"time": pd.to_datetime(cf_wide["time"]), "cf": nat})
     return frame.groupby(frame["time"].dt.to_period("M"))["cf"].mean()
 

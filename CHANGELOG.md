@@ -24,6 +24,16 @@ this file stay in step with it.
 
 ### Changed
 
+- **One helper for every weighted mean** (`vwf.metrics.weighted_mean`, with a
+  grouped wrapper). Fifteen hand-written weighted means across the package now
+  delegate to it, so a missing value is treated the same way everywhere: it
+  leaves both the sum and the weights, and a group where nothing has a value
+  is NaN rather than zero. What moved: nothing in any run of the scorecard,
+  because the sites that could dilute already masked their weights or dropped
+  missing rows first; the behaviour differs only where a missing value reaches
+  a site that did not mask, which is the interpolation of a control point with
+  no value, the PINN country aggregate with no capacity, and an Australian
+  alias whose coordinates are missing.
 - **Every scorecard row comes from one refresh**, at one commit, in one dated
   run directory: all seventeen re-run, training and evaluation, from a clean
   tree, where the rows previously came from three runs at three commits. What
