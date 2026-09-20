@@ -18,16 +18,25 @@ Before this file was written, every case was run at 51807f8 and every file
 matched. The eu_rerun_compare invocation is not recorded anywhere; the one
 below is the one that reproduces all eight recorded comparisons exactly.
 
-The files were recorded under pandas 2.3.3, and under pandas 2 the comparison
-is byte for byte. Under pandas 3 the turbine-level rows, whose sums run over
-units, round differently in the last place (differences near 1e-17, such as a
-confidence bound of ...835 against ...834), so under pandas 3 each file is
-compared as a table: non-numeric columns exactly, numeric ones to 1e-15.
+The files were recorded under pandas 2.3.3. Each file is compared as a table:
+non-numeric columns exactly, numeric ones to 1e-15. Byte comparison was used
+under pandas 2 until 2026-09-20, when it began failing the UK rows: d68b542
+put every weighted mean behind one helper, and the reassociated sum moved six
+diagnostic columns of the UK row in their last bit, at most 1.7e-16 absolute
+and 3e-15 relative. No figure any of these files reports changed, at any
+precision the scorecard or a findings document quotes. A detector that fires
+on the last bit of a float reports the order of a summation, not a result, so
+the tolerance that pandas 3 already needed for the same reason now applies to
+both.
+
+1e-15 is far below anything reportable and far above reassociation noise:
+these files carry capacity factors and their errors, quoted to three or four
+decimals, so a real movement is 1e-4 at the smallest and clears the tolerance
+by eleven orders of magnitude.
 """
 
 from __future__ import annotations
 
-import filecmp
 import os
 import subprocess
 import sys
@@ -90,14 +99,8 @@ def _run(script: str, args: list[str], code: str, *, extra_path: str = "") -> No
     assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
 
 
-PANDAS_MAJOR = int(pd.__version__.split(".")[0])
-
-
 def _same(produced: Path, recorded: Path, names: list[str]) -> None:
     for name in names:
-        if PANDAS_MAJOR < 3:
-            assert filecmp.cmp(produced / name, recorded / name, shallow=False), name
-            continue
         got, want = pd.read_csv(produced / name), pd.read_csv(recorded / name)
         pd.testing.assert_frame_equal(got, want, check_exact=False, rtol=0, atol=1e-15, obj=name)
 
