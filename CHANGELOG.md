@@ -157,6 +157,16 @@ this file stay in step with it.
 
 ### Documentation
 
+- **A change under the pins' own code has to run the real-data set.** The
+  `realdata` pins skip where their inputs are absent, which includes CI, so no
+  pull request check can report that one moved. `CONTRIBUTING.md` and
+  `AGENTS.md` now require a local `pytest -m realdata` and its result in the
+  description for any change under `vwf/harness/`, `vwf/metrics.py`,
+  `vwf/correction.py` or `vwf/data.py`, and a new pull request template
+  carries the checkbox. Both also say to resolve a row's input root the way
+  its test does, because rerunning a combined-library row under the default
+  root produces a difference that reads as a code change.
+
 - **The maintainer's manuscript note is out of version control.**
   `docs/design/manuscript-chapters-45.md` records decisions not yet made about
   work outside this repository, and is not documentation for anyone else. It is
