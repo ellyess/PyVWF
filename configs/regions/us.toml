@@ -26,6 +26,12 @@ path = "era5/US_daily"
 bbox = [-125.0, -66.0, 24.0, 50.0]
 file_tag = "US"
 
+# era5/US_daily carries a per-timestep roughness that scripts/era5/combine.py
+# already averaged to daily, and no 10 m winds, so the stored field is the only
+# one these files can supply. The key is explicit because "derived" now raises
+# here (docs/design/roughness-temporal-treatment.md, route C).
+roughness = "stored"
+
 [correction]
 model = "affine-wind"
 cluster_list = [1, 25]  # sweep knee (docs/findings/method-cluster-count.md)

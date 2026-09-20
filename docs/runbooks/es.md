@@ -9,7 +9,7 @@ git-ignored; the script below only reshapes files you already hold.
 only** (an old ~600 kW fleet). This is a *historical, three-year* region, not a
 contemporary of the 2015-2019 reference set: useful as a legacy check, not a
 modern benchmark. It also needs ERA5 for 1998-2000 (not the repo's 2015+
-`era5/EU`). The region code is **`ES-WS`** so it does not collide with the
+`era5/EU_2026-09`). The region code is **`ES-WS`** so it does not collide with the
 country-level ENTSO-E `ES`.
 
 ## Build the inputs

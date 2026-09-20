@@ -15,6 +15,25 @@ this file stay in step with it.
 
 ### Breaking
 
+- **The per-timestep roughness is the default.** `prep_era5` now derives the
+  roughness length from the 10 m to 100 m shear at every timestep unless a
+  caller asks for `roughness="stored"`, where the default was `stored` before.
+  `train_set`, `val_set`, `RegionSpec` and a region config's `[era5] roughness`
+  follow it, so a configuration that names no treatment gets the method adopted
+  on 2026-09-12 rather than the superseded annual mean. Two consequences a
+  caller has to know: a file that carries no stored field is unaffected,
+  because it was always derived; and a file that carries no 10 m winds now
+  raises instead of silently reading its stored field, because the derivation
+  has nothing to invert. The daily pre-combined files are the second case, so
+  the US and Brazil configurations set `roughness = "stored"` explicitly. What
+  moved: nothing. Every shipped configuration was already reading the
+  treatment it reads now, either by setting the key or by reading files with
+  no stored field, so no scorecard row and no pinned output changes.
+- **Every European configuration reads `era5/EU_2026-09`.** The thirteen
+  maintained files still named `era5/EU`, the annual-mean archive, where the
+  eleven scorecard files had moved to the current one on 2026-09-13. Running a
+  maintained European config therefore applied the superseded treatment. The
+  archive itself is untouched, so the rows published on it stay reproducible.
 - **`find_offset` has one offset search.** A bracketed root search replaces
   the iterative search and its scipy fallback, so `find_offset` loses its
   `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
@@ -96,6 +115,12 @@ this file stay in step with it.
 
 ### Fixed
 
+- **Two argparse help strings named a path the code does not use.**
+  `train_all_bias_corrections.py` advertised `--outdir` as defaulting to
+  `out/runs` where the default is `output/runs`, and
+  `evaluate_all_pyvwf_runs.py` advertised `--output` as defaulting to
+  `<base-dir>/pyvwf_evaluation_metrics.csv` where it is
+  `<base-dir>/<prefix>/`. Neither script's behaviour changes.
 - **A station scored on some of its rows is no longer scored on its whole
   capacity, and one scored on none is missing rather than zero.** Where a
   region's rows are pseudo-replicates of one station (the UK), the collapse

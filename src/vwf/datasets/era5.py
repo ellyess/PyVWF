@@ -146,7 +146,7 @@ def prep_era5(
     era5_dir=None,
     resample_daily=True,
     allow_extrapolation=False,
-    roughness="stored",
+    roughness="derived",
 ):
     """Preprocess ERA5 reanalysis data.
 
@@ -173,15 +173,28 @@ def prep_era5(
             such units are refused. A region opts in with
             ``[era5] allow_extrapolation = true``.
         roughness: Which temporal treatment of the roughness to apply.
-            ``"stored"`` (default) uses a roughness field the files already
-            carry, which for the European files is one annual mean per year;
-            ``"derived"`` ignores any stored field and inverts the log profile
-            per timestep from the 10 m and 100 m winds. Files with no stored
-            field are derived either way. Which treatment is better is under
-            test (``docs/findings/method-roughness-treatment-prereg.md``); the
-            default reproduces what every existing run did. The treatment
-            actually applied is attached to the returned dataset as
-            ``pyvwf_roughness_treatment``.
+            ``"derived"`` (default) ignores any stored field and inverts the
+            log profile per timestep from the 10 m and 100 m winds. That is
+            the method, adopted on 2026-09-12
+            (``docs/findings/method-roughness-treatment.md``), so it is what a
+            caller gets without asking.
+
+            ``"stored"`` uses a roughness field the files already carry, and
+            has to be asked for. Two kinds of file carry one and they are not
+            the same treatment: the ``era5/EU`` archive stores one annual mean
+            per year, which is the superseded treatment, while the daily
+            pre-combined files (``era5/US_daily``, ``era5/BR_daily``) store a
+            per-timestep roughness that ``scripts/era5/combine.py`` already
+            averaged to daily. Those files carry no 10 m winds, so
+            ``"derived"`` raises on them and ``"stored"`` is the only way to
+            read them; a region on that route sets the key explicitly.
+
+            A file with no stored field is derived whichever is asked for. The
+            treatment actually applied is attached to the returned dataset as
+            ``pyvwf_roughness_treatment``, and a harness run records both what
+            it asked for and what it applied. The three routes and the two
+            treatments they produce are in
+            ``docs/design/roughness-temporal-treatment.md``.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.

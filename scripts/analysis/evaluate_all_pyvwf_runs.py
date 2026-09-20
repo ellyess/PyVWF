@@ -323,7 +323,7 @@ def find_all_runs(base_dir: Path) -> list[Path]:
     """Find all PyVWF run directories.
 
     Args:
-        base_dir: Base output directory (output/run).
+        base_dir: Base output directory (output/runs).
 
     Returns:
         List of paths to run directories.
@@ -350,7 +350,7 @@ def main():
         "--output",
         type=Path,
         default=None,
-        help="Output CSV file path (defaults to <base-dir>/pyvwf_evaluation_metrics.csv)",
+        help="Output CSV path (defaults to <base-dir>/<prefix>/pyvwf_evaluation_metrics.csv)",
     )
     parser.add_argument(
         "--base-dir",
