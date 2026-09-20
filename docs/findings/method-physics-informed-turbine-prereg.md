@@ -115,8 +115,19 @@ on the study. Every other region's cache is untouched.
 **Commands that change.** The turbine study reads DE from the rebuilt
 directory with `--cache-override DE=output/pinn_turbine_2026-09-18/cache_mastr`,
 added to `scripts/pinn/turbine_loro.py` for this deviation; every other region
-still comes from `--cache`. The GWA ratio script runs on both directories, so
-DE's ratios are computed at the moved locations.
+still comes from `--cache`.
+
+**A GWA ratio belongs to the locations it was computed at**, so DE's ratios
+are built a second time on the rebuilt caches, into their own directory
+`output/pinn_turbine_2026-09-18/gwa_mastr/`, and the study reads them with
+`--gwa-override DE=...`. The centroid ratios stay in
+`output/pinn_turbine_2026-09-18/gwa/` because the centroid comparison run
+needs them. The medians differ as the move would suggest: DE train 1.1666 at
+the centroids against 1.1752 at the MaStR points, DE test 1.1425 against
+1.1494. `turbine_loro.py` refuses to start where a cache is overridden and
+its ratios are not, so the two cannot drift apart unnoticed: the first attempt
+on 2026-09-20 began with centroid ratios under the rebuilt cache, was stopped
+after seven minutes with no result written, and that guard is the fix.
 
 ### Reported check, not a gate: does moving the locations help?
 
@@ -378,14 +389,17 @@ ratio directory:
 
 ```bash
 PYTHONPATH=src /opt/anaconda3/bin/python -u scripts/pinn/gwa_ratio.py \
+  --regions DE --splits train test \
   --cache output/pinn_turbine_2026-09-18/cache_mastr --gwa input/raw/gwa4 \
-  --out output/pinn_turbine_2026-09-18/gwa
+  --out output/pinn_turbine_2026-09-18/gwa_mastr
 ```
 
 ```bash
 PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
   scripts/pinn/turbine_loro.py --tag primary \
   --cache-override DE=output/pinn_turbine_2026-09-18/cache_mastr \
+  --gwa-override DE=output/pinn_turbine_2026-09-18/gwa_mastr \
+  --score-subset DE=output/pinn_turbine_2026-09-18/mastr/de_fleet_override.csv \
   --cache output/pinn_loco_2026-09-16/cache \
   --gwa output/pinn_turbine_2026-09-18/gwa \
   --out output/pinn_turbine_2026-09-18/study \

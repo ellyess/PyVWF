@@ -198,6 +198,15 @@ def main():
         "defines it. Used to repeat one fold on another cache.",
     )
     ap.add_argument("--gwa", required=True, help="directory written by gwa_ratio.py")
+    ap.add_argument(
+        "--gwa-override",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="read CODE's GWA ratios from PATH instead of --gwa; repeatable. "
+        "A ratio is computed at the cache's own locations, so a region read "
+        "from an overridden cache needs the ratios built on that cache.",
+    )
     ap.add_argument("--out", required=True)
     ap.add_argument("--tag", default="primary")
     ap.add_argument("--no-secondary", action="store_true")
@@ -274,8 +283,31 @@ def main():
     if missing:
         raise SystemExit(f"--folds names regions this run does not load: {sorted(missing)}")
 
+    gwa_of = {}
+    for item in args.gwa_override:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--gwa-override expects CODE=PATH, got {item!r}")
+        gwa_of[code] = path
+    unknown_gwa = set(gwa_of) - set(codes) - set(extra)
+    if unknown_gwa:
+        raise SystemExit(
+            f"--gwa-override names regions this run does not load: {sorted(unknown_gwa)}"
+        )
+    # A cache read from elsewhere needs its ratios from the same locations, or
+    # the fold would train on MaStR coordinates and centroid-derived ratios.
+    mismatched = sorted(set(cache_of) - set(gwa_of))
+    if mismatched:
+        raise SystemExit(
+            f"--cache-override without --gwa-override for {mismatched}: the GWA "
+            "ratio is computed at the cache's own locations, so both must move "
+            "together. Build the ratios on the overridden cache first."
+        )
+
     def ratios(code, split):
-        table = pd.read_csv(Path(args.gwa) / f"{code}_{split}.csv", dtype={"ID": str})
+        table = pd.read_csv(
+            Path(gwa_of.get(code, args.gwa)) / f"{code}_{split}.csv", dtype={"ID": str}
+        )
         return table.set_index("ID")["ratio"]
 
     train = {
@@ -309,6 +341,7 @@ def main():
                 "torch_version": torch.__version__,
                 "cache": args.cache,
                 "cache_overrides": cache_of,
+                "gwa_overrides": gwa_of,
                 "gwa": args.gwa,
                 "gwa_record": gwa_record,
                 "configs": config_record(config_paths),

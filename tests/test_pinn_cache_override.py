@@ -9,6 +9,8 @@ is what the rebuild produces.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -62,3 +64,23 @@ def test_an_override_naming_nothing_in_the_fleet_changes_nothing():
     pd.testing.assert_frame_equal(moved, _fleet())
     assert record["units_overridden"] == 0
     assert record["capacity_share_overridden"] == 0.0
+
+
+def test_a_cache_override_without_its_ratios_is_refused():
+    """A GWA ratio belongs to the locations it was computed at (issue #12).
+
+    The first attempt at the turbine study ran the German fold on MaStR
+    coordinates with ratios computed at the postcode centroids, because a
+    failed ratio pass did not stop the study. The driver now refuses that
+    combination, and this pins the refusal by parsing the driver's own
+    argument handling.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("turbine_loro", "scripts/pinn/turbine_loro.py")
+    source = Path("scripts/pinn/turbine_loro.py").read_text(encoding="utf-8")
+    assert "--gwa-override" in source
+    # The guard: a cache override with no ratio override stops the run.
+    assert "mismatched = sorted(set(cache_of) - set(gwa_of))" in source
+    assert "both must move" in source
+    assert spec is not None
