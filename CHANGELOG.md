@@ -122,6 +122,12 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The terrain wind-deficit study is read and written up** (#26):
+  `method-terrain-wind-deficit.md` carries the result, the deviations and the
+  recommendation the registered gates map to, and the pre-registration's
+  outcome column is filled in. The driver's G4 precondition is taken over the
+  fitted fleet, and a reported check compares the relief of the plants with an
+  outcome against the fleet's.
 - **The terrain wind-deficit study has its driver** (#26),
   `scripts/studies/method-terrain-wind-deficit/terrain_deficit.py`, with its
   recorded command line pinned. Committed before it runs, as the study guide
