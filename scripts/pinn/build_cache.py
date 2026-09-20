@@ -22,6 +22,8 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+import pandas as pd  # noqa: E402
+
 from pyvwf.provenance import build_manifest, write_manifest  # noqa: E402
 from pyvwf.harness.regions import load_region  # noqa: E402
 from pyvwf.pinn.cache import build_cache, save_cache  # noqa: E402
@@ -43,6 +45,15 @@ def main():
         metavar="CODE=PATH",
         help="region config to load for CODE; repeatable. Regions "
         "not named use configs/regions/<stem>.toml",
+    )
+    ap.add_argument(
+        "--fleet-override",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="per-unit coordinates and hub heights for CODE, as a CSV of ID, "
+        "lon, lat, height; repeatable. A unit the file does not name keeps "
+        "what it had (issue #12, the MaStR match for DE).",
     )
     ap.add_argument(
         "--registration",
@@ -72,6 +83,18 @@ def main():
     # underscore (au_nem.toml).
     paths = {c: named.get(c, CONFIGS / f"{c.lower().replace('-', '_')}.toml") for c in args.regions}
 
+    overrides = {}
+    for item in args.fleet_override:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--fleet-override expects CODE=PATH, got {item!r}")
+        overrides[code] = Path(path)
+    unknown = set(overrides) - set(args.regions)
+    if unknown:
+        raise SystemExit(
+            f"--fleet-override names regions that are not being built: {sorted(unknown)}"
+        )
+
     built, failed = {}, {}
     for code in args.regions:
         spec = load_region(paths[code])
@@ -81,7 +104,8 @@ def main():
             t0 = time.time()
             print(f"[{code}/{split}] building...")
             try:
-                cache = build_cache(spec, split)
+                override = pd.read_csv(overrides[code]) if code in overrides else None
+                cache = build_cache(spec, split, fleet_override=override)
             except Exception as e:  # noqa: BLE001
                 print(f"[{code}/{split}] FAILED: {type(e).__name__}: {e}")
                 failed[f"{code}/{split}"] = f"{type(e).__name__}: {e}"
@@ -91,6 +115,7 @@ def main():
                 "dir": str(d),
                 "units": len(cache.meta),
                 "days": len(cache.dates),
+                "fleet_override": cache.fleet_record.get("fleet_override"),
                 **cache.era5_record,
             }
             print(f"[{code}/{split}] {cache}  -> {d}  ({time.time() - t0:.0f}s)")
@@ -105,6 +130,13 @@ def main():
                 "configs": {
                     c: {"path": str(p), "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
                     for c, p in paths.items()
+                },
+                "fleet_overrides": {
+                    c: {
+                        "path": str(p),
+                        "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest(),
+                    }
+                    for c, p in overrides.items()
                 },
                 "built": built,
                 "failed": failed,

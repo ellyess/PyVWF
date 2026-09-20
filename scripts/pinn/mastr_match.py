@@ -26,7 +26,9 @@ centroid.
     PYTHONPATH=src python scripts/pinn/mastr_match.py
 
 Writes `mastr_units.csv` (the parsed register), `de_match.csv` (one row per
-register turbine, matched or not) and `de_match_summary.json` under `--out`.
+register turbine, matched or not), `de_fleet_override.csv` (the matched units
+as `ID`, `lon`, `lat`, `height`, which `build_cache.py --fleet-override`
+reads) and `de_match_summary.json` under `--out`.
 """
 
 from __future__ import annotations
@@ -246,6 +248,12 @@ def main(archive: Path = ARCHIVE, out: Path = OUT) -> int:
     out.mkdir(parents=True, exist_ok=True)
     units.to_csv(out / "mastr_units.csv", index=False)
     matched.to_csv(out / "de_match.csv", index=False)
+    # The override a cache rebuild reads: matched units only, so an unmatched
+    # turbine keeps the postcode centroid it has today rather than being
+    # dropped from a fleet its observations cover.
+    override = moved.loc[moved["mastr_height"].notna(), ["ID", "lon", "lat", "mastr_height"]]
+    override = override.rename(columns={"mastr_height": "height"})
+    override.to_csv(out / "de_fleet_override.csv", index=False)
     summary = {
         "archive": str(archive),
         "mastr_units": int(len(units)),
@@ -255,6 +263,7 @@ def main(archive: Path = ARCHIVE, out: Path = OUT) -> int:
         "match_rate": rate,
         "matched_capacity_share": capacity_rate,
         "distinct_coordinates_matched": int(len(moved[["lon", "lat"]].drop_duplicates())),
+        "override_units": int(len(moved.loc[moved["mastr_height"].notna()])),
         "tolerances": {
             "capacity_relative": CAPACITY_TOLERANCE,
             "rotor_m": ROTOR_TOLERANCE_M,
@@ -262,7 +271,7 @@ def main(archive: Path = ARCHIVE, out: Path = OUT) -> int:
         },
     }
     (out / "de_match_summary.json").write_text(json.dumps(summary, indent=1, default=str))
-    print(f"\nwrote {out}/de_match.csv and two more")
+    print(f"\nwrote {out}/de_match.csv and three more")
     return 0
 
 
