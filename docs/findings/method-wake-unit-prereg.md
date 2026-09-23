@@ -64,7 +64,8 @@ Three facts shape the gates:
    capacity is therefore mostly offshore parks whose target is an aggregate.**
 2. **Germany has no capacity in E9's densest bin.** Its maximum D is 0.59, and
    its 4,814 units sit at 622 distinct coordinates (postcode centroids). A DE
-   slope is estimated over a narrow range.
+   slope is estimated over a narrow range. A rebuild on MaStR locations moves
+   these figures; see the deviation of 2026-09-23 below.
 3. **The efficiency head keeps the 50 km density.** Its correlation with the
    10 km density on the log scale is 0.48 to 0.65 by region, so part of any
    density residual is absorbed before K0 sees it. This applies in every
@@ -152,6 +153,44 @@ That figure is reported, not gated.
 Every outcome is reported with the full table below, before any
 interpretation.
 
+### Deviation, 2026-09-23: a German sensitivity on MaStR locations
+
+**Recorded after this document's first commit, `6f856e5`, and before the
+driver exists or any model is fitted.** The gates above do not change.
+
+Branch `terrain-study-run` (not merged) rebuilt the DE caches with MaStR
+coordinates and hub heights for the turbine-only study
+(`method-physics-informed-turbine-prereg.md`, deviation of 2026-09-20), into
+`output/pinn_turbine_2026-09-18/cache_mastr/`. Its manifest records commit
+`14722be`, `git_dirty: false`, and the same licensed library hashes as the E1
+rerun cache. Compared read-only with the DE caches K0 uses: the unit IDs and
+the observations are identical in both splits, with a largest difference of
+0.0 and no row missing on one side only. 3,114 of 4,814 test units moved,
+60.2% of test capacity, and 638 changed hub height. The train split moved
+3,074 of 4,288 units, 70.7% of capacity, and 592 changed hub height. The
+unmoved units stay on postcode centroids, so the rebuilt fleet mixes two
+location resolutions.
+
+The move changes the regressor K0b depends on:
+
+| DE cache | Split | Distinct locations | D median | D max | Capacity share with D > 0.747 |
+|---|---|---|---|---|---|
+| centroids (gated) | train | 579 | 0.092 | 0.63 | 0.0% |
+| MaStR | train | 3,297 | 0.107 | 1.06 | 1.8% |
+| centroids (gated) | test | 622 | 0.105 | 0.59 | 0.0% |
+| MaStR | test | 3,410 | 0.126 | 0.62 | 0.0% |
+
+**The gated DE input stays the centroid cache.** It is the cache E1 and every
+other K0 region were built from, at one commit. The rebuilt cache was built at
+another commit and moves the ERA5 winds and the terrain features with the
+locations, so it changes more than D.
+
+**Reported, not gated:** the DE clean control is fitted a second time on
+`cache_mastr`, with the same settings, seeds, block rule and bootstrap draws.
+It reports `b_DE` with its interval, and `Delta` recomputed with that `b_DE`.
+It cannot change V, K0a, K0b, K0c or the outcome of K0. If K0b's outcome
+would differ under this figure, the report says so beside the gated result.
+
 ## Registered predictions
 
 | # | Prediction |
@@ -162,6 +201,7 @@ interpretation.
 | 4 | K0c's interval contains 0. |
 | 5 | DE has the widest slope interval of the five (fact 2). |
 | 6 | The DK-restricted `Delta`, reported and not gated, is larger than the gated `Delta`. |
+| 7 | Added with the deviation of 2026-09-23. The MaStR `b_DE` interval overlaps the centroid `b_DE` interval, and K0b's outcome is the same under both. |
 
 The prior is stated in advance: **K0 most likely fails**, on K0b or K0c.
 
@@ -174,7 +214,9 @@ In this order, from the run directory:
    slope of each seed's residual is also given, to show the seed spread.
 2. V, per region.
 3. K0a, K0b (gated and DK-restricted) and K0c, with intervals.
-4. The E9 six-bin residual means, recomputed on these residuals, as a
+4. The German sensitivity on MaStR locations: `b_DE` and `Delta`, beside the
+   gated values.
+5. The E9 six-bin residual means, recomputed on these residuals, as a
    description only.
 
 ## Commands
@@ -184,8 +226,10 @@ committed after this document and before the run. It fits the condition
 through `vwf.pinn.train.fit(..., fleet_columns=...)` and writes the per-row
 frame (ID, year, month, `cf_sim` per seed, `cf_obs`, capacity, D, type, block,
 shared flag), the slope table and a manifest with `registration` set to this
-file. It changes no gate, and no module under `src/vwf`. A test pins its
-recorded command line.
+file. `--sensitivity DE=PATH` fits a region a second time from another cache
+directory, writes its outputs under `sensitivity/<CODE>/`, and records the
+path and that directory's manifest commit. It changes no gate, and no module
+under `src/vwf`. A test pins its recorded command line.
 
 Run from the repository root, on a clean tree:
 
@@ -198,6 +242,7 @@ python scripts/dev/run_locked.py -- env PYVWF_INPUT=input/combined PYTHONPATH=sr
   --config UK=configs/regions/scorecard/uk_k50.toml \
   --config US=configs/regions/scorecard/us_k250.toml \
   --config BR=configs/regions/scorecard/br_k60.toml \
+  --sensitivity DE=output/pinn_turbine_2026-09-18/cache_mastr \
   --seeds 0 1 2 3 42 --epochs 60 --hidden 0 --draws 1000 \
   --out output/method_wake_unit_<run date>/k0 \
   --registration docs/findings/method-wake-unit-prereg.md
@@ -206,8 +251,9 @@ python scripts/dev/run_locked.py -- env PYVWF_INPUT=input/combined PYTHONPATH=sr
 The cache and the curve library are those of the E1 rerun: the licensed
 library, `power_curves_sha256` `689cfee7...`, `models_sha256` `eefec036...`,
 as recorded in `output/pinn_rerun_2026-09-16/cache/run_manifest.json`. The
-result is therefore not third-party reproducible. Five in-region fits per
-region: about an hour on the E1 timing.
+result is therefore not third-party reproducible. The German sensitivity reads
+`cache_mastr`, built at `14722be` on the same library. Five in-region fits per
+region, and five more for the sensitivity: about an hour on the E1 timing.
 
 ## What this does not settle
 
