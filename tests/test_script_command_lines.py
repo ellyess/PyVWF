@@ -29,6 +29,33 @@ SHAPES = Path("input/reference/shapes")
 
 # script: [(argv, (entry function, positional args, keyword args)), ...]
 RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
+    # Development guards (docs/design/agent-guards.md). The command lines are
+    # the ones AGENTS.md and src/vwf/AGENTS.md give.
+    "scripts/dev/run_locked.py": [
+        (
+            ["--", "bash", "scripts/pinn/run_overnight.sh"],
+            ("main", (["bash", "scripts/pinn/run_overnight.sh"],), {"allow_dirty": False}),
+        ),
+        (
+            [
+                "--allow-dirty",
+                "--",
+                "pyvwf-validate",
+                "train",
+                "--region",
+                "configs/regions/nz.toml",
+            ],
+            (
+                "main",
+                (["pyvwf-validate", "train", "--region", "configs/regions/nz.toml"],),
+                {"allow_dirty": True},
+            ),
+        ),
+    ],
+    "scripts/dev/stamp.py": [
+        (["realdata"], ("main", ("realdata",), {})),
+        (["pinn"], ("main", ("pinn",), {})),
+    ],
     "scripts/analysis/baseline_bootstrap.py": [
         (
             ["DK", "output/curve_library_study_2026-09-11/baseline_bootstrap"],

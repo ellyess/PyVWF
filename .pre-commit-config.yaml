@@ -6,6 +6,10 @@
 # sha256, so a stripped trailing space would change what they pin.
 exclude: ^(input/|tests/data/)
 
+# The em-dash check also runs on the commit message, which needs the
+# commit-msg hook installed; this line makes `pre-commit install` do both.
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.8
@@ -33,3 +37,17 @@ repos:
     rev: 0.9.1
     hooks:
       - id: nbstripout
+
+  # AGENTS.md: no em dashes, in code, documents or commit messages.
+  - repo: local
+    hooks:
+      - id: no-em-dash
+        name: no em dashes
+        language: pygrep
+        entry: "\u2014"
+        types: [text]
+      - id: no-em-dash-message
+        name: no em dashes in the commit message
+        language: pygrep
+        entry: "\u2014"
+        stages: [commit-msg]
