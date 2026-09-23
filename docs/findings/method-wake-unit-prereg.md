@@ -103,7 +103,10 @@ blocks of units and months of the test year are resampled independently with
 replacement, and each draw keeps the cross product. A block is a connected
 component of units linked by an exactly equal, non-missing, non-zero observed
 CF in any test-year month. Every other unit is its own block. On the test split
-this gives DK 4,254 blocks, DE 4,630, UK 332, US 1,271 and BR 173. The 95%
+this gives DK 4,254 blocks, DE 4,630, UK 332, US 1,271 and BR 173. [2026-09-23:
+those counts are over every cache unit; the rule applies to the units observed
+in the test year, which gives the counts in the note on the observed fleet
+below.] The 95%
 interval is the 2.5th to 97.5th percentile. Gates that combine regions use the
 same draws in every region.
 
@@ -190,6 +193,38 @@ locations, so it changes more than D.
 It reports `b_DE` with its interval, and `Delta` recomputed with that `b_DE`.
 It cannot change V, K0a, K0b, K0c or the outcome of K0. If K0b's outcome
 would differ under this figure, the report says so beside the gated result.
+
+### Note, 2026-09-23: the observed fleet, and one unit the MaStR cache drops
+
+**Recorded while writing the driver, before any registered fit.** A smoke run
+of the driver with one seed, one epoch and 20 draws, written outside the
+repository, checked that every output is produced. Its slope values were
+not read. No gate, prediction or threshold changes.
+
+**The facts above were measured over every cache unit, and the residuals
+exist only for units observed in the test year.** The two differ most in the
+US, where 520 of 1,276 plants have an observation in 2022. Restated over the
+units the model simulates and the test year observes:
+
+| Region | Units observed | Capacity (MW) | D median | D max | Capacity share with D > 0.747 | Shared-target capacity | Blocks |
+|---|---|---|---|---|---|---|---|
+| DK | 5,365 | 6,127 | 0.127 | 1.76 | 17.9% | 36.5% | 4,168 |
+| DE | 4,814 | 8,975 | 0.105 | 0.59 | 0.0% | 0.0% | 4,630 |
+| UK | 5,998 rows | 13,726 | 0.560 | 3.12 | 49.1% | 99.7% | 327 |
+| US | 520 | 94,669 | 0.719 | 9.30 | 67.7% | 0.0% | 515 |
+| BR | 151 | 28,000 | 1.089 | 5.11 | 76.0% | 0.0% | 151 |
+
+D is `RegionTensors.capdens`, the density the model sees, which counts the
+capacity of every simulated unit whether observed or not. DK simulates 5,399
+of its 5,446 units: 47 have no wind, as in the E1 rerun. Blocks are formed
+over the observed units, since a unit with no residual row would only dilute
+the resampling. The block counts are those the driver writes.
+
+**The MaStR cache drops one German unit for having no wind** (4,813 simulated
+against 4,814), so its block partition cannot equal the gated one. The
+sensitivity gives every unit the block it has in the gated cache, so the
+registered draws apply unchanged, and records the dropped unit with its
+capacity share, 0.007%.
 
 ## Registered predictions
 
