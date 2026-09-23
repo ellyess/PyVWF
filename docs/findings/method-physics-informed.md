@@ -62,6 +62,33 @@ Data: `output/pinn_rerun_2026-09-16/e1/`.
   curve, not only a model without constraints. The rerun's registration
   records the shares per holdout.
 
+**Note, 2026-09-23: section 4's per-unit wake statement was tested at its
+first stage and failed.** Section 4 says that fitting the wake coefficient
+separately by observation unit should recover the transfer a single global one
+lost. `method-wake-unit-prereg.md` registered a first, in-region test of it
+before any code or run. That test asked whether the residuals of a model
+without the 10 km density show the unit contrast a per-unit coefficient would
+need. Data: `output/method_wake_unit_2026-09-23/k0/`, commit `af55143`, clean
+tree, licensed library. Test years: DK 2020, DE 2019, UK 2019, US 2022, BR
+2024, each fitted on its own training years.
+
+- **K0a fails.** The capacity-weighted slope of the residual on 10 km capacity
+  density, in CF per MW/km2, has a 95% interval above zero in the US
+  (+0.0095, [+0.0011, +0.0222]). It does not in the UK (−0.0029,
+  [−0.0456, +0.0243]) or Brazil (+0.0042, [−0.0164, +0.0310]).
+- **K0b fails.** The aggregate regions' mean slope minus the turbine
+  regions' is +0.0091, [−0.0274, +0.0306].
+- **K0c fails.** Within Danish onshore units, the slope of units with a
+  shared target minus the other units' is −0.0576, [−0.1605, +0.1131].
+- **Reported, not gated.** With Denmark restricted to units without a shared
+  target, the contrast is −0.0755, [−0.1031, −0.0459]: the only interval
+  that excludes zero, with the sign opposite to the one section 4's
+  statement requires.
+
+Under the registration, the per-unit statement stops here. Stages testing
+transfer were not registered. Section 4's text stands as written, and the
+full table is in the registration's run record.
+
 ## 1. Why the incumbent does not transfer
 
 Five diagnostics on artefacts already on disk. Two falsified the hypothesis they
@@ -289,7 +316,9 @@ unit differs by region, and so does how much wake loss the target already
 contains. A plant-level capacity factor is an array average with internal wakes
 inside it; a single-turbine one is not. A single global coefficient cannot be
 right for both. Fitting `c` separately by observation unit, or harmonising the
-targets, should recover the transfer.
+targets, should recover the transfer. [2026-09-23: the per-unit half was
+tested at its first stage and failed; see the note at the top. Harmonising the
+targets was not tested.]
 
 **Constraining all four terms at once improves transfer.** If the model carries
 compensating freedom, squeezing one term relocates error and squeezing all of
