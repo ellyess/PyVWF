@@ -22,18 +22,104 @@ import sys
 from pathlib import Path
 
 GIT_COMMIT = re.compile(r"\bgit\b(?:\s+-C\s+\S+)?\s+commit\b")
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+SEPARATORS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", "<<", ">>", "<<<", "|&", ";;"}
+# Short commit options whose value follows, attached or as the next token.
+SHORT_WITH_VALUE = set("mFCct")
+LONG_WITH_VALUE = {
+    "--message",
+    "--file",
+    "--reuse-message",
+    "--reedit-message",
+    "--template",
+    "--author",
+    "--date",
+    "--fixup",
+    "--squash",
+    "--cleanup",
+    "--trailer",
+    "--pathspec-from-file",
+}
 
 
-def _all_flag(command: str) -> bool:
+def _strip_heredocs(command: str) -> str:
+    """Drop heredoc bodies, which are data, so a message cannot look like a command."""
+    lines = command.split("\n")
+    out, delimiter = [], None
+    for line in lines:
+        if delimiter is not None:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        out.append(line)
+        found = HEREDOC.findall(line)
+        if found:
+            delimiter = found[-1][1]
+    return "\n".join(out)
+
+
+def _tokens(command: str) -> list[str]:
+    """Shell tokens, with newlines as separators; raises ValueError on bad quoting."""
+    lexer = shlex.shlex(
+        _strip_heredocs(command).replace("\n", " ; "), posix=True, punctuation_chars=True
+    )
+    lexer.whitespace_split = True
+    return list(lexer)
+
+
+def commit_invocations(command: str) -> list[list[str]] | None:
+    """The argument lists of every `git commit` run by the command, or None if unparseable.
+
+    Only a `git` in command position counts: at the start or after a separator,
+    past any VAR=value assignments. Git's own options before `commit` are
+    skipped. Text inside quotes or heredocs is never read as a command.
+    """
     try:
-        tokens = shlex.split(command)
+        tokens = _tokens(command)
     except ValueError:
-        tokens = command.split()
-    for tok in tokens:
+        return None
+    found: list[list[str]] = []
+    at_start, i = True, 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok in SEPARATORS:
+            at_start, i = True, i + 1
+            continue
+        if at_start and "=" in tok and not tok.startswith("-"):
+            i += 1
+            continue
+        if at_start and Path(tok).name == "git":
+            j = i + 1
+            while j < len(tokens) and tokens[j].startswith("-"):
+                j += 2 if tokens[j] in ("-C", "-c") else 1
+            if j < len(tokens) and tokens[j] == "commit":
+                k = j + 1
+                while k < len(tokens) and tokens[k] not in SEPARATORS:
+                    k += 1
+                found.append(tokens[j + 1 : k])
+        at_start, i = False, i + 1
+    return found
+
+
+def stages_all(args: list[str]) -> bool:
+    """Whether a `git commit` argument list includes -a or --all."""
+    i = 0
+    while i < len(args):
+        tok = args[i]
         if tok == "--all":
             return True
-        if tok.startswith("-") and not tok.startswith("--") and "a" in tok[1:]:
-            return True
+        if tok in LONG_WITH_VALUE:
+            i += 2
+            continue
+        if tok.startswith("-") and not tok.startswith("--"):
+            for pos, char in enumerate(tok[1:], start=1):
+                if char == "a":
+                    return True
+                if char in SHORT_WITH_VALUE:
+                    if pos == len(tok) - 1:
+                        i += 1  # the value is the next token
+                    break
+        i += 1
     return False
 
 
@@ -65,9 +151,13 @@ def _problem(root: Path, name: str, suite, stamp_path, index_fingerprint, staged
 def main() -> int:
     event = json.load(sys.stdin)
     command = (event.get("tool_input") or {}).get("command", "")
-    if not GIT_COMMIT.search(command):
+    invocations = commit_invocations(command) or []
+    # A commit the parser cannot see, such as one inside `sh -c`, still gets
+    # the staged-code check through the plain text match; only a parsed
+    # invocation can be refused for -a, so a message cannot trip that.
+    if not invocations and not GIT_COMMIT.search(command):
         return 0
-    if _all_flag(command):
+    if invocations and any(stages_all(args) for args in invocations):
         print(
             "Blocked: `git commit -a` stages at commit time. Read `git status`, "
             "`git add` the paths you mean, then commit.",

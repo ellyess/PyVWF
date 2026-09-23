@@ -131,8 +131,36 @@ def test_suites_quiet_on_other_commands_and_uncovered_commits(repo):
     assert _commit(repo) == 0
 
 
-def test_suites_block_commit_all(repo):
-    assert _hook(repo, SUITES, "Bash", {"command": "git commit -am 'x'"}) == 2
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git commit -am 'x'",
+        "git commit -a -m x",
+        "git -C . commit --all -m x",
+        "cd . && git commit -am x",
+        "/usr/bin/git commit -a",
+    ],
+)
+def test_suites_block_commit_all(repo, command):
+    assert _hook(repo, SUITES, "Bash", {"command": command}) == 2
+
+
+# Each of these once blocked, or would have: the -a check read the whole
+# command, so a message quoting `git commit -a`, or `ls -la` chained before a
+# commit, looked like -a.
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git commit -m 'refuses git commit -a'",
+        "git commit -F - <<'EOF'\nBlocks `git commit -a` now\nEOF",
+        "git commit -m \"$(cat <<'EOF'\nRefuses git commit -a\nEOF\n)\"",
+        "ls -la && git commit -m x",
+        "git commit -m -a",
+        "echo 'git commit -a'",
+    ],
+)
+def test_suites_do_not_read_messages_or_other_commands_as_commit_all(repo, command):
+    assert _hook(repo, SUITES, "Bash", {"command": command}) == 0
 
 
 @pytest.mark.parametrize(
@@ -151,6 +179,11 @@ def test_suite_allows_matching_passing_stamp(repo, suite, rel):
     _stamp(repo, suite, exit_code=0)
     _git(repo, "add", rel)
     assert _commit(repo) == 0
+
+
+def test_suite_checks_a_commit_the_parser_cannot_see(repo):
+    _change(repo, "src/vwf/metrics.py", "x = 2\n")
+    assert _hook(repo, SUITES, "Bash", {"command": "sh -c 'git commit -m m'"}) == 2
 
 
 def test_suite_blocks_failed_or_stale_stamp(repo):
