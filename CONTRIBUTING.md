@@ -70,7 +70,8 @@ anything under `vwf/harness/`, `vwf/metrics.py`, `vwf/correction.py` or
 `vwf/data.py` runs them and states the result in its description:
 
 ```bash
-pytest -m realdata            # every pin that reads local inputs
+pytest -m realdata                     # every pin that reads local inputs
+python scripts/dev/stamp.py realdata   # the same, stamped for the commit guard
 ```
 
 State the counts, and for each pin that moved, the size of the movement.

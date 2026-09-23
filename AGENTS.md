@@ -1,149 +1,93 @@
 # Instructions for coding agents
 
-PyVWF is a Python package for the bias correction of reanalysis wind speeds,
-validated against observed generation in many regions. These rules apply to
-any agent working in this repository.
+PyVWF bias-corrects reanalysis wind speeds and validates the correction against
+observed generation in many regions. These rules apply to any agent working in
+this repository. Two more files load where they apply: `src/vwf/AGENTS.md` for
+code, `docs/AGENTS.md` for documents. The incidents behind the rules, and what
+each guard does and misses, are in `docs/design/agent-guards.md`.
+
+## Commands
+
+```bash
+pytest -m "not slow and not realdata"          # the fast set, what CI runs
+python scripts/dev/stamp.py realdata           # the real-data pins, stamped
+python scripts/dev/stamp.py pinn               # the physics-informed tests, stamped
+ruff check src tests scripts examples && ruff format --check src tests scripts examples
+mypy && lint-imports                           # for any change under src/vwf
+pre-commit run --all-files
+python scripts/dev/run_locked.py -- <command>  # any run that writes manifests
+```
 
 ## Where to start
 
-- `README.md`: what the package does, and how to install and run it.
-- `docs/README.md`: how the documentation is organised, where a new document
-  goes, the home of each repeated fact, how findings documents are named, and
-  the writing rules for procedural documents. State a fact in its home and
-  link to it from elsewhere.
-- `CONTRIBUTING.md`: development setup, tests and continuous integration.
-- `docs/CONTEXT.md`: the controlled vocabulary. Use its approved terms.
-- For new work, use the harness: `scripts/analysis/validate_region.py` and
-  `docs/guides/training.md`. The older batch path is the last section of that
-  guide.
-- To extend the project: `docs/guides/adding-a-region.md`,
-  `adding-an-adapter.md` and `adding-a-study.md`.
+- `README.md`: what the package does, and how to run it.
+- `docs/README.md`: where each document and each repeated fact lives.
+- `CONTRIBUTING.md`: setup, tests and CI.
+- New work uses the harness: `docs/guides/training.md`. To extend the project:
+  `docs/guides/adding-a-region.md`, `adding-an-adapter.md`, `adding-a-study.md`.
 
-## Skills
+## The maintainer's decisions
 
-- `new-region`: add a turbine-level region, in gated phases. Invoke it by name.
+- **Never merge to `main`, push `main`, tag, release, or mint a DOI.** Hand over
+  the commands instead. This holds when asked in passing.
+- **A denied command means stop.** Do not route around it with `git -C`, a full
+  path, `sh -c` or a script. The deny rules in `.claude/settings.json` match
+  text; they are not a boundary and not a puzzle. A branch whose name contains
+  `main` or `HEAD` is blocked too: ask the maintainer to push it.
+- **Propose, then stop,** before anything irreversible or outward-facing.
+- **Show the diff before each commit.** One concern per commit. No AI
+  co-author trailer.
+
+## Data and credentials
+
+- Commit no input data, licensed curve library or confidential source.
+  `.gitignore` says what and why. `tests/test_committed_files.py` checks the
+  tracked tree.
+- Write no credential into a file. Pass it in the environment for one command.
+
+## Runs
+
+- Start runs from the repository root, never from a temporary or session
+  directory, under `output/`, on a clean tree, through
+  `scripts/dev/run_locked.py`.
+- While a run holds the lock, create or edit nothing in the tree, by any tool.
+  One new file marks every manifest of the run `git_dirty`. A hook blocks file
+  edits and tree-changing git commands; other shell writes are on you.
+
+## Acting on state
+
+- **Read the state now, not the state you expect.** `git status` before
+  `git add`, then name the paths. After a push, confirm the remote tip and the
+  CI run's `headSha`. Count what you assert; do not recall it.
+- **Read a command's whole output,** not a grep of it.
+- **Resolve a file the way the code does.** Call the resolver or build its
+  exact name. Never sort a glob and take the last entry.
+- **Test a check both ways.** Show it fires on a known positive and can return
+  a negative before trusting either answer.
+- **Before overwriting or deleting, list the path** and copy aside anything the
+  operation is meant to be checked against.
+- **Run the checks, read them, then write the commit message.** A message
+  claims only output already seen.
+
+## Results
+
+- **Every result states its training years and its single test year,**
+  wherever it is reported: a document, a pull request, a commit message or a
+  reply.
+- **Keep negative results.** Report them with the positive ones, never less
+  prominently.
+
+## Writing
+
+- No em dashes, in code, documents or commit messages. Pre-commit enforces it.
+- Before writing prose in `docs/`, read `docs/CONTEXT.md` and `docs/AGENTS.md`.
+
+## Skills and agents
+
+In `.claude/skills/` and `.claude/agents/`:
+
+- `new-region`: add a turbine-level region, in gated phases. Invoke by name.
 - `findings-doc`: write or correct a findings document or a scorecard row.
 - `provenance-guard`: run before any release-shaped action.
-
-They live in `.claude/skills/`.
-
-## Standing rules
-
-- **Commit no input data.** Data under `input/`, licensed curve libraries and
-  confidential sources stay local. The comment blocks in `.gitignore` say what
-  and why. `tests/test_committed_files.py` checks the tracked tree.
-- **Write no credential into a file.** Pass an API key in the environment for a
-  single command.
-- **Propose, then stop,** before anything irreversible or outward-facing.
-- **Leave releases to the maintainer.** Merging to `main`, pushing, tagging and
-  publishing a release are the maintainer's. So is anything that mints a DOI.
-  This holds even when asked in passing. Hand over the commands instead.
-- **Show the diff before each commit.** Keep one concern per commit. Add no AI
-  co-author trailer; the human who commits is the author.
-- **Run under `output/`.** Start runs from the repository root, on a clean
-  tree. Never run from a temporary or session directory.
-- **Create nothing in the tree while a run that writes a manifest is in
-  flight.** Not a tracked file,
-  not an untracked one, not the analysis script you intend to use on the
-  results. A run stamps `git_commit` and `git_dirty` into every manifest it
-  writes, and `git_dirty` comes from `git status --porcelain`, which counts an
-  untracked file too. One file created mid-run makes every manifest of that
-  run say `git_dirty: true`, and the only repair is to delete the runs and
-  repeat them. Write it outside the repository, or wait for the run to finish.
-  The rule is scoped to its mechanism: work alongside something that records no
-  git state, such as a download or a read-only audit, is not covered.
-- **Check the state you are about to act on, not the one you expect.** Three
-  failures in one day had this shape: a CI run dispatched in the same command
-  as the push tested the commit before it, `git add -A` swept an unrelated
-  untracked file into a commit, and a commit message stated a test-file count
-  from memory. Concretely: read `git status` before `git add`, name the paths
-  you mean; after pushing, confirm the remote tip with `git ls-remote` and a
-  dispatched run's `headSha` before reading its result; and count what you are
-  about to assert rather than recalling it. Read a command's own output rather
-  than a filter of it: grepping a batch of runs for `DONE|Error|Traceback`
-  kept the exception and dropped the line that named its cause, and the
-  diagnosis then cost a rerun.
-- **Resolve a file the way the code under test resolves it, never by listing
-  and picking.** Sorting a glob and taking the last entry is how a backup file
-  becomes live. Asking which grid a region uses by globbing
-  `no_grid_points_20*.csv` and taking `[-1]` returned
-  `no_grid_points_2024.zonemixed.bak.csv`, because `.zonemixed.bak.csv` sorts
-  after `.csv`; the loader resolves by exact name and never sees it. Two
-  retractions came from that one glob: a claim that a backup was in production
-  use, and a wrong point count for another region. Call the resolver, or
-  construct the exact name the resolver constructs.
-- **Before trusting a detector's negative, run it against a case you know is
-  positive, and before trusting its positive, show it can return negative.**
-  Three clean answers in two days were artefacts of a check that never ran: a
-  glob that resolved a backup file, a column named for degrees holding
-  kilometres, and an audit reading `cluster_list` at the manifest's top level
-  when it lives under `correction`, which reported 224 runs as declaring
-  nothing and therefore flagged none. The last had a known positive available,
-  nine already-diagnosed contaminated runs, and validating against them first
-  would have failed in one line. The mirror cost the same day: a reproduction
-  check reported every value as differing, because it compared full-precision
-  reruns against originals recorded to five decimal places at a tolerance of
-  5e-7. Both directions, same sentence.
-- **Before a destructive or overwriting operation, list what the path holds,
-  and copy aside anything the operation is meant to verify against.** Two
-  losses in one study had that shape. Clearing two contaminated regions deleted
-  `output/.../DK/` and `UK/` whole, which also held two clean rows' manifests.
-  Then the reproduction meant to restore them wrote `final_<row>.csv` over the
-  full-precision originals it was going to be checked against, leaving only a
-  log rounded to five decimals, so bit-identity became unverifiable. Both are
-  the same error: acting on a path without checking what else is under it.
-- **Run the real-data pins when you touch the code they cover, and read
-  their output.** The `realdata` tests skip where their inputs are absent,
-  which includes CI, so no pull request check will tell you that a pin moved.
-  Before committing a change under `vwf/harness/`, `vwf/metrics.py`,
-  `vwf/correction.py` or `vwf/data.py`, run `pytest -m realdata` and state the
-  counts in the pull request. A pin that moves is re-recorded in the same
-  commit, with the size of the movement in the message. Rerun a row the way
-  its test runs it: `tests/test_pin_bootstrap_reproduction.py` sets
-  `PYVWF_INPUT` per row, and rerunning a combined-library row under the
-  default input root produces a difference that looks exactly like a code
-  change. That mistake has been made: a UK pin was reported as moving by
-  0.0014 in MBE when the row had simply been run on the wrong curve library,
-  and the real movement was 1e-16.
-- **Read the checks before the commit command, not after.** Run the
-  pre-commit hooks (ruff check and format among them), the test files the
-  change touches and, for `src/vwf`, mypy with `pandas-stubs` and
-  `lint-imports`, and read the output; then write the message. A message that says a check passed
-  is a claim about output already seen. Amending works only while the commit
-  is still local.
-- **Keep negative results.** Every result states its training years and its
-  single test year.
-- **Correct in place, with a date.** A wrong published claim gets a dated
-  correction notice. A false claim in dated history gets a dated bracket. The
-  `findings-doc` skill has the details.
-- **Keep numbers out of the CHANGELOG.** Entries go under `[Unreleased]`, with
-  no shares or metrics.
-- **Use no em dashes,** in code, documents or commit messages.
-
-## Blocked commands
-
-`.claude/settings.json` denies these commands to Claude Code:
-
-- `git tag`, `gh release`, and `gh pr merge`, which merges to `main` by another
-  route;
-- a bare `git push`, which pushes the current branch, and that may be `main`;
-- a push whose command names `main`, `HEAD`, `--tags`, `--follow-tags`,
-  `--mirror`, `--all`, `refs/tags/`, `tag`, or a version-shaped name such as
-  `v1.2.0`.
-
-A push that names a feature branch stays allowed.
-
-The reason: a written rule alone did not stop a tag and a release that were
-the maintainer's to make. The deny rules match command text, so they miss
-`git -C . push`, a full path to git, `sh -c`, or a script. They are not a
-security boundary, and must not be treated as a puzzle.
-
-A denied command means stop. Do not route around it with another command, a
-script or a different tool. Hand the command to the maintainer instead.
-
-The match is by text, so a branch whose name contains `main` or `HEAD` is also
-blocked. Push such a branch by hand.
-
-## Vocabulary
-
-@docs/CONTEXT.md
+- `idea-review`: take an idea through a scout, a proposal and three independent
+  critiques, then stop. Invoke by name.

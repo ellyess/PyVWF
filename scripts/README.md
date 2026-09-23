@@ -43,6 +43,9 @@ scripts/
     assign_country_zones.py        grid points to the bidding zone that contains them
     repair_country_capacity.py     a country CF series rebuilt on a capacity register
     weight_country_grid_points.py  GWPT capacity weights for country-level grid points
+  dev/              development guards (docs/design/agent-guards.md)
+    run_locked.py                  run a command holding the run lock: -- <command>
+    stamp.py                       run a local-only suite (realdata, pinn) and stamp the code it tested
   analysis/         tools that run across regions
     validate_region.py             train, evaluate or transfer one region (also pyvwf-validate)
     run_hindcast.py                national monthly CF hindcast against the record

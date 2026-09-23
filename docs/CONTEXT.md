@@ -22,8 +22,8 @@ unqualified entries plus a reader's review of the rest. A clean search is not a
 pass. The search also catches exact forms only: an inflected form, such as
 "falls back" for "fell back", needs a reader.
 
-`AGENTS.md` imports this file, so an agent working in the repository reads it
-with the standing rules. A human writer reads it from here.
+`docs/AGENTS.md` imports this file, so an agent working in `docs/` reads it
+with the documentation rules. A human writer reads it from here.
 
 ## The method
 

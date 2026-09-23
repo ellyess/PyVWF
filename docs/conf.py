@@ -39,6 +39,9 @@ exclude_patterns = [
     ".DS_Store",
     # This folder's own index; superseded by index.md on the built site.
     "README.md",
+    # Instructions for coding agents, loaded by the tools, not for readers.
+    "AGENTS.md",
+    "CLAUDE.md",
     # Working notes from specific research runs rather than maintained
     # documentation. They stay in the repository, and are readable on GitHub,
     # but are not published, so the site does not present stale run-specific
