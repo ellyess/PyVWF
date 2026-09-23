@@ -1,7 +1,7 @@
 # Wake coefficient by observation unit, stage 0: registered gates
 
 **Date:** 2026-09-23 (registered on commit, before the driver exists and before
-any model is fitted)
+any model is fitted; run and outcomes recorded the same day)
 **Scope:** gate K0, the first and cheapest stage of a test of whether the
 deep-array wake term rejected in `method-physics-informed.md` would transfer if
 its coefficient were fitted per unit rather than globally. Terms follow
@@ -125,14 +125,15 @@ the model and K0 is not read.
 
 Read in order. A gate is not read until the one before it has been.
 
-| Gate | Requirement |
-|---|---|
-| **V** estimator | Run the estimator both ways on each region's clean-control frame. First, replace `r` with `r + 0.05 (D - mean D)`: the interval of the recovered slope minus the true slope must contain 0.05. Second, permute D across blocks with generator seed 1: the interval must contain 0. **If V fails in any region, K0 is not read** until the estimator is fixed, recorded as a deviation. |
-| **K0a** aggregate slopes | `b > 0` with the 95% interval excluding 0, in each of UK, US and BR. |
-| **K0b** unit contrast | `Delta = mean(b_UK, b_US, b_BR) - mean(b_DK, b_DE) > 0`, with the interval excluding 0. Regions are weighted equally, as in training. |
-| **K0c** within-region contrast | Among DK onshore units only, the slope for shared-target units minus the slope for the other units, estimated jointly with an indicator and its interaction with D, is > 0 with the interval excluding 0. It compares unit type inside one region, on one geography, with offshore removed. |
+| Gate | Requirement | Outcome |
+|---|---|---|
+| **V** estimator | Run the estimator both ways on each region's clean-control frame. First, replace `r` with `r + 0.05 (D - mean D)`: the interval of the recovered slope minus the true slope must contain 0.05. Second, permute D across blocks with generator seed 1: the interval must contain 0. **If V fails in any region, K0 is not read** until the estimator is fixed, recorded as a deviation. | **Pass** in all five. The planted slope returns as exactly 0.05, and every permuted interval contains 0. |
+| **K0a** aggregate slopes | `b > 0` with the 95% interval excluding 0, in each of UK, US and BR. | **Fail.** US passes, +0.0095 [+0.0011, +0.0222]. UK is −0.0029 [−0.0456, +0.0243] and BR +0.0042 [−0.0164, +0.0310]. |
+| **K0b** unit contrast | `Delta = mean(b_UK, b_US, b_BR) - mean(b_DK, b_DE) > 0`, with the interval excluding 0. Regions are weighted equally, as in training. | **Fail.** +0.0091 [−0.0274, +0.0306]. |
+| **K0c** within-region contrast | Among DK onshore units only, the slope for shared-target units minus the slope for the other units, estimated jointly with an indicator and its interaction with D, is > 0 with the interval excluding 0. It compares unit type inside one region, on one geography, with offshore removed. | **Fail.** −0.0576 [−0.1605, +0.1131]. |
 
-**K0 passes only if K0a, K0b and K0c all pass.**
+**K0 passes only if K0a, K0b and K0c all pass. K0 fails.** The per-unit
+prediction stops at stage 0. The run is recorded at the end of this document.
 
 K0b groups by `obs_unit`, as the hypothesis is stated. Because of fact 1,
 `Delta` is also reported with DK restricted to units without a shared target.
@@ -228,15 +229,15 @@ capacity share, 0.007%.
 
 ## Registered predictions
 
-| # | Prediction |
-|---|---|
-| 1 | V passes in all five regions. |
-| 2 | K0a passes: UK, US and BR each have a positive slope with an interval above 0. |
-| 3 | **`b_DK` is positive with an interval above 0**, because DK's dense capacity is offshore parks with shared targets (fact 1). K0b therefore fails. |
-| 4 | K0c's interval contains 0. |
-| 5 | DE has the widest slope interval of the five (fact 2). |
-| 6 | The DK-restricted `Delta`, reported and not gated, is larger than the gated `Delta`. |
-| 7 | Added with the deviation of 2026-09-23. The MaStR `b_DE` interval overlaps the centroid `b_DE` interval, and K0b's outcome is the same under both. |
+| # | Prediction | Outcome |
+|---|---|---|
+| 1 | V passes in all five regions. | **Held.** |
+| 2 | K0a passes: UK, US and BR each have a positive slope with an interval above 0. | **Failed.** Only the US does; UK's slope is negative. |
+| 3 | **`b_DK` is positive with an interval above 0**, because DK's dense capacity is offshore parks with shared targets (fact 1). K0b therefore fails. | **Failed.** `b_DK` is −0.0061 [−0.0289, +0.0623]. K0b fails, but not by this route. |
+| 4 | K0c's interval contains 0. | **Held.** |
+| 5 | DE has the widest slope interval of the five (fact 2). | **Failed.** DE's width, 0.039, is the second narrowest; DK's, 0.091, is the widest. |
+| 6 | The DK-restricted `Delta`, reported and not gated, is larger than the gated `Delta`. | **Failed.** It is −0.0755 against +0.0091. |
+| 7 | Added with the deviation of 2026-09-23. The MaStR `b_DE` interval overlaps the centroid `b_DE` interval, and K0b's outcome is the same under both. | **Held.** −0.0060 [−0.0230, +0.0141] against −0.0049 [−0.0227, +0.0159]; `Delta` +0.0097 [−0.0256, +0.0302], also a fail. |
 
 The prior is stated in advance: **K0 most likely fails**, on K0b or K0c.
 
@@ -300,6 +301,70 @@ region, and five more for the sensitivity: about an hour on the E1 timing.
   every DK scoring that treats those units as independent. That is a separate
   question and is not decided here.
 - **One test year per region**, as throughout this repository.
+
+## Run record, 2026-09-23
+
+Filled in after the run. Nothing in this section changes a gate or a
+prediction.
+
+**Data.** `output/method_wake_unit_2026-09-23/k0/`, from the registered
+command through `scripts/dev/run_locked.py`. The manifest records commit
+`af55143`, `git_dirty: false`, this document as the registration, the
+efficiency head's inputs without `log_capdens_10km`, and the licensed library
+(`power_curves_sha256` `689cfee7...`), so the result is not third-party
+reproducible. The run exited 0 and the tree was unchanged afterwards.
+sha256: `gates.csv` `be0271a2...`, `slopes.csv` `8051811e...`,
+`validation.csv` `8f8186e9...`, `density_bins.csv` `6c498b08...`. No deviation
+was made during the run.
+
+**The condition reached the model.** No seed's efficiency head received
+`log_capdens_10km`, and the clean control's RMSE differs from the E1 rerun's
+in-region RMSE in four of five regions, so the check before any slope is read
+passes. Capacity-weighted RMSE on each test year, mean and standard deviation
+over the five seeds, from `slopes.csv`; E1 from
+`output/pinn_rerun_2026-09-16/e1/e1_primary_raw.csv`:
+
+| Region | Unit | Training years | Test year | Rows | Units observed | Blocks | Clean control | E1 `pinn-in-region` |
+|---|---|---|---|---|---|---|---|---|
+| DK | turbine | 2015 to 2019 | 2020 | 63,577 | 5,365 | 4,168 | 0.08234 ± 0.00014 | 0.08234 |
+| DE | turbine | 2015 to 2018 | 2019 | 54,188 | 4,814 | 4,630 | 0.05979 ± 0.00006 | 0.05970 |
+| UK | farm | 2015 to 2018 | 2019 | 71,782 | 5,998 | 327 | 0.12801 ± 0.00017 | 0.12667 |
+| US | plant | 2019 to 2021 | 2022 | 6,078 | 520 | 515 | 0.09115 ± 0.00003 | 0.09090 |
+| BR | complex | 2021 to 2023 | 2024 | 389 | 151 | 151 | 0.09496 ± 0.00018 | 0.09537 |
+| DE, MaStR (reported) | turbine | 2015 to 2018 | 2019 | 54,176 | 4,813 | 4,629 | 0.05960 ± 0.00013 | n/a |
+
+**Full slope table.** Capacity-weighted slope of the residual on 10 km
+capacity density, in CF per MW/km2, on the seed-mean prediction, with the
+registered 95% interval and the range of the five single-seed slopes:
+
+| Region | `b` | 95% interval | Single-seed range |
+|---|---|---|---|
+| DK | −0.0061 | [−0.0289, +0.0623] | −0.0071 to −0.0053 |
+| DE | −0.0049 | [−0.0227, +0.0159] | −0.0057 to −0.0039 |
+| UK | −0.0029 | [−0.0456, +0.0243] | −0.0035 to −0.0024 |
+| US | +0.0095 | [+0.0011, +0.0222] | +0.0094 to +0.0096 |
+| BR | +0.0042 | [−0.0164, +0.0310] | +0.0030 to +0.0048 |
+| DE, MaStR (reported) | −0.0060 | [−0.0230, +0.0141] | −0.0113 to −0.0028 |
+
+**Contrasts** (`gates.csv`):
+
+| Contrast | Value | 95% interval | Status |
+|---|---|---|---|
+| K0b, `Delta` | +0.0091 | [−0.0274, +0.0306] | gated, fail |
+| K0c, DK onshore shared minus other | −0.0576 | [−0.1605, +0.1131] | gated, fail |
+| `Delta` with DK restricted to units without a shared target | −0.0755 | [−0.1031, −0.0459] | reported, not gated |
+| `Delta` with DE on MaStR locations | +0.0097 | [−0.0256, +0.0302] | reported, not gated |
+
+The DK-restricted `Delta` is the only contrast whose interval excludes zero,
+and its sign is the opposite of what H-unit requires.
+
+**E9's six bins, descriptive only.** Capacity-weighted mean residual per bin,
+pooled over the five regions by capacity, so the US dominates
+(`density_bins.csv`, which also holds each region's values):
+
+| D (MW/km2) | 0 to 0.045 | 0.045 to 0.080 | 0.080 to 0.138 | 0.138 to 0.244 | 0.244 to 0.747 | above 0.747 |
+|---|---|---|---|---|---|---|
+| Mean residual | +0.0042 | −0.0038 | −0.0028 | −0.0016 | −0.0017 | +0.0071 |
 
 ## Committed in advance
 
