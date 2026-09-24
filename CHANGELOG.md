@@ -136,6 +136,14 @@ this file stay in step with it.
 
 ### Fixed
 
+- **KMeans partitions no longer depend on the machine's thread count**
+  (`vwf.clustering`). scikit-learn's KMeans reduces over OpenMP threads, and
+  a near-tie can fall differently at another thread count, so the same
+  fleet could be clustered differently on another machine. Importing `vwf`
+  used to set one thread for the whole process as a side effect of the
+  legacy module, which hid this and is what every published partition was
+  made under. Every KMeans call now runs on one thread, reproducing those
+  partitions on any machine without the process-wide setting.
 - **The power-curve cache cannot serve another table's curves**
   (`vwf.wind._get_power_curve_cache`). It was keyed by `id()` of the curve
   table and checked only the column names, so a later table that reused a
