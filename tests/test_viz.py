@@ -11,8 +11,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from vwf.harness.driver import run_evaluate, run_train
 from vwf.viz import (
-    Results,
     load_results,
     plot_cf_distribution,
     plot_correction_factor_map,
@@ -64,139 +65,62 @@ def cf_series(rng):
 
 
 # ---------------------------------------------------------------------------
-# load_results
+# load_results: a real harness run on the synthetic DK fleet
 # ---------------------------------------------------------------------------
 
 
-def _write_wide_cf(path, ids, values):
-    """Write a wide CF csv matching the on-disk schema."""
-    times = pd.date_range("2020-01-01", periods=values.shape[0], freq="h")
-    df = pd.DataFrame(values, columns=ids)
-    df.insert(0, "time", times)
-    df.to_csv(path, index=False)
+@pytest.fixture
+def harness_run(synthetic_dk):  # noqa: F811
+    spec = make_spec()
+    out = synthetic_dk["root"] / "validation"
+    train_dir = run_train(spec, out, mode="onshore", run_name="t")
+    eval_dir = run_evaluate(spec, train_dir, out, mode="onshore", run_name="e")
+    return spec, train_dir, eval_dir
 
 
-def _build_run_dir(tmp_path, country="DK", year=2020, include_corrected=True):
-    run = tmp_path / "run"
-    cf_dir = run / "results" / "capacity-factor"
-    train_dir = run / "training" / "simulated-turbines"
-    fac_dir = run / "training" / "correction-factors"
-    for d in (cf_dir, train_dir, fac_dir):
-        d.mkdir(parents=True)
-
-    ids = ["A", "B", "C"]
-    n = 200
-    rng = np.random.default_rng(0)
-    obs = np.clip(rng.normal(0.35, 0.15, (n, 3)), 0, 1)
-    unc = np.clip(rng.normal(0.45, 0.20, (n, 3)), 0, 1)
-    _write_wide_cf(cf_dir / f"{country}_{year}_obs_cf.csv", ids, obs)
-    _write_wide_cf(cf_dir / f"{country}_{year}_unc_cf.csv", ids, unc)
-
-    if include_corrected:
-        cor = np.clip(rng.normal(0.35, 0.18, (n, 3)), 0, 1)
-        _write_wide_cf(cf_dir / f"{country}_{year}_fixed_5_cor_cf.csv", ids, cor)
-        pd.DataFrame(
-            {
-                "cluster": [0, 1, 2, 3, 4],
-                "fixed": ["1/1"] * 5,
-                "scalar": [1.0, 0.9, 1.1, 1.0, 0.95],
-                "offset": [0.0, 0.1, -0.1, 0.05, -0.05],
-            }
-        ).to_csv(fac_dir / f"{country}_factors_fixed_5.csv", index=False)
-
-    pd.DataFrame(
-        {
-            "ID": ids,
-            "capacity": [1000.0, 500.0, 2000.0],
-            "lat": [55.0, 55.5, 56.0],
-            "lon": [8.0, 8.5, 9.0],
-        }
-    ).to_csv(train_dir / f"{country}_{year}_turb_info.csv", index=False)
-    pd.DataFrame(
-        {
-            "ID": ids[:2],
-            "capacity": [1000.0, 500.0],
-            "lat": [55.0, 55.5],
-            "lon": [8.0, 8.5],
-        }
-    ).to_csv(train_dir / f"{country}_train_turb_info.csv", index=False)
-
-    return run
+def test_load_results_reads_a_harness_evaluate_run(harness_run):
+    spec, train_dir, eval_dir = harness_run
+    res = load_results(spec, eval_dir, train_run=train_dir)
+    assert res.country == "DK" and res.year == 2016
+    assert len(res.obs) == 12 and res.obs.index.equals(res.uncorrected.index)
+    assert set(res.corrected) == {(2, "fixed")}
+    assert set(res.factors) == {(2, "fixed")}
+    assert res.train_turb_info is not None and "cluster" not in res.train_turb_info
 
 
-def test_load_results_roundtrip(tmp_path):
-    run = _build_run_dir(tmp_path, include_corrected=True)
-    res = load_results(run, "DK", 2020)
-
-    assert isinstance(res, Results)
-    assert res.country == "DK"
-    assert res.year == 2020
-    assert len(res.obs) == 200
-    assert len(res.uncorrected) == 200
-
-    # Discovered the corrected file by glob, not by user input
-    assert (5, "fixed") in res.corrected
-    assert (5, "fixed") in res.factors
-    assert set(res.factors[(5, "fixed")].columns) >= {"cluster", "scalar", "offset"}
-
-    # Both fleets load: simulated-year and the training fleet the factors
-    # were fitted on (needed by plot_correction_factor_map)
-    assert len(res.turb_info) == 3
-    assert len(res.train_turb_info) == 2
+def test_load_results_series_agree_with_metrics_csv(harness_run):
+    """Every unit reports every month here, so the mean of the monthly
+    capacity-weighted differences is the metrics' capacity-weighted MBE."""
+    spec, train_dir, eval_dir = harness_run
+    res = load_results(spec, eval_dir, train_run=train_dir)
+    metrics = pd.read_csv(eval_dir / "metrics.csv").set_index("variant")
+    unc_mbe = float((res.uncorrected - res.obs).mean())
+    cor_mbe = float((res.corrected[(2, "fixed")] - res.obs).mean())
+    assert unc_mbe == pytest.approx(metrics.loc["uncorrected", "mbe"], abs=1e-12)
+    assert cor_mbe == pytest.approx(metrics.loc["affine-wind", "mbe"], abs=1e-12)
 
 
-def test_load_results_missing_corrected_ok(tmp_path):
-    run = _build_run_dir(tmp_path, include_corrected=False)
-    res = load_results(run, "DK", 2020)
-    assert res.corrected == {}
-    assert res.factors == {}
+def test_load_results_finds_the_training_run_from_the_manifest(harness_run):
+    spec, _, eval_dir = harness_run
+    assert set(load_results(spec, eval_dir).factors) == {(2, "fixed")}
 
 
-def test_load_results_capacity_weighting_changes_series(tmp_path):
-    run = _build_run_dir(tmp_path, include_corrected=False)
-    weighted = load_results(run, "DK", 2020, weight_by_capacity=True).obs
-    plain = load_results(run, "DK", 2020, weight_by_capacity=False).obs
-    # Capacities are not equal, so the two aggregations should disagree
-    assert not np.allclose(weighted.to_numpy(), plain.to_numpy())
-
-
-def test_load_results_missing_run_dir_raises(tmp_path):
+def test_load_results_missing_run_raises(harness_run, tmp_path):
+    spec, _, _ = harness_run
     with pytest.raises(FileNotFoundError):
-        load_results(tmp_path / "does-not-exist", "DK", 2020)
+        load_results(spec, tmp_path / "does-not-exist")
 
 
-def test_load_results_aligns_sim_cadence_to_obs(tmp_path):
-    """Turbine-level runs store obs monthly and sims daily; without alignment
-    the distributions are 12 vs 366 samples and not comparable."""
-    run = tmp_path / "run"
-    cf = run / "results" / "capacity-factor"
-    train = run / "training" / "simulated-turbines"
-    fac = run / "training" / "correction-factors"
-    for d in (cf, train, fac):
-        d.mkdir(parents=True)
+def test_load_results_missing_explicit_train_run_raises(harness_run, tmp_path):
+    spec, _, eval_dir = harness_run
+    with pytest.raises(FileNotFoundError):
+        load_results(spec, eval_dir, train_run=tmp_path / "gone")
 
-    ids = ["A", "B"]
-    rng = np.random.default_rng(1)
-    obs = pd.DataFrame(rng.uniform(0.1, 0.5, (12, 2)), columns=ids)
-    obs.insert(0, "time", pd.date_range("2020-01-01", periods=12, freq="MS"))
-    obs.to_csv(cf / "DK_2020_obs_cf.csv", index=False)
-    daily_idx = pd.date_range("2020-01-01", periods=366, freq="D")
-    for name in ["DK_2020_unc_cf.csv", "DK_2020_fixed_5_cor_cf.csv"]:
-        df = pd.DataFrame(rng.uniform(0.1, 0.6, (366, 2)), columns=ids)
-        df.insert(0, "time", daily_idx)
-        df.to_csv(cf / name, index=False)
-    pd.DataFrame({"ID": ids, "capacity": [1.0, 1.0]}).to_csv(
-        train / "DK_2020_turb_info.csv", index=False
-    )
 
-    aligned = load_results(run, "DK", 2020)
-    assert len(aligned.obs) == 12
-    assert len(aligned.uncorrected) == 12
-    assert len(aligned.corrected[(5, "fixed")]) == 12
-    assert (aligned.uncorrected.index == aligned.obs.index).all()
-
-    raw = load_results(run, "DK", 2020, align_to_obs=False)
-    assert len(raw.uncorrected) == 366
+def test_plot_error_vs_clusters_reads_a_harness_metrics_csv(harness_run):
+    _, _, eval_dir = harness_run
+    fig = plot_error_vs_clusters(pd.read_csv(eval_dir / "metrics.csv"))
+    assert len(fig.axes) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -552,3 +476,21 @@ def test_plot_sim_vs_obs_no_common_ids_raises(wide_cf_pair):
     renamed = obs.rename(columns=lambda c: f"X{c}" if c != "time" else c)
     with pytest.raises(ValueError, match="no turbine IDs"):
         plot_sim_vs_obs(sim, renamed)
+
+
+def test_load_results_without_a_recorded_training_run_reads_no_factors(
+    harness_run, tmp_path, monkeypatch
+):
+    """No trained_from must not fall back to the working directory."""
+    import json
+    import shutil
+
+    spec, train_dir, eval_dir = harness_run
+    copy = tmp_path / "eval-copy"
+    shutil.copytree(eval_dir, copy)
+    manifest = json.loads((copy / "run_manifest.json").read_text())
+    manifest.pop("trained_from", None)
+    (copy / "run_manifest.json").write_text(json.dumps(manifest))
+    shutil.copy(train_dir / "factors_fixed_2.csv", tmp_path / "factors_fixed_2.csv")
+    monkeypatch.chdir(tmp_path)  # a factors file sits in the working directory
+    assert load_results(spec, copy).factors == {}

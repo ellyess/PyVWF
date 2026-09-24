@@ -5,9 +5,9 @@ reproduces the observed capacity-factor distribution: an overlay of
 histograms and ECDFs (with an optional upper-tail inset), and a quantile-
 quantile plot against the y=x diagonal.
 
-The :func:`load_results` helper reads the on-disk schema produced by
-:meth:`vwf.vwf.PyVWF.simulate_cf` into a single :class:`Results` object so
-the plot functions are self-contained: no path-juggling at the call site.
+The :func:`load_results` helper reads a harness evaluate run into a single
+:class:`Results` object, paired and scored as its ``metrics.csv`` was, so the
+plot functions are self-contained: no path-juggling at the call site.
 
 Free functions; pass anything dict-shaped (``{label: series}``) and they
 will plot it. Returns ``matplotlib.figure.Figure`` so the caller decides
@@ -16,6 +16,7 @@ what to do next (``fig.savefig(...)``, further tweaks, etc.).
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -58,17 +59,18 @@ _DEFAULT_COLOURS = {
 
 @dataclass(frozen=True)
 class Results:
-    """Capacity-factor series and supporting metadata for one run × year.
+    """Capacity-factor series and supporting metadata for one evaluate run.
 
-    Series are country-aggregated (capacity-weighted by default) so they
-    can be compared distributionally without first reducing across turbines.
+    Series are monthly fleet (or national) aggregates, capacity-weighted by
+    default, over exactly the unit-months the run's ``metrics.csv`` scored, so
+    they can be compared distributionally and read against its metrics.
 
     Attributes:
-        country: Country code (e.g. ``"DK"``).
-        year: Simulated year.
-        obs: Observed CF, indexed by time.
-        uncorrected: Uncorrected simulated CF, indexed by time.
-        corrected: Linear-corrected CF, one entry per ``(n_clu, time_res)``.
+        country: The region code (e.g. ``"DK"``).
+        year: The test year.
+        obs: Observed CF, indexed by month.
+        uncorrected: Uncorrected simulated CF, indexed by month.
+        corrected: Corrected CF, one entry per ``(n_clu, time_res)``.
         factors: Linear correction factor tables ``(scalar, offset)`` keyed by
             ``(n_clu, time_res)``.
         turb_info: Fleet metadata for the simulated year.
@@ -88,145 +90,138 @@ class Results:
     train_turb_info: pd.DataFrame | None = None
 
 
-def _aggregate_cf(
-    wide: pd.DataFrame,
-    turb_info: pd.DataFrame | None,
-    weight_by_capacity: bool,
-) -> pd.Series:
-    """Reduce a wide per-turbine CF frame to a single country series.
-
-    Uses capacity-weighted average when ``weight_by_capacity`` and a
-    turb_info with ``capacity`` is available; otherwise a plain row mean.
-    """
-    df = wide.set_index("time") if "time" in wide.columns else wide.copy()
-    df.index = pd.to_datetime(df.index)
-
-    if not weight_by_capacity or turb_info is None or "capacity" not in turb_info.columns:
-        return df.mean(axis=1)
-
-    caps = turb_info.set_index(turb_info["ID"].astype(str))["capacity"]
-    cols = df.columns.astype(str)
-    weights = caps.reindex(cols)
-    # Drop columns with no matching capacity rather than silently dropping them
-    # to NaN-weighted zero; this preserves the unweighted fallback semantics
-    # if turb_info doesn't cover every ID in the CF file.
-    valid = weights.notna()
-    if not valid.any():
-        return df.mean(axis=1)
-    df = df.loc[:, valid.values]
-    w = weights[valid].to_numpy(dtype=float)
-    arr = df.to_numpy(dtype=float)
-    return pd.Series(np.nansum(arr * w, axis=1) / w.sum(), index=df.index)
+_COR_NAME = re.compile(r"^cor_cf_(?P<tr>[a-z]+)_(?P<n>\d+)\.csv$")
+_FACTORS_NAME = re.compile(r"^factors_(?P<tr>[a-z]+)_(?P<n>\d+)\.csv$")
 
 
-_COR_RE = re.compile(r"^(?P<country>[A-Z]+)_(?P<year>\d{4})_(?P<tr>[a-z]+)_(?P<n>\d+)_cor_cf\.csv$")
-_FACT_RE = re.compile(r"^(?P<country>[A-Z]+)_factors_(?P<tr>[a-z]+)_(?P<n>\d+)\.csv$")
-
-
-def _align_to_obs_cadence(series: pd.Series, obs_index: pd.Index) -> pd.Series:
-    """Aggregate ``series`` into the windows defined by ``obs_index``.
-
-    For turbine-level PyVWF runs, observations are stored monthly while the
-    simulated CFs are daily, so the two series can't be compared
-    distributionally as-written: 12 vs 366 samples is not apples-to-apples.
-    This helper takes each obs timestamp ``t_i`` as the left edge of a
-    half-open window ``[t_i, t_{i+1})`` and returns the mean of ``series``
-    inside each window, indexed by ``obs_index``. If ``series`` is already at
-    or coarser than obs (≤ obs count), it is returned unchanged.
-    """
-    if len(series) <= len(obs_index):
-        return series
-    obs_times = pd.DatetimeIndex(obs_index)
-    last_step = obs_times[-1] - obs_times[-2] if len(obs_times) >= 2 else pd.Timedelta(days=1)
-    edges = obs_times.append(pd.DatetimeIndex([obs_times[-1] + last_step]))
-    out = []
-    for i in range(len(obs_times)):
-        mask = (series.index >= edges[i]) & (series.index < edges[i + 1])
-        out.append(series.loc[mask].mean())
-    return pd.Series(out, index=obs_times, name=series.name)
+def _monthly(paired: pd.DataFrame, column: str, weight_by_capacity: bool) -> pd.Series:
+    """One value per month from a paired frame, as a month-start time series."""
+    if "ym" in paired.columns:  # national pairs are already monthly
+        out = paired.set_index("ym")[column]
+        out.index = pd.PeriodIndex(out.index).to_timestamp()
+        return out.sort_index()
+    frame = paired.assign(
+        time=pd.to_datetime(dict(year=paired["year"], month=paired["month"], day=1))
+    )
+    if weight_by_capacity and "capacity" in frame.columns:
+        w = frame["capacity"].astype(float)
+        num = (frame[column] * w).groupby(frame["time"]).sum()
+        return (num / w.groupby(frame["time"]).sum()).sort_index()
+    return frame.groupby("time")[column].mean().sort_index()
 
 
 def load_results(
-    run_dir: str | Path,
-    country: str,
-    year: int,
+    region,
+    evaluate_run: str | Path,
     *,
+    train_run: str | Path | None = None,
+    source=None,
     weight_by_capacity: bool = True,
-    align_to_obs: bool = True,
 ) -> Results:
-    """Load PyVWF capacity-factor outputs for one country and test year.
+    """Load a harness evaluate run as monthly series, paired as its metrics were.
+
+    The evaluate run holds the simulated frames (``unc_cf.csv`` and one
+    ``cor_cf_<time_res>_<n>.csv`` per variant) but not the observations, so
+    these are read again through the region's adapter, as ``run_evaluate`` read
+    them. Each variant is then paired with the observations by the harness's own
+    functions and restricted to the rows every variant can score, the rows its
+    ``metrics.csv`` was computed on, before it is reduced to one value per month.
+    Reading the observations needs the region's input data.
+
+    The monthly series weight each month equally. Where every unit reports
+    every month, their mean difference is the metrics' MBE exactly; where some
+    unit-months are missing (NZ scores 137 of 144), it differs slightly, since
+    the metrics weight each unit-month.
 
     Args:
-        run_dir: Path to a single ``PyVWF`` run directory (the value passed
-            as the model's first positional argument, containing the
-            ``results/`` and ``training/`` subfolders).
-        country: Country code matching the on-disk filename prefix.
-        year: Simulated year matching the on-disk filename prefix.
-        weight_by_capacity: If True (default), aggregate per-turbine CF
-            columns into a country series using ``capacity`` from
-            ``turb_info``. If False, use an unweighted mean.
-        align_to_obs: If True (default), resample sim series with finer
-            cadence than obs into obs-defined windows so distributional
-            comparisons are well-posed. Turbine-level runs store obs at
-            monthly and sims at daily; without alignment the distributions
-            are not comparable. Set False to keep on-disk cadences as-is.
+        region: The region config, a :class:`~vwf.harness.regions.RegionSpec` or
+            a path to its TOML file.
+        evaluate_run: The evaluate run directory.
+        train_run: The training run the factors came from. Defaults to the
+            evaluate manifest's ``trained_from``; when that path no longer
+            exists, ``factors`` and ``train_turb_info`` are left empty.
+        source: An observation adapter to use instead of the region's own, as
+            for :func:`vwf.harness.driver.load_obs_and_fleet`.
+        weight_by_capacity: Aggregate units capacity-weighted (default), as the
+            metrics are, or as a plain mean. National series are unaffected.
 
     Returns:
-        :class:`Results` with country-aggregated ``obs``, ``uncorrected``,
-        and any linear-corrected variants discovered.
+        :class:`Results` with monthly ``obs``, ``uncorrected`` and one
+        ``corrected`` series per variant, the factors, the test fleet and the
+        training fleet.
 
     Raises:
-        FileNotFoundError: If the run directory or the obs/uncorrected CF
-            files for ``(country, year)`` cannot be found.
+        FileNotFoundError: If the evaluate run, its ``unc_cf.csv``, or an
+            explicitly given ``train_run`` does not exist.
     """
-    run = Path(run_dir)
-    if not run.exists():
-        raise FileNotFoundError(f"Run directory not found: {run}")
+    from vwf.harness.driver import SCOPE_KEYS, country_pairs, load_obs_and_fleet, tidy_eval_frame
+    from vwf.harness.regions import RegionSpec, load_region
+    from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
 
-    cf_dir = run / "results" / "capacity-factor"
-    train_dir = run / "training" / "simulated-turbines"
-    fac_dir = run / "training" / "correction-factors"
-
-    obs_path = cf_dir / f"{country}_{year}_obs_cf.csv"
-    unc_path = cf_dir / f"{country}_{year}_unc_cf.csv"
-    if not obs_path.is_file():
-        raise FileNotFoundError(f"Missing observed CF file: {obs_path}")
+    spec = region if isinstance(region, RegionSpec) else load_region(region)
+    run = Path(evaluate_run)
+    if not run.is_dir():
+        raise FileNotFoundError(f"Evaluate run not found: {run}")
+    unc_path = run / "unc_cf.csv"
     if not unc_path.is_file():
         raise FileNotFoundError(f"Missing uncorrected CF file: {unc_path}")
+    manifest_path = run / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    year = int(manifest.get("evaluation_year", spec.test_years[0]))
 
-    turb_path = train_dir / f"{country}_{year}_turb_info.csv"
-    turb_info = pd.read_csv(turb_path) if turb_path.is_file() else None
+    frames: dict[str, pd.DataFrame] = {"uncorrected": pd.read_csv(unc_path)}
+    variants: dict[str, tuple[int, str]] = {}
+    for p in sorted(run.iterdir()):
+        m = _COR_NAME.match(p.name)
+        if m:
+            label = f"{m['tr']}_{m['n']}"
+            frames[label] = pd.read_csv(p)
+            variants[label] = (int(m["n"]), m["tr"])
 
-    train_turb_path = train_dir / f"{country}_train_turb_info.csv"
-    train_turb_info = pd.read_csv(train_turb_path) if train_turb_path.is_file() else None
+    obs_cf, turb_info = load_obs_and_fleet(spec, year, source)
+    if spec.obs_level == "country":
+        paired = {k: country_pairs(f, obs_cf, turb_info) for k, f in frames.items()}
+        keys, weight, _ = SCOPE_KEYS["national"]
+    else:
+        paired = {
+            k: collapse_pseudo_replicates(tidy_eval_frame(f, obs_cf, turb_info), spec)
+            for k, f in frames.items()
+        }
+        keys, weight, _ = SCOPE_KEYS["fleet"]
+    common, _ = restrict_to_common_rows(paired, keys, weight=weight)
 
-    obs_wide = pd.read_csv(obs_path)
-    unc_wide = pd.read_csv(unc_path)
-    obs = _aggregate_cf(obs_wide, turb_info, weight_by_capacity).rename("obs")
-    unc = _aggregate_cf(unc_wide, turb_info, weight_by_capacity).rename("uncorrected")
-    if align_to_obs:
-        unc = _align_to_obs_cadence(unc, obs.index)
+    obs = _monthly(common["uncorrected"], "cf_obs", weight_by_capacity).rename("obs")
+    unc = _monthly(common["uncorrected"], "cf_sim", weight_by_capacity).rename("uncorrected")
+    corrected = {
+        key: _monthly(common[label], "cf_sim", weight_by_capacity).rename(label)
+        for label, key in variants.items()
+    }
 
-    def _read_and_align(path):
-        s = _aggregate_cf(pd.read_csv(path), turb_info, weight_by_capacity)
-        return _align_to_obs_cadence(s, obs.index) if align_to_obs else s
-
-    corrected: dict[tuple[int, str], pd.Series] = {}
-    if cf_dir.is_dir():
-        for p in sorted(cf_dir.iterdir()):
-            m = _COR_RE.match(p.name)
-            if m and m["country"] == country and int(m["year"]) == year:
-                corrected[(int(m["n"]), m["tr"])] = _read_and_align(p)
-
+    # A manifest without ``trained_from`` must not fall back to Path(""),
+    # which is the working directory and exists.
+    train_dir: Path | None
+    if train_run is not None:
+        train_dir = Path(train_run)
+        if not train_dir.is_dir():
+            raise FileNotFoundError(f"Training run not found: {train_dir}")
+    else:
+        recorded = manifest.get("trained_from")
+        train_dir = Path(recorded) if recorded else None
     factors: dict[tuple[int, str], pd.DataFrame] = {}
-    if fac_dir.is_dir():
-        for p in sorted(fac_dir.iterdir()):
-            m = _FACT_RE.match(p.name)
-            if m and m["country"] == country:
+    train_turb_info = None
+    if train_dir is not None and train_dir.is_dir():
+        for p in sorted(train_dir.iterdir()):
+            m = _FACTORS_NAME.match(p.name)
+            if m:
                 factors[(int(m["n"]), m["tr"])] = pd.read_csv(p)
+        fleets = sorted(train_dir.glob("train_turb_info_*.csv"))
+        if fleets:
+            # One file per cluster count, identical apart from ``cluster``;
+            # the map re-clusters the units itself.
+            train_turb_info = pd.read_csv(fleets[0]).drop(columns=["cluster"], errors="ignore")
 
     return Results(
-        country=country,
+        country=spec.code,
         year=year,
         obs=obs,
         uncorrected=unc,

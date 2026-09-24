@@ -27,6 +27,15 @@ this file stay in step with it.
   `load_region`, `run_train`, `run_evaluate` and `run_transfer` in place of
   `PyVWF`. The last commit with the removed code is recorded in
   `docs/publications.md`.
+- **`vwf.viz.load_results` reads a harness evaluate run.** It took a legacy
+  run directory, a country and a year; it now takes the region config and an
+  evaluate run (`load_results(region, evaluate_run, *, train_run=None,
+  source=None, weight_by_capacity=True)`). It reads the observations through
+  the region's adapter, pairs each variant with them as the run's
+  `metrics.csv` did, on the same unit-months, and returns monthly series.
+  `align_to_obs` is gone: the pairs are monthly. `plot_error_vs_clusters`
+  takes a harness `metrics.csv` (`num_clu`, `variant`, `scope`) and refuses
+  a table that mixes scopes.
 - **The per-timestep roughness is the default.** `prep_era5` now derives the
   roughness length from the 10 m to 100 m shear at every timestep unless a
   caller asks for `roughness="stored"`, where the default was `stored` before.

@@ -6,10 +6,10 @@ Two figures for judging a run:
 many clusters, and at what temporal resolution?* Error metrics are drawn
 against cluster count (log x) with one line per temporal resolution, plus an
 optional horizontal reference at the uncorrected error so the payoff of the
-correction is visible at a glance. It takes a tidy metrics DataFrame, the
-schema produced by ``scripts/analysis/evaluate_all_pyvwf_runs.py``
-(``pyvwf_evaluation_metrics.csv``). Filtering to one country/run is the
-caller's job; if several are mixed, lines will zig-zag.
+correction is visible at a glance. It takes a harness evaluate run's
+``metrics.csv`` as written by :func:`vwf.harness.driver.run_evaluate`, one
+row per variant. Filtering to one run is the caller's job; a table mixing
+scoring scopes is refused.
 
 :func:`plot_sim_vs_obs` answers the fit question: *where does the
 simulation sit against observation, turbine by turbine?* Each turbine's mean
@@ -55,13 +55,14 @@ def plot_error_vs_clusters(
     """Plot error vs cluster count, one line per temporal resolution.
 
     Args:
-        metrics: Tidy metrics table with one row per evaluated variant.
-            Required columns: ``time_res``, a cluster-count column
-            (``n_clusters`` or ``n_clu``), and each of ``metric_cols``.
-            Rows with ``correction_type == "uncorrected"`` (or with a null
-            ``time_res``) are treated as the uncorrected baseline rather
-            than as a line. This is the schema written by
-            ``scripts/analysis/evaluate_all_pyvwf_runs.py``.
+        metrics: A ``metrics.csv`` from a harness evaluate run, one row per
+            variant. Required columns: ``time_res``, a cluster-count column
+            (``num_clu``, ``n_clu`` or ``n_clusters``), and each of
+            ``metric_cols``. The row with ``variant == "uncorrected"`` (or a
+            ``time_res`` of ``"none"``, ``"uncorrected"`` or null) is the
+            uncorrected baseline rather than a line. If a ``scope`` column
+            holds more than one scope (``national`` and ``per-zone``), filter
+            to one first.
         metric_cols: Error columns to plot, one panel each
             (default ``("rmse", "mae")``).
         show_uncorrected: Draw a horizontal reference line at the
@@ -73,23 +74,29 @@ def plot_error_vs_clusters(
         The constructed ``matplotlib.figure.Figure``.
 
     Raises:
-        ValueError: If required columns are missing or no corrected rows
-            remain after filtering.
+        ValueError: If required columns are missing, the table mixes scopes,
+            or no corrected rows remain after filtering.
     """
     df = metrics.copy()
-    if "n_clu" in df.columns and "n_clusters" not in df.columns:
-        df = df.rename(columns={"n_clu": "n_clusters"})
+    for alias in ("num_clu", "n_clu"):
+        if alias in df.columns and "n_clusters" not in df.columns:
+            df = df.rename(columns={alias: "n_clusters"})
+    if "scope" in df.columns and df["scope"].nunique() > 1:
+        raise ValueError(
+            f"metrics table mixes scopes {sorted(df['scope'].unique())}; filter to one"
+        )
 
     required = {"time_res", "n_clusters", *metric_cols}
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"metrics table is missing columns: {sorted(missing)}")
 
-    is_uncorrected = df["time_res"].isna() | (
-        df["time_res"].astype(str).str.lower() == "uncorrected"
+    is_uncorrected = df["time_res"].isna() | df["time_res"].astype(str).str.lower().isin(
+        ["uncorrected", "none"]
     )
-    if "correction_type" in df.columns:
-        is_uncorrected |= df["correction_type"] == "uncorrected"
+    for column in ("variant", "correction_type"):
+        if column in df.columns:
+            is_uncorrected |= df[column] == "uncorrected"
 
     baseline = df[is_uncorrected]
     corrected = df[~is_uncorrected & df["n_clusters"].notna()].copy()
@@ -180,9 +187,9 @@ def plot_sim_vs_obs(
 
     Args:
         sim_cf: Simulated CF, a wide DataFrame in the on-disk schema
-            (optional ``time`` column, one column per turbine ID, e.g. read
-            from ``<run>/results/capacity-factor/*_unc_cf.csv``), or an
-            already-reduced per-turbine Series of means.
+            (optional ``time`` column, one column per unit ID, e.g. an
+            evaluate run's ``unc_cf.csv`` or ``cor_cf_*.csv``), or an
+            already-reduced per-unit Series of means.
         obs_cf: Observed CF, same accepted shapes.
         turb_info: Optional turbine metadata with ``ID`` and ``type``
             columns; when given, points are coloured by onshore/offshore.
