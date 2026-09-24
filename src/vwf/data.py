@@ -246,6 +246,13 @@ def country_cf_to_monthly(obs):
     return _month_index_to_columns(obs["capacity_factor"].resample("ME").mean())
 
 
+#: Largest within-period spread of cluster observations still read as one
+#: national number, in capacity factor. Rounding in the capacity-weighted
+#: cluster means leaves about 1e-16; distinct zonal observations differ by
+#: thousandths or more.
+OBS_SAME_TOLERANCE = 1e-9
+
+
 def country_obs_is_per_cluster(train_bias_df, time_res):
     """True when each cluster carries its own observation in every period.
 
@@ -264,12 +271,19 @@ def country_obs_is_per_cluster(train_bias_df, time_res):
         time_res: Name of the time-slice column.
 
     Returns:
-        True if ``obs`` varies across clusters within at least one period.
+        True if ``obs`` varies across clusters within at least one period by
+        more than :data:`OBS_SAME_TOLERANCE`.
     """
     if "cluster" not in train_bias_df.columns or "obs" not in train_bias_df.columns:
         return False
-    spread = train_bias_df.groupby(["year", time_res])["obs"].nunique(dropna=True)
-    return bool((spread > 1).any())
+    # Each cluster's obs is a capacity-weighted mean of its points' values, so
+    # one national number reaches the clusters differing in the last bits
+    # (1e-16 on the real grids). Counting distinct floats took those for
+    # distinct observations and sent every national multi-cluster fit to the
+    # per-cluster solver; the spread has to exceed a tolerance instead.
+    obs = train_bias_df.groupby(["year", time_res])["obs"]
+    spread = obs.max() - obs.min()
+    return bool((spread > OBS_SAME_TOLERANCE).any())
 
 
 def country_zonal_cf_to_monthly(obs):
