@@ -787,9 +787,13 @@ def cluster_train_set(
         # turb_info has cluster assignments for each ID
         turb_info = assign_country_clusters(turb_info, num_clu)
 
-        # Merge cluster info with gen_cf
+        # Merge cluster info with gen_cf. The legacy path can arrive with a
+        # year-specific ``capacity`` already on gen_cf; merging the static one
+        # too would split it into capacity_x/capacity_y, and the cluster mean
+        # below would find no ``capacity`` and silently weight equally. The
+        # year-specific value is the one to weight by, so it is kept.
         merge_cols = ["ID", "cluster"]
-        if "capacity" in turb_info.columns:
+        if "capacity" in turb_info.columns and "capacity" not in gen_cf.columns:
             merge_cols.append("capacity")
         gen_cf_with_cluster = pd.merge(gen_cf, turb_info[merge_cols], on="ID", how="left")
 

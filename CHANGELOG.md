@@ -115,6 +115,13 @@ this file stay in step with it.
 
 ### Fixed
 
+- **Legacy country-level training weights by the year's own capacity**
+  (`vwf.data.cluster_train_set`). When `PyVWF` merged year-specific grid
+  capacities onto its training pairs, the cluster step merged the grid's
+  static capacity as well, splitting the column in two, and the cluster
+  mean fell back to equal weights without a warning. The year-specific
+  capacity is now kept and used. The harness path never carries a capacity
+  on its pairs, so no scorecard row is affected.
 - **The country-level joint offset fit refuses a failed fit** (`vwf.correction.find_offsets_country_level`).
   It returned wherever L-BFGS-B stopped, without checking convergence,
   accepted offsets on the bound, and replaced an optimiser error with
