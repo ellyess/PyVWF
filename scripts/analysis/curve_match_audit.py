@@ -196,9 +196,34 @@ def _models_file(lib: dict) -> Path:
     raise FileNotFoundError(f"no models.csv on disk matches sha256 {lib['models_sha256']}")
 
 
+def training_fleet(files) -> pd.DataFrame:
+    """The training fleet from a run's ``train_turb_info_<k>.csv`` files.
+
+    A run writes one per cluster count, and they differ only in ``cluster``:
+    the audit reads units, models and capacities, which every file carries
+    alike. Taking the first file of a sorted glob relied on that silently, so
+    the files are checked to agree apart from ``cluster`` and the first is
+    returned, as before.
+
+    Raises:
+        FileNotFoundError: If there is no file.
+        ValueError: If two files disagree on anything but ``cluster``.
+    """
+    files = sorted(files)
+    if not files:
+        raise FileNotFoundError("no train_turb_info_*.csv in the run")
+    frames = [pd.read_csv(f, low_memory=False) for f in files]
+    base = frames[0].drop(columns=["cluster"], errors="ignore")
+    for path, frame in zip(files[1:], frames[1:]):
+        if not frame.drop(columns=["cluster"], errors="ignore").equals(base):
+            raise ValueError(f"{path} and {files[0]} disagree on more than the cluster column")
+    return frames[0]
+
+
 def audit(region: str, run_dir: Path) -> dict:
-    fleet_file = sorted(run_dir.glob("train_turb_info_*.csv"))[0]
-    fleet = pd.read_csv(fleet_file, low_memory=False)
+    fleet_files = sorted(run_dir.glob("train_turb_info_*.csv"))
+    fleet = training_fleet(fleet_files)
+    fleet_file = fleet_files[0]  # the file training_fleet returned, recorded below
     manifest = json.loads((run_dir / "run_manifest.json").read_text())
     lib = manifest["curve_library"]
     models_file = _models_file(lib)

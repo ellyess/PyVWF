@@ -117,7 +117,7 @@ def train_fleet_of(code: str, inputs: Inputs = INPUTS) -> pd.DataFrame:
     files = sorted((root / code).glob("train-*/train_turb_info_*.csv"))
     if not files:
         raise SystemExit(f"{code}: no training fleet under {root}")
-    return pd.read_csv(files[0], low_memory=False)
+    return audit.training_fleet(files)
 
 
 def test_fleet_of(code: str) -> pd.DataFrame:
