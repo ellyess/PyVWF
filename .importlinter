@@ -18,7 +18,6 @@ type = layers
 layers =
     vwf.cli | vwf.extensions | vwf.pinn | vwf.viz
     vwf.harness
-    vwf.vwf
     vwf.data
     vwf.sources
     vwf.loaders | vwf.datasets | vwf.provenance | vwf.curves

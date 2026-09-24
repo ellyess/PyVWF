@@ -102,8 +102,8 @@ their output.** The `realdata` tests skip where their inputs are absent,
 which includes CI, so no pull request check will tell you that a pin moved.
 Before committing a change to code the pins reach, run `pytest -m realdata`
 and state the counts in the pull request. The covered paths are listed in
-`scripts/dev/stamp.py`: every module under `src/vwf` except `vwf.py`,
-`pinn/`, `viz/` and `cli/`. *[Note, 2026-09-24: until this date the list was
+`scripts/dev/stamp.py`: every module under `src/vwf` except `pinn/`,
+`viz/` and `cli/`. *[Note, 2026-09-24: until this date the list was
 `harness/`, `metrics.py`, `correction.py` and `data.py`, so a change to
 `wind.py` that moved two published rows (AU-NEM and NZ, see
 `docs/findings/scorecard.md`) needed no stamp.]* A pin that moves is re-recorded in the same

@@ -56,11 +56,7 @@ scripts/
     baseline_bootstrap.py          paired bootstrap intervals for a scorecard row
     common_row_rescore.py          a scorecard row rescored on common rows
     eu_rerun_compare.py            paired comparison of evaluate runs of one row
-    regression_run_harness.py      the harness side of the harness-versus-legacy check
-    regression_run_legacy.py       the legacy side of the same check
-    regression_compare.py          the frame-level diff of the two
-    train_all_bias_corrections.py  legacy batch trainer (training.md, legacy batch path)
-    evaluate_all_pyvwf_runs.py     legacy batch scoring
+    regression_compare.py          frame-level diff of two runs' outputs
     export_voronoi_frames.py       cluster maps for TouchDesigner (the touchdesigner extra)
     ml_transfer_retest.py          ML transfer, round one (moves with pinn/, issue #12)
     ml_transfer_expanded.py        ML transfer, round two (moves with pinn/, issue #12)

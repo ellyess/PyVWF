@@ -126,7 +126,6 @@ Homepage = "https://github.com/ellyess/PyVWF"
 Repository = "https://github.com/ellyess/PyVWF"
 
 [project.scripts]
-pyvwf-train = "vwf.cli.train:main"
 pyvwf-validate = "vwf.cli.validate:main"
 
 [tool.setuptools.packages.find]
@@ -200,7 +199,7 @@ target-version = "py310"
 [tool.ruff.lint]
 # E: pycodestyle errors, F: pyflakes. Kept intentionally lean so the legacy
 # research scripts pass while still catching dead code, unused imports, and
-# real bugs (e.g. the discarded-merge bug fixed in vwf/vwf.py).
+# real bugs (e.g. a discarded-merge bug once fixed in the legacy vwf/vwf.py).
 select = ["E", "F"]
 ignore = [
     "E501",  # line length handled case-by-case in research code

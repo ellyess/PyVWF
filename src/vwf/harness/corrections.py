@@ -171,13 +171,12 @@ def _fit_offsets(
 ) -> pd.Series:
     """Fit each valid row's offset with :func:`correction.find_offset`.
 
-    Sequential by default, which is bit-for-bit the legacy
-    ``PyVWF.train(dask_n_workers=0)`` path the golden regression test pins.
-    Set ``PYVWF_OFFSET_WORKERS`` above 1 to fan the row-wise fit across that
-    many worker processes with :mod:`dask.distributed`, mirroring
-    ``PyVWF.train``'s parallel branch (``vwf.py``): the shared reanalysis and
-    curves are scattered once and broadcast, then ``find_offset`` runs per
-    partition. ``find_offset`` is a pure row function, so the parallel result
+    Sequential by default, the path the golden regression test pins bit for
+    bit against the correction functions called directly
+    (``tests/test_harness_corrections.py``). Set ``PYVWF_OFFSET_WORKERS``
+    above 1 to fan the row-wise fit across that many worker processes with
+    :mod:`dask.distributed`: the shared reanalysis and curves are scattered
+    once and broadcast, then ``find_offset`` runs per partition. ``find_offset`` is a pure row function, so the parallel result
     is identical, only faster; large sweeps (high cluster counts, monthly
     slices) are where it matters. Falls back to sequential on a small row
     count or any cluster-startup failure.
@@ -392,9 +391,8 @@ class AffineWindCorrection(CorrectionModel):
             )
 
         if obs_level == "country":
-            # Delegation mirror of PyVWF.train's country branch: one country
-            # observation per period, all cluster offsets optimised jointly
-            # (correction.find_offsets_country_level). Whether those
+            # One country observation per period, all cluster offsets optimised
+            # jointly (correction.find_offsets_country_level). Whether those
             # offsets are identifiable at all is an open question studied
             # elsewhere; nothing here changes the estimator.
             unique_periods = train_bias_df[["year", time_res]].drop_duplicates()
@@ -429,7 +427,7 @@ class AffineWindCorrection(CorrectionModel):
             )
             return format_bc_factors(train_bias_df, time_res), clus_info
 
-        # Sequential offset fit, mirroring PyVWF.train(dask_n_workers=0):
+        # Sequential offset fit, the path the golden regression test pins:
         # optimise rows with usable observations, zero-fill obs == 0, keep
         # NaN observations NaN.
         valid = train_bias_df[train_bias_df["obs"].notna() & (train_bias_df["obs"] > 0)].copy()

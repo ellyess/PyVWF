@@ -1,8 +1,7 @@
 """Country-level observation source backed by caller-supplied DataFrames.
 
-This is the adapter behind :meth:`vwf.vwf.PyVWF.load_country_data`. Country-level
-observations (ENTSO-E derived, for example) are fetched and cached outside the
-library, then handed to PyVWF as a pair of DataFrames. Wrapping them in a source
+Country-level observations (ENTSO-E derived, for example) are fetched and
+cached outside the library, then handed to PyVWF as a pair of DataFrames. Wrapping them in a source
 lets the country-level path travel the same seam as the turbine-level path.
 """
 

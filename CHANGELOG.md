@@ -15,6 +15,18 @@ this file stay in step with it.
 
 ### Breaking
 
+- **The legacy `PyVWF` path is removed; the harness is the one path.** Gone:
+  the `PyVWF` class (`vwf.vwf`), the `pyvwf-train` console script, the batch
+  scripts `train_all_bias_corrections.py` and `evaluate_all_pyvwf_runs.py`,
+  the year-specific grid loader (`load_year_specific_grid_points`), the
+  `pyvwf_config.py` writer, and the harness-versus-legacy runners. The class
+  duplicated the harness's orchestration with its own defaults and output
+  layout, and diverged from it on the country level. The harness runs the
+  same correction functions (`vwf.correction`, `vwf.wind`, `vwf.data`), and
+  the golden regression test still pins that equivalence. `vwf` now exports
+  `load_region`, `run_train`, `run_evaluate` and `run_transfer` in place of
+  `PyVWF`. The last commit with the removed code is recorded in
+  `docs/publications.md`.
 - **The per-timestep roughness is the default.** `prep_era5` now derives the
   roughness length from the 10 m to 100 m shear at every timestep unless a
   caller asks for `roughness="stored"`, where the default was `stored` before.

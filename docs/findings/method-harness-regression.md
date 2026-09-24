@@ -103,7 +103,12 @@ exercise (`EntsoeFileSource`, country-level `run_evaluate`, corrected-CF
 saving). Only the environment is external: a git worktree of `main` and a
 staging dir, with `PYVWF_INPUT` pointed at a directory holding the real curve
 files copied to the working names and the data directories symlinked. Each
-runner's docstring carries its invocation.
+runner's docstring carries its invocation. *[Note, 2026-09-24: the legacy
+path and both runners were removed so that the harness is the one path; check
+out `d039608` to re-run this comparison, as recorded in `docs/publications.md`.
+The frame comparator stays in the tree. The equivalence this document tested is
+still pinned bit for bit by `tests/test_harness_corrections.py`, against the
+correction functions the legacy class called.]*
 
 ## Conclusion
 

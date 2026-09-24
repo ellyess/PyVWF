@@ -523,7 +523,7 @@ def run_evaluate(
         factors = pd.read_csv(factors_path)
         if is_country:
             # Grid points carry their own cluster assignments; no re-clustering
-            # runs on the country-level path (mirrors PyVWF.simulate_cf). The
+            # runs on the country-level path. The
             # same resolution training used has to be reapplied here, or a
             # single-cluster national fit would be merged against a grid still
             # carrying its per-zone clusters and every factor would come out

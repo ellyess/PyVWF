@@ -9,7 +9,7 @@
 #
 #   docker build -t pyvwf .
 #   docker run --rm pyvwf                      # the bundled synthetic demo
-#   docker run --rm pyvwf pyvwf-train --help   # the CLI
+#   docker run --rm pyvwf pyvwf-validate --help   # the CLI
 #
 # Running against your own data means mounting it; see the README.
 

@@ -1,14 +1,16 @@
 """Generate the inputs of the country-level regions.
 
-For NL, FR, BE, NO, ES, SE, IT, PT and IE this builds three things, each in its
+For NL, FR, BE, NO, ES, SE, IT, PT and IE this builds two things, each in its
 own module:
 
 1. grid points with a representative turbine and their clusters
    (:mod:`vwf.datasets.country_grid`);
 2. ENTSO-E observations for the training years and the test year
-   (:mod:`vwf.datasets.entsoe_country_obs`);
-3. ``pyvwf_config.py``, which the legacy batch path reads
-   (:mod:`vwf.datasets.pyvwf_config_writer`).
+   (:mod:`vwf.datasets.entsoe_country_obs`).
+
+The harness reads both through each region's config in ``configs/regions/``.
+Until 2026-09-24 a third step wrote a config module for the legacy batch path,
+which was removed.
 
 The observation fetch needs the ``data`` extra and an ENTSO-E API key, passed
 in the environment for the one command.
@@ -30,7 +32,6 @@ from pathlib import Path
 from vwf.datasets.country_grid import COUNTRY_CONFIGS, generate_grid_points
 from vwf.datasets.entsoe_country_obs import fetch_observations
 from vwf.datasets.fetch_entsoe_capacity_factors import ENTSOEWindDataFetcher
-from vwf.datasets.pyvwf_config_writer import generate_pyvwf_config
 
 
 def main():
@@ -167,24 +168,6 @@ def main():
             traceback.print_exc()
             return 1
 
-    # Generate PyVWF configuration
-    print("\n" + "=" * 70)
-    print("STEP 3: Generate PyVWF Configuration File")
-    print("=" * 70)
-
-    try:
-        generate_pyvwf_config(
-            countries=[c.upper() for c in args.countries],
-            train_years=args.train_years,
-            test_year=args.test_year,
-            output_dir=args.output_dir,
-        )
-    except Exception as e:
-        print(f"\n✗ Error generating config: {e}")
-        import traceback
-
-        traceback.print_exc()
-
     # Print summary
     print("\n" + "=" * 70)
     print("✓ DATA GENERATION COMPLETE")
@@ -208,54 +191,26 @@ def main():
             )
             print(f"    │   │   └── {country.lower()}_test_{args.test_year}.csv")
 
-    print("    └── pyvwf_config.py")
-
     print("\n" + "=" * 70)
     print("NEXT STEPS")
     print("=" * 70)
 
     print("""
-1. Use the grid points for ERA5 simulation:
+1. Train and evaluate a country through the harness, from its region config:
 
-   from pyvwf_config import get_config
-   config = get_config("NL")
+   pyvwf-validate train --region configs/regions/<code>.toml
+   pyvwf-validate evaluate --region configs/regions/<code>.toml \\
+       --train-run output/validation/<CODE>/train-<run>
 
-   grid_points = pd.read_csv(config["grid_points_path"])
-   # Grid points have: lat, lon, ID, height, model, capacity, cluster
-
-2. Load observations for training:
-
-   obs_train = pd.read_csv(config["train_obs_path"], index_col=0, parse_dates=True)
-   obs_test = pd.read_csv(config["test_obs_path"], index_col=0, parse_dates=True)
-
-3. Run PyVWF workflow:
-
-   vwf_model = model.PyVWF(
-       "",
-       config["country"],
-       True,
-       calc_z0=config["calc_z0"],
-       cluster_mode=config["cluster_mode"],
-       cluster_list=config["cluster_list"],
-       time_res_list=config["time_res_list"],
-       obs_level="country"  # ← KEY: Country-level observations!
-   )
-
-   vwf_model.train()
-   vwf_model.simulate_cf(config["test_year"])
-
-4. Visualize correction regions:
+2. Visualise the correction regions:
 
    import geopandas as gpd
-   cluster_geoms = gpd.read_file(config["cluster_geoms_path"])
-   cluster_geoms.plot(column='cluster', cmap='Set3', edgecolor='black')
+   gpd.read_file("<output_dir>/grid_points/<code>/<code>_correction_regions.geojson").plot(
+       column="cluster", cmap="Set3", edgecolor="black"
+   )
 
-5. For Norway, consider using bidding zones (NO_1..NO_5) instead of KMeans:
-
-   # Fetch NO zones separately
-   python vwf/datasets/fetch_entsoe_capacity_factors.py \\
-       --countries NO_1 NO_2 NO_3 NO_4 NO_5 \\
-       --year-start 2018 --year-end 2020
+3. For Sweden, the bidding-zone region (configs/regions/se_bz.toml) fits
+   per-zone observations instead of KMeans clusters.
 """)
 
     return 0

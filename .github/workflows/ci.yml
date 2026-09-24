@@ -211,7 +211,7 @@ jobs:
         run: grep -q "reduced the mean capacity-factor error" /tmp/demo.log
 
       - name: The console script is on PATH
-        run: docker run --rm pyvwf:ci pyvwf-train --help
+        run: docker run --rm pyvwf:ci pyvwf-validate --help
 
       - name: The bundled curve library resolves inside the image
         # PYVWF_INPUT points at an empty mount point by default, so this also
@@ -265,4 +265,4 @@ jobs:
           /tmp/clean/bin/python -c "import vwf; print('pyvwf', vwf.__version__)"
           /tmp/clean/bin/python -c "import vwf.wind, vwf.correction, vwf.metrics, vwf.viz"
           /tmp/clean/bin/python -c "import vwf.harness, vwf.sources, vwf.provenance, vwf.curves"
-          /tmp/clean/bin/pyvwf-train --help
+          /tmp/clean/bin/pyvwf-validate --help
