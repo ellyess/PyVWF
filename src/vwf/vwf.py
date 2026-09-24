@@ -30,8 +30,6 @@ from vwf.clustering import cluster_turbines
 
 from vwf.sources import InMemoryCountrySource, ObservationSource
 
-pd.options.mode.chained_assignment = None  # default='warn'
-
 
 def _refuse_northern_seasons_south(turb_info, time_res_list):
     """Refuse the ``season`` slice for a fleet south of the equator.
