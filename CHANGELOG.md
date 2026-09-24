@@ -115,6 +115,13 @@ this file stay in step with it.
 
 ### Fixed
 
+- **Evaluation refuses a training run that does not belong to its config**
+  (`vwf.harness.driver.run_evaluate`). It scored every `factors_*.csv` in
+  the training directory, so a file left by another configuration added a
+  variant and could move the rows the reported variant is scored on; and it
+  never read the training manifest. It now refuses factors outside the
+  config's cluster counts and time slices, and a manifest naming another
+  region, correction model or season mapping. A run with no manifest warns.
 - **A region config with an unknown key or section is refused**
   (`vwf.harness.regions.load_region`). Every optional key has a default, so
   a misspelt one (`roughnes = "stored"`) was ignored and the default applied
