@@ -294,6 +294,9 @@ def run_train(
         bbox=spec.bbox,
         allow_extrapolation=spec.allow_extrapolation,
         roughness=spec.roughness,
+        # The config's window is the one fitted, not the adapter's default;
+        # before 2026-09-24 the two only agreed because every config matched.
+        train_years=spec.train_years if spec.obs_level == "turbine" else None,
     )
 
     model = get_correction(spec.correction_model)

@@ -115,6 +115,15 @@ this file stay in step with it.
 
 ### Fixed
 
+- **Turbine-level training fits the config's `train_years`**
+  (`vwf.harness.driver.run_train`, `vwf.data.train_set`, `prep_country`).
+  Training asked each adapter for observations without years, so the
+  adapter's hard-coded default window was the one fitted and the config's
+  `train_years` reached only the manifest and the accepted-years count. The
+  config's window is now passed through. Every shipped config already
+  matched its adapter, so no scorecard row changes; a config naming another
+  window is now trained on it. The legacy path passes no window and keeps
+  the adapter default.
 - **The legacy path refuses the `season` slice for a southern fleet**
   (`PyVWF.train`, and so `pyvwf-train`). It has no season mapping and
   labelled months with Northern-Hemisphere seasons, so a southern fleet's
