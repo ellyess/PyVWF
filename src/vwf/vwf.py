@@ -33,6 +33,34 @@ from vwf.sources import InMemoryCountrySource, ObservationSource
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
+def _refuse_northern_seasons_south(turb_info, time_res_list):
+    """Refuse the ``season`` slice for a fleet south of the equator.
+
+    The legacy path has no season mapping: it labels months with the
+    Northern-Hemisphere seasons, so a southern fleet's "winter" factors would be
+    fitted on its summer. The harness takes explicit month lists from the region
+    config; this path cannot, so it stops rather than fit the wrong months.
+
+    Args:
+        turb_info: The training fleet, with a ``lat`` column.
+        time_res_list: The time slices to be fitted.
+
+    Raises:
+        ValueError: If ``season`` is requested and the fleet's median latitude is
+            below the equator.
+    """
+    if not time_res_list or "season" not in time_res_list or "lat" not in turb_info:
+        return
+    median_lat = float(pd.to_numeric(turb_info["lat"], errors="coerce").median())
+    if median_lat < 0:
+        raise ValueError(
+            f"This fleet lies south of the equator (median latitude {median_lat:.1f}), and "
+            "the legacy PyVWF path labels seasons with Northern-Hemisphere months. Drop "
+            "'season' from time_res_list, or train through the harness "
+            "(pyvwf-validate), which takes the region's own season months."
+        )
+
+
 class PyVWF:
     """Train and run the virtual wind farm model.
 
@@ -450,6 +478,8 @@ class PyVWF:
             allow_extrapolation=self.allow_extrapolation,
             roughness=self.roughness,
         )
+
+        _refuse_northern_seasons_south(turb_info_train, getattr(self, "time_res_list", None))
 
         # Store training data for downstream access
         self.gen_cf = gen_cf

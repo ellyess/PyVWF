@@ -115,6 +115,13 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The legacy path refuses the `season` slice for a southern fleet**
+  (`PyVWF.train`, and so `pyvwf-train`). It has no season mapping and
+  labelled months with Northern-Hemisphere seasons, so a southern fleet's
+  "winter" factors were fitted on its summer; `pyvwf-train` resolves the
+  southern regions and fits `season` by default. It now stops with a message
+  pointing to `pyvwf-validate`, which takes each region's own months. Every
+  scorecard row runs through the harness and is unaffected.
 - **Evaluation refuses a training run that does not belong to its config**
   (`vwf.harness.driver.run_evaluate`). It scored every `factors_*.csv` in
   the training directory, so a file left by another configuration added a

@@ -54,7 +54,10 @@ def _build_parser() -> argparse.ArgumentParser:
         type=str,
         nargs="*",
         default=["fixed", "season", "bimonth", "month"],
-        help="Time-resolution modes to evaluate.",
+        help=(
+            "Time-resolution modes to evaluate. 'season' uses Northern-Hemisphere months "
+            "and is refused for a fleet south of the equator; use pyvwf-validate there."
+        ),
     )
     p.add_argument(
         "--add-nan",
