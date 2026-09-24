@@ -8,7 +8,7 @@ anywhere in this workstream. Doing it here, once, in a process that holds
 nothing else, keeps that spike out of the long fitting run -- where an
 out-of-memory kill would cost hours rather than a minute.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/prep_rf_features.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/prep_rf_features.py
 """
 
 from __future__ import annotations

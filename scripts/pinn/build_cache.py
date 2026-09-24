@@ -11,7 +11,7 @@ extent (``era5_record.json``). A ``run_manifest.json`` in ``--out`` records the
 git state, curve library and the configs by sha256. The build refuses a dirty
 tree unless ``--allow-dirty`` is given.
 
-Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
+Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
          scripts/pinn/build_cache.py --regions DK DE UK US BR
 """
 

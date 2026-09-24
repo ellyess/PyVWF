@@ -24,7 +24,7 @@ This script:
 Diagnostic. No gate is claimed here; gates for the physics-informed model are
 pre-specified separately in docs/findings/method-physics-informed-prespecification.md.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d2_reparameterise.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d2_reparameterise.py
 """
 
 from pathlib import Path

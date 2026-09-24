@@ -15,7 +15,7 @@ experiment never scored: the pooled training-region mean.
 Diagnostic only -- no model is tuned here and no gate is claimed. It measures
 existing artefacts to decide which metric later gates should be written in.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d0_metric_reframe.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d0_metric_reframe.py
 """
 
 from pathlib import Path

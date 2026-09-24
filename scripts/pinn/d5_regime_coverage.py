@@ -23,7 +23,7 @@ method that succeeds there deserves more credit than one that does not have to.
 
 Measurement only: no model, no gate.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d5_regime_coverage.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d5_regime_coverage.py
 """
 
 from __future__ import annotations

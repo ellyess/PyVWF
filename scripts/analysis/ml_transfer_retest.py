@@ -9,7 +9,7 @@ model run; see docs/findings/method-ml-transfer.md.
 Requires the train outputs under output/validation/ (train-sweep2/train-sweep3
 runs at commit 8a032d6) and input/reference/terrain/etopo_global.nc.
 
-Run: /opt/anaconda3/bin/python scripts/analysis/ml_transfer_retest.py
+Run: /opt/miniconda3/envs/pyvwf/bin/python scripts/analysis/ml_transfer_retest.py
 """
 
 from pathlib import Path
