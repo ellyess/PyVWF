@@ -4,6 +4,45 @@
 **Scope:** the Australia/NEM seasonal validation: the diagnosed bias structure, the
 pre-specified cycle gate, and the absolute-skill cost reported alongside it.
 
+**Correction notice, 2026-09-24: every corrected figure in this document is
+withdrawn; the corrected values are not yet known.** `correct_wind_speed`
+rebuilt the turbine axis in sorted ID order and then attached each unit's model
+key and capacity by position, in the fleet's own order. A fleet whose IDs were
+not already sorted, and which used more than one model key, therefore ran its
+corrected simulation on other units' curves and capacities. Fixed in
+`a94670c`; the defect was in the code before this document was written.
+
+This document's runs were not retained, so the defect cannot be confirmed on
+them directly. Both of its fleets meet the condition on the evidence that
+remains:
+
+- the open-stack fleet the validation notebook reads
+  (`scripts/studies/method-generalisation/data/au_nem_md_open.csv`) is 104
+  farms in unsorted ID order on 11 model keys;
+- every AU-NEM training run retained from the same period
+  (`output/validation/*_2026-07-24/AU-NEM/`) has its 67 farms in unsorted
+  order, and all but one carry 11 model keys;
+- on the scorecard's AU-NEM row (training years 2020-22, test year 2023), the
+  fix moved the corrected RMSE from 0.0933 to 0.0787 and left the uncorrected
+  row unchanged (`scorecard.md`, notice of 2026-09-24).
+
+**Withdrawn:** every corrected figure below, on both curve libraries. That is
+the corrected columns of the gate table, the fleet gate (0.0724 → 0.0645 and
+0.0672 → 0.0614), the SA cycle figures, the JJA figures, the corrected row of
+the absolute-skill table and the change it reports, and the corrected figures
+of the far-north exclusion re-run. Whether the pre-specified gate passes on
+the corrected simulation is therefore not known, and neither is the direction
+of the absolute-skill result. Each withdrawn figure is marked where it stands.
+
+**Standing:** every uncorrected figure, including the diagnosed seasonal
+amplitude (June 1.617 against 1.394 observed, January 0.929 against 1.090),
+and the fitted factors, which training produces before the defective step.
+
+**What will produce the corrected values:** re-running
+`scripts/studies/method-generalisation/au_nem_validation.ipynb` on the open
+stack before and after the fix, with the gate computed exactly as registered.
+The real-library results need the same re-run on the licensed library.
+
 **Finding.** PyVWF **diagnosed the structure of ERA5's NEM bias**: a
 near-zero level bias (fleet MBE −0.024) combined with an **over-amplified
 seasonal cycle in South Australia**. The shape is right (winter-peaking) but
@@ -16,13 +55,15 @@ structure, **absolute farm-level skill is not improved**, because there is
 almost no level bias to remove (see *Absolute skill*, reported in full below).
 Regions with little seasonal bias showed no improvement or slight
 degradation, the expected behaviour of an honest seasonal correction, and
-part of the evidence (see *Selectivity*).
+part of the evidence (see *Selectivity*). *[Withdrawn 2026-09-24: every
+corrected figure in this paragraph; see the notice of that date.]*
 
 The fleet-level gate (capacity-weighted normalized-cycle RMSE, 76 farms with
 complete held-out-2023 observations) passes on both curve libraries
 (real 0.0724 → 0.0645, −10.9%; open 0.0672 → 0.0614, −8.7%) with no
 divergence in verdict, direction, or regional pattern. The fleet number is
-supporting detail; the finding is SA.
+supporting detail; the finding is SA. *[Withdrawn 2026-09-24: the corrected
+gate figures and the verdict; see the notice of that date.]*
 
 ## Setup
 
@@ -60,6 +101,9 @@ Normalized-cycle RMSE vs observed, capacity-weighted (`corrected` = seasonal):
 | QLD1 (3) | 0.1139 | 0.1249 | 0.1138 | 0.1397 |
 | TAS1 (4) | 0.0509 | 0.0470 | 0.0345 | 0.0587 |
 
+*[Withdrawn 2026-09-24: both `cor` columns, and the JJA figures below; the
+`unc` columns stand. See the notice of that date.]*
+
 JJA (winter) |error|, fleet: real 0.0506 → 0.0443 (improved); open
 0.0401 → 0.0400 (**neutral**, reported as such). One nuance a reader of
 both tables will spot, stated here first: on the real library the *fixed*
@@ -79,6 +123,10 @@ and it only works if the other numbers are shown too. They are:
 |---|---|---|---|
 | uncorrected | **0.104** | 0.085 | −0.024 |
 | corrected (5, season) | 0.120 | 0.096 | −0.041 |
+
+*[Withdrawn 2026-09-24: the corrected row, and every statement in this
+section that rests on it, including the +16% RMSE; the uncorrected row stands.
+See the notice of that date.]*
 
 The seasonal correction **worsens absolute farm-level skill in Australia**
 (+16% RMSE) while improving fleet cycle tracking. The explanation is the
@@ -106,7 +154,9 @@ is signal, not an artifact of a method that always improves numbers. Both
 curve libraries reproduce the same regional pattern, so the selectivity is
 robust to curve choice and matching strategy (which are confounded between
 the two stacks by design; had the verdicts diverged, that was a
-stop-and-understand condition, and it did not occur).
+stop-and-understand condition, and it did not occur). *[Withdrawn 2026-09-24:
+the corrected figures of this section and the pattern read from them; see the
+notice of that date.]*
 
 ## The n=1 cluster, checked
 
@@ -118,6 +168,8 @@ the gate **strengthens** (0.0780 → 0.0637, −18.3%), SA is preserved
 so the outlier had also been distorting the NSW clustering. VIC remains mildly
 negative. QLD's apparent degradation traces to that n=1 cluster; excluding
 it, the picture is unchanged where it matters and better where it isn't.
+*[Withdrawn 2026-09-24: the corrected figures of the exclusion re-run; the
+fitted scalars of the n=1 cluster stand. See the notice of that date.]*
 
 A methodological lesson worth keeping: geographic outliers in k-means
 clustering distort *neighbouring* clusters, not just their own; the
@@ -144,7 +196,10 @@ does establish: SA's effective generation cycle is materially misrepresented
 by uncorrected ERA5, the correction learns and compresses that
 misrepresentation, and the improvement holds across two independent curve
 stacks, a result that stands whichever mixture of resource bias and
-curtailment produced the observed cycle.
+curtailment produced the observed cycle. *[Withdrawn 2026-09-24: the claim
+that the corrected model tracks SA generation better, which rests on corrected
+figures; the observation that uncorrected ERA5 misrepresents SA's cycle
+stands. See the notice of that date.]*
 
 ## Fitted factors (real library, seasonal)
 
@@ -163,10 +218,12 @@ differences between stacks isolate the curve effect.
   reference/composite machines, not per-OEM curves. This caveat travels with
   every open-stack number in this document and elsewhere.
 - Largest corrected-month miss in SA: December (1.174 simulated vs 0.973
-  observed normalized); the correction overshoots early summer.
+  observed normalized); the correction overshoots early summer. *[Withdrawn
+  2026-09-24; see the notice of that date.]*
 - TAS (n=4, flattest observed cycle) splits between libraries (improves on
   real, worsens on open): small-n noise, stated rather than resolved; it
-  does not affect the gate or the SA finding.
+  does not affect the gate or the SA finding. *[Withdrawn 2026-09-24; see the
+  notice of that date.]*
 - Hub heights are a uniform 100 m default (`height_source` marked); GWPT
   carries no heights. Vintage-aware heights are a named follow-up.
 

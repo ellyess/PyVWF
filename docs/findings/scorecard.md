@@ -71,10 +71,11 @@ keeps its dagger (maximum scalar 2.64, four failed offsets), and NZ stays clean
   `refresh_2026-09-20` AU-NEM run, before and after the fix alike, because its
   rebuilt uncorrected MBE (0.00886) does not reproduce the run's `metrics.csv`
   (0.00856).
-- **Not yet checked:** other documents that quote these two rows or were built
-  on AU-NEM or NZ corrected output, including `region-nz.md`,
-  `region-au-nem.md` and the transfers into AU-NEM in
-  `method-generalisation.md`.
+- **Other documents.** `region-nz.md` carries its own notice of the same date,
+  with its run re-evaluated before and after the fix. `region-au-nem.md`
+  carries a notice withdrawing every corrected figure, because its runs were
+  not retained and cannot be re-evaluated. Not yet checked: the transfers into
+  AU-NEM in `method-generalisation.md`.
 
 Data: `output/c1_turbine_order_2026-09-24/` (`before/` and `after/` evaluate
 runs, and `bootstrap_before/` and `bootstrap_after/`).
@@ -680,7 +681,9 @@ additive spatial bias (`method-country-level.md`).
   fleet MBE is partly an aggregation artefact.
 - **AU-NEM's "does correction help?" is config-dependent** (it improves the
   fleet seasonal cycle but can worsen absolute farm RMSE in curtailed South
-  Australia); the table row is the matched-curve k-swept result.
+  Australia); the table row is the matched-curve k-swept result. *[Note,
+  2026-09-24: the figures behind this caveat, in `region-au-nem.md`, are
+  withdrawn by that document's notice of this date.]*
 - Screening-level throughout: not MEASNET/DNV-accredited, not investment advice.
 
 ## Data provenance

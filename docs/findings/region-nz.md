@@ -4,6 +4,47 @@
 **Scope:** New Zealand's first train and evaluate run, the first region in a new climate
 since the European set.
 
+**Correction notice, 2026-09-24: every corrected figure in this document was
+simulated on other units' power curves and capacities.** `correct_wind_speed`
+rebuilt the turbine axis in sorted ID order and then attached each unit's model
+key and capacity by position, in the fleet's own order. The NZ fleet's IDs are
+not sorted and its eight training farms use seven model keys, so the corrected
+simulation of this run gave farms other farms' curves and capacities. Fixed in
+`a94670c`. The factors and the uncorrected row are unaffected: training and the
+uncorrected simulation build the turbine axis in fleet order.
+
+The same training run (`output/validation/NZ/train-k147`) was re-evaluated twice
+from a clean tree on the licensed library as input root (`power_curves.csv`
+sha256 `689cfee7…`, the same file as the original run), with every unit
+resolved to a curve of `open` origin. Before the fix, at `b6bdfe4`, the
+re-evaluation reproduced the original run's RMSE, MAE, MBE and r exactly for
+every variant. After the fix, at `462f37b`. Training years 2019-23, test year
+2024, 12 farms and 137 farm-months scored:
+
+| Variant | RMSE before | RMSE after | MAE before | MAE after | MBE before | MBE after | r before | r after |
+|---|---|---|---|---|---|---|---|---|
+| uncorrected | 0.1568 | 0.1568 | 0.1426 | 0.1426 | -0.0617 | -0.0617 | 0.639 | 0.639 |
+| affine k=1 fixed | 0.1430 | **0.1509** | 0.1276 | **0.1357** | -0.0307 | **-0.0295** | 0.622 | **0.651** |
+| affine k=4 fixed | 0.1108 | **0.1070** | 0.0814 | **0.0770** | +0.0250 | **+0.0309** | 0.603 | **0.705** |
+| affine k=7 fixed | 0.1063 | **0.1046** | 0.0777 | **0.0761** | +0.0206 | **+0.0253** | 0.663 | **0.742** |
+| affine k=1 season | 0.1436 | **0.1516** | 0.1282 | **0.1360** | -0.0309 | **-0.0297** | 0.610 | **0.640** |
+| affine k=4 season | 0.1112 | **0.1078** | 0.0812 | **0.0774** | +0.0238 | **+0.0298** | 0.587 | **0.686** |
+| affine k=7 season | 0.1084 | **0.1068** | 0.0789 | **0.0766** | +0.0207 | **+0.0253** | 0.644 | **0.722** |
+
+The headline table below lists five of these seven variants and is left in
+place as published; its corrected rows are withdrawn and replaced by the after
+columns here. The sentences below that quote a withdrawn figure are marked
+where they stand. What those sentences claim has not been re-assessed against
+the after figures.
+
+The resampled gain in the notice of 2026-09-11 below was also computed on
+frames with this defect. Re-resampled after the fix, on the scorecard row's run
+(`refresh_2026-09-20`, `k=7` fixed), the RMSE gain is 0.052 with a 95% interval
+of -0.032 to 0.115; the interval still includes zero (`scorecard.md`, notice of
+2026-09-24). The MAE interval and the single-farm shares were not recomputed.
+
+Data: `output/c1_turbine_order_2026-09-24/region_nz/` (`before/` and `after/`).
+
 **Correction notice, 2026-09-11: the headline is not resolved.** The headline
 says the affine correction wins on every metric, and places NZ with DK, DE and
 UK among the regions where the correction earns its keep. When the test year's
@@ -31,12 +72,17 @@ external combined curve library, k-means++ defaults. Region config
 | **affine k=7 fixed** | **+0.021** | **0.0777** | **0.106** | 0.663 |
 | affine k=7 season | +0.021 | 0.0789 | 0.108 | 0.644 |
 
-12 farms, 137 farm-months in the test year.
+12 farms, 137 farm-months in the test year. *[Withdrawn 2026-09-24: every
+corrected row of this table; the uncorrected row stands. The figures after the
+fix are in the notice of that date.]*
 
 **Best config (k=7, fixed): MAE −45% (0.143→0.078), RMSE −32%
-(0.157→0.106).** This is a level-and-scale win of the same character as
+(0.157→0.106).** *[Withdrawn 2026-09-24: after the fix, 0.143→0.076 and
+0.157→0.105.]* This is a level-and-scale win of the same character as
 Denmark (D2: level-dominated regions gain broadly), and the opposite of
-Australia (near-unbiased, where the correction added farm-level noise). NZ is
+Australia (near-unbiased, where the correction added farm-level noise
+*[withdrawn 2026-09-24 in `region-au-nem.md`: that document's corrected
+figures rest on the same defect]*). NZ is
 the fourth region to land clearly in the "correction earns its keep" camp
 (DK, DE, UK, now NZ), and the first Southern-Hemisphere one that does.
 
@@ -50,16 +96,18 @@ the fourth region to land clearly in the "correction earns its keep" camp
   re-test flagged as globally under-represented (Tehachapi-type terrain), now
   with the sign confirmed on real data.
 - **The bias is spatially structured, not uniform.** k=1 barely helps (MAE
-  0.143→0.128); the jump is k=1→k=4 (0.128→0.081). A single fleet-wide factor
+  0.143→0.128); the jump is k=1→k=4 (0.128→0.081). *[Withdrawn 2026-09-24:
+  after the fix, k=1 MAE is 0.136 and k=4 MAE 0.077.]* A single fleet-wide factor
   leaves most of the error on the table: different farms need different
   corrections, and clustering is what captures it. Consistent with the
   us_br finding that `cluster_list=[1]` leaves 20–50% of achievable reduction
   unclaimed.
 - **Correlation is near-flat** (0.64→0.66): the win is in level and scale, not
-  timing. That is exactly what an affine-in-wind correction can fix and is the
+  timing. *[Withdrawn 2026-09-24: after the fix, r goes from 0.64 to 0.74 for
+  k=7 fixed.]* That is exactly what an affine-in-wind correction can fix and is the
   signature of a resource-magnitude bias rather than a phase error.
 - **Fixed ≈ season here.** Seasonal slicing does not beat fixed (k=7: 0.0777
-  vs 0.0789): NZ's year-round westerly regime has modest seasonal amplitude,
+  vs 0.0789 *[withdrawn 2026-09-24: 0.0761 vs 0.0766 after the fix]*): NZ's year-round westerly regime has modest seasonal amplitude,
   so there is little seasonal shape for the correction to exploit, unlike the
   trade-wind or monsoon regions.
 
