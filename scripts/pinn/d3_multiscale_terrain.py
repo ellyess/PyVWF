@@ -21,7 +21,7 @@ multi-scale set, which contains NO longitude/latitude and so cannot encode
 region identity, beats the published SET_A on wind-space transfer skill in
 >= 3 of 5 regions, and specifically improves the two failing regions, US and UK.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d3_multiscale_terrain.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d3_multiscale_terrain.py
 """
 
 from pathlib import Path

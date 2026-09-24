@@ -21,7 +21,7 @@ The fleet head is the same in every fitted arm. A secondary scoring fits
 no-terrain, relief-only and full on all nine regions and applies them to the
 nine country-level European folds, as national series.
 
-Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
+Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python -u \
          scripts/pinn/turbine_loro.py --cache <caches> --gwa <ratios> --out <dir> \
          --config CODE=PATH ...
      Add --report-only to recompute the summary and gates from the CSVs.

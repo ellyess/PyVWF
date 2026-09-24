@@ -23,7 +23,7 @@ whole point: it separates "add this physics" from "acquire this data".
 Fits once on all regions (in-region, so the residual is the model's floor rather
 than a transfer penalty) and reports per-region and pooled.
 
-Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
+Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
          scripts/pinn/d7_residual_anatomy.py
 """
 

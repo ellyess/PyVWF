@@ -16,7 +16,7 @@ set -u
 cd "$(dirname "$0")/../.."
 export PYVWF_INPUT=input/combined
 export PYTHONPATH=src
-PY=/opt/anaconda3/bin/python
+PY="${PYVWF_PYTHON:-/opt/miniconda3/envs/pyvwf/bin/python}"
 LOGS=output/pinn/logs
 mkdir -p "$LOGS"
 RUN="$LOGS/run.log"

@@ -14,7 +14,7 @@ It is a validity check on the parameterisation, not a skill measurement, and it
 can fail: values outside the physical ranges below would mean the terms are
 absorbing each other rather than measuring what they are named for.
 
-Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
+Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
          scripts/pinn/e2_physics_audit.py
 """
 

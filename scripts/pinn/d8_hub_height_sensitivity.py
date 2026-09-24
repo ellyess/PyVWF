@@ -23,7 +23,7 @@ The heterogeneity arm does not pretend to know Brazil's real heights. It asks
 what happens if they are spread as a modern fleet's are, which bounds the error
 the uniform default can be making.
 
-Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
+Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
          scripts/pinn/d8_hub_height_sensitivity.py
 """
 

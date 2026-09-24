@@ -24,7 +24,7 @@ explain.
 
 This is a measurement, not a model: no fitting to the evaluation, no gate.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/d4_target_noise_floor.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d4_target_noise_floor.py
 """
 
 from pathlib import Path

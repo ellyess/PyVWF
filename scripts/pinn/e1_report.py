@@ -13,7 +13,7 @@ Two incumbent columns, because the choice matters and neither alone is fair:
   affine (config)  the configuration the region's TOML actually names as its
                    sweep knee -- what a user of the repository would get.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/e1_report.py --tag primary
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/e1_report.py --tag primary
 """
 
 from __future__ import annotations

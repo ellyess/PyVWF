@@ -10,7 +10,7 @@ Three panels, each answering one question the tables answer less legibly:
   3. What the model learned: fitted speed-up against ERA5-cell relief, which is
      the relationship the whole parameterisation rests on.
 
-Run: PYTHONPATH=src /opt/anaconda3/bin/python scripts/pinn/e1_figures.py --tag primary
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/e1_figures.py --tag primary
 """
 
 from __future__ import annotations

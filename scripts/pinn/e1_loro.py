@@ -30,7 +30,7 @@ each condition's off-curve speeds are tallied and reported instead of dropping
 out. A ``run_manifest.json`` is written into ``--out`` before any fit, and the
 run refuses a dirty tree unless ``--allow-dirty`` is given.
 
-Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python \
+Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
          scripts/pinn/e1_loro.py --seeds 0 1 2 3 42
 """
 
