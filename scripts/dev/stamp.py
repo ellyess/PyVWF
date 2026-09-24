@@ -42,11 +42,27 @@ class Suite(NamedTuple):
 # its tests skip without it and a run of skips would stamp nothing tested.
 SUITES = {
     "realdata": Suite(
+        # Everything the pins reach: the harness, the adapters and dataset
+        # processing they call, and the numerics below them. Until 2026-09-24
+        # this was harness/, metrics.py, correction.py and data.py only, so a
+        # change to wind.py that moved two published rows needed no stamp.
         covered=(
             "src/vwf/harness/",
+            "src/vwf/sources/",
+            "src/vwf/datasets/",
+            "src/vwf/extensions/",
+            "src/vwf/loaders/",
             "src/vwf/metrics.py",
             "src/vwf/correction.py",
             "src/vwf/data.py",
+            "src/vwf/wind.py",
+            "src/vwf/curves.py",
+            "src/vwf/clustering.py",
+            "src/vwf/config.py",
+            "src/vwf/time_utils.py",
+            "src/vwf/geospatial.py",
+            "src/vwf/utils.py",
+            "src/vwf/provenance.py",
         ),
         pytest_args=("-m", "realdata"),
     ),

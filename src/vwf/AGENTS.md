@@ -4,8 +4,12 @@ The root `AGENTS.md` applies too. These rules cover the package code.
 
 ## The affine path
 
-- **Touching `harness/`, `metrics.py`, `correction.py` or `data.py` moves
-  real-data pins, and CI cannot see them.** They skip where inputs are absent.
+- **Touching the code the real-data pins reach moves them, and CI cannot see
+  them.** That is `harness/`, `sources/`, `datasets/`, `extensions/`,
+  `loaders/`, `metrics.py`, `correction.py`, `data.py`, `wind.py`,
+  `curves.py`, `clustering.py`, `config.py`, `time_utils.py`,
+  `geospatial.py`, `utils.py` and `provenance.py`: everything except
+  `vwf.py`, `pinn/`, `viz/` and `cli/`. They skip where inputs are absent.
   Run `python scripts/dev/stamp.py realdata` from the root, read the output,
   and state the counts and the skips in the pull request. A pin that moves is
   re-recorded in the same commit, with the size of the movement in the
