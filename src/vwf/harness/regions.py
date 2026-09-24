@@ -95,6 +95,29 @@ def load_region_by_code(code: str, config_dir: str | Path = REGIONS_DIR) -> Regi
     return spec
 
 
+#: The keys each section accepts. ``None`` means any name: [seasons] keys are
+#: the region's own season names.
+_KNOWN_KEYS: dict[str, frozenset[str] | None] = {
+    "region": frozenset({"code", "name"}),
+    "observations": frozenset(
+        {
+            "source",
+            "obs_level",
+            "obs_unit",
+            "train_years",
+            "test_years",
+            "pseudo_replicated_rows",
+            "station_id_regex",
+            "location_resolution",
+            "time_convention",
+        }
+    ),
+    "era5": frozenset({"path", "file_tag", "bbox", "roughness", "allow_extrapolation"}),
+    "correction": frozenset({"model", "cluster_list", "time_slices", "min_cluster_size"}),
+    "seasons": None,
+}
+
+
 def _fail(path: Path, message: str) -> None:
     raise ValueError(f"{path}: {message}")
 
@@ -135,6 +158,16 @@ def load_region(path: str | Path) -> RegionSpec:
     for section in ("region", "observations", "era5", "correction", "seasons"):
         if section not in raw:
             _fail(path, f"missing required section [{section}]")
+
+    # Every optional key has a default, so a misspelt one would otherwise be
+    # ignored and its default used without a word ([seasons] names are free).
+    for section in raw:
+        if section not in _KNOWN_KEYS:
+            _fail(path, f"unknown section [{section}]; valid: {sorted(_KNOWN_KEYS)}")
+        known = _KNOWN_KEYS[section]
+        unknown = sorted(set(raw[section]) - known) if known is not None else []
+        if unknown:
+            _fail(path, f"unknown key(s) {unknown} in [{section}]; valid: {sorted(known or ())}")
 
     region = raw["region"]
     obs = raw["observations"]

@@ -115,6 +115,11 @@ this file stay in step with it.
 
 ### Fixed
 
+- **A region config with an unknown key or section is refused**
+  (`vwf.harness.regions.load_region`). Every optional key has a default, so
+  a misspelt one (`roughnes = "stored"`) was ignored and the default applied
+  without a word. The loader now names the unknown key and lists the valid
+  ones. `[seasons]` names stay free. Every committed config already loads.
 - **Legacy country-level training weights by the year's own capacity**
   (`vwf.data.cluster_train_set`). When `PyVWF` merged year-specific grid
   capacities onto its training pairs, the cluster step merged the grid's

@@ -98,6 +98,37 @@ def test_invalid_configs_fail_with_field_in_message(tmp_path, old, new, match):
         load_region(path)
 
 
+@pytest.mark.parametrize(
+    "old, new, match",
+    [
+        # A misspelt optional key used to be ignored and its default applied.
+        ('file_tag = "ZZ"', 'file_tag = "ZZ"\nroughnes = "stored"', r"roughnes.*\[era5\]"),
+        (
+            "cluster_list = [5]",
+            "cluster_list = [5]\nmin_cluster = 3",
+            r"min_cluster.*\[correction\]",
+        ),
+        ('name = "Testland"', 'name = "Testland"\n\n[provenance]\nnote = "x"', r"\[provenance\]"),
+    ],
+)
+def test_unknown_keys_and_sections_fail(tmp_path, old, new, match):
+    with pytest.raises(ValueError, match=match):
+        load_region(write_config(tmp_path, **{old: new}))
+
+
+def test_season_names_are_free(tmp_path):
+    text = VALID.replace("summer", "wet").replace("winter", "dry")
+    spec = load_region(write_config(tmp_path, text=text))
+    assert set(spec.seasons) == {"wet", "autumn", "dry", "spring"}
+
+
+def test_every_committed_config_has_only_known_keys():
+    configs = sorted(CONFIG_DIR.rglob("*.toml"))
+    assert configs, "no region configs found"
+    for path in configs:
+        load_region(path)
+
+
 def test_missing_section_fails(tmp_path):
     text = VALID.replace("[seasons]", "[not_seasons]")
     path = tmp_path / "region.toml"
