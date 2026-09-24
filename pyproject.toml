@@ -100,7 +100,10 @@ touchdesigner = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "ruff>=0.1.0",
+    # Pinned to the ruff-pre-commit rev in .pre-commit-config.yaml: 0.12 and
+    # 0.16 format differently, so an unpinned CI ruff can fail
+    # `ruff format --check` with no code change (tests/test_tool_pins.py).
+    "ruff==0.16.8",
     "mypy>=1.0.0",
     "pandas-stubs",
     "pre-commit>=3.0.0",

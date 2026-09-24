@@ -78,6 +78,7 @@ def prep_country(
     *,
     obs_level: str = "turbine",
     source: ObservationSource | None = None,
+    train_years: tuple[int, int] | None = None,
 ):
     """Load observations and site metadata for a country.
 
@@ -90,6 +91,10 @@ def prep_country(
             window is used.
         obs_level: ``"turbine"`` or ``"country"``.
         source: Explicit observation source, bypassing registry resolution.
+        train_years: Inclusive ``(start, end)`` window to load for turbine-level
+            training. The harness passes the config's ``train_years`` so the
+            years fitted are the years the config and manifest name. Default
+            None keeps the source's own default window.
 
     Returns:
         Tuple of (observations, site metadata). The observation shape follows the
@@ -115,6 +120,8 @@ def prep_country(
     if source.obs_level == "country":
         return source.load_observations(), turb_info
 
+    if train_years is not None:
+        return source.load_observations(train_years[0], train_years[1]), turb_info
     return source.load_observations(year_test, year_test), turb_info
 
 
@@ -340,6 +347,7 @@ def train_set(
     bbox=None,
     allow_extrapolation=False,
     roughness="derived",
+    train_years: tuple[int, int] | None = None,
 ):
     """Prepare training inputs for PyVWF.
 
@@ -357,11 +365,16 @@ def train_set(
             harness). Default None keeps the legacy location.
         bbox: Optional bounding box forwarded to prep_era5. Default None keeps
             the legacy BoundingBoxes lookup.
+        train_years: Inclusive window forwarded to :func:`prep_country` for
+            turbine-level observations. Default None keeps the source's own
+            default window, which the legacy path relies on.
 
     Returns:
         Tuple of (gen_cf, turb_info, reanalysis, power_curves).
     """
-    obs_data, turb_info = prep_country(country, year_test, obs_level=obs_level, source=source)
+    obs_data, turb_info = prep_country(
+        country, year_test, obs_level=obs_level, source=source, train_years=train_years
+    )
 
     if mode != "all":
         turb_info = turb_info[turb_info["type"] == mode].copy()
@@ -787,9 +800,13 @@ def cluster_train_set(
         # turb_info has cluster assignments for each ID
         turb_info = assign_country_clusters(turb_info, num_clu)
 
-        # Merge cluster info with gen_cf
+        # Merge cluster info with gen_cf. The legacy path can arrive with a
+        # year-specific ``capacity`` already on gen_cf; merging the static one
+        # too would split it into capacity_x/capacity_y, and the cluster mean
+        # below would find no ``capacity`` and silently weight equally. The
+        # year-specific value is the one to weight by, so it is kept.
         merge_cols = ["ID", "cluster"]
-        if "capacity" in turb_info.columns:
+        if "capacity" in turb_info.columns and "capacity" not in gen_cf.columns:
             merge_cols.append("capacity")
         gen_cf_with_cluster = pd.merge(gen_cf, turb_info[merge_cols], on="ID", how="left")
 

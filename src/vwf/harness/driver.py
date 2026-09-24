@@ -13,6 +13,7 @@ must have AU-NEM on exactly one side.
 
 from __future__ import annotations
 
+import json
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
@@ -293,6 +294,9 @@ def run_train(
         bbox=spec.bbox,
         allow_extrapolation=spec.allow_extrapolation,
         roughness=spec.roughness,
+        # The config's window is the one fitted, not the adapter's default;
+        # before 2026-09-24 the two only agreed because every config matched.
+        train_years=spec.train_years if spec.obs_level == "turbine" else None,
     )
 
     model = get_correction(spec.correction_model)
@@ -357,6 +361,63 @@ def run_train(
     return run_dir
 
 
+def _check_train_run(spec: RegionSpec, train_run_dir: Path) -> None:
+    """Refuse to evaluate a training run that does not belong to ``spec``.
+
+    Evaluation scores every ``factors_*.csv`` it finds, on the rows every
+    variant can score, so a factors file left from another configuration
+    both adds a variant and can move the rows the reported one is scored on.
+    And a run trained under another region, correction model or season
+    mapping would be applied to the wrong clusters or months without error.
+
+    Raises:
+        ValueError: If a factors file lies outside the spec's cluster counts and
+            time slices, or the training manifest names a different region,
+            correction model or seasons.
+    """
+    expected = {(ts, k) for ts in spec.time_slices for k in spec.cluster_list}
+    unexpected = []
+    for path in sorted(train_run_dir.glob("factors_*.csv")):
+        time_res, num_clu = path.stem.split("_")[1:3]
+        if (time_res, int(num_clu)) not in expected:
+            unexpected.append(path.name)
+    if unexpected:
+        raise ValueError(
+            f"{train_run_dir} holds factors outside this config's cluster_list "
+            f"{list(spec.cluster_list)} and time_slices {list(spec.time_slices)}: "
+            f"{unexpected}. Evaluate with the config the run was trained with."
+        )
+
+    manifest_path = train_run_dir / "run_manifest.json"
+    if not manifest_path.exists():
+        warnings.warn(
+            f"{train_run_dir} has no run_manifest.json; its region, correction model "
+            "and seasons cannot be checked against the config",
+            stacklevel=3,
+        )
+        return
+    manifest = json.loads(manifest_path.read_text())
+    recorded = {
+        "region code": (manifest.get("region") or {}).get("code"),
+        "correction model": (manifest.get("correction") or {}).get("model"),
+        "seasons": {k: list(v) for k, v in (manifest.get("seasons") or {}).items()} or None,
+    }
+    wanted = {
+        "region code": spec.code,
+        "correction model": spec.correction_model,
+        "seasons": {k: list(v) for k, v in spec.seasons.items()},
+    }
+    mismatched = [
+        f"{name}: run {recorded[name]!r}, config {wanted[name]!r}"
+        for name in wanted
+        if recorded[name] is not None and recorded[name] != wanted[name]
+    ]
+    if mismatched:
+        raise ValueError(
+            f"{train_run_dir} was not trained under this config: " + "; ".join(mismatched)
+        )
+
+
 def run_evaluate(
     spec: RegionSpec,
     train_run_dir: str | Path,
@@ -389,6 +450,7 @@ def run_evaluate(
     is_country = spec.obs_level == "country"
     year = int(year if year is not None else spec.test_years[0])
     train_run_dir = Path(train_run_dir)
+    _check_train_run(spec, train_run_dir)
 
     source = source if source is not None else resolve_source(spec, "test")
     obs_cf, turb_info, reanalysis, power_curves = val_set(

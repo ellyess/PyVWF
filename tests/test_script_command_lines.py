@@ -9,7 +9,8 @@ working: for each, it runs ``cli`` with the entry functions replaced, and
 checks the call they receive, which is the call the ``sys.argv`` version made.
 
 A driver that needs an optional dependency to import is skipped where that
-dependency is missing.
+dependency is missing. A driver that fails to import a ``vwf`` name fails:
+that is the script breaking against the package, not a missing extra.
 """
 
 from __future__ import annotations
@@ -445,6 +446,10 @@ def load(script: str):
     try:
         spec.loader.exec_module(module)
     except ImportError as exc:
+        # A missing optional dependency is a skip. A missing vwf name is the
+        # script breaking against the package, which must fail, not skip.
+        if exc.name and (exc.name == "vwf" or exc.name.startswith("vwf.")):
+            raise
         pytest.skip(f"{script} needs {exc.name}")
     return module
 
@@ -479,3 +484,22 @@ def test_no_driver_reads_its_arguments_by_position_and_every_parser_is_pinned():
             unpinned.append(rel)
     assert positional == []
     assert unpinned == []
+
+
+def test_a_broken_vwf_import_fails_rather_than_skips(tmp_path):
+    script = tmp_path / "broken_driver.py"
+    script.write_text("from vwf.harness.driver import no_such_name\n")
+    try:
+        load(str(script))
+    except ImportError:
+        return
+    except pytest.skip.Exception:
+        pytest.fail("a broken vwf import was skipped, which CI reports as green")
+    pytest.fail("the broken import raised nothing")
+
+
+def test_a_missing_optional_dependency_skips(tmp_path):
+    script = tmp_path / "optional_driver.py"
+    script.write_text("import no_such_optional_dependency_xyz\n")
+    with pytest.raises(pytest.skip.Exception):
+        load(str(script))

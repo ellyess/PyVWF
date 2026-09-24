@@ -245,6 +245,18 @@ def test_a_grid_with_no_capacities_at_all_still_works(grid):
 # ---------------------------------------------------------------------------
 
 
+def test_year_specific_capacity_on_the_pairs_is_the_weight(grid):
+    """The legacy path merges each year's capacity onto the pairs before this
+    call. That capacity must weight the cluster mean; merging the grid's static
+    capacity as well split it into capacity_x/capacity_y, and the mean fell back
+    to equal weights without a word."""
+    frame = paired(grid, [0.10, 0.30, 0.20, 0.20]).drop(columns=["cluster"])
+    frame["capacity"] = [300.0, 100.0, 50.0, 50.0]  # this year's, not the grid's
+    factors, _ = cluster_train_set(frame, "fixed", 1, grid, obs_level="country")
+    weighted = np.average([0.10, 0.30, 0.20, 0.20], weights=[300.0, 100.0, 50.0, 50.0])
+    assert factors["scalar"].iloc[0] == pytest.approx(0.22 / weighted)
+
+
 def test_single_cluster_fit_has_one_row_per_period(grid):
     # cluster_train_set joins the cluster and capacity itself, so it receives
     # only the simulation paired with the national observation.

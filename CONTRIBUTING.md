@@ -66,8 +66,12 @@ shown otherwise, which is the case the detector exists for.
 that read real inputs carry the `realdata` marker, and they skip where the
 inputs are absent, which includes CI. So continuous integration cannot tell
 you that a pin moved: only a local run can. A pull request that changes
-anything under `vwf/harness/`, `vwf/metrics.py`, `vwf/correction.py` or
-`vwf/data.py` runs them and states the result in its description:
+code the pins reach runs them and states the result in its description.
+That is `vwf/harness/`, `vwf/sources/`, `vwf/datasets/`, `vwf/extensions/`,
+`vwf/loaders/`, `vwf/metrics.py`, `vwf/correction.py`, `vwf/data.py`,
+`vwf/wind.py`, `vwf/curves.py`, `vwf/clustering.py`, `vwf/config.py`,
+`vwf/time_utils.py`, `vwf/geospatial.py`, `vwf/utils.py` and
+`vwf/provenance.py`:
 
 ```bash
 pytest -m realdata                     # every pin that reads local inputs

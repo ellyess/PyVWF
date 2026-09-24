@@ -70,7 +70,15 @@ keeps its dagger (maximum scalar 2.64, four failed offsets), and NZ stays clean
   withdrawn. It cannot be recomputed yet: `baseline_bootstrap.py` stops on the
   `refresh_2026-09-20` AU-NEM run, before and after the fix alike, because its
   rebuilt uncorrected MBE (0.00886) does not reproduce the run's `metrics.csv`
-  (0.00856).
+  (0.00856). *[Correction to this bullet, 2026-09-24: the mismatch was the
+  driver scoring the uncorrected frame on 24 unit-months that the run's
+  common-row scoring had dropped (`scoring_exclusions.csv`); `95d0ec1` applies
+  those exclusions, and the rebuild then reproduces `metrics.csv` to 1e-16.
+  Re-resampled with the unchanged draws (1,000, seed 20260911), 75 farms: the
+  RMSE gain is **0.037, 95% interval 0.019 to 0.058**, after the fix, and was
+  0.023, 0.002 to 0.043, before it. The interval excludes zero, so the row
+  takes no ‡. Data: `output/c1_turbine_order_2026-09-24/bootstrap_before/` and
+  `bootstrap_after/`.]*
 - **Other documents.** `region-nz.md` carries its own notice of the same date,
   with its run re-evaluated before and after the fix. `region-au-nem.md`
   carries a notice withdrawing every corrected figure, because its runs were
@@ -142,7 +150,8 @@ also resolved, at 0.016 to 0.050.
 Two rows are resolved only narrowly, and their claims are not withdrawn.
 AU-NEM's RMSE gain is 0.021, with an interval of 0.001 to 0.040 *[withdrawn
 2026-09-24: computed on corrected frames that simulated units on other units'
-curves; see the notice of that date]*. AR's is 0.018,
+curves; on the `refresh_2026-09-20` run after the fix it is 0.037, 0.019 to
+0.058; see the notice of that date]*. AR's is 0.018,
 with an interval of 0.002 to 0.031, and its MAE gain interval, -0.001 to 0.024,
 includes zero. The interval is itself a lower bound on the uncertainty, so an
 interval that excludes zero by 0.001 or 0.002 is not a clean result. CL is not

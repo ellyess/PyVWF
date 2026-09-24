@@ -75,6 +75,12 @@ canonical 0.1227 -> 0.1040. Exact agreement is not expected, because the
 canonical run builds its observations through the processed `cl_obs.csv` path
 (capacity overrides, commissioning-prefix stripping, exclusions) while this reads
 raw CEN. Order of magnitude and sign agree, which is what the control is for.
+*[Note, 2026-09-24: "canonical" here is the July 2026 Chile row, k=10 fixed,
+from the same training run this study uses
+(`output/validation/cl_matched_2026-07-24/CL/train-matched`), so the control
+and the gate compare like with like. The scorecard's Chile row has since
+moved to 0.110 -> 0.104, through common-row scoring and the 2026-09-20
+refresh; do not read this study's figures against that row.]*
 
 ## Gates
 

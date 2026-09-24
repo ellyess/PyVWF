@@ -115,6 +115,47 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The power-curve cache cannot serve another table's curves**
+  (`vwf.wind._get_power_curve_cache`). It was keyed by `id()` of the curve
+  table and checked only the column names, so a later table that reused a
+  dead table's id got the dead table's interpolators, and entries were never
+  evicted. Each entry is now tied to its table's lifetime by a weak
+  reference. The interpolators are built as before.
+- **Turbine-level training fits the config's `train_years`**
+  (`vwf.harness.driver.run_train`, `vwf.data.train_set`, `prep_country`).
+  Training asked each adapter for observations without years, so the
+  adapter's hard-coded default window was the one fitted and the config's
+  `train_years` reached only the manifest and the accepted-years count. The
+  config's window is now passed through. Every shipped config already
+  matched its adapter, so no scorecard row changes; a config naming another
+  window is now trained on it. The legacy path passes no window and keeps
+  the adapter default.
+- **The legacy path refuses the `season` slice for a southern fleet**
+  (`PyVWF.train`, and so `pyvwf-train`). It has no season mapping and
+  labelled months with Northern-Hemisphere seasons, so a southern fleet's
+  "winter" factors were fitted on its summer; `pyvwf-train` resolves the
+  southern regions and fits `season` by default. It now stops with a message
+  pointing to `pyvwf-validate`, which takes each region's own months. Every
+  scorecard row runs through the harness and is unaffected.
+- **Evaluation refuses a training run that does not belong to its config**
+  (`vwf.harness.driver.run_evaluate`). It scored every `factors_*.csv` in
+  the training directory, so a file left by another configuration added a
+  variant and could move the rows the reported variant is scored on; and it
+  never read the training manifest. It now refuses factors outside the
+  config's cluster counts and time slices, and a manifest naming another
+  region, correction model or season mapping. A run with no manifest warns.
+- **A region config with an unknown key or section is refused**
+  (`vwf.harness.regions.load_region`). Every optional key has a default, so
+  a misspelt one (`roughnes = "stored"`) was ignored and the default applied
+  without a word. The loader now names the unknown key and lists the valid
+  ones. `[seasons]` names stay free. Every committed config already loads.
+- **Legacy country-level training weights by the year's own capacity**
+  (`vwf.data.cluster_train_set`). When `PyVWF` merged year-specific grid
+  capacities onto its training pairs, the cluster step merged the grid's
+  static capacity as well, splitting the column in two, and the cluster
+  mean fell back to equal weights without a warning. The year-specific
+  capacity is now kept and used. The harness path never carries a capacity
+  on its pairs, so no scorecard row is affected.
 - **The country-level joint offset fit refuses a failed fit** (`vwf.correction.find_offsets_country_level`).
   It returned wherever L-BFGS-B stopped, without checking convergence,
   accepted offsets on the bound, and replaced an optimiser error with

@@ -100,9 +100,13 @@ the same error: acting on a path without checking what else is under it.
 **Run the real-data pins when you touch the code they cover, and read
 their output.** The `realdata` tests skip where their inputs are absent,
 which includes CI, so no pull request check will tell you that a pin moved.
-Before committing a change under `vwf/harness/`, `vwf/metrics.py`,
-`vwf/correction.py` or `vwf/data.py`, run `pytest -m realdata` and state the
-counts in the pull request. A pin that moves is re-recorded in the same
+Before committing a change to code the pins reach, run `pytest -m realdata`
+and state the counts in the pull request. The covered paths are listed in
+`scripts/dev/stamp.py`: every module under `src/vwf` except `vwf.py`,
+`pinn/`, `viz/` and `cli/`. *[Note, 2026-09-24: until this date the list was
+`harness/`, `metrics.py`, `correction.py` and `data.py`, so a change to
+`wind.py` that moved two published rows (AU-NEM and NZ, see
+`docs/findings/scorecard.md`) needed no stamp.]* A pin that moves is re-recorded in the same
 commit, with the size of the movement in the message. Rerun a row the way
 its test runs it: `tests/test_pin_bootstrap_reproduction.py` sets
 `PYVWF_INPUT` per row, and rerunning a combined-library row under the

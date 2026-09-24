@@ -88,7 +88,10 @@ TIME_RES = "fixed"
 TRAIN_RUN = Path("output/validation/cl_matched_2026-07-24/CL/train-matched")
 RAW_CEN = Path("input/raw/cen")
 OUT = Path("output/hourly_test")
-MONTHLY_REFERENCE = (0.12271, 0.10398)  # known CL monthly uncorrected -> corrected
+# The July 2026 canonical CL row (k=10 fixed) from TRAIN_RUN itself, uncorrected
+# -> corrected, so the control and gate G2 compare like with like. The scorecard
+# CL row has since moved (0.110 -> 0.104); this is not that row.
+MONTHLY_REFERENCE = (0.12271, 0.10398)
 
 
 def _metrics(df: pd.DataFrame, sim: str) -> dict:

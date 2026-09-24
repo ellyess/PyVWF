@@ -9,6 +9,7 @@ Performance optimizations:
 from __future__ import annotations
 
 import warnings
+import weakref
 from typing import Any
 
 import xarray as xr
@@ -217,9 +218,12 @@ def fit_diagnostics(
 
 
 # Global cache for power curve interpolators (cleared on module reload).
-# Keyed by id() of the power-curve table; each entry holds the column tuple it
-# was built from (to detect a stale id() reuse), the speed grid, and the
-# per-model interpolators.
+# Keyed by id() of the power-curve table, the cheapest key for a lookup made on
+# every objective evaluation. id() is only unique while the table is alive, so
+# each entry holds a weak reference to its table and is dropped when the table
+# is garbage-collected: a later table that reuses the id cannot receive stale
+# curves, and the cache does not grow for the life of the process. A table
+# edited in place keeps its id and entry; build a new table instead.
 _power_curve_cache: dict[int, dict[str, Any]] = {}
 
 
@@ -293,8 +297,7 @@ def _get_power_curve_cache(powerCurveFile):
     """Return cached power curve arrays for a given power curve table."""
     cache_key = id(powerCurveFile)
     cached = _power_curve_cache.get(cache_key)
-    columns = tuple(powerCurveFile.columns)
-    if cached is not None and cached["columns"] == columns:
+    if cached is not None and cached["table"]() is powerCurveFile:
         return cached["x"], cached["curve_by_model"]
 
     x = powerCurveFile["data$speed"].to_numpy()
@@ -304,10 +307,11 @@ def _get_power_curve_cache(powerCurveFile):
         default_model=default_curve_key(powerCurveFile),
     )
     _power_curve_cache[cache_key] = {
-        "columns": columns,
+        "table": weakref.ref(powerCurveFile),
         "x": x,
         "curve_by_model": curve_by_model,
     }
+    weakref.finalize(powerCurveFile, _power_curve_cache.pop, cache_key, None)
     return x, curve_by_model
 
 
