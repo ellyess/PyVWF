@@ -74,8 +74,10 @@ keeps its dagger (maximum scalar 2.64, four failed offsets), and NZ stays clean
 - **Other documents.** `region-nz.md` carries its own notice of the same date,
   with its run re-evaluated before and after the fix. `region-au-nem.md`
   carries a notice withdrawing every corrected figure, because its runs were
-  not retained and cannot be re-evaluated. Not yet checked: the transfers into
-  AU-NEM in `method-generalisation.md`.
+  not retained and cannot be re-evaluated. `method-generalisation.md` carries a
+  notice withdrawing its Australia/NEM corrected figures and its DK → AU
+  transfer, with both transfers re-run before and after the fix from this
+  scorecard's training runs.
 
 Data: `output/c1_turbine_order_2026-09-24/` (`before/` and `after/` evaluate
 runs, and `bootstrap_before/` and `bootstrap_after/`).
