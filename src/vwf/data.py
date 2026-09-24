@@ -49,23 +49,14 @@ import pandas as pd
 
 import vwf.wind as wind
 from vwf.datasets.era5 import prep_era5
-
-# from vwf.datasets.era5 import prep_era5_daily_cached
 from vwf.clustering import cluster_turbines
 import vwf.correction as correction
 from vwf.curves import _default_power_curve, load_power_curves
 
-
-# Import from new utility modules
 from vwf.time_utils import add_time_resolution_columns
 from vwf.sources import ObservationSource, resolve
 from vwf.sources.base import ObsLevel
 from vwf.metrics import weighted_mean
-
-# ============================================================================
-# INTERNAL HELPERS
-# ============================================================================
-
 
 # ============================================================================
 # DATA PREPROCESSING AND ORCHESTRATION
@@ -818,7 +809,6 @@ def cluster_train_set(
 
         # Compute scalar per cluster with constraints to prevent extreme corrections
         df["scalar"] = df["obs"] / df["sim"]
-        # df["scalar"] = df["scalar"].clip(lower=0.5, upper=1.5)
         df["offset"] = 0.0
 
         # Keep same column naming convention

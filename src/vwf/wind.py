@@ -383,57 +383,6 @@ def aggregate_turbines_to_grid(turb_info: pd.DataFrame, reanalysis) -> pd.DataFr
     return out[["ID", "lat", "lon", "height", "capacity", "model"]]
 
 
-def simulate_country_cf(
-    reanalysis,
-    turb_info,
-    powerCurveFile,
-    bc_factors=None,
-    time_res=None,
-    *,
-    resample="ME",
-):
-    """Simulate country-level capacity factors from reanalysis data.
-
-    Args:
-        reanalysis: Reanalysis dataset with wind fields.
-        turb_info: Turbine metadata with locations and capacities.
-        powerCurveFile: Power curve table.
-        bc_factors: Optional bias correction factors.
-        time_res: Time resolution used for corrections.
-        resample: Pandas resample string (e.g., "ME") or None to skip resampling.
-
-    Returns:
-        Series with simulated capacity factor values.
-    """
-    # >>> ADD THIS (massive speed-up) <<<
-    turb_info = aggregate_turbines_to_grid(turb_info, reanalysis)
-
-    sim_ws = interpolate_wind(reanalysis, turb_info)
-
-    if bc_factors is not None:
-        if time_res is None:
-            raise ValueError("time_res must be provided when bc_factors is provided.")
-        sim_ws = correct_wind_speed(sim_ws, time_res, bc_factors, turb_info)
-
-    x, curve_by_model = _get_power_curve_cache(powerCurveFile)
-
-    def speed_to_cf_fast(da):
-        model = da.model[0].item()
-        akima = curve_by_model[model]
-        vals = np.clip(akima(da.data), 0.0, 1.0)
-        return xr.DataArray(vals, coords=da.coords, dims=da.dims)
-
-    sim_cf = sim_ws.groupby("model").map(speed_to_cf_fast)
-
-    w = sim_cf["capacity"]
-    country_cf = sim_cf.weighted(w).mean("turbine")
-
-    if resample is not None:
-        country_cf = country_cf.resample(time=resample).mean()
-
-    return country_cf.to_series()
-
-
 def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None = None):
     """Interpolate reanalysis wind speeds to turbine locations.
 
@@ -517,10 +466,10 @@ def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None 
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False, seasons=None):
     """Simulate wind speeds and capacity factors for turbines (OPTIMIZED).
 
-    Performance improvements:
-    - Uses np.interp instead of Akima (20-100x faster)
-    - Optional turbine aggregation (10-100x speedup for large datasets)
-    - Pre-computes power curves once
+    Power curves are Akima interpolators built once per curve table
+    (``_get_power_curve_cache``). ``aggregate=True`` first collapses turbines to
+    their reanalysis grid cells (``aggregate_turbines_to_grid``), a large speed-up
+    for big fleets that simulates cells rather than units.
 
     Args:
         reanalysis: Reanalysis dataset with wind fields.
@@ -566,7 +515,6 @@ def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False,
         model = da.model[0].item()
         akima = curve_by_model[model]
         vals = akima(da.data)
-        # vals = np.clip(akima(da.data), 0.0, 1.0)
         return xr.DataArray(vals, coords=da.coords, dims=da.dims)
 
     sim_cf = sim_ws.groupby("model").map(speed_to_cf_fast)
