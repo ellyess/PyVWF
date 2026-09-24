@@ -1,5 +1,7 @@
 """Bias correction utilities for PyVWF."""
 
+import warnings
+
 import numpy as np
 from scipy.optimize import brentq, minimize
 
@@ -264,7 +266,9 @@ def find_offsets_country_level(
             Default None keeps the hardcoded NH season months.
 
     Returns:
-        dict: Mapping of cluster ID to optimized offset value
+        dict: Mapping of cluster ID to optimized offset value. Every offset
+        of the period is NaN, with a warning, when the fit raises, does not
+        converge, or puts any offset within ``OFFSET_XTOL`` of a bound.
     """
     # Parse time_slice to month list
     months = parse_time_slice(time_slice, seasons)
@@ -321,20 +325,32 @@ def find_offsets_country_level(
     # Bounds: offsets between -10 and +10 m/s seem reasonable
     bounds = [(-10, 10) for _ in clusters]
 
-    # Optimize
+    # A failed joint fit is refused, never replaced by a value: every offset of
+    # the period is NaN, so format_bc_factors leaves the year out of each
+    # cluster's accepted years, as the turbine-level search does for its own
+    # refusals. The offsets are fitted jointly, so one that sits on a bound
+    # conditions all the others, and the whole period is refused with it.
+    refused = {cluster_id: np.nan for cluster_id in clusters}
+    where = f"year={year}, time_slice={time_slice}"
     try:
         result = minimize(
             objective, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 50, "ftol": 1e-6}
         )
-
-        # Return dict mapping cluster to offset
-        offsets_dict = {cluster_id: result.x[i] for i, cluster_id in enumerate(clusters)}
-
-        return offsets_dict
-
     except Exception as e:
-        print(
-            f"  Warning: Offset optimization failed for year={year}, time_slice={time_slice}: {e}"
+        warnings.warn(f"Country offset fit raised for {where}; offsets refused: {e}", stacklevel=2)
+        return refused
+    if not result.success:
+        warnings.warn(
+            f"Country offset fit did not converge for {where}; offsets refused: {result.message}",
+            stacklevel=2,
         )
-        # Return zero offsets as fallback
-        return {cluster_id: 0.0 for cluster_id in clusters}
+        return refused
+    x = np.asarray(result.x, dtype=float)
+    lo, hi = np.array(bounds, dtype=float).T
+    if np.any(np.isclose(x, lo, atol=OFFSET_XTOL) | np.isclose(x, hi, atol=OFFSET_XTOL)):
+        warnings.warn(
+            f"Country offset fit put an offset on a bound for {where}; offsets refused",
+            stacklevel=2,
+        )
+        return refused
+    return {cluster_id: float(x[i]) for i, cluster_id in enumerate(clusters)}

@@ -115,6 +115,15 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The country-level joint offset fit refuses a failed fit** (`vwf.correction.find_offsets_country_level`).
+  It returned wherever L-BFGS-B stopped, without checking convergence,
+  accepted offsets on the bound, and replaced an optimiser error with
+  all-zero offsets; each of those then counted as an accepted year. Now a
+  fit that raises, does not converge or puts any offset on a bound makes
+  every offset of that period NaN, with a warning, so the year leaves the
+  accepted years as the turbine-level search's refusals do. No fit of the
+  eight country-level scorecard rows hits any of the three. A converged fit
+  with a large residual is still accepted; that gap is logged on #47.
 - **Corrected simulations keep each unit's own power curve and capacity**
   (`vwf.wind.correct_wind_speed`). The function rebuilt the turbine axis in
   sorted ID order and then attached model keys and capacities by position in
