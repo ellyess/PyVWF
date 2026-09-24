@@ -115,6 +115,12 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The power-curve cache cannot serve another table's curves**
+  (`vwf.wind._get_power_curve_cache`). It was keyed by `id()` of the curve
+  table and checked only the column names, so a later table that reused a
+  dead table's id got the dead table's interpolators, and entries were never
+  evicted. Each entry is now tied to its table's lifetime by a weak
+  reference. The interpolators are built as before.
 - **Turbine-level training fits the config's `train_years`**
   (`vwf.harness.driver.run_train`, `vwf.data.train_set`, `prep_country`).
   Training asked each adapter for observations without years, so the
