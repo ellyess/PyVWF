@@ -50,6 +50,14 @@ uniform-curve amplitude check, none of which uses a corrected simulation of an
 unsorted multi-key fleet. The gridded export `au_nem_grid.nc` applies its
 factors on the grid and does not call `correct_wind_speed`; the validation note
 embedded in it quotes a `metrics.csv` figure that has not been checked.
+*[Correction to this notice, 2026-09-24: the file carries no validation note
+and quotes no `metrics.csv` figure. It was written by
+`export_au_grid_netcdf.py`, not by the harness exporter that embeds one. Its
+data stands: the corrected wind applies training-produced factors to grid
+cells, and its capacity factor uses one generic curve. Its `summary` attribute
+does repeat the withdrawn claim that the correction compresses South
+Australia's cycle toward observation. The file is left as written; the script
+no longer writes that claim.]*
 
 **A transfer re-measured.** No transfer run behind this document was
 retained. Both transfers were re-run from the scorecard rows' training runs

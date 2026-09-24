@@ -137,9 +137,10 @@ def main() -> None:
             "title": f"PyVWF corrected wind and illustrative CF, Australian NEM, {args.year}",
             "summary": "Per-cluster seasonal affine wind-speed corrections trained on "
             "AEMO 2020-2022 farm observations, applied to the ERA5 grid. "
-            "Headline finding: ERA5 over-amplifies South Australia's "
-            "seasonal cycle; the correction compresses it toward "
-            "observation (docs/findings/region-au-nem.md).",
+            "Diagnosis: ERA5 over-amplifies South Australia's seasonal "
+            "cycle (docs/findings/region-au-nem.md). Whether the correction "
+            "compresses it toward observation is not known: that document's "
+            "corrected figures were withdrawn on 2026-09-24.",
             "EXTRAPOLATION_CAVEAT": "Corrections were trained at wind-farm locations "
             "and extended to the grid by nearest cluster "
             "centroid. Cells far from training farms (see "
