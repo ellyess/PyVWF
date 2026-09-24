@@ -22,6 +22,63 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-09-24: the corrected figures of the AU-NEM and NZ
+rows were simulated on other units' power curves and capacities.**
+`correct_wind_speed` rebuilt the turbine axis in sorted ID order and then
+attached each unit's model key and capacity by position, in the fleet's own
+order. A fleet whose IDs were not already sorted therefore ran its corrected
+simulation with curves and capacities belonging to other units. Fixed in
+`a94670c`. The factors, the fit quality and every uncorrected figure are
+unaffected: training and the uncorrected simulation build the turbine axis in
+fleet order. Of the seventeen rows, only AU-NEM and NZ have test fleets that
+are both unsorted and on more than one model key, so only their corrected
+figures moved. CL, whose fleet is sorted and on ten model keys, was re-run as
+a control and reproduced its `metrics.csv` byte for byte.
+
+Each row's full `metrics.csv`, before and after the fix. Both are evaluations
+of the unchanged `refresh_2026-09-20` training runs, from a clean tree, on the
+licensed library as input root (`power_curves.csv` sha256 `689cfee7…`), with
+every unit resolved to a curve of `open` origin. Before the fix, at `b6bdfe4`,
+each reproduced its published `metrics.csv` byte for byte.
+
+AU-NEM, k45 season, training years 2020-22, test year 2023, 75 farms scored:
+
+| Variant | RMSE before | RMSE after | MBE before | MBE after | MAE before | MAE after | r before | r after |
+|---|---|---|---|---|---|---|---|---|
+| uncorrected | 0.1160 | 0.1160 | +0.0086 | +0.0086 | 0.0953 | 0.0953 | 0.460 | 0.460 |
+| affine-wind k45 season | 0.0933 | **0.0787** | -0.0051 | **+0.0011** | 0.0742 | **0.0592** | 0.615 | **0.694** |
+
+NZ, k7 fixed, training years 2019-23, test year 2024, 12 farms scored:
+
+| Variant | RMSE before | RMSE after | MBE before | MBE after | MAE before | MAE after | r before | r after |
+|---|---|---|---|---|---|---|---|---|
+| uncorrected | 0.1568 | 0.1568 | -0.0617 | -0.0617 | 0.1426 | 0.1426 | 0.639 | 0.639 |
+| affine-wind k7 fixed | 0.1063 | **0.1046** | +0.0206 | **+0.0253** | 0.0777 | **0.0761** | 0.663 | **0.742** |
+
+The turbine-level table below now carries the after figures. The figures it
+carried until today were: AU-NEM corrected RMSE 0.093, MBE -0.005, r 0.62; NZ
+corrected RMSE 0.106, MBE +0.021, r 0.66. Fit quality is unchanged: AU-NEM
+keeps its dagger (maximum scalar 2.64, four failed offsets), and NZ stays clean
+(maximum scalar 1.81).
+
+- **NZ keeps ‡.** Re-resampled on the frames after the fix with the unchanged
+  driver (1,000 paired draws, seed 20260911), its RMSE gain is 0.052 with a 95%
+  interval of -0.032 to 0.115; on the frames before the fix it was 0.051,
+  -0.032 to 0.114. The interval includes zero either way.
+- **AU-NEM's resampled gain is not known.** The interval quoted in the notice
+  below (0.001 to 0.040) was computed on frames with this defect, so it is
+  withdrawn. It cannot be recomputed yet: `baseline_bootstrap.py` stops on the
+  `refresh_2026-09-20` AU-NEM run, before and after the fix alike, because its
+  rebuilt uncorrected MBE (0.00886) does not reproduce the run's `metrics.csv`
+  (0.00856).
+- **Not yet checked:** other documents that quote these two rows or were built
+  on AU-NEM or NZ corrected output, including `region-nz.md`,
+  `region-au-nem.md` and the transfers into AU-NEM in
+  `method-generalisation.md`.
+
+Data: `output/c1_turbine_order_2026-09-24/` (`before/` and `after/` evaluate
+runs, and `bootstrap_before/` and `bootstrap_after/`).
+
 **Correction notice, 2026-09-11: the UK and NZ rows do not show that the
 correction improves those regions.** Both rows report a lower corrected RMSE,
 and the reading under the turbine-level table counts both among the clean rows
@@ -34,6 +91,11 @@ few units that the correction makes worse decide the result.
 |---|---|---|---|---|---|
 | UK k50 fixed | 348 farms | 104 | 0.031 [-0.001, 0.069] | 0.034 [0.014, 0.057] | 37%, 60% |
 | NZ k7 fixed | 12 farms | 9.3 | 0.051 [-0.032, 0.114] | 0.065 [-0.018, 0.119] | 61%, 87% |
+
+*[Note, 2026-09-24: the NZ row above was computed on corrected frames that
+simulated units on other units' curves. On the `refresh_2026-09-20` frames
+after the fix, the RMSE gain is 0.052 [-0.032, 0.115], so the ‡ marker stands; the MAE interval and the
+concentration shares were not recomputed. See the notice of that date.]*
 
 The gain is uncorrected minus corrected error, capacity-weighted as in
 `metrics.csv`. Each interval comes from 1,000 paired draws of the test year's
@@ -75,7 +137,9 @@ carries more than 2.6% of corrected squared error in any of them. BR's gain is
 also resolved, at 0.016 to 0.050.
 
 Two rows are resolved only narrowly, and their claims are not withdrawn.
-AU-NEM's RMSE gain is 0.021, with an interval of 0.001 to 0.040. AR's is 0.018,
+AU-NEM's RMSE gain is 0.021, with an interval of 0.001 to 0.040 *[withdrawn
+2026-09-24: computed on corrected frames that simulated units on other units'
+curves; see the notice of that date]*. AR's is 0.018,
 with an interval of 0.002 to 0.031, and its MAE gain interval, -0.001 to 0.024,
 includes zero. The interval is itself a lower bound on the uncertainty, so an
 interval that excludes zero by 0.001 or 0.002 is not a clean result. CL is not
@@ -306,7 +370,10 @@ repository. Every manifest records that commit with `git_dirty: false`. Before
 this the rows came from three different runs at three commits: the 2026-08-24
 refresh at `41462e9` (AU-NEM and NZ), the European re-run at `b5d47d0` (DE, DK,
 UK and the eight country rows) and the accepted-years re-runs at `0fd6574`
-(US, CL, AR and BR).
+(US, CL, AR and BR). *[Note, 2026-09-24: the corrected figures of AU-NEM and NZ
+now come from a re-evaluation of the same training runs at `a94670c`, in
+`output/c1_turbine_order_2026-09-24/after/`; their uncorrected figures are
+unchanged. See the notice of that date.]*
 
 **The scored set changed where refused clusters dropped plants.** A cluster
 whose accepted years are not a majority of its training years is refused, its
@@ -442,9 +509,9 @@ Matched real turbine curves and hub heights; k-swept affine fit; best held-out
 | Denmark (DK) § 0.6% | 5410 turbines | 2015-19 → 2020 | 0.148 | **0.085** | +0.112 | +0.022 | 0.83 | k100 season | per timestep | 15.0% | 1.7% | 3.1% |
 | Brazil (BR) | 151 complexes (140 scored) | 2021-23 → 2024 | 0.130 | **0.097** | -0.037 | -0.014 | 0.79 | k60 fixed † | per timestep, stored daily | n/a | n/a | 100.0% |
 | United States (US) | 520 plants (512 scored) | 2019-21 → 2022 | 0.108 | **0.096** | +0.024 | +0.023 | 0.79 | k250 fixed † | per timestep, stored daily | 48.3% | 22.0% | 1.1% |
-| Australia (AU-NEM) | 77 farms (75 scored) | 2020-22 → 2023 | 0.116 | **0.093** | +0.009 | -0.005 | 0.62 | k45 season † | per timestep | 2.8% | 84.5% | 4.5% |
+| Australia (AU-NEM) | 77 farms (75 scored) | 2020-22 → 2023 | 0.116 | **0.079** | +0.009 | +0.001 | 0.69 | k45 season † | per timestep | 2.8% | 84.5% | 4.5% |
 | United Kingdom (UK) | 348 farms (344 scored) | 2015-18 → 2019 | 0.139 | **0.116** ‡ | +0.028 | -0.037 | 0.70 | k50 fixed † | per timestep | 21.8% | 7.5% | 0.0% |
-| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.106** ‡ | -0.062 | +0.021 | 0.66 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
+| New Zealand (NZ) | 12 farms | 2019-23 → 2024 | 0.157 | **0.105** ‡ | -0.062 | +0.025 | 0.74 | k7 fixed | per timestep | 41.9% | 47.3% | 0.0% |
 | Chile (CL) | 59 plants (53 scored) | 2021-23 → 2024 | 0.110 | **0.104** ‡ | -0.015 | +0.001 | 0.43 | k10 fixed † | per timestep | 3.5% | 91.6% | 0.0% |
 | Argentina (AR) | 59 plants (57 scored) | 2021-23 → 2024 | 0.140 | **0.122** | +0.025 | +0.004 | 0.44 | k10 fixed † | per timestep | 0.2% | 96.7% | 0.0% |
 
