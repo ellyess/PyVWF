@@ -48,6 +48,21 @@ Changed after results were seen, on the same day:
   the US (10 of 6,078 rows) and AR's ``season_10`` (2 rows), the uncorrected
   and corrected figures are not on the same rows.
 
+Changed on 2026-09-24, after the AU-NEM row of ``refresh_2026-09-20``
+stopped the script:
+
+- **The run's own scoring exclusions are applied.** Since ``513f57c`` the
+  harness scores every variant on the rows all of them can score and records
+  the rows it dropped in ``scoring_exclusions.csv``. This script rebuilt each
+  variant on its own rows, so where a refused cluster left units without
+  corrected values, the uncorrected rebuild covered rows ``metrics.csv`` does
+  not, and the reproduction check stopped (AU-NEM: uncorrected MBE 0.00886
+  rebuilt against 0.00856). The dropped rows are now removed from every
+  turbine-level frame before scoring. A run with no such file is unchanged,
+  which covers every ``curve_resolution_backfill_2026-09-11`` run the recorded
+  outputs came from. A country-level run with exclusions stops instead: which
+  months to drop from the national series is not decided here.
+
 The intervals understate the uncertainty, for four reasons:
 
 - they are conditional on each row's single test year;
@@ -150,6 +165,32 @@ def country_monthly(sim_cf, obs, turb_info):
     return both
 
 
+def _scoring_exclusions(ev, spec, code):
+    """The (ID, year, month) rows the run's common-row scoring dropped, or None.
+
+    Only the fleet scope applies to turbine-level frames. A country-level run
+    with exclusions stops, since cutting the national series is not decided here.
+    """
+    path = ev / "scoring_exclusions.csv"
+    if not path.exists():
+        return None
+    ex = pd.read_csv(path)
+    if ex.empty:
+        return None
+    if spec.obs_level == "country":
+        raise SystemExit(f"{code}: country-level scoring exclusions are not handled here")
+    ex = ex[ex["scope"] == "fleet"]
+    return set(zip(ex["ID"].astype(str), ex["year"].astype(int), ex["month"].astype(int)))
+
+
+def _drop_excluded(tidy, excluded):
+    """Remove the rows the run's common-row scoring dropped, as metrics.csv did."""
+    if not excluded:
+        return tidy
+    keys = zip(tidy["ID"].astype(str), tidy["year"].astype(int), tidy["month"].astype(int))
+    return tidy[[k not in excluded for k in keys]]
+
+
 def main(code, out_dir, backfill=BACKFILL):
     spec = load_region(Path("configs/regions/scorecard") / f"{CONFIGS[code]}.toml")
     ev = next((Path(backfill) / code).glob("evaluate-*-backfill"))
@@ -161,6 +202,8 @@ def main(code, out_dir, backfill=BACKFILL):
     frames = {"uncorrected": pd.read_csv(ev / "unc_cf.csv")}
     for p in sorted(ev.glob("cor_cf_*.csv")):
         frames[p.stem.removeprefix("cor_cf_")] = pd.read_csv(p)
+
+    excluded = _scoring_exclusions(ev, spec, code)
 
     # 1. Reproduce metrics.csv exactly, per variant.
     point, repro = {}, []
@@ -178,7 +221,9 @@ def main(code, out_dir, backfill=BACKFILL):
             got = country_skill(sim, obs, turb_info)
         else:
             got = skill_metrics(
-                collapse_pseudo_replicates(tidy_eval_frame(sim, obs, turb_info), spec)
+                _drop_excluded(
+                    collapse_pseudo_replicates(tidy_eval_frame(sim, obs, turb_info), spec), excluded
+                )
             )
         for m in ("rmse", "mbe"):
             repro.append(
@@ -210,9 +255,9 @@ def main(code, out_dir, backfill=BACKFILL):
         n_resampled = n
     else:
         tidy = {
-            nm: collapse_pseudo_replicates(tidy_eval_frame(s, obs, turb_info), spec).dropna(
-                subset=["cf_sim", "cf_obs", "capacity"]
-            )
+            nm: _drop_excluded(
+                collapse_pseudo_replicates(tidy_eval_frame(s, obs, turb_info), spec), excluded
+            ).dropna(subset=["cf_sim", "cf_obs", "capacity"])
             for nm, s in frames.items()
         }
         units = np.array(sorted(tidy["uncorrected"].ID.unique()))
