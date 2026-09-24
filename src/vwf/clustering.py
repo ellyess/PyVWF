@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from sklearn.cluster import KMeans
+from threadpoolctl import threadpool_limits
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -16,6 +17,15 @@ import warnings
 from shapely.geometry import Point, Polygon
 
 from vwf.config import PyVWFPaths
+
+#: Every KMeans call runs on one thread. Its partition depends on the thread
+#: count: on the synthetic NL grid, 1 and 8 threads give one labelling and 2
+#: and 4 give two others, because the threaded reductions sum in a different
+#: order and a near-tie falls the other way. Until 2026-09-24 importing vwf set
+#: OMP/BLAS threads to 1 for the whole process as a side effect of the removed
+#: legacy module, which is what every published partition was made under, so
+#: one thread reproduces them and is the same on any machine.
+_ONE_THREAD = {"limits": 1}
 
 
 # Cached region shapes
@@ -342,15 +352,16 @@ def cluster_turbines(
             )
 
     train_coords = _cluster_coords(turb_info_train, geographic)
-    kmeans.fit(train_coords, sample_weight=sample_weight)
+    with threadpool_limits(**_ONE_THREAD):
+        kmeans.fit(train_coords, sample_weight=sample_weight)
 
     # The merge is derived from the TRAINING partition, so train and apply
     # resolve identical labels given the same training fleet and seed.
     remap = None
     if min_cluster_size and min_cluster_size > 1:
-        remap = _merge_undersized(
-            kmeans.predict(train_coords), kmeans.cluster_centers_, int(min_cluster_size)
-        )
+        with threadpool_limits(**_ONE_THREAD):
+            train_labels = kmeans.predict(train_coords)
+        remap = _merge_undersized(train_labels, kmeans.cluster_centers_, int(min_cluster_size))
         merged = sum(1 for src, dst in remap.items() if src != dst)
         if merged:
             warnings.warn(
@@ -360,7 +371,8 @@ def cluster_turbines(
             )
 
     def _labels(frame):
-        out = kmeans.predict(_cluster_coords(frame, geographic))
+        with threadpool_limits(**_ONE_THREAD):
+            out = kmeans.predict(_cluster_coords(frame, geographic))
         return np.array([remap[int(c)] for c in out]) if remap else out
 
     if train:
@@ -699,7 +711,8 @@ def cluster_with_geometries(
             n_clusters=num_clusters, init="k-means++", n_init=10, max_iter=300, random_state=42
         )
 
-        sampling_points["cluster"] = kmeans.fit_predict(sampling_points[["lat", "lon"]])
+        with threadpool_limits(**_ONE_THREAD):
+            sampling_points["cluster"] = kmeans.fit_predict(sampling_points[["lat", "lon"]])
 
         # Create Voronoi diagram from cluster centers for geometries
         centers = kmeans.cluster_centers_  # [lat, lon]

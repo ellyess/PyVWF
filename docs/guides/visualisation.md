@@ -5,17 +5,24 @@ simulation reproduces the observed capacity-factor distribution, what the
 correction learned spatially, and how error responds to cluster count and
 time slice.
 
-`load_results()` reads any PyVWF run directory back into a `Results` object, so
-the plot functions are self-contained. A data-free reproduction of every figure
-below is in [`examples/viz_demo.py`](../../examples/viz_demo.py).
+`load_results()` reads a harness evaluate run back into a `Results` object, so
+the plot functions are self-contained. It pairs each variant with the
+observations as the run's `metrics.csv` did, on the same unit-months, and
+reduces them to monthly series. The observations are read again through the
+region's adapter, so it needs the region's input data. A data-free
+reproduction of every figure below is in
+[`examples/viz_demo.py`](../../examples/viz_demo.py).
 
 ## Distribution and QQ
 
 ```python
 from vwf.viz import load_results, plot_cf_distribution, plot_qq
 
-res = load_results("output/DK", country="DK", year=2020)
-sims = {"uncorrected": res.uncorrected, "corrected": res.corrected[(1000, "bimonth")]}
+res = load_results(
+    "configs/regions/dk.toml",
+    "output/validation/DK/evaluate-2020-<run>",  # the training run is read from its manifest
+)
+sims = {"uncorrected": res.uncorrected, "corrected": res.corrected[(100, "season")]}
 
 plot_cf_distribution(res.obs, sims).savefig("cf_distribution.png", dpi=150)
 plot_qq(res.obs, sims).savefig("cf_qq.png", dpi=150)
@@ -39,7 +46,7 @@ from shapely.geometry import box
 from vwf.viz import plot_correction_factor_map
 
 fig = plot_correction_factor_map(
-    res.factors[(1000, "bimonth")],       # one (n_clu, time_res) configuration
+    res.factors[(100, "season")],         # one (n_clu, time_res) configuration
     res.train_turb_info,                  # the fleet the factors were fitted on
     boundary=box(8.0, 54.5, 13.0, 57.8),  # optional clip: any shapely geometry,
 )                                         # GeoDataFrame, or path to a GeoJSON
@@ -54,7 +61,7 @@ clustering around (1, 0) means the reanalysis needed little correction.
 ```python
 from vwf.viz import plot_factor_joint
 
-plot_factor_joint(res.factors[(1000, "bimonth")]).savefig("factor_joint.png", dpi=150)
+plot_factor_joint(res.factors[(100, "season")]).savefig("factor_joint.png", dpi=150)
 ```
 
 ![Factor joint distribution](../img/viz_factor_joint.png)
@@ -63,18 +70,21 @@ plot_factor_joint(res.factors[(1000, "bimonth")]).savefig("factor_joint.png", dp
 
 `plot_sim_vs_obs()` scatters each turbine's mean simulated capacity factor
 against its mean observed one, so distance from the diagonal is that turbine's
-bias. The panel is annotated with fleet-level MBE and RMSE. It reads the wide
-capacity-factor files a run writes to disk.
+bias. The panel is annotated with fleet-level MBE and RMSE. It takes the wide
+simulated frame an evaluate run writes and the observations its adapter reads.
 
 ```python
 import pandas as pd
+from vwf.harness.driver import load_obs_and_fleet
+from vwf.harness.regions import load_region
 from vwf.viz import plot_sim_vs_obs
 
-cf_dir = "output/DK/results/capacity-factor"
+spec = load_region("configs/regions/dk.toml")
+obs, fleet = load_obs_and_fleet(spec, 2020)
 fig = plot_sim_vs_obs(
-    pd.read_csv(f"{cf_dir}/DK_2020_unc_cf.csv"),
-    pd.read_csv(f"{cf_dir}/DK_2020_obs_cf.csv"),
-    turb_info=res.turb_info,   # optional: colour onshore/offshore
+    pd.read_csv("output/validation/DK/evaluate-2020-<run>/unc_cf.csv"),
+    obs,
+    turb_info=fleet,   # optional: colour onshore/offshore
 )
 ```
 
@@ -82,16 +92,18 @@ fig = plot_sim_vs_obs(
 
 ## Choosing `n_clu` and `time_res`
 
-`plot_error_vs_clusters()` takes the tidy metrics table written by
-`scripts/analysis/evaluate_all_pyvwf_runs.py` and plots error against cluster
-count, one line per time slice, with the uncorrected error as a reference.
+`plot_error_vs_clusters()` takes the `metrics.csv` of an evaluate run whose
+training run swept several cluster counts, and plots error against cluster
+count, one line per time slice, with the uncorrected error as a reference. A
+country-level run with a zonal source writes a `national` and a `per-zone`
+scope; pick one.
 
 ```python
 import pandas as pd
 from vwf.viz import plot_error_vs_clusters
 
-metrics = pd.read_csv("output/runs/turbine_grid/pyvwf_evaluation_metrics.csv")
-plot_error_vs_clusters(metrics[metrics["country"] == "DK"]).savefig("error_vs_clusters.png", dpi=150)
+metrics = pd.read_csv("output/validation/DK/evaluate-2020-<run>/metrics.csv")
+plot_error_vs_clusters(metrics).savefig("error_vs_clusters.png", dpi=150)
 ```
 
 ![Error vs clusters](../img/viz_error_vs_clusters.png)

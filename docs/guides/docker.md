@@ -26,7 +26,7 @@ Any other command overrides the default. The image declares no entrypoint, so
 nothing has to be worked around:
 
 ```bash
-docker run --rm pyvwf pyvwf-train --help
+docker run --rm pyvwf pyvwf-validate --help
 ```
 
 ## Run against your own data
@@ -51,8 +51,6 @@ Follow these rules:
 - **Pass `--out` under `/data/output`.** The working directory is `/app`, so a
   default `output/` path lands inside the container. `--rm` then deletes it
   with the container.
-- **Pass `--outdir` under `/data/output` too.** The legacy `pyvwf-train`
-  command takes `--outdir` rather than `--out`.
 - **Mount a curve library under the input root.** The image carries the open
   library only. See [choose the input root](training.md#choose-the-input-root).
 
@@ -98,7 +96,7 @@ things:
 - the default command runs end to end on bundled data;
 - its output says the correction reduced the error, so an image that exits zero
   and prints nothing fails;
-- `pyvwf-train` resolves on `PATH`;
+- `pyvwf-validate` resolves on `PATH`;
 - the bundled open library resolves inside the image, with no input root
   mounted;
 - the container does not run as root, and its uid is 1000.

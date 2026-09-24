@@ -2,12 +2,11 @@
 # this file exists for the volume mounts a real run needs.
 #
 #   docker compose run --rm pyvwf                       # the synthetic demo
-#   docker compose run --rm pyvwf pyvwf-train --help
+#   docker compose run --rm pyvwf pyvwf-validate --help
 #   docker compose run --rm pyvwf \
-#       python scripts/analysis/validate_region.py train --region configs/regions/nz.toml \
-#       --out /data/output/validation
+#       pyvwf-validate train --region configs/regions/nz.toml --out /data/output/validation
 #
-# Pass --out (or --outdir) under /data/output. The working directory is /app,
+# Pass --out under /data/output. The working directory is /app,
 # so a default output/ path lands inside the container, and --rm deletes it.
 
 services:

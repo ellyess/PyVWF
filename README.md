@@ -70,14 +70,8 @@ pyvwf-validate evaluate --region configs/regions/nz.toml \
     --train-run output/validation/NZ/train-<timestamp>
 ```
 
-`transfer` is the third verb: it applies one region's factors to another.
-`pyvwf-train` runs the older batch path over one country instead:
-
-```bash
-pyvwf-train --outdir output/demo_DK_2020 --country DK --year-test 2020 --calc-z0
-```
-
-See the [training guide](docs/guides/training.md), and `--help` on either.
+`transfer` is the third verb: it applies one region's factors to another. See
+the [training guide](docs/guides/training.md), and `pyvwf-validate --help`.
 
 ## Documentation
 

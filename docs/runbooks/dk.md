@@ -71,15 +71,9 @@ every metric, the anchor the other regions are read against
 the shared European box (`era5/EU_2026-09`), already on disk; there is no
 DK-specific ERA5 fetch.
 
-The legacy `PyVWF` path runs Denmark through the `pyvwf-train` console script.
-It trains, then simulates one test year:
-
-```bash
-pyvwf-train --outdir output/demo_DK_2020 --country DK --year-test 2020 --calc-z0
-```
-
-The harness above is the path for new work. The legacy path is described in
-the [training guide](../guides/training.md#legacy-batch-path).
+The harness above is the only path. The legacy `pyvwf-train` command that
+also ran Denmark was removed on 2026-09-24; see the
+[training guide](../guides/training.md#the-legacy-path-removed).
 
 ## Notes
 

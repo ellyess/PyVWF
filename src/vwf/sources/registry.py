@@ -111,10 +111,9 @@ def resolve(country: str, obs_level: ObsLevel) -> ObservationSource:
     if obs_level == "country":
         raise NotImplementedError(
             f"No country-level observation source is registered for {country!r}. "
-            "Country-level observations must be supplied by the caller, either via "
-            "PyVWF.load_country_data(grid_points, obs_train, obs_test) or by passing "
-            "source=InMemoryCountrySource(...) to train_set/val_set. Alternatively, "
-            "register a custom ObservationSource with obs_level='country'."
+            "Country-level observations must be supplied by the caller: pass "
+            "source=InMemoryCountrySource(...) to train_set/val_set, or register a "
+            "custom ObservationSource with obs_level='country'."
         )
 
     raise ValueError(

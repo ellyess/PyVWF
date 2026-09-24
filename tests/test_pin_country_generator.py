@@ -3,7 +3,9 @@
 ``vwf/datasets/generate_country_level_training_data.py`` is one 1,400-line
 file with three groups that only ``main`` joins: grid-point generation, the
 ENTSO-E observation fetch, and the writing of ``pyvwf_config.py``. Phase 3
-splits it along those lines. Before that, ``main`` is pinned end to end.
+splits it along those lines. Before that, ``main`` is pinned end to end. The
+third group went with the legacy batch path on 2026-09-24, and its file
+with it; the pins of every other file were left as recorded.
 
 The ENTSO-E fetch needs an API key and the network, so ``FakeFetcher`` stands
 in for ``ENTSOEWindDataFetcher``: a deterministic hourly series per country or
@@ -11,7 +13,7 @@ zone, with the columns the real one returns. Everything the generator does
 with that series (the train and test split, the zone aggregation for Norway
 and Sweden, the file layout) is then pinned exactly.
 
-Every CSV and the generated ``pyvwf_config.py`` are pinned by sha256. The
+Every CSV is pinned by sha256. The
 correction-region GeoJSON files are pinned by a per-cluster summary (area,
 bounds, vertex count), because GeoJSON writers differ between environments in
 ways that do not change a geometry.

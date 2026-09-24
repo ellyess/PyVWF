@@ -367,7 +367,7 @@ def train_set(
             the legacy BoundingBoxes lookup.
         train_years: Inclusive window forwarded to :func:`prep_country` for
             turbine-level observations. Default None keeps the source's own
-            default window, which the legacy path relies on.
+            default window.
 
     Returns:
         Tuple of (gen_cf, turb_info, reanalysis, power_curves).
@@ -800,11 +800,11 @@ def cluster_train_set(
         # turb_info has cluster assignments for each ID
         turb_info = assign_country_clusters(turb_info, num_clu)
 
-        # Merge cluster info with gen_cf. The legacy path can arrive with a
-        # year-specific ``capacity`` already on gen_cf; merging the static one
-        # too would split it into capacity_x/capacity_y, and the cluster mean
-        # below would find no ``capacity`` and silently weight equally. The
-        # year-specific value is the one to weight by, so it is kept.
+        # Merge cluster info with gen_cf. A caller can pass gen_cf with a
+        # per-period ``capacity`` already on it (the removed legacy path did);
+        # merging the static one too would split it into capacity_x/capacity_y,
+        # and the cluster mean below would find no ``capacity`` and silently
+        # weight equally. The caller's value is the one to weight by.
         merge_cols = ["ID", "cluster"]
         if "capacity" in turb_info.columns and "capacity" not in gen_cf.columns:
             merge_cols.append("capacity")

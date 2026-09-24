@@ -184,7 +184,7 @@ def test_resolve_country_level_without_source_raises_not_implemented():
 
 
 def test_prep_country_without_source_raises_not_implemented():
-    with pytest.raises(NotImplementedError, match="load_country_data"):
+    with pytest.raises(NotImplementedError, match="InMemoryCountrySource"):
         prep_country("NL", obs_level="country")
 
 

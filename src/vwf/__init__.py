@@ -4,9 +4,10 @@ PyVWF is a Python package for simulating wind farm generation using
 reanalysis data and applying bias corrections.
 
 Core functionality (always available):
-- PyVWF: Main model class for wind simulation
+- load_region, run_train, run_evaluate, run_transfer: the harness, the one
+  path for training and evaluating a region (docs/guides/training.md)
 - train_set, val_set: Data preparation functions
-- Loaders: Functions for loading turbine and country-level data
+- Loaders: Functions for loading turbine data
 - ObservationSource: Pluggable adapters supplying observed generation. See
   docs/guides/adding-a-region.md to add a new region.
 - Configuration: Path and bounding box configuration
@@ -21,12 +22,12 @@ from vwf._version import __version__ as __version__  # re-exported
 # CORE FUNCTIONALITY (Always available)
 # ============================================================================
 
-from vwf.vwf import PyVWF
 from vwf.data import train_set, val_set
+from vwf.harness.driver import run_evaluate, run_train, run_transfer
+from vwf.harness.regions import load_region
 from vwf.loaders import (
     load_turbine_metadata,
     load_turbine_observations,
-    load_year_specific_grid_points,
 )
 from vwf.sources import (
     EuropeanTurbineSource,
@@ -64,13 +65,15 @@ from vwf.viz import (
 
 __all__ = [
     # Core
-    "PyVWF",
+    "load_region",
+    "run_train",
+    "run_evaluate",
+    "run_transfer",
     "train_set",
     "val_set",
     # Loaders
     "load_turbine_metadata",
     "load_turbine_observations",
-    "load_year_specific_grid_points",
     # Observation sources
     "ObservationSource",
     "EuropeanTurbineSource",

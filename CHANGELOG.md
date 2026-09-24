@@ -15,6 +15,27 @@ this file stay in step with it.
 
 ### Breaking
 
+- **The legacy `PyVWF` path is removed; the harness is the one path.** Gone:
+  the `PyVWF` class (`vwf.vwf`), the `pyvwf-train` console script, the batch
+  scripts `train_all_bias_corrections.py` and `evaluate_all_pyvwf_runs.py`,
+  the year-specific grid loader (`load_year_specific_grid_points`), the
+  `pyvwf_config.py` writer, and the harness-versus-legacy runners. The class
+  duplicated the harness's orchestration with its own defaults and output
+  layout, and diverged from it on the country level. The harness runs the
+  same correction functions (`vwf.correction`, `vwf.wind`, `vwf.data`), and
+  the golden regression test still pins that equivalence. `vwf` now exports
+  `load_region`, `run_train`, `run_evaluate` and `run_transfer` in place of
+  `PyVWF`. The last commit with the removed code is recorded in
+  `docs/publications.md`.
+- **`vwf.viz.load_results` reads a harness evaluate run.** It took a legacy
+  run directory, a country and a year; it now takes the region config and an
+  evaluate run (`load_results(region, evaluate_run, *, train_run=None,
+  source=None, weight_by_capacity=True)`). It reads the observations through
+  the region's adapter, pairs each variant with them as the run's
+  `metrics.csv` did, on the same unit-months, and returns monthly series.
+  `align_to_obs` is gone: the pairs are monthly. `plot_error_vs_clusters`
+  takes a harness `metrics.csv` (`num_clu`, `variant`, `scope`) and refuses
+  a table that mixes scopes.
 - **The per-timestep roughness is the default.** `prep_era5` now derives the
   roughness length from the 10 m to 100 m shear at every timestep unless a
   caller asks for `roughness="stored"`, where the default was `stored` before.
@@ -115,6 +136,14 @@ this file stay in step with it.
 
 ### Fixed
 
+- **KMeans partitions no longer depend on the machine's thread count**
+  (`vwf.clustering`). scikit-learn's KMeans reduces over OpenMP threads, and
+  a near-tie can fall differently at another thread count, so the same
+  fleet could be clustered differently on another machine. Importing `vwf`
+  used to set one thread for the whole process as a side effect of the
+  legacy module, which hid this and is what every published partition was
+  made under. Every KMeans call now runs on one thread, reproducing those
+  partitions on any machine without the process-wide setting.
 - **The power-curve cache cannot serve another table's curves**
   (`vwf.wind._get_power_curve_cache`). It was keyed by `id()` of the curve
   table and checked only the column names, so a later table that reused a

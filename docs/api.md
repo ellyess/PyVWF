@@ -41,19 +41,6 @@ config. The commands are in {doc}`guides/training`, and the design in
    :members:
 ```
 
-## The legacy model
-
-`PyVWF` owns a run directory, trains the correction factors, and simulates
-capacity factors for a test year. It is the legacy batch path, kept so the
-thesis-era runs stay reproducible; the harness's affine correction delegates
-to its correction code.
-
-```{eval-rst}
-.. automodule:: vwf.vwf
-   :members:
-   :member-order: bysource
-```
-
 ## Adapters
 
 Observed generation and unit metadata come from adapters, so supporting a new
@@ -189,8 +176,6 @@ hyperparameters.
 .. automodule:: vwf.loaders.turbine_loaders
    :members: load_turbine_metadata, load_turbine_observations
 
-.. automodule:: vwf.loaders.country_level_loaders
-   :members: load_year_specific_grid_points
 ```
 
 ## Configuration and utilities

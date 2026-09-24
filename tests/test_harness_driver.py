@@ -86,6 +86,18 @@ def test_driver_train_then_evaluate(synthetic_dk):
     assert eval_manifest["run_mode"] == "evaluate"
     assert eval_manifest["evaluation_year"] == 2016
 
+    # The corrected simulation is physical: one column per unit, every value a
+    # finite capacity factor. (Carried over from the legacy PyVWF tests.)
+    cor_cf = pd.read_csv(eval_dir / "cor_cf_fixed_2.csv")
+    values = cor_cf.drop(columns="time").to_numpy(dtype=float)
+    assert values.shape[1] == len(synthetic_dk["fleet"])
+    assert np.isfinite(values).all()
+    assert ((values >= 0.0) & (values <= 1.0)).all()
+
+    # Evaluating the same training run again reproduces the metrics exactly.
+    again = run_evaluate(spec, train_dir, out, mode="onshore", run_name="e1-again")
+    pd.testing.assert_frame_equal(pd.read_csv(again / "metrics.csv"), metrics)
+
 
 def test_country_level_fit_is_a_delegation_wrapper(synthetic_dk):
     """AffineWindCorrection.fit(obs_level='country') delegates to the legacy
