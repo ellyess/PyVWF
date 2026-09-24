@@ -63,6 +63,39 @@ def test_simulate_wind_cf_bounds(reanalysis, turbines, power_curve):
     assert np.all(vals <= 1.05)
 
 
+def test_identity_correction_keeps_curves_on_unsorted_ids(reanalysis, power_curve):
+    """An identity correction must reproduce the uncorrected CF unit by unit.
+
+    Regression for correct_wind_speed attaching model and capacity by position
+    after to_xarray() had re-sorted the turbine axis by ID: with IDs not in
+    sorted order and more than one model, units swapped power curves, so the
+    corrected CF differed from the uncorrected one even at scalar 1, offset 0.
+    """
+    curves = power_curve.copy()
+    # A second model that reaches rated power much earlier, so a swap shows.
+    curves["early.rated"] = np.clip((curves["data$speed"] - 2.0) / 4.0, 0.0, 1.0)
+    turbines = pd.DataFrame(
+        {
+            "ID": ["t3", "t1", "t2"],
+            "lat": [55.2, 55.5, 55.8],
+            "lon": [8.2, 8.5, 8.8],
+            "height": [100.0, 100.0, 100.0],
+            "model": ["early.rated", "GE.1.5sle", "early.rated"],
+            "capacity": [3000.0, 1500.0, 2000.0],
+            "cluster": [0, 0, 0],
+        }
+    )
+    factors = pd.DataFrame({"cluster": [0], "fixed": ["1/1"], "scalar": [1.0], "offset": [0.0]})
+
+    _, unc_cf = simulate_wind(reanalysis, turbines, curves)
+    _, cor_cf = simulate_wind(reanalysis, turbines, curves, factors, "fixed")
+
+    unc = unc_cf.set_index("time")
+    cor = cor_cf.set_index("time")
+    for tid in turbines["ID"]:
+        np.testing.assert_allclose(cor[tid].to_numpy(), unc[tid].to_numpy(), rtol=0, atol=1e-12)
+
+
 def test_power_curve_extremes(make_reanalysis, power_curve):
     """Zero wind -> ~0 CF; rated wind -> ~1 CF."""
     calm = make_reanalysis(n_hours=4, mean_speed=0.0, seed=2)

@@ -115,6 +115,14 @@ this file stay in step with it.
 
 ### Fixed
 
+- **Corrected simulations keep each unit's own power curve and capacity**
+  (`vwf.wind.correct_wind_speed`). The function rebuilt the turbine axis in
+  sorted ID order and then attached model keys and capacities by position in
+  the fleet's own order, so a fleet whose IDs were not already sorted ran its
+  corrected simulation on other units' curves and capacities. Factors and
+  uncorrected output were unaffected. The AU-NEM and NZ scorecard rows moved
+  and carry a correction notice in `docs/findings/scorecard.md`; every other
+  row's fleet is sorted or on a single model key.
 - **The bootstrap pins compare to a tolerance on both pandas versions**
   (`tests/test_pin_bootstrap_reproduction.py`). They were byte-for-byte under
   pandas 2, and had been failing the UK rows since `d68b542` put every

@@ -601,7 +601,16 @@ def correct_wind_speed(ds, time_res, bc_factors, turb_info, seasons=None):
 
     df = df.merge(bc_factors, on=["cluster", time_res], how="left").set_index(["time", "turbine"])
 
-    ds2 = df[["scalar", "offset", "unc_ws"]].to_xarray()
+    # to_xarray() builds each axis from the sorted index levels, so the turbine
+    # axis comes back in ID order rather than turb_info's order. The model and
+    # capacity coordinates below are attached by position, so restore the input
+    # order first; otherwise a fleet whose IDs are not already sorted gets other
+    # units' power curves and capacities in the corrected simulation.
+    ds2 = (
+        df[["scalar", "offset", "unc_ws"]]
+        .to_xarray()
+        .reindex(time=ds["time"].values, turbine=ds["turbine"].values)
+    )
     ds2 = ds2.assign(cor_ws=(ds2["unc_ws"] * ds2["scalar"]) + ds2["offset"])
 
     # model coord for downstream mapping (coerce to numpy so the coordinate is
