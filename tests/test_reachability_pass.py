@@ -138,3 +138,35 @@ def test_an_observation_inside_the_range_is_matched(fleet, reanalysis, power_cur
         powerCurveFile=power_curve,
     )
     assert all(np.isfinite(v) for v in offsets.values())
+
+
+def _offcurve():
+    path = ROOT / "scripts/studies/method-joint-fit-reachability/reachability_offcurve.py"
+    spec = importlib.util.spec_from_file_location("reachability_offcurve", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_counting_off_curve_steps_as_zero_can_only_lower_the_floor(fleet, reanalysis, power_curve):
+    """At -10 m/s every synthetic speed is below zero: dropped, there is no value;
+    counted as zero, the capacity factor is zero, and the floor falls to it."""
+    offcurve = _offcurve()
+    period = reanalysis.sel(time=reanalysis.time.dt.year == 2020)
+    ws = interpolate_wind(period, fleet[fleet["cluster"] == 0])
+    assert np.isnan(float(train_simulate_wind_from_ws(ws, power_curve, 1.0, -9.99)))
+    assert offcurve.cf_zero(ws, power_curve, 1.0, -9.99) == 0.0
+    ext = offcurve.cluster_extremes_zero(ws, power_curve, 1.0)
+    lo_drop, _ = _module().cluster_extremes(ws, power_curve, 1.0)
+    assert ext["lo"] <= lo_drop
+    assert ext["lo"] == 0.0 and ext["lo_off_curve"] > 0
+
+
+def test_on_the_curve_the_two_simulations_agree(fleet, reanalysis, power_curve):
+    offcurve = _offcurve()
+    period = reanalysis.sel(time=reanalysis.time.dt.year == 2020)
+    ws = interpolate_wind(period, fleet[fleet["cluster"] == 0])
+    for o in (-2.0, 0.0, 3.0):
+        assert offcurve.cf_zero(ws, power_curve, 1.0, o) == pytest.approx(
+            float(train_simulate_wind_from_ws(ws, power_curve, 1.0, o)), abs=1e-12
+        )

@@ -112,3 +112,35 @@ for `<stem>` in fr, be, ie, se, no, es, it, pt. Each run writes
   the 0.25 m/s grid step could be missed, which would understate the maximum
   and overstate unreachability; the test on the synthetic fleet checks the
   refined maximum against the grid and against 40 random offset pairs.
+
+## Addendum, 2026-09-25: a follow-up registered after the pass ran
+
+**This follow-up was added after the pass's table was seen, and is labelled as
+such.** The pass (03e5a94) found 73 of the 90 refused periods unreachable,
+every one of them below: the observation is lower than the lowest national
+capacity factor any accepted offsets produce. In Italy that floor is typically
+about 0.24, and 0.21 to 0.33 even at the -10 m/s edge, which is implausible if
+a 10 m/s cut really reaches the curve. The simulation drops a corrected speed
+below 0 m/s (or above the curve's 40 m/s end) from the mean rather than
+counting it as zero output, the mechanism the scorecard's 2026-09-11 notices
+describe, so at large negative offsets only the windiest steps are averaged and
+the floor stays high.
+
+**Question.** Counting off-curve corrected speeds as zero output instead, what
+is each period's range, and does the classification change?
+
+**Method.** The same training runs, scalars, grid and refinement, with each
+cluster's corrected speeds clipped to the curve's ends (0 and 40 m/s, where the
+curve reads zero) before the curve is applied; missing input speeds stay
+missing. Reported beside the original range, with the share of capacity-weighted
+steps that are off the curve at each cluster's lowest-output offset. The same
+thresholds (1e-6 and 0.05).
+
+**Readings, fixed now.**
+- If more than half of the 73 unreachable refusals become reachable or
+  near-miss, the pass's "mostly unreachable" reading is withdrawn: those
+  refusals are produced by the objective dropping off-curve steps, not by the
+  curve or the data.
+- If more than half stay unreachable when off-curve steps count as zero, the
+  reading stands.
+- Either way the original table stays as reported, with this beside it.
