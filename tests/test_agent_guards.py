@@ -262,6 +262,30 @@ def test_every_pinn_test_file_is_in_the_pinn_suite():
     assert listed == on_disk
 
 
+#: What the realdata suite leaves out of src/vwf, by the written rule
+#: ("everything except pinn/, viz/ and cli/"), plus files that are not code
+#: the pins can reach.
+NOT_REALDATA = {"pinn", "viz", "cli", "__init__.py", "_version.py", "resources", "py.typed"}
+
+
+def test_realdata_covers_every_module_the_rule_says_it_covers():
+    """A module split out of a covered one is covered too.
+
+    vwf.country_level and vwf.sampling were split out of data.py and
+    clustering.py on 2026-09-25 and not added, so a change to either needed no
+    stamp until this test.
+    """
+    covered = {
+        rel.removeprefix("src/vwf/").rstrip("/") for rel in _defined_suites()["realdata"].covered
+    }
+    modules = {
+        p.name
+        for p in (ROOT / "src/vwf").iterdir()
+        if (p.suffix == ".py" or (p.is_dir() and (p / "__init__.py").exists()))
+    }
+    assert sorted(modules - covered - NOT_REALDATA) == []
+
+
 def test_covered_paths_exist_and_agree_with_the_written_rules():
     suites = _defined_suites()
     for suite in suites.values():
