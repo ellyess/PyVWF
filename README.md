@@ -86,15 +86,17 @@ plain Markdown in [`docs/`](docs/README.md), which indexes every page.
 
 ## Results
 
-The correction is fitted and scored against observed generation in seventeen
+The correction is fitted and scored against observed generation in fifteen
 regions on four continents, each on training years and a single test year it
-never saw. It lowers capacity-factor RMSE in all nine turbine-level fleets, and
-in the eight country-level fleets it removes mean biases that reach 0.34 in
-capacity factor, Norway excepted, where it does not help. Seven of those nine
-turbine-level rows nevertheless rest on a degenerate fit, where a cluster's
-scalar falls outside 0.2 to 3.0 or its offset did not converge, so the
-aggregate is real while the per-cluster factors are not all usable; only
-Denmark and New Zealand are clean. A further marker on three rows says their
+never saw. It lowers capacity-factor RMSE in all nine turbine-level fleets. In
+the country-level fleets, simulated on each grid's representative turbine, it
+lowers RMSE in five of six and raises it in France; Italy and Portugal are
+suspended, because on that turbine's curve most of their fits are refused.
+Seven of the nine turbine-level rows and two of the six country-level rows
+nevertheless rest on a degenerate fit, where a cluster's scalar falls outside
+0.2 to 3.0 or its offset did not converge, so the aggregate is real while the
+per-cluster factors are not all usable; only Denmark and New Zealand are clean
+at turbine level. A further marker on three rows says their
 gain cannot be distinguished from zero when the test year's units are
 resampled. Every number, its source path and its markers are in the
 [scorecard](docs/findings/scorecard.md), and the regions where the correction

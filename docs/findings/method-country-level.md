@@ -14,6 +14,19 @@ their own manifests.
 **Scope:** the `obs_level = "country"` path against the turbine-level path, plus
 an audit of the nine ENTSO-E observation series on disk.
 
+**Correction notice, 2026-09-25 (curves): the scorecard's country rows now run
+on each grid's own Vestas curve.** Every figure in this document from a
+country-level run was made on the 100 kW fallback curve, as the notice of
+2026-09-11 below says. From `a4f6f9b` a country-level run refuses a curve the
+loaded library lacks, and the scorecard's eight rows were re-run on the
+licensed library (`scorecard.md`, third notice of 2026-09-25). On those curves
+the uncorrected errors this document attributes to the reanalysis are much
+smaller for FR, BE and IE and larger for NO, ES and SE, two of six reported
+fits are degenerate, and Italy and Portugal are suspended because most of
+their fits are refused. Nothing here is re-measured on the licensed curves, so
+every country-level figure below stands only as a statement about the fallback
+curve.
+
 **Correction notice, 2026-09-25: the country-level fits with more than one
 cluster used the per-cluster solver, not the joint national fit.**
 `country_obs_is_per_cluster` read the rounding differences between clusters'

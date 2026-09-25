@@ -124,11 +124,14 @@ stored ahead of time. The route per ERA5 directory is in
 
 ## Curve resolution (`curve_resolution.csv`)
 
-Which curve every unit was actually simulated on. A model key missing from
-`power_curves.csv` does not stop a run: the unit is simulated on the fallback
-curve, that file's first column (`vwf.wind.default_curve_key`, a 100 kW
-distributed-wind turbine in the open library), with a one-off warning. This file is the record of that, one row per
-model key the fleet requests:
+Which curve every unit was actually simulated on. At turbine level, a model key
+missing from `power_curves.csv` does not stop a run: the unit is simulated on
+the fallback curve, that file's first column (`vwf.wind.default_curve_key`, a 100 kW
+distributed-wind turbine in the open library), with a one-off warning. A
+country-level run instead raises `CurveSubstitutionError` once this file is
+written, because every grid point carries the same key and a missing curve is
+the whole fleet. This file is the record, one row per model key the fleet
+requests:
 
 | Column | Meaning |
 |---|---|

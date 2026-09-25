@@ -57,13 +57,16 @@ python scripts/fetch/era5.py --code eu --file-tag EU_2026-09 \
 
 ## 3. Train and evaluate
 
-The country-level rows run on the default input root, `input/`. For each
-country, with `<cc>` its lower-case code:
+The country-level rows run on the licensed input root, `input/combined`. The
+grid points name `Vestas.V80.2000`, `Vestas.V90.2000` or `Vestas.V90.3000`,
+which only the licensed library holds, and a country-level run refuses a curve
+the loaded library lacks (`CurveSubstitutionError`). For each country, with
+`<cc>` its lower-case code:
 
 ```bash
-python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=input/combined python scripts/analysis/validate_region.py train \
     --region configs/regions/scorecard/<cc>_country.toml
-python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=input/combined python scripts/analysis/validate_region.py evaluate \
     --region configs/regions/scorecard/<cc>_country.toml \
     --train-run output/validation/<CC>/train-<stamp>
 ```
@@ -71,10 +74,11 @@ python scripts/analysis/validate_region.py evaluate \
 Set `cluster_list` to `1` or to the grid's own cluster count. Any other value
 raises.
 
-**Read the substituted share before any result.** The grid points name
-Vestas models that the open library does not contain, so every unit is
-simulated on the fallback curve. `curve_resolution.csv` records it, and the
-scorecard's Substituted column reports it.
+**The rows are not reproducible without the licensed library.** Until
+2026-09-25 they ran on the default root, where every unit was simulated on the
+open library's 100 kW fallback curve; `curve_resolution.csv` recorded it, and
+the run went on. Italy and Portugal are suspended on the licensed curves,
+because most of their joint fits are refused (`docs/findings/scorecard.md`).
 
 ## Licence
 
