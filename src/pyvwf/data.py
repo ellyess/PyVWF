@@ -51,7 +51,7 @@ import numpy as np
 import pandas as pd
 
 import pyvwf.wind as wind
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.clustering import cluster_turbines
 import pyvwf.correction as correction
 from pyvwf.curves import load_power_curves

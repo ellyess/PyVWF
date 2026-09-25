@@ -39,7 +39,7 @@ import xarray as xr
 
 from pyvwf._version import __version__
 from pyvwf.config import PyVWFPaths
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.harness.corrections import PLAUSIBLE_SCALAR, fit_quality
 from pyvwf.harness.regions import RegionSpec
 

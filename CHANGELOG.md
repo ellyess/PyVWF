@@ -15,6 +15,11 @@ this file stay in step with it.
 
 ### Breaking
 
+- **`pyvwf.datasets.era5` is `pyvwf.era5`.** It loads the reanalysis every run
+  reads, so it is core runtime, and `pyvwf.datasets` is now acquisition only.
+  Outside `datasets` it is also type-checked, which the `datasets` exemption
+  in the mypy configuration had skipped.
+
 - **The package is imported as `pyvwf`, not `vwf`.** The distribution was
   always `pyvwf` (`pip install pyvwf`) while the import name was `vwf`; the two
   now match. The source moved from `src/vwf/` to `src/pyvwf/`, and every

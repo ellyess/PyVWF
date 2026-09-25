@@ -1,6 +1,7 @@
 """ERA5 reanalysis import and preprocessing utilities."""
 
 from pathlib import Path
+from typing import cast
 
 import xarray as xr
 import warnings
@@ -282,7 +283,8 @@ def prep_era5(
             # Calculate roughness from wind shear (fallback if not preprocessed)
             print("Calculating surface roughness from 10m/100m wind shear...")
 
-            wnd10m = np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)
+            # np.sqrt keeps the DataArray; numpy's stubs only say ndarray.
+            wnd10m = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2))
 
             wnd10m = wnd10m.clip(min=1e-4)
             ds["wnd100m"] = ds["wnd100m"].clip(min=1e-4)

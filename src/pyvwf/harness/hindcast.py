@@ -32,7 +32,7 @@ from pyvwf.data import val_set
 from pyvwf.curves import load_power_curves
 from pyvwf.harness.corrections import get_correction
 from pyvwf.harness.regions import RegionSpec
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.metrics import weighted_mean
 
 

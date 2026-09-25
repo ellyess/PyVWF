@@ -40,7 +40,7 @@ import numpy as np
 import pandas as pd
 
 from pyvwf.cli.common import make_parser
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.curves import load_power_curves
 from pyvwf.extensions.grid import evaluate, surface
 from pyvwf.geospatial import categorize_points_spatial_join

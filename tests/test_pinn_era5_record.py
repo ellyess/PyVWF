@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.pinn.cache import era5_record_for
 from pyvwf.pinn.era5_stats import daily_stats_at_points
 

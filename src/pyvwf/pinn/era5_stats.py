@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from pyvwf.datasets.era5 import (
+from pyvwf.era5 import (
     ROUGHNESS_TREATMENTS,
     unify_time_coordinate,
     _normalise_longitudes,

@@ -58,6 +58,7 @@ SUITES = {
             "src/pyvwf/wind.py",
             "src/pyvwf/curves.py",
             "src/pyvwf/clustering.py",
+            "src/pyvwf/era5.py",
             "src/pyvwf/country_level.py",
             "src/pyvwf/sampling.py",
             "src/pyvwf/config.py",

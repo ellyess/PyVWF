@@ -19,7 +19,7 @@ import pytest
 import xarray as xr
 
 from test_harness_driver import make_spec
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.harness.driver import run_train
 from pyvwf.harness.regions import load_region
 

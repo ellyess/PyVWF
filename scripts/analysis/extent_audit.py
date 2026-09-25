@@ -38,7 +38,7 @@ import pandas as pd
 import baseline_bootstrap as bb
 from pyvwf.harness.driver import load_obs_and_fleet
 from pyvwf.cli.common import make_parser
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.harness.driver import era5_dir
 from pyvwf.harness.regions import load_region
 from pyvwf.wind import loaded_extent_coverage

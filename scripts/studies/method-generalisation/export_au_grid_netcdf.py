@@ -37,7 +37,7 @@ import pandas as pd
 import xarray as xr
 
 import pyvwf
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.time_utils import add_time_resolution_columns
 
 SH_SEASONS = {"summer": [12, 1, 2], "autumn": [3, 4, 5], "winter": [6, 7, 8], "spring": [9, 10, 11]}
