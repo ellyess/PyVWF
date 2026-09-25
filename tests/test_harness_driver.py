@@ -189,10 +189,12 @@ def test_a_source_with_no_observation_gate_records_nothing():
     assert _record_observation_quality(Bare()) == {}
 
 
-def test_the_clipped_count_reaches_the_manifest_and_the_metrics(tmp_path):
+def test_the_clipped_count_is_recorded_in_a_form_a_manifest_can_store(tmp_path):
     """A row on the fetcher's 1.5 ceiling is a value that was discarded, so a
     metric over the series is computed on fewer observations than it claims.
-    The count stopped at the audit script; it now travels with the run."""
+    The count stopped at the audit script; ``_record_observation_quality`` now
+    returns it, and the driver writes that into the manifest and ``metrics.csv``.
+    This checks the record, not those two writes."""
     import json
 
     from pyvwf.harness.driver import _record_observation_quality

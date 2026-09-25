@@ -152,6 +152,7 @@ _REAL = PyVWFPaths.COUNTRY_SHAPES.exists() and PyVWFPaths.COASTLINES.exists()
 pytestmark_real = pytest.mark.skipif(not _REAL, reason="bundled shape files absent")
 
 
+@pytest.mark.realdata
 @pytestmark_real
 def test_denmark_regains_bornholm():
     """The concrete case: DK gains Bornholm and lands near its published area."""
