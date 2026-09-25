@@ -72,7 +72,13 @@ def main(out_dir: str, *only: str) -> None:
     fold_rows, selections = [], []
 
     for stem in wanted:
-        spec = regions.load_region(REPO / "configs" / "regions" / f"{stem}.toml")
+        # The frozen config this study ran on, not the maintained one, which moved to
+        # era5/EU_2026-09 and derived roughness after it ran (configs/regions/study/).
+        # Since 2026-09-25 a country run also refuses the 100 kW fallback curve this
+        # study ran on, so a re-run at HEAD stops; reproduce it at its own commit.
+        spec = regions.load_region(
+            REPO / "configs" / "regions" / "study" / f"{stem}_era5_eu_stored.toml"
+        )
         label = spec.code
         own = grid_clusters(spec)
         if own <= 1:

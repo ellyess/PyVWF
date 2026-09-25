@@ -64,6 +64,14 @@ this file stay in step with it.
 
 ### Changed
 
+- **Six study drivers read frozen configs** (`configs/regions/study/`). The
+  cluster-selection, correction-identifiability, national-single-cluster,
+  hourly-resolution and scalar-bounds drivers read the maintained region
+  configs, and the European ones changed after those studies ran (ERA5
+  directory and roughness default, `a023b4d`), so a re-run would have used
+  other inputs than the recorded one. Each now reads a copy of the config as
+  it stood when the study ran, with the roughness it ran under stated.
+
 - **CI's test matrix and lint job install through pinned constraints**
   (`constraints/py310.txt` to `py312.txt`, written by `scripts/dev/lock.py`).
   A CI result on Python 3.10 to 3.12 now depends on the repository, not on

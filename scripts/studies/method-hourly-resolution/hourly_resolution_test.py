@@ -95,6 +95,14 @@ MONTHLY_REFERENCE = (0.12271, 0.10398)
 
 
 def _metrics(df: pd.DataFrame, sim: str) -> dict:
+    """Error metrics over every plant-period row, each row weighted equally.
+
+    Unweighted, unlike the harness's fleet scope in ``metrics.csv``, which
+    weights each row by capacity. MONTHLY_REFERENCE comes from that weighted
+    scoring, so the control and gate G2 compare an unweighted figure with a
+    weighted one (noted in ``docs/findings/method-hourly-resolution.md``).
+    Left as it ran, because the study's recorded figures were computed this way.
+    """
     d = df[sim] - df["obs"]
     r = float(np.corrcoef(df[sim], df["obs"])[0, 1]) if len(df) > 1 else float("nan")
     return {
@@ -125,6 +133,9 @@ def _simulate_year(spec, clus_info, power_curves, factors, model, *, daily: bool
         if not matches:
             print(f"  month {month:02d}: no ERA5 file, skipped", flush=True)
             continue
+        # Two files for one month would be resolved by name order, silently.
+        if len(matches) > 1:
+            raise SystemExit(f"month {month:02d}: more than one ERA5 file: {matches}")
         with tempfile.TemporaryDirectory() as tmp:
             os.symlink(matches[0].resolve(), Path(tmp) / matches[0].name)
             rea = prep_era5(
@@ -167,7 +178,9 @@ def _long(cf: pd.DataFrame, name: str) -> pd.DataFrame:
 
 
 def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) -> int:
-    spec = load_region(Path("configs/regions/cl.toml"))
+    # The config as it stood when this study ran, frozen in configs/regions/study/;
+    # the maintained cl.toml has changed only in comments since.
+    spec = load_region(Path("configs/regions/study/cl_2026-08-12.toml"))
     source = get_source(spec.source, spec.code)
 
     turb_info = source.load_metadata()

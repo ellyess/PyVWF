@@ -80,7 +80,14 @@ from the same training run this study uses
 (`output/validation/cl_matched_2026-07-24/CL/train-matched`), so the control
 and the gate compare like with like. The scorecard's Chile row has since
 moved to 0.110 -> 0.104, through common-row scoring and the 2026-09-20
-refresh; do not read this study's figures against that row.]*
+refresh; do not read this study's figures against that row.]* *[Note,
+2026-09-25: the like-with-like claim holds for the training run, not for the
+scoring. Every arm in the table above is scored with each plant-period row
+weighted equally (`_metrics` in the driver), while the canonical 0.1227 ->
+0.1040, and so G2's 7.6% threshold, come from the harness's fleet scope, which
+weights rows by capacity. The control's disagreement therefore carries a
+weighting difference as well as the observation path, and G2 compares an
+unweighted hourly reduction with half a weighted monthly one. Not re-measured.]*
 
 ## Gates
 

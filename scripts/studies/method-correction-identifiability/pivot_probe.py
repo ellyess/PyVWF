@@ -152,7 +152,11 @@ def main(out_dir: str, *only: str, selection: Path = SEL, era5_dir: Path = ERA5_
 
     for label in only or ROWS:
         stem, mode, k, train_dir = ROWS[label]
-        spec = regions.load_region(REPO / "configs" / "regions" / f"{stem}.toml")
+        # The frozen config this study ran on, not the maintained one, which moved to
+        # era5/EU_2026-09 and derived roughness after it ran (configs/regions/study/).
+        spec = regions.load_region(
+            REPO / "configs" / "regions" / "study" / f"{stem}_era5_eu_stored.toml"
+        )
         base = Path(selection) / label / train_dir
         factors = pd.read_csv(base / f"factors_fixed_{k}.csv")
         fleet = pd.read_csv(base / f"train_turb_info_{k}.csv")
