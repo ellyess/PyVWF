@@ -58,6 +58,8 @@ SUITES = {
             "src/vwf/wind.py",
             "src/vwf/curves.py",
             "src/vwf/clustering.py",
+            "src/vwf/country_level.py",
+            "src/vwf/sampling.py",
             "src/vwf/config.py",
             "src/vwf/time_utils.py",
             "src/vwf/geospatial.py",

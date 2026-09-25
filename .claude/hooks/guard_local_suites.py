@@ -5,8 +5,10 @@ pins and `pinn` for the physics-informed tests, neither of which CI can run.
 If `git commit` would record a change to a suite's covered code, the staged
 content must match the fingerprint in that suite's stamp, and that run must
 have passed. `git commit -a` is blocked outright, because it stages at commit
-time and the paths should be named anyway. `docs/design/agent-guards.md` says
-why.
+time and the paths should be named anyway. So is anything else that stages
+covered code after this hook has read the index: `git commit <paths>`, and a
+`git add`, `stage`, `rm` or `mv` in the same command as the commit.
+`docs/design/agent-guards.md` says why.
 
 Exit 2 blocks the tool call and shows stderr to Claude. Any unexpected error
 exits 1, which lets the call through and shows the error to the user.
@@ -74,11 +76,27 @@ def commit_invocations(command: str) -> list[list[str]] | None:
     past any VAR=value assignments. Git's own options before `commit` are
     skipped. Text inside quotes or heredocs is never read as a command.
     """
+    found = git_invocations(command, {"commit"})
+    return None if found is None else [args for _, args in found]
+
+
+#: Subcommands that change the index, so a commit later in the same command
+#: records what they staged, which this hook, running first, never saw.
+STAGING = {"add", "stage", "rm", "mv"}
+#: Staging options that name no paths and can reach any file.
+BROAD = {"-A", "--all", "-u", "--update", "--pathspec-from-file", "--no-ignore-removal"}
+
+
+def git_invocations(command: str, subcommands: set[str]) -> list[tuple[str, list[str]]] | None:
+    """(subcommand, arguments) for every `git <subcommand>` the command runs, or None.
+
+    The same parsing as ``commit_invocations``, for any set of subcommands.
+    """
     try:
         tokens = _tokens(command)
     except ValueError:
         return None
-    found: list[list[str]] = []
+    found: list[tuple[str, list[str]]] = []
     at_start, i = True, 0
     while i < len(tokens):
         tok = tokens[i]
@@ -92,13 +110,78 @@ def commit_invocations(command: str) -> list[list[str]] | None:
             j = i + 1
             while j < len(tokens) and tokens[j].startswith("-"):
                 j += 2 if tokens[j] in ("-C", "-c") else 1
-            if j < len(tokens) and tokens[j] == "commit":
+            if j < len(tokens) and tokens[j] in subcommands:
                 k = j + 1
                 while k < len(tokens) and tokens[k] not in SEPARATORS:
                     k += 1
-                found.append(tokens[j + 1 : k])
+                found.append((tokens[j], tokens[j + 1 : k]))
         at_start, i = False, i + 1
     return found
+
+
+def commit_pathspecs(args: list[str]) -> list[str]:
+    """The paths a `git commit` argument list names, which it stages at commit time."""
+    paths, i = [], 0
+    while i < len(args):
+        tok = args[i]
+        if tok == "--":
+            return paths + args[i + 1 :]
+        if tok in LONG_WITH_VALUE:
+            i += 2
+            continue
+        if tok.startswith("--"):
+            i += 1
+            continue
+        if tok.startswith("-") and len(tok) > 1:
+            for pos, char in enumerate(tok[1:], start=1):
+                if char in SHORT_WITH_VALUE:
+                    if pos == len(tok) - 1:
+                        i += 1  # the value is the next token
+                    break
+            i += 1
+            continue
+        paths.append(tok)
+        i += 1
+    return paths
+
+
+def staging_pathspecs(args: list[str]) -> tuple[list[str], bool]:
+    """(paths, broad) for a `git add`, `stage`, `rm` or `mv` argument list.
+
+    ``broad`` is True for an option that stages without naming paths (``-A``,
+    ``-u``, ``--pathspec-from-file``), since which files it reaches cannot be
+    read from the command.
+    """
+    paths, broad = [], False
+    for tok in args:
+        if tok in BROAD or (
+            tok.startswith("-") and not tok.startswith("--") and set(tok[1:]) & {"A", "u"}
+        ):
+            broad = True
+        elif not tok.startswith("-"):
+            paths.append(tok)
+    return paths, broad
+
+
+def reaches_covered(path: str, covered: tuple[str, ...], root: Path, cwd: Path) -> bool:
+    """Whether a pathspec can name a file under any covered path.
+
+    Conservative: a glob, the repository root, a directory that contains
+    covered code and a path inside covered code all count.
+    """
+    if any(c in path for c in "*?[") or path.startswith(":"):
+        return True
+    full = (cwd / path).resolve() if not Path(path).is_absolute() else Path(path).resolve()
+    try:
+        rel = full.relative_to(root).as_posix()
+    except ValueError:
+        return False
+    rel = "" if rel == "." else rel.rstrip("/")
+    for c in covered:
+        c = c.rstrip("/")
+        if rel == "" or rel == c or c.startswith(rel + "/") or rel.startswith(c + "/"):
+            return True
+    return False
 
 
 def stages_all(args: list[str]) -> bool:
@@ -166,8 +249,34 @@ def main() -> int:
         return 2
 
     root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or ".").resolve()
+    cwd = Path(event.get("cwd") or root).resolve()
     sys.path.insert(0, str(root / "scripts" / "dev"))
     from stamp import SUITES, index_fingerprint, stamp_path, staged_covered_paths
+
+    covered = tuple(c for suite in SUITES.values() for c in suite.covered)
+    # This hook reads the index before the command runs, so what the command
+    # itself stages is invisible to the stamp check below. Refuse it wherever
+    # it can reach covered code; staging in its own call makes it visible.
+    late = [
+        path
+        for args in invocations
+        for path in commit_pathspecs(args)
+        if reaches_covered(path, covered, root, cwd)
+    ]
+    if invocations:
+        for _, args in git_invocations(command, STAGING) or []:
+            paths, broad = staging_pathspecs(args)
+            if broad:
+                late.append(" ".join(args) or "(no paths)")
+            late += [p for p in paths if reaches_covered(p, covered, root, cwd)]
+    if late:
+        print(
+            f"Blocked: this command stages {', '.join(late)} as it commits, after this "
+            "check has read the index, so the stamp check cannot see it. Stage in one "
+            "call, read `git status`, then commit in the next.",
+            file=sys.stderr,
+        )
+        return 2
 
     problems = []
     for name, suite in SUITES.items():

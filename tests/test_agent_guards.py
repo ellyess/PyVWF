@@ -196,6 +196,45 @@ def test_suite_blocks_failed_or_stale_stamp(repo):
     assert _commit(repo) == 2
 
 
+# The shape that let a commit through on 2026-09-25 with a failing realdata
+# stamp: the paths were staged by the same command as the commit, after the
+# hook had read an index with nothing covered in it.
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git add src/vwf/metrics.py && git commit -F - <<'EOF'\nmsg\nEOF",
+        "git add src/vwf/pinn/model.py; git commit -m x",
+        "git add -A && git commit -m x",
+        "git add . && git commit -m x",
+        "git add src && git commit -m x",
+        "git add 'src/vwf/*.py' && git commit -m x",
+        "git rm src/vwf/metrics.py && git commit -m x",
+        "git commit src/vwf/metrics.py -m x",
+        "git commit -m x -- src/vwf/pinn/model.py",
+    ],
+)
+def test_suite_blocks_covered_code_staged_by_the_commit_command(repo, command):
+    (repo / "src/vwf/metrics.py").write_text("x = 2\n")
+    (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
+    _stamp(repo, "realdata", exit_code=1)
+    assert _hook(repo, SUITES, "Bash", {"command": command}) == 2
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git add README.md && git commit -m x",
+        "git add docs/x.md tests/test_x.py && git commit -m x",
+        "git commit README.md -m x",
+        "git add src/vwf/metrics.py",
+        "git commit -m 'stage with git add src/vwf/metrics.py first'",
+        "git commit -F - <<'EOF'\ngit add -A && git commit\nEOF",
+    ],
+)
+def test_suite_allows_staging_that_reaches_no_covered_code(repo, command):
+    assert _hook(repo, SUITES, "Bash", {"command": command}) == 0
+
+
 def test_one_suite_stamp_does_not_cover_the_other(repo):
     (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
     _stamp(repo, "pinn", exit_code=0)
@@ -221,6 +260,30 @@ def test_every_pinn_test_file_is_in_the_pinn_suite():
     listed = {Path(a).name for a in _defined_suites()["pinn"].pytest_args}
     on_disk = {p.name for p in (ROOT / "tests").glob("test_pinn_*.py")}
     assert listed == on_disk
+
+
+#: What the realdata suite leaves out of src/vwf, by the written rule
+#: ("everything except pinn/, viz/ and cli/"), plus files that are not code
+#: the pins can reach.
+NOT_REALDATA = {"pinn", "viz", "cli", "__init__.py", "_version.py", "resources", "py.typed"}
+
+
+def test_realdata_covers_every_module_the_rule_says_it_covers():
+    """A module split out of a covered one is covered too.
+
+    vwf.country_level and vwf.sampling were split out of data.py and
+    clustering.py on 2026-09-25 and not added, so a change to either needed no
+    stamp until this test.
+    """
+    covered = {
+        rel.removeprefix("src/vwf/").rstrip("/") for rel in _defined_suites()["realdata"].covered
+    }
+    modules = {
+        p.name
+        for p in (ROOT / "src/vwf").iterdir()
+        if (p.suffix == ".py" or (p.is_dir() and (p / "__init__.py").exists()))
+    }
+    assert sorted(modules - covered - NOT_REALDATA) == []
 
 
 def test_covered_paths_exist_and_agree_with_the_written_rules():
