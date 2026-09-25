@@ -7,6 +7,18 @@ national monthly capacity factor on each country's single test year. Registered
 design and gates: `method-physics-informed-loco-prereg.md`. The model is
 `method-physics-informed.md`. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. Its own figures are unaffected. The statement that
+Norway's affine scorecard row is worse than uncorrected still holds with the
+joint fit (0.0351 against 0.0350).
+
 **Trained on eight European countries and applied to the ninth, the model cuts
 national capacity-factor RMSE in eight of nine gated countries, to a median of
 29% of the uncorrected error, and recovers a median 94% of what fitting inside

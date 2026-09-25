@@ -7,6 +7,18 @@ and no result of this study existed when it was made.
 library contributes to PyVWF's validation results, at country level and at
 turbine level. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. The outcome entries recorded here for G1, P2, P2b and
+P3 on the country rows rest on those fits and were not re-measured; the design
+itself is unaffected.
+
 **Everything below is fixed before any run of the study.** The outcome columns
 are filled in afterwards. A condition added later is labelled post hoc and
 cannot pass a gate.

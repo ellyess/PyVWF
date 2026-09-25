@@ -12,6 +12,19 @@ records, and `output/national_single_cluster_2026-09-16/` is empty.
 Portugal and Sweden are excluded before any result; see the data-quality
 section. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. The cost estimate (under 1.6 hours, BE 79.3 s) comes
+from a run that used the per-cluster solver for N=3 and is likely low; the
+motivation's caveat about under-determined joint offsets describes a fit that
+did not run for N greater than 1. The protocol stands.
+
 ## Blocked on data, 2026-09-16
 
 **The registered protocol cannot run against the observation files that

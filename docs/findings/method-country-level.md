@@ -14,6 +14,27 @@ their own manifests.
 **Scope:** the `obs_level = "country"` path against the turbine-level path, plus
 an audit of the nine ENTSO-E observation series on disk.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. Affected here, not re-measured: the N-cluster rows and
+the "better" reading of section 6; the national N=4 zonal comparison and the NO5
+N=4 figure; the affine (N) column of section 7 and the country part of the
+scalar-offset correlation (-0.79 over 320 pairs, FR -0.999 and the rest), the
+median offset, the effective-factor correlation, and the reading that the
+offsets repair the scalar's cube-law overshoot and why the joint fit works. That
+reading may partly be an artefact of the per-cluster solver, which ties each
+cluster's offset to its own scalar by matching every cluster to the same
+national value; it is not re-established for the joint fit. The Italy halving
+and the NO statement about every corrected variant rest on the same fits.
+Standing: the turbine-level DK and NZ parts, sections 2 to 4, the scalar-only
+control column and every N=1 figure.
+
 **Correction, 2026-09-11: every simulated or fitted country-level figure below
 was computed on the wrong power curve.** The grid points name `Vestas.V80.2000`
 (FR, IT, PT), `Vestas.V90.2000` (ES, IE) or `Vestas.V90.3000` (BE, NL, SE, NO).

@@ -17,6 +17,22 @@ re-run on `era5/EU_2026-09`. Pre-registered in `method-eu-rerun-prereg.md`; the
 method decision it implements is `method-roughness-treatment.md`. Terms follow
 `CONTEXT.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. Affected here, not re-measured: the headline, the
+table's FR, BE, SE, NO, ES and IT rows, the failed-offset and below-zero shares
+in the fit quality (the scalar ranges stand), the FR and BE treatment
+differences, the SE and NO decomposition, the ES and IT rows and the Italy
+section's N=3 rows and fitted pairs, gates G2 and G5, predictions P3 to P5 and
+the related caveat. Standing: PT and every N=1 row, and the extent result the
+wider download resolved.
+
 **Two things changed, and the plan measured them apart. The roughness treatment
 moved every row by less than 0.0002 in corrected RMSE. The wider box returned
 Spain, Italy and Portugal from suspension, and their figures improve by up to
