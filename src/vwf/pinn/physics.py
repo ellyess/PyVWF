@@ -73,7 +73,12 @@ class PowerCurveBank:
         # grid coordinate minus an epsilon rounds back up to the grid size, and
         # the upper neighbour i0 + 1 then walks off the end of the table.
         i0 = x.floor().clamp(0.0, float(self.n - 2))
-        frac = (x - i0).clamp(0.0, 1.0)
+        # Clamp the fraction only where the index was clamped, off either end
+        # of the table. On a grid knot the fraction is exactly 0, and from
+        # torch 2.14 clamp passes no gradient at its bound, so clamping it
+        # everywhere cut the gradient with respect to wind speed at every knot.
+        d = x - i0
+        frac = torch.where((d >= 0) & (d <= 1), d, d.clamp(0.0, 1.0))
         i0 = i0.long()
         idx = curve_idx.expand_as(i0)
         y0 = self.curves[idx, i0]
