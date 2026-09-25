@@ -31,6 +31,7 @@ type = layers
 containers = vwf.harness
 layers =
     driver | export | hindcast
+    records | scoring
     corrections | skill
     regions | bootstrap
 

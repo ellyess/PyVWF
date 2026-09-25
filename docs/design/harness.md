@@ -26,6 +26,8 @@ without touching it.
 src/vwf/harness/regions.py       # RegionSpec dataclass + TOML loader/validator
 src/vwf/harness/corrections.py   # CorrectionModel ABC, registry, AffineWindCorrection
 src/vwf/harness/driver.py        # run_train / run_evaluate / run_transfer
+src/vwf/harness/records.py       # what a run records about its inputs, for the manifest
+src/vwf/harness/scoring.py       # paired frames per scope, common-row scoring, error metrics
 src/vwf/harness/skill.py         # skill metrics on tidy frames
 src/vwf/harness/bootstrap.py     # paired bootstrap resampling
 src/vwf/provenance.py            # run_manifest.json + curve-library identity (both paths)
