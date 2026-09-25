@@ -120,7 +120,12 @@ and every push to `main`:
   every pre-commit hook over the tracked tree;
 - the suite plus `examples/run_minimal.py` on Python 3.10 to 3.13, installed
   from `pyproject.toml` so the declared dependencies are exercised as a fresh
-  `pip install` would get them, with coverage gated;
+  `pip install` would get them, with coverage gated. Python 3.10 to 3.12 and
+  the lint job install through the pinned files in `constraints/`, so their
+  result depends on the repository rather than on that day's releases; 3.10
+  resolves pandas 2 and 3.11 and 3.12 pandas 3. Python 3.13 and the extras job
+  stay unpinned and see new releases first. Refresh the files with
+  `python scripts/dev/lock.py` (needs `uv`), and check them with `--check`;
 - the same fast set on Python 3.12 with every extra installed (`pinn`, `grid`
   and `data`, torch from its CPU index), failing if any test still skips for a
   missing import;
