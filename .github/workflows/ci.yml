@@ -101,6 +101,45 @@ jobs:
       - name: Run minimal example (end-to-end on bundled synthetic data)
         run: python examples/run_minimal.py
 
+  extras:
+    name: Test with every extra (Python 3.12)
+    runs-on: ubuntu-latest
+    # The test job installs [dev] only, so the physics-informed tests (torch),
+    # the gridded-export tests (pykrige, rasterio) and anything the
+    # acquisition libraries reach skip there. This job installs them and runs
+    # the same fast set, and fails if any test still skips for a missing import.
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the package with every extra
+        # torch from the CPU index: the default wheel carries CUDA and is
+        # several gigabytes, none of which the tests use.
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,pinn,grid,data]"
+
+      - name: Run tests
+        # No -q: the ini already sets it, and a second one hides the summary line.
+        # shell: bash adds pipefail; the default shell does not set it, so a
+        # failing pytest piped into tee passed this step until it was added.
+        shell: bash
+        run: pytest tests -rs -m "not slow and not realdata" | tee /tmp/extras.log
+
+      - name: No test skipped for a missing import
+        run: |
+          if grep -E "SKIPPED.*(could not import|No module named)" /tmp/extras.log; then
+            echo "a test skipped for a missing import although every extra is installed"
+            exit 1
+          fi
+
   examples:
     name: Examples (every file)
     runs-on: ubuntu-latest
