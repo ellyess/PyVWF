@@ -248,8 +248,10 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
         )
 
         # Group by region and training status
-        grouped = averaged.groupby(["region", "In training?"])[["cf_obs", "cf_sim", "capacity"]]
-        averaged_type = grouped.apply(
+        grouped_type = averaged.groupby(["region", "In training?"])[
+            ["cf_obs", "cf_sim", "capacity"]
+        ]
+        averaged_type = grouped_type.apply(
             lambda g: pd.Series(
                 {
                     "cf_obs": agg_weighted(g, "cf_obs"),
@@ -264,8 +266,8 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
         averaged_type = averaged_type.reset_index().set_index("region")
 
         # Total by region
-        grouped_total = averaged.groupby("region")[["cf_obs", "cf_sim", "capacity"]]
-        averaged_total = grouped_total.apply(
+        grouped_region = averaged.groupby("region")[["cf_obs", "cf_sim", "capacity"]]
+        by_region = grouped_region.apply(
             lambda g: pd.Series(
                 {
                     "cf_obs": agg_weighted(g, "cf_obs"),
@@ -274,10 +276,10 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
                 }
             )
         )
-        averaged_total["diff"] = averaged_total["cf_sim"] - averaged_total["cf_obs"]
-        averaged_total["In training?"] = "Both"
+        by_region["diff"] = by_region["cf_sim"] - by_region["cf_obs"]
+        by_region["In training?"] = "Both"
 
-        averaged = pd.concat([averaged_type, averaged_total])
+        averaged = pd.concat([averaged_type, by_region])
         return averaged[["diff", "In training?", "ID", "cf_obs", "cf_sim"]]
 
     elif type == "turbine-error":  # turbine-yearly
@@ -287,8 +289,8 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
 
     elif type == "cluster-error":  # cluster-yearly
         averaged = merged.groupby("ID").mean().reset_index()
-        grouped = averaged.groupby("cluster")[["cf_obs", "cf_sim", "capacity"]]
-        averaged = grouped.apply(
+        grouped_cluster = averaged.groupby("cluster")[["cf_obs", "cf_sim", "capacity"]]
+        by_cluster = grouped_cluster.apply(
             lambda g: pd.Series(
                 {
                     "cf_obs": agg_weighted(g, "cf_obs"),
@@ -297,21 +299,21 @@ def calculate_error(type, df_sim, df_obs, turb_info, train=False):
                 }
             )
         )
-        averaged["diff"] = averaged["cf_sim"] - averaged["cf_obs"]
-        return averaged["diff"], averaged["ID"]
+        by_cluster["diff"] = by_cluster["cf_sim"] - by_cluster["cf_obs"]
+        return by_cluster["diff"], by_cluster["ID"]
 
     elif type == "temporal-focus":  # country-monthly
-        grouped = merged.groupby("month")[["cf_obs", "cf_sim", "capacity"]]
-        averaged = grouped.apply(
+        grouped_month = merged.groupby("month")[["cf_obs", "cf_sim", "capacity"]]
+        by_month = grouped_month.apply(
             lambda g: pd.Series(
                 {"cf_obs": agg_weighted(g, "cf_obs"), "cf_sim": agg_weighted(g, "cf_sim")}
             )
         )
-        averaged["diff"] = averaged["cf_sim"] - averaged["cf_obs"]
+        by_month["diff"] = by_month["cf_sim"] - by_month["cf_obs"]
 
-        rmse = np.sqrt((averaged["diff"] ** 2).mean())
-        mae = np.abs(averaged["diff"]).mean()
-        mbe = averaged["diff"].mean()
+        rmse = np.sqrt((by_month["diff"] ** 2).mean())
+        mae = np.abs(by_month["diff"]).mean()
+        mbe = by_month["diff"].mean()
         return rmse, mae, mbe
 
     elif type == "spatial-focus":  # turbine-yearly
