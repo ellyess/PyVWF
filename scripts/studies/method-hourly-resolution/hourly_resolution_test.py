@@ -95,6 +95,14 @@ MONTHLY_REFERENCE = (0.12271, 0.10398)
 
 
 def _metrics(df: pd.DataFrame, sim: str) -> dict:
+    """Error metrics over every plant-period row, each row weighted equally.
+
+    Unweighted, unlike the harness's fleet scope in ``metrics.csv``, which
+    weights each row by capacity. MONTHLY_REFERENCE comes from that weighted
+    scoring, so the control and gate G2 compare an unweighted figure with a
+    weighted one (noted in ``docs/findings/method-hourly-resolution.md``).
+    Left as it ran, because the study's recorded figures were computed this way.
+    """
     d = df[sim] - df["obs"]
     r = float(np.corrcoef(df[sim], df["obs"])[0, 1]) if len(df) > 1 else float("nan")
     return {
