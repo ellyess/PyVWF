@@ -81,9 +81,15 @@ def test_bank_rejects_a_non_uniform_grid():
         PowerCurveBank(np.array([0.0, 1.0, 3.0]), np.zeros((1, 3)))
 
 
-def test_bank_is_differentiable_in_wind_speed(bank):
-    """The gradient that makes end-to-end fitting possible exists and is right."""
-    u = torch.tensor([8.0], requires_grad=True)
+@pytest.mark.parametrize("speed", [8.0, 8.005])
+def test_bank_is_differentiable_in_wind_speed(bank, speed):
+    """The gradient that makes end-to-end fitting possible exists and is right.
+
+    8.0 m/s sits on a grid knot and 8.005 between two. Under torch 2.14 the
+    knot's gradient was zero until the fraction stopped being clamped inside
+    the table; on 2.13 both passed.
+    """
+    u = torch.tensor([speed], requires_grad=True)
     bank(u, torch.zeros(1, dtype=torch.long)).backward()
     # On the cubic ramp between cut-in and rated the curve is strictly rising.
     assert u.grad.item() > 0

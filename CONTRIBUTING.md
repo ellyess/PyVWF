@@ -120,6 +120,9 @@ and every push to `main`:
 - the suite plus `examples/run_minimal.py` on Python 3.10 to 3.13, installed
   from `pyproject.toml` so the declared dependencies are exercised as a fresh
   `pip install` would get them, with coverage gated;
+- the same fast set on Python 3.12 with every extra installed (`pinn`, `grid`
+  and `data`, torch from its CPU index), failing if any test still skips for a
+  missing import;
 - every file in `examples/`, which then must leave the tracked tree unchanged,
   with the regenerated example data equal to the committed data to a relative
   1e-12 (the last bit differs between platforms);

@@ -64,6 +64,11 @@ this file stay in step with it.
 
 ### Changed
 
+- **CI tests every extra.** A new job installs `pinn`, `grid` and `data` and
+  runs the fast set, so the physics-informed and gridded-export tests, which
+  skip in the other jobs, run in CI. It fails if any test still skips for a
+  missing import.
+
 - **`vwf.data` and `vwf.clustering` are split** (`vwf.country_level`,
   `vwf.sampling`). The country-level observation and grid-fleet helpers moved
   out of `vwf.data` (969 lines to 713), and every name is still importable
@@ -163,6 +168,14 @@ this file stay in step with it.
   because its digest cannot tell a version change from a code change.
 
 ### Fixed
+
+- **The physics-informed curve bank keeps its gradient on a grid knot under
+  torch 2.14** (`vwf.pinn.physics.PowerCurveBank`). It clamped the
+  interpolation fraction to 0 to 1 everywhere, and from torch 2.14 clamp
+  passes no gradient at its bound, so at every speed that falls exactly on
+  the 0.01 m/s grid the gradient with respect to wind speed was zero. The
+  fraction is now clamped only off the ends of the table. Values are
+  unchanged, and so are the gradients under torch 2.13.
 
 - **National country-level fits with more than one cluster take the joint
   fit again** (`vwf.data.country_obs_is_per_cluster`). The router counted
