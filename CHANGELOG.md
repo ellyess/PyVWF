@@ -64,6 +64,13 @@ this file stay in step with it.
 
 ### Changed
 
+- **CI runs every pre-commit hook and tests Python 3.13.** The lint job now
+  runs `pre-commit run --all-files`, so the em-dash check, the whitespace
+  fixers and the TOML and YAML checks hold for a commit made without the hooks
+  installed. The test matrix gains 3.13, which the maintainer's environment
+  already runs; the classifiers, the README badge and the installation guide
+  list it.
+
 - **One helper for every weighted mean** (`vwf.metrics.weighted_mean`, with a
   grouped wrapper). Fifteen hand-written weighted means across the package now
   delegate to it, so a missing value is treated the same way everywhere: it

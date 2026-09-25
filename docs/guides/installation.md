@@ -1,6 +1,6 @@
 # Installation
 
-PyVWF needs Python 3.10 or later. It is tested on 3.10, 3.11 and 3.12.
+PyVWF needs Python 3.10 or later. It is tested on 3.10, 3.11, 3.12 and 3.13.
 
 ## Two routes
 

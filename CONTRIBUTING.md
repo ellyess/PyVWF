@@ -115,8 +115,9 @@ and every push to `main`:
 - `ruff check` and `ruff format --check` over `src tests scripts examples`,
   then `mypy` (the package ships `py.typed`, so type information reaches
   downstream users), `lint-imports` for the layering in `.importlinter`,
-  `deptry src` for declared dependencies, and `vulture` for dead code;
-- the suite plus `examples/run_minimal.py` on Python 3.10 to 3.12, installed
+  `deptry src` for declared dependencies, `vulture` for dead code, and
+  every pre-commit hook over the tracked tree;
+- the suite plus `examples/run_minimal.py` on Python 3.10 to 3.13, installed
   from `pyproject.toml` so the declared dependencies are exercised as a fresh
   `pip install` would get them, with coverage gated;
 - every file in `examples/`, which then must leave the tracked tree unchanged,
