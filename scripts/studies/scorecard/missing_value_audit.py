@@ -54,14 +54,14 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
-from vwf.cli.common import make_parser
-from vwf.clustering import cluster_turbines
-from vwf.data import assign_country_clusters, val_set
-from vwf.curves import load_power_curves
-from vwf.harness.corrections import fit_quality, get_correction
-from vwf.harness.driver import era5_dir, resolve_source
-from vwf.harness.regions import load_region
-from vwf.wind import add_time_resolution_columns
+from pyvwf.cli.common import make_parser
+from pyvwf.clustering import cluster_turbines
+from pyvwf.data import assign_country_clusters, val_set
+from pyvwf.curves import load_power_curves
+from pyvwf.harness.corrections import fit_quality, get_correction
+from pyvwf.harness.driver import era5_dir, resolve_source
+from pyvwf.harness.regions import load_region
+from pyvwf.wind import add_time_resolution_columns
 
 ROUTES = ("input", "failed_factor", "above_curve", "below_curve", "unexplained")
 

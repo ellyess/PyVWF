@@ -36,8 +36,8 @@ import glob
 import sys
 from pathlib import Path
 
-from vwf.cli.common import add_input_path
-from vwf.datasets.emi_nz import (
+from pyvwf.cli.common import add_input_path
+from pyvwf.datasets.emi_nz import (
     capacity_history_from_curation,
     gen_code_map,
     load_curated_tables,

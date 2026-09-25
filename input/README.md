@@ -30,7 +30,7 @@ For manufacturer-specific validated curves, use the renewables.ninja / Virtual
 Wind Farm (VWF) library, which derives from the thewindpower.net turbine
 database:
 
-- https://github.com/renewables-ninja/vwf
+- https://github.com/renewables-ninja/pyvwf
 - https://www.renewables.ninja
 - https://www.thewindpower.net
 

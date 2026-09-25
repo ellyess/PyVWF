@@ -3,8 +3,8 @@
 import pandas as pd
 import pytest
 
-from vwf.sources import available_sources, get_source
-from vwf.sources.entsoe_files import EntsoeFileSource
+from pyvwf.sources import available_sources, get_source
+from pyvwf.sources.entsoe_files import EntsoeFileSource
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def country_layout(tmp_path):
     def _obs(path, cf):
         idx = pd.date_range("2015-01-01", periods=4, freq="15min", tz="UTC")
         # First value is the one the assertions read; the rest carry the series
-        # over the plausibility gate in vwf.loaders.country_obs_checks, which
+        # over the plausibility gate in pyvwf.loaders.country_obs_checks, which
         # runs on every load and would otherwise warn about a flat series.
         pd.DataFrame({"capacity_factor": [cf, 0.05, 0.9, 0.3]}, index=idx).to_csv(path)
 

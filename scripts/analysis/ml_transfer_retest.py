@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.extensions.ml import transfer
-from vwf.extensions.ml.transfer import (  # noqa: F401  (the drivers in scripts/pinn/ import these from here)
+from pyvwf.extensions.ml import transfer
+from pyvwf.extensions.ml.transfer import (  # noqa: F401  (the drivers in scripts/pinn/ import these from here)
     RF_KW,
     SEEDS,
     SET_A,
@@ -53,7 +53,7 @@ SENSITIVITY_RUNS = {
 
 
 def build_centroids(runs: dict) -> pd.DataFrame:
-    """:func:`vwf.extensions.ml.transfer.build_centroids`, rooted at ``ROOT``.
+    """:func:`pyvwf.extensions.ml.transfer.build_centroids`, rooted at ``ROOT``.
 
     ``ROOT`` is read when called, so a caller that repoints it (as
     ml_transfer_expanded.py does) is honoured.
@@ -62,7 +62,7 @@ def build_centroids(runs: dict) -> pd.DataFrame:
 
 
 def terrain_features(df: pd.DataFrame) -> pd.DataFrame:
-    """:func:`vwf.extensions.ml.transfer.terrain_features` on the ETOPO grid
+    """:func:`pyvwf.extensions.ml.transfer.terrain_features` on the ETOPO grid
     under ``ROOT``."""
     return transfer.terrain_features(df, ROOT / "input/reference/terrain/etopo_global.nc")
 

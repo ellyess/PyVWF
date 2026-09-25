@@ -1,6 +1,6 @@
 """Pin the country-level data generator before it is split.
 
-``vwf/datasets/generate_country_level_training_data.py`` is one 1,400-line
+``pyvwf/datasets/generate_country_level_training_data.py`` is one 1,400-line
 file with three groups that only ``main`` joins: grid-point generation, the
 ENTSO-E observation fetch, and the writing of ``pyvwf_config.py``. Phase 3
 splits it along those lines. Before that, ``main`` is pinned end to end. The
@@ -35,7 +35,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import vwf.datasets.generate_country_level_training_data as gen
+import pyvwf.datasets.generate_country_level_training_data as gen
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "country_generator"

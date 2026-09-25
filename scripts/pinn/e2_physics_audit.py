@@ -31,7 +31,7 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from vwf.pinn.train import fit, load_regions, predict_frame  # noqa: E402
+from pyvwf.pinn.train import fit, load_regions, predict_frame  # noqa: E402
 
 REGIONS = ["DK", "DE", "UK", "US", "BR"]
 CACHE = ROOT / "output" / "pinn" / "cache"

@@ -38,10 +38,10 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb  # noqa: E402
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
-from vwf.harness import driver  # noqa: E402
-from vwf.harness.bootstrap import (  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.harness.driver import load_obs_and_fleet  # noqa: E402
+from pyvwf.harness import driver  # noqa: E402
+from pyvwf.harness.bootstrap import (  # noqa: E402
     percentile_interval,
     resample_counts,
     resample_indices,
@@ -49,8 +49,8 @@ from vwf.harness.bootstrap import (  # noqa: E402
     unit_sums,
     weighted_rmse,
 )
-from vwf.harness.regions import load_region
-from vwf.harness.skill import (
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.skill import (
     collapse_pseudo_replicates,
     restrict_to_common_rows,
     skill_metrics,

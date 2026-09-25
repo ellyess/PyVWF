@@ -127,7 +127,7 @@ stored ahead of time. The route per ERA5 directory is in
 
 Which curve every unit was actually simulated on. At turbine level, a model key
 missing from `power_curves.csv` does not stop a run: the unit is simulated on
-the fallback curve, that file's first column (`vwf.wind.default_curve_key`, a 100 kW
+the fallback curve, that file's first column (`pyvwf.wind.default_curve_key`, a 100 kW
 distributed-wind turbine in the open library), with a one-off warning. A
 country-level run instead raises `CurveSubstitutionError` once this file is
 written, because every grid point carries the same key and a missing curve is
@@ -152,14 +152,14 @@ time. Any result from a run with a non-zero share was not simulated on the
 fleet's own curves, and should be read with that share beside it.
 
 `resolved` means `power_curves.csv` has the key, not that the key names the
-right machine. `vwf.curves.add_models` matches manufacturers fuzzily, and can
+right machine. `pyvwf.curves.add_models` matches manufacturers fuzzily, and can
 assign another manufacturer's model at the same specific power (see its
 docstring). That shows up in `assigned_by`, not in `status`.
 
 **Known gaps.** This file is written by the harness's train, evaluate and
 transfer runs only:
 
-- `vwf.harness.hindcast.run_hindcast` returns frames and writes no run
+- `pyvwf.harness.hindcast.run_hindcast` returns frames and writes no run
   directory or manifest, so there is nowhere to put the record.
 - The legacy `PyVWF` path uses the same fallback curve but is not wired to
   this file.

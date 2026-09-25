@@ -6,7 +6,7 @@ Compares ``factors_*.csv`` and ``cor_cf_*.csv`` between a REFERENCE directory
 cell over numeric columns, and reports a pass/fail table against a tolerance.
 
 The gate sits on factors and corrected-CF frames, not on metric numbers:
-legacy ``vwf.metrics`` and harness ``vwf.harness.skill`` compute skill with
+legacy ``pyvwf.metrics`` and harness ``pyvwf.harness.skill`` compute skill with
 different (intentional) formulas, so a metric diff is a formula choice, not a
 regression. If the frames match, the refactor preserved the method.
 

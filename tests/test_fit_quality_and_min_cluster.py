@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.clustering import cluster_turbines
-from vwf.harness.corrections import PLAUSIBLE_SCALAR, fit_quality
+from pyvwf.clustering import cluster_turbines
+from pyvwf.harness.corrections import PLAUSIBLE_SCALAR, fit_quality
 
 
 def _factors(scalars, offsets=None):

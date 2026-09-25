@@ -253,7 +253,7 @@ The first run of the measurement wrote a column named
 `distance_great_circle_degrees` that held kilometres, and compared it against
 the Euclidean distance on shared band edges. That table reported 4,158 cells
 within one degree of a control point as being beyond five, because one degree
-of latitude is about 111 km. `vwf.extensions.grid.interpolation.degree_distances`
+of latitude is about 111 km. `pyvwf.extensions.grid.interpolation.degree_distances`
 documents in terms that the two metrics are not in the same units and that a
 threshold such as `MAX_DISTANCE_DEG` belongs to the Euclidean metric alone; the
 script ignored its own dependency.

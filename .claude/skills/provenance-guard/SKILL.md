@@ -24,7 +24,7 @@ Run each file in its own process:
   both copies of the open library match their recorded sha256.
 - `tests/test_curve_library.py`: the open library is internally consistent,
   its two copies are byte-identical, and every curve has a provenance row.
-- `tests/test_packaging.py`: `vwf.__version__`, the newest CHANGELOG release,
+- `tests/test_packaging.py`: `pyvwf.__version__`, the newest CHANGELOG release,
   its compare links and `CITATION.cff` agree.
 - `tests/test_scorecard_configs.py`: every configuration in
   `configs/regions/scorecard/` loads, every scorecard row has one carrying its
@@ -46,7 +46,7 @@ Three are in play, and their state as of 2026-09-13:
 
 | Guard | What it refuses | Proved to fire |
 |---|---|---|
-| The ERA5 extent guard (`vwf.wind.ExtrapolationError`) | a unit outside the loaded extent | not deliberately; it fired on Denmark in the course of work |
+| The ERA5 extent guard (`pyvwf.wind.ExtrapolationError`) | a unit outside the loaded extent | not deliberately; it fired on Denmark in the course of work |
 | The curve library study's override refusal | a fleet that is not the one a condition asked for | no |
 | The same study's library check | a run that resolved the wrong curve library | **yes, 2026-09-13**, by naming the open library's hash for a run on the combined one |
 

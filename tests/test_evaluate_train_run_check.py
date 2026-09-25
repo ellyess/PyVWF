@@ -14,8 +14,8 @@ import json
 
 import pytest
 
-from vwf.harness.driver import _check_train_run
-from vwf.harness.regions import load_region
+from pyvwf.harness.driver import _check_train_run
+from pyvwf.harness.regions import load_region
 
 CONFIG = """
 [region]

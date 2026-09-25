@@ -2,7 +2,7 @@
 
 PyVWF ships adapters for a number of public national datasets, but you can also
 point it at your own fleet without writing any adapter code: supply two CSV files
-and use [`ClientCsvTurbineSource`](../../src/vwf/sources/client_csv.py). Use this
+and use [`ClientCsvTurbineSource`](../../src/pyvwf/sources/client_csv.py). Use this
 when your observations are private, one-off, or otherwise not worth a dedicated
 source module.
 
@@ -20,7 +20,7 @@ keep your own headers and supply a `column_map`. Required after mapping:
 
 Plus **one of**: a `model` key per unit (used directly), or a rotor
 `diameter`, in which case a curve is matched from the curve library by specific
-power through `vwf.curves.add_models`, the same routine the Danish and German
+power through `pyvwf.curves.add_models`, the same routine the Danish and German
 fleets use (a `manufacturer` column sharpens the match). Optional `type`
 (`onshore`/`offshore`) defaults to onshore.
 
@@ -34,9 +34,9 @@ in the month) or a capacity factor directly (`generation_is_cf=True`).
 ```python
 import dataclasses
 from pathlib import Path
-from vwf.harness.regions import load_region
-from vwf.harness.driver import run_train, run_evaluate
-from vwf.sources.client_csv import ClientCsvTurbineSource
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.driver import run_train, run_evaluate
+from pyvwf.sources.client_csv import ClientCsvTurbineSource
 
 column_map = {
     "ID": "site_id", "lon": "longitude", "lat": "latitude",

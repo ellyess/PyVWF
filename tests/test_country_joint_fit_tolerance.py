@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf import correction
-from vwf.wind import train_simulate_wind
+from pyvwf import correction
+from pyvwf.wind import train_simulate_wind
 
 
 def _fleet(n_clusters):

@@ -1,14 +1,14 @@
 # The multi-region validation harness
 
-Why the seams in `vwf/harness/` are where they are. The seams themselves are
+Why the seams in `pyvwf/harness/` are where they are. The seams themselves are
 readable from the code; the reasoning behind them is not, which is what this
 document is for. Region-by-region results are in
 [`../findings/scorecard.md`](../findings/scorecard.md).
 
-The harness is **additive**. The legacy `PyVWF` training loop, `vwf/metrics.py`,
-`vwf/data.py` and the legacy scripts all keep working unchanged, and the
+The harness is **additive**. The legacy `PyVWF` training loop, `pyvwf/metrics.py`,
+`pyvwf/data.py` and the legacy scripts all keep working unchanged, and the
 affine baseline is wrapped rather than modified, so an alternative correction
-compares against the validated core in `vwf/correction.py` and `vwf/wind.py`
+compares against the validated core in `pyvwf/correction.py` and `pyvwf/wind.py`
 without touching it.
 
 ## What it is built to make cheap
@@ -23,20 +23,20 @@ without touching it.
    convention: Northern-Hemisphere seasons, and the ERA5 longitude convention.
 
 ```
-src/vwf/harness/regions.py       # RegionSpec dataclass + TOML loader/validator
-src/vwf/harness/corrections.py   # CorrectionModel ABC, registry, AffineWindCorrection
-src/vwf/harness/driver.py        # run_train / run_evaluate / run_transfer
-src/vwf/harness/records.py       # what a run records about its inputs, for the manifest
-src/vwf/harness/scoring.py       # paired frames per scope, common-row scoring, error metrics
-src/vwf/harness/skill.py         # skill metrics on tidy frames
-src/vwf/harness/bootstrap.py     # paired bootstrap resampling
-src/vwf/provenance.py            # run_manifest.json + curve-library identity (both paths)
-src/vwf/harness/export.py        # gridded correction fields
-src/vwf/harness/hindcast.py      # applying fitted factors to other years
-src/vwf/sources/                 # one ObservationSource adapter per data family
-src/vwf/metrics.py               # the weighted-mean primitive, shared by both paths
+src/pyvwf/harness/regions.py       # RegionSpec dataclass + TOML loader/validator
+src/pyvwf/harness/corrections.py   # CorrectionModel ABC, registry, AffineWindCorrection
+src/pyvwf/harness/driver.py        # run_train / run_evaluate / run_transfer
+src/pyvwf/harness/records.py       # what a run records about its inputs, for the manifest
+src/pyvwf/harness/scoring.py       # paired frames per scope, common-row scoring, error metrics
+src/pyvwf/harness/skill.py         # skill metrics on tidy frames
+src/pyvwf/harness/bootstrap.py     # paired bootstrap resampling
+src/pyvwf/provenance.py            # run_manifest.json + curve-library identity (both paths)
+src/pyvwf/harness/export.py        # gridded correction fields
+src/pyvwf/harness/hindcast.py      # applying fitted factors to other years
+src/pyvwf/sources/                 # one ObservationSource adapter per data family
+src/pyvwf/metrics.py               # the weighted-mean primitive, shared by both paths
 configs/regions/*.toml           # one file per region
-src/vwf/cli/validate.py          # the pyvwf-validate console entry point
+src/pyvwf/cli/validate.py          # the pyvwf-validate console entry point
 scripts/analysis/validate_region.py   # the same CLI, from a checkout
 ```
 
@@ -146,7 +146,7 @@ fixed.
 
 ## ERA5 extraction
 
-Two additive changes to `vwf/datasets/era5.py`. Longitude is normalised to
+Two additive changes to `pyvwf/datasets/era5.py`. Longitude is normalised to
 [-180, 180] on load if any value exceeds 180, and re-sorted, which closes the
 silent empty-subset hazard. The loader accepts a directory and file tag from
 `RegionSpec` rather than only the module-level constant, which remains as the
@@ -176,8 +176,8 @@ to reproduce the fit's clusters exactly, and a factors row carries one scalar
 and one offset averaged over its accepted years rather than one row per year
 (see [Factors](../guides/output-structure.md#factors-factors_slice_kcsv)).
 
-`AffineWindCorrection` is a thin delegate to the existing `vwf.correction` and
-`vwf.wind` paths, pinned by a golden regression test that requires bit-for-bit
+`AffineWindCorrection` is a thin delegate to the existing `pyvwf.correction` and
+`pyvwf.wind` paths, pinned by a golden regression test that requires bit-for-bit
 agreement with the legacy pipeline on the synthetic Denmark fixture. Variants
 register alongside it and none modify the baseline.
 
@@ -189,13 +189,13 @@ distribution comparison by 1-D Earth mover's distance with exported Q-Q
 quantiles; and seasonal-cycle RMSE against the mean monthly climatology. All
 reported before and after correction, in sample and held out.
 
-The two paths define the **error metrics** twice, in `vwf/metrics.py`
-(`calculate_error`, `overall_error`) and `vwf/harness/skill.py`
+The two paths define the **error metrics** twice, in `pyvwf/metrics.py`
+(`calculate_error`, `overall_error`) and `pyvwf/harness/skill.py`
 (`skill_metrics`). Both are live: the legacy path reproduces the thesis-era
 runs, the harness produces everything since. A change to how a metric is
 defined has to be made in both, or the two paths stop being comparable.
 
-They no longer share **no** code. `vwf.metrics.weighted_mean` and
+They no longer share **no** code. `pyvwf.metrics.weighted_mean` and
 `weighted_mean_by` are the one weighted-mean primitive, at the bottom of the
 layering in `.importlinter`, and ten modules across both paths import them,
 `harness/skill.py`, `driver.py`, `corrections.py` and `hindcast.py` among
@@ -212,7 +212,7 @@ model and its settings, and the curve library.
 
 The curve-library block carries paths, SHA-256 hashes, a count, and a `library`
 field of `"synthetic-bundled"` or `"external"`, decided by hash equality with
-the bundled files in `vwf/resources/`. A locally *edited* bundled file therefore
+the bundled files in `pyvwf/resources/`. A locally *edited* bundled file therefore
 also labels as `"external"`, which is deliberate and fail-safe in the
 underclaiming direction: nothing unverified can masquerade as the bundled
 library. Contents of external curve files are never copied into the manifest,

@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.datasets.eia_us import (
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.eia_us import (
     assign_curves_from_library,
     bin_hub_heights,
     build_us_metadata,

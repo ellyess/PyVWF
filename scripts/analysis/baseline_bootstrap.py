@@ -91,17 +91,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.harness.bootstrap import (
+from pyvwf.cli.common import make_parser
+from pyvwf.harness.bootstrap import (
     percentile_interval,
     resample_counts,
     resample_indices,
     rmse_over_rows,
     weighted_rmse,
 )
-from vwf.harness.driver import country_skill, tidy_eval_frame, load_obs_and_fleet
-from vwf.harness.regions import load_region
-from vwf.harness.skill import collapse_pseudo_replicates, skill_metrics
+from pyvwf.harness.driver import country_skill, tidy_eval_frame, load_obs_and_fleet
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.skill import collapse_pseudo_replicates, skill_metrics
 
 N_DRAWS = 1000
 SEED = 20260911

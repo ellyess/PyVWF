@@ -11,7 +11,7 @@ for Denmark:
     python scripts/process/dk.py
     python scripts/process/dk.py --metadata-only
 
-The pure transforms live in ``vwf.datasets.process_dk_raw_data`` (the header
+The pure transforms live in ``pyvwf.datasets.process_dk_raw_data`` (the header
 rows, the UTM->lon/lat conversion, the per-year sheet reshaping); this is the
 thin CLI over them, matching the other ``scripts/process/<region>.py`` entry
 points. Unlike the other regions Denmark keeps its shared ``european-turbine``
@@ -21,11 +21,11 @@ adapter (DK/DE/UK); this only produces its input files.
 import argparse
 import sys
 
-from vwf.datasets.process_dk_raw_data import (
+from pyvwf.datasets.process_dk_raw_data import (
     process_dk_metadata,
     process_dk_monthly_observations,
 )
-from vwf.cli.common import add_input_path
+from pyvwf.cli.common import add_input_path
 
 ANLAEG = "anlaeg.xlsx"
 MAANEDSDATA = "maanedsdata_2002_2020.xlsx"

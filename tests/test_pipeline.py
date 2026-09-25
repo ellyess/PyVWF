@@ -25,7 +25,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.data import cluster_train_set, train_set
+from pyvwf.data import cluster_train_set, train_set
 
 
 # The reanalysis spans these years; observations are generated for the same

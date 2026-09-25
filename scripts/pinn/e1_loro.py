@@ -23,7 +23,7 @@ Arms, all scored identically:
                   validation scorecard for the same reason.
 
 Every arm of a holdout is scored on the rows every arm can score
-(``vwf.harness.skill.restrict_to_common_rows``), as the harness scores its
+(``pyvwf.harness.skill.restrict_to_common_rows``), as the harness scores its
 variants, and the rows excluded are written beside the results. The power-curve
 bank clamps a speed outside its table rather than returning a missing value, so
 each condition's off-curve speeds are tallied and reported instead of dropping
@@ -52,17 +52,17 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from sklearn.ensemble import RandomForestRegressor  # noqa: E402
 
-from vwf.provenance import build_manifest, write_manifest  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
-from vwf.pinn.physics import expected_cf, hub_wind_ratio, monthly_mean  # noqa: E402
-from vwf.pinn.runs import (  # noqa: E402
+from pyvwf.provenance import build_manifest, write_manifest  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
+from pyvwf.pinn.physics import expected_cf, hub_wind_ratio, monthly_mean  # noqa: E402
+from pyvwf.pinn.runs import (  # noqa: E402
     UNIT_KEYS as KEYS,
     config_record,
     region_record,
     resolve_configs,
     score_on_common_rows,
 )
-from vwf.pinn.train import (  # noqa: E402
+from pyvwf.pinn.train import (  # noqa: E402
     UNIT_BATCH,
     count_off_curve,
     coverage_weight,

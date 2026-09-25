@@ -11,7 +11,7 @@ guide covers the adapter itself.
 
 ## What an adapter must provide
 
-Subclass `vwf.sources.ObservationSource`. Implement the two methods below.
+Subclass `pyvwf.sources.ObservationSource`. Implement the two methods below.
 
 ### `load_metadata() -> pd.DataFrame`
 
@@ -60,7 +60,7 @@ Capacity factors are dimensionless and normally lie in `[0, 1]`.
 Three class attributes drive the registry:
 
 ```python
-from vwf.sources import ObservationSource, register
+from pyvwf.sources import ObservationSource, register
 
 @register
 class ExampleFarmSource(ObservationSource):
@@ -79,7 +79,7 @@ class ExampleFarmSource(ObservationSource):
 ```
 
 Import the module once, so the decorator runs. An import line in
-`src/vwf/sources/__init__.py`, beside the built-in adapters, is enough.
+`src/pyvwf/sources/__init__.py`, beside the built-in adapters, is enough.
 
 The registry resolves an adapter listed in `countries` from a region code. So
 the adapter must take that code as its only constructor argument. Leave

@@ -1,8 +1,8 @@
 # Scripts
 
-Entry points over the `vwf` package: data acquisition and processing, tools
+Entry points over the `pyvwf` package: data acquisition and processing, tools
 that run across regions, and the drivers of each study. Logic that more than
-one script needs belongs in `src/vwf/`. Every Python script parses its
+one script needs belongs in `src/pyvwf/`. Every Python script parses its
 arguments with `argparse`, so `--help` lists its options. The exceptions are
 `pinn/` and the two ML transfer scripts, which move together (issue #12).
 

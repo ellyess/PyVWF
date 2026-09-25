@@ -1,4 +1,4 @@
-"""Spatial interpolation of correction factors (src/vwf/extensions/grid/interpolation.py).
+"""Spatial interpolation of correction factors (src/pyvwf/extensions/grid/interpolation.py).
 
 Ported from a driver script on the `development` branch, where it carried no
 tests. Two registered studies use these as their single definition, so the
@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.extensions.grid import interpolation as interp
+from pyvwf.extensions.grid import interpolation as interp
 
 
 def points(

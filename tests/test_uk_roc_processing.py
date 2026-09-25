@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.datasets.uk_roc import (
+from pyvwf.datasets.uk_roc import (
     band_for,
     osgb_to_wgs84,
     pseudo_replicate_metadata,

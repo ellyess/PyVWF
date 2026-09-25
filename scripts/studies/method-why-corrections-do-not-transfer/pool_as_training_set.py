@@ -31,8 +31,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.extensions.grid.surface import flag_implausible, zero_crossing_speed  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.extensions.grid.surface import flag_implausible, zero_crossing_speed  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(

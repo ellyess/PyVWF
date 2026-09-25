@@ -18,11 +18,11 @@ import xarray as xr
 
 import test_pipeline as tp
 from test_harness_driver import make_spec
-from vwf.datasets.era5 import prep_era5
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.harness.regions import load_region
-from vwf.sources import InMemoryCountrySource
-from vwf.wind import (
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.harness.regions import load_region
+from pyvwf.sources import InMemoryCountrySource
+from pyvwf.wind import (
     EXTRAPOLATION_ATTR,
     ExtrapolationError,
     interpolate_wind,

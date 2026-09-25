@@ -14,9 +14,9 @@ import pytest
 
 # Module-level on purpose: this binds the same PyVWFPaths class object the
 # adapter closed over at import, so the monkeypatch hits the right class even
-# after test_config.py reloads vwf.config (which mints a new class object).
-from vwf.config import PyVWFPaths
-from vwf.datasets.emi_nz import (
+# after test_config.py reloads pyvwf.config (which mints a new class object).
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.emi_nz import (
     below_final_build_mask,
     capacity_history_from_register,
     day_start_utc,
@@ -25,7 +25,7 @@ from vwf.datasets.emi_nz import (
     monthly_cf,
     trading_period_start_utc,
 )
-from vwf.sources.emi_nz import EMINewZealandSource, apply_month_mask
+from pyvwf.sources.emi_nz import EMINewZealandSource, apply_month_mask
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ def test_apply_month_mask_nans_listed_cells_only():
 
 
 def test_source_resolves_for_nz(monkeypatch, tmp_path):
-    from vwf.sources import resolve
+    from pyvwf.sources import resolve
 
     nz_dir = tmp_path / "NZ"
     nz_dir.mkdir()

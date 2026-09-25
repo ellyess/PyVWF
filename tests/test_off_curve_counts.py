@@ -15,9 +15,9 @@ import pandas as pd
 import pytest
 
 from test_harness_driver import make_spec
-from vwf.harness import driver
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.wind import off_curve_record
+from pyvwf.harness import driver
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.wind import off_curve_record
 
 CURVES = pd.DataFrame({"data$speed": np.linspace(0.0, 40.0, 401), "m": 0.5})
 

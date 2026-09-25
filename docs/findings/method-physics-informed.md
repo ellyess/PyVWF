@@ -9,7 +9,7 @@ mean the same thing in every region.
 
 Gates were fixed before any model was fitted; the record of what was registered
 and how each prediction turned out is in
-`method-physics-informed-prespecification.md`. Code: `src/vwf/pinn/`, drivers in
+`method-physics-informed-prespecification.md`. Code: `src/pyvwf/pinn/`, drivers in
 `scripts/pinn/`, 53 tests in `tests/test_pinn_physics.py` and 7 in
 `tests/test_pinn_era5_record.py`.
 

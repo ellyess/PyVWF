@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.wind import (
+from pyvwf.wind import (
     interpolate_wind,
     simulate_wind,
     train_simulate_wind,

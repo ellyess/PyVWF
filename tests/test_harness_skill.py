@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.harness.regions import RegionSpec
-from vwf.harness.skill import (
+from pyvwf.harness.regions import RegionSpec
+from pyvwf.harness.skill import (
     collapse_pseudo_replicates,
     seasonal_cycle_rmse,
     skill_metrics,

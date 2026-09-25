@@ -50,11 +50,11 @@ sys.path.insert(0, "src")
 
 import pandas as pd  # noqa: E402
 
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.harness.corrections import fit_quality  # noqa: E402
-from vwf.harness.driver import run_evaluate, run_train  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
-from vwf.sources import get_source  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.harness.corrections import fit_quality  # noqa: E402
+from pyvwf.harness.driver import run_evaluate, run_train  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
+from pyvwf.sources import get_source  # noqa: E402
 
 warnings.simplefilter("ignore")
 

@@ -16,7 +16,7 @@ code = "NZ"
 name = "New Zealand (EMI-dispatched fleet)"
 
 [observations]
-source = "emi-nz"          # adapter in src/vwf/sources/
+source = "emi-nz"          # adapter in src/pyvwf/sources/
 obs_level = "turbine"      # "turbine" or "country"
 obs_unit = "farm"          # turbine, farm, plant, complex or country
 train_years = [2019, 2023] # inclusive
@@ -43,7 +43,7 @@ Seasons are always explicit so a Southern-Hemisphere region is never scored
 against Northern-Hemisphere months. Every key above is required. The optional
 ones are `min_cluster_size`, `roughness`, `allow_extrapolation`,
 `location_resolution`, `pseudo_replicated_rows`, `station_id_regex` and
-`time_convention`; `src/vwf/harness/regions.py` gives each one's default.
+`time_convention`; `src/pyvwf/harness/regions.py` gives each one's default.
 
 ## Run it
 
@@ -147,7 +147,7 @@ Until 2026-09-24 PyVWF also carried a second path: the `PyVWF` class in
 produced the thesis-era runs under `output/runs/`. It duplicated the harness's
 orchestration with its own defaults and output layout, and diverged from it on
 the country level, so it was removed and the harness is the only path. The
-harness still runs the same correction functions (`vwf.correction`,
-`vwf.wind`, `vwf.data`), and `tests/test_harness_corrections.py` pins that
+harness still runs the same correction functions (`pyvwf.correction`,
+`pyvwf.wind`, `pyvwf.data`), and `tests/test_harness_corrections.py` pins that
 equivalence bit for bit. To reproduce a legacy run, check out the last commit
 that has the class, recorded in [`publications.md`](../publications.md).

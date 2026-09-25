@@ -15,7 +15,7 @@ import weakref
 import numpy as np
 import pandas as pd
 
-from vwf import wind
+from pyvwf import wind
 
 
 def curves(level):

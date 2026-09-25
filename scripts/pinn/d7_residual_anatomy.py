@@ -39,8 +39,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES  # noqa: E402
-from vwf.pinn.train import (  # noqa: E402
+from pyvwf.pinn.terrain import FEATURES as TERRAIN_FEATURES  # noqa: E402
+from pyvwf.pinn.train import (  # noqa: E402
     FLEET_FEATURES,
     fit,
     load_regions,

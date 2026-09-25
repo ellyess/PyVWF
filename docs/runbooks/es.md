@@ -46,6 +46,6 @@ PYVWF_INPUT=input python scripts/analysis/validate_region.py evaluate --region c
 matches 7-9% of their farms** (it under-covers the fragmented Nordic fleets),
 so they are not usable via the open coordinate path. Supply the
 thewindpower.net coordinate table the `twp` names point at, register `SE-WS`/
-`FI-WS` in `vwf/sources/windstats.py`, and run
+`FI-WS` in `pyvwf/sources/windstats.py`, and run
 `scripts/process/windstats.py --country SE`. Their extracts cover SE 1998-2013,
 FI 2005-2012.

@@ -1,7 +1,7 @@
 """Sphinx configuration for the PyVWF documentation.
 
 The API reference is generated with autodoc from the Google-style docstrings in
-``src/vwf``; the narrative guides in this folder are plain Markdown, rendered by
+``src/pyvwf``; the narrative guides in this folder are plain Markdown, rendered by
 MyST. Build with::
 
     pip install -e ".[docs]"
@@ -13,12 +13,12 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import vwf
+import pyvwf
 
 project = "PyVWF"
 author = "Ellyess F. Benmoufok"
 copyright = "2026, Ellyess F. Benmoufok"
-release = vwf.__version__
+release = pyvwf.__version__
 version = ".".join(release.split(".")[:2])
 
 extensions = [

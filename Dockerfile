@@ -54,7 +54,7 @@ LABEL org.opencontainers.image.title="PyVWF" \
 # MPLBACKEND: there is no display in a container, so matplotlib must not reach
 # for one. MPLCONFIGDIR: keeps its cache off $HOME, so the image still works
 # when `--user` overrides the built-in account to match a host uid.
-# PYVWF_INPUT: where a mounted input tree is expected; vwf.config reads it, and
+# PYVWF_INPUT: where a mounted input tree is expected; pyvwf.config reads it, and
 # nothing under it ships in the image.
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \

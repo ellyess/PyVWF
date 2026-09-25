@@ -4,7 +4,7 @@
 The registered design is docs/findings/method-physics-informed-turbine-prereg.md.
 Each fold holds out one of the nine turbine-level regions and trains on the
 other eight. Every arm is scored on the fold's test year per unit, and the
-primary metric is the spatial part of the error (``vwf.pinn.runs.level_spatial``),
+primary metric is the spatial part of the error (``pyvwf.pinn.runs.level_spatial``),
 which a national series cannot see.
 
 Arms:
@@ -188,10 +188,10 @@ def main():
 
     import torch
 
-    from vwf.provenance import build_manifest, write_manifest
-    from vwf.harness.regions import load_region
-    from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
-    from vwf.pinn.runs import (
+    from pyvwf.provenance import build_manifest, write_manifest
+    from pyvwf.harness.regions import load_region
+    from pyvwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
+    from pyvwf.pinn.runs import (
         UNIT_KEYS,
         config_record,
         level_spatial,
@@ -199,7 +199,7 @@ def main():
         resolve_configs,
         score_national_on_common_months,
     )
-    from vwf.pinn.train import (
+    from pyvwf.pinn.train import (
         attach_fixed_speedup,
         fit,
         load_regions,

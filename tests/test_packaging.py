@@ -1,6 +1,6 @@
 """Packaging invariants: one version, semantically formatted, no drift.
 
-``vwf/_version.py`` is the single source of truth: ``vwf.__version__``
+``pyvwf/_version.py`` is the single source of truth: ``pyvwf.__version__``
 re-exports it, and ``pyproject.toml`` reads it dynamically. ``CITATION.cff`` cannot, so it is the one place a stale version can
 hide; these tests fail loudly when it drifts.
 
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-import vwf
+import pyvwf
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -41,8 +41,8 @@ def pyproject() -> dict:
 
 
 def test_version_is_semver():
-    assert SEMVER_RE.match(vwf.__version__), (
-        f"vwf.__version__ = {vwf.__version__!r} is not semantic versioning"
+    assert SEMVER_RE.match(pyvwf.__version__), (
+        f"pyvwf.__version__ = {pyvwf.__version__!r} is not semantic versioning"
     )
 
 
@@ -51,15 +51,16 @@ def test_pyproject_reads_version_from_package(pyproject):
     project = pyproject["project"]
     assert "version" not in project, (
         "pyproject.toml hard-codes a version; it should stay dynamic so "
-        "vwf.__version__ remains the single source of truth"
+        "pyvwf.__version__ remains the single source of truth"
     )
     assert "version" in project["dynamic"]
     assert (
-        pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "vwf._version.__version__"
+        pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"]
+        == "pyvwf._version.__version__"
     )
-    from vwf._version import __version__
+    from pyvwf._version import __version__
 
-    assert vwf.__version__ is __version__
+    assert pyvwf.__version__ is __version__
 
 
 def test_citation_version_matches_package():
@@ -68,9 +69,9 @@ def test_citation_version_matches_package():
     match = re.search(r"^version:\s*(\S+)\s*$", citation, re.MULTILINE)
     assert match, "CITATION.cff has no version field"
     cff_version = match.group(1).strip("\"'")
-    assert cff_version == vwf.__version__, (
-        f"CITATION.cff version {cff_version!r} != vwf.__version__ "
-        f"{vwf.__version__!r}; bump both when releasing"
+    assert cff_version == pyvwf.__version__, (
+        f"CITATION.cff version {cff_version!r} != pyvwf.__version__ "
+        f"{pyvwf.__version__!r}; bump both when releasing"
     )
 
 
@@ -87,9 +88,9 @@ def test_changelog_top_release_matches_package():
     top = re.search(r"^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2})$", text, re.MULTILINE)
     assert top, "CHANGELOG.md has no released version heading"
     version, date = top.groups()
-    assert version == vwf.__version__, (
-        f"newest CHANGELOG release is {version}, vwf.__version__ is "
-        f"{vwf.__version__}; promote [Unreleased] when bumping the version"
+    assert version == pyvwf.__version__, (
+        f"newest CHANGELOG release is {version}, pyvwf.__version__ is "
+        f"{pyvwf.__version__}; promote [Unreleased] when bumping the version"
     )
     v = re.escape(version)
     assert re.search(rf"^\[Unreleased\]: \S+/compare/v{v}\.\.\.HEAD$", text, re.MULTILINE), (
@@ -123,20 +124,20 @@ def test_simulation_path_imports_without_data_extras():
     import importlib
 
     for module in [
-        "vwf",
-        "vwf.wind",
-        "vwf.correction",
-        "vwf.metrics",
-        "vwf.clustering",
-        "vwf.datasets.era5",
-        "vwf.viz",
+        "pyvwf",
+        "pyvwf.wind",
+        "pyvwf.correction",
+        "pyvwf.metrics",
+        "pyvwf.clustering",
+        "pyvwf.datasets.era5",
+        "pyvwf.viz",
     ]:
         importlib.import_module(module)
 
 
 def test_package_ships_py_typed():
     """The 'Typing :: Typed' classifier is a lie without this marker file."""
-    assert (ROOT / "src" / "vwf" / "py.typed").is_file()
+    assert (ROOT / "src" / "pyvwf" / "py.typed").is_file()
     package_data = pyproject_package_data()
     assert "py.typed" in package_data, "py.typed must be declared as package-data"
 
@@ -144,4 +145,4 @@ def test_package_ships_py_typed():
 def pyproject_package_data() -> list[str]:
     with open(ROOT / "pyproject.toml", "rb") as fh:
         data = tomllib.load(fh)
-    return data["tool"]["setuptools"]["package-data"]["vwf"]
+    return data["tool"]["setuptools"]["package-data"]["pyvwf"]

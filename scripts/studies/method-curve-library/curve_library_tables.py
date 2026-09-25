@@ -48,12 +48,12 @@ import pandas as pd
 _HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
 import baseline_bootstrap as bb  # noqa: E402
-from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
+from pyvwf.harness.driver import load_obs_and_fleet  # noqa: E402
 import curve_library_assign as t2rule  # noqa: E402
 import curve_library_match as matcher  # noqa: E402
 import curve_match_audit as audit  # noqa: E402
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
 
 COUNTRY_ROWS = ("BE", "ES", "FR", "IE", "IT", "NO", "PT", "SE")
 #: T1 needs a register designation; DE records none, so it is not in this list
@@ -128,7 +128,7 @@ def train_fleet_of(code: str, inputs: Inputs = INPUTS) -> pd.DataFrame:
 def test_fleet_of(code: str) -> pd.DataFrame:
     """The fleet the row is scored on, by the route ``run_evaluate`` takes.
 
-    ``vwf.harness.driver.load_obs_and_fleet`` is the part of ``val_set`` that
+    ``pyvwf.harness.driver.load_obs_and_fleet`` is the part of ``val_set`` that
     loads no ERA5, and ``val_set`` calls it: the same ``prep_country`` call and
     the same narrowing to the units the test year observes. Reusing it keeps
     one definition of the test fleet rather than a second one written here that
@@ -344,13 +344,13 @@ def designation_fields(code: str, fleet: pd.DataFrame) -> tuple[pd.Series | None
         # diameter, height, lon, lat and location_type, and drops `model`. So
         # the Danish designation never reaches the pipeline at all, one layer
         # earlier than add_models not reading one.
-        from vwf.config import PyVWFPaths
+        from pyvwf.config import PyVWFPaths
 
         md = pd.read_csv(PyVWFPaths.TURBINE_DATA / "DK/dk_md.csv")
         lut = md.assign(ID=md["ID"].astype(str)).drop_duplicates("ID").set_index("ID")
         return ids.map(lut["manufacturer"]), ids.map(lut["model"])
     if code == "UK":
-        from vwf.loaders import load_turbine_metadata
+        from pyvwf.loaders import load_turbine_metadata
 
         md = load_turbine_metadata("UK").assign(ID=lambda d: d["ID"].astype(str))
         lut = md.drop_duplicates("ID").set_index("ID")["manufacturer"]

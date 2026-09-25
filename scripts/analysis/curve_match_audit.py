@@ -1,7 +1,7 @@
 """Cross-manufacturer curve matching, per fitted fleet.
 
 A unit can resolve to a curve its ``power_curves.csv`` contains and still be
-simulated on the wrong machine: ``vwf.curves.add_models`` and ``assign_curves_from_library`` match
+simulated on the wrong machine: ``pyvwf.curves.add_models`` and ``assign_curves_from_library`` match
 on specific power, and the manufacturer tier of ``add_models`` is fuzzy enough
 to cross brands. This compares each unit's own manufacturer with the
 manufacturer of the curve it was assigned, over the training fleet a run fitted.
@@ -140,7 +140,7 @@ def own_manufacturer(region: str, fleet: pd.DataFrame) -> tuple[pd.Series, str]:
     ids = fleet["ID"].astype(str)
     base = region.split(" ")[0]
     if base in {"DK", "DE", "UK"}:
-        from vwf.loaders import load_turbine_metadata
+        from pyvwf.loaders import load_turbine_metadata
 
         md = load_turbine_metadata(base)
         lut = md.assign(ID=md["ID"].astype(str)).set_index("ID")["manufacturer"]
@@ -170,7 +170,7 @@ def curve_side_manufacturer(keys: pd.Series, lut: pd.Series) -> pd.Series:
     """
     from importlib import resources
 
-    prov = pd.read_csv(str(resources.files("vwf.resources") / "power_curves_provenance.csv"))
+    prov = pd.read_csv(str(resources.files("pyvwf.resources") / "power_curves_provenance.csv"))
     man = keys.map(lut)
     unknown = man.isna() | man.astype(str).str.strip().str.lower().isin(UNKNOWN)
     identified = keys.isin(set(prov["column"]))
@@ -188,7 +188,7 @@ def _models_file(lib: dict) -> Path:
         Path(lib["models_path"]),
         Path("input/reference/models.csv"),
         Path("input/combined/reference/models.csv"),
-        Path("src/vwf/resources/models.csv"),
+        Path("src/pyvwf/resources/models.csv"),
     ]
     for c in candidates:
         if c.is_file() and hashlib.sha256(c.read_bytes()).hexdigest() == lib["models_sha256"]:

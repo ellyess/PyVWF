@@ -21,7 +21,7 @@ country is in
    `data` extra. Pass your key in the environment for this one command:
 
    ```bash
-   ENTSOE_API_KEY=<key> python -m vwf.datasets.generate_country_level_training_data \
+   ENTSOE_API_KEY=<key> python -m pyvwf.datasets.generate_country_level_training_data \
        --countries BE ES FR IE IT NO PT SE
    ```
 

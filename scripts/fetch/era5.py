@@ -137,7 +137,7 @@ from itertools import groupby
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.harness.regions import load_region_by_code  # noqa: E402
+from pyvwf.harness.regions import load_region_by_code  # noqa: E402
 
 DATASET = "reanalysis-era5-single-levels"
 VARIABLES = [

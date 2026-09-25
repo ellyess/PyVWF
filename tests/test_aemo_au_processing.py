@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.datasets.aemo_au import (
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.aemo_au import (
     build_au_metadata,
     farms_from_gwpt,
     join_fleet_to_gwpt,
@@ -15,8 +15,8 @@ from vwf.datasets.aemo_au import (
     parse_mms_table,
     wind_fleet_from_gen_info,
 )
-from vwf.sources import AEMONemSource
-from vwf.sources.aemo import (
+from pyvwf.sources import AEMONemSource
+from pyvwf.sources.aemo import (
     combine_partials,
     scada_partial_aggregate,
     scada_to_monthly_cf,
@@ -159,7 +159,7 @@ def test_duid_aliases_project_phase_and_below_threshold():
     """The phase-aware alias resolver: project targets aggregate phases (any
     status), phase targets take per-phase coordinates, BT: targets read the
     Below Threshold sheet, multi-target DUIDs get a weighted centroid."""
-    from vwf.datasets.aemo_au import resolve_duid_aliases
+    from pyvwf.datasets.aemo_au import resolve_duid_aliases
 
     unmatched = pd.DataFrame(
         {
@@ -219,7 +219,7 @@ def test_duid_aliases_project_phase_and_below_threshold():
 
 
 def test_duid_alias_typo_fails_loudly():
-    from vwf.datasets.aemo_au import resolve_duid_aliases
+    from pyvwf.datasets.aemo_au import resolve_duid_aliases
 
     unmatched = pd.DataFrame(
         {
@@ -323,7 +323,7 @@ def test_fast_path_equals_raw_scada_path(tmp_path, monkeypatch):
 
 def test_capacity_history_and_mask_reasons():
     """DUDETAIL history dedup + the three mask reasons, each triggered."""
-    from vwf.datasets.aemo_au import capacity_mask_months, registered_capacity_history
+    from pyvwf.datasets.aemo_au import capacity_mask_months, registered_capacity_history
 
     dudetail = pd.DataFrame(
         {
@@ -387,7 +387,7 @@ def test_capacity_mask_flows_through_source(tmp_path, monkeypatch):
 
 def test_partials_compose_with_full_transform():
     """finalise(combine(partials)) == scada_to_monthly_cf on the same data."""
-    from vwf.sources.aemo import finalise_monthly_cf
+    from pyvwf.sources.aemo import finalise_monthly_cf
 
     scada = five_min("2021-01-01", "2021-07-01", "F1", 40.0)
     metadata = pd.DataFrame({"ID": ["F1"], "capacity": [100_000.0]})

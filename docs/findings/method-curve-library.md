@@ -49,7 +49,7 @@ P2b refuted", including P2b's refutation and every paired interval for
 corrected RMSE under C2.
 
 **What actually ran.** C2 overrides each unit's model key. The study driver
-applied that override to the fleet returned by `vwf.data.train_set`, and
+applied that override to the fleet returned by `pyvwf.data.train_set`, and
 `train_set` simulates the fleet before it returns: it computes `gen_cf["sim"]`
 by `wind.simulate_wind(reanalysis, turb_info, power_curves)` and hands back the
 result. The correction's wind scalar is then fitted as `obs / sim` from that
@@ -80,7 +80,7 @@ the withdrawn ones here, with their own date. Until then this document states
 no corrected-RMSE result for C2, and none should be quoted from its history.
 
 **[Closed the same day, 2026-09-13.** The override is applied in
-`vwf.data.prep_country`, ahead of every simulation, and the fifteen affected
+`pyvwf.data.prep_country`, ahead of every simulation, and the fifteen affected
 conditions were re-run. The corrected figures are in place below, and the
 withdrawn ones are named where they stood. **The corrected result differs in
 kind, not only in value:** C2's corrected RMSE now resolves away from C0 in
@@ -652,7 +652,7 @@ evidence that nothing is being absorbed.
 ## C1 was never re-run, and its results stand
 
 C1 changes the curve library rather than the model keys, and
-`vwf.data.load_power_curves` is called inside `train_set`, ahead of the
+`pyvwf.data.load_power_curves` is called inside `train_set`, ahead of the
 simulation the scalar is fitted from. So C1's training fit was always under the
 condition, which the numbers confirm: C1's scalars move by 0.30 to 4.48 across
 the eight rows, where every key-override condition moved its scalars by exactly

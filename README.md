@@ -8,7 +8,7 @@
 
 PyVWF turns atmospheric reanalysis (ERA5) into bias-corrected wind power
 generation. It is a Python rewrite of the
-[VWF model](https://github.com/renewables-ninja/vwf) by Iain Staffell, which
+[VWF model](https://github.com/renewables-ninja/pyvwf) by Iain Staffell, which
 underpins the wind simulations on
 [Renewables.ninja](https://www.renewables.ninja/), and it implements the
 granular bias-correction method of
@@ -38,7 +38,7 @@ flowchart TD
 
 Every run writes a manifest recording the package version, the git state, the
 region config and the curve library behind the numbers, and
-[`vwf.viz`](docs/guides/visualisation.md) turns it into diagnostic figures,
+[`pyvwf.viz`](docs/guides/visualisation.md) turns it into diagnostic figures,
 including maps of what the correction learned per cluster.
 
 ## Installation
@@ -104,7 +104,7 @@ does not help are written up beside it in [docs/findings/](docs/findings/).
 
 ## Physics-informed correction (experimental)
 
-`vwf.pinn` is a research alternative to the affine correction, for a region
+`pyvwf.pinn` is a research alternative to the affine correction, for a region
 with no observed generation to fit against. It replaces the fitted factors with
 four bounded physical quantities learned inside a differentiable forward
 operator. It is under active study, is not wired into the harness, has no

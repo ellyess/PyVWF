@@ -13,8 +13,8 @@ import pandas as pd
 import pytest
 
 from test_harness_driver import make_spec
-from vwf.config import PyVWFPaths
-from vwf.pinn.cache import (
+from pyvwf.config import PyVWFPaths
+from pyvwf.pinn.cache import (
     MW_TO_KW,
     NATIONAL_ID,
     RegionCache,

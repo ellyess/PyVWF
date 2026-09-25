@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.pinn.cache import load_cache  # noqa: E402
+from pyvwf.pinn.cache import load_cache  # noqa: E402
 
 FIELDS = ("w_mean", "w_std", "shear", "z0")
 META = ("lon", "lat", "capacity", "height", "model")

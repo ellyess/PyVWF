@@ -39,11 +39,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.curves import load_power_curves
-from vwf.datasets.era5 import prep_era5
-from vwf.harness import regions
-from vwf.wind import fast_simulate_cf, interpolate_wind, prepare_offset_arrays
+from pyvwf.cli.common import make_parser
+from pyvwf.curves import load_power_curves
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.harness import regions
+from pyvwf.wind import fast_simulate_cf, interpolate_wind, prepare_offset_arrays
 
 REPO = Path(__file__).resolve().parents[3]
 SEL = REPO / "output/cluster_selection_2026-09-15"
@@ -71,8 +71,8 @@ BBOX = {"dk": (7.5, 15.4, 54.0, 58.2)}
 
 
 # The iterative offset search this study probes, copied verbatim from
-# vwf.correction at 3d1fe5a (then _find_offset_iterative), with its residual
-# tolerance. vwf replaced it with a bracketed root search (issue #18); the copy
+# pyvwf.correction at 3d1fe5a (then _find_offset_iterative), with its residual
+# tolerance. pyvwf replaced it with a bracketed root search (issue #18); the copy
 # keeps this study's record reproducible, since its subject is this search.
 MAX_OFFSET_RESIDUAL = 1e-4
 

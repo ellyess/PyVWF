@@ -38,8 +38,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.harness import driver, regions
+from pyvwf.cli.common import make_parser
+from pyvwf.harness import driver, regions
 
 ONSHORE_GRID = (1, 10, 25, 50, 100, 200, 500, 1000)
 OFFSHORE_GRID = (1, 2, 3, 5, 10, 25, 50, 100)
@@ -100,7 +100,7 @@ def one_standard_error(scores: pd.DataFrame, metric: str) -> tuple[int, int, flo
 def run_tag(mode: str, name: str) -> str:
     """The run name, carrying the fleet mode.
 
-    ``vwf.harness.driver._run_dir`` keys a run directory on the region code and
+    ``pyvwf.harness.driver._run_dir`` keys a run directory on the region code and
     the run name and on nothing else, so two configurations of one region
     collide. This study varies the fleet mode, which the path does not carry:
     without the mode here, ``DK onshore`` and ``DK offshore`` wrote factors

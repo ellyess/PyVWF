@@ -67,15 +67,15 @@ import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
-from vwf.cli.common import make_parser
-from vwf.clustering import cluster_turbines
-from vwf.data import assign_country_clusters, val_set
-from vwf.curves import load_power_curves
-from vwf import wind
-from vwf.harness import driver
-from vwf.harness.corrections import get_correction
-from vwf.harness.regions import load_region
-from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
+from pyvwf.cli.common import make_parser
+from pyvwf.clustering import cluster_turbines
+from pyvwf.data import assign_country_clusters, val_set
+from pyvwf.curves import load_power_curves
+from pyvwf import wind
+from pyvwf.harness import driver
+from pyvwf.harness.corrections import get_correction
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
 
 
 def main(code, out_dir, backfill=bb.BACKFILL):

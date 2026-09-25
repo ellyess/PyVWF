@@ -33,9 +33,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import add_input_path
-from vwf.datasets.gwpt import load_gwpt, projects_with_keys
-from vwf.datasets.cen_cl import (
+from pyvwf.cli.common import add_input_path
+from pyvwf.datasets.gwpt import load_gwpt, projects_with_keys
+from pyvwf.datasets.cen_cl import (
     build_cl_metadata,
     cl_plant_key,
     match_coordinates,

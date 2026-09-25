@@ -2,7 +2,7 @@
 
 Real market-zone geometry for the zonal country-level path. These replace the
 approximate bounding boxes hardcoded in
-`vwf/datasets/generate_country_level_training_data.py`, which are wrong in ways
+`pyvwf/datasets/generate_country_level_training_data.py`, which are wrong in ways
 that matter: measured against those boxes, 0% of the points in three of the four
 Swedish clusters fell inside the zone they were labelled with, and Norway's
 NO3/NO5 boundary runs south of Sunnfjord rather than along the Vestland county

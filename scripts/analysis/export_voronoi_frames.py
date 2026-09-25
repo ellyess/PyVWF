@@ -7,7 +7,7 @@ with per-cell colours from the learned ``scalar`` (alpha) correction.
 
 Why Voronoi over centroids reproduces the clusters exactly: training partitions
 turbines with KMeans in raw ``(lat, lon)`` degree space
-(:func:`vwf.clustering.cluster_turbines`, ``geographic=False``). At convergence
+(:func:`pyvwf.clustering.cluster_turbines`, ``geographic=False``). At convergence
 each centroid is the mean of its assigned points, so nearest-centroid
 assignment is the partition, and the Voronoi diagram of the centroids is its
 exact geometric dual. The tessellation is therefore built in degree space and
@@ -41,7 +41,7 @@ from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
 
 
-# The correction applies ``cor_ws = ws * scalar + offset`` (vwf.wind), so it is
+# The correction applies ``cor_ws = ws * scalar + offset`` (pyvwf.wind), so it is
 # a no-op at scalar=1 and offset=0. Those anchor the two diverging scales.
 NEUTRAL = 1.0
 OFF_NEUTRAL = 0.0
@@ -58,7 +58,7 @@ VMIN, VMAX = 0.42, 1.33
 OFF_VMIN, OFF_VMAX = -1.40, 2.78
 
 # Equal-area projection, used only to report boundary areas. Matches the CRS
-# vwf.clustering uses for the same comparisons; never used for the exported
+# pyvwf.clustering uses for the same comparisons; never used for the exported
 # display coordinates.
 METRIC_CRS = "EPSG:3035"
 
@@ -114,10 +114,10 @@ def load_boundary(
     Zealand and Funen (39,208 km² against Denmark's published 42,943), so
     Lolland, Falster, Bornholm, Als, Langeland, Mors and the rest are missing
     and any turbine on them ends up with no land drawn beneath it. The repair
-    lives in :func:`vwf.clustering.repair_region_shape`; the fleet is passed in
+    lives in :func:`pyvwf.clustering.repair_region_shape`; the fleet is passed in
     so a landmass carrying turbines is kept whatever the EEZ test says.
     """
-    from vwf.clustering import repair_region_shape
+    from pyvwf.clustering import repair_region_shape
 
     gdf = gpd.read_file(shapes_path)
     sel = gdf[gdf["name"].astype(str).str.upper() == region.upper()]

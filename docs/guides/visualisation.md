@@ -1,6 +1,6 @@
 # Visualisation
 
-`vwf.viz` turns a run's outputs into diagnostic figures: how well the corrected
+`pyvwf.viz` turns a run's outputs into diagnostic figures: how well the corrected
 simulation reproduces the observed capacity-factor distribution, what the
 correction learned spatially, and how error responds to cluster count and
 time slice.
@@ -16,7 +16,7 @@ reproduction of every figure below is in
 ## Distribution and QQ
 
 ```python
-from vwf.viz import load_results, plot_cf_distribution, plot_qq
+from pyvwf.viz import load_results, plot_cf_distribution, plot_qq
 
 res = load_results(
     "configs/regions/dk.toml",
@@ -43,7 +43,7 @@ were fitted on.
 
 ```python
 from shapely.geometry import box
-from vwf.viz import plot_correction_factor_map
+from pyvwf.viz import plot_correction_factor_map
 
 fig = plot_correction_factor_map(
     res.factors[(100, "season")],         # one (n_clu, time_res) configuration
@@ -59,7 +59,7 @@ offset with marginal histograms and guides at the neutral values. Tight
 clustering around (1, 0) means the reanalysis needed little correction.
 
 ```python
-from vwf.viz import plot_factor_joint
+from pyvwf.viz import plot_factor_joint
 
 plot_factor_joint(res.factors[(100, "season")]).savefig("factor_joint.png", dpi=150)
 ```
@@ -75,9 +75,9 @@ simulated frame an evaluate run writes and the observations its adapter reads.
 
 ```python
 import pandas as pd
-from vwf.harness.driver import load_obs_and_fleet
-from vwf.harness.regions import load_region
-from vwf.viz import plot_sim_vs_obs
+from pyvwf.harness.driver import load_obs_and_fleet
+from pyvwf.harness.regions import load_region
+from pyvwf.viz import plot_sim_vs_obs
 
 spec = load_region("configs/regions/dk.toml")
 obs, fleet = load_obs_and_fleet(spec, 2020)
@@ -100,7 +100,7 @@ scope; pick one.
 
 ```python
 import pandas as pd
-from vwf.viz import plot_error_vs_clusters
+from pyvwf.viz import plot_error_vs_clusters
 
 metrics = pd.read_csv("output/validation/DK/evaluate-2020-<run>/metrics.csv")
 plot_error_vs_clusters(metrics).savefig("error_vs_clusters.png", dpi=150)

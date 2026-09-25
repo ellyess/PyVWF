@@ -7,14 +7,14 @@ enters the repo. These pin the reshaping and the coordinate-join guards.
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.datasets.windstats import (
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.windstats import (
     build_windstats_metadata,
     match_twp_to_coords,
     windstats_metadata,
     windstats_monthly_cf,
 )
-from vwf.sources.windstats import WindStatsSource, _base_country
+from pyvwf.sources.windstats import WindStatsSource, _base_country
 
 
 def test_es_metadata_column_mapping():
@@ -104,7 +104,7 @@ def test_region_code_maps_to_base_country():
 
 
 def test_source_resolves_and_loads(monkeypatch, tmp_path):
-    from vwf.sources import get_source
+    from pyvwf.sources import get_source
 
     es = tmp_path / "ES"
     es.mkdir()

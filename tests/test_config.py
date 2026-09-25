@@ -23,8 +23,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.curves import add_models, load_power_curves
+from pyvwf.config import PyVWFPaths
+from pyvwf.curves import add_models, load_power_curves
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def test_reference_file_falls_back_to_the_bundled_table(no_input_root):
     assert resolved.is_file()
     assert resolved.name == "power_curves.csv"
     # It came from inside the installed package, not the working directory.
-    assert "vwf" in resolved.parts and "resources" in resolved.parts
+    assert "pyvwf" in resolved.parts and "resources" in resolved.parts
 
 
 def test_reference_file_fallback_warning_names_the_risk(no_input_root):
@@ -141,8 +141,8 @@ def test_pyvwf_input_env_var_redirects_the_root(tmp_path):
     """PYVWF_INPUT is what lets an installed copy find input data anywhere.
 
     Run in a subprocess rather than with importlib.reload. Reloading
-    ``vwf.config`` rebinds ``PyVWFPaths`` to a NEW class object, and every
-    module that did ``from vwf.config import PyVWFPaths`` at import time keeps
+    ``pyvwf.config`` rebinds ``PyVWFPaths`` to a NEW class object, and every
+    module that did ``from pyvwf.config import PyVWFPaths`` at import time keeps
     the old one. Reloading a second time restores the values but not those
     stale references, so a later test that monkeypatches ``PyVWFPaths`` patches
     a class the code under test is no longer reading. That surfaced as
@@ -157,7 +157,7 @@ def test_pyvwf_input_env_var_redirects_the_root(tmp_path):
 
     env = {**os.environ, "PYVWF_INPUT": str(tmp_path)}
     probe = (
-        "import json;from vwf.config import PyVWFPaths as P;"
+        "import json;from pyvwf.config import PyVWFPaths as P;"
         "print(json.dumps([str(P.INPUT_ROOT), str(P.ERA5_DATA), str(P.TURBINE_DATA)]))"
     )
     out = subprocess.run(

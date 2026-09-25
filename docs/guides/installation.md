@@ -37,8 +37,8 @@ Each extra adds one capability. Install the ones a task needs, and no more:
 | `data` | `entsoe-py`, `openpyxl`, `pyarrow`, `cdsapi` | Downloading observations and ERA5. Nothing in the simulation path imports these. |
 | `dev` | `pytest`, `ruff`, `mypy`, `pandas-stubs`, `pre-commit`, `import-linter`, `deptry`, `vulture` | Running the tests and the other checks. See [CONTRIBUTING.md](https://github.com/ellyess/PyVWF/blob/main/CONTRIBUTING.md). |
 | `docs` | `sphinx`, `furo`, `myst-parser` | Building the documentation site. |
-| `grid` | `pykrige`, `rasterio` | The gridded correction surfaces (`vwf.extensions.grid`). |
-| `pinn` | `torch` | The physics-informed correction (`vwf.pinn`). It adds close to a gigabyte. |
+| `grid` | `pykrige`, `rasterio` | The gridded correction surfaces (`pyvwf.extensions.grid`). |
+| `pinn` | `torch` | The physics-informed correction (`pyvwf.pinn`). It adds close to a gigabyte. |
 | `touchdesigner` | `mapbox-earcut` | Exporting cluster maps to TouchDesigner. |
 
 Install one:

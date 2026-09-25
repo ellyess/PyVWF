@@ -1,4 +1,4 @@
-"""Gridded correction surfaces (src/vwf/extensions/grid/surface.py).
+"""Gridded correction surfaces (src/pyvwf/extensions/grid/surface.py).
 
 Ported from the `development` branch, where it carried no tests. The test that
 matters most is the first: the control-point set is an argument, so a holdout
@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.extensions.grid import surface
+from pyvwf.extensions.grid import surface
 
 
 def shapes(tmp_path):
@@ -242,7 +242,7 @@ def test_a_cutout_gives_up_its_axes_with_or_without_the_extra_variables():
 
 def test_a_cell_inside_two_overlapping_polygons_of_one_file_matches_once(tmp_path):
     """offshore_shapes.geojson holds 44 overlapping pairs. Unioning before the
-    join is what keeps this free of the defect fixed in vwf.geospatial."""
+    join is what keeps this free of the defect fixed in pyvwf.geospatial."""
     path = tmp_path / "overlapping.geojson"
     path.write_text(
         json.dumps(

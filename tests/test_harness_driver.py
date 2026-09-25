@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.data import train_set
-from vwf.harness import get_correction
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.harness.regions import RegionSpec
-from vwf.sources import InMemoryCountrySource
+from pyvwf.data import train_set
+from pyvwf.harness import get_correction
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.harness.regions import RegionSpec
+from pyvwf.sources import InMemoryCountrySource
 
 NH = {
     "winter": (12, 1, 2),
@@ -133,7 +133,7 @@ def test_country_level_fit_is_a_delegation_wrapper(synthetic_dk):
 def test_country_level_evaluate_saves_frames_and_metrics(synthetic_dk, tmp_path):
     """The country-level driver evaluate path: reuses grid clusters, saves
     corrected-CF frames, and scores the capacity-weighted country aggregate."""
-    from vwf.harness.driver import run_evaluate, run_train
+    from pyvwf.harness.driver import run_evaluate, run_train
 
     grid_points = pd.DataFrame(
         {
@@ -181,7 +181,7 @@ def test_country_level_evaluate_saves_frames_and_metrics(synthetic_dk, tmp_path)
 def test_a_source_with_no_observation_gate_records_nothing():
     """Turbine-level sources run no country gate, and the recorder must not
     invent a zero that reads as a measurement."""
-    from vwf.harness.driver import _record_observation_quality
+    from pyvwf.harness.driver import _record_observation_quality
 
     class Bare:
         pass
@@ -195,8 +195,8 @@ def test_the_clipped_count_reaches_the_manifest_and_the_metrics(tmp_path):
     The count stopped at the audit script; it now travels with the run."""
     import json
 
-    from vwf.harness.driver import _record_observation_quality
-    from vwf.loaders.country_obs_checks import CLIP_CEILING, check_country_cf
+    from pyvwf.harness.driver import _record_observation_quality
+    from pyvwf.loaders.country_obs_checks import CLIP_CEILING, check_country_cf
 
     idx = pd.date_range("2015-01-01", periods=2000, freq="h", tz="UTC")
     cf = np.full(2000, 0.25)

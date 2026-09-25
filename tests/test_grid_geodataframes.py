@@ -1,4 +1,4 @@
-"""Joining factors to cluster geometries (src/vwf/extensions/grid/geodataframes.py).
+"""Joining factors to cluster geometries (src/pyvwf/extensions/grid/geodataframes.py).
 
 Ported from the `development` branch, where it carried no tests. Most of these
 pin refusals that replace silent failures in the original: a left join that
@@ -12,7 +12,7 @@ import json
 import pandas as pd
 import pytest
 
-from vwf.extensions.grid import geodataframes as gdf
+from pyvwf.extensions.grid import geodataframes as gdf
 
 
 def square(i):

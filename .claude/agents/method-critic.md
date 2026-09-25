@@ -35,7 +35,7 @@ proposal or the scout brief cites before you judge it.
   flag, not a result.
 - **Prior results.** Does it contradict or repeat a documented finding?
 
-## If the idea concerns the physics-informed correction (`vwf/pinn`)
+## If the idea concerns the physics-informed correction (`pyvwf/pinn`)
 
 Its purpose is a correction for regions with no observed generation, learned
 from spatial inputs such as terrain. Judge an idea by whether it brings that

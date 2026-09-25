@@ -16,9 +16,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.data import format_bc_factors, min_accepted_years
-from vwf.harness.corrections import fit_quality
-from vwf.harness.driver import _record_accepted_years
+from pyvwf.data import format_bc_factors, min_accepted_years
+from pyvwf.harness.corrections import fit_quality
+from pyvwf.harness.driver import _record_accepted_years
 
 
 def _fits(rows):

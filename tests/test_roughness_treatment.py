@@ -19,9 +19,9 @@ import pytest
 import xarray as xr
 
 from test_harness_driver import make_spec
-from vwf.datasets.era5 import prep_era5
-from vwf.harness.driver import run_train
-from vwf.harness.regions import load_region
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.harness.driver import run_train
+from pyvwf.harness.regions import load_region
 
 
 def _combined_file(path, with_z0=True, with_10m=True):

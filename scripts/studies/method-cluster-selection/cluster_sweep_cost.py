@@ -8,7 +8,7 @@ roughness treatment the rebuild uses.
 
 **A country-level configuration has no cluster count to select.** The first
 attempt asked Belgium for 2 clusters and
-``vwf.data.assign_country_clusters`` refused: the country path runs no
+``pyvwf.data.assign_country_clusters`` refused: the country path runs no
 clustering step, the grid points arrive with their cluster column already set,
 and only 1 or that count is legal. The registered country-level grid of 1 to
 100 cannot run, and the candidate set for each of the nine country rows has two
@@ -18,7 +18,7 @@ script is what found it.
 **It is not a fold of the registered protocol.** It trains on the
 configuration's whole training window rather than on a fold of it, because the
 fold structure is blocked: ``train_years`` is an inclusive ``[start, end]``
-pair, validated as such in `vwf.harness.regions` and consumed as such by the
+pair, validated as such in `pyvwf.harness.regions` and consumed as such by the
 observation sources, so holding out a year from the middle of the window cannot
 be expressed without changing that contract. The per-fit cost is the same
 either way, which is what this measures, and nothing here is read as a result.
@@ -38,15 +38,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.harness import driver, regions
+from pyvwf.cli.common import make_parser
+from pyvwf.harness import driver, regions
 
 #: The turbine-level grids the registration fixes.
 ONSHORE_GRID = (1, 10, 25, 50, 100, 200, 500, 1000)
 OFFSHORE_GRID = (1, 2, 3, 5, 10, 25, 50, 100)
 
 #: Where a country-level configuration's cluster count comes from. It is not a
-#: fitting choice: ``vwf.data.assign_country_clusters`` accepts 1 or the count
+#: fitting choice: ``pyvwf.data.assign_country_clusters`` accepts 1 or the count
 #: the grid points already carry and refuses everything else, because no
 #: clustering step runs on the country path. So the candidate set has two
 #: members and is read from the pool rather than declared.

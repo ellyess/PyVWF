@@ -14,9 +14,9 @@ Read `AGENTS.md`, `CONTRIBUTING.md` and `.importlinter` first.
 
 - **Placement.** Which module, and is that legal under the layer contracts in
   `.importlinter`? Harness path, not the older batch path, for new work.
-  Scripts use only public `vwf` names (`tests/test_public_analysis_api.py`).
+  Scripts use only public `pyvwf` names (`tests/test_public_analysis_api.py`).
 - **Blast radius.** Every caller of what changes. Changes under
-  `vwf/harness/`, `vwf/metrics.py`, `vwf/correction.py` or `vwf/data.py`
+  `pyvwf/harness/`, `pyvwf/metrics.py`, `pyvwf/correction.py` or `pyvwf/data.py`
   move realdata pins: name the pins and whether they must be re-recorded.
 - **Registration.** A new correction model or source goes through its registry,
   not a branch in calling code.
@@ -28,9 +28,9 @@ Read `AGENTS.md`, `CONTRIBUTING.md` and `.importlinter` first.
   started from outside the repository root, nothing created in the tree while a
   run is in flight, no em dashes.
 - **Size.** Can it land as one concern per commit? If not, the split.
-- **The physics-informed correction.** `vwf/pinn` stays outside the harness and
+- **The physics-informed correction.** `pyvwf/pinn` stays outside the harness and
   the registry unless the proposal says otherwise in those words
-  (`src/vwf/AGENTS.md`). Its tests need the `pinn` extra and never run in CI:
+  (`src/pyvwf/AGENTS.md`). Its tests need the `pinn` extra and never run in CI:
   name the tests the change needs, and note that
   `python scripts/dev/stamp.py pinn` must pass before the commit. A change to
   the forward operator keeps the identity-reduction test passing. New drivers

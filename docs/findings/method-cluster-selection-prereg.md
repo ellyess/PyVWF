@@ -165,7 +165,7 @@ negative until it has been shown able to return the other.
 ## Defect, 2026-09-15: two fleet modes wrote to one run directory
 
 **Found after the first run of all five rows, before any gate was read.**
-`vwf.harness.driver._run_dir` keys a run directory on the region code and the
+`pyvwf.harness.driver._run_dir` keys a run directory on the region code and the
 run name and on nothing else. This study varies the **fleet mode**, which the
 path does not carry, and the runner's run name held only the fold year. So
 `DK onshore` and `DK offshore` both wrote to `.../DK/train-fold-2016`, and the
@@ -201,7 +201,7 @@ did not fit.
 **Dated before the run it governs.** The protocol below holds out one training
 year and rotates over all of them. That cannot be expressed against this
 harness: `train_years` is an inclusive `[start, end]` pair, validated in
-`vwf.harness.regions` and consumed as a range by the observation sources, so a
+`pyvwf.harness.regions` and consumed as a range by the observation sources, so a
 year held out from the middle of the window has no representation. Adding an
 exclusion list to the config contract to make one study's protocol run is the
 tail wagging the dog.
@@ -232,7 +232,7 @@ exercise the protocol, and it raised instead:
 > country-level run asked for 2 clusters but the grid points define 3. The
 > country path does not cluster, so the two must agree.
 
-`vwf.data.assign_country_clusters` accepts 1, or the number of clusters the
+`pyvwf.data.assign_country_clusters` accepts 1, or the number of clusters the
 grid points already carry, and refuses everything else. **No clustering step
 runs on the country path**: the grid points arrive with their `cluster` column
 set, and for the zonal countries it holds the bidding zones. So the registered

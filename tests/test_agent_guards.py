@@ -32,10 +32,10 @@ def repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     for rel in (".claude/hooks", "scripts/dev"):
         shutil.copytree(ROOT / rel, repo / rel)
-    (repo / "src/vwf").mkdir(parents=True)
-    (repo / "src/vwf/metrics.py").write_text("x = 1\n")
-    (repo / "src/vwf/pinn").mkdir()
-    (repo / "src/vwf/pinn/model.py").write_text("y = 1\n")
+    (repo / "src/pyvwf").mkdir(parents=True)
+    (repo / "src/pyvwf/metrics.py").write_text("x = 1\n")
+    (repo / "src/pyvwf/pinn").mkdir()
+    (repo / "src/pyvwf/pinn/model.py").write_text("y = 1\n")
     (repo / "README.md").write_text("readme\n")
     (repo / ".gitignore").write_text("/output\n__pycache__/\n")
     _git(repo, "init", "-q")
@@ -164,7 +164,7 @@ def test_suites_do_not_read_messages_or_other_commands_as_commit_all(repo, comma
 
 
 @pytest.mark.parametrize(
-    ("suite", "rel"), [("realdata", "src/vwf/metrics.py"), ("pinn", "src/vwf/pinn/model.py")]
+    ("suite", "rel"), [("realdata", "src/pyvwf/metrics.py"), ("pinn", "src/pyvwf/pinn/model.py")]
 )
 def test_suite_blocks_covered_commit_without_stamp(repo, suite, rel):
     _change(repo, rel, "changed = 2\n")
@@ -172,7 +172,7 @@ def test_suite_blocks_covered_commit_without_stamp(repo, suite, rel):
 
 
 @pytest.mark.parametrize(
-    ("suite", "rel"), [("realdata", "src/vwf/metrics.py"), ("pinn", "src/vwf/pinn/model.py")]
+    ("suite", "rel"), [("realdata", "src/pyvwf/metrics.py"), ("pinn", "src/pyvwf/pinn/model.py")]
 )
 def test_suite_allows_matching_passing_stamp(repo, suite, rel):
     (repo / rel).write_text("changed = 2\n")
@@ -182,17 +182,17 @@ def test_suite_allows_matching_passing_stamp(repo, suite, rel):
 
 
 def test_suite_checks_a_commit_the_parser_cannot_see(repo):
-    _change(repo, "src/vwf/metrics.py", "x = 2\n")
+    _change(repo, "src/pyvwf/metrics.py", "x = 2\n")
     assert _hook(repo, SUITES, "Bash", {"command": "sh -c 'git commit -m m'"}) == 2
 
 
 def test_suite_blocks_failed_or_stale_stamp(repo):
-    (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
+    (repo / "src/pyvwf/pinn/model.py").write_text("y = 2\n")
     _stamp(repo, "pinn", exit_code=1)
-    _git(repo, "add", "src/vwf/pinn/model.py")
+    _git(repo, "add", "src/pyvwf/pinn/model.py")
     assert _commit(repo) == 2
     _stamp(repo, "pinn", exit_code=0)
-    _change(repo, "src/vwf/pinn/model.py", "y = 3\n")
+    _change(repo, "src/pyvwf/pinn/model.py", "y = 3\n")
     assert _commit(repo) == 2
 
 
@@ -202,20 +202,20 @@ def test_suite_blocks_failed_or_stale_stamp(repo):
 @pytest.mark.parametrize(
     "command",
     [
-        "git add src/vwf/metrics.py && git commit -F - <<'EOF'\nmsg\nEOF",
-        "git add src/vwf/pinn/model.py; git commit -m x",
+        "git add src/pyvwf/metrics.py && git commit -F - <<'EOF'\nmsg\nEOF",
+        "git add src/pyvwf/pinn/model.py; git commit -m x",
         "git add -A && git commit -m x",
         "git add . && git commit -m x",
         "git add src && git commit -m x",
-        "git add 'src/vwf/*.py' && git commit -m x",
-        "git rm src/vwf/metrics.py && git commit -m x",
-        "git commit src/vwf/metrics.py -m x",
-        "git commit -m x -- src/vwf/pinn/model.py",
+        "git add 'src/pyvwf/*.py' && git commit -m x",
+        "git rm src/pyvwf/metrics.py && git commit -m x",
+        "git commit src/pyvwf/metrics.py -m x",
+        "git commit -m x -- src/pyvwf/pinn/model.py",
     ],
 )
 def test_suite_blocks_covered_code_staged_by_the_commit_command(repo, command):
-    (repo / "src/vwf/metrics.py").write_text("x = 2\n")
-    (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
+    (repo / "src/pyvwf/metrics.py").write_text("x = 2\n")
+    (repo / "src/pyvwf/pinn/model.py").write_text("y = 2\n")
     _stamp(repo, "realdata", exit_code=1)
     assert _hook(repo, SUITES, "Bash", {"command": command}) == 2
 
@@ -226,8 +226,8 @@ def test_suite_blocks_covered_code_staged_by_the_commit_command(repo, command):
         "git add README.md && git commit -m x",
         "git add docs/x.md tests/test_x.py && git commit -m x",
         "git commit README.md -m x",
-        "git add src/vwf/metrics.py",
-        "git commit -m 'stage with git add src/vwf/metrics.py first'",
+        "git add src/pyvwf/metrics.py",
+        "git commit -m 'stage with git add src/pyvwf/metrics.py first'",
         "git commit -F - <<'EOF'\ngit add -A && git commit\nEOF",
     ],
 )
@@ -236,10 +236,10 @@ def test_suite_allows_staging_that_reaches_no_covered_code(repo, command):
 
 
 def test_one_suite_stamp_does_not_cover_the_other(repo):
-    (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
+    (repo / "src/pyvwf/pinn/model.py").write_text("y = 2\n")
     _stamp(repo, "pinn", exit_code=0)
-    _git(repo, "add", "src/vwf/pinn/model.py")
-    _change(repo, "src/vwf/metrics.py", "x = 2\n")
+    _git(repo, "add", "src/pyvwf/pinn/model.py")
+    _change(repo, "src/pyvwf/metrics.py", "x = 2\n")
     assert _commit(repo) == 2
 
 
@@ -262,7 +262,7 @@ def test_every_pinn_test_file_is_in_the_pinn_suite():
     assert listed == on_disk
 
 
-#: What the realdata suite leaves out of src/vwf, by the written rule
+#: What the realdata suite leaves out of src/pyvwf, by the written rule
 #: ("everything except pinn/, viz/ and cli/"), plus files that are not code
 #: the pins can reach.
 NOT_REALDATA = {"pinn", "viz", "cli", "__init__.py", "_version.py", "resources", "py.typed"}
@@ -271,16 +271,16 @@ NOT_REALDATA = {"pinn", "viz", "cli", "__init__.py", "_version.py", "resources",
 def test_realdata_covers_every_module_the_rule_says_it_covers():
     """A module split out of a covered one is covered too.
 
-    vwf.country_level and vwf.sampling were split out of data.py and
+    pyvwf.country_level and pyvwf.sampling were split out of data.py and
     clustering.py on 2026-09-25 and not added, so a change to either needed no
     stamp until this test.
     """
     covered = {
-        rel.removeprefix("src/vwf/").rstrip("/") for rel in _defined_suites()["realdata"].covered
+        rel.removeprefix("src/pyvwf/").rstrip("/") for rel in _defined_suites()["realdata"].covered
     }
     modules = {
         p.name
-        for p in (ROOT / "src/vwf").iterdir()
+        for p in (ROOT / "src/pyvwf").iterdir()
         if (p.suffix == ".py" or (p.is_dir() and (p / "__init__.py").exists()))
     }
     assert sorted(modules - covered - NOT_REALDATA) == []
@@ -292,8 +292,8 @@ def test_covered_paths_exist_and_agree_with_the_written_rules():
         for rel in suite.covered:
             assert (ROOT / rel).exists(), rel
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    code_rules = (ROOT / "src/vwf/AGENTS.md").read_text(encoding="utf-8")
+    code_rules = (ROOT / "src/pyvwf/AGENTS.md").read_text(encoding="utf-8")
     for rel in suites["realdata"].covered:
-        short = rel.removeprefix("src/vwf/")
-        assert f"vwf/{short}" in contributing, rel
+        short = rel.removeprefix("src/pyvwf/")
+        assert f"pyvwf/{short}" in contributing, rel
         assert f"`{short}`" in code_rules, rel

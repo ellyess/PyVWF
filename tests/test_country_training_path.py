@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.data import (
+from pyvwf.data import (
     _country_cluster_means,
     assign_country_clusters,
     cluster_train_set,

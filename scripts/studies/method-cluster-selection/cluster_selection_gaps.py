@@ -26,7 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import make_parser
+from pyvwf.cli.common import make_parser
 
 REPO = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
@@ -45,7 +45,7 @@ def main(out_dir: str, label: str, *counts: str) -> None:
             f"unknown row {label!r}; expected one of {[c[0] for c in study.CONFIGURATIONS]}"
         )
     _, stem, mode, _ = match[0]
-    from vwf.harness import regions
+    from pyvwf.harness import regions
 
     # The frozen config this study ran on, not the maintained one, which moved to
     # era5/EU_2026-09 and derived roughness after it ran (configs/regions/study/).

@@ -15,7 +15,7 @@ Writes (under <out>, default input/observations/turbine/AU_NEM/):
 
 The SCADA archives are cut on MARKET-time month boundaries and straddle UTC
 months, so each archive is reduced to per-UTC-month partials
-(vwf.sources.aemo.scada_partial_aggregate) and the partials are summed
+(pyvwf.sources.aemo.scada_partial_aggregate) and the partials are summed
 across archives before any month is finalised. Finalisation itself
 (coverage floor, commissioning mask) happens inside AEMONemSource at load
 time, through the same audited code path the tests pin.
@@ -33,8 +33,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import add_input_path
-from vwf.datasets.aemo_au import (
+from pyvwf.cli.common import add_input_path
+from pyvwf.datasets.aemo_au import (
     build_au_metadata,
     capacity_mask_months,
     farms_from_gwpt,
@@ -44,7 +44,7 @@ from vwf.datasets.aemo_au import (
     resolve_duid_aliases,
     wind_fleet_from_gen_info,
 )
-from vwf.sources.aemo import combine_partials, scada_partial_aggregate
+from pyvwf.sources.aemo import combine_partials, scada_partial_aggregate
 
 
 def read_zipped_mms(path: Path) -> pd.DataFrame:

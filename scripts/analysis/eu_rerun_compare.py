@@ -57,11 +57,11 @@ import pandas as pd
 _HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(_HERE), str(_HERE.parent / "studies" / "method-roughness-treatment")]
 import baseline_bootstrap as bb  # noqa: E402
-from vwf.harness.driver import load_obs_and_fleet  # noqa: E402
+from pyvwf.harness.driver import load_obs_and_fleet  # noqa: E402
 import roughness_treatment_study as rts  # noqa: E402
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.harness import driver  # noqa: E402
-from vwf.harness.bootstrap import (  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.harness import driver  # noqa: E402
+from pyvwf.harness.bootstrap import (  # noqa: E402
     percentile_interval,
     resample_counts,
     resample_indices,
@@ -69,8 +69,8 @@ from vwf.harness.bootstrap import (  # noqa: E402
     unit_sums,
     weighted_rmse,
 )
-from vwf.harness.regions import load_region  # noqa: E402
-from vwf.harness.skill import restrict_to_common_rows  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
+from pyvwf.harness.skill import restrict_to_common_rows  # noqa: E402
 
 
 def drop_run_exclusions(frame: pd.DataFrame, ev: Path, keys: list[str], scope: str) -> pd.DataFrame:

@@ -2,8 +2,8 @@
 """Train, evaluate or transfer one region through the validation harness.
 
 The same command as the ``pyvwf-validate`` console entry, for a checkout
-without an install. All logic lives in :mod:`vwf.cli.validate` and
-:mod:`vwf.harness.driver`.
+without an install. All logic lives in :mod:`pyvwf.cli.validate` and
+:mod:`pyvwf.harness.driver`.
 
 Examples:
     python scripts/analysis/validate_region.py train --region configs/regions/dk.toml
@@ -16,7 +16,7 @@ Examples:
 
 import sys
 
-from vwf.cli.validate import main
+from pyvwf.cli.validate import main
 
 if __name__ == "__main__":
     sys.exit(main())

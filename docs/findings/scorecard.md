@@ -588,7 +588,7 @@ the result of the formula varies in time. Every region derives the surface
 roughness z0 by inverting the log wind profile from the 10 m and 100 m winds,
 the equation the method describes. The European files carry a single annual
 mean of that quantity, computed once per year in
-`src/vwf/datasets/combine_era5_files.py`. Every other region derives z0 hour by
+`src/pyvwf/datasets/combine_era5_files.py`. Every other region derives z0 hour by
 hour and averages it to daily along with the winds.
 
 | Roughness applied | Route | Rows |
@@ -641,7 +641,7 @@ Nothing in the thesis changes. Any paper drawn from those chapters has to state
 the temporal treatment that actually ran.
 
 **Two documentation errors, corrected on 2026-09-12.** They are not the
-finding. [`src/vwf/datasets/COMBINED_ERA5_USAGE.md`](https://github.com/ellyess/PyVWF/blob/ecf0cc3172a875b27ef4a2fe2d9c2e2a25a42621/src/vwf/datasets/COMBINED_ERA5_USAGE.md) said the European z0 is
+finding. [`src/pyvwf/datasets/COMBINED_ERA5_USAGE.md`](https://github.com/ellyess/PyVWF/blob/ecf0cc3172a875b27ef4a2fe2d9c2e2a25a42621/src/pyvwf/datasets/COMBINED_ERA5_USAGE.md) said the European z0 is
 derived from terrain data; it is not, and the code has no terrain option. The
 usage line in `combine_era5_files.py` offered `--roughness-source terrain`,
 which does not exist.

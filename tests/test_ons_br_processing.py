@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.datasets.ons_br import (
+from pyvwf.datasets.ons_br import (
     build_br_metadata,
     commissioning_from_siga,
     constrained_off_account,

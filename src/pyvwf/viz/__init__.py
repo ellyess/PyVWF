@@ -1,0 +1,36 @@
+"""Plotting and diagnostic visualisation for PyVWF.
+
+Submodules:
+- ``pyvwf.viz.distribution``: distributional diagnostics (CF histograms, ECDFs, QQ)
+  plus the ``Results`` loader, which holds one run and year's capacity-factor
+  series for distributional comparison.
+- ``pyvwf.viz.factors``: what the correction learned: factor maps per cluster
+  and the scalar/offset joint distribution.
+- ``pyvwf.viz.evaluation``: error vs cluster count / temporal resolution, and
+  the per-turbine sim-vs-obs bias scatter.
+- ``pyvwf.viz.style``: shared matplotlib style for publication-quality figures.
+- ``pyvwf.viz.palettes``: Okabe-Ito categorical colour palettes.
+
+The most commonly used objects are re-exported at the package level so existing
+``from pyvwf.viz import ...`` imports keep working.
+"""
+
+from pyvwf.viz.distribution import (
+    Results,
+    load_results,
+    plot_cf_distribution,
+    plot_qq,
+)
+from pyvwf.viz.evaluation import plot_error_vs_clusters, plot_sim_vs_obs
+from pyvwf.viz.factors import plot_correction_factor_map, plot_factor_joint
+
+__all__ = [
+    "Results",
+    "load_results",
+    "plot_cf_distribution",
+    "plot_correction_factor_map",
+    "plot_error_vs_clusters",
+    "plot_factor_joint",
+    "plot_qq",
+    "plot_sim_vs_obs",
+]

@@ -34,7 +34,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.datasets.ons_br import (
+from pyvwf.datasets.ons_br import (
     build_br_metadata,
     commissioning_from_siga,
     constrained_off_account,
@@ -42,7 +42,7 @@ from vwf.datasets.ons_br import (
     wind_complexes_from_fc,
     wind_rows,
 )
-from vwf.cli.common import add_input_path
+from pyvwf.cli.common import add_input_path
 
 FC_COLS = ["id_ons", "nom_tipousina", "din_instante", "val_fatorcapacidade"]
 

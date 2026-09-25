@@ -81,7 +81,7 @@ exclusions of Portugal and Sweden, the gates and the predictions.
 This began as the country-level half of `method-cluster-selection-prereg.md`
 and is registered separately because it is a different question.
 **A country-level configuration has no cluster count to select.**
-`vwf.data.assign_country_clusters` accepts 1, or the number of clusters the
+`pyvwf.data.assign_country_clusters` accepts 1, or the number of clusters the
 grid points already carry, and refuses everything else, because no clustering
 step runs on the country path: the grid points arrive with their `cluster`
 column set, and for the zonal countries it holds the bidding zones. So there is

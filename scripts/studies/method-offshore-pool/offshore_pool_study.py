@@ -39,12 +39,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.datasets.era5 import prep_era5
-from vwf.curves import load_power_curves
-from vwf.extensions.grid import evaluate, surface
-from vwf.geospatial import categorize_points_spatial_join
-from vwf.wind import interpolate_wind
+from pyvwf.cli.common import make_parser
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.curves import load_power_curves
+from pyvwf.extensions.grid import evaluate, surface
+from pyvwf.geospatial import categorize_points_spatial_join
+from pyvwf.wind import interpolate_wind
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 RUNS = Path("output/runs/turbine_grid")

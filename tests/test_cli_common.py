@@ -1,11 +1,11 @@
-"""The shared CLI helpers (vwf.cli.common) and the pyvwf-validate entry point."""
+"""The shared CLI helpers (pyvwf.cli.common) and the pyvwf-validate entry point."""
 
 from pathlib import Path
 
 import pytest
 
-from vwf.cli import common, validate
-from vwf.config import PyVWFPaths
+from pyvwf.cli import common, validate
+from pyvwf.config import PyVWFPaths
 
 
 def test_input_path_follows_the_input_root_when_called(monkeypatch):
@@ -34,8 +34,8 @@ def test_run_returns_the_exit_code():
 @pytest.fixture
 def calls(monkeypatch):
     """Replace the harness driver so the dispatch can be checked without data."""
-    import vwf.harness.driver as driver
-    import vwf.harness.regions as regions
+    import pyvwf.harness.driver as driver
+    import pyvwf.harness.regions as regions
 
     seen = []
     monkeypatch.setattr(regions, "load_region", lambda p: f"spec:{Path(p).name}")

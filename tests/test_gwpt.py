@@ -1,4 +1,4 @@
-"""The GWPT filters and plant-name keys (vwf.datasets.gwpt), on synthetic rows.
+"""The GWPT filters and plant-name keys (pyvwf.datasets.gwpt), on synthetic rows.
 
 The real workbook is local only, so its pins (tests/test_pin_gwpt.py) skip in
 CI. These cases cover the same functions where CI can run them, including the
@@ -9,7 +9,7 @@ stripped before it is compared.
 import pandas as pd
 import pytest
 
-from vwf.datasets import gwpt
+from pyvwf.datasets import gwpt
 
 
 def tracker() -> pd.DataFrame:

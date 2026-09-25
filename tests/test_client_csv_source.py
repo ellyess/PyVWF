@@ -9,8 +9,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from vwf.sources import available_sources
-from vwf.sources.client_csv import ClientCsvTurbineSource
+from pyvwf.sources import available_sources
+from pyvwf.sources.client_csv import ClientCsvTurbineSource
 
 
 def _write_fleet(tmp_path):

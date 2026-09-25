@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.metrics import (
+from pyvwf.metrics import (
     calculate_error,
     overall_error,
     prepare_monthly_data,

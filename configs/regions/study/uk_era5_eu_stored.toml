@@ -18,7 +18,7 @@ train_years = [2015, 2018]
 test_years = [2019]
 # ROC station generation is equally pre-split across turbine rows:
 # 360 independent stations behind 6,604 rows. Distribution comparisons
-# must collapse to stations (vwf.harness.skill.collapse_pseudo_replicates).
+# must collapse to stations (pyvwf.harness.skill.collapse_pseudo_replicates).
 pseudo_replicated_rows = true
 station_id_regex = '^(.+)-\d+$'
 

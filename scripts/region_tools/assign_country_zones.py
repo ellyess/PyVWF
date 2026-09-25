@@ -36,7 +36,7 @@ from shapely.geometry import Point
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from vwf.config import PyVWFPaths  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
 
 ZONE_DIR = REPO_ROOT / "configs" / "curation" / "zones"
 

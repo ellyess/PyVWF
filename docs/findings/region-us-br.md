@@ -308,7 +308,7 @@ between-subset contrast is claimed.
 `build_us_metadata` discarded it, so every US plant took one uniform curve while
 AU-NEM and Europe match per site. Diameter is now carried through.
 
-**The obvious implementation is wrong.** `vwf.data.add_models` matches on
+**The obvious implementation is wrong.** `pyvwf.data.add_models` matches on
 specific power alone, which is safe against a utility-only catalogue but not
 against the bundled open library, which carries distributed machines down to
 1 kW. A 1.5 kW Pika sits near 212 W/m2, indistinguishable from a modern utility

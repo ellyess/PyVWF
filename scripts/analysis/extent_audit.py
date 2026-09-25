@@ -36,12 +36,12 @@ from pathlib import Path
 import pandas as pd
 
 import baseline_bootstrap as bb
-from vwf.harness.driver import load_obs_and_fleet
-from vwf.cli.common import make_parser
-from vwf.datasets.era5 import prep_era5
-from vwf.harness.driver import era5_dir
-from vwf.harness.regions import load_region
-from vwf.wind import loaded_extent_coverage
+from pyvwf.harness.driver import load_obs_and_fleet
+from pyvwf.cli.common import make_parser
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.harness.driver import era5_dir
+from pyvwf.harness.regions import load_region
+from pyvwf.wind import loaded_extent_coverage
 
 
 def audit(code: str) -> dict:

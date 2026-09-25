@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 from scipy.optimize import OptimizeResult
 
-from vwf import correction
+from pyvwf import correction
 
 
 @pytest.fixture

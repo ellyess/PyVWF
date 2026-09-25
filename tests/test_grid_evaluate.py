@@ -1,4 +1,4 @@
-"""Scoring a gridded correction at observations (src/vwf/extensions/grid/evaluate.py).
+"""Scoring a gridded correction at observations (src/pyvwf/extensions/grid/evaluate.py).
 
 Ported from the `development` branch, where it carried no tests. The two that
 matter most pin the silent failures: neutral fills are counted and returned
@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.extensions.grid import evaluate
+from pyvwf.extensions.grid import evaluate
 
 
 def surface(scalar=0.8, offset=0.5, axes=("x", "y"), masked=False):

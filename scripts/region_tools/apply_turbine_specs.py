@@ -13,7 +13,7 @@ rotor diameter, hub height) onto the region's metadata and:
 
   - assigns each plant a real open-library curve by scale and specific power,
     reusing the exact matcher the US and NZ regions use
-    (``vwf.datasets.eia_us.assign_curves_from_library``), and
+    (``pyvwf.datasets.eia_us.assign_curves_from_library``), and
   - sets each plant's hub height from the spec table.
 
 Plants the spec table cannot cover keep the uniform default, recorded in
@@ -46,8 +46,8 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from vwf.config import PyVWFPaths  # noqa: E402
-from vwf.datasets.eia_us import assign_curves_from_library  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
+from pyvwf.datasets.eia_us import assign_curves_from_library  # noqa: E402
 
 #: Region code to the metadata directory and file stem.
 REGION_DIR = {"CL": "CL", "AR": "AR", "AU-NEM": "AU_NEM", "BR": "BR"}

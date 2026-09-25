@@ -26,12 +26,12 @@ from pathlib import Path
 import numpy as np
 from scipy.optimize import minimize_scalar
 
-import vwf.correction as correction
-from vwf.cli.common import make_parser
-from vwf.harness.driver import run_train
-from vwf.harness.regions import load_region
-from vwf.time_utils import parse_time_slice
-from vwf.wind import interpolate_wind, train_simulate_wind_from_ws
+import pyvwf.correction as correction
+from pyvwf.cli.common import make_parser
+from pyvwf.harness.driver import run_train
+from pyvwf.harness.regions import load_region
+from pyvwf.time_utils import parse_time_slice
+from pyvwf.wind import interpolate_wind, train_simulate_wind_from_ws
 
 REPO = Path(__file__).resolve().parents[3]
 GRID_STEP = 0.25

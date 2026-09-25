@@ -96,7 +96,7 @@ supplied through `ObservationSource` adapters resolved via a registry, so a new
 region is added by writing an adapter rather than editing the pipeline.
 Turbine-level adapters (code, not data) for Denmark, Germany, and the United
 Kingdom ship with the package; the observation datasets themselves are
-user-supplied. The `vwf.viz` module is designed so that a learned correction
+user-supplied. The `pyvwf.viz` module is designed so that a learned correction
 can be examined directly rather than applied unseen. It provides distributional
 diagnostics (capacity-factor histograms, empirical CDFs, and quantile-quantile
 plots), maps of the learned factors, and error-versus-cluster-count curves for

@@ -30,9 +30,9 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-import vwf.pinn.train as T  # noqa: E402
-from vwf.harness.skill import skill_metrics  # noqa: E402
-from vwf.pinn.model import ETA_BOUNDS, PhysicsCorrection, _preactivation_for  # noqa: E402
+import pyvwf.pinn.train as T  # noqa: E402
+from pyvwf.harness.skill import skill_metrics  # noqa: E402
+from pyvwf.pinn.model import ETA_BOUNDS, PhysicsCorrection, _preactivation_for  # noqa: E402
 
 CACHE = ROOT / "output" / "pinn" / "cache"
 OUT = ROOT / "output" / "pinn" / "d6"

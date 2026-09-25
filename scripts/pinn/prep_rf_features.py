@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from vwf.pinn.cache import load_cache  # noqa: E402
+from pyvwf.pinn.cache import load_cache  # noqa: E402
 from analysis.ml_transfer_retest import (  # noqa: E402
     RUNS,
     build_centroids,

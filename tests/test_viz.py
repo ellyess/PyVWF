@@ -1,4 +1,4 @@
-"""Tests for the vwf.viz distributional plotting layer."""
+"""Tests for the pyvwf.viz distributional plotting layer."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ import pandas as pd
 import pytest
 
 from test_harness_driver import make_spec
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.viz import (
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.viz import (
     load_results,
     plot_cf_distribution,
     plot_correction_factor_map,

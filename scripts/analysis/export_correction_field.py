@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """CLI: export a region's gridded correction-factor field.
 
-Thin wrapper over :func:`vwf.harness.export.export_correction_field`.
+Thin wrapper over :func:`pyvwf.harness.export.export_correction_field`.
 
     PYVWF_INPUT=input/combined PYTHONPATH=src python \\
         scripts/analysis/export_correction_field.py \\
@@ -19,8 +19,8 @@ import sys
 
 sys.path.insert(0, "src")
 
-from vwf.harness.export import export_correction_field
-from vwf.harness.regions import load_region
+from pyvwf.harness.export import export_correction_field
+from pyvwf.harness.regions import load_region
 
 
 def main() -> int:

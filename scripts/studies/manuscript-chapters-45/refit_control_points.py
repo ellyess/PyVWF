@@ -40,14 +40,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.extensions.grid.surface import (
+from pyvwf.cli.common import make_parser
+from pyvwf.extensions.grid.surface import (
     MAX_ZERO_CROSSING_SPEED,
     PLAUSIBLE_SCALAR,
     flag_implausible,
     zero_crossing_speed,
 )
-from vwf.harness import driver, regions
+from pyvwf.harness import driver, regions
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 ERA5_PATH, ROUGHNESS, TIME_SLICE = "era5/EU_2026-09", "derived", "fixed"

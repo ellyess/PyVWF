@@ -32,13 +32,13 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-import vwf.wind as wind
-from vwf.config import PyVWFPaths
-from vwf.data import val_set
-from vwf.curves import load_power_curves
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.harness.regions import RegionSpec
-from vwf.sources.aemo import AEMONemSource
+import pyvwf.wind as wind
+from pyvwf.config import PyVWFPaths
+from pyvwf.data import val_set
+from pyvwf.curves import load_power_curves
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.harness.regions import RegionSpec
+from pyvwf.sources.aemo import AEMONemSource
 
 SH_SEASONS = {
     "summer": (12, 1, 2),

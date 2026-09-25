@@ -1,4 +1,4 @@
-"""The paired bootstrap (vwf.harness.bootstrap) matches the code it replaced.
+"""The paired bootstrap (pyvwf.harness.bootstrap) matches the code it replaced.
 
 Five study scripts carried their own copy of these few lines before they were
 promoted. Every interval those scripts recorded depends on the draws being
@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.harness import bootstrap as bs
+from pyvwf.harness import bootstrap as bs
 
 SEED, N_DRAWS = 20260911, 1000
 

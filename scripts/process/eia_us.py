@@ -31,7 +31,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.datasets.eia_us import (
+from pyvwf.datasets.eia_us import (
     assign_curves_from_library,
     bin_hub_heights,
     build_us_metadata,
@@ -40,7 +40,7 @@ from vwf.datasets.eia_us import (
     wind_capacity_from_eia860,
     wind_generation_from_eia923,
 )
-from vwf.cli.common import add_input_path
+from pyvwf.cli.common import add_input_path
 
 
 def main() -> None:
@@ -69,7 +69,7 @@ def main() -> None:
         choices=["match", "uniform"],
         default="match",
         help="'match' assigns each plant a real library curve by "
-        "specific power via vwf.curves.add_models (as the AU-NEM and "
+        "specific power via pyvwf.curves.add_models (as the AU-NEM and "
         "European fleets do), falling back to --model where USWTDB "
         "has no rotor diameter. 'uniform' gives every plant --model.",
     )

@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.sources import available_sources, get_source, resolve
-from vwf.sources.ons_br import ONSBrazilSource, fc_to_monthly_cf
+from pyvwf.config import PyVWFPaths
+from pyvwf.sources import available_sources, get_source, resolve
+from pyvwf.sources.ons_br import ONSBrazilSource, fc_to_monthly_cf
 
 
 def fc_hours(id_ons, start, end, cf):

@@ -37,7 +37,7 @@ sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, the
 import curve_match_audit as audit  # noqa: E402
 
 #: The rating band a candidate must fall in, as a multiple of the unit's own
-#: per-turbine rating. Taken from ``vwf.datasets.eia_us.SCALE_BAND`` so that T2
+#: per-turbine rating. Taken from ``pyvwf.datasets.eia_us.SCALE_BAND`` so that T2
 #: and the US assignment agree about what "the same scale" means.
 SCALE_BAND = (0.5, 2.0)
 
