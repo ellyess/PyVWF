@@ -103,6 +103,7 @@ The tree was reformatted once with `ruff format`. To keep that commit out of
 
 ```bash
 pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
+pytest -n 4 --dist loadfile -m "not realdata"   # the same and the slow set, in four processes
 pytest                                  # every test: what CI runs on a manual dispatch
 pytest --cov=vwf           # with coverage
 ruff check src tests scripts examples   # lint, as CI does

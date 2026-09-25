@@ -104,6 +104,9 @@ touchdesigner = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    # Runs the suite across processes, one test file per worker
+    # (`pytest -n 4 --dist loadfile`); CONTRIBUTING.md gives the command.
+    "pytest-xdist>=3.5",
     # Pinned to the ruff-pre-commit rev in .pre-commit-config.yaml: 0.12 and
     # 0.16 format differently, so an unpinned CI ruff can fail
     # `ruff format --check` with no code change (tests/test_tool_pins.py).

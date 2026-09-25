@@ -64,6 +64,10 @@ this file stay in step with it.
 
 ### Changed
 
+- **`pytest-xdist` is in the dev extra.** `pytest -n 4 --dist loadfile -m "not
+  realdata"` runs every test that needs no local data, one test file per
+  worker; on the maintainer's machine that is 1,066 tests in 24 seconds.
+
 - **`vwf.data` and `vwf.clustering` are split** (`vwf.country_level`,
   `vwf.sampling`). The country-level observation and grid-fleet helpers moved
   out of `vwf.data` (969 lines to 713), and every name is still importable
