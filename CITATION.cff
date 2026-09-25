@@ -19,8 +19,9 @@ authors:
 abstract: >-
   PyVWF is an open-source Python framework that simulates
   bias-corrected wind power generation from reanalysis data (e.g. ERA5). It
-  re-implements the Virtual Wind Farm (VWF) methodology used by
-  Renewables.ninja, exposing the full training and application workflow for
+  began as a Python implementation of the Virtual Wind Farm (VWF) model used by
+  Renewables.ninja and has grown into its own model, exposing the full training
+  and application workflow for
   bias-correction factors at turbine, regional, or national scale, with
   configurable spatial clustering and temporal aggregation.
 keywords:

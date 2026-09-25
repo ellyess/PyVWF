@@ -81,7 +81,13 @@ Harness skill on the held-out year, real curves:
   corrected MBE −0.136. The magnitude differs from the doc's MAE 0.114 because
   this run trains on 2015–2019 where the doc used 2015–2021; the direction and
   pathology match. Reproducing a known-bad result is as good a regression check
-  as a known-good one.
+  as a known-good one. *[Note, 2026-09-25:
+  `TURBINE_GRID_EVALUATION_ANALYSIS.md` was never committed; it is a local,
+  git-ignored file, so no reader can check the figures this bullet quotes from
+  it. It is retired as a reference: the comparison stands on the harness run
+  above alone. Its figures also predate the wider ERA5 download of 2026-09-13
+  and the country-level routing and curve fixes of 2026-09-25 (`scorecard.md`,
+  notices of those dates).]*
 - **DK error reduction (a loose anchor).** The Energy paper reports ~43%
   error reduction at its best configuration (700 clusters, bimonthly) over the
   `PyVWF(1;fixed)` baseline. This run does not use that configuration, so it is
