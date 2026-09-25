@@ -52,13 +52,20 @@ jobs:
         # src/ at confidence 80; the kept exceptions are named in pyproject.toml.
         run: vulture
 
+      - name: Commit hooks (pre-commit)
+        # The hooks a contributor's commit runs, over every tracked file: the
+        # em-dash check, the whitespace and end-of-file fixers, and the TOML and
+        # YAML checks are not covered by the steps above, and a commit made
+        # without the hooks installed would otherwise pass here.
+        run: pre-commit run --all-files --show-diff-on-failure
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v7
