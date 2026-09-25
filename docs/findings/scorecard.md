@@ -22,6 +22,83 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-09-25 (second): the joint national fit stopped
+at its starting point in 47 of 540 training periods.** The fit minimises the
+squared national capacity-factor error, about 1e-4 at its start, and L-BFGS-B's
+`ftol` of 1e-6 acts as an absolute threshold on a value that small, so a fit
+whose first step lowered the error by less stopped there and reported success.
+The record of every joint fit of the eight rows at `dc14687` (training years
+2015-21, IE 2017-21) has 45 fits stopped after one iteration and 2 after two
+(ES 25, NO 21, BE 1). Every fit that left an error above 1e-3 (ES 22, NO 16,
+largest 1.1e-2) is one of them, with its offsets within 0.054 m/s of zero.
+Fixed in `26e0b67` (`ftol` 1e-12, `gtol` 1e-8). Re-recorded after the fix: 540
+fits, 3 to 11 iterations each, none refused, at the iteration limit or on a
+bound, largest error 1.6e-7. This corrects the figures of the notice below,
+which were made with the fit as it was.
+
+Every variant of the eight rows, trained and evaluated before the fix (`ac26f6a`,
+the "after" runs of the notice below) and after it (`26e0b67`), from a clean
+tree, on the default input root, with the scorecard configs. Training years
+2015-21 (IE 2017-21), test year 2023, national scope, 12 months each. Every
+factors file changed, N=1 included, since national N=1 fits also take the
+joint fit. No fit failed an offset either way. All eight rows simulate 100% of
+capacity on the substituted `2019COE_DW100_100kW_27.6` curve, as before.
+
+| Row | Variant | RMSE before | RMSE after | MBE before | MBE after |
+|---|---|---|---|---|---|
+| FR | uncorrected | 0.17111 | 0.17111 | +0.16478 | +0.16478 |
+| FR | fixed N=1 | 0.01249 | 0.01249 | +0.00738 | +0.00739 |
+| FR | **fixed N=10** (reported) | 0.01023 | 0.01024 | +0.00295 | +0.00297 |
+| FR | season N=1 | 0.01258 | 0.01258 | +0.00689 | +0.00689 |
+| FR | season N=10 | 0.01125 | 0.01126 | +0.00294 | +0.00296 |
+| BE | uncorrected | 0.33991 | 0.33991 | +0.33672 | +0.33672 |
+| BE | fixed N=1 | 0.02429 | 0.02429 | -0.00553 | -0.00552 |
+| BE | fixed N=3 | 0.02657 | 0.02657 | -0.00920 | -0.00920 |
+| BE | season N=1 | 0.02252 | 0.02252 | -0.00654 | -0.00653 |
+| BE | **season N=3** (reported) | 0.02468 | 0.02468 | -0.01016 | -0.01016 |
+| IE | uncorrected | 0.17208 | 0.17208 | +0.16796 | +0.16796 |
+| IE | fixed N=1 | 0.02301 | 0.02301 | +0.01047 | +0.01045 |
+| IE | fixed N=3 | 0.02079 | 0.02079 | +0.00749 | +0.00750 |
+| IE | **season N=1** (reported) | 0.02123 | 0.02123 | +0.00917 | +0.00916 |
+| IE | season N=3 | 0.01971 | 0.01971 | +0.00627 | +0.00628 |
+| SE | uncorrected | 0.08760 | 0.08760 | +0.08441 | +0.08441 |
+| SE | fixed N=1 | 0.03191 | 0.03192 | -0.02887 | -0.02888 |
+| SE | **fixed N=4** (reported) | 0.02844 | 0.02844 | -0.02470 | -0.02469 |
+| SE | season N=1 | 0.03254 | 0.03253 | -0.02922 | -0.02921 |
+| SE | season N=4 | 0.02868 | 0.02868 | -0.02459 | -0.02458 |
+| NO | uncorrected | 0.03495 | 0.03495 | +0.02708 | +0.02708 |
+| NO | fixed N=1 | 0.03954 | 0.03901 | -0.03206 | -0.03141 |
+| NO | **fixed N=4** (reported) | 0.03515 | 0.03570 | -0.02594 | -0.02667 |
+| NO | season N=1 | 0.03847 | 0.03863 | -0.03026 | -0.03037 |
+| NO | season N=4 | 0.03700 | 0.03684 | -0.02506 | -0.02555 |
+| ES | uncorrected | 0.02813 | 0.02813 | +0.01278 | +0.01278 |
+| ES | fixed N=1 | 0.02672 | 0.02688 | +0.01054 | +0.01089 |
+| ES | **fixed N=4** (reported) | 0.02533 | 0.02569 | +0.01066 | +0.01138 |
+| ES | season N=1 | 0.02654 | 0.02655 | +0.01076 | +0.01102 |
+| ES | season N=4 | 0.02729 | 0.02653 | +0.01331 | +0.01250 |
+| IT | uncorrected | 0.07029 | 0.07029 | -0.06920 | -0.06920 |
+| IT | fixed N=1 | 0.01692 | 0.01693 | -0.00416 | -0.00417 |
+| IT | fixed N=3 | 0.01657 | 0.01657 | -0.00426 | -0.00426 |
+| IT | season N=1 | 0.01636 | 0.01636 | -0.00394 | -0.00397 |
+| IT | **season N=3** (reported) | 0.01549 | 0.01550 | -0.00405 | -0.00414 |
+| PT | uncorrected | 0.08927 | 0.08927 | -0.08469 | -0.08469 |
+| PT | fixed N=1 | 0.02930 | 0.02930 | +0.01767 | +0.01767 |
+| PT | fixed N=2 | 0.03097 | 0.03098 | +0.01925 | +0.01926 |
+| PT | **season N=1** (reported) | 0.02741 | 0.02740 | +0.01756 | +0.01755 |
+| PT | season N=2 | 0.02780 | 0.02779 | +0.01600 | +0.01598 |
+
+The country table below now carries the after figures. At its three decimals
+two rows change: Spain's corrected RMSE, 0.025 to 0.026, and Norway's, 0.035 to
+0.036, with its corrected MBE -0.026 to -0.027. Norway's corrected RMSE, 0.0357,
+is above its uncorrected 0.0350. The reported configuration remains the
+lowest-RMSE variant in ES and NO; BE and IE are as the notice below states.
+The figures the notice below lists as not re-measured are not re-measured here
+either.
+
+Data: `output/joint_fit_tolerance_2026-09-25/` (`after/`, `diag/`,
+`before_after_metrics.csv`); before-fix fit record
+`output/c2_country_offsets_2026-09-25_joint/after/`.
+
 **Correction notice, 2026-09-25: every country-level fit with more than one
 cluster used the per-cluster solver, not the joint national fit.** The router
 `country_obs_is_per_cluster` counted distinct observation values per period.
@@ -87,7 +164,8 @@ changed. No fit failed an offset either way.
 | PT | season N=2 | 0.0277 | 0.0278 | +0.0162 | +0.0160 |
 
 The country table below now carries the after figures of each row's reported
-variant. Until today it carried: FR 0.012 / +0.006, BE 0.020 / -0.002, SE
+variant. *[2026-09-25, later: for ES and NO, superseded by the notice above.]*
+Until today it carried: FR 0.012 / +0.006, BE 0.020 / -0.002, SE
 0.030 / -0.027, NO 0.036 / -0.028, ES 0.026 / +0.011, IT 0.017 / -0.003
 (corrected RMSE / MBE). IE and PT report N=1 and do not change.
 
@@ -703,7 +781,9 @@ exports built from them carry a `degenerate` layer for exactly this reason.
 Capacity-weighted national monthly CF, held-out 2023, bundled open curve library
 throughout. *[Note, 2026-09-25: the rows with N greater than 1 now carry the
 joint-fit figures; see the notice of that date. Norway's corrected RMSE, 0.0351,
-is still above its uncorrected 0.0350.]*
+is still above its uncorrected 0.0350.]* *[Note, 2026-09-25, later: every row now
+carries the figures after the joint fit's tolerance fix (`26e0b67`); see the
+second notice of that date. Norway's corrected RMSE is 0.0357.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
@@ -711,8 +791,8 @@ is still above its uncorrected 0.0350.]*
 | Belgium (BE) | 0.340 | **0.025** | +0.337 | -0.010 | N=3 season | per timestep | 100% |
 | Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | per timestep | 100% |
 | Sweden (SE) | 0.088 | **0.028** | +0.084 | -0.025 | N=4 fixed | per timestep | 100% |
-| Norway (NO) | 0.035 | 0.035 | +0.027 | -0.026 | correction does not help | per timestep | 100% |
-| Spain (ES) | 0.028 | **0.025** | +0.013 | +0.011 | N=4 fixed | per timestep | 100% |
+| Norway (NO) | 0.035 | 0.036 | +0.027 | -0.027 | correction does not help | per timestep | 100% |
+| Spain (ES) | 0.028 | **0.026** | +0.013 | +0.011 | N=4 fixed | per timestep | 100% |
 | Italy (IT) | 0.070 | **0.015** | -0.069 | -0.004 | N=3 season | per timestep | 100% |
 | Portugal (PT) | 0.089 | **0.027** | -0.085 | +0.018 | N=1 season | per timestep | 100% |
 
@@ -760,7 +840,9 @@ joint fit, NO is 0.0351 against 0.0350 uncorrected, still no help; its interval
 was not recomputed. The "largely repair the scalar" reading rests on offsets
 from the per-cluster solver, and may partly be its artefact: matching every
 cluster to one national value ties each offset to its own scalar. It is not
-re-established for the joint fit. See the notice of that date.]*
+re-established for the joint fit. See the notice of that date.]* *[Note,
+2026-09-25, later: after the joint fit's tolerance fix NO is 0.0357 against
+0.0350; see the second notice of that date.]*
 
 ## What must NOT be overclaimed
 
