@@ -23,13 +23,16 @@ Two layers:
 The real-data forest scores depend on the scikit-learn version, although the
 synthetic ones do not: under 1.9.1 the leave-one-region-out table moves in the
 third decimal from 1.7.2's (US scalar R2 -1.059 against -1.049), while the
-centroid table is identical. The real-data layer is recorded under the version
-CI's current Python jobs resolve, and skips under any other, because its
-digest cannot distinguish a version change from a code change. It is a change
-detector, not a guard (see CONTRIBUTING.md): when CI moves to a new
-scikit-learn, re-record it under that version. It was first recorded under
-1.7.2, the version the published table in ``method-ml-transfer.md`` matches;
-that table is superseded.
+centroid table is identical. The real-data layer therefore carries one stdout
+digest per scikit-learn version and skips under any other, because a digest
+cannot distinguish a version change from a code change. It is a change
+detector, not a guard (see CONTRIBUTING.md). It was first recorded under
+1.7.2, the version the published table in ``method-ml-transfer.md`` matches
+(that table is superseded), then re-recorded under 1.9.1 alone, the version
+CI resolves. That left it running nowhere: CI has 1.9.1 but not the inputs,
+and the local environment, rebuilt on 2026-09-24, has the inputs but 1.7.2.
+On 2026-09-25 the script reproduced the original 1.7.2 digest there exactly,
+so both are kept, and the realdata stamp runs this layer again.
 """
 
 from __future__ import annotations
@@ -50,11 +53,14 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "analysis" / "ml_transfer_retest.py"
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "ml_transfer"
 
-# Recorded at 3d1fe5a from a run on the real inputs (see the local test),
-# under scikit-learn 1.9.1 and pandas 3.0.6, the versions CI's Python 3.11 and
-# 3.12 jobs resolve.
-REAL_SKLEARN = "1.9.1"
-REAL_STDOUT_SHA256 = "08a27e8202d3d2abc78e1d6b28eb71dbc6e09cde44e8f4fefce25b8e382a06db"
+# The stdout digest by scikit-learn version. 1.7.2: recorded at 286c164, and
+# reproduced on 2026-09-25 in the local environment (pandas 2.3.3). 1.9.1:
+# recorded at 3d1fe5a under pandas 3.0.6, the versions CI's Python 3.11 and
+# 3.12 jobs resolve. The centroid table is the same under both.
+REAL_STDOUT_SHA256 = {
+    "1.7.2": "5453fed60ea4ad2414c0b6ea10c26f4d710c8cdf0eb541e0ad07b29ef747f1f8",
+    "1.9.1": "08a27e8202d3d2abc78e1d6b28eb71dbc6e09cde44e8f4fefce25b8e382a06db",
+}
 REAL_CENTROIDS_SHA256 = "d2c897729da1d59ad597883de95c7bed14f77426e5aef30af59983cfd66c2bea"
 
 
@@ -166,10 +172,16 @@ def test_centroids_and_terrain_features(frame):
     )
 
 
-@pytest.mark.slow
+@pytest.fixture(scope="module")
+def results(frame):
+    # One fit for the four tables. Each case refitted it, about 3 s apiece,
+    # which is why the four were marked slow and ran only on a manual dispatch.
+    return model_results(frame)
+
+
 @pytest.mark.parametrize("name", ["loro_scalar", "loro_offset", "summary_scalar", "summary_offset"])
-def test_forest_and_variance_results(frame, name):
-    got = model_results(frame)[name]
+def test_forest_and_variance_results(results, name):
+    got = results[name]
     want = pd.read_csv(PINS / f"{name}.csv")
     pd.testing.assert_frame_equal(
         got.reset_index(drop=True), want, check_dtype=False, rtol=0, atol=1e-12
@@ -212,10 +224,11 @@ def run_real(tmp_path: Path) -> tuple[str, str]:
 def test_script_on_the_real_inputs(tmp_path):
     import sklearn
 
-    if sklearn.__version__ != REAL_SKLEARN:
-        pytest.skip(f"pinned under scikit-learn {REAL_SKLEARN}, not {sklearn.__version__}")
+    if sklearn.__version__ not in REAL_STDOUT_SHA256:
+        pinned = ", ".join(sorted(REAL_STDOUT_SHA256))
+        pytest.skip(f"pinned under scikit-learn {pinned}, not {sklearn.__version__}")
     stdout, centroids = run_real(tmp_path)
-    assert stdout == REAL_STDOUT_SHA256
+    assert stdout == REAL_STDOUT_SHA256[sklearn.__version__]
     assert centroids == REAL_CENTROIDS_SHA256
 
 

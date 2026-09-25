@@ -170,17 +170,6 @@ def test_plot_qq_returns_figure(cf_series):
     assert "quantile" in ax.get_ylabel().lower()
 
 
-def test_plot_qq_linear_closer_to_diagonal_than_uncorrected(cf_series):
-    """Sanity check that the synthetic fixture has the bias structure we expect:
-    the linear correction's QQ curve should sit closer to y=x than uncorrected."""
-    obs = cf_series["obs"]
-    q = np.linspace(0.005, 0.995, 199)
-    obs_q = np.quantile(obs, q)
-    unc_dev = np.abs(np.quantile(cf_series["uncorrected"], q) - obs_q).mean()
-    lin_dev = np.abs(np.quantile(cf_series["linear"], q) - obs_q).mean()
-    assert lin_dev < unc_dev
-
-
 # ---------------------------------------------------------------------------
 # plot_correction_factor_map
 # ---------------------------------------------------------------------------

@@ -1,9 +1,11 @@
 """Pin the country-level data generator before it is split.
 
-``pyvwf/datasets/generate_country_level_training_data.py`` is one 1,400-line
-file with three groups that only ``main`` joins: grid-point generation, the
-ENTSO-E observation fetch, and the writing of ``pyvwf_config.py``. Phase 3
-splits it along those lines. Before that, ``main`` is pinned end to end. The
+``pyvwf/datasets/generate_country_level_training_data.py`` was one 1,400-line
+file with three groups that only ``main`` joined: grid-point generation, the
+ENTSO-E observation fetch, and the writing of ``pyvwf_config.py``. It has since
+been split along those lines (``country_grid.py``, ``entsoe_country_obs.py``,
+and a 220-line ``main``); ``main`` was pinned end to end before the split and
+still is. The
 third group went with the legacy batch path on 2026-09-24, and its file
 with it; the pins of every other file were left as recorded. On 2026-09-25 the
 FR, BE, NL and NO grid pins were re-recorded when the generator's short keys

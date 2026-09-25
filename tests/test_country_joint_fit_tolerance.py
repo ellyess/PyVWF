@@ -4,8 +4,8 @@ The joint fit minimises the squared capacity-factor error, about 1e-4 at the
 start of a typical fit. L-BFGS-B's ``ftol`` acts as an absolute threshold on a
 value that small, and at the former 1e-6 a fit whose first step lowered it by
 less stopped there: an error of 3e-3 was left in full with every offset still
-at zero. The fits recorded on 2026-09-25 did this in 45 of 540 national
-periods, all in ES, NO and BE.
+at zero. The fits recorded on 2026-09-25 did this in 47 of 540 national
+periods (45 stopped after one iteration, 2 after two), all in ES, NO and BE.
 """
 
 from __future__ import annotations

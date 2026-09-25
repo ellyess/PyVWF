@@ -138,6 +138,18 @@ def test_an_observation_inside_the_range_is_matched(fleet, reanalysis, power_cur
         powerCurveFile=power_curve,
     )
     assert all(np.isfinite(v) for v in offsets.values())
+    period = reanalysis.sel(time=reanalysis.time.dt.year == 2020)
+    weights = fleet.groupby("cluster")["capacity"].sum() / fleet["capacity"].sum()
+    national = sum(
+        weights[c]
+        * float(
+            train_simulate_wind_from_ws(
+                interpolate_wind(period, fleet[fleet["cluster"] == c]), power_curve, 1.0, offsets[c]
+            )
+        )
+        for c in (0, 1)
+    )
+    assert national == pytest.approx(obs, abs=1e-6)
 
 
 def _offcurve():

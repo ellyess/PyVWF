@@ -1,9 +1,10 @@
 """The cluster selection runner (scripts/studies/method-cluster-selection/cluster_selection_study.py).
 
-The two tests that matter pin the defect that contaminated its first run: a run
-directory keyed on the region code alone, so two fleet modes of one region
-collided, and one aggregate file per invocation, so a per-process loop left
-only the last row on disk.
+Its first run was contaminated by two defects: a run directory keyed on the
+region code alone, so two fleet modes of one region collided, and one aggregate
+file per invocation, so a per-process loop left only the last row on disk. The
+first is pinned here (``test_the_run_name_carries_the_fleet_mode``), with the
+selection rule and the folds; the per-row output files are not tested.
 """
 
 import importlib.util

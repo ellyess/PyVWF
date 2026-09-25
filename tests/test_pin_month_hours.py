@@ -5,8 +5,9 @@ the month. Seven are covered by real-data pins: the bootstrap pins load every
 scorecard row through the european, EIA, ONS, AEMO, EMI, CEN and CAMMESA
 adapters, and the NZ, Argentina and Chile processing pins run those
 transforms. The WindStats transform and the client-CSV adapter have no such
-pin, so these cases pin their output on synthetic data before the day and
-hour counts move into one helper.
+pin, so these cases pinned their output on synthetic data before the day and
+hour counts moved into one helper, ``pyvwf.time_utils.month_days``, which both
+now call.
 
 The data span 2019 and 2020, so February appears with 28 and 29 days, and use
 awkward values so that a change in the order of operations shows in the last

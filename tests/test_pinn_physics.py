@@ -13,7 +13,8 @@ import pandas as pd
 import pytest
 
 # torch lives in the optional [pinn] extra, so that installing PyVWF to run the
-# affine pipeline does not pull a deep-learning stack. CI does not install it.
+# affine pipeline does not pull a deep-learning stack. CI's test matrix does not
+# install it; CI's extras job does, and runs this file.
 pytest.importorskip("torch")
 
 import torch  # noqa: E402
