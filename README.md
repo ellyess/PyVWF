@@ -7,12 +7,14 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21236619-blue)](https://doi.org/10.5281/zenodo.21236619)
 
 PyVWF turns atmospheric reanalysis (ERA5) into bias-corrected wind power
-generation. It is a Python rewrite of the
+generation. It began as a Python implementation of the
 [VWF model](https://github.com/renewables-ninja/pyvwf) by Iain Staffell, which
 underpins the wind simulations on
-[Renewables.ninja](https://www.renewables.ninja/), and it implements the
-granular bias-correction method of
-[Benmoufok et al. (2024)](https://doi.org/10.1016/j.energy.2024.133759).
+[Renewables.ninja](https://www.renewables.ninja/), and has grown into its own
+model: it implements the granular bias-correction method of
+[Benmoufok et al. (2024)](https://doi.org/10.1016/j.energy.2024.133759), and
+extends it with a validation harness that fits and scores the correction
+against observed generation in fifteen regions, at turbine and country level.
 
 Raw reanalysis winds carry systematic, location-dependent biases, so capacity
 factors simulated straight from ERA5 drift away from what fleets actually
