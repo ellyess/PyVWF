@@ -1,8 +1,9 @@
 """Run a local-only test suite and stamp the code it was run against.
 
-Two suites cannot be checked by CI. The `realdata` pins skip wherever their
-inputs are absent, CI included. The physics-informed tests need the `pinn`
-extra, which CI does not install. This script runs one suite in full and
+Two suites are checked here before a commit. The `realdata` pins skip wherever
+their inputs are absent, CI included, so only a local run checks them. The
+physics-informed tests need the `pinn` extra, which only CI's extras job
+installs, so a local run is the check before a push. This script runs one suite in full and
 writes `output/.stamp-<suite>.json`, recording a fingerprint of the code the
 suite covers as it was on disk. The Claude Code hook
 `.claude/hooks/guard_local_suites.py` refuses a commit that stages covered code

@@ -36,10 +36,13 @@ The root `AGENTS.md` applies too. These rules cover the package code.
   train and evaluate verbs do not fit. Do not wire it in, register it as a
   correction model, or export its names from `pyvwf` unless the task says so in
   those words. The harness and registry rules above do not apply to it.
-- **CI never runs its tests.** They need the `pinn` extra (torch, rasterio),
-  which CI does not install. Run `python scripts/dev/stamp.py pinn`, which
-  refuses to run without the extra rather than stamping a run of skips. A hook
-  refuses a commit touching `pinn/` without a matching passing stamp.
+- **CI runs its tests only in the extras job.** They need the `pinn` extra
+  (torch, rasterio), which the test matrix does not install; the `extras` job
+  installs every extra and runs them on each pull request (since `db76ff1`).
+  Before committing, run `python scripts/dev/stamp.py pinn`, which refuses to
+  run without the extra rather than stamping a run of skips. A hook refuses a
+  commit touching `pinn/` without a matching passing stamp, so a change is
+  checked before it is pushed, not only after.
 - **Drivers live in `scripts/pinn/`,** which is exempt from the public-name
   test. Launch a programme through `scripts/dev/run_locked.py`, the whole
   programme under one lock: `run_overnight.sh` launches each stage fresh, so a

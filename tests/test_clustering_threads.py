@@ -5,8 +5,10 @@ sampling grid 1 and 8 threads gave one labelling while 2 and 4 gave two others:
 a near-tie falls the other way when the reduction order changes. Until
 2026-09-24 a side effect of importing the removed legacy module set every
 process to one thread, which is what hid it; CI's four-core runners exposed it
-once that module went. pyvwf.clustering now runs every KMeans call on one thread,
-so the partition is the same whatever the caller's thread settings.
+once that module went. The KMeans calls now run on one thread, so the partition
+is the same whatever the caller's thread settings. This file checks the one in
+``pyvwf.sampling.cluster_with_geometries``, which builds the sampling grid; the
+guard in ``pyvwf.clustering.cluster_turbines`` has no thread-count test.
 """
 
 from __future__ import annotations

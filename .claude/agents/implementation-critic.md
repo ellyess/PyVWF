@@ -30,7 +30,7 @@ Read `AGENTS.md`, `CONTRIBUTING.md` and `.importlinter` first.
 - **Size.** Can it land as one concern per commit? If not, the split.
 - **The physics-informed correction.** `pyvwf/pinn` stays outside the harness and
   the registry unless the proposal says otherwise in those words
-  (`src/pyvwf/AGENTS.md`). Its tests need the `pinn` extra and never run in CI:
+  (`src/pyvwf/AGENTS.md`). Its tests need the `pinn` extra, which only CI's extras job installs:
   name the tests the change needs, and note that
   `python scripts/dev/stamp.py pinn` must pass before the commit. A change to
   the forward operator keeps the identity-reduction test passing. New drivers

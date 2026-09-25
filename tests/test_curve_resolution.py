@@ -1,11 +1,14 @@
 """Curve resolution: which power curve each unit was actually simulated on.
 
-Every country-level run on the bundled library simulated a 100 kW
-distributed-wind turbine, because the grids name Vestas models the library
-lacks and a missing model falls back, with a one-off warning and no record, to
-the table's first column. These tests pin that fallback's identity, check the
-resolution record against what the simulation actually does, and check the
-driver writes it where the numbers are.
+Every country-level run on the open library simulated a 100 kW distributed-wind
+turbine (found 2026-09-11), because the grids name Vestas models the library
+lacks and a missing model key was substituted, with a one-off warning and no
+record, by the first column of ``power_curves.csv``. These tests pin that
+fallback curve's identity, check the resolution record against what the
+simulation actually does, and check the driver writes it where the numbers are.
+Since ``a4f6f9b`` (2026-09-25) a country-level run refuses a missing model key
+instead, and the last tests here pin that refusal; a turbine-level run still
+substitutes and records it.
 """
 
 import json

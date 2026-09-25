@@ -78,8 +78,8 @@ data = [
 
 # The physics-informed correction (pyvwf.pinn) only. Kept out of the base install
 # so that running the affine pipeline does not pull a deep-learning stack, and
-# out of CI so the matrix stays light; tests/test_pinn_physics.py skips itself
-# when torch is absent.
+# out of CI's test matrix so it stays light; CI's extras job installs it.
+# tests/test_pinn_physics.py skips itself when torch is absent.
 pinn = [
     "torch>=2.0",
 ]
@@ -87,7 +87,8 @@ pinn = [
 # The gridded-correction extension (pyvwf.extensions.grid) only: kriging needs
 # pykrige, and the terrain feature extraction reads GeoTIFFs through rasterio.
 # Kept out of the base install so the affine pipeline does not pull them, and
-# out of CI so the matrix stays light; the tests skip themselves when absent.
+# out of CI's test matrix so it stays light; CI's extras job installs it. The
+# tests skip themselves when absent.
 grid = [
     "pykrige>=1.7.0",
     "rasterio>=1.3.0",
