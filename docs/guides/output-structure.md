@@ -2,7 +2,8 @@
 
 The harness writes every run under `output/validation/<CODE>/`, one directory
 per train or evaluate run, each self-contained and stamped (a UTC timestamp, or
-the `--run-name` you pass).
+the `--run-name` you pass). A run refuses a directory that already holds files,
+so a reused `--run-name` fails rather than writing beside an earlier run.
 
 ```text
 output/validation/<CODE>/

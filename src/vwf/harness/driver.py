@@ -237,8 +237,23 @@ def _era5_dir(spec: RegionSpec) -> Path:
 
 
 def _run_dir(out_root: str | Path, spec: RegionSpec, mode: str, run_name: str | None) -> Path:
+    """The directory a new run writes to, refused if a run already holds it.
+
+    A reused ``run_name`` used to write into the earlier run's directory, so
+    files the new run does not write (a factors file of another cluster count,
+    say) survived beside a new manifest that did not describe them.
+
+    Raises:
+        FileExistsError: If the directory exists and is not empty.
+    """
     stamp = run_name or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    return Path(out_root) / spec.code / f"{mode}-{stamp}"
+    run_dir = Path(out_root) / spec.code / f"{mode}-{stamp}"
+    if run_dir.is_dir() and any(run_dir.iterdir()):
+        raise FileExistsError(
+            f"{run_dir} already holds a run. Choose another run name, or remove "
+            "that directory first."
+        )
+    return run_dir
 
 
 def _monthly_long(cf_wide: pd.DataFrame) -> pd.DataFrame:

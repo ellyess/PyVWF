@@ -64,6 +64,12 @@ this file stay in step with it.
 
 ### Changed
 
+- **A run refuses a run directory that already holds files**
+  (`vwf.harness.driver`). A reused `--run-name` wrote into the earlier run's
+  directory, so files the new run did not write, such as a factors file of
+  another cluster count, stayed beside a manifest that did not describe them.
+  Train, evaluate and transfer now raise `FileExistsError` instead.
+
 - **CI runs every pre-commit hook and tests Python 3.13.** The lint job now
   runs `pre-commit run --all-files`, so the em-dash check, the whitespace
   fixers and the TOML and YAML checks hold for a commit made without the hooks
