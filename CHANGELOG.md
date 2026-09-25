@@ -169,6 +169,14 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The physics-informed curve bank keeps its gradient on a grid knot under
+  torch 2.14** (`vwf.pinn.physics.PowerCurveBank`). It clamped the
+  interpolation fraction to 0 to 1 everywhere, and from torch 2.14 clamp
+  passes no gradient at its bound, so at every speed that falls exactly on
+  the 0.01 m/s grid the gradient with respect to wind speed was zero. The
+  fraction is now clamped only off the ends of the table. Values are
+  unchanged, and so are the gradients under torch 2.13.
+
 - **National country-level fits with more than one cluster take the joint
   fit again** (`vwf.data.country_obs_is_per_cluster`). The router counted
   distinct floats in each period's cluster observations, and the
