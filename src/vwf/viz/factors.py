@@ -8,7 +8,7 @@ Voronoi cell coloured by its learned ``scalar`` (multiplicative) and
 ``offset`` (additive) correction, on a diverging scale centred at the
 neutral value (1 for scalar, 0 for offset) so over- and under-correction
 read at a glance. Cluster geometry is rebuilt with
-:func:`vwf.clustering.cluster_with_geometries`, which uses the same
+:func:`vwf.sampling.cluster_with_geometries`, which uses the same
 deterministic KMeans configuration as training (``random_state=42``), so
 passing the *training* turbine set reproduces the cluster IDs the factors
 were fitted on.
@@ -180,7 +180,7 @@ def plot_correction_factor_map(
     """
     import geopandas as gpd  # noqa: F401 (hard requirement for the geometry path)
 
-    from vwf.clustering import cluster_with_geometries
+    from vwf.sampling import cluster_with_geometries
 
     per_cluster = _factors_per_cluster(factors, period)
     n_clu = int(per_cluster["cluster"].nunique())

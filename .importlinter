@@ -19,9 +19,9 @@ layers =
     vwf.cli | vwf.extensions | vwf.pinn | vwf.viz
     vwf.harness
     vwf.data
-    vwf.sources
+    vwf.sources | vwf.country_level
     vwf.loaders | vwf.datasets | vwf.provenance | vwf.curves
-    vwf.correction
+    vwf.correction | vwf.sampling
     vwf.clustering | vwf.wind
     vwf.config | vwf.utils | vwf.time_utils | vwf.metrics | vwf.geospatial | vwf.resources | vwf._version
 

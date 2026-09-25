@@ -135,8 +135,10 @@ than once for a whole country.
 
 ```{eval-rst}
 .. automodule:: vwf.clustering
-   :members: cluster_turbines, cluster_with_geometries, create_sampling_points,
-             add_turbine_metadata, get_country_shape, load_region_shapes
+   :members: cluster_turbines, get_country_shape, load_region_shapes
+
+.. automodule:: vwf.sampling
+   :members: cluster_with_geometries, create_sampling_points, add_turbine_metadata
 ```
 
 ## Metrics
