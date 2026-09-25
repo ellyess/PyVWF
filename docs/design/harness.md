@@ -189,15 +189,17 @@ distribution comparison by 1-D Earth mover's distance with exported Q-Q
 quantiles; and seasonal-cycle RMSE against the mean monthly climatology. All
 reported before and after correction, in sample and held out.
 
-The two paths define the **error metrics** twice, in `pyvwf/metrics.py`
-(`calculate_error`, `overall_error`) and `pyvwf/harness/skill.py`
-(`skill_metrics`). Both are live: the legacy path reproduces the thesis-era
-runs, the harness produces everything since. A change to how a metric is
-defined has to be made in both, or the two paths stop being comparable.
+The **error metrics** are defined in `pyvwf/harness/skill.py`
+(`skill_metrics`). The legacy path defined them a second time, in
+`pyvwf/metrics.py` (`calculate_error` in seven modes, and `overall_error`);
+that path was removed on 2026-09-24, and its metrics on 2026-09-25 (last
+present at `96a6d3e`). `pyvwf/metrics.py` keeps one mode, `calculate_error`'s
+`"total"`, because the gridded correction scores with it
+(`pyvwf.extensions.grid.evaluate`).
 
-They no longer share **no** code. `pyvwf.metrics.weighted_mean` and
+The two share one weighted mean. `pyvwf.metrics.weighted_mean` and
 `weighted_mean_by` are the one weighted-mean primitive, at the bottom of the
-layering in `.importlinter`, and ten modules across both paths import them,
+layering in `.importlinter`, and ten modules import them,
 `harness/skill.py`, `driver.py`, `corrections.py` and `hindcast.py` among
 them. One helper means a missing value is treated the same way everywhere: it
 leaves both the sum and the weights, and a group where nothing has a value is

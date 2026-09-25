@@ -15,6 +15,17 @@ this file stay in step with it.
 
 ### Breaking
 
+- **The legacy path's error metrics are removed from `pyvwf.metrics`.**
+  `overall_error` read a `results/capacity-factor/` run layout nothing writes
+  since the legacy path went, and nothing called it. `calculate_error` keeps
+  only its `"total"` mode, which the gridded correction scores with, and
+  drops its `train` argument; the six grouped-report modes
+  (`monthly-error`, `regional-error`, `cluster-error`, `turbine-error`,
+  `temporal-focus`, `spatial-focus`) raise a `ValueError` that says they were
+  removed. `prepare_monthly_data` drops its `train` branch, which only those
+  callers used. `"total"` is unchanged. The harness scores runs with
+  `pyvwf.harness.skill`, as before.
+
 - **`pyvwf.datasets.era5` is `pyvwf.era5`.** It loads the reanalysis every run
   reads, so it is core runtime, and `pyvwf.datasets` is now acquisition only.
   Outside `datasets` it is also type-checked, which the `datasets` exemption
