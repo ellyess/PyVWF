@@ -127,7 +127,8 @@ jobs:
           pip install -e ".[dev,pinn,grid,data]"
 
       - name: Run tests
-        run: pytest tests -q -rs -m "not slow and not realdata" | tee /tmp/extras.log
+        # No -q: the ini already sets it, and a second one hides the summary line.
+        run: pytest tests -rs -m "not slow and not realdata" | tee /tmp/extras.log
 
       - name: No test skipped for a missing import
         run: |
