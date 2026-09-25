@@ -120,13 +120,35 @@ def load_exclusions(path: Path) -> set[str]:
     return set(pd.read_csv(path)["gem_phase_id"].astype(str))
 
 
+def load_start_years(path: Path) -> dict[str, int]:
+    """Start years for tracker records that carry none, keyed by GEM phase ID.
+
+    The table is ``configs/curation/gwpt_start_years.csv``, written by
+    ``scripts/region_tools/backfill_gwpt_start_years.py`` from national
+    registers, each row with the register records it rests on. A missing file
+    backfills nothing.
+    """
+    if not path.is_file():
+        return {}
+    table = pd.read_csv(path)
+    return dict(zip(table["gem_phase_id"].astype(str), table["start_year"].astype(int)))
+
+
 def fleet_for(
     gwpt: pd.DataFrame,
     country: str,
     year: int | None,
     exclusions: set[str] | frozenset[str] = frozenset(),
+    start_years: dict[str, int] | None = None,
 ) -> pd.DataFrame:
-    """Operating, geolocated projects for one country, optionally as of a year.
+    """Geolocated projects for one country: operating now, or as of a year.
+
+    Without a year, the fleet is every operating project. With one, it is the
+    fleet as it stood in that year, which is a different set: a project retired
+    since then belongs to it, so retired records are read too and placed by
+    their start and retirement years. Filtering on today's status alone would
+    leave a repowered site empty for every year before its new turbines, whose
+    old phase the tracker marks retired.
 
     Args:
         gwpt: The tracker's ``Data`` sheet.
@@ -134,6 +156,9 @@ def fleet_for(
         year: Keep projects started by and not retired in this year. None
             keeps every operating project.
         exclusions: GEM phase IDs to drop (:func:`load_exclusions`).
+        start_years: Start years for records the tracker leaves undated, by
+            GEM phase ID (:func:`load_start_years`). A year the tracker gives
+            is never replaced.
 
     Returns:
         Frame with ``lat``, ``lon`` and ``mw``.
@@ -143,7 +168,14 @@ def fleet_for(
         raise KeyError(f"No GWPT country name mapped for {country!r}")
 
     fleet = gwpt[gwpt["Country/Area"] == name].copy()
-    fleet = fleet[fleet["Status"].astype(str).str.lower() == "operating"]
+    status = fleet["Status"].astype(str).str.lower()
+    if year is None:
+        fleet = fleet[status == "operating"]
+    else:
+        # A retired record without a retirement year cannot be placed in time,
+        # so it is left out rather than counted in every year.
+        retired_at = pd.to_numeric(fleet["Retired year"], errors="coerce")
+        fleet = fleet[(status == "operating") | ((status == "retired") & retired_at.notna())]
     fleet = fleet.dropna(subset=["Latitude", "Longitude", "Capacity (MW)"])
 
     if exclusions and "GEM phase ID" in fleet.columns:
@@ -155,9 +187,15 @@ def fleet_for(
 
     if year is not None:
         start = pd.to_numeric(fleet["Start year"], errors="coerce")
+        if start_years:
+            backfill = fleet["GEM phase ID"].astype(str).map(start_years)
+            start = start.fillna(pd.to_numeric(backfill, errors="coerce"))
         retired = pd.to_numeric(fleet["Retired year"], errors="coerce")
-        # Projects with no start year are kept: the tracker often omits it for
-        # older sites, and dropping them would understate the historic fleet.
+        # A project still undated after the backfill is kept in every year.
+        # That overstates the early fleet where the undated projects are
+        # recent, as the French ones mostly are
+        # (``configs/curation/gwpt_start_years.csv``), but dropping them would
+        # understate every year instead.
         fleet = fleet[(start.isna() | (start <= year)) & (retired.isna() | (retired > year))]
 
     return fleet[["Latitude", "Longitude", "Capacity (MW)"]].rename(

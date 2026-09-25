@@ -206,6 +206,23 @@ this file stay in step with it.
 
 ### Fixed
 
+- **A year's GWPT fleet is the fleet as it stood that year**
+  (`pyvwf.datasets.gwpt.fleet_for`). It read only records the tracker marks
+  operating today, so a project retired since was missing from every year it
+  ran, and a repowered site was empty before its new turbines. A
+  year-specific fleet now reads retired records too, placed by their start
+  and retirement years. It also takes start years for records the tracker
+  leaves undated, which it had counted in every year: those came online
+  recently more often than not (every undated Norwegian project in 2018-21).
+  The years are in `configs/curation/gwpt_start_years.csv`, written by the new
+  `scripts/region_tools/backfill_gwpt_start_years.py` from NVE's plant
+  register (Norway) and the ODRE installation register (France), with the
+  register records each rests on and each rule's agreement with the years the
+  tracker does give. Spain's undated records, and most of France's, stay
+  undated. The per-year grids and repaired capacities built from
+  `fleet_for` are not yet regenerated; the current fleet (no year) is
+  unchanged.
+
 - **The physics-informed curve bank keeps its gradient on a grid knot under
   torch 2.14** (`pyvwf.pinn.physics.PowerCurveBank`). It clamped the
   interpolation fraction to 0 to 1 everywhere, and from torch 2.14 clamp

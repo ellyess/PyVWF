@@ -122,9 +122,10 @@ def filter_results(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
     for cc, country in (("ES", "Spain"), ("SE", "Sweden"), ("FI", "Finland")):
         out[f"windstats_{cc}"] = gwpt.operating_projects(frame, country)
     excluded = gwpt.load_exclusions(CURATION / "gwpt_exclusions.csv")
+    dated = gwpt.load_start_years(CURATION / "gwpt_start_years.csv")
     for code in sorted(gwpt.COUNTRY_NAME):
         for year in (None, 2015, 2019, 2023):
-            out[f"fleet_for_{code}_{year}"] = gwpt.fleet_for(frame, code, year, excluded)
+            out[f"fleet_for_{code}_{year}"] = gwpt.fleet_for(frame, code, year, excluded, dated)
     return out
 
 
