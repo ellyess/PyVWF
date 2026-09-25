@@ -16,6 +16,15 @@ tree; the override tables and the paired comparisons record none.
 conditions have run: C1 and C2 at country level, T1 and T2 at turbine level.
 Terms follow `CONTEXT.md`.
 
+**Note, 2026-09-25 (curves): condition C1 is now the scorecard's country
+rows.** From `a4f6f9b` a country-level run refuses a curve the loaded library
+lacks, and the eight rows run on the licensed library, as C1 did, with the
+joint national fit (`scorecard.md`, third notice of 2026-09-25). Re-run that
+way, the joint fit refuses 90 of 540 national training periods (IT 54, PT 33,
+NO 2, ES 1), Italy and Portugal are suspended, and France and Norway carry
+scalars of 4.61 and 3.05. The C1 figures in this document were made before the
+routing and tolerance fixes and are not replaced by those runs.
+
 **Correction notice, 2026-09-25: the country-level fits with more than one
 cluster used the per-cluster solver, not the joint national fit.**
 `country_obs_is_per_cluster` read the rounding differences between clusters'

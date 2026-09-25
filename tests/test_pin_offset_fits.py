@@ -41,9 +41,22 @@ CASES = {
     # when the joint fit's stopping tolerances were tightened: the ES offsets
     # had stayed at the zero start (about 2e-5 m/s) and moved to 0.003 to 0.011
     # m/s; the FR offsets moved by at most 5.3e-4 m/s; scalars and accepted
-    # years unchanged in both.
-    "fr_country_k10": ("configs/regions/scorecard/fr_country.toml", "input", 10, "era5/EU_2026-09"),
-    "es_country_k4": ("configs/regions/scorecard/es_country.toml", "input", 4, "era5/EU_2026-09"),
+    # years unchanged in both. Moved to input/combined and re-recorded the same
+    # day, when a country run on a curve the library lacks started to be
+    # refused: the grids name licensed Vestas curves, and until then every unit
+    # ran on the bundled 100 kW fallback.
+    "fr_country_k10": (
+        "configs/regions/scorecard/fr_country.toml",
+        "input/combined",
+        10,
+        "era5/EU_2026-09",
+    ),
+    "es_country_k4": (
+        "configs/regions/scorecard/es_country.toml",
+        "input/combined",
+        4,
+        "era5/EU_2026-09",
+    ),
 }
 
 TRAIN = """

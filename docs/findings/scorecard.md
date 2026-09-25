@@ -22,6 +22,103 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-09-25 (third): the eight country-level rows now
+simulate each grid's own turbine, and Italy and Portugal are suspended.** Every
+country grid point names one Vestas key: `Vestas.V80.2000` (FR, IT, PT),
+`Vestas.V90.2000` (ES, IE) or `Vestas.V90.3000` (BE, NO, SE). Only the
+licensed library holds those curves, and the rows ran on the default input root,
+so every unit was simulated on the open library's first column,
+`2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind curve at 167 W/m2. The
+Substituted column has said 100% since 2026-09-11. From `a4f6f9b` a country-level
+run refuses a curve the library lacks, and the rows run on `input/combined`
+(`power_curves.csv` sha256 `689cfee7…`), where each key resolves to its own
+curve. This is condition C1 of `method-curve-library.md`, now with the joint
+national fit, in preference to the nearest open curve, which sits
+19.4 W/m2 from the V80-2.0 and 70.6 W/m2 from the V90-3.0. **The eight rows
+are therefore licensed-lineage and not reproducible by a third party**, like DE,
+DK, UK and US.
+
+Every variant of the eight rows, trained and evaluated before the change
+(`26e0b67`, default input root, the "after" runs of the second notice below)
+and after it (`bf97f4a`, `input/combined`), from a clean tree, with the
+scorecard configs. Training years 2015-21 (IE 2017-21), test year 2023,
+national scope. Every after manifest records 0% of capacity substituted. Fit
+quality uses the dagger's bounds: a scalar outside 0.2 to 3.0 is implausible,
+and a refused factor counts as a failed offset.
+
+| Row | Variant | RMSE before | RMSE after | MBE before | MBE after | Max scalar before / after | Implausible / failed after | Months scored after |
+|---|---|---|---|---|---|---|---|---|
+| FR | uncorrected | 0.1711 | 0.0204 | +0.1648 | -0.0015 |  |  | 12 of 12 |
+| FR | fixed N=1 | 0.0125 | 0.0301 | +0.0074 | +0.0155 | 0.62 / 1.07 | 0 / 0 | 12 of 12 |
+| FR | **fixed N=10** (reported) | 0.0102 | 0.0271 | +0.0030 | +0.0123 | 2.03 / 4.61 | 1 / 0 | 12 of 12 |
+| FR | season N=1 | 0.0126 | 0.0280 | +0.0069 | +0.0166 | 0.62 / 1.23 | 0 / 0 | 12 of 12 |
+| FR | season N=10 | 0.0113 | 0.0251 | +0.0030 | +0.0139 | 3.06 / 9.94 | 4 / 0 | 12 of 12 |
+| BE | uncorrected | 0.3399 | 0.1226 | +0.3367 | +0.1164 |  |  | 12 of 12 |
+| BE | fixed N=1 | 0.0243 | 0.0162 | -0.0055 | -0.0001 | 0.39 / 0.67 | 0 / 0 | 12 of 12 |
+| BE | fixed N=3 | 0.0266 | 0.0160 | -0.0092 | +0.0062 | 0.50 / 0.95 | 0 / 0 | 12 of 12 |
+| BE | season N=1 | 0.0225 | 0.0178 | -0.0065 | -0.0000 | 0.43 / 0.69 | 0 / 0 | 12 of 12 |
+| BE | **season N=3** (reported) | 0.0247 | 0.0205 | -0.0102 | +0.0073 | 0.53 / 1.23 | 0 / 0 | 12 of 12 |
+| IE | uncorrected | 0.1721 | 0.0453 | +0.1680 | +0.0361 |  |  | 12 of 12 |
+| IE | fixed N=1 | 0.0230 | 0.0264 | +0.0105 | +0.0115 | 0.68 / 0.93 | 0 / 0 | 12 of 12 |
+| IE | fixed N=3 | 0.0208 | 0.0260 | +0.0075 | +0.0107 | 0.70 / 0.97 | 0 / 0 | 12 of 12 |
+| IE | **season N=1** (reported) | 0.0212 | 0.0239 | +0.0092 | +0.0114 | 0.70 / 0.96 | 0 / 0 | 12 of 12 |
+| IE | season N=3 | 0.0197 | 0.0237 | +0.0063 | +0.0108 | 0.73 / 1.02 | 0 / 0 | 12 of 12 |
+| SE | uncorrected | 0.0876 | 0.0984 | +0.0844 | -0.0967 |  |  | 12 of 12 |
+| SE | fixed N=1 | 0.0319 | 0.0358 | -0.0289 | -0.0329 | 0.68 / 1.37 | 0 / 0 | 12 of 12 |
+| SE | **fixed N=4** (reported) | 0.0284 | 0.0348 | -0.0247 | -0.0313 | 0.77 / 1.64 | 0 / 0 | 12 of 12 |
+| SE | season N=1 | 0.0325 | 0.0359 | -0.0292 | -0.0336 | 0.70 / 1.47 | 0 / 0 | 12 of 12 |
+| SE | season N=4 | 0.0287 | 0.0336 | -0.0246 | -0.0303 | 0.82 / 1.84 | 0 / 0 | 12 of 12 |
+| NO | uncorrected | 0.0350 | 0.1286 | +0.0271 | -0.1245 |  |  | 12 of 12 |
+| NO | fixed N=1 | 0.0390 | 0.0392 | -0.0314 | -0.0326 | 0.82 / 1.47 | 0 / 0 | 12 of 12 |
+| NO | **fixed N=4** (reported) | 0.0357 | 0.0279 | -0.0267 | -0.0160 | 1.32 / 3.05 | 1 / 0 | 12 of 12 |
+| NO | season N=1 | 0.0386 | 0.0397 | -0.0304 | -0.0324 | 0.88 / 1.57 | 0 / 0 | 12 of 12 |
+| NO | season N=4 | 0.0368 | 0.0330 | -0.0255 | -0.0219 | 1.48 / 3.30 | 2 / 0 | 12 of 12 |
+| ES | uncorrected | 0.0281 | 0.0709 | +0.0128 | -0.0697 |  |  | 12 of 12 |
+| ES | fixed N=1 | 0.0269 | 0.0339 | +0.0109 | +0.0097 | 0.99 / 1.50 | 0 / 0 | 12 of 12 |
+| ES | **fixed N=4** (reported) | 0.0257 | 0.0302 | +0.0114 | +0.0099 | 1.20 / 1.90 | 0 / 0 | 12 of 12 |
+| ES | season N=1 | 0.0265 | 0.0313 | +0.0110 | +0.0101 | 1.10 / 1.86 | 0 / 0 | 12 of 12 |
+| ES | season N=4 | 0.0265 | 0.0259 | +0.0125 | +0.0109 | 1.36 / 2.45 | 0 / 0 | 12 of 12 |
+| IT | uncorrected | 0.0703 | n/a | -0.0692 | n/a |  |  | 0 of 12 |
+| IT | fixed N=1 | 0.0169 | n/a | -0.0042 | n/a | 1.38 / n/a | 0 / 1 | 0 of 12 |
+| IT | fixed N=3 | 0.0166 | n/a | -0.0043 | n/a | 1.92 / n/a | 0 / 3 | 0 of 12 |
+| IT | season N=1 | 0.0164 | n/a | -0.0040 | n/a | 1.73 / 2.67 | 0 / 2 | 0 of 12 |
+| IT | **season N=3** (reported) | 0.0155 | n/a | -0.0041 | n/a | 2.65 / 3.49 | 1 / 9 | 0 of 12 |
+| PT | uncorrected | 0.0893 | 0.2205 | -0.0847 | -0.2201 |  |  | 3 of 12 |
+| PT | fixed N=1 | 0.0293 | 0.0463 | +0.0177 | -0.0343 | 1.55 / 3.03 | 1 / 0 | 3 of 12 |
+| PT | fixed N=2 | 0.0310 | 0.0133 | +0.0193 | -0.0101 | 1.94 / 3.96 | 1 / 0 | 3 of 12 |
+| PT | **season N=1** (reported) | 0.0274 | 0.0266 | +0.0176 | +0.0027 | 1.65 / 3.10 | 1 / 1 | 3 of 12 |
+| PT | season N=2 | 0.0278 | 0.1493 | +0.0160 | +0.1463 | 2.35 / 3.66 | 1 / 6 | 3 of 12 |
+
+**Italy and Portugal are suspended.** On their own curves the joint fit refuses
+54 of Italy's 70 training periods and 33 of Portugal's (offsets on the ±10 m/s
+bound, or an abnormal end to the line search); Norway refuses 2 and Spain 1,
+every other row none. Italy's N=1 fixed fit keeps 1 of 7 training years and its
+N=3 fixed fit none, so each is refused whole, and because every variant is
+scored on the rows all of them can score, Italy scores no month in any variant.
+Portugal scores 3 of 12 months. Neither row is a result. They move to the
+suspended rows under the country-level table, with the figures they carried
+until today. Joint-fit record: `output/country_curves_2026-09-25/diag/`.
+
+The country-level table below now carries the after figures of the other six
+rows, in each row's reported configuration, which is kept as reported. Two of
+them are degenerate and take a dagger: France's N=10 fixed fit applies a scalar
+of 4.61 (cluster 7) and Norway's N=4 fixed fit one of 3.05. Until today the
+table carried: FR 0.171 / 0.010, BE 0.340 / 0.025, IE 0.172 / 0.021, SE 0.088 /
+0.028, NO 0.035 / 0.036, ES 0.028 / 0.026, IT 0.070 / 0.015, PT 0.089 / 0.027
+(uncorrected / corrected RMSE).
+
+The reported configurations are kept, and are no longer the lowest-RMSE
+variant in five of the six rows: FR (season N=10, 0.0251, with four
+implausible scalars, against 0.0271), BE (fixed N=3, 0.0160, against 0.0205),
+IE (season N=3, 0.0237, against 0.0239), SE (season N=4, 0.0336, against
+0.0348) and ES (season N=4, 0.0259, against 0.0302). Norway's reported
+configuration is its lowest. Every configuration was chosen on the same test
+year it is scored on.
+
+Not re-measured: every other figure in this repository from a country-level run,
+which all ran on the fallback curve. Data: `output/country_curves_2026-09-25/`
+(`after/`, `diag/`, `pins/`, `before_after_metrics.csv`).
+
 **Correction notice, 2026-09-25 (second): the joint national fit stopped
 at its starting point in 47 of 540 training periods.** The fit minimises the
 squared national capacity-factor error, about 1e-4 at its start, and L-BFGS-B's
@@ -453,7 +550,9 @@ between them. Their figures improved, Italy's corrected RMSE halving and
 Portugal's falling by two thirds, because the winds are real rather than
 extrapolated; the evidence that it is the winds and not something else is in
 `method-eu-rerun.md`, which splits each fleet by whether a grid point lay
-outside the old extent. *[Note, 2026-09-25: Italy's halving compares N=3
+outside the old extent. *[Note, 2026-09-25, third: Italy and Portugal are
+suspended again, because on their grids' own curves most of their fits are
+refused; see the third notice of that date.]* *[Note, 2026-09-25: Italy's halving compares N=3
 season fits made with the per-cluster solver on both sides; with the joint fit
 its reported row is 0.0155. Portugal's row is N=1 and stands. See the notice
 of that date.]* This resolves the input defect only. Italy's fit still
@@ -596,7 +695,11 @@ The remaining ten (CL, AR and the eight country-level regions) were run on the
 bundled open library. The country-level grid points name Vestas models that the
 open library does not contain, so every unit in those eight rows fell back to a
 single default curve, the open library's first column:
-`2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind turbine.
+`2019COE_DW100_100kW_27.6`, a 100 kW distributed-wind turbine. *[Note,
+2026-09-25: the country-level rows now run on the licensed library, where each
+grid's own Vestas curve resolves, and are not third-party reproducible; CL and
+AR remain the only rows on the open library. See the third notice of that
+date.]*
 
 **Other brand** is the share of each row's fitted training fleet, by capacity,
 simulated on another manufacturer's curve. **Reference curve** is the share on a
@@ -734,7 +837,10 @@ offsets required to converge):
 | Argentina (AR) | k10 fixed | 1.29 | 0 | **1** |
 
 The other two are clean: NZ 1.81 and DK 1.14, inside the ceiling with no
-failed offsets, as is every country-level fit below. DE, UK and AU-NEM joined
+failed offsets, as is every country-level fit below. *[Note, 2026-09-25: on
+their grids' own curves two country-level fits are degenerate, France's and
+Norway's; they are daggered, with their fit quality, under the country-level
+table.]* DE, UK and AU-NEM joined
 the list in the 2026-09-20 refresh: each refuses a cluster whose accepted
 years are not a majority of its training years, and a refused factor counts as
 a failed offset. Every maximum scalar in the table is now inside the
@@ -778,8 +884,12 @@ exports built from them carry a `degenerate` layer for exactly this reason.
 
 ## Country-level (ENTSO-E national aggregate, 2023)
 
-Capacity-weighted national monthly CF, held-out 2023, bundled open curve library
-throughout. *[Note, 2026-09-25: the rows with N greater than 1 now carry the
+Capacity-weighted national monthly CF, held-out 2023. Training years 2015-21
+(IE 2017-21). Each grid's own Vestas curve from the licensed library (sha256
+`689cfee7…`) since 2026-09-25; until then the bundled open library, on its
+100 kW fallback curve. *[Note, 2026-09-25, third: every figure below is from
+the licensed-curve runs, Italy and Portugal are suspended, and the
+Substituted column is 0%; see the third notice of that date.]* *[Note, 2026-09-25: the rows with N greater than 1 now carry the
 joint-fit figures; see the notice of that date. Norway's corrected RMSE, 0.0351,
 is still above its uncorrected 0.0350.]* *[Note, 2026-09-25, later: every row now
 carries the figures after the joint fit's tolerance fix (`26e0b67`); see the
@@ -787,14 +897,34 @@ second notice of that date. Norway's corrected RMSE is 0.0357.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
-| France (FR) | 0.171 | **0.010** | +0.165 | +0.003 | N=10 fixed | per timestep | 100% |
-| Belgium (BE) | 0.340 | **0.025** | +0.337 | -0.010 | N=3 season | per timestep | 100% |
-| Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | per timestep | 100% |
-| Sweden (SE) | 0.088 | **0.028** | +0.084 | -0.025 | N=4 fixed | per timestep | 100% |
-| Norway (NO) | 0.035 | 0.036 | +0.027 | -0.027 | correction does not help | per timestep | 100% |
-| Spain (ES) | 0.028 | **0.026** | +0.013 | +0.011 | N=4 fixed | per timestep | 100% |
-| Italy (IT) | 0.070 | **0.015** | -0.069 | -0.004 | N=3 season | per timestep | 100% |
-| Portugal (PT) | 0.089 | **0.027** | -0.085 | +0.018 | N=1 season | per timestep | 100% |
+| France (FR) | 0.020 | 0.027 | -0.002 | +0.012 | N=10 fixed † | per timestep | 0% |
+| Belgium (BE) | 0.123 | **0.021** | +0.116 | +0.007 | N=3 season | per timestep | 0% |
+| Ireland (IE) | 0.045 | **0.024** | +0.036 | +0.011 | N=1 season | per timestep | 0% |
+| Sweden (SE) | 0.098 | **0.035** | -0.097 | -0.031 | N=4 fixed | per timestep | 0% |
+| Norway (NO) | 0.129 | **0.028** | -0.125 | -0.016 | N=4 fixed † | per timestep | 0% |
+| Spain (ES) | 0.071 | **0.030** | -0.070 | +0.010 | N=4 fixed | per timestep | 0% |
+
+France's corrected RMSE is above its uncorrected one: on its own curve the
+uncorrected series is nearly unbiased (MBE -0.002), and the correction adds
+error.
+
+**† The fit behind this row is degenerate** (bounds as in the turbine-level
+table):
+
+| Region | Config | Max scalar | Implausible scalars | Failed offsets |
+|---|---|---|---|---|
+| France (FR) | N=10 fixed | **4.61** | 1 | 0 |
+| Norway (NO) | N=4 fixed | **3.05** | 1 | 0 |
+
+**Suspended rows, 2026-09-25.** On their grids' own curves most of their
+joint fits are refused, so Italy scores no month and Portugal 3 of 12 (third
+notice of that date). The figures they carried until then, on the 100 kW
+fallback curve:
+
+| Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Was |
+|---|---|---|---|---|---|---|
+| Italy (IT) | 0.070 | 0.015 | -0.069 | -0.004 | N=3 season | in the table, 100% substituted |
+| Portugal (PT) | 0.089 | 0.027 | -0.085 | +0.018 | N=1 season | in the table, 100% substituted |
 
 **No country-level row carries § any more.** Sweden and Norway did, at 0.8%
 and 4.4% of capacity, and the wider download of 2026-09-12 covers both fleets;
@@ -842,7 +972,11 @@ from the per-cluster solver, and may partly be its artefact: matching every
 cluster to one national value ties each offset to its own scalar. It is not
 re-established for the joint fit. See the notice of that date.]* *[Note,
 2026-09-25, later: after the joint fit's tolerance fix NO is 0.0357 against
-0.0350; see the second notice of that date.]*
+0.0350; see the second notice of that date.]* *[Note, 2026-09-25, third: on the
+grids' own curves the mean biases this paragraph names were largely the
+fallback curve's. Uncorrected RMSE is 0.020 for FR, 0.123 for BE and 0.045 for
+IE, and NO's is 0.129, which the correction lowers to 0.028 with a degenerate
+fit. See the third notice of that date.]*
 
 ## What must NOT be overclaimed
 
@@ -871,6 +1005,14 @@ re-established for the joint fit. See the notice of that date.]* *[Note,
   fix, and since 2026-09-19 its factor is refused (`region-south-america.md`).
 - **NO gets worse; NL is excluded** (an ENTSO-E coverage defect makes its CF
   series unusable). Reporting either as a corrected region would be false.
+  *[Note, 2026-09-25: on the grids' own curves Norway's correction lowers RMSE
+  from 0.129 to 0.028 on a degenerate fit (scalar 3.05), and France's raises it
+  from 0.020 to 0.027. Italy and Portugal are suspended. See the third notice
+  of that date.]*
+- **The country-level rows are licensed-lineage.** Since 2026-09-25 they
+  simulate each grid's own Vestas curve, which only the licensed library holds,
+  so a third party cannot reproduce them. Each grid carries one representative
+  turbine per country, not the fleet's machines.
 - **US carries an unscreened curtailment confound** (ERCOT/SPP); its near-zero
   fleet MBE is partly an aggregation artefact.
 - **AU-NEM's "does correction help?" is config-dependent** (it improves the
@@ -888,4 +1030,6 @@ Coordinador (CEN); AR CAMMESA (capacities rebuilt from turbine specs).
 Country-level: ENTSO-E Transparency. All correction operates on ERA5 at 0.25deg.
 Confidential inputs (WindStats DE/ES, Ofgem certificate warehouse, licensed
 curve library) are not redistributed and are not required to reproduce the open
-rows above, which run on the bundled open curve library.
+rows above, which run on the bundled open curve library. *[Note, 2026-09-25: the
+country-level rows now need the licensed curve library; CL and AR are the open
+rows.]*

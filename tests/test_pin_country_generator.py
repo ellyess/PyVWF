@@ -5,7 +5,10 @@ file with three groups that only ``main`` joins: grid-point generation, the
 ENTSO-E observation fetch, and the writing of ``pyvwf_config.py``. Phase 3
 splits it along those lines. Before that, ``main`` is pinned end to end. The
 third group went with the legacy batch path on 2026-09-24, and its file
-with it; the pins of every other file were left as recorded.
+with it; the pins of every other file were left as recorded. On 2026-09-25 the
+FR, BE, NL and NO grid pins were re-recorded when the generator's short keys
+("V80", "V90") became the full keys the grids on disk carry; restoring the
+old key in each new file reproduces its old hash, so nothing else moved.
 
 The ENTSO-E fetch needs an API key and the network, so ``FakeFetcher`` stands
 in for ``ENTSOEWindDataFetcher``: a deterministic hourly series per country or

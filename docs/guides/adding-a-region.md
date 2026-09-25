@@ -89,9 +89,10 @@ For every route:
   metadata, as NZ's `true_model` and US's `uswtdb_model` do. A curated table
   keyed by `ID` also works. Without it, the curve-match audit reports the
   region as unverifiable, as it does for BR.
-- **A model key missing from `power_curves.csv` does not stop a run.** The
-  unit is simulated on the fallback curve, the first column of
-  `power_curves.csv`. `curve_resolution.csv` records the unit as substituted.
+- **A model key missing from `power_curves.csv` does not stop a
+  turbine-level run.** The unit is simulated on the fallback curve, the first
+  column of `power_curves.csv`. `curve_resolution.csv` records the unit as
+  substituted. A country-level run refuses it instead.
 - **Read the substituted share (`substituted_capacity_share`) before any
   result.** A share above zero means
   some model keys were missing. In that case, list the missing keys before
