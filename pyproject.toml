@@ -24,7 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
-# Single source of truth: vwf/_version.py, re-exported as vwf.__version__
+# Single source of truth: pyvwf/_version.py, re-exported as pyvwf.__version__
 # (see tool.setuptools.dynamic below).
 # tests/test_packaging.py asserts it stays in step with CITATION.cff.
 dynamic = ["version"]
@@ -42,7 +42,7 @@ dependencies = [
     "scipy>=1.10.0",
     "scikit-learn>=1.3.0",
     # KMeans runs on one thread for a partition that does not depend on the
-    # machine (vwf.clustering); scikit-learn installs it, the import is direct.
+    # machine (pyvwf.clustering); scikit-learn installs it, the import is direct.
     "threadpoolctl>=3.1.0",
 
     # Geospatial
@@ -59,14 +59,14 @@ dependencies = [
     # Performance. bottleneck also backs xarray's .bfill(), which prep_era5
     # uses to fill the surface-roughness field, so it is a hard requirement.
     "bottleneck>=1.3.0",
-    # vwf.harness.regions reads region configs with tomllib, in the standard
+    # pyvwf.harness.regions reads region configs with tomllib, in the standard
     # library from 3.11; 3.10 needs the backport at runtime, not only in tests.
     "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
-# Data acquisition only: vwf.datasets.fetch_entsoe_capacity_factors (entsoe-py,
-# pyarrow for parquet output) and vwf.datasets.process_dk_raw_data (openpyxl for
+# Data acquisition only: pyvwf.datasets.fetch_entsoe_capacity_factors (entsoe-py,
+# pyarrow for parquet output) and pyvwf.datasets.process_dk_raw_data (openpyxl for
 # the .xlsx fleet registry). Nothing in the simulation path imports these.
 data = [
     "entsoe-py>=0.6.0",
@@ -76,7 +76,7 @@ data = [
     "cdsapi>=0.7.0",
 ]
 
-# The physics-informed correction (vwf.pinn) only. Kept out of the base install
+# The physics-informed correction (pyvwf.pinn) only. Kept out of the base install
 # so that running the affine pipeline does not pull a deep-learning stack, and
 # out of CI so the matrix stays light; tests/test_pinn_physics.py skips itself
 # when torch is absent.
@@ -84,7 +84,7 @@ pinn = [
     "torch>=2.0",
 ]
 
-# The gridded-correction extension (vwf.extensions.grid) only: kriging needs
+# The gridded-correction extension (pyvwf.extensions.grid) only: kriging needs
 # pykrige, and the terrain feature extraction reads GeoTIFFs through rasterio.
 # Kept out of the base install so the affine pipeline does not pull them, and
 # out of CI so the matrix stays light; the tests skip themselves when absent.
@@ -133,21 +133,21 @@ Homepage = "https://github.com/ellyess/PyVWF"
 Repository = "https://github.com/ellyess/PyVWF"
 
 [project.scripts]
-pyvwf-validate = "vwf.cli.validate:main"
+pyvwf-validate = "pyvwf.cli.validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.dynamic]
-version = {attr = "vwf._version.__version__"}
+version = {attr = "pyvwf._version.__version__"}
 
 [tool.setuptools.package-data]
 # The previous glob ("*.csv") matched nothing: there are no data files directly
-# under src/vwf/. The synthetic reference tables live in vwf/resources/ and are
+# under src/pyvwf/. The synthetic reference tables live in pyvwf/resources/ and are
 # bundled so an installed PyVWF runs outside a repository checkout. The region
 # shapes (13 MB) are deliberately not shipped.
-vwf = ["py.typed"]
-"vwf.resources" = ["*.csv"]
+pyvwf = ["py.typed"]
+"pyvwf.resources" = ["*.csv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -176,16 +176,16 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["vwf"]
+source = ["pyvwf"]
 omit = [
     # Data-acquisition CLIs: they talk to the ENTSO-E API (needs a key) or parse
     # raw registry spreadsheets that are not redistributable, so they cannot run
     # in CI. Measuring them would only dilute the number the gate below defends.
     # They are excluded from mypy and the API reference for the same reason.
-    "*/vwf/datasets/fetch_entsoe_capacity_factors.py",
-    "*/vwf/datasets/generate_country_level_training_data.py",
-    "*/vwf/datasets/process_dk_raw_data.py",
-    "*/vwf/datasets/combine_era5_files.py",
+    "*/pyvwf/datasets/fetch_entsoe_capacity_factors.py",
+    "*/pyvwf/datasets/generate_country_level_training_data.py",
+    "*/pyvwf/datasets/process_dk_raw_data.py",
+    "*/pyvwf/datasets/combine_era5_files.py",
 ]
 
 [tool.coverage.report]
@@ -218,7 +218,7 @@ ignore = [
 
 [tool.deptry]
 # Checks src/ against the declared dependencies; CI runs `deptry src`.
-known_first_party = ["vwf"]
+known_first_party = ["pyvwf"]
 pep621_dev_dependency_groups = ["dev", "docs"]
 
 [tool.deptry.package_module_name_map]
@@ -245,7 +245,7 @@ ignore_names = ["pos"]
 # No python_version pin: numpy's bundled stubs use PEP 695 syntax that mypy
 # only parses when targeting 3.12+, so mypy runs under the CI lint job's
 # interpreter (3.12) rather than each matrix Python.
-files = ["src/vwf"]
+files = ["src/pyvwf"]
 # The scientific stack ships few usable stubs (xarray, geopandas, sklearn,
 # netCDF4); without this every import is an error and the signal is lost.
 ignore_missing_imports = true
@@ -262,5 +262,5 @@ no_implicit_optional = true
 # Data-acquisition scripts: procedural, CLI-shaped, and exercised against live
 # APIs rather than the test suite. Not worth typing yet; revisit if they grow
 # into a supported surface.
-module = "vwf.datasets.*"
+module = "pyvwf.datasets.*"
 ignore_errors = true

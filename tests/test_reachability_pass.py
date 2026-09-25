@@ -16,8 +16,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf import correction
-from vwf.wind import interpolate_wind, train_simulate_wind_from_ws
+from pyvwf import correction
+from pyvwf.wind import interpolate_wind, train_simulate_wind_from_ws
 
 ROOT = Path(__file__).resolve().parents[1]
 

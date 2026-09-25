@@ -17,7 +17,7 @@ discrepancies to explain.
 ## Method
 
 Reference-generated-fresh-from-main, diffed at frame level. Metric numbers are
-NOT the gate: legacy `vwf.metrics` and harness `vwf.harness.skill` compute
+NOT the gate: legacy `pyvwf.metrics` and harness `pyvwf.harness.skill` compute
 skill with different (intentional) formulas, so the gate sits upstream on the
 `factors_*.csv` and `cor_cf_*.csv` frames. If those match, the refactor
 preserved the method.
@@ -25,7 +25,7 @@ preserved the method.
 - **Reference (the gate):** a git worktree of `main` at `53c4330` runs the
   legacy `PyVWF.train(dask_n_workers=0)` + `simulate_cf` path.
 - **Harness:** the branch runs the same config through
-  `vwf.harness.driver` (`run_train` + `run_evaluate`).
+  `pyvwf.harness.driver` (`run_train` + `run_evaluate`).
 - Both are driven by `PYVWF_INPUT` pointed at a staging directory holding the
   **real** curve library (`power_curves.real.csv` / `models.real.csv` copied to
   the working names) and symlinks to the real data. Real curves and data never

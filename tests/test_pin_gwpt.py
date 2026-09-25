@@ -5,12 +5,12 @@ places: ``scripts/process/cammesa_ar.py`` and ``cen_cl.py`` (each with its own
 ``norm`` and country filter), ``scripts/process/windstats.py`` (an inline
 filter), and ``scripts/region_tools/weight_country_grid_points.py``
 (``load_gwpt`` and ``fleet_for``, which ``repair_country_capacity.py`` imports
-through ``sys.path``). ``vwf.datasets.windstats._norm`` and
-``vwf.datasets.aemo_au.normalise_farm_name`` normalise names too. These are
+through ``sys.path``). ``pyvwf.datasets.windstats._norm`` and
+``pyvwf.datasets.aemo_au.normalise_farm_name`` normalise names too. These are
 not one function: the filters differ in whether they strip the country string,
 and the normalisers drop different words. Promotion must keep each variant, so
-each was pinned as it behaved before the move into ``vwf.datasets.gwpt``,
-``vwf.datasets.cammesa_ar`` and ``vwf.datasets.cen_cl``. The recorded
+each was pinned as it behaved before the move into ``pyvwf.datasets.gwpt``,
+``pyvwf.datasets.cammesa_ar`` and ``pyvwf.datasets.cen_cl``. The recorded
 fixtures and hashes did not change with the move; the calls did.
 
 Two layers:
@@ -42,11 +42,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from vwf.datasets import gwpt
-from vwf.datasets.aemo_au import normalise_farm_name
-from vwf.datasets.cammesa_ar import ar_plant_key
-from vwf.datasets.cen_cl import cl_plant_key
-from vwf.datasets.windstats import _norm as windstats_norm
+from pyvwf.datasets import gwpt
+from pyvwf.datasets.aemo_au import normalise_farm_name
+from pyvwf.datasets.cammesa_ar import ar_plant_key
+from pyvwf.datasets.cen_cl import cl_plant_key
+from pyvwf.datasets.windstats import _norm as windstats_norm
 
 ROOT = Path(__file__).resolve().parents[1]
 CURATION = ROOT / "configs" / "curation"

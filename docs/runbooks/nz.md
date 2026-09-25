@@ -28,8 +28,8 @@ Europe has, apart from Canada.
   221.4 MW (full).
 - `configs/curation/nz_mask_windows.csv`: commissioning months to mask at load,
   for Waipipi, Turitea (twice), Harapaki, and Kaiwera Downs 1 and 2.
-- The adapter (`vwf/sources/emi_nz.py`), the transforms
-  (`vwf/datasets/emi_nz.py`) and their tests. Must-distinguish tests pin the
+- The adapter (`pyvwf/sources/emi_nz.py`), the transforms
+  (`pyvwf/datasets/emi_nz.py`) and their tests. Must-distinguish tests pin the
   trading-period mapping on daylight-saving (DST) days.
 
 Three known exclusions are documented:

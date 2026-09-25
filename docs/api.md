@@ -1,7 +1,7 @@
 # API reference
 
-Everything below is importable from the `vwf` package. The data-acquisition
-modules under `vwf.datasets` are command-line scripts that depend on the
+Everything below is importable from the `pyvwf` package. The data-acquisition
+modules under `pyvwf.datasets` are command-line scripts that depend on the
 optional `data` extra (and, for ENTSO-E, an API key); they are not part of the
 supported programmatic API and are documented in
 {doc}`guides/data-sources` instead.
@@ -13,31 +13,31 @@ config. The commands are in {doc}`guides/training`, and the design in
 {doc}`design/harness`.
 
 ```{eval-rst}
-.. automodule:: vwf.harness.driver
+.. automodule:: pyvwf.harness.driver
    :members: run_train, run_evaluate, run_transfer, resolve_source,
              load_obs_and_fleet, era5_dir, tidy_eval_frame, country_pairs,
              country_skill, error_metrics, score_on_common_rows, SCOPE_KEYS
 
-.. automodule:: vwf.harness.regions
+.. automodule:: pyvwf.harness.regions
    :members: RegionSpec, load_region, load_region_by_code, region_stem,
              season_of_month
 
-.. automodule:: vwf.harness.corrections
+.. automodule:: pyvwf.harness.corrections
    :members:
 
-.. automodule:: vwf.harness.skill
+.. automodule:: pyvwf.harness.skill
    :members:
 
-.. automodule:: vwf.provenance
+.. automodule:: pyvwf.provenance
    :members:
 
-.. automodule:: vwf.harness.bootstrap
+.. automodule:: pyvwf.harness.bootstrap
    :members:
 
-.. automodule:: vwf.harness.export
+.. automodule:: pyvwf.harness.export
    :members:
 
-.. automodule:: vwf.harness.hindcast
+.. automodule:: pyvwf.harness.hindcast
    :members:
 ```
 
@@ -48,46 +48,46 @@ data source means writing an adapter rather than editing the core pipeline.
 See {doc}`guides/adding-an-adapter`.
 
 ```{eval-rst}
-.. automodule:: vwf.sources.base
+.. automodule:: pyvwf.sources.base
    :members:
 
-.. automodule:: vwf.sources.registry
+.. automodule:: pyvwf.sources.registry
    :members: register, resolve, get_source, available_sources
 
-.. automodule:: vwf.sources.european
+.. automodule:: pyvwf.sources.european
    :members:
 
-.. automodule:: vwf.sources.aemo
+.. automodule:: pyvwf.sources.aemo
    :members:
 
-.. automodule:: vwf.sources.eia_us
+.. automodule:: pyvwf.sources.eia_us
    :members:
 
-.. automodule:: vwf.sources.ons_br
+.. automodule:: pyvwf.sources.ons_br
    :members:
 
-.. automodule:: vwf.sources.emi_nz
+.. automodule:: pyvwf.sources.emi_nz
    :members:
 
-.. automodule:: vwf.sources.cen_cl
+.. automodule:: pyvwf.sources.cen_cl
    :members:
 
-.. automodule:: vwf.sources.cammesa_ar
+.. automodule:: pyvwf.sources.cammesa_ar
    :members:
 
-.. automodule:: vwf.sources.windstats
+.. automodule:: pyvwf.sources.windstats
    :members:
 
-.. automodule:: vwf.sources.client_csv
+.. automodule:: pyvwf.sources.client_csv
    :members:
 
-.. automodule:: vwf.sources.entsoe_files
+.. automodule:: pyvwf.sources.entsoe_files
    :members:
 
-.. automodule:: vwf.sources.entsoe_zonal
+.. automodule:: pyvwf.sources.entsoe_zonal
    :members:
 
-.. automodule:: vwf.sources.in_memory
+.. automodule:: pyvwf.sources.in_memory
    :members:
 ```
 
@@ -97,11 +97,11 @@ Assembles the training and validation sets: observations, turbine metadata,
 reanalysis, and power curves.
 
 ```{eval-rst}
-.. automodule:: vwf.data
+.. automodule:: pyvwf.data
    :members: train_set, val_set, val_obs_and_fleet, cluster_train_set, prep_country,
              clean_obs_data, interp_nans
 
-.. automodule:: vwf.curves
+.. automodule:: pyvwf.curves
    :members: load_power_curves, add_models
 ```
 
@@ -111,7 +111,7 @@ Hub-height extrapolation, power-curve conversion, and application of the
 learned wind-speed correction.
 
 ```{eval-rst}
-.. automodule:: vwf.wind
+.. automodule:: pyvwf.wind
    :members: interpolate_wind, simulate_wind, correct_wind_speed,
              train_simulate_wind, train_simulate_wind_from_ws, fast_simulate_cf,
              prepare_offset_arrays, aggregate_turbines_to_grid
@@ -124,7 +124,7 @@ observed to simulated capacity factor; the offset is fitted numerically so the
 corrected simulation matches the observations.
 
 ```{eval-rst}
-.. automodule:: vwf.correction
+.. automodule:: pyvwf.correction
    :members: calculate_scalar, find_offset, find_offsets_country_level
 ```
 
@@ -134,10 +134,10 @@ Groups turbines spatially, so a correction can be learned per cluster rather
 than once for a whole country.
 
 ```{eval-rst}
-.. automodule:: vwf.clustering
+.. automodule:: pyvwf.clustering
    :members: cluster_turbines, get_country_shape, load_region_shapes
 
-.. automodule:: vwf.sampling
+.. automodule:: pyvwf.sampling
    :members: cluster_with_geometries, create_sampling_points, add_turbine_metadata
 ```
 
@@ -147,7 +147,7 @@ Error metrics between simulated and observed capacity factors. All aggregations
 are capacity-weighted.
 
 ```{eval-rst}
-.. automodule:: vwf.metrics
+.. automodule:: pyvwf.metrics
    :members: calculate_error, overall_error, prepare_monthly_data,
              weighted_average_vectorized
 ```
@@ -159,23 +159,23 @@ distribution, what the correction learned, and how error responds to the two
 hyperparameters.
 
 ```{eval-rst}
-.. automodule:: vwf.viz.distribution
+.. automodule:: pyvwf.viz.distribution
    :members: Results, load_results, plot_cf_distribution, plot_qq
 
-.. automodule:: vwf.viz.factors
+.. automodule:: pyvwf.viz.factors
    :members: plot_correction_factor_map, plot_factor_joint
 
-.. automodule:: vwf.viz.evaluation
+.. automodule:: pyvwf.viz.evaluation
    :members: plot_error_vs_clusters, plot_sim_vs_obs
 ```
 
 ## Datasets and loaders
 
 ```{eval-rst}
-.. automodule:: vwf.datasets.era5
+.. automodule:: pyvwf.datasets.era5
    :members: prep_era5, log_roughness_from_shear, Z0_BOUNDS
 
-.. automodule:: vwf.loaders.turbine_loaders
+.. automodule:: pyvwf.loaders.turbine_loaders
    :members: load_turbine_metadata, load_turbine_observations
 
 ```
@@ -183,12 +183,12 @@ hyperparameters.
 ## Configuration and utilities
 
 ```{eval-rst}
-.. automodule:: vwf.config
+.. automodule:: pyvwf.config
    :members:
 
-.. automodule:: vwf.time_utils
+.. automodule:: pyvwf.time_utils
    :members:
 
-.. automodule:: vwf.utils
+.. automodule:: pyvwf.utils
    :members:
 ```

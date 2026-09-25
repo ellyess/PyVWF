@@ -8,7 +8,7 @@ data source.
 A new turbine-level region touches about fifteen files, in a fixed order. Each
 region carries its own acquisition, processing, tests, documentation and
 provenance. A new country-level region from ENTSO-E has a shorter path. It
-edits up to three tables in `src/vwf/datasets/`; see
+edits up to three tables in `src/pyvwf/datasets/`; see
 [A country-level region](#a-country-level-region).
 
 ## A turbine-level region, file by file
@@ -28,10 +28,10 @@ copy. Chile (`cen-cl`) is the cross-check.
 | 3 | `scripts/fetch/<source>.py` | Downloads raw data into `<input-root>/raw/<source>/`. It honours `PYVWF_INPUT`. The user runs it, with their own credentials where needed. |
 | 4 | (no new file) `scripts/fetch/era5.py --region <stem>` | Fetches ERA5 for the config's box and years into `<input-root>/era5/<file_tag>/`. A large box is then reduced with `scripts/era5/combine.py --region <stem>`. |
 | 5 | `configs/curation/<stem>_*.csv` | Curated tables: farm coordinates, turbine specifications, capacity stages, months to mask. Each row carries its source in a `source_url` column. Check each source's terms before committing cells transcribed from it. |
-| 6 | `src/vwf/datasets/<source>.py` | Pure frame-to-frame transforms: time conventions, monthly capacity factor, masks. They do no file I/O, so they are testable without the raw data. |
+| 6 | `src/pyvwf/datasets/<source>.py` | Pure frame-to-frame transforms: time conventions, monthly capacity factor, masks. They do no file I/O, so they are testable without the raw data. |
 | 7 | `scripts/process/<source>.py` | The I/O wrapper. It writes `<stem>_md.csv`, `<stem>_obs.csv`, any mask and a `join_report.md` to `input/observations/turbine/<CODE>/`. It also assigns each unit a model key; see [Curve assignment](#curve-assignment). |
-| 8 | `src/vwf/sources/<source>.py` | The adapter, decorated with `@register`. See [`adding-an-adapter.md`](adding-an-adapter.md). |
-| 9 | `src/vwf/sources/__init__.py` | One import line, so the registration runs. |
+| 8 | `src/pyvwf/sources/<source>.py` | The adapter, decorated with `@register`. See [`adding-an-adapter.md`](adding-an-adapter.md). |
+| 9 | `src/pyvwf/sources/__init__.py` | One import line, so the registration runs. |
 | 10 | `tests/test_<source>_processing.py` | Synthetic tests of the transforms, and of the adapter's resolve and load. NZ's and Chile's are the models. |
 | 11 | `tests/test_harness_regions.py` | Raise the shipped-config count in `test_all_shipped_configs_load`. Pin the region's `obs_unit` and `obs_level` in `test_shipped_granularity_classification`. |
 | 12 | The [built-in adapters](adding-an-adapter.md#built-in-adapters) table | One row. |
@@ -71,8 +71,8 @@ unit the same curve.
 
 | Route | Where | Used by |
 |---|---|---|
-| `vwf.datasets.eia_us.assign_curves_from_library` | processing time | US, NZ, and CL and AR through `scripts/region_tools/apply_turbine_specs.py` |
-| `vwf.curves.add_models` | load time, inside the adapter; processing time through `scripts/region_tools/assign_au_curves.py` | DE, DK, UK (`european-turbine`), `client-csv-turbine`, and AU-NEM |
+| `pyvwf.datasets.eia_us.assign_curves_from_library` | processing time | US, NZ, and CL and AR through `scripts/region_tools/apply_turbine_specs.py` |
+| `pyvwf.curves.add_models` | load time, inside the adapter; processing time through `scripts/region_tools/assign_au_curves.py` | DE, DK, UK (`european-turbine`), `client-csv-turbine`, and AU-NEM |
 | One default curve for every unit | processing time | BR |
 
 The first route keeps onshore models rated 0.5 to 2 times the unit's
@@ -108,9 +108,9 @@ path. Their inputs are built by one module, not by `scripts/fetch/` and
 | # | File or command | What it does |
 |---|---|---|
 | 1 | [`data-sources.md`](data-sources.md) row | The data source, its access route and its licence. ENTSO-E is open. |
-| 2 | Three tables in `src/vwf/datasets/` | For a country outside the nine: `country_grid.COUNTRY_CONFIGS` (outline box, grid resolution, representative turbine, cluster count), `gwpt.COUNTRY_NAME` (its GWPT country name, for step 5) and, if absent, `fetch_entsoe_capacity_factors.COUNTRY_CODES` (its ENTSO-E area code). |
+| 2 | Three tables in `src/pyvwf/datasets/` | For a country outside the nine: `country_grid.COUNTRY_CONFIGS` (outline box, grid resolution, representative turbine, cluster count), `gwpt.COUNTRY_NAME` (its GWPT country name, for step 5) and, if absent, `fetch_entsoe_capacity_factors.COUNTRY_CODES` (its ENTSO-E area code). |
 | 3 | `configs/regions/<stem>.toml` | `source = "entsoe-country"`, `obs_level = "country"`, `obs_unit = "country"`, the years, the reanalysis box and the correction settings. |
-| 4 | `python -m vwf.datasets.generate_country_level_training_data --countries <CODE>` | Writes the grid points and the ENTSO-E observations under `<input-root>/observations/country/`. The fetch needs the `data` extra. Pass `ENTSOE_API_KEY` in the environment for this one command. |
+| 4 | `python -m pyvwf.datasets.generate_country_level_training_data --countries <CODE>` | Writes the grid points and the ENTSO-E observations under `<input-root>/observations/country/`. The fetch needs the `data` extra. Pass `ENTSOE_API_KEY` in the environment for this one command. |
 | 5 | `scripts/region_tools/weight_country_grid_points.py` | Replaces the uniform synthetic capacity with GWPT capacity. Add `--per-year <start> <end>`, an inclusive pair, so each year sees its own fleet. Add `--zone-aware` beside it for a region with bidding zones; it needs `--per-year`. |
 | 6 | `scripts/analysis/audit_country_observations.py` | Checks the observed series. Run it before you trust any fit. |
 | 7 | `tests/test_harness_regions.py` | Raise the shipped-config count. Pin the region's `obs_level`. |

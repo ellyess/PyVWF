@@ -17,7 +17,7 @@ Results *derived* from confidential inputs are shareable; the inputs are not.
 
 ## Input layout
 
-Paths are defined centrally in [`src/vwf/config.py`](../../src/vwf/config.py)
+Paths are defined centrally in [`src/pyvwf/config.py`](../../src/pyvwf/config.py)
 (`PyVWFPaths`); `PYVWF_INPUT` redirects the root.
 
 | Data | Format | Location |
@@ -34,7 +34,7 @@ Paths are defined centrally in [`src/vwf/config.py`](../../src/vwf/config.py)
 ## 1. Data sources by region
 
 Each region declares its data source in `configs/regions/<code>.toml`; the
-harness resolves it to an adapter in `src/vwf/sources/`. Every data source is
+harness resolves it to an adapter in `src/pyvwf/sources/`. Every data source is
 reduced to a **monthly capacity factor** before correction.
 
 | Region | Code | Adapter | Source | Lic. | Fetch → Process | Runbook |
@@ -134,12 +134,12 @@ before 2026-09-13 read `era5/EU`. It holds one hourly file per year, 2015 to
 2023, named `era5_combined_<YYYY>_EU.nc`. Each file merges the 10 m and 100 m
 winds and carries `z0`, one static field per year. That field is the annual
 mean of the roughness derived from the 10 m to 100 m shear, so a run on it
-applies the annual-mean treatment. `src/vwf/datasets/combine_era5_files.py`
+applies the annual-mean treatment. `src/pyvwf/datasets/combine_era5_files.py`
 built the archive from the per-year `era5_u10_v10_<YYYY>_months01-12_EU.nc` and
 `era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads:
 
 ```bash
-python src/vwf/datasets/combine_era5_files.py --all-years --add-roughness \
+python src/pyvwf/datasets/combine_era5_files.py --all-years --add-roughness \
     --roughness-source pyvwf
 ```
 
@@ -186,7 +186,7 @@ for clustering (committed).
 ## 4. Country-level (ENTSO-E) layout
 
 The nine ENTSO-E regions use grid-sampled ERA5 against a national observed
-series. `python -m vwf.datasets.generate_country_level_training_data` fetches
+series. `python -m pyvwf.datasets.generate_country_level_training_data` fetches
 ENTSO-E generation and builds the grid points; the harness then trains and
 evaluates like any region. The steps, including the capacity weighting and the
 observation audit, are in

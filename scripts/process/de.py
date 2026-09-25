@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-from vwf.cli.common import add_input_path
+from pyvwf.cli.common import add_input_path
 
 FILES = {
     "DE_md.csv": {"V1", "Manufacturer", "kW", "Rotor..m.", "Tower..m."},

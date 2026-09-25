@@ -5,7 +5,7 @@ sampling grid 1 and 8 threads gave one labelling while 2 and 4 gave two others:
 a near-tie falls the other way when the reduction order changes. Until
 2026-09-24 a side effect of importing the removed legacy module set every
 process to one thread, which is what hid it; CI's four-core runners exposed it
-once that module went. vwf.clustering now runs every KMeans call on one thread,
+once that module went. pyvwf.clustering now runs every KMeans call on one thread,
 so the partition is the same whatever the caller's thread settings.
 """
 
@@ -14,8 +14,8 @@ from __future__ import annotations
 import pytest
 from threadpoolctl import threadpool_limits
 
-from vwf.sampling import cluster_with_geometries, create_sampling_points
-from vwf.datasets.country_grid import COUNTRY_CONFIGS
+from pyvwf.sampling import cluster_with_geometries, create_sampling_points
+from pyvwf.datasets.country_grid import COUNTRY_CONFIGS
 
 
 def nl_labels():

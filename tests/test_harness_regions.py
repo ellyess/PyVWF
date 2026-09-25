@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from vwf.harness.regions import RegionSpec, load_region, season_of_month
+from pyvwf.harness.regions import RegionSpec, load_region, season_of_month
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "configs" / "regions"
@@ -209,7 +209,7 @@ def test_hemisphere_pin_au_winter_is_jja():
 
 
 def test_load_region_by_code_resolves_the_stem_and_checks_the_code(tmp_path):
-    from vwf.harness.regions import load_region_by_code, region_stem
+    from pyvwf.harness.regions import load_region_by_code, region_stem
 
     assert region_stem("AU-NEM") == "au_nem"
     assert load_region_by_code("AU-NEM").code == "AU-NEM"
@@ -226,7 +226,7 @@ def test_load_region_by_code_resolves_the_stem_and_checks_the_code(tmp_path):
 
 def test_every_maintained_config_is_named_for_its_code():
     """load_region_by_code finds a config by its file name, so the name is a contract."""
-    from vwf.harness.regions import load_region_by_code, region_stem
+    from pyvwf.harness.regions import load_region_by_code, region_stem
 
     for path in sorted(CONFIG_DIR.glob("*.toml")):
         spec = load_region(path)

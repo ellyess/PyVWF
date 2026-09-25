@@ -28,7 +28,7 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
   still sets `obs_level = "turbine"`, and records the unit in `obs_unit`. The
   shipped configs do this, and `tests/test_harness_regions.py` pins it.
 - **Out of scope:** country-level regions. They are built by
-  `vwf.datasets.generate_country_level_training_data`, not by this sequence. If
+  `pyvwf.datasets.generate_country_level_training_data`, not by this sequence. If
   `$0` is one, stop and say so.
 
 ## Before starting
@@ -36,12 +36,12 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 - Read `docs/guides/adding-a-region.md`. Its table lists the files
   this region touches, in order. Do not keep a separate list.
 - The template is New Zealand: `scripts/fetch/emi_nz.py`,
-  `scripts/process/emi_nz.py`, `src/vwf/datasets/emi_nz.py`,
-  `src/vwf/sources/emi_nz.py`, `configs/regions/nz.toml`,
+  `scripts/process/emi_nz.py`, `src/pyvwf/datasets/emi_nz.py`,
+  `src/pyvwf/sources/emi_nz.py`, `configs/regions/nz.toml`,
   `tests/test_emi_nz_processing.py` and `docs/runbooks/nz.md`. Chile (`cen-cl`)
   is the cross-check.
 - NZ's processing step imports `assign_curves_from_library` from
-  `vwf.datasets.eia_us`. Reuse it the same way. Do not move or refactor it.
+  `pyvwf.datasets.eia_us`. Reuse it the same way. Do not move or refactor it.
 - Work on a branch. Never push, merge, tag or release; those are the
   maintainer's. Show the diff and wait for approval before every commit.
 
@@ -74,7 +74,7 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 - In `tests/test_harness_regions.py`, raise the count in
   `test_all_shipped_configs_load`. Pin `obs_unit` and `obs_level` in
   `test_shipped_granularity_classification`.
-- Check: `vwf.harness.load_region("configs/regions/$0.toml")` succeeds.
+- Check: `pyvwf.harness.load_region("configs/regions/$0.toml")` succeeds.
   `tests/test_harness_regions.py` passes.
 - Stop: the human reviews the seasons, years, box and `cluster_list`. The
   largest usable cluster count is the number of units that reach the clusterer
@@ -96,7 +96,7 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 
 - Write the curated tables, `configs/curation/$0_*.csv`, each with its per-row
   source column.
-- Write `src/vwf/datasets/$1.py`: pure frame-to-frame transforms, no file I/O.
+- Write `src/pyvwf/datasets/$1.py`: pure frame-to-frame transforms, no file I/O.
 - Write `scripts/process/$1.py`. It writes `$0_md.csv`, `$0_obs.csv` and a
   `join_report.md`.
 - Choose the curve-assignment route from the guide's "Curve assignment"
@@ -119,11 +119,11 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 
 ### 4. Adapter
 
-- Write `src/vwf/sources/$1.py` with `@register`, and its import line in
-  `src/vwf/sources/__init__.py`.
+- Write `src/pyvwf/sources/$1.py` with `@register`, and its import line in
+  `src/pyvwf/sources/__init__.py`.
 - Write the adapter tests, and a row in the built-in adapters table of
   `docs/guides/adding-an-adapter.md`.
-- Check: `vwf.sources.get_source("<registry-name>", "<CODE>")` resolves. The
+- Check: `pyvwf.sources.get_source("<registry-name>", "<CODE>")` resolves. The
   tests pass. `pre-commit run --all-files` and `lint-imports` pass.
 - Stop: code review.
 

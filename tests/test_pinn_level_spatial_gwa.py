@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.pinn.runs import level_spatial
+from pyvwf.pinn.runs import level_spatial
 
 
 def test_level_and_spatial_parts_match_a_hand_computation():
@@ -77,7 +77,7 @@ def _raster(path, values, west=10.0, north=50.0, res=0.01, nodata=-9999.0):
 
 
 def test_the_atlas_mean_uses_only_cells_within_the_radius(tmp_path):
-    from vwf.pinn.gwa import KM_PER_DEG, atlas_means
+    from pyvwf.pinn.gwa import KM_PER_DEG, atlas_means
 
     # 9 x 9 cells of 0.01 deg; the centre cell holds 9 and every other cell 3,
     # except one nodata cell next to the centre.
@@ -100,7 +100,7 @@ def test_the_atlas_mean_uses_only_cells_within_the_radius(tmp_path):
 
 
 def test_the_ratio_is_clipped_and_a_point_off_the_atlas_is_neutral(tmp_path):
-    from vwf.pinn.gwa import gwa_ratio
+    from pyvwf.pinn.gwa import gwa_ratio
 
     path = _raster(tmp_path / "b.tif", np.full((5, 5), 8.0))
     table = gwa_ratio(

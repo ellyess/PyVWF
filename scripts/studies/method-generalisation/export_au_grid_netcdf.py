@@ -36,9 +36,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import vwf
-from vwf.datasets.era5 import prep_era5
-from vwf.time_utils import add_time_resolution_columns
+import pyvwf
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.time_utils import add_time_resolution_columns
 
 SH_SEASONS = {"summer": [12, 1, 2], "autumn": [3, 4, 5], "winter": [6, 7, 8], "spring": [9, 10, 11]}
 BBOX = (129.0, 154.0, -44.0, -10.0)
@@ -59,7 +59,7 @@ def main() -> None:
     fleet = pd.read_csv(train_run / "train_turb_info_5.csv")
     centroids = fleet.groupby("cluster")[["lon", "lat"]].mean()
 
-    from vwf.config import PyVWFPaths
+    from pyvwf.config import PyVWFPaths
 
     era5_dir = Path(args.era5_dir) if args.era5_dir else PyVWFPaths.INPUT_ROOT / "era5" / "AU_daily"
     ds = prep_era5("AU-NEM", calc_z0=True, bbox=BBOX, era5_dir=era5_dir)
@@ -167,7 +167,7 @@ def main() -> None:
             "(fitted parameters only; no curve content included)",
             "cf_layer_curve": f"{IEC2} (open library; BSD-3-derived, NatLabRockies/turbine-models)",
             "seasons_definition": "SH explicit months: winter=JJA, summer=DJF",
-            "pyvwf_version": vwf.__version__,
+            "pyvwf_version": pyvwf.__version__,
             "git_commit": _git(["git", "rev-parse", "HEAD"]),
             "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "attribution_era5": "Contains modified Copernicus Climate Change Service "

@@ -37,7 +37,7 @@ class Suite(NamedTuple):
     requires: tuple[str, ...] = ()
 
 
-# The realdata paths are also named in src/vwf/AGENTS.md and CONTRIBUTING.md;
+# The realdata paths are also named in src/pyvwf/AGENTS.md and CONTRIBUTING.md;
 # change them together. The pinn suite requires its extra outright, because
 # its tests skip without it and a run of skips would stamp nothing tested.
 SUITES = {
@@ -47,29 +47,29 @@ SUITES = {
         # this was harness/, metrics.py, correction.py and data.py only, so a
         # change to wind.py that moved two published rows needed no stamp.
         covered=(
-            "src/vwf/harness/",
-            "src/vwf/sources/",
-            "src/vwf/datasets/",
-            "src/vwf/extensions/",
-            "src/vwf/loaders/",
-            "src/vwf/metrics.py",
-            "src/vwf/correction.py",
-            "src/vwf/data.py",
-            "src/vwf/wind.py",
-            "src/vwf/curves.py",
-            "src/vwf/clustering.py",
-            "src/vwf/country_level.py",
-            "src/vwf/sampling.py",
-            "src/vwf/config.py",
-            "src/vwf/time_utils.py",
-            "src/vwf/geospatial.py",
-            "src/vwf/utils.py",
-            "src/vwf/provenance.py",
+            "src/pyvwf/harness/",
+            "src/pyvwf/sources/",
+            "src/pyvwf/datasets/",
+            "src/pyvwf/extensions/",
+            "src/pyvwf/loaders/",
+            "src/pyvwf/metrics.py",
+            "src/pyvwf/correction.py",
+            "src/pyvwf/data.py",
+            "src/pyvwf/wind.py",
+            "src/pyvwf/curves.py",
+            "src/pyvwf/clustering.py",
+            "src/pyvwf/country_level.py",
+            "src/pyvwf/sampling.py",
+            "src/pyvwf/config.py",
+            "src/pyvwf/time_utils.py",
+            "src/pyvwf/geospatial.py",
+            "src/pyvwf/utils.py",
+            "src/pyvwf/provenance.py",
         ),
         pytest_args=("-m", "realdata"),
     ),
     "pinn": Suite(
-        covered=("src/vwf/pinn/",),
+        covered=("src/pyvwf/pinn/",),
         pytest_args=(
             "tests/test_pinn_physics.py",
             "tests/test_pinn_era5_record.py",

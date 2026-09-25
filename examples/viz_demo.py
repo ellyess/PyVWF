@@ -1,4 +1,4 @@
-"""Render the vwf.viz diagnostics on synthetic data.
+"""Render the pyvwf.viz diagnostics on synthetic data.
 
 Builds a reanalysis-like over-dispersed wind series, applies a mean-matching
 linear correction (the PyVWF default), converts to capacity factor with a
@@ -26,7 +26,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from vwf.viz import (
+from pyvwf.viz import (
     plot_cf_distribution,
     plot_correction_factor_map,
     plot_error_vs_clusters,

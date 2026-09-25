@@ -37,14 +37,14 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from vwf.config import PyVWFPaths  # noqa: E402
-from vwf.datasets.gwpt import (  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
+from pyvwf.datasets.gwpt import (  # noqa: E402
     COUNTRY_NAME,
     fleet_for,
     load_exclusions,
     load_gwpt,
 )
-from vwf.datasets.gwpt import default_path as gwpt_default_path  # noqa: E402
+from pyvwf.datasets.gwpt import default_path as gwpt_default_path  # noqa: E402
 
 GWPT_PATH = gwpt_default_path()
 

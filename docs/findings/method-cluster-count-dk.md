@@ -103,7 +103,7 @@ Best: `k=3300`, `season`, RMSE 0.0851 (MAE 0.0533, MBE +0.0282, r 0.824).
 
 The harness offset fit was single-core (a deliberate bit-for-bit delegate to
 `PyVWF.train(dask_n_workers=0)`). This run added the parallel branch from the
-legacy `PyVWF.train` to the harness (`vwf.harness.corrections`), opt-in via
+legacy `PyVWF.train` to the harness (`pyvwf.harness.corrections`), opt-in via
 `PYVWF_OFFSET_WORKERS`, default sequential so the golden regression test is
 untouched. At 4 workers the result is bit-identical to sequential (verified at
 `k=50`, max abs metric diff 0.0) and the expensive tail runs ~4x faster

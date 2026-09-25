@@ -1,6 +1,6 @@
 """The physics-informed path's ERA5 reduction: roughness treatment and extent.
 
-``vwf.pinn`` reduces hourly ERA5 to daily statistics itself, rather than through
+``pyvwf.pinn`` reduces hourly ERA5 to daily statistics itself, rather than through
 ``prep_era5``, because it keeps the within-day spread. That makes it a second
 implementation of two decisions the harness records in every manifest: which
 temporal treatment of the roughness a run applies, and where the fleet lies
@@ -19,9 +19,9 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.datasets.era5 import prep_era5
-from vwf.pinn.cache import era5_record_for
-from vwf.pinn.era5_stats import daily_stats_at_points
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.pinn.cache import era5_record_for
+from pyvwf.pinn.era5_stats import daily_stats_at_points
 
 LAT = np.array([55.0, 55.25, 55.5])
 LON = np.array([8.0, 8.25, 8.5])

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from vwf.harness.regions import load_region
+from pyvwf.harness.regions import load_region
 
 ROOT = Path(__file__).resolve().parents[1]
 SCORECARD = ROOT / "docs" / "findings" / "scorecard.md"

@@ -2,7 +2,7 @@
 
 PyVWF bias-corrects reanalysis wind speeds and validates the correction against
 observed generation in many regions. These rules apply to any agent working in
-this repository. Two more files load where they apply: `src/vwf/AGENTS.md` for
+this repository. Two more files load where they apply: `src/pyvwf/AGENTS.md` for
 code, `docs/AGENTS.md` for documents. The incidents behind the rules, and what
 each guard does and misses, are in `docs/design/agent-guards.md`.
 
@@ -13,7 +13,7 @@ pytest -m "not slow and not realdata"          # the fast set, what CI runs
 python scripts/dev/stamp.py realdata           # the real-data pins, stamped
 python scripts/dev/stamp.py pinn               # the physics-informed tests, stamped
 ruff check src tests scripts examples && ruff format --check src tests scripts examples
-mypy && lint-imports                           # for any change under src/vwf
+mypy && lint-imports                           # for any change under src/pyvwf
 pre-commit run --all-files
 python scripts/dev/run_locked.py -- <command>  # any run that writes manifests
 ```

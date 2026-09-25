@@ -41,7 +41,7 @@ jobs:
         run: mypy
 
       - name: Import layers (import-linter)
-        # The layering of src/vwf, in .importlinter: a module imports only from
+        # The layering of src/pyvwf, in .importlinter: a module imports only from
         # the layers below it.
         run: lint-imports
 
@@ -112,9 +112,9 @@ jobs:
         # read is git-ignored; the markers are in pyproject.toml.
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            pytest tests -q --cov=vwf --cov-report=term-missing
+            pytest tests -q --cov=pyvwf --cov-report=term-missing
           else
-            pytest tests -q --cov=vwf --cov-report=term-missing -m "not slow and not realdata"
+            pytest tests -q --cov=pyvwf --cov-report=term-missing -m "not slow and not realdata"
           fi
 
       - name: Run minimal example (end-to-end on bundled synthetic data)
@@ -284,7 +284,7 @@ jobs:
         # tree is mounted.
         run: |
           docker run --rm pyvwf:ci python -c "
-          from vwf.config import PyVWFPaths
+          from pyvwf.config import PyVWFPaths
           import pandas as pd
           df = pd.read_csv(PyVWFPaths.reference_file('power_curves.csv'))
           print('curves:', df.shape[1] - 1)
@@ -327,7 +327,7 @@ jobs:
           python -m venv /tmp/clean
           /tmp/clean/bin/pip install dist/*.whl
           cd /tmp
-          /tmp/clean/bin/python -c "import vwf; print('pyvwf', vwf.__version__)"
-          /tmp/clean/bin/python -c "import vwf.wind, vwf.correction, vwf.metrics, vwf.viz"
-          /tmp/clean/bin/python -c "import vwf.harness, vwf.sources, vwf.provenance, vwf.curves"
+          /tmp/clean/bin/python -c "import pyvwf; print('pyvwf', pyvwf.__version__)"
+          /tmp/clean/bin/python -c "import pyvwf.wind, pyvwf.correction, pyvwf.metrics, pyvwf.viz"
+          /tmp/clean/bin/python -c "import pyvwf.harness, pyvwf.sources, pyvwf.provenance, pyvwf.curves"
           /tmp/clean/bin/pyvwf-validate --help

@@ -2,7 +2,7 @@
 
 The operator is only useful if it is the SAME physics the incumbent pipeline
 runs, plus terms that switch off cleanly. So the tests here fall into three
-groups: parity with ``vwf.wind`` where the two should agree exactly, the
+groups: parity with ``pyvwf.wind`` where the two should agree exactly, the
 behaviour of the additions when they are switched off, and the structural
 guarantees the model relies on to extrapolate -- above all that the terrain
 speed-up is exactly zero on flat ground whatever the network has learned.
@@ -19,14 +19,14 @@ pytest.importorskip("torch")
 import torch  # noqa: E402
 from scipy.interpolate import Akima1DInterpolator  # noqa: E402
 
-from vwf import wind  # noqa: E402
-from vwf.pinn.model import (  # noqa: E402
+from pyvwf import wind  # noqa: E402
+from pyvwf.pinn.model import (  # noqa: E402
     DELTA_BOUNDS,
     ETA_BOUNDS,
     GAMMA_BOUNDS,
     PhysicsCorrection,
 )
-from vwf.pinn.physics import (  # noqa: E402
+from pyvwf.pinn.physics import (  # noqa: E402
     PowerCurveBank,
     expected_cf,
     gauss_hermite,
@@ -106,7 +106,7 @@ def test_log_profile_matches_the_incumbent_formula():
 def test_log_profile_reproduces_vwf_wind(reanalysis, turbines, power_curve):
     """Against the incumbent simulation itself, with roughness constant.
 
-    ``vwf.wind.interpolate_wind`` applies the profile on the grid and then
+    ``pyvwf.wind.interpolate_wind`` applies the profile on the grid and then
     interpolates to turbines; the cache interpolates the fields first and
     applies the profile per turbine. With a spatially constant roughness the two
     orders are algebraically identical, so this test pins the physics exactly.
@@ -295,7 +295,7 @@ def test_ablation_has_no_relief_pin():
 
 # ---------------------------------------------------------------- density ---
 def test_density_is_unity_at_sea_level_and_below():
-    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    from pyvwf.pinn.physics import air_density_ratio, density_speed_factor
 
     z = torch.tensor([-50.0, -1.0, 0.0])
     assert torch.allclose(air_density_ratio(z), torch.ones(3), atol=1e-6)
@@ -304,7 +304,7 @@ def test_density_is_unity_at_sea_level_and_below():
 
 def test_density_matches_the_standard_atmosphere():
     """Spot values from the ISA, which the formula must reproduce."""
-    from vwf.pinn.physics import air_density_ratio
+    from pyvwf.pinn.physics import air_density_ratio
 
     z = torch.tensor([1000.0, 2000.0, 3000.0])
     # ISA density 1.1117, 1.0065, 0.9093 kg/m3 against 1.225 at sea level.
@@ -313,7 +313,7 @@ def test_density_matches_the_standard_atmosphere():
 
 
 def test_density_speed_factor_is_the_cube_root():
-    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    from pyvwf.pinn.physics import air_density_ratio, density_speed_factor
 
     z = torch.tensor([0.0, 500.0, 1500.0, 2500.0])
     assert torch.allclose(density_speed_factor(z), air_density_ratio(z) ** (1 / 3), atol=1e-6)
@@ -325,7 +325,7 @@ def test_density_correction_recovers_the_cube_law_exactly():
     This is the identity the IEC equivalent-speed form is built to satisfy, and
     it is the sharpest available check that the exponent is right.
     """
-    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    from pyvwf.pinn.physics import air_density_ratio, density_speed_factor
 
     speeds = np.arange(0.0, 40.0 + 1e-9, 0.01)
     cubic = PowerCurveBank(speeds, ((speeds / 40.0) ** 3)[None, :])
@@ -343,7 +343,7 @@ def test_density_reduces_output_at_altitude(bank):
     loss of wind speed costs proportionally more power than the ideal cube law
     predicts. The reduction must therefore exceed the density deficit itself.
     """
-    from vwf.pinn.physics import air_density_ratio, density_speed_factor
+    from pyvwf.pinn.physics import air_density_ratio, density_speed_factor
 
     u = torch.tensor([8.0])
     idx = torch.zeros(1, dtype=torch.long)
@@ -413,7 +413,7 @@ def test_wake_needs_a_density_to_apply():
 
 
 def test_efficiency_respects_its_floor_under_extreme_density():
-    from vwf.pinn.model import ETA_FLOOR
+    from pyvwf.pinn.model import ETA_FLOOR
 
     m = PhysicsCorrection(14, 4, wake=True, init_scale=0.0)
     with torch.no_grad():
@@ -431,7 +431,7 @@ def test_roughness_inversion_round_trips():
     exponent of 0.145 has to come back as z0 = 0.03 m to full precision; any
     drift here would silently bias every hub height.
     """
-    from vwf.pinn.physics import roughness_from_shear
+    from pyvwf.pinn.physics import roughness_from_shear
 
     for z0_true in (0.0002, 0.01, 0.03, 0.1, 0.5):
         r = np.log(100 / z0_true) / np.log(10 / z0_true)  # w100/w10
@@ -496,7 +496,7 @@ def test_log_z0_offset_moves_the_profile_monotonically():
 
 def test_shear_log_survives_a_degenerate_profile():
     """A uniform or reversed 10-100 m profile has no roughness that explains it."""
-    from vwf.pinn.physics import roughness_from_shear
+    from pyvwf.pinn.physics import roughness_from_shear
 
     out = roughness_from_shear(torch.tensor([-0.05, 0.0, 1e-9, 0.6]))
     assert torch.isfinite(out).all()
@@ -521,7 +521,7 @@ def test_bound_scale_shrinks_every_term_toward_its_start(scale):
 
 
 def test_bound_scale_actually_narrows_the_reachable_range():
-    from vwf.pinn.model import GAMMA_BOUNDS
+    from pyvwf.pinn.model import GAMMA_BOUNDS
 
     wide = PhysicsCorrection(14, 4, bound_scale=1.0)._bounds(GAMMA_BOUNDS, 0.0)
     tight = PhysicsCorrection(14, 4, bound_scale=0.35)._bounds(GAMMA_BOUNDS, 0.0)
@@ -531,7 +531,7 @@ def test_bound_scale_actually_narrows_the_reachable_range():
 
 def test_bound_scale_one_is_exactly_the_unconstrained_model():
     """The sweep's control arm must be bit-identical to the current model."""
-    from vwf.pinn.model import GAMMA_BOUNDS, ETA_BOUNDS
+    from pyvwf.pinn.model import GAMMA_BOUNDS, ETA_BOUNDS
 
     m = PhysicsCorrection(14, 4, bound_scale=1.0)
     assert m._bounds(GAMMA_BOUNDS, 0.0) == GAMMA_BOUNDS
@@ -542,7 +542,7 @@ def test_bound_scale_one_is_exactly_the_unconstrained_model():
 def test_off_curve_tally_counts_what_the_bank_clamps(bank):
     """The bank returns an end value outside its table where the harness
     returns nothing, so the tally is the only record that it happened."""
-    from vwf.pinn.train import count_off_curve, off_curve_shares
+    from pyvwf.pinn.train import count_off_curve, off_curve_shares
 
     u = torch.tensor([[-1.0, 5.0], [41.0, 12.0], [8.0, 45.0]])  # (days, units)
     capacity = torch.tensor([1000.0, 3000.0])
@@ -565,9 +565,9 @@ def test_off_curve_tally_counts_what_the_bank_clamps(bank):
 def test_a_unit_with_no_wind_is_dropped_and_recorded(fine_curve):
     """A unit outside the loaded extent has no wind at all. It is dropped, and
     the tensors say which unit and how much capacity went with it."""
-    from vwf.pinn.cache import RegionCache
-    from vwf.pinn.terrain import FEATURES
-    from vwf.pinn.train import RegionTensors
+    from pyvwf.pinn.cache import RegionCache
+    from pyvwf.pinn.terrain import FEATURES
+    from pyvwf.pinn.train import RegionTensors
 
     days = pd.date_range("2015-01-01", periods=31, freq="D")
     meta = pd.DataFrame(
@@ -617,8 +617,8 @@ def test_a_unit_with_no_wind_is_dropped_and_recorded(fine_curve):
 # ------------------------------------------------------- country-level tier ---
 def _country_cache(fine_curve, *, years=(2015, 2016), capacity_years=None):
     """Two grid points over two Januaries, with capacity changing by year."""
-    from vwf.pinn.cache import NATIONAL_ID, RegionCache
-    from vwf.pinn.terrain import FEATURES
+    from pyvwf.pinn.cache import NATIONAL_ID, RegionCache
+    from pyvwf.pinn.terrain import FEATURES
 
     days = pd.DatetimeIndex(
         [d for y in years for d in pd.date_range(f"{y}-01-01", periods=31, freq="D")]
@@ -663,7 +663,7 @@ def _country_cache(fine_curve, *, years=(2015, 2016), capacity_years=None):
 
 
 def test_country_months_are_weighted_by_their_own_years_capacity(fine_curve):
-    from vwf.pinn.train import RegionTensors
+    from pyvwf.pinn.train import RegionTensors
 
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     assert r.level == "country"
@@ -674,7 +674,7 @@ def test_country_months_are_weighted_by_their_own_years_capacity(fine_curve):
 
 
 def test_a_country_month_without_capacities_is_refused(fine_curve):
-    from vwf.pinn.train import RegionTensors
+    from pyvwf.pinn.train import RegionTensors
 
     with pytest.raises(ValueError, match="no grid capacities"):
         RegionTensors.from_cache(_country_cache(fine_curve, capacity_years=[2015]), quiet=True)
@@ -682,8 +682,8 @@ def test_a_country_month_without_capacities_is_refused(fine_curve):
 
 def test_the_country_loss_is_the_national_series_error(fine_curve):
     """Checked by hand: aggregate each month with that year's capacities."""
-    from vwf.pinn.physics import gauss_hermite
-    from vwf.pinn.train import (
+    from pyvwf.pinn.physics import gauss_hermite
+    from pyvwf.pinn.train import (
         N_QUAD,
         RegionTensors,
         Standardiser,
@@ -708,9 +708,9 @@ def test_the_country_loss_is_the_national_series_error(fine_curve):
 
 
 def test_a_turbine_national_series_uses_only_the_units_observed(fine_curve):
-    from vwf.pinn.cache import RegionCache
-    from vwf.pinn.terrain import FEATURES
-    from vwf.pinn.train import RegionTensors, _predict_matrix, predict_national
+    from pyvwf.pinn.cache import RegionCache
+    from pyvwf.pinn.terrain import FEATURES
+    from pyvwf.pinn.train import RegionTensors, _predict_matrix, predict_national
 
     days = pd.date_range("2015-01-01", periods=59, freq="D")  # January and February
     meta = pd.DataFrame(
@@ -756,7 +756,7 @@ def test_a_turbine_national_series_uses_only_the_units_observed(fine_curve):
 
 
 def test_predict_frame_refuses_a_country_region(fine_curve):
-    from vwf.pinn.train import RegionTensors, predict_frame
+    from pyvwf.pinn.train import RegionTensors, predict_frame
 
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     with pytest.raises(ValueError, match="predict_national"):
@@ -764,7 +764,7 @@ def test_predict_frame_refuses_a_country_region(fine_curve):
 
 
 def test_features_off_makes_heads_global_and_keeps_the_relief_pin(fine_curve):
-    from vwf.pinn.train import RegionTensors, Standardiser
+    from pyvwf.pinn.train import RegionTensors, Standardiser
 
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     std = Standardiser.fit([r], features_off=True)
@@ -782,7 +782,7 @@ def test_features_off_makes_heads_global_and_keeps_the_relief_pin(fine_curve):
 
 
 def test_fleet_columns_select_the_efficiency_heads_inputs(fine_curve):
-    from vwf.pinn.train import FLEET_FEATURES, RegionTensors, Standardiser, fit
+    from pyvwf.pinn.train import FLEET_FEATURES, RegionTensors, Standardiser, fit
 
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     default = Standardiser.fit([r])
@@ -802,7 +802,7 @@ def test_fleet_columns_select_the_efficiency_heads_inputs(fine_curve):
 
 # ------------------------------------------------------- terrain switches ---
 def test_relief_off_fixes_the_speedup_at_zero(fine_curve):
-    from vwf.pinn.train import RegionTensors, Standardiser
+    from pyvwf.pinn.train import RegionTensors, Standardiser
 
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     std = Standardiser.fit([r], relief_off=True)
@@ -818,7 +818,7 @@ def test_relief_off_fixes_the_speedup_at_zero(fine_curve):
 
 def test_terrain_off_leaves_the_fleet_head_working(fine_curve):
     """The pin still sees relief; only the strength and shear go global."""
-    from vwf.pinn.train import RegionTensors, Standardiser
+    from pyvwf.pinn.train import RegionTensors, Standardiser
 
     r = RegionTensors.from_cache(_country_cache(fine_curve), quiet=True)
     r.fleet_raw = torch.tensor([[0.0, 0.0, 0.0, 1.0], [2.0, 2.0, 1.0, 2.0]])
@@ -838,8 +838,8 @@ def test_terrain_off_leaves_the_fleet_head_working(fine_curve):
 
 
 def test_a_fixed_speedup_replaces_the_learned_one(fine_curve):
-    from vwf.pinn.physics import gauss_hermite
-    from vwf.pinn.train import (
+    from pyvwf.pinn.physics import gauss_hermite
+    from pyvwf.pinn.train import (
         N_QUAD,
         RegionTensors,
         Standardiser,

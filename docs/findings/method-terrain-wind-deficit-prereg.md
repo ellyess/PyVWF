@@ -65,7 +65,7 @@ uncorrected simulated CF)`, over the plant's months with both values, in the
 window. Positive `Y` means the simulation falls short. The simulated CF is the
 harness's uncorrected path on the configuration above (the frames a train run
 does not save, so the driver simulates them); observations come from
-`vwf.harness.driver.load_obs_and_fleet`.
+`pyvwf.harness.driver.load_obs_and_fleet`.
 
 **Primary covariate, per plant.** Sub-grid relief `R`: the standard deviation
 of ETOPO 2022 30 arc-second elevation over the ERA5 grid cell whose centre is
@@ -149,7 +149,7 @@ policy.
 - A driver, `scripts/studies/method-terrain-wind-deficit/terrain_deficit.py`,
   with `cli(argv)` and its recorded command line pinned in
   `tests/test_script_command_lines.py`, committed before it runs.
-- Nothing new in `src/vwf`. The relief computation stays in the driver unless
+- Nothing new in `src/pyvwf`. The relief computation stays in the driver unless
   the flag outcome moves it into the package.
 - Runs under `output/terrain_wind_deficit_<date>/`, from the repository root on
   a clean tree.

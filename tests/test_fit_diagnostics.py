@@ -16,9 +16,9 @@ import pytest
 import xarray as xr
 
 from test_harness_driver import make_spec
-from vwf.harness.corrections import fit_quality
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.wind import fit_diagnostics
+from pyvwf.harness.corrections import fit_quality
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.wind import fit_diagnostics
 
 CURVES = pd.DataFrame({"data$speed": np.linspace(0.0, 40.0, 401), "m": 0.5})
 

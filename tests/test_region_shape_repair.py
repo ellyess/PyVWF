@@ -24,9 +24,9 @@ pytest.importorskip("shapely")
 
 from shapely.geometry import box  # noqa: E402
 
-import vwf.clustering as clustering  # noqa: E402
-from vwf.clustering import get_country_shape, repair_region_shape  # noqa: E402
-from vwf.config import PyVWFPaths  # noqa: E402
+import pyvwf.clustering as clustering  # noqa: E402
+from pyvwf.clustering import get_country_shape, repair_region_shape  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
 
 
 # Region A's mainland. The repair window is bounds +3 deg lon / +2 deg lat.

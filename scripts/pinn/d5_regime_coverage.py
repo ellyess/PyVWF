@@ -38,7 +38,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from vwf.pinn.terrain import FEATURES as TERRAIN_FEATURES  # noqa: E402
+from pyvwf.pinn.terrain import FEATURES as TERRAIN_FEATURES  # noqa: E402
 
 CACHE = ROOT / "output" / "pinn" / "cache"
 OUT = ROOT / "output" / "pinn" / "d5"

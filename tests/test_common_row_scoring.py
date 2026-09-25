@@ -14,9 +14,9 @@ import pandas as pd
 import pytest
 
 from test_harness_driver import make_spec
-from vwf.harness import driver
-from vwf.harness.driver import run_evaluate, run_train
-from vwf.harness.skill import (
+from pyvwf.harness import driver
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.harness.skill import (
     restrict_to_common_rows,
     skill_metrics,
     summarise_exclusions,

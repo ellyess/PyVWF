@@ -18,8 +18,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.datasets.windstats import windstats_monthly_cf
-from vwf.sources.client_csv import ClientCsvTurbineSource
+from pyvwf.datasets.windstats import windstats_monthly_cf
+from pyvwf.sources.client_csv import ClientCsvTurbineSource
 
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "month_hours"
 MONTHS = [(y, m) for y in (2019, 2020) for m in range(1, 13)]

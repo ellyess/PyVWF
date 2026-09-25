@@ -29,12 +29,12 @@ them. **Neither is operating on a quantity the data determined.**
 
 ## The objective, from the code
 
-`vwf.correction.calculate_scalar` aggregates to one observed and one simulated
+`pyvwf.correction.calculate_scalar` aggregates to one observed and one simulated
 mean per cluster, slice and year, and sets
 
     scalar = obs / sim
 
-on the **uncorrected** simulation. `vwf.correction._find_offset_iterative`
+on the **uncorrected** simulation. `pyvwf.correction._find_offset_iterative`
 then searches the offset until the corrected mean matches:
 
     error = obs - mean_simulated_cf(scalar, offset)

@@ -15,12 +15,12 @@ from importlib import resources
 import pandas as pd
 import pytest
 
-import vwf.wind as wind
+import pyvwf.wind as wind
 from test_harness_driver import make_spec
-from vwf.curves import _default_power_curve, add_models
-from vwf.harness.driver import CurveSubstitutionError, run_evaluate, run_train, run_transfer
-from vwf.provenance import curve_resolution, summarise_curve_resolution
-from vwf.sources import InMemoryCountrySource, get_source
+from pyvwf.curves import _default_power_curve, add_models
+from pyvwf.harness.driver import CurveSubstitutionError, run_evaluate, run_train, run_transfer
+from pyvwf.provenance import curve_resolution, summarise_curve_resolution
+from pyvwf.sources import InMemoryCountrySource, get_source
 
 #: The curve the bundled library substitutes for any model it lacks. Pinned
 #: because it decides results: if the library is reordered, every country-level
@@ -30,7 +30,7 @@ BUNDLED_FALLBACK = "2019COE_DW100_100kW_27.6"
 
 @pytest.fixture(scope="module")
 def bundled_curves():
-    return pd.read_csv(str(resources.files("vwf.resources") / "power_curves.csv"))
+    return pd.read_csv(str(resources.files("pyvwf.resources") / "power_curves.csv"))
 
 
 def _fleet(models, capacities=None, **extra):
@@ -119,7 +119,7 @@ def test_the_grid_generator_names_the_keys_the_grids_carry():
     """The generator's table named FR "V80" and BE, NO and NL "V90" until
     2026-09-25, keys in no library, while the grids on disk carry the full
     keys. A regenerated grid would have been refused on any root."""
-    from vwf.datasets.country_grid import COUNTRY_CONFIGS
+    from pyvwf.datasets.country_grid import COUNTRY_CONFIGS
 
     keys = {code: config["model"] for code, config in COUNTRY_CONFIGS.items()}
     assert set(keys.values()) <= {"Vestas.V80.2000", "Vestas.V90.2000", "Vestas.V90.3000"}, keys

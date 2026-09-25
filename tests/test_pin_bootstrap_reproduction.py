@@ -5,7 +5,7 @@ resampling: ``baseline_bootstrap.py``, ``unit_concentration.py``,
 ``common_row_rescore.py``, ``roughness_treatment_study.py`` and
 ``eu_rerun_compare.py``. Their outputs are the evidence behind correction
 notices in the scorecard and behind the roughness and European re-run
-findings. Promoting the resampling into ``vwf`` must leave every one of those
+findings. Promoting the resampling into ``pyvwf`` must leave every one of those
 files byte for byte as it is.
 
 Each case reruns one script for one row, in its own process with the input

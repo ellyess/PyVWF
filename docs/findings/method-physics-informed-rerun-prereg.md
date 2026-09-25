@@ -70,8 +70,8 @@ Four changes, each declared here because each could move a number.
    machine-learning module.
 
 The code that makes these changes is committed before this document:
-`vwf.pinn.era5_stats` and `vwf.pinn.cache` apply and record the treatment the
-config requests and the loaded extent; `vwf.pinn.train` records units dropped
+`pyvwf.pinn.era5_stats` and `pyvwf.pinn.cache` apply and record the treatment the
+config requests and the loaded extent; `pyvwf.pinn.train` records units dropped
 for having no wind and tallies off-curve values; `scripts/pinn/e1_loro.py`
 scores on common rows and writes a manifest; and
 `scripts/pinn/g0_cache_reproduction.py` compares caches.

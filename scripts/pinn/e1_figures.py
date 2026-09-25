@@ -27,8 +27,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts" / "pinn"))
 
-from vwf.viz.palettes import OKABE_ITO  # noqa: E402
-from vwf.viz.style import plot_style, savefig  # noqa: E402
+from pyvwf.viz.palettes import OKABE_ITO  # noqa: E402
+from pyvwf.viz.style import plot_style, savefig  # noqa: E402
 
 E1 = ROOT / "output" / "pinn" / "e1"
 D5 = ROOT / "output" / "pinn" / "d5"

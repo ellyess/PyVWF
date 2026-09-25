@@ -13,13 +13,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.data import (
+from pyvwf.data import (
     country_obs_is_per_cluster,
     country_zonal_cf_to_monthly,
     country_zonal_to_national,
 )
-from vwf.sources import available_sources
-from vwf.sources.entsoe_zonal import EntsoeZonalFileSource
+from pyvwf.sources import available_sources
+from pyvwf.sources.entsoe_zonal import EntsoeZonalFileSource
 
 
 @pytest.fixture
@@ -171,7 +171,7 @@ def test_national_collapse_survives_a_missing_observation(zonal_layout):
 @pytest.fixture
 def country_fixture(tmp_path, monkeypatch):
     """Synthetic ERA5 plus a four-point, two-cluster grid."""
-    from vwf.config import PyVWFPaths
+    from pyvwf.config import PyVWFPaths
     from tests import test_pipeline as tp
 
     tp._write_era5(tmp_path / "era5")
@@ -196,10 +196,10 @@ def country_fixture(tmp_path, monkeypatch):
 
 def fit_with(grid, obs, monkeypatch, forbid):
     """Fit the country path, with one of the two solvers wired to explode."""
-    import vwf.correction as correction
-    from vwf.data import train_set
-    from vwf.harness.corrections import get_correction
-    from vwf.sources.in_memory import InMemoryCountrySource
+    import pyvwf.correction as correction
+    from pyvwf.data import train_set
+    from pyvwf.harness.corrections import get_correction
+    from pyvwf.sources.in_memory import InMemoryCountrySource
 
     def boom(*args, **kwargs):
         raise AssertionError(f"{forbid} must not be called for this observation shape")
@@ -260,9 +260,9 @@ def test_rounding_in_the_cluster_means_is_one_national_observation():
 def test_a_national_multi_cluster_fit_reaches_the_joint_fit(monkeypatch):
     """End to end on a fleet whose cluster means really do drift: the fit must
     take the joint national optimiser, not the per-cluster solver."""
-    import vwf.correction as correction
-    from vwf.data import cluster_train_set
-    from vwf.harness.corrections import get_correction
+    import pyvwf.correction as correction
+    from pyvwf.data import cluster_train_set
+    from pyvwf.harness.corrections import get_correction
 
     rng = np.random.default_rng(1)
     n = 40

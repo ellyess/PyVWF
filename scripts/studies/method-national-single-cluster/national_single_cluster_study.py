@@ -7,7 +7,7 @@ Portugal's repairable from the Global Wind Power Tracker and Sweden's derived
 from its own generation.
 
 **A country-level configuration has no cluster count to select.**
-``vwf.data.assign_country_clusters`` accepts 1, or the number of clusters the
+``pyvwf.data.assign_country_clusters`` accepts 1, or the number of clusters the
 grid points already carry, and refuses everything else, because no clustering
 step runs on that path. So there are two candidates, and the
 one-standard-error rule reduces to: **take the grid's own count only if its
@@ -50,9 +50,9 @@ _spec = importlib.util.spec_from_file_location(
 study = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(study)
 
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.harness import regions  # noqa: E402
-from vwf.harness.driver import resolve_source  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.harness import regions  # noqa: E402
+from pyvwf.harness.driver import resolve_source  # noqa: E402
 
 #: Registered included set. PT and SE are excluded before any result.
 INCLUDED = ("be", "es", "fr", "ie", "it", "nl", "no")

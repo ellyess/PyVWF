@@ -13,8 +13,8 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.harness.driver import check_transfer_pair, collapse_factors
-from vwf.wind import correct_wind_speed
+from pyvwf.harness.driver import check_transfer_pair, collapse_factors
+from pyvwf.wind import correct_wind_speed
 
 NH_SEASONS = {
     "winter": [12, 1, 2],

@@ -22,9 +22,9 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.provenance import build_manifest, write_manifest  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
-from vwf.pinn.cache import build_cache, save_cache  # noqa: E402
+from pyvwf.provenance import build_manifest, write_manifest  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
+from pyvwf.pinn.cache import build_cache, save_cache  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIGS = ROOT / "configs" / "regions"

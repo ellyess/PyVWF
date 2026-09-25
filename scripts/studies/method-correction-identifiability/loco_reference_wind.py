@@ -35,7 +35,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
+from pyvwf.cli.common import make_parser
 
 
 REPO = Path(__file__).resolve().parents[3]

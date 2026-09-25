@@ -44,7 +44,7 @@ python scripts/fetch/dk.py       # anlaeg.xlsx + maanedsdata -> input/observatio
 python scripts/process/dk.py     # -> dk_md.csv, dk_obs_2002_2020.csv
 ```
 
-`process` (pure transforms in `vwf.datasets.process_dk_raw_data`) reads the
+`process` (pure transforms in `pyvwf.datasets.process_dk_raw_data`) reads the
 header-offset sheets, converts the UTM X/Y coordinates to lon/lat, maps
 `Land`/`Hav` to onshore/offshore, and reshapes the per-year production sheets
 into the long `ID, year, month, generation_kwh, connection_date,

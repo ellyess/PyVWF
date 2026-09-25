@@ -266,15 +266,15 @@ availability. Per-unit data teaches none of them.
 ## Code this needs
 
 Committed immediately after this document, before any fit, with tests:
-- **`vwf.pinn.train`:**
+- **`pyvwf.pinn.train`:**
   - `fit(terrain_off=...)` hands the terrain heads zeros while leaving the
     fleet head on.
   - `fit(relief_off=...)` passes zero relief to the speed-up, fixing it at
     zero.
   - Both default off, so every earlier result reproduces unchanged.
-- **`vwf.pinn.runs`:** the level and spatial decomposition above, with a test
+- **`pyvwf.pinn.runs`:** the level and spatial decomposition above, with a test
   against a hand computation.
-- **`vwf.pinn.train`:** a fixed speed-up per unit, `fit(fixed_speedup=True)`.
+- **`pyvwf.pinn.train`:** a fixed speed-up per unit, `fit(fixed_speedup=True)`.
   The speed-up is read from the tensors, not the model, and the relief term is
   off.
 - **A GWA preprocessing script:** it computes R_i per unit and split from the

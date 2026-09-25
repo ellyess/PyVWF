@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.sources import available_sources, get_source, resolve
-from vwf.sources.eia_us import EIAUSSource, netgen_to_monthly_cf
+from pyvwf.config import PyVWFPaths
+from pyvwf.sources import available_sources, get_source, resolve
+from pyvwf.sources.eia_us import EIAUSSource, netgen_to_monthly_cf
 
 METADATA = pd.DataFrame(
     {

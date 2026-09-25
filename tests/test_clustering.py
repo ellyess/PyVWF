@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 from sklearn.metrics import adjusted_rand_score
 
-from vwf.clustering import cluster_turbines
+from pyvwf.clustering import cluster_turbines
 
 SEEDS = (0, 1, 7, 42)
 

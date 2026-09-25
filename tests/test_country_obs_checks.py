@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.loaders.country_obs_checks import (
+from pyvwf.loaders.country_obs_checks import (
     CLIP_CEILING,
     MIN_PEAK_CF,
     check_country_cf,

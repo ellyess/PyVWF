@@ -30,7 +30,7 @@ the two is wrong and does not say which.
   four bidding zones each hold a frozen capacity over those five years, each
   zonal series peaks at exactly 0.900, and the four sum to 8354 MW exactly.
   0.900 is the signature of the fetcher's own fallback in
-  ``vwf.datasets.fetch_entsoe_capacity_factors``,
+  ``pyvwf.datasets.fetch_entsoe_capacity_factors``,
   ``estimated_cap = gen.max() / 0.9``, applied when ENTSO-E returns no
   capacity at all. So the denominator is derived from the numerator and the
   plausible-looking capacity factors are constructed, not observed. **Sweden
@@ -61,9 +61,9 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from vwf.config import PyVWFPaths  # noqa: E402
-from vwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
-from vwf.datasets.gwpt import default_path, fleet_for, load_exclusions, load_gwpt  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
+from pyvwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
+from pyvwf.datasets.gwpt import default_path, fleet_for, load_exclusions, load_gwpt  # noqa: E402
 
 GWPT_PATH = default_path()
 EXCLUSIONS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_exclusions.csv"

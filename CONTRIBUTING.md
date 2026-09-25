@@ -67,11 +67,11 @@ that read real inputs carry the `realdata` marker, and they skip where the
 inputs are absent, which includes CI. So continuous integration cannot tell
 you that a pin moved: only a local run can. A pull request that changes
 code the pins reach runs them and states the result in its description.
-That is `vwf/harness/`, `vwf/sources/`, `vwf/datasets/`, `vwf/extensions/`,
-`vwf/loaders/`, `vwf/metrics.py`, `vwf/correction.py`, `vwf/data.py`,
-`vwf/wind.py`, `vwf/curves.py`, `vwf/clustering.py`, `vwf/country_level.py`,
-`vwf/sampling.py`, `vwf/config.py`, `vwf/time_utils.py`, `vwf/geospatial.py`,
-`vwf/utils.py` and `vwf/provenance.py`:
+That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions/`,
+`pyvwf/loaders/`, `pyvwf/metrics.py`, `pyvwf/correction.py`, `pyvwf/data.py`,
+`pyvwf/wind.py`, `pyvwf/curves.py`, `pyvwf/clustering.py`, `pyvwf/country_level.py`,
+`pyvwf/sampling.py`, `pyvwf/config.py`, `pyvwf/time_utils.py`, `pyvwf/geospatial.py`,
+`pyvwf/utils.py` and `pyvwf/provenance.py`:
 
 ```bash
 pytest -m realdata                     # every pin that reads local inputs
@@ -105,7 +105,7 @@ The tree was reformatted once with `ruff format`. To keep that commit out of
 pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
 pytest -n 4 --dist loadfile -m "not realdata"   # the same and the slow set, in four processes
 pytest                                  # every test: what CI runs on a manual dispatch
-pytest --cov=vwf           # with coverage
+pytest --cov=pyvwf           # with coverage
 ruff check src tests scripts examples   # lint, as CI does
 mypy                       # type check; needs pandas-stubs, from the dev extra
 ```
@@ -152,7 +152,7 @@ pip install -e ".[docs]"
 sphinx-build -b html docs docs/_build/html -W
 ```
 
-The version lives in one place, `vwf.__version__`, from which `pyproject.toml`
+The version lives in one place, `pyvwf.__version__`, from which `pyproject.toml`
 reads it dynamically; `tests/test_packaging.py` asserts it is valid semantic
 versioning and stays in step with `CITATION.cff`.
 
@@ -161,7 +161,7 @@ versioning and stays in step with `CITATION.cff`.
 1. Fork the repository and create a feature branch from `main`.
 2. Make your change, keeping it focused and well documented (Google-style
    docstrings, with `Args:` and `Returns:` sections, as used throughout
-   `vwf/`).
+   `pyvwf/`).
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
@@ -177,13 +177,13 @@ versioning and stays in step with `CITATION.cff`.
   where helpful, Google-style docstrings, and `ruff`-clean code (`E`, `F` rules;
   see `pyproject.toml`).
 - Keep new heavy/optional dependencies behind `try/except` imports, mirroring the
-  optional visualisation import in `vwf/__init__.py`.
+  optional visualisation import in `pyvwf/__init__.py`.
 
 ## Scientific contributions
 
 New bias-correction methods are especially welcome. Where possible, include a
 short validation (e.g. against the Denmark case study, reporting RMSE/MAE/MBE)
-and the diagnostic distribution / QQ plots from `vwf.viz`.
+and the diagnostic distribution / QQ plots from `pyvwf.viz`.
 
 ## Code of conduct
 

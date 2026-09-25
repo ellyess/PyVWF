@@ -3,7 +3,7 @@
 One directory per study, named by the stem of its findings document in
 `docs/findings/`. Each holds the drivers that produce that study's numbers.
 Reusable tools stay in `scripts/analysis/`; logic more than one study needs
-belongs in `src/vwf/`.
+belongs in `src/pyvwf/`.
 
 [`docs/guides/adding-a-study.md`](../../docs/guides/adding-a-study.md) says how
 to add a study: where each piece goes, the order of commits, and the rules a

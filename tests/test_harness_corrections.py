@@ -11,12 +11,12 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-import vwf.correction as correction
-import vwf.wind as wind
-from vwf.data import cluster_train_set, format_bc_factors, train_set
-from vwf.harness import available_corrections, get_correction
-from vwf.harness.corrections import CorrectionModel, register_correction
-from vwf.wind import correct_wind_speed
+import pyvwf.correction as correction
+import pyvwf.wind as wind
+from pyvwf.data import cluster_train_set, format_bc_factors, train_set
+from pyvwf.harness import available_corrections, get_correction
+from pyvwf.harness.corrections import CorrectionModel, register_correction
+from pyvwf.wind import correct_wind_speed
 
 SH_SEASONS = {
     "summer": [12, 1, 2],
@@ -244,7 +244,7 @@ def test_fit_availability_is_obs_over_corrected_level_clipped():
     """Unit test of the availability computation, bypassing the affine re-fit
     that hides it. A cluster the corrected sim over-predicts gets a<1; one it
     under-predicts is clipped to 1, because boosting output is not a loss."""
-    from vwf.harness.corrections import ScaledAffineWindCorrection
+    from pyvwf.harness.corrections import ScaledAffineWindCorrection
 
     times = pd.date_range("2020-01-01", periods=6, freq="MS")
     clus_info = pd.DataFrame(
@@ -273,7 +273,7 @@ def test_fit_availability_is_obs_over_corrected_level_clipped():
 
 def test_scaled_affine_apply_scales_by_cluster_availability():
     """apply multiplies each grid point's corrected CF by its cluster's a."""
-    from vwf.harness.corrections import ScaledAffineWindCorrection
+    from pyvwf.harness.corrections import ScaledAffineWindCorrection
 
     model = ScaledAffineWindCorrection()
     clus_info = pd.DataFrame(
@@ -294,7 +294,7 @@ def test_scaled_affine_apply_scales_by_cluster_availability():
             return None, _wide_cf(times, {"a": 0.4, "b": 0.4})
 
     # Patch the parent apply to a known corrected CF, then check scaling.
-    import vwf.harness.corrections as c
+    import pyvwf.harness.corrections as c
 
     orig = c.AffineWindCorrection.apply
     c.AffineWindCorrection.apply = lambda self, *a, **k: _Affine().apply()

@@ -62,12 +62,17 @@ import numpy as np
 import pandas as pd
 
 import baseline_bootstrap as bb
-from vwf.harness.driver import load_obs_and_fleet
-from vwf.cli.common import make_parser
-from vwf.harness import driver
-from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
-from vwf.harness.regions import load_region
-from vwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
+from pyvwf.harness.driver import load_obs_and_fleet
+from pyvwf.cli.common import make_parser
+from pyvwf.harness import driver
+from pyvwf.harness.bootstrap import (
+    percentile_interval,
+    resample_counts,
+    weighted_mean,
+    weighted_rmse,
+)
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.skill import collapse_pseudo_replicates, restrict_to_common_rows
 
 COMPARED = ("rmse", "mbe", "mae", "n_units", "n_samples", "n_months")
 

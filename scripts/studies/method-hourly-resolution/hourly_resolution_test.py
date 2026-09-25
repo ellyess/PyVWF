@@ -69,16 +69,16 @@ sys.path.insert(0, "src")
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-import vwf.wind as wind  # noqa: E402
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.clustering import cluster_turbines  # noqa: E402
-from vwf.config import PyVWFPaths  # noqa: E402
-from vwf.curves import load_power_curves  # noqa: E402
-from vwf.datasets.cen_cl import local_to_utc, wind_rows  # noqa: E402
-from vwf.datasets.era5 import prep_era5  # noqa: E402
-from vwf.harness.corrections import get_correction  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
-from vwf.sources import get_source  # noqa: E402
+import pyvwf.wind as wind  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.clustering import cluster_turbines  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
+from pyvwf.curves import load_power_curves  # noqa: E402
+from pyvwf.datasets.cen_cl import local_to_utc, wind_rows  # noqa: E402
+from pyvwf.datasets.era5 import prep_era5  # noqa: E402
+from pyvwf.harness.corrections import get_correction  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
+from pyvwf.sources import get_source  # noqa: E402
 
 warnings.simplefilter("ignore")
 

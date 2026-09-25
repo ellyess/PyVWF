@@ -18,12 +18,12 @@ RESOURCE_FILES = ["power_curves.csv", "models.csv", "power_curves_provenance.csv
 def bundled():
     from importlib import resources
 
-    root = resources.files("vwf.resources")
+    root = resources.files("pyvwf.resources")
     return {name: pd.read_csv(str(root / name)) for name in RESOURCE_FILES}
 
 
 def test_repo_input_matches_the_bundled_resources():
-    """input/ and vwf/resources/ must not drift apart: reference_file prefers
+    """input/ and pyvwf/resources/ must not drift apart: reference_file prefers
     the former in a checkout and falls back to the latter when installed, and
     both paths have to produce identical numbers."""
     from importlib import resources
@@ -32,11 +32,11 @@ def test_repo_input_matches_the_bundled_resources():
     if not Path("input/reference/power_curves.csv").is_file():
         pytest.skip("not running from a repository checkout")
 
-    root = resources.files("vwf.resources")
+    root = resources.files("pyvwf.resources")
     for name in RESOURCE_FILES:
         repo = Path("input/reference") / name
         assert repo.read_bytes() == (root / name).read_bytes(), (
-            f"{name} differs between input/ and vwf/resources/"
+            f"{name} differs between input/ and pyvwf/resources/"
         )
 
 

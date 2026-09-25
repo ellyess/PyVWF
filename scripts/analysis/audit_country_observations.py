@@ -1,6 +1,6 @@
 """Audit every country-level observed CF series against physical bounds.
 
-Runs the gates in :mod:`vwf.loaders.country_obs_checks` over each region config
+Runs the gates in :mod:`pyvwf.loaders.country_obs_checks` over each region config
 with ``obs_level = "country"``, for both the train and test splits, and prints
 one row per split. Use it before trusting any country-level result: a series
 that fails here produces plausible-looking correction factors and a silently
@@ -24,9 +24,9 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from vwf.harness.driver import resolve_source  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
-from vwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
+from pyvwf.harness.driver import resolve_source  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
+from pyvwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
 
 CONFIG_DIR = REPO_ROOT / "configs" / "regions"
 

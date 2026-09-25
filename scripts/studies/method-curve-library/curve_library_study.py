@@ -6,7 +6,7 @@ assigned, or both, and holds everything else at the row's scorecard
 configuration.
 
 **Where the override is applied, and why it is not where it was.** The
-condition is applied in :func:`vwf.data.prep_country`, which is where a fleet
+condition is applied in :func:`pyvwf.data.prep_country`, which is where a fleet
 enters the pipeline and is ahead of every simulation. It was first applied to
 the frame ``train_set`` returns, which is one step too late: ``train_set``
 simulates the fleet before it returns, so the correction's wind scalar, fitted
@@ -81,10 +81,10 @@ import pandas as pd
 
 _HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(_HERE), str(_HERE.parents[1] / "analysis")]  # siblings, then the tools
-import vwf.data as vwf_data  # noqa: E402
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.harness import driver  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
+import pyvwf.data as vwf_data  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.harness import driver  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
 
 #: How many offending units an error message names. Enough to recognise the
 #: pattern, few enough to read.

@@ -15,19 +15,26 @@ this file stay in step with it.
 
 ### Breaking
 
+- **The package is imported as `pyvwf`, not `vwf`.** The distribution was
+  always `pyvwf` (`pip install pyvwf`) while the import name was `vwf`; the two
+  now match. The source moved from `src/vwf/` to `src/pyvwf/`, and every
+  `vwf.<module>` is `pyvwf.<module>` with nothing else changed. There is no
+  `vwf` alias: `import vwf` fails. This section uses the new name throughout;
+  the sections of released versions name modules as they shipped.
+
 - **The legacy `PyVWF` path is removed; the harness is the one path.** Gone:
-  the `PyVWF` class (`vwf.vwf`), the `pyvwf-train` console script, the batch
+  the `PyVWF` class (`vwf.vwf`, removed before the package was renamed), the `pyvwf-train` console script, the batch
   scripts `train_all_bias_corrections.py` and `evaluate_all_pyvwf_runs.py`,
   the year-specific grid loader (`load_year_specific_grid_points`), the
   `pyvwf_config.py` writer, and the harness-versus-legacy runners. The class
   duplicated the harness's orchestration with its own defaults and output
   layout, and diverged from it on the country level. The harness runs the
-  same correction functions (`vwf.correction`, `vwf.wind`, `vwf.data`), and
-  the golden regression test still pins that equivalence. `vwf` now exports
+  same correction functions (`pyvwf.correction`, `pyvwf.wind`, `pyvwf.data`), and
+  the golden regression test still pins that equivalence. `pyvwf` now exports
   `load_region`, `run_train`, `run_evaluate` and `run_transfer` in place of
   `PyVWF`. The last commit with the removed code is recorded in
   `docs/publications.md`.
-- **`vwf.viz.load_results` reads a harness evaluate run.** It took a legacy
+- **`pyvwf.viz.load_results` reads a harness evaluate run.** It took a legacy
   run directory, a country and a year; it now takes the region config and an
   evaluate run (`load_results(region, evaluate_run, *, train_run=None,
   source=None, weight_by_capacity=True)`). It reads the observations through
@@ -58,7 +65,7 @@ this file stay in step with it.
 - **`find_offset` has one offset search.** A bracketed root search replaces
   the iterative search and its scipy fallback, so `find_offset` loses its
   `max_iter`, `tolerance`, `initial_step` and `use_scipy_fallback` parameters,
-  and `vwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
+  and `pyvwf.correction.find_offset_iterative` and `MAX_OFFSET_RESIDUAL` are
   removed. The identifiability study that probes the iterative search keeps its
   own copy of it.
 
@@ -85,7 +92,7 @@ this file stay in step with it.
   worker; on the maintainer's machine that is 1,066 tests in 24 seconds.
 
 - **The joint national fit interpolates each cluster's winds once per period**
-  (`vwf.correction.find_offsets_country_level`), not on every evaluation of
+  (`pyvwf.correction.find_offsets_country_level`), not on every evaluation of
   its objective. The winds do not depend on the offsets, so the result is
   identical; the FR k=10 training pin runs in 114 s instead of 247 s.
 
@@ -94,23 +101,23 @@ this file stay in step with it.
   skip in the other jobs, run in CI. It fails if any test still skips for a
   missing import.
 
-- **`vwf.data` and `vwf.clustering` are split** (`vwf.country_level`,
-  `vwf.sampling`). The country-level observation and grid-fleet helpers moved
-  out of `vwf.data` (969 lines to 713), and every name is still importable
+- **`pyvwf.data` and `pyvwf.clustering` are split** (`pyvwf.country_level`,
+  `pyvwf.sampling`). The country-level observation and grid-fleet helpers moved
+  out of `pyvwf.data` (969 lines to 713), and every name is still importable
   from it. The country sampling grids and their Voronoi geometries
   (`create_sampling_points`, `cluster_with_geometries`,
-  `add_turbine_metadata`) moved out of `vwf.clustering` (884 lines to 383) to
-  `vwf.sampling`, which imports from `vwf.clustering`, so those three are
-  imported from `vwf.sampling` now. No behaviour changes.
+  `add_turbine_metadata`) moved out of `pyvwf.clustering` (884 lines to 383) to
+  `pyvwf.sampling`, which imports from `pyvwf.clustering`, so those three are
+  imported from `pyvwf.sampling` now. No behaviour changes.
 
-- **The harness driver is split in three** (`vwf.harness.records`,
-  `vwf.harness.scoring`). What a run records about its inputs and how an
-  evaluate run is scored moved out of `vwf.harness.driver`, which drops from
+- **The harness driver is split in three** (`pyvwf.harness.records`,
+  `pyvwf.harness.scoring`). What a run records about its inputs and how an
+  evaluate run is scored moved out of `pyvwf.harness.driver`, which drops from
   1,121 lines to 699 and keeps the run functions. Every name is still
   importable from the driver. No behaviour changes.
 
 - **A run refuses a run directory that already holds files**
-  (`vwf.harness.driver`). A reused `--run-name` wrote into the earlier run's
+  (`pyvwf.harness.driver`). A reused `--run-name` wrote into the earlier run's
   directory, so files the new run did not write, such as a factors file of
   another cluster count, stayed beside a manifest that did not describe them.
   Train, evaluate and transfer now raise `FileExistsError` instead.
@@ -122,7 +129,7 @@ this file stay in step with it.
   already runs; the classifiers, the README badge and the installation guide
   list it.
 
-- **One helper for every weighted mean** (`vwf.metrics.weighted_mean`, with a
+- **One helper for every weighted mean** (`pyvwf.metrics.weighted_mean`, with a
   grouped wrapper). Fifteen hand-written weighted means across the package now
   delegate to it, so a missing value is treated the same way everywhere: it
   leaves both the sum and the weights, and a group where nothing has a value
@@ -195,7 +202,7 @@ this file stay in step with it.
 ### Fixed
 
 - **The physics-informed curve bank keeps its gradient on a grid knot under
-  torch 2.14** (`vwf.pinn.physics.PowerCurveBank`). It clamped the
+  torch 2.14** (`pyvwf.pinn.physics.PowerCurveBank`). It clamped the
   interpolation fraction to 0 to 1 everywhere, and from torch 2.14 clamp
   passes no gradient at its bound, so at every speed that falls exactly on
   the 0.01 m/s grid the gradient with respect to wind speed was zero. The
@@ -203,7 +210,7 @@ this file stay in step with it.
   unchanged, and so are the gradients under torch 2.13.
 
 - **National country-level fits with more than one cluster take the joint
-  fit again** (`vwf.data.country_obs_is_per_cluster`). The router counted
+  fit again** (`pyvwf.data.country_obs_is_per_cluster`). The router counted
   distinct floats in each period's cluster observations, and the
   capacity-weighted cluster means of one national number differ in their
   last bits, so every national fit with more than one cluster was sent to
@@ -212,7 +219,7 @@ this file stay in step with it.
   spread against a tolerance. This moves every country-level scorecard row
   with more than one cluster; see the scorecard's notice.
 - **A country-level run on a curve the library lacks is refused**
-  (`vwf.harness.driver.CurveSubstitutionError`). Every country grid point
+  (`pyvwf.harness.driver.CurveSubstitutionError`). Every country grid point
   names one Vestas key, `Vestas.V80.2000`, `Vestas.V90.2000` or
   `Vestas.V90.3000`, which exist only in the licensed library, so on the
   default input root every unit of all eight country rows was simulated on
@@ -222,7 +229,7 @@ this file stay in step with it.
   `input/combined`. Turbine-level runs still record a substitution and go on.
   This moves every country-level scorecard row; see the scorecard's notice.
 - **The joint national fit closes a small error instead of stopping at zero**
-  (`vwf.correction.find_offsets_country_level`). Its objective is the squared
+  (`pyvwf.correction.find_offsets_country_level`). Its objective is the squared
   capacity-factor error, near 1e-4 at the start, and L-BFGS-B's `ftol` of
   1e-6 acts as an absolute threshold on a value that small, so a fit whose
   first step lowered it by less stopped with every offset still at zero. In
@@ -233,21 +240,21 @@ this file stay in step with it.
   the error to about 1e-7, the scale the per-cluster search holds its roots
   to.
 - **KMeans partitions no longer depend on the machine's thread count**
-  (`vwf.clustering`). scikit-learn's KMeans reduces over OpenMP threads, and
+  (`pyvwf.clustering`). scikit-learn's KMeans reduces over OpenMP threads, and
   a near-tie can fall differently at another thread count, so the same
-  fleet could be clustered differently on another machine. Importing `vwf`
+  fleet could be clustered differently on another machine. Importing `pyvwf`
   used to set one thread for the whole process as a side effect of the
   legacy module, which hid this and is what every published partition was
   made under. Every KMeans call now runs on one thread, reproducing those
   partitions on any machine without the process-wide setting.
 - **The power-curve cache cannot serve another table's curves**
-  (`vwf.wind._get_power_curve_cache`). It was keyed by `id()` of the curve
+  (`pyvwf.wind._get_power_curve_cache`). It was keyed by `id()` of the curve
   table and checked only the column names, so a later table that reused a
   dead table's id got the dead table's interpolators, and entries were never
   evicted. Each entry is now tied to its table's lifetime by a weak
   reference. The interpolators are built as before.
 - **Turbine-level training fits the config's `train_years`**
-  (`vwf.harness.driver.run_train`, `vwf.data.train_set`, `prep_country`).
+  (`pyvwf.harness.driver.run_train`, `pyvwf.data.train_set`, `prep_country`).
   Training asked each adapter for observations without years, so the
   adapter's hard-coded default window was the one fitted and the config's
   `train_years` reached only the manifest and the accepted-years count. The
@@ -263,25 +270,25 @@ this file stay in step with it.
   pointing to `pyvwf-validate`, which takes each region's own months. Every
   scorecard row runs through the harness and is unaffected.
 - **Evaluation refuses a training run that does not belong to its config**
-  (`vwf.harness.driver.run_evaluate`). It scored every `factors_*.csv` in
+  (`pyvwf.harness.driver.run_evaluate`). It scored every `factors_*.csv` in
   the training directory, so a file left by another configuration added a
   variant and could move the rows the reported variant is scored on; and it
   never read the training manifest. It now refuses factors outside the
   config's cluster counts and time slices, and a manifest naming another
   region, correction model or season mapping. A run with no manifest warns.
 - **A region config with an unknown key or section is refused**
-  (`vwf.harness.regions.load_region`). Every optional key has a default, so
+  (`pyvwf.harness.regions.load_region`). Every optional key has a default, so
   a misspelt one (`roughnes = "stored"`) was ignored and the default applied
   without a word. The loader now names the unknown key and lists the valid
   ones. `[seasons]` names stay free. Every committed config already loads.
 - **Legacy country-level training weights by the year's own capacity**
-  (`vwf.data.cluster_train_set`). When `PyVWF` merged year-specific grid
+  (`pyvwf.data.cluster_train_set`). When `PyVWF` merged year-specific grid
   capacities onto its training pairs, the cluster step merged the grid's
   static capacity as well, splitting the column in two, and the cluster
   mean fell back to equal weights without a warning. The year-specific
   capacity is now kept and used. The harness path never carries a capacity
   on its pairs, so no scorecard row is affected.
-- **The country-level joint offset fit refuses a failed fit** (`vwf.correction.find_offsets_country_level`).
+- **The country-level joint offset fit refuses a failed fit** (`pyvwf.correction.find_offsets_country_level`).
   It returned wherever L-BFGS-B stopped, without checking convergence,
   accepted offsets on the bound, and replaced an optimiser error with
   all-zero offsets; each of those then counted as an accepted year. Now a
@@ -291,7 +298,7 @@ this file stay in step with it.
   eight country-level scorecard rows hits any of the three. A converged fit
   with a large residual is still accepted; that gap is logged on #47.
 - **Corrected simulations keep each unit's own power curve and capacity**
-  (`vwf.wind.correct_wind_speed`). The function rebuilt the turbine axis in
+  (`pyvwf.wind.correct_wind_speed`). The function rebuilt the turbine axis in
   sorted ID order and then attached model keys and capacities by position in
   the fleet's own order, so a fleet whose IDs were not already sorted ran its
   corrected simulation on other units' curves and capacities. Factors and
@@ -308,7 +315,7 @@ this file stay in step with it.
   as a table, non-numeric columns exactly and numeric ones to 1e-15, which is
   the tolerance pandas 3 already needed for the same reason. Checked against a
   movement it must still catch as well as one it must not.
-- **Every entry point says which input root it read.** `vwf.cli.common`
+- **Every entry point says which input root it read.** `pyvwf.cli.common`
   announces the resolved root and how it was chosen, `PYVWF_INPUT` or the
   default, and names any input-path flag sent outside it. Which root a run
   read decides its numbers, because the curve library differs between
@@ -362,8 +369,8 @@ this file stay in step with it.
   `realdata` pins skip where their inputs are absent, which includes CI, so no
   pull request check can report that one moved. `CONTRIBUTING.md` and
   `AGENTS.md` now require a local `pytest -m realdata` and its result in the
-  description for any change under `vwf/harness/`, `vwf/metrics.py`,
-  `vwf/correction.py` or `vwf/data.py`, and a new pull request template
+  description for any change under `pyvwf/harness/`, `pyvwf/metrics.py`,
+  `pyvwf/correction.py` or `pyvwf/data.py`, and a new pull request template
   carries the checkbox. Both also say to resolve a row's input root the way
   its test does, because rerunning a combined-library row under the default
   root produces a difference that reads as a code change.
@@ -372,7 +379,7 @@ this file stay in step with it.
   `docs/design/manuscript-chapters-45.md` records decisions not yet made about
   work outside this repository, and is not documentation for anyone else. It is
   git-ignored and stays on disk, as `STATUS.md` is. The fourteen citations
-  across nine findings documents, and one in a `vwf.extensions.grid` docstring,
+  across nine findings documents, and one in a `pyvwf.extensions.grid` docstring,
   now link to its last tracked version rather than to a path the repository no
   longer has. `docs/README.md` states the policy, and `docs/conf.py` excludes
   every git-ignored page rather than that one by name, so a local build with a

@@ -104,7 +104,7 @@ def synthetic_dk(tmp_path, monkeypatch):
     """
     import test_pipeline as tp
 
-    from vwf.config import PyVWFPaths
+    from pyvwf.config import PyVWFPaths
 
     tp._write_era5(tmp_path / "era5")
     fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")

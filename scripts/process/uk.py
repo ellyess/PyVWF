@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.datasets.uk_roc import (
+from pyvwf.datasets.uk_roc import (
     divergence_report,
     pseudo_replicate_metadata,
     pseudo_replicate_observations,
@@ -33,7 +33,7 @@ from vwf.datasets.uk_roc import (
     repd_wind_metadata,
     roc_issuance_to_station_monthly,
 )
-from vwf.cli.common import add_input_path, input_path
+from pyvwf.cli.common import add_input_path, input_path
 
 UK_DIR = input_path("observations", "turbine", "UK")
 

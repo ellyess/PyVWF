@@ -1,4 +1,4 @@
-"""One rule for every weighted mean in the package (`vwf.metrics.weighted_mean`).
+"""One rule for every weighted mean in the package (`pyvwf.metrics.weighted_mean`).
 
 Each weighted mean used to be written by hand, and they did not agree on what
 a missing value means. Two cases decide it, and both are tested here against
@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.metrics import weighted_average_vectorized, weighted_mean, weighted_mean_by
+from pyvwf.metrics import weighted_average_vectorized, weighted_mean, weighted_mean_by
 
 
 def test_the_plain_case_is_the_weighted_mean():

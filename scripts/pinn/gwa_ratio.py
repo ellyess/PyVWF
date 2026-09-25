@@ -4,7 +4,7 @@
 For the `gwa-ratio` arm of docs/findings/method-physics-informed-turbine-prereg.md.
 Each unit gets ``R = GWA / E``: the atlas's mean 100 m speed within 2.5 km,
 over the unit's mean daily ERA5 100 m speed in its own split, clipped to the
-speed-up's bounds, and 1 where the atlas has no value (``vwf.pinn.gwa``).
+speed-up's bounds, and 1 where the atlas has no value (``pyvwf.pinn.gwa``).
 
 Reads the caches and the atlas files, and writes ``<CODE>_<split>.csv`` per
 region and split into ``--out``. It also writes ``gwa_record.json``, with the
@@ -25,9 +25,9 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.provenance import build_manifest, write_manifest  # noqa: E402
-from vwf.pinn.cache import load_cache  # noqa: E402
-from vwf.pinn.gwa import RATIO_BOUNDS, gwa_ratio  # noqa: E402
+from pyvwf.provenance import build_manifest, write_manifest  # noqa: E402
+from pyvwf.pinn.cache import load_cache  # noqa: E402
+from pyvwf.pinn.gwa import RATIO_BOUNDS, gwa_ratio  # noqa: E402
 
 ISO3 = {
     "DK": "DNK",

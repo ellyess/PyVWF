@@ -10,14 +10,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.datasets.cammesa_ar import (
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.cammesa_ar import (
     build_ar_metadata,
     capacity_suspect_ids,
     monthly_cf_from_gwh,
     strip_commissioning_prefix,
 )
-from vwf.sources.cammesa_ar import CAMMESAArgentinaSource
+from pyvwf.sources.cammesa_ar import CAMMESAArgentinaSource
 
 
 def _gwh(rows):
@@ -126,7 +126,7 @@ def test_build_metadata_exclude_allows_missing():
 
 # --------------------------------------------------------------- adapter
 def test_source_resolves_and_loads(monkeypatch, tmp_path):
-    from vwf.sources import resolve
+    from pyvwf.sources import resolve
 
     ar = tmp_path / "AR"
     ar.mkdir()

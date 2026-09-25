@@ -33,9 +33,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import add_input_path
-from vwf.datasets.gwpt import load_gwpt, projects_with_keys
-from vwf.datasets.cammesa_ar import (
+from pyvwf.cli.common import add_input_path
+from pyvwf.datasets.gwpt import load_gwpt, projects_with_keys
+from pyvwf.datasets.cammesa_ar import (
     ar_plant_key,
     build_ar_metadata,
     capacity_suspect_ids,

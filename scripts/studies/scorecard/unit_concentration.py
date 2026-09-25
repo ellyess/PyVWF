@@ -58,12 +58,17 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
-from vwf.cli.common import make_parser
-from vwf.harness.driver import load_obs_and_fleet
-from vwf.harness.bootstrap import percentile_interval, resample_counts, weighted_mean, weighted_rmse
-from vwf.harness.driver import tidy_eval_frame
-from vwf.harness.regions import load_region
-from vwf.harness.skill import collapse_pseudo_replicates
+from pyvwf.cli.common import make_parser
+from pyvwf.harness.driver import load_obs_and_fleet
+from pyvwf.harness.bootstrap import (
+    percentile_interval,
+    resample_counts,
+    weighted_mean,
+    weighted_rmse,
+)
+from pyvwf.harness.driver import tidy_eval_frame
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.skill import collapse_pseudo_replicates
 
 
 def main(code, out_dir, backfill=bb.BACKFILL):

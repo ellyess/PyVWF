@@ -21,8 +21,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.harness.corrections import available_corrections, get_correction
-from vwf.harness.driver import _country_skill, _zonal_skill
+from pyvwf.harness.corrections import available_corrections, get_correction
+from pyvwf.harness.driver import _country_skill, _zonal_skill
 
 
 @pytest.fixture
@@ -105,7 +105,7 @@ def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
     """The control is only valid if the two models differ in exactly one term.
     The affine model's offset solver is stubbed out so the comparison can run
     without ERA5, leaving the scalars as the only thing being compared."""
-    import vwf.correction as correction
+    import pyvwf.correction as correction
 
     monkeypatch.setattr(
         correction,

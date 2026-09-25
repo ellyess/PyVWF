@@ -37,10 +37,10 @@ import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 from scipy.stats import spearmanr  # noqa: E402
 
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.data import train_set  # noqa: E402
-from vwf.harness.driver import era5_dir, load_obs_and_fleet, resolve_source  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.data import train_set  # noqa: E402
+from pyvwf.harness.driver import era5_dir, load_obs_and_fleet, resolve_source  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
 
 warnings.simplefilter("ignore")
 

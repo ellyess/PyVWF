@@ -46,12 +46,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from vwf.cli.common import make_parser
-from vwf.config import BoundingBoxes
-from vwf.curves import load_power_curves
-from vwf.datasets.era5 import prep_era5
-from vwf.extensions.grid import evaluate, interpolation as interp, surface
-from vwf.wind import interpolate_wind
+from pyvwf.cli.common import make_parser
+from pyvwf.config import BoundingBoxes
+from pyvwf.curves import load_power_curves
+from pyvwf.datasets.era5 import prep_era5
+from pyvwf.extensions.grid import evaluate, interpolation as interp, surface
+from pyvwf.wind import interpolate_wind
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 RUNS = Path("output/runs/turbine_grid")

@@ -190,16 +190,22 @@ def main():
 
     import torch
 
-    from vwf.provenance import build_manifest, write_manifest
-    from vwf.harness.regions import load_region
-    from vwf.pinn.runs import (
+    from pyvwf.provenance import build_manifest, write_manifest
+    from pyvwf.harness.regions import load_region
+    from pyvwf.pinn.runs import (
         config_record,
         region_record,
         resolve_configs,
         score_national_on_common_months,
         score_on_common_rows,
     )
-    from vwf.pinn.train import fit, load_regions, off_curve_shares, predict_frame, predict_national
+    from pyvwf.pinn.train import (
+        fit,
+        load_regions,
+        off_curve_shares,
+        predict_frame,
+        predict_national,
+    )
 
     if build_manifest()["git_dirty"] and not args.allow_dirty:
         raise SystemExit(

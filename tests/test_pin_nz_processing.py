@@ -2,9 +2,9 @@
 
 The capacity history, the build mask and the Generation_MD melt that produce
 the NZ inputs were written in ``scripts/process/emi_nz.py``, and they are the
-production path: the register-based versions in ``vwf.datasets.emi_nz`` are
+production path: the register-based versions in ``pyvwf.datasets.emi_nz`` are
 tested but unused. These tests pinned what that code produced before it moved
-into ``vwf.datasets.emi_nz``, so the move could only move code, not change
+into ``pyvwf.datasets.emi_nz``, so the move could only move code, not change
 output. Only the names the unit layer calls changed with the move.
 
 Three layers:
@@ -56,7 +56,7 @@ def _load_script():
 
 nz = _load_script()
 
-import vwf.datasets.emi_nz as emi  # noqa: E402  (the promoted helpers)
+import pyvwf.datasets.emi_nz as emi  # noqa: E402  (the promoted helpers)
 
 
 def _read(name: str) -> pd.DataFrame:

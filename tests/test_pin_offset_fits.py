@@ -61,8 +61,8 @@ CASES = {
 
 TRAIN = """
 import dataclasses, sys
-from vwf.harness import driver
-from vwf.harness.regions import load_region
+from pyvwf.harness import driver
+from pyvwf.harness.regions import load_region
 spec = dataclasses.replace(load_region(sys.argv[1]), time_slices=("fixed",))
 print(driver.run_train(spec, sys.argv[2], run_name="pin"))
 """

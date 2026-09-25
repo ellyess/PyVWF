@@ -7,15 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from vwf.config import PyVWFPaths
-from vwf.provenance import (
+from pyvwf.config import PyVWFPaths
+from pyvwf.provenance import (
     MANIFEST_NAME,
     build_manifest,
     curve_library_identity,
     write_manifest,
     write_manifest_safe,
 )
-from vwf.harness.regions import load_region
+from pyvwf.harness.regions import load_region
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs" / "regions"
 
@@ -30,7 +30,7 @@ def empty_input_root(tmp_path, monkeypatch):
 
 
 def bundled(filename: str) -> Path:
-    return Path(str(resources.files("vwf.resources") / filename))
+    return Path(str(resources.files("pyvwf.resources") / filename))
 
 
 def test_bundled_tables_label_synthetic(empty_input_root):

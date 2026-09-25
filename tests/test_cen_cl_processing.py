@@ -10,16 +10,16 @@ import pandas as pd
 import pytest
 
 # Module-level so the monkeypatch hits the class the adapter closed over,
-# even after another test reloads vwf.config (the NZ-adapter reload gotcha).
-from vwf.config import PyVWFPaths
-from vwf.datasets.cen_cl import (
+# even after another test reloads pyvwf.config (the NZ-adapter reload gotcha).
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.cen_cl import (
     build_cl_metadata,
     monthly_cf_from_generation,
     strip_commissioning_prefix,
     wind_fleet_from_generation,
     wind_rows,
 )
-from vwf.sources.cen_cl import CENChileSource
+from pyvwf.sources.cen_cl import CENChileSource
 
 
 def gen_hours(
@@ -172,7 +172,7 @@ def test_build_metadata_exclude_allows_missing_coord():
 
 # --------------------------------------------------------------- adapter
 def test_source_resolves_and_loads(monkeypatch, tmp_path):
-    from vwf.sources import resolve
+    from pyvwf.sources import resolve
 
     cl = tmp_path / "CL"
     cl.mkdir()

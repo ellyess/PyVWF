@@ -25,14 +25,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.datasets.gwpt import load_gwpt, operating_projects
-from vwf.datasets.windstats import (
+from pyvwf.datasets.gwpt import load_gwpt, operating_projects
+from pyvwf.datasets.windstats import (
     build_windstats_metadata,
     match_twp_to_coords,
     windstats_metadata,
     windstats_monthly_cf,
 )
-from vwf.cli.common import add_input_path, input_path
+from pyvwf.cli.common import add_input_path, input_path
 
 GEO_NAME = {"ES": "spain", "SE": "sweden", "FI": "finland"}
 GWPT_COUNTRY = {"ES": "Spain", "SE": "Sweden", "FI": "Finland"}

@@ -13,9 +13,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-import vwf.harness.driver as driver
-from vwf.data import prep_country
-from vwf.harness.regions import load_region
+import pyvwf.harness.driver as driver
+from pyvwf.data import prep_country
+from pyvwf.harness.regions import load_region
 
 CONFIG = """
 [region]

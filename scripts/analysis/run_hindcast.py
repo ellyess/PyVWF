@@ -27,8 +27,8 @@ sys.path.insert(0, "src")
 
 warnings.simplefilter("ignore")
 
-from vwf.harness.hindcast import rank_in_context, run_hindcast  # noqa: E402
-from vwf.harness.regions import load_region  # noqa: E402
+from pyvwf.harness.hindcast import rank_in_context, run_hindcast  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
 
 
 def main() -> int:

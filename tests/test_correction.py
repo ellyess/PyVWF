@@ -4,14 +4,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.correction import (
+from pyvwf.correction import (
     calculate_scalar,
     find_offset,
 )
 from scipy import interpolate as interp
 
-import vwf.correction as correction
-from vwf.wind import interpolate_wind, prepare_offset_arrays, fast_simulate_cf
+import pyvwf.correction as correction
+from pyvwf.wind import interpolate_wind, prepare_offset_arrays, fast_simulate_cf
 
 
 def _bias_df(obs, sim):

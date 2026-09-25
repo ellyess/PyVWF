@@ -1,34 +1,34 @@
-# Import contracts for src/vwf. Checked in CI with `lint-imports`.
+# Import contracts for src/pyvwf. Checked in CI with `lint-imports`.
 #
 # A module may import from the layers below it, never from a layer above. The
 # layering was derived from an AST pass over every module (the repository
 # audit of 2026-09-18) and holds with no ignored imports. What import-linter
 # cannot express, because it models modules rather than names and scripts/ is
-# not a package, is that scripts use only public vwf names; that rule is a test,
+# not a package, is that scripts use only public pyvwf names; that rule is a test,
 # tests/test_public_analysis_api.py.
 
 [importlinter]
-root_package = vwf
+root_package = pyvwf
 # An import under `if TYPE_CHECKING:` is for annotations and never runs.
 exclude_type_checking_imports = True
 
-[importlinter:contract:vwf-layers]
+[importlinter:contract:pyvwf-layers]
 name = PyVWF layers
 type = layers
 layers =
-    vwf.cli | vwf.extensions | vwf.pinn | vwf.viz
-    vwf.harness
-    vwf.data
-    vwf.sources | vwf.country_level
-    vwf.loaders | vwf.datasets | vwf.provenance | vwf.curves
-    vwf.correction | vwf.sampling
-    vwf.clustering | vwf.wind
-    vwf.config | vwf.utils | vwf.time_utils | vwf.metrics | vwf.geospatial | vwf.resources | vwf._version
+    pyvwf.cli | pyvwf.extensions | pyvwf.pinn | pyvwf.viz
+    pyvwf.harness
+    pyvwf.data
+    pyvwf.sources | pyvwf.country_level
+    pyvwf.loaders | pyvwf.datasets | pyvwf.provenance | pyvwf.curves
+    pyvwf.correction | pyvwf.sampling
+    pyvwf.clustering | pyvwf.wind
+    pyvwf.config | pyvwf.utils | pyvwf.time_utils | pyvwf.metrics | pyvwf.geospatial | pyvwf.resources | pyvwf._version
 
 [importlinter:contract:harness-layers]
 name = Harness layers
 type = layers
-containers = vwf.harness
+containers = pyvwf.harness
 layers =
     driver | export | hindcast
     records | scoring
@@ -38,7 +38,7 @@ layers =
 [importlinter:contract:pinn-layers]
 name = PINN layers
 type = layers
-containers = vwf.pinn
+containers = pyvwf.pinn
 layers =
     train | runs
     cache

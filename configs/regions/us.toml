@@ -1,7 +1,7 @@
 # Region config for the multi-region validation harness (docs/design/harness.md).
 # Seasons are EXPLICIT month lists; the US is Northern Hemisphere, so these
 # coincide with the legacy NH mapping, but they are stated, not inherited, so
-# the harness never depends on vwf.time_utils for this region.
+# the harness never depends on pyvwf.time_utils for this region.
 
 [region]
 code = "US"

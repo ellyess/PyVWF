@@ -17,7 +17,7 @@ sphinx:
 
 python:
   install:
-    # autodoc imports vwf, so install the package itself (with its runtime
+    # autodoc imports pyvwf, so install the package itself (with its runtime
     # dependencies) plus the docs extra.
     - method: pip
       path: .

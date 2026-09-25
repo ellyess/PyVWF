@@ -43,9 +43,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.extensions.grid import interpolation as interp, surface
-from vwf.extensions.grid.surface import PLAUSIBLE_SCALAR, flag_implausible, zero_crossing_speed
+from pyvwf.cli.common import make_parser
+from pyvwf.extensions.grid import interpolation as interp, surface
+from pyvwf.extensions.grid.surface import PLAUSIBLE_SCALAR, flag_implausible, zero_crossing_speed
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 SHAPES = Path("input/reference/shapes")

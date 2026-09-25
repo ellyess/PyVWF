@@ -88,9 +88,9 @@ def _make_observations(turbines: pd.DataFrame) -> pd.DataFrame:
     bias (TRUE_SCALAR, TRUE_OFFSET) to the simulated capacity factor. This is
     what ``run_minimal.py`` then recovers blind."""
     import pandas as pd  # local, so the file top stays import-light
-    from vwf.config import PyVWFPaths
-    from vwf.datasets.era5 import prep_era5
-    from vwf.wind import train_simulate_wind
+    from pyvwf.config import PyVWFPaths
+    from pyvwf.datasets.era5 import prep_era5
+    from pyvwf.wind import train_simulate_wind
 
     PyVWFPaths.ERA5_DATA = ERA5_DIR
     ds = prep_era5("example", train=False, calc_z0=True, bbox=None)

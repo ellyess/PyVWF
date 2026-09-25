@@ -5,7 +5,7 @@ Two strategies, per the D2 rulings:
 
 REAL library (PRIMARY, the gate):
     The method-consistent, D1-validated path: farms with a sourced rotor
-    diameter go through the SAME vwf.curves.add_models logic as every other
+    diameter go through the SAME pyvwf.curves.add_models logic as every other
     region (fuzzy manufacturer + nearest p_density, global p_density
     fallback), fed with per-turbine capacity. Manufacturer-only farms match
     within manufacturer by nearest per-turbine RATED CAPACITY; fallback
@@ -31,7 +31,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from vwf.cli.common import add_input_path
+from pyvwf.cli.common import add_input_path
 
 
 def main() -> None:
@@ -42,7 +42,7 @@ def main() -> None:
     ap.add_argument("--open-curves", required=True, help="open power-curve CSV path")
     args = ap.parse_args()
 
-    from vwf.curves import add_models  # resolves models.csv via PYVWF_INPUT
+    from pyvwf.curves import add_models  # resolves models.csv via PYVWF_INPUT
 
     md = pd.read_csv(args.md, parse_dates=["commissioning_date"])
     tm = pd.read_csv(args.models_csv)
@@ -86,7 +86,7 @@ def main() -> None:
     real = merged.merge(matched, on="ID", how="left")
     real["model_source"] = np.where(real["model"].notna(), "add_models", None)
 
-    from vwf.config import PyVWFPaths
+    from pyvwf.config import PyVWFPaths
 
     cat = pd.read_csv(PyVWFPaths.reference_file("models.csv"))
     cat["mk"] = cat["manufacturer"].astype(str).str.lower()

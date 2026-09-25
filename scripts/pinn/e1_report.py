@@ -27,7 +27,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
-from vwf.harness.regions import load_region  # noqa: E402
+from pyvwf.harness.regions import load_region  # noqa: E402
 
 E1 = ROOT / "output" / "pinn" / "e1"
 SWEEP = ROOT / "output" / "validation" / "cluster_sweep_2026-07-24"

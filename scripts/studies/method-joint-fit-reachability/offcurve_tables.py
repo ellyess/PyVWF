@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from vwf.cli.common import make_parser
+from pyvwf.cli.common import make_parser
 
 UNREACHABLE, NEAR = 1e-6, 0.05
 

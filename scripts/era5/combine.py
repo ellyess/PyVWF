@@ -19,7 +19,7 @@ US/BR configs point ``[era5] path`` at.
 Order matters and is preserved from the legacy pipeline: wind SPEED is computed
 from HOURLY components first and only then daily-averaged (mean-of-speed, not
 speed-of-mean-components), and roughness is derived from the hourly 10 m/100 m
-shear exactly as ``vwf.datasets.era5.prep_era5`` does; prep_era5 detects the
+shear exactly as ``pyvwf.datasets.era5.prep_era5`` does; prep_era5 detects the
 precomputed ``wnd100m``/``roughness`` and skips recomputation.
 """
 
@@ -32,8 +32,8 @@ import numpy as np
 import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from vwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear  # noqa: E402
-from vwf.harness.regions import load_region_by_code  # noqa: E402
+from pyvwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear  # noqa: E402
+from pyvwf.harness.regions import load_region_by_code  # noqa: E402
 
 
 def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:

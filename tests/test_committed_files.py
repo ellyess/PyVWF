@@ -36,7 +36,7 @@ ALLOWED_DESPITE_IGNORE = {
 
 
 #: sha256 of the open library, as committed. The two copies (the repository's
-#: input/reference/ and the wheel's vwf/resources/) must both match. A filename
+#: input/reference/ and the wheel's pyvwf/resources/) must both match. A filename
 #: check cannot see the mistake input/README.md walks a user towards, copying the
 #: licensed library over power_curves.csv; nor can the byte-identity test in
 #: test_curve_library.py, since overwriting both copies keeps them identical.
@@ -82,7 +82,7 @@ def test_no_licensed_curve_file_is_tracked():
     assert not [p for p in tracked if p.endswith(".real.csv")]
 
 
-@pytest.mark.parametrize("copy", ["input/reference", "src/vwf/resources"])
+@pytest.mark.parametrize("copy", ["input/reference", "src/pyvwf/resources"])
 @pytest.mark.parametrize("name", sorted(OPEN_LIBRARY_SHA256))
 def test_open_library_content_is_the_recorded_one(copy, name):
     path = ROOT / copy / name

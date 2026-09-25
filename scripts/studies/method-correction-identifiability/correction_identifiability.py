@@ -42,7 +42,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
+from pyvwf.cli.common import make_parser
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 

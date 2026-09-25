@@ -14,7 +14,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from vwf.datasets.fetch_entsoe_capacity_factors import (
+from pyvwf.datasets.fetch_entsoe_capacity_factors import (
     ENTSOEWindDataFetcher,
     _wind_kinds,
 )

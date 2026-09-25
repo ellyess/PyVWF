@@ -12,8 +12,8 @@
 
 Tick the first box or the second, not both.
 
-- [ ] This pull request changes nothing under `vwf/harness/`,
-      `vwf/metrics.py`, `vwf/correction.py` or `vwf/data.py`, so the
+- [ ] This pull request changes nothing under `pyvwf/harness/`,
+      `pyvwf/metrics.py`, `pyvwf/correction.py` or `pyvwf/data.py`, so the
       real-data pins cannot be affected.
 - [ ] I ran `pytest -m realdata` locally and the result is below.
 

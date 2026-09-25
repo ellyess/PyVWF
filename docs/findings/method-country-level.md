@@ -384,7 +384,7 @@ the condition under which per-cluster offsets are estimable.
 
 **Correction notice, 2026-09-15: the per-zone figures below are not errors
 against observed capacity factors.** Each Swedish bidding zone's capacity is
-back-derived from its own generation. `vwf.datasets.fetch_entsoe_capacity_factors`
+back-derived from its own generation. `pyvwf.datasets.fetch_entsoe_capacity_factors`
 falls back to `estimated_cap = gen["generation_mw"].max() / 0.9` when ENTSO-E's
 installed-capacity endpoint returns nothing, and all sixteen Swedish zonal
 files, `se_1` through `se_4` across every split, peak at **exactly 0.900**,

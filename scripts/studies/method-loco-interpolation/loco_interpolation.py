@@ -12,7 +12,7 @@ scored including the hard ones, the Netherlands fold scored and primary, mean
 absolute error primary with R-squared beside it, scalar error in both linear
 and log space, and distance great-circle with Euclidean degrees beside it.
 
-The interpolators are ``vwf.extensions.grid.interpolation``, ported from the
+The interpolators are ``pyvwf.extensions.grid.interpolation``, ported from the
 chapter's own script, so this study and the offshore pool study share one
 definition of every number.
 
@@ -30,8 +30,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from vwf.cli.common import make_parser
-from vwf.extensions.grid import interpolation as interp
+from pyvwf.cli.common import make_parser
+from pyvwf.extensions.grid import interpolation as interp
 
 POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
 

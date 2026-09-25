@@ -47,12 +47,12 @@ quality and correction notices.
 
 ## The driver
 
-A driver is a thin entry point over `vwf`.
+A driver is a thin entry point over `pyvwf`.
 
-- **Put reusable logic in `src/vwf/`.** Logic that two studies need belongs
+- **Put reusable logic in `src/pyvwf/`.** Logic that two studies need belongs
   there. Logic that only this study needs can stay in the driver.
 - **Parse the command line in a `cli(argv)` function.** Build the parser with
-  `vwf.cli.common.make_parser(__doc__)`. Have `cli` call `main` with the
+  `pyvwf.cli.common.make_parser(__doc__)`. Have `cli` call `main` with the
   parsed values.
 - **Record the command line in the module docstring.** Write it as a usage
   line, run from the repository root.
@@ -62,7 +62,7 @@ A driver is a thin entry point over `vwf`.
 - **Keep registered constants in code.** Seeds, draw counts, gates, cluster
   grids and fold definitions stay module constants. A flag would let a run
   differ from its record without trace.
-- **Use public `vwf` names only.** `tests/test_public_analysis_api.py` fails
+- **Use public `pyvwf` names only.** `tests/test_public_analysis_api.py` fails
   on a script that imports a private name.
 
 The directory names under `scripts/studies/` are not valid module names. A

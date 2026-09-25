@@ -1,4 +1,4 @@
-"""Onshore and offshore classification (src/vwf/geospatial.py).
+"""Onshore and offshore classification (src/pyvwf/geospatial.py).
 
 Ported from the `development` branch, where it carried no tests at all.
 
@@ -18,7 +18,7 @@ import json
 import pandas as pd
 import pytest
 
-from vwf import geospatial
+from pyvwf import geospatial
 
 
 def square(lon0, lat0, lon1, lat1):

@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from vwf.time_utils import (
+from pyvwf.time_utils import (
     parse_time_slice,
     add_time_resolution_columns,
     TIME_SLICE_MAPPING,
@@ -108,7 +108,7 @@ def test_explicit_nh_seasons_match_default_exactly():
 def test_month_days_rows_and_a_single_month():
     import pandas as pd
 
-    from vwf.time_utils import month_days
+    from pyvwf.time_utils import month_days
 
     years = pd.Series([2019, 2020, 2021, 2024], index=[10, 11, 12, 13])
     months = pd.Series([2, 2, 12, 4], index=[10, 11, 12, 13])
