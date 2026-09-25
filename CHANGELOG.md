@@ -145,6 +145,17 @@ this file stay in step with it.
   national series, instead of the documented joint fit. It now compares the
   spread against a tolerance. This moves every country-level scorecard row
   with more than one cluster; see the scorecard's notice.
+- **The joint national fit closes a small error instead of stopping at zero**
+  (`vwf.correction.find_offsets_country_level`). Its objective is the squared
+  capacity-factor error, near 1e-4 at the start, and L-BFGS-B's `ftol` of
+  1e-6 acts as an absolute threshold on a value that small, so a fit whose
+  first step lowered it by less stopped with every offset still at zero. In
+  the 540 national fits recorded on 2026-09-25, 47 stopped after one or two
+  iterations (ES 25, NO 21, BE 1). Every fit left with an error above 1e-3
+  (ES 22, NO 16, up to 1.1e-2) was one of them, its offsets within 0.054 m/s
+  of zero. The tolerances are now `ftol=1e-12` and `gtol=1e-8`, which close
+  the error to about 1e-7, the scale the per-cluster search holds its roots
+  to.
 - **KMeans partitions no longer depend on the machine's thread count**
   (`vwf.clustering`). scikit-learn's KMeans reduces over OpenMP threads, and
   a near-tie can fall differently at another thread count, so the same

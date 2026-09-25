@@ -37,7 +37,11 @@ CASES = {
     # Country-level national fits with more than one cluster, added 2026-09-25
     # when the router was found sending them to the per-cluster solver
     # (ac26f6a): until then no pin reached the joint fit, so the realdata
-    # stamp passed while every such factor could move.
+    # stamp passed while every such factor could move. Re-recorded the same day
+    # when the joint fit's stopping tolerances were tightened: the ES offsets
+    # had stayed at the zero start (about 2e-5 m/s) and moved to 0.003 to 0.011
+    # m/s; the FR offsets moved by at most 5.3e-4 m/s; scalars and accepted
+    # years unchanged in both.
     "fr_country_k10": ("configs/regions/scorecard/fr_country.toml", "input", 10, "era5/EU_2026-09"),
     "es_country_k4": ("configs/regions/scorecard/es_country.toml", "input", 4, "era5/EU_2026-09"),
 }

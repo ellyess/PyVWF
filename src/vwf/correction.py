@@ -89,6 +89,18 @@ OFFSET_XTOL = 1e-6
 #: jumping, not by crossing zero: an off-curve value dropping out of the mean.
 BRACKETED_MAX_RESIDUAL = 1e-6
 
+#: Stopping tolerances of the country-level joint offset fit. Its objective is
+#: the squared capacity-factor error, about 1e-4 at the start of a typical
+#: fit, and L-BFGS-B divides the change in it by ``max(|f|, 1)``, so ``ftol``
+#: acts as an absolute threshold. At the former 1e-6, a fit whose first step
+#: lowered the squared error by less than that stopped there: an error of
+#: 3e-3 capacity factor was left in full, with the offsets still at zero. At
+#: 1e-12 the fit stops once the error is near 1e-6, and ``gtol`` stops it
+#: near 1e-7, the same scale as ``BRACKETED_MAX_RESIDUAL``. Tighter still,
+#: the line search runs into rounding and reports an abnormal end.
+JOINT_FIT_FTOL = 1e-12
+JOINT_FIT_GTOL = 1e-8
+
 
 def _find_offset_bracketed(
     row,
@@ -323,7 +335,11 @@ def find_offsets_country_level(
     where = f"year={year}, time_slice={time_slice}"
     try:
         result = minimize(
-            objective, x0, method="L-BFGS-B", bounds=bounds, options={"maxiter": 50, "ftol": 1e-6}
+            objective,
+            x0,
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={"maxiter": 50, "ftol": JOINT_FIT_FTOL, "gtol": JOINT_FIT_GTOL},
         )
     except Exception as e:
         warnings.warn(f"Country offset fit raised for {where}; offsets refused: {e}", stacklevel=2)
