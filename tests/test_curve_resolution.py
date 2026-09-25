@@ -128,6 +128,16 @@ def test_country_grid_on_the_bundled_library_is_fully_substituted(bundled_curves
     assert set(summary["substitutions"].values()) == {BUNDLED_FALLBACK}
 
 
+def test_the_grid_generator_names_the_keys_the_grids_carry():
+    """The generator's table named FR "V80" and BE, NO and NL "V90" until
+    2026-09-25, keys in no library, while the grids on disk carry the full
+    keys. A regenerated grid would have been refused on any root."""
+    from vwf.datasets.country_grid import COUNTRY_CONFIGS
+
+    keys = {code: config["model"] for code, config in COUNTRY_CONFIGS.items()}
+    assert set(keys.values()) <= {"Vestas.V80.2000", "Vestas.V90.2000", "Vestas.V90.3000"}, keys
+
+
 def test_origin_is_decided_by_curve_values_not_names(bundled_curves):
     """A key only counts as open if it carries the open curve: an extra column
     is external, and so is an open name whose values were changed."""

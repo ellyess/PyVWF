@@ -5,8 +5,10 @@ so its fleet is a set of grid points rather than real turbines. This module
 builds them: a regular grid inside the country's box, clustered with k-means
 into Voronoi regions, or, for Norway and Sweden, one grid per bidding zone
 with the zone as its cluster. Every point carries the same representative
-turbine; ``scripts/region_tools/weight_country_grid_points.py`` replaces the
-uniform capacities with real ones from the Global Wind Power Tracker.
+turbine, named by its key in the licensed curve library (the open library has
+none of the three, and a country run refuses a missing curve);
+``scripts/region_tools/weight_country_grid_points.py`` replaces the uniform
+capacities with real ones from the Global Wind Power Tracker.
 
 Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 """
@@ -27,7 +29,7 @@ COUNTRY_CONFIGS = {
         "name": "Netherlands",
         "bounds": box(3.3, 50.7, 7.2, 53.6),
         "height": 100.0,  # Modern onshore fleet
-        "model": "V90",  # Vestas 3MW
+        "model": "Vestas.V90.3000",  # 3 MW turbine
         "capacity": 3.0,  # Average capacity
         "grid_resolution": 0.25,  # ~25km grid
         "num_clusters": 5,  # Spatial regions
@@ -36,7 +38,7 @@ COUNTRY_CONFIGS = {
         "name": "France",
         "bounds": box(-5.0, 42.0, 8.5, 51.2),
         "height": 90.0,  # Mix of old and modern
-        "model": "V80",  # Vestas 2MW
+        "model": "Vestas.V80.2000",  # 2 MW turbine
         "capacity": 2.5,
         "grid_resolution": 0.5,  # ~50km grid (larger country)
         "num_clusters": 10,  # More regions
@@ -45,7 +47,7 @@ COUNTRY_CONFIGS = {
         "name": "Belgium",
         "bounds": box(2.5, 49.5, 6.4, 51.5),
         "height": 100.0,  # Modern fleet
-        "model": "V90",
+        "model": "Vestas.V90.3000",  # 3 MW turbine
         "capacity": 3.0,
         "grid_resolution": 0.25,
         "num_clusters": 3,  # Smaller country
@@ -54,7 +56,7 @@ COUNTRY_CONFIGS = {
         "name": "Norway",
         "bounds": box(4.5, 58.0, 31.0, 71.5),  # Full country (for reference)
         "height": 80.0,  # Mountain terrain, lower heights
-        "model": "V90",
+        "model": "Vestas.V90.3000",  # 3 MW turbine
         "capacity": 3.0,
         "grid_resolution": 1.0,  # ~100km grid (large country, sparse turbines)
         "use_bidding_zones": True,  # ← Use zones instead of KMeans
