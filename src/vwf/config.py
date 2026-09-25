@@ -34,15 +34,10 @@ class PyVWFPaths:
     #   observations/{turbine,country}/  processed CF the adapters read
     #   era5/                 reanalysis, per region
     #   reference/            static shared lookups (curves, models, shapes, terrain)
-    COUNTRY_DATA = INPUT_ROOT / "country-data"
     TURBINE_DATA = INPUT_ROOT / "observations" / "turbine"
     COUNTRY_LEVEL_DATA = INPUT_ROOT / "observations" / "country"
     REGIONS = INPUT_ROOT / "reference" / "shapes"
     ERA5_DATA = INPUT_ROOT / "era5" / "EU"
-
-    # Static reference files
-    POWER_CURVES = INPUT_ROOT / "reference" / "power_curves.csv"
-    TURBINE_MODELS = INPUT_ROOT / "reference" / "models.csv"
 
     # Regional shapes
     COUNTRY_SHAPES = REGIONS / "country_shapes.geojson"
@@ -126,40 +121,6 @@ class PyVWFPaths:
         """
         country_lower = country.lower()
         return cls.TURBINE_DATA / country.upper() / f"{country_lower}_md.csv"
-
-    @classmethod
-    def get_country_level_grid_points(cls, country: str) -> Path:
-        """Get path to country-level grid points file.
-
-        Args:
-            country: Country code (e.g., 'NL', 'FR', 'BE').
-
-        Returns:
-            Path to grid points CSV file.
-        """
-        country_lower = country.lower()
-        return (
-            cls.COUNTRY_LEVEL_DATA
-            / "grid_points"
-            / country_lower
-            / f"{country_lower}_grid_points.csv"
-        )
-
-    @classmethod
-    def get_country_level_observations(cls, country: str, train: bool = True) -> Path:
-        """Get path to country-level observation file.
-
-        Args:
-            country: Country code (e.g., 'NL', 'FR', 'BE').
-            train: If True, return training observations path.
-
-        Returns:
-            Path to observations CSV file.
-        """
-        country_lower = country.lower()
-        obs_dir = cls.COUNTRY_LEVEL_DATA / "observations" / country_lower
-        # This is a template - actual filenames vary by year range
-        return obs_dir
 
 
 class BoundingBoxes:

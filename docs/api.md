@@ -114,7 +114,7 @@ learned wind-speed correction.
 .. automodule:: vwf.wind
    :members: interpolate_wind, simulate_wind, correct_wind_speed,
              train_simulate_wind, train_simulate_wind_from_ws, fast_simulate_cf,
-             prepare_offset_arrays, aggregate_turbines_to_grid, simulate_country_cf
+             prepare_offset_arrays, aggregate_turbines_to_grid
 ```
 
 ## Bias correction

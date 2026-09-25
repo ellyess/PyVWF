@@ -16,6 +16,7 @@ harness always passes the region's explicit definitions.
 from __future__ import annotations
 
 import os
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Mapping, Sequence
 
@@ -340,6 +341,43 @@ def _override_season_column(
     return df
 
 
+def _offsets_by_observation(
+    frame: pd.DataFrame,
+    clus_info: pd.DataFrame,
+    reanalysis: Any,
+    power_curves: pd.DataFrame,
+    seasons: Mapping[str, Sequence[int]] | None,
+) -> pd.DataFrame:
+    """Give each row its offset by the rule both offset paths share.
+
+    A row with a usable observation (``obs > 0``) has its offset fitted, a row
+    observing zero gets offset 0, and a row with no observation keeps NaN. The
+    rows come back fitted first, then zero, then missing: the order the golden
+    regression test pins. With no usable row at all, every row gets offset 0.
+
+    A row observing a negative capacity factor falls in none of the three and
+    is dropped, as it always was, so its period does not count as fitted. That
+    used to happen silently; it now warns.
+    """
+    usable = frame["obs"].notna() & (frame["obs"] > 0)
+    if not usable.any():
+        return frame.assign(offset=0.0)
+    negative = int((frame["obs"] < 0).sum())
+    if negative:
+        warnings.warn(
+            f"{negative} row(s) observe a negative capacity factor; they get no offset "
+            "and their periods do not count as fitted",
+            stacklevel=3,
+        )
+    valid = frame[usable].copy()
+    valid["offset"] = _fit_offsets(valid, clus_info, reanalysis, power_curves, seasons)
+    zero_obs = frame[frame["obs"] == 0].copy()
+    zero_obs["offset"] = 0.0
+    nan_obs = frame[frame["obs"].isna()].copy()
+    nan_obs["offset"] = np.nan
+    return pd.concat([valid, zero_obs, nan_obs], ignore_index=True)
+
+
 @register_correction
 class AffineWindCorrection(CorrectionModel):
     """The validated baseline: ``cor_ws = scalar * unc_ws + offset``.
@@ -430,16 +468,9 @@ class AffineWindCorrection(CorrectionModel):
         # Sequential offset fit, the path the golden regression test pins:
         # optimise rows with usable observations, zero-fill obs == 0, keep
         # NaN observations NaN.
-        valid = train_bias_df[train_bias_df["obs"].notna() & (train_bias_df["obs"] > 0)].copy()
-        if len(valid) == 0:
-            train_bias_df["offset"] = 0.0
-        else:
-            valid["offset"] = _fit_offsets(valid, clus_info, reanalysis, power_curves, seasons)
-            zero_obs = train_bias_df[train_bias_df["obs"] == 0].copy()
-            zero_obs["offset"] = 0.0
-            nan_obs = train_bias_df[train_bias_df["obs"].isna()].copy()
-            nan_obs["offset"] = np.nan
-            train_bias_df = pd.concat([valid, zero_obs, nan_obs], ignore_index=True).sort_index()
+        train_bias_df = _offsets_by_observation(
+            train_bias_df, clus_info, reanalysis, power_curves, seasons
+        )
 
         factors = format_bc_factors(train_bias_df, time_res)
         return factors, clus_info
@@ -464,16 +495,7 @@ class AffineWindCorrection(CorrectionModel):
         if time_res != "time_slice":
             frame["time_slice"] = frame[time_res]
 
-        valid = frame[frame["obs"].notna() & (frame["obs"] > 0)].copy()
-        if len(valid) == 0:
-            frame["offset"] = 0.0
-        else:
-            valid["offset"] = _fit_offsets(valid, clus_info, reanalysis, power_curves, seasons)
-            zero_obs = frame[frame["obs"] == 0].copy()
-            zero_obs["offset"] = 0.0
-            nan_obs = frame[frame["obs"].isna()].copy()
-            nan_obs["offset"] = np.nan
-            frame = pd.concat([valid, zero_obs, nan_obs], ignore_index=True).sort_index()
+        frame = _offsets_by_observation(frame, clus_info, reanalysis, power_curves, seasons)
 
         if time_res != "time_slice":
             frame = frame.drop(columns=["time_slice"])

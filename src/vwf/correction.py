@@ -21,17 +21,6 @@ def calculate_scalar(gen_cf, time_res):
         pandas.DataFrame: DataFrame with ``year``, ``time_slice``, ``cluster``,
         ``obs``, ``sim``, and ``scalar`` columns.
     """
-    # # Simple mean aggregation (no capacity weighting)
-    # # Scalars represent spatial reanalysis bias, not capacity distribution
-    # # Capacity weighting should only occur during final aggregation to country level
-    # df = gen_cf.groupby([time_res, 'cluster', 'year']).agg({
-    #                         "obs": "mean",
-    #                         "sim": "mean",
-    #                         })
-
-    # OLD APPROACH: Capacity-weighted averaging (commented out)
-    # This was causing double-weighting issues where scalars were influenced by turbine size
-    # rather than just representing the meteorological bias at that location
 
     def weighted_avg(group_df, whole_df, values, weights, required=("obs", "sim")):
         """Compute a weighted average for a group, over the ROWS THAT HAVE A VALUE.
