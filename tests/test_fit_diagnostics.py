@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from test_harness_driver import make_spec
 from vwf.harness.corrections import fit_quality
 from vwf.harness.driver import run_evaluate, run_train
 from vwf.wind import fit_diagnostics
@@ -101,7 +101,7 @@ def test_fit_quality_without_diagnostics_reports_nan():
     )
 
 
-def test_train_writes_diagnostics_and_evaluate_reports_them(synthetic_dk):  # noqa: F811
+def test_train_writes_diagnostics_and_evaluate_reports_them(synthetic_dk):
     spec = make_spec()
     out = synthetic_dk["root"] / "validation"
     train_dir = run_train(spec, out, mode="onshore", run_name="t")

@@ -18,7 +18,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from test_harness_driver import make_spec
 from vwf.datasets.era5 import prep_era5
 from vwf.harness.driver import run_train
 from vwf.harness.regions import load_region
@@ -147,7 +147,7 @@ def test_every_european_row_asks_for_the_per_timestep_treatment():
         assert spec.era5_path == "era5/EU_2026-09", stem
 
 
-def test_a_run_records_what_it_asked_for_and_what_it_applied(synthetic_dk):  # noqa: F811
+def test_a_run_records_what_it_asked_for_and_what_it_applied(synthetic_dk):
     """The synthetic ERA5 carries no stored field, so a run that asks for one
     is derived, and the record has to show both. The request has to be explicit
     now that "derived" is the default, or the two could never differ here."""
@@ -157,7 +157,7 @@ def test_a_run_records_what_it_asked_for_and_what_it_applied(synthetic_dk):  # n
     assert record == {"requested": "stored", "applied": "derived"}
 
 
-def test_a_default_run_records_the_derived_treatment(synthetic_dk):  # noqa: F811
+def test_a_default_run_records_the_derived_treatment(synthetic_dk):
     """A run that asks for nothing now asks for, and applies, the method."""
     train_dir = run_train(
         make_spec(), synthetic_dk["root"] / "validation", mode="onshore", run_name="d"

@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from test_harness_driver import make_spec
 from vwf.harness.driver import run_evaluate, run_train
 from vwf.viz import (
     load_results,
@@ -70,7 +70,7 @@ def cf_series(rng):
 
 
 @pytest.fixture
-def harness_run(synthetic_dk):  # noqa: F811
+def harness_run(synthetic_dk):
     spec = make_spec()
     out = synthetic_dk["root"] / "validation"
     train_dir = run_train(spec, out, mode="onshore", run_name="t")

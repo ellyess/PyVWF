@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from test_harness_driver import make_spec
 from vwf.harness import driver
 from vwf.harness.driver import run_evaluate, run_train
 from vwf.harness.skill import (
@@ -148,7 +148,7 @@ def test_monthly_aggregate_keys_count_rows_without_a_weight():
 
 
 def test_evaluate_scores_variants_on_common_rows_and_records_the_exclusion(
-    synthetic_dk,  # noqa: F811
+    synthetic_dk,
     monkeypatch,
 ):
     """End to end: one unit's corrected values are removed, as a failed

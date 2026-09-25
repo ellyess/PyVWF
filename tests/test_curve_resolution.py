@@ -15,10 +15,8 @@ from importlib import resources
 import pandas as pd
 import pytest
 
-import test_pipeline as tp
 import vwf.wind as wind
 from test_harness_driver import make_spec
-from vwf.config import PyVWFPaths
 from vwf.curves import _default_power_curve, add_models
 from vwf.harness.driver import run_evaluate, run_train, run_transfer
 from vwf.provenance import curve_resolution, summarise_curve_resolution
@@ -33,17 +31,6 @@ BUNDLED_FALLBACK = "2019COE_DW100_100kW_27.6"
 @pytest.fixture(scope="module")
 def bundled_curves():
     return pd.read_csv(str(resources.files("vwf.resources") / "power_curves.csv"))
-
-
-@pytest.fixture
-def synthetic_dk(tmp_path, monkeypatch):
-    """The synthetic Denmark input tree of tests/test_harness_driver.py."""
-    tp._write_era5(tmp_path / "era5")
-    fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")
-    monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
-    return {"root": tmp_path, "fleet": fleet}
 
 
 def _fleet(models, capacities=None, **extra):
