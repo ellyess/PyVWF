@@ -196,6 +196,45 @@ def test_suite_blocks_failed_or_stale_stamp(repo):
     assert _commit(repo) == 2
 
 
+# The shape that let a commit through on 2026-09-25 with a failing realdata
+# stamp: the paths were staged by the same command as the commit, after the
+# hook had read an index with nothing covered in it.
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git add src/vwf/metrics.py && git commit -F - <<'EOF'\nmsg\nEOF",
+        "git add src/vwf/pinn/model.py; git commit -m x",
+        "git add -A && git commit -m x",
+        "git add . && git commit -m x",
+        "git add src && git commit -m x",
+        "git add 'src/vwf/*.py' && git commit -m x",
+        "git rm src/vwf/metrics.py && git commit -m x",
+        "git commit src/vwf/metrics.py -m x",
+        "git commit -m x -- src/vwf/pinn/model.py",
+    ],
+)
+def test_suite_blocks_covered_code_staged_by_the_commit_command(repo, command):
+    (repo / "src/vwf/metrics.py").write_text("x = 2\n")
+    (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
+    _stamp(repo, "realdata", exit_code=1)
+    assert _hook(repo, SUITES, "Bash", {"command": command}) == 2
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git add README.md && git commit -m x",
+        "git add docs/x.md tests/test_x.py && git commit -m x",
+        "git commit README.md -m x",
+        "git add src/vwf/metrics.py",
+        "git commit -m 'stage with git add src/vwf/metrics.py first'",
+        "git commit -F - <<'EOF'\ngit add -A && git commit\nEOF",
+    ],
+)
+def test_suite_allows_staging_that_reaches_no_covered_code(repo, command):
+    assert _hook(repo, SUITES, "Bash", {"command": command}) == 0
+
+
 def test_one_suite_stamp_does_not_cover_the_other(repo):
     (repo / "src/vwf/pinn/model.py").write_text("y = 2\n")
     _stamp(repo, "pinn", exit_code=0)
