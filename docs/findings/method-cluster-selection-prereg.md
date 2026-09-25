@@ -9,6 +9,19 @@ different question and are registered in
 *[Parked 2026-09-16: the pool rebuild this scope names is not being done, and
 the selections are not adopted for a pool (`method-cluster-selection.md`).]*
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. The BE timing figures (42.0 s to train, 37.3 s to
+evaluate, 79.3 s in all) and the estimate of about 1.6 hours were measured with
+the per-cluster solver for the N=3 half; the joint fit is slower, so they are
+likely low.
+
 ## Amendment, 2026-09-15: the curve shape is a reported result, not a means to a selection
 
 **Written before the four remaining rows landed.** Only Denmark offshore had

@@ -22,6 +22,91 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-09-25: every country-level fit with more than one
+cluster used the per-cluster solver, not the joint national fit.** The router
+`country_obs_is_per_cluster` counted distinct observation values per period.
+Each cluster's observation is a capacity-weighted mean of one national number,
+and those means differ in their last bits (1.1e-16 for FR at N=10, 8.3e-17 for
+ES at N=4), so every national fit with N greater than 1 was treated as zonal and
+each cluster's offset was fitted alone against the national series. The
+documented method, and every statement here about under-determined joint
+offsets, describes the joint fit. Fixed in `ac26f6a`. The scalars are computed
+before the routing and do not change; neither does any N=1 fit, nor any
+uncorrected figure. The defect entered with `dd87232` (2026-08-12), and the
+July runs behind the earliest country figures already show the same factors.
+
+Every variant of the eight rows, trained and evaluated before the fix (`eb6b351`)
+and after it (`ac26f6a`), from a clean tree, on the default input root, with the
+scorecard configs. Training years 2015-21 (IE 2017-21), test year 2023,
+national scope, 12 months each. Before the fix, every row reproduced its
+`refresh_2026-09-20` `metrics.csv` to within 3e-9. As predicted before the runs,
+all 16 N=1 factors files are byte-identical and all 16 N greater than 1 files
+changed. No fit failed an offset either way.
+
+| Row | Variant | RMSE before | RMSE after | MBE before | MBE after |
+|---|---|---|---|---|---|
+| FR | uncorrected | 0.1711 | 0.1711 | +0.1648 | +0.1648 |
+| FR | fixed N=1 | 0.0125 | 0.0125 | +0.0074 | +0.0074 |
+| FR | **fixed N=10** (reported) | 0.0122 | 0.0102 | +0.0062 | +0.0029 |
+| FR | season N=1 | 0.0126 | 0.0126 | +0.0069 | +0.0069 |
+| FR | season N=10 | 0.0130 | 0.0113 | +0.0064 | +0.0029 |
+| BE | uncorrected | 0.3399 | 0.3399 | +0.3367 | +0.3367 |
+| BE | fixed N=1 | 0.0243 | 0.0243 | -0.0055 | -0.0055 |
+| BE | fixed N=3 | 0.0214 | 0.0266 | -0.0016 | -0.0092 |
+| BE | season N=1 | 0.0225 | 0.0225 | -0.0065 | -0.0065 |
+| BE | **season N=3** (reported) | 0.0201 | 0.0247 | -0.0024 | -0.0102 |
+| IE | uncorrected | 0.1721 | 0.1721 | +0.1680 | +0.1680 |
+| IE | fixed N=1 | 0.0230 | 0.0230 | +0.0105 | +0.0105 |
+| IE | fixed N=3 | 0.0230 | 0.0208 | +0.0103 | +0.0075 |
+| IE | **season N=1** (reported) | 0.0212 | 0.0212 | +0.0092 | +0.0092 |
+| IE | season N=3 | 0.0213 | 0.0197 | +0.0092 | +0.0063 |
+| SE | uncorrected | 0.0876 | 0.0876 | +0.0844 | +0.0844 |
+| SE | fixed N=1 | 0.0319 | 0.0319 | -0.0289 | -0.0289 |
+| SE | **fixed N=4** (reported) | 0.0298 | 0.0284 | -0.0272 | -0.0247 |
+| SE | season N=1 | 0.0325 | 0.0325 | -0.0292 | -0.0292 |
+| SE | season N=4 | 0.0301 | 0.0287 | -0.0268 | -0.0246 |
+| NO | uncorrected | 0.0350 | 0.0350 | +0.0271 | +0.0271 |
+| NO | fixed N=1 | 0.0395 | 0.0395 | -0.0321 | -0.0321 |
+| NO | **fixed N=4** (reported) | 0.0363 | 0.0351 | -0.0279 | -0.0259 |
+| NO | season N=1 | 0.0385 | 0.0385 | -0.0303 | -0.0303 |
+| NO | season N=4 | 0.0366 | 0.0370 | -0.0264 | -0.0251 |
+| ES | uncorrected | 0.0281 | 0.0281 | +0.0128 | +0.0128 |
+| ES | fixed N=1 | 0.0267 | 0.0267 | +0.0105 | +0.0105 |
+| ES | **fixed N=4** (reported) | 0.0262 | 0.0253 | +0.0112 | +0.0107 |
+| ES | season N=1 | 0.0265 | 0.0265 | +0.0108 | +0.0108 |
+| ES | season N=4 | 0.0272 | 0.0273 | +0.0124 | +0.0133 |
+| IT | uncorrected | 0.0703 | 0.0703 | -0.0692 | -0.0692 |
+| IT | fixed N=1 | 0.0169 | 0.0169 | -0.0042 | -0.0042 |
+| IT | fixed N=3 | 0.0171 | 0.0166 | -0.0040 | -0.0043 |
+| IT | season N=1 | 0.0164 | 0.0164 | -0.0039 | -0.0039 |
+| IT | **season N=3** (reported) | 0.0169 | 0.0155 | -0.0031 | -0.0041 |
+| PT | uncorrected | 0.0893 | 0.0893 | -0.0847 | -0.0847 |
+| PT | fixed N=1 | 0.0293 | 0.0293 | +0.0177 | +0.0177 |
+| PT | fixed N=2 | 0.0300 | 0.0310 | +0.0180 | +0.0192 |
+| PT | **season N=1** (reported) | 0.0274 | 0.0274 | +0.0176 | +0.0176 |
+| PT | season N=2 | 0.0277 | 0.0278 | +0.0162 | +0.0160 |
+
+The country table below now carries the after figures of each row's reported
+variant. Until today it carried: FR 0.012 / +0.006, BE 0.020 / -0.002, SE
+0.030 / -0.027, NO 0.036 / -0.028, ES 0.026 / +0.011, IT 0.017 / -0.003
+(corrected RMSE / MBE). IE and PT report N=1 and do not change.
+
+The "Best cfg" column is left as reported. After the fix it is no longer the
+lowest-RMSE variant in two rows: BE (N=1 season, 0.0225, against the reported
+N=3 season, 0.0247) and IE (N=3 season, 0.0197, against the reported N=1
+season, 0.0212). Re-selecting the configuration is not done here.
+
+Not re-measured: the figures from multi-cluster country fits in the notices
+below (marked where they stand in this document) and in the other documents
+that quote country-level multi-cluster offsets, corrected metrics,
+gains or failed-offset counts (`method-country-level.md`, `method-eu-rerun.md`,
+`method-curve-library.md` and its preregistration,
+`method-roughness-treatment.md` and its preregistration, and the cost figures in
+`method-cluster-selection-prereg.md` and
+`method-national-single-cluster-prereg.md`). Data:
+`output/country_routing_2026-09-25/` (`before/`, `after/`,
+`before_after_metrics.csv`).
+
 **Correction notice, 2026-09-24: the corrected figures of the AU-NEM and NZ
 rows were simulated on other units' power curves and capacities.**
 `correct_wind_speed` rebuilt the turbine axis in sorted ID order and then
@@ -254,7 +339,11 @@ are not simulations of those fleets' winds. The chain, in order:
    corrected MBE goes from +0.016 to -0.020, and IT's corrected RMSE from
    0.034 to 0.064. In the ES training years, the fitted national CF matches
    the observed one only with the dropped days removed. Counted as zero, it is
-   0.03 to 0.05 below observed in every year.
+   0.03 to 0.05 below observed in every year. *[Note, 2026-09-25: the offsets
+   and corrected figures in items 3 to 5 come from N=4 (ES) and N=3 (IT) fits
+   routed to the per-cluster solver, and were not re-measured with the joint
+   fit; see the notice of that date. The suspension they explain stands on the
+   extent defect in items 1 and 2.]*
 
 | Row | Capacity outside the ERA5 data | Grid points outside | Furthest outside |
 |---|---|---|---|
@@ -286,7 +375,10 @@ between them. Their figures improved, Italy's corrected RMSE halving and
 Portugal's falling by two thirds, because the winds are real rather than
 extrapolated; the evidence that it is the winds and not something else is in
 `method-eu-rerun.md`, which splits each fleet by whether a grid point lay
-outside the old extent. This resolves the input defect only. Italy's fit still
+outside the old extent. *[Note, 2026-09-25: Italy's halving compares N=3
+season fits made with the per-cluster solver on both sides; with the joint fit
+its reported row is 0.0155. Portugal's row is N=1 and stands. See the notice
+of that date.]* This resolves the input defect only. Italy's fit still
 sends 1.0% of its capacity-weighted steps off the curve on calm days, which is
 an ordinary property of the affine correction rather than a symptom of bad
 input, and is a finding in its own right in that document. Sweden and Norway
@@ -354,7 +446,9 @@ resolved by the pre-registered gate and far too small to carry a method change
 on its own. The eleven European rows were re-run on it on 2026-09-13, and the
 figures in the tables below are those re-runs. The treatment moved every one of
 them by less than 0.0002 in corrected RMSE, and only Denmark's difference
-excludes zero; what moved the returning rows was the wider box, not the
+excludes zero *[Note, 2026-09-25: for the country rows with N greater than 1
+that comparison used the per-cluster solver and was not re-measured with the
+joint fit; Denmark is turbine-level and stands]*; what moved the returning rows was the wider box, not the
 treatment (`method-eu-rerun.md`).
 
 **What the dating evidence supports.** No PyVWF run output surviving in this
@@ -607,17 +701,19 @@ exports built from them carry a `degenerate` layer for exactly this reason.
 ## Country-level (ENTSO-E national aggregate, 2023)
 
 Capacity-weighted national monthly CF, held-out 2023, bundled open curve library
-throughout.
+throughout. *[Note, 2026-09-25: the rows with N greater than 1 now carry the
+joint-fit figures; see the notice of that date. Norway's corrected RMSE, 0.0351,
+is still above its uncorrected 0.0350.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
-| France (FR) | 0.171 | **0.012** | +0.165 | +0.006 | N=10 fixed | per timestep | 100% |
-| Belgium (BE) | 0.340 | **0.020** | +0.337 | -0.002 | N=3 season | per timestep | 100% |
+| France (FR) | 0.171 | **0.010** | +0.165 | +0.003 | N=10 fixed | per timestep | 100% |
+| Belgium (BE) | 0.340 | **0.025** | +0.337 | -0.010 | N=3 season | per timestep | 100% |
 | Ireland (IE) | 0.172 | **0.021** | +0.168 | +0.009 | N=1 season | per timestep | 100% |
-| Sweden (SE) | 0.088 | **0.030** | +0.084 | -0.027 | N=4 fixed | per timestep | 100% |
-| Norway (NO) | 0.035 | 0.036 | +0.027 | -0.028 | correction does not help | per timestep | 100% |
-| Spain (ES) | 0.028 | **0.026** | +0.013 | +0.011 | N=4 fixed | per timestep | 100% |
-| Italy (IT) | 0.070 | **0.017** | -0.069 | -0.003 | N=3 season | per timestep | 100% |
+| Sweden (SE) | 0.088 | **0.028** | +0.084 | -0.025 | N=4 fixed | per timestep | 100% |
+| Norway (NO) | 0.035 | 0.035 | +0.027 | -0.026 | correction does not help | per timestep | 100% |
+| Spain (ES) | 0.028 | **0.025** | +0.013 | +0.011 | N=4 fixed | per timestep | 100% |
+| Italy (IT) | 0.070 | **0.015** | -0.069 | -0.004 | N=3 season | per timestep | 100% |
 | Portugal (PT) | 0.089 | **0.027** | -0.085 | +0.018 | N=1 season | per timestep | 100% |
 
 **No country-level row carries § any more.** Sweden and Norway did, at 0.8%
@@ -659,7 +755,12 @@ unbiased uncorrected (RMSE 0.035) and the correction does not help (0.036, with
 the interval on the difference including zero); and the country method
 fits under-determined offsets against one national series per month, so the
 offsets largely repair the scalar's cube-law overshoot rather than a genuine
-additive spatial bias (`method-country-level.md`).
+additive spatial bias (`method-country-level.md`). *[Note, 2026-09-25: with the
+joint fit, NO is 0.0351 against 0.0350 uncorrected, still no help; its interval
+was not recomputed. The "largely repair the scalar" reading rests on offsets
+from the per-cluster solver, and may partly be its artefact: matching every
+cluster to one national value ties each offset to its own scalar. It is not
+re-established for the joint fit. See the notice of that date.]*
 
 ## What must NOT be overclaimed
 

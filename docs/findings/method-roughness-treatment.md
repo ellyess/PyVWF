@@ -15,6 +15,19 @@ byte (`tests/test_pin_bootstrap_reproduction.py`).
 uses. Pre-registered in `method-roughness-treatment-prereg.md`; the background
 is `../design/roughness-temporal-treatment.md`. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. Affected here, not re-measured: the FR N=10 rows of the
+table, the "no offset failed" statement in the fit quality (the scalars stand),
+the paired FR gains, G2 and the FR unit-month figures. Standing: the FR N=1
+rows, and the adoption decision, which rests on DK.
+
 **The per-timestep derivation is adopted as the method. It is adopted on
 method fidelity and comparability, not on accuracy.** The accuracy effect was
 measured on Denmark, the registered gate resolved, and it is 0.0002 in

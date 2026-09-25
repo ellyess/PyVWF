@@ -246,3 +246,60 @@ def test_one_national_observation_still_uses_the_joint_optimiser(country_fixture
     obs = pd.DataFrame({"capacity_factor": 0.22}, index=times)
     factors, _ = fit_with(grid, obs, monkeypatch, "find_offset")
     assert sorted(factors["cluster"]) == [0, 1]
+
+
+def test_rounding_in_the_cluster_means_is_one_national_observation():
+    """One national number reaches the clusters through capacity-weighted means,
+    which can differ in the last bit. Counting distinct floats read that as two
+    zonal observations and routed every national multi-cluster fit to the
+    per-cluster solver."""
+    drifted = float(np.nextafter(0.22, 1.0))
+    assert not country_obs_is_per_cluster(bias_frame({0: 0.22, 1: drifted}), "fixed")
+
+
+def test_a_national_multi_cluster_fit_reaches_the_joint_fit(monkeypatch):
+    """End to end on a fleet whose cluster means really do drift: the fit must
+    take the joint national optimiser, not the per-cluster solver."""
+    import vwf.correction as correction
+    from vwf.data import cluster_train_set
+    from vwf.harness.corrections import get_correction
+
+    rng = np.random.default_rng(1)
+    n = 40
+    grid = pd.DataFrame(
+        {
+            "ID": [f"g{i}" for i in range(n)],
+            "lon": np.linspace(8.0, 9.5, n),
+            "lat": np.linspace(55.0, 56.0, n),
+            "height": 100.0,
+            "capacity": rng.uniform(100, 3000, n).round(1),
+            "model": "2019COE_Market_Average_2.6MW_121",
+            "cluster": np.repeat([0, 1], n // 2),
+            "type": "onshore",
+        }
+    )
+    paired = pd.concat(
+        [
+            pd.DataFrame({"year": 2015, "month": m, "ID": grid["ID"], "sim": 0.2, "obs": 0.22})
+            for m in range(1, 13)
+        ],
+        ignore_index=True,
+    )
+    paired["fixed"] = "1/1"
+
+    # Precondition: the drift this test is about is really present.
+    bias, _ = cluster_train_set(paired, "fixed", 2, grid, obs_level="country")
+    assert bias.groupby(["year", "fixed"])["obs"].nunique().max() > 1
+
+    calls = []
+
+    def joint(**kw):
+        calls.append(kw)
+        return {c: 0.5 for c in kw["scalars_by_cluster"]}
+
+    monkeypatch.setattr(correction, "find_offsets_country_level", joint)
+    factors, _ = get_correction("affine-wind").fit(
+        paired, grid, None, pd.DataFrame(), num_clusters=2, time_res="fixed", obs_level="country"
+    )
+    assert calls, "the national fit never reached the joint optimiser"
+    assert (factors["offset"] == 0.5).all()

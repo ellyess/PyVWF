@@ -16,6 +16,20 @@ tree; the override tables and the paired comparisons record none.
 conditions have run: C1 and C2 at country level, T1 and T2 at turbine level.
 Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. Affected here, not re-measured: the corrected-RMSE
+changes and paired gains of the country conditions for FR, BE, SE, NO, ES and IT
+(C0, C1 and C2), the G1 denominators for those rows, the ES and IT gains, the
+hybrid-versus-fixed comparison and predictions P2, P2b and P3. Standing: the
+uncorrected tables, IE and PT (N=1), and P6, which rests on scalars.
+
 **[Correction notice, 2026-09-13. C2's corrected-RMSE results are withdrawn.
 The corrected values are not yet known.]**
 

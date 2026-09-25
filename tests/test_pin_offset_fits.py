@@ -6,7 +6,8 @@ them to a fallback that lands elsewhere. Replacing the search will move every
 factor a little. These cases pin the factors as the search produces them, so
 the change's effect on each cluster is measured rather than assumed: the DK
 scorecard row's configuration (k=100) and the CL row's (k=10), both on the
-fixed slice alone. They are change detectors, not guards (see
+fixed slice alone, and two country-level national rows (FR k=10, ES k=4),
+which reach the joint national fit. They are change detectors, not guards (see
 CONTRIBUTING.md): the fixtures were recorded on main before the bracketed
 search, and re-recorded in the commit that introduced it.
 
@@ -33,6 +34,12 @@ pytestmark = [pytest.mark.realdata, pytest.mark.slow]
 CASES = {
     "dk_k100": ("configs/regions/scorecard/dk_k100.toml", "input/combined", 100, "era5/EU_2026-09"),
     "cl_k10": ("configs/regions/scorecard/cl_k10.toml", "input", 10, "era5/CL"),
+    # Country-level national fits with more than one cluster, added 2026-09-25
+    # when the router was found sending them to the per-cluster solver
+    # (ac26f6a): until then no pin reached the joint fit, so the realdata
+    # stamp passed while every such factor could move.
+    "fr_country_k10": ("configs/regions/scorecard/fr_country.toml", "input", 10, "era5/EU_2026-09"),
+    "es_country_k4": ("configs/regions/scorecard/es_country.toml", "input", 4, "era5/EU_2026-09"),
 }
 
 TRAIN = """

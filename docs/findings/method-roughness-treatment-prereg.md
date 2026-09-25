@@ -5,6 +5,19 @@
 should use. Terms follow `CONTEXT.md`; the background is
 `docs/design/roughness-temporal-treatment.md`.
 
+**Correction notice, 2026-09-25: the country-level fits with more than one
+cluster used the per-cluster solver, not the joint national fit.**
+`country_obs_is_per_cluster` read the rounding differences between clusters'
+capacity-weighted means of one national observation as distinct zonal
+observations, so every national fit with N greater than 1 fitted each cluster's
+offset alone against the national series (fixed in `ac26f6a`;
+`docs/findings/scorecard.md`, notice of the same date, has the details and the
+joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
+N=1 fits are unaffected. The FR outcome entries (G2, P2, P3) rest on N=10 fits
+made with the per-cluster solver and were not re-measured, and the description
+of the country fit's joint offsets did not describe what ran; the design is
+otherwise unaffected.
+
 **Everything below is fixed before any run.** The outcome columns are filled in
 afterwards. A condition added later is labelled post hoc and cannot pass a gate.
 

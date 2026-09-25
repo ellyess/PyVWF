@@ -136,6 +136,15 @@ this file stay in step with it.
 
 ### Fixed
 
+- **National country-level fits with more than one cluster take the joint
+  fit again** (`vwf.data.country_obs_is_per_cluster`). The router counted
+  distinct floats in each period's cluster observations, and the
+  capacity-weighted cluster means of one national number differ in their
+  last bits, so every national fit with more than one cluster was sent to
+  the per-cluster solver, which fits each cluster's offset alone against the
+  national series, instead of the documented joint fit. It now compares the
+  spread against a tolerance. This moves every country-level scorecard row
+  with more than one cluster; see the scorecard's notice.
 - **KMeans partitions no longer depend on the machine's thread count**
   (`vwf.clustering`). scikit-learn's KMeans reduces over OpenMP threads, and
   a near-tie can fall differently at another thread count, so the same
