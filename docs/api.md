@@ -172,7 +172,7 @@ hyperparameters.
 ## Datasets and loaders
 
 ```{eval-rst}
-.. automodule:: pyvwf.datasets.era5
+.. automodule:: pyvwf.era5
    :members: prep_era5, log_roughness_from_shear, Z0_BOUNDS
 
 .. automodule:: pyvwf.loaders.turbine_loaders

@@ -41,7 +41,7 @@ import pandas as pd
 
 from pyvwf.cli.common import make_parser
 from pyvwf.curves import load_power_curves
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.harness import regions
 from pyvwf.wind import fast_simulate_cf, interpolate_wind, prepare_offset_arrays
 

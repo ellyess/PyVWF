@@ -198,7 +198,7 @@ claim is false and the cause lies somewhere none of this has looked.
 
 **What that costs.** Two candidate products cover Europe: CERRA at 5.5 km,
 1984 to 2021, and the New European Wind Atlas at 3 km, 1989 to 2018. Each
-would need acquisition, a loader beside `pyvwf.datasets.era5`, and the roughness
+would need acquisition, a loader beside `pyvwf.era5`, and the roughness
 treatment settling on a product that may carry its own. The correction
 pipeline itself is product-agnostic, so the expensive parts are the download
 and a new observation-to-wind alignment, not the fitting. It is the largest

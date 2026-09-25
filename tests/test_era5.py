@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 
 from pyvwf.config import PyVWFPaths
-from pyvwf.datasets.era5 import _normalise_longitudes, _slice_bbox, prep_era5
+from pyvwf.era5 import _normalise_longitudes, _slice_bbox, prep_era5
 
 
 def _marked_dataset(lons):
@@ -148,7 +148,7 @@ def test_prep_era5_reads_from_era5_dir_and_normalises(tmp_path):
 
 
 def test_log_roughness_inverts_the_log_profile_and_masks_what_it_cannot():
-    from pyvwf.datasets.era5 import Z0_BOUNDS, log_roughness_from_shear
+    from pyvwf.era5 import Z0_BOUNDS, log_roughness_from_shear
 
     def profile(z0, ustar=1.0):
         return ustar * np.log(10 / z0), ustar * np.log(100 / z0)

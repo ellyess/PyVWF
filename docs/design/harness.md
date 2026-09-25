@@ -146,7 +146,7 @@ fixed.
 
 ## ERA5 extraction
 
-Two additive changes to `pyvwf/datasets/era5.py`. Longitude is normalised to
+Two additive changes to `pyvwf/era5.py`. Longitude is normalised to
 [-180, 180] on load if any value exceeds 180, and re-sorted, which closes the
 silent empty-subset hazard. The loader accepts a directory and file tag from
 `RegionSpec` rather than only the module-level constant, which remains as the

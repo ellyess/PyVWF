@@ -75,7 +75,7 @@ from pyvwf.clustering import cluster_turbines  # noqa: E402
 from pyvwf.config import PyVWFPaths  # noqa: E402
 from pyvwf.curves import load_power_curves  # noqa: E402
 from pyvwf.datasets.cen_cl import local_to_utc, wind_rows  # noqa: E402
-from pyvwf.datasets.era5 import prep_era5  # noqa: E402
+from pyvwf.era5 import prep_era5  # noqa: E402
 from pyvwf.harness.corrections import get_correction  # noqa: E402
 from pyvwf.harness.regions import load_region  # noqa: E402
 from pyvwf.sources import get_source  # noqa: E402

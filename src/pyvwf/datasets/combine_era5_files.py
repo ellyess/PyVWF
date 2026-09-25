@@ -7,7 +7,7 @@ This script combines:
 3. z0 (surface roughness length) - optional, and when added it is the
    ANNUAL MEAN of the shear-derived roughness, one static field per year, not
    a time series (see calculate_roughness_from_winds). Every region outside
-   Europe instead derives z0 hour by hour in pyvwf.datasets.era5.prep_era5.
+   Europe instead derives z0 hour by hour in pyvwf.era5.prep_era5.
    Which treatment is better is under test; see
    docs/design/roughness-temporal-treatment.md.
 
@@ -25,7 +25,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
-from pyvwf.datasets.era5 import log_roughness_from_shear
+from pyvwf.era5 import log_roughness_from_shear
 
 
 def find_available_years(era5_dir):

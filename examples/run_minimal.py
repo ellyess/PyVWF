@@ -25,7 +25,7 @@ import pandas as pd
 
 from pyvwf.config import PyVWFPaths
 from pyvwf.correction import calculate_scalar, find_offset
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.wind import train_simulate_wind
 
 DATA = Path(__file__).resolve().parent / "data"

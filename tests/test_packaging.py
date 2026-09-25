@@ -129,7 +129,7 @@ def test_simulation_path_imports_without_data_extras():
         "pyvwf.correction",
         "pyvwf.metrics",
         "pyvwf.clustering",
-        "pyvwf.datasets.era5",
+        "pyvwf.era5",
         "pyvwf.viz",
     ]:
         importlib.import_module(module)

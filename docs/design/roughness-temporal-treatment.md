@@ -13,7 +13,7 @@ There are three routes, not two, and they produce two distinct treatments:
 | Route | How it is produced | What the file carries | Scorecard rows |
 |---|---|---|---|
 | **A, annual mean** | The hourly z0 is computed, then averaged over the year into a single static field, in `src/pyvwf/datasets/combine_era5_files.py` | hourly winds and a stored `z0`, one field per year | none |
-| **B, per timestep at load** | The hourly z0 is computed in `pyvwf.datasets.era5.prep_era5` when the file carries no roughness, then averaged to daily with the winds | hourly winds only | DE, DK, UK, the eight country-level regions, AU-NEM, NZ, CL and AR: 15 |
+| **B, per timestep at load** | The hourly z0 is computed in `pyvwf.era5.prep_era5` when the file carries no roughness, then averaged to daily with the winds | hourly winds only | DE, DK, UK, the eight country-level regions, AU-NEM, NZ, CL and AR: 15 |
 | **C, per timestep, stored daily** | The hourly z0 is computed in `scripts/era5/combine.py` and averaged to daily there, so the file arrives with it | daily `wnd100m` and `roughness`, and **no 10 m winds** | US, BR: 2 |
 
 **All seventeen scorecard rows now apply the per-timestep treatment**, fifteen

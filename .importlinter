@@ -21,7 +21,7 @@ layers =
     pyvwf.data
     pyvwf.sources | pyvwf.country_level
     pyvwf.loaders | pyvwf.datasets | pyvwf.provenance | pyvwf.curves
-    pyvwf.correction | pyvwf.sampling
+    pyvwf.correction | pyvwf.sampling | pyvwf.era5
     pyvwf.clustering | pyvwf.wind
     pyvwf.config | pyvwf.utils | pyvwf.time_utils | pyvwf.metrics | pyvwf.geospatial | pyvwf.resources | pyvwf._version
 

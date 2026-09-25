@@ -7,7 +7,7 @@ The root `AGENTS.md` applies too. These rules cover the package code.
 - **Touching the code the real-data pins reach moves them, and CI cannot see
   them.** That is `harness/`, `sources/`, `datasets/`, `extensions/`,
   `loaders/`, `metrics.py`, `correction.py`, `data.py`, `wind.py`,
-  `curves.py`, `clustering.py`, `country_level.py`, `sampling.py`,
+  `curves.py`, `clustering.py`, `era5.py`, `country_level.py`, `sampling.py`,
   `config.py`, `time_utils.py`, `geospatial.py`, `utils.py` and
   `provenance.py`: everything except
   `pinn/`, `viz/` and `cli/`. They skip where inputs are absent.

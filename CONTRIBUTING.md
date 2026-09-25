@@ -69,9 +69,10 @@ you that a pin moved: only a local run can. A pull request that changes
 code the pins reach runs them and states the result in its description.
 That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions/`,
 `pyvwf/loaders/`, `pyvwf/metrics.py`, `pyvwf/correction.py`, `pyvwf/data.py`,
-`pyvwf/wind.py`, `pyvwf/curves.py`, `pyvwf/clustering.py`, `pyvwf/country_level.py`,
-`pyvwf/sampling.py`, `pyvwf/config.py`, `pyvwf/time_utils.py`, `pyvwf/geospatial.py`,
-`pyvwf/utils.py` and `pyvwf/provenance.py`:
+`pyvwf/wind.py`, `pyvwf/curves.py`, `pyvwf/clustering.py`, `pyvwf/era5.py`,
+`pyvwf/country_level.py`, `pyvwf/sampling.py`, `pyvwf/config.py`,
+`pyvwf/time_utils.py`, `pyvwf/geospatial.py`, `pyvwf/utils.py` and
+`pyvwf/provenance.py`:
 
 ```bash
 pytest -m realdata                     # every pin that reads local inputs

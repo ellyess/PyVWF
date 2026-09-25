@@ -89,7 +89,7 @@ def _make_observations(turbines: pd.DataFrame) -> pd.DataFrame:
     what ``run_minimal.py`` then recovers blind."""
     import pandas as pd  # local, so the file top stays import-light
     from pyvwf.config import PyVWFPaths
-    from pyvwf.datasets.era5 import prep_era5
+    from pyvwf.era5 import prep_era5
     from pyvwf.wind import train_simulate_wind
 
     PyVWFPaths.ERA5_DATA = ERA5_DIR

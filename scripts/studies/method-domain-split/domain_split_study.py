@@ -49,7 +49,7 @@ import xarray as xr
 from pyvwf.cli.common import make_parser
 from pyvwf.config import BoundingBoxes
 from pyvwf.curves import load_power_curves
-from pyvwf.datasets.era5 import prep_era5
+from pyvwf.era5 import prep_era5
 from pyvwf.extensions.grid import evaluate, interpolation as interp, surface
 from pyvwf.wind import interpolate_wind
 
