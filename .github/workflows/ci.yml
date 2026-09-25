@@ -128,6 +128,9 @@ jobs:
 
       - name: Run tests
         # No -q: the ini already sets it, and a second one hides the summary line.
+        # shell: bash adds pipefail; the default shell does not set it, so a
+        # failing pytest piped into tee passed this step until it was added.
+        shell: bash
         run: pytest tests -rs -m "not slow and not realdata" | tee /tmp/extras.log
 
       - name: No test skipped for a missing import
