@@ -11,10 +11,8 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-import test_pipeline as tp
 import vwf.correction as correction
 import vwf.wind as wind
-from vwf.config import PyVWFPaths
 from vwf.data import cluster_train_set, format_bc_factors, train_set
 from vwf.harness import available_corrections, get_correction
 from vwf.harness.corrections import CorrectionModel, register_correction
@@ -26,16 +24,6 @@ SH_SEASONS = {
     "winter": [6, 7, 8],
     "spring": [9, 10, 11],
 }
-
-
-@pytest.fixture
-def synthetic_dk(tmp_path, monkeypatch):
-    """The synthetic-DK on-disk layout from the pipeline tests, reused."""
-    tp._write_era5(tmp_path / "era5")
-    fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
-    return {"root": tmp_path, "fleet": fleet}
 
 
 def test_registry_has_the_affine_baseline():

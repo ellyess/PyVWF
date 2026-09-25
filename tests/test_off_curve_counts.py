@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from test_harness_driver import make_spec
 from vwf.harness import driver
 from vwf.harness.driver import run_evaluate, run_train
 from vwf.wind import off_curve_record
@@ -62,7 +62,7 @@ def test_a_clean_frame_records_zeros():
     }
 
 
-def test_evaluate_records_off_curve_values_per_variant(synthetic_dk, monkeypatch):  # noqa: F811
+def test_evaluate_records_off_curve_values_per_variant(synthetic_dk, monkeypatch):
     """End to end: one unit's first five corrected days are pushed below the
     curve, as a large negative offset would. The corrected row records them,
     the uncorrected row does not, and the month they fall in counts as partly

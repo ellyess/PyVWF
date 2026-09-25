@@ -17,7 +17,7 @@ import pytest
 import xarray as xr
 
 import test_pipeline as tp
-from test_harness_driver import make_spec, synthetic_dk  # noqa: F401  (fixture)
+from test_harness_driver import make_spec
 from vwf.datasets.era5 import prep_era5
 from vwf.harness.driver import run_evaluate, run_train
 from vwf.harness.regions import load_region
@@ -129,7 +129,7 @@ def test_region_config_parses_the_opt_in(tmp_path):
         load_region(tmp_path / "bad.toml")
 
 
-def _country_run(synthetic_dk, spec):  # noqa: F811
+def _country_run(synthetic_dk, spec):
     grid = pd.DataFrame(
         {
             "ID": ["g0", "g1", "g2", "g3"],
@@ -162,13 +162,13 @@ def _country_run(synthetic_dk, spec):  # noqa: F811
     return train_dir, eval_dir
 
 
-def test_a_harness_run_outside_the_extent_is_refused(synthetic_dk):  # noqa: F811
+def test_a_harness_run_outside_the_extent_is_refused(synthetic_dk):
     spec = make_spec(source="in-memory-country", obs_level="country", obs_unit="country")
     with pytest.raises(ExtrapolationError):
         _country_run(synthetic_dk, spec)
 
 
-def test_an_opted_in_run_records_the_extrapolated_share(synthetic_dk):  # noqa: F811
+def test_an_opted_in_run_records_the_extrapolated_share(synthetic_dk):
     spec = make_spec(
         source="in-memory-country",
         obs_level="country",
@@ -187,7 +187,7 @@ def test_an_opted_in_run_records_the_extrapolated_share(synthetic_dk):  # noqa: 
     assert np.allclose(metrics["extrapolated_capacity_share"], 4000 / 12000)
 
 
-def test_a_run_inside_the_extent_records_zero(synthetic_dk):  # noqa: F811
+def test_a_run_inside_the_extent_records_zero(synthetic_dk):
     spec = make_spec()
     out = synthetic_dk["root"] / "inside"
     train_dir = run_train(spec, out, mode="onshore", run_name="t")

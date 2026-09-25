@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import test_pipeline as tp
-from vwf.config import PyVWFPaths
 from vwf.data import train_set
 from vwf.harness import get_correction
 from vwf.harness.driver import run_evaluate, run_train
@@ -41,16 +39,6 @@ def make_spec(**overrides) -> RegionSpec:
     )
     base.update(overrides)
     return RegionSpec(**base)
-
-
-@pytest.fixture
-def synthetic_dk(tmp_path, monkeypatch):
-    tp._write_era5(tmp_path / "era5")
-    fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")
-    monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
-    return {"root": tmp_path, "fleet": fleet}
 
 
 def test_driver_train_then_evaluate(synthetic_dk):

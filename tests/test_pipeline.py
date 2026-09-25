@@ -25,7 +25,6 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from vwf.config import PyVWFPaths
 from vwf.data import cluster_train_set, train_set
 
 
@@ -122,17 +121,6 @@ def _write_fleet(dk_dir):
                 )
     pd.DataFrame(obs).to_csv(dk_dir / "dk_obs_2002_2020.csv", index=False)
     return fleet
-
-
-@pytest.fixture
-def synthetic_dk(tmp_path, monkeypatch):
-    """Lay out a synthetic DK dataset on disk and point PyVWFPaths at it."""
-    _write_era5(tmp_path / "era5")
-    fleet = _write_fleet(tmp_path / "observations/turbine" / "DK")
-
-    monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
-    return {"root": tmp_path, "fleet": fleet}
 
 
 # ---------------------------------------------------------------------------
