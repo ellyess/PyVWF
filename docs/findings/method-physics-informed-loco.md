@@ -17,7 +17,9 @@ offset alone against the national series (fixed in `ac26f6a`;
 joint-fit figures of the eight scorecard rows). Scalars, uncorrected figures and
 N=1 fits are unaffected. Its own figures are unaffected. The statement that
 Norway's affine scorecard row is worse than uncorrected still holds with the
-joint fit (0.0351 against 0.0350).
+joint fit (0.0351 against 0.0350). *[2026-09-25, later: 0.0357 against 0.0350
+after the joint fit's tolerance fix, `26e0b67`; scorecard, second notice of that
+date.]*
 
 **Trained on eight European countries and applied to the ninth, the model cuts
 national capacity-factor RMSE in eight of nine gated countries, to a median of
