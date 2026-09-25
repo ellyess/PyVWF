@@ -76,16 +76,18 @@ class _Head(nn.Module):
         self, n_in: int, hidden: int | None, bias0: float, n_out: int = 1, init_scale: float = 0.0
     ):
         super().__init__()
+        # Built in network order: each layer draws its default initialisation
+        # as it is constructed, so the order fixes the starting weights.
+        self.net: nn.Module
+        last: nn.Linear
         if hidden:
-            self.net = nn.Sequential(
-                nn.Linear(n_in, hidden),
-                nn.Tanh(),
-                nn.Linear(hidden, hidden),
-                nn.Tanh(),
-                nn.Linear(hidden, n_out),
-            )
+            first = nn.Linear(n_in, hidden)
+            middle = nn.Linear(hidden, hidden)
+            last = nn.Linear(hidden, n_out)
+            self.net = nn.Sequential(first, nn.Tanh(), middle, nn.Tanh(), last)
         else:
-            self.net = nn.Linear(n_in, n_out)
+            last = nn.Linear(n_in, n_out)
+            self.net = last
         # The final layer starts at ``bias0`` for every input, so the model
         # begins at a stated physical state and moves away from it only where
         # the observations require it. With init_scale = 0 that start is exactly
@@ -94,7 +96,6 @@ class _Head(nn.Module):
         # random and every seed returns the identical model. A small weight
         # perturbation restores what seeds are for -- probing whether the
         # optimum is unique, which D6 showed is a live question.
-        last = self.net[-1] if hidden else self.net
         if init_scale > 0:
             nn.init.normal_(last.weight, std=init_scale)
         else:

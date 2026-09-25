@@ -246,11 +246,11 @@ files = ["src/vwf"]
 # The scientific stack ships few usable stubs (xarray, geopandas, sklearn,
 # netCDF4); without this every import is an error and the signal is lost.
 ignore_missing_imports = true
-# Bodies of unannotated functions are not type-checked. This makes mypy a
-# ratchet rather than a wall: annotating a function opts its body in, so
-# coverage grows module by module instead of demanding a big-bang rewrite of
-# the research code.
-check_untyped_defs = false
+# Bodies of unannotated functions are type-checked too. Until 2026-09-25 they
+# were not, so annotating a function was what opted its body in; by then the
+# whole package passed with the flag on except six reused variable names and
+# one annotation, so the ratchet was closed.
+check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 no_implicit_optional = true

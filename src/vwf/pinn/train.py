@@ -448,7 +448,7 @@ def simulate_monthly(
     r: RegionTensors,
     model: PhysicsCorrection | None,
     std: Standardiser | None,
-    sl: slice,
+    sl: slice | torch.Tensor,
     *,
     profile: str = "power",
     density: bool = False,
