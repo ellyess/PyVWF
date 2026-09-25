@@ -64,6 +64,10 @@ this file stay in step with it.
 
 ### Changed
 
+- **`pytest-xdist` is in the dev extra.** `pytest -n 4 --dist loadfile -m "not
+  realdata"` runs every test that needs no local data, one test file per
+  worker; on the maintainer's machine that is 1,066 tests in 24 seconds.
+
 - **The joint national fit interpolates each cluster's winds once per period**
   (`vwf.correction.find_offsets_country_level`), not on every evaluation of
   its objective. The winds do not depend on the offsets, so the result is
