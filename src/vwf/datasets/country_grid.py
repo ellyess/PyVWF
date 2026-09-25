@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 from shapely.geometry import box
 
-from vwf.clustering import cluster_with_geometries, create_sampling_points
+from vwf.sampling import cluster_with_geometries, create_sampling_points
 
 
 # Country configurations

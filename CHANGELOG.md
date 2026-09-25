@@ -64,6 +64,15 @@ this file stay in step with it.
 
 ### Changed
 
+- **`vwf.data` and `vwf.clustering` are split** (`vwf.country_level`,
+  `vwf.sampling`). The country-level observation and grid-fleet helpers moved
+  out of `vwf.data` (969 lines to 713), and every name is still importable
+  from it. The country sampling grids and their Voronoi geometries
+  (`create_sampling_points`, `cluster_with_geometries`,
+  `add_turbine_metadata`) moved out of `vwf.clustering` (884 lines to 383) to
+  `vwf.sampling`, which imports from `vwf.clustering`, so those three are
+  imported from `vwf.sampling` now. No behaviour changes.
+
 - **The harness driver is split in three** (`vwf.harness.records`,
   `vwf.harness.scoring`). What a run records about its inputs and how an
   evaluate run is scored moved out of `vwf.harness.driver`, which drops from

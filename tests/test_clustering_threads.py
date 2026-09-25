@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 from threadpoolctl import threadpool_limits
 
-from vwf.clustering import cluster_with_geometries, create_sampling_points
+from vwf.sampling import cluster_with_geometries, create_sampling_points
 from vwf.datasets.country_grid import COUNTRY_CONFIGS
 
 
