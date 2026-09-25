@@ -368,6 +368,24 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
+    "scripts/studies/method-joint-fit-reachability/reachability_pass.py": [
+        (
+            ["output/reachability_2026-09-25", "fr"],
+            ("main", ("output/reachability_2026-09-25", "fr"), {}),
+        ),
+    ],
+    "scripts/studies/method-joint-fit-reachability/reachability_offcurve.py": [
+        (
+            ["output/reachability_2026-09-25", "it"],
+            ("main", ("output/reachability_2026-09-25", "it"), {}),
+        ),
+    ],
+    "scripts/studies/method-joint-fit-reachability/reachability_tables.py": [
+        (["output/reachability_2026-09-25"], ("main", ("output/reachability_2026-09-25",), {})),
+    ],
+    "scripts/studies/method-joint-fit-reachability/offcurve_tables.py": [
+        (["output/reachability_2026-09-25"], ("main", ("output/reachability_2026-09-25",), {})),
+    ],
     "scripts/studies/method-loco-interpolation/loco_interpolation.py": [
         (["output/loco_2026-09-13"], ("main", ("output/loco_2026-09-13",), {"pool_path": POOL})),
     ],
