@@ -125,6 +125,9 @@ def _simulate_year(spec, clus_info, power_curves, factors, model, *, daily: bool
         if not matches:
             print(f"  month {month:02d}: no ERA5 file, skipped", flush=True)
             continue
+        # Two files for one month would be resolved by name order, silently.
+        if len(matches) > 1:
+            raise SystemExit(f"month {month:02d}: more than one ERA5 file: {matches}")
         with tempfile.TemporaryDirectory() as tmp:
             os.symlink(matches[0].resolve(), Path(tmp) / matches[0].name)
             rea = prep_era5(

@@ -114,9 +114,14 @@ def train_fleet_of(code: str, inputs: Inputs = INPUTS) -> pd.DataFrame:
     """The training fleet a row fits, from the run standing in the scorecard."""
     rerun, refresh = Path(inputs.rerun), Path(inputs.refresh)
     root = rerun if (rerun / code).is_dir() else refresh
-    files = sorted((root / code).glob("train-*/train_turb_info_*.csv"))
+    runs = sorted((root / code).glob("train-*"))
+    # One training run per region, or the fleet would be pooled across runs
+    # that need not agree; a second run beside the first is refused, not mixed.
+    if len(runs) != 1:
+        raise SystemExit(f"{code}: expected one training run under {root / code}, found {runs}")
+    files = sorted(runs[0].glob("train_turb_info_*.csv"))
     if not files:
-        raise SystemExit(f"{code}: no training fleet under {root}")
+        raise SystemExit(f"{code}: no training fleet under {runs[0]}")
     return audit.training_fleet(files)
 
 
