@@ -1,0 +1,75 @@
+gem_phase_id,country,project_name,phase_name,capacity_mw,start_year,rule,register,register_ids
+G100000910409,FR,Blancfossé wind farm,--,10.0,2006,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000040747J
+G100000910502,FR,Esnouveaux wind farm,--,10.0,2014,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000041330A
+G100000910647,FR,Laucourt wind farm,--,10.0,2009,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000015059474
+G100000910680,FR,Lihus wind farm,2,10.0,2016,name+geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000051914F
+G100000910727,FR,Montloué wind farm,--,10.0,2014,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000048762K
+G100000911331,FR,La Seauve wind farm,--,12.0,2020,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000998991N
+G100000911346,FR,Naives-Rosieres wind farm,--,12.0,2008,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000050681H
+G100000911361,FR,Saint Riquier wind farm,1,12.0,2011,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W100P100P0748Q
+G100000911459,FR,Baronville wind farm,--,12.0,2010,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000397297C
+G100000911512,FR,Breteuil wind farm,--,12.0,2009,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000047412F
+G100000911535,FR,Chauvé wind farm,--,12.0,2013,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000001463185
+G100000911556,FR,D'Autremencourt wind farm,--,12.0,2008,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000016860689
+G100000911758,FR,La Remise Des Bruyeres wind farm,--,12.0,2006,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000153583W
+G100000911916,FR,Plaine Du Moulin wind farm,--,12.0,2025,name+geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000002378187A
+G100000911968,FR,Rully wind farm,--,12.0,2010,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000419370M
+G100000911975,FR,Saint Riquier wind farm,2,12.0,2011,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W100P100P0748Q
+G100000911976,FR,Saint Riquier wind farm,4,12.0,2011,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W100P100P0748Q
+G100000912133,FR,Droupt-Saint-Basle wind farm,--,12.0,2010,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000051381O
+G100000912134,FR,Droupt-Sainte-Marie wind farm,--,12.0,2010,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000000572444
+G100000912149,FR,Quesnoy Sur Airaines wind farm,3,12.0,2013,commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000046792L
+G100000912156,FR,Le Moulin De Sehen wind farm,--,12.0,2015,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000058976W
+G100000912502,FR,Bois Du Frou wind farm,--,14.0,2021,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000023972845
+G100000912728,FR,Leigné-Les-Bois wind farm,--,14.0,2020,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000002426301Y
+G100000912913,FR,Autremencourt wind farm,4,14.0,2020,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001010582Z
+G100000913215,FR,Roussac wind farm,--,15.0,2021,commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001023252Z|eic:17W000001031381S
+G100000913643,FR,Sud Osartis wind farm,--,16.0,2022,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001457314A
+G100000913881,FR,Grande Combe wind farm,--,18.0,2019,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000949217E|eic:17W000000949399J
+G100000916038,FR,Les Pierrots wind farm,--,26.0,2021,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001313926U|eic:17W0000013142923|eic:17W000001314315H
+G100000916168,FR,Villes D'Oyses wind farm,--,28.0,2015,commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000043259H|eic:17W000000422736Z
+G100000916252,FR,Le Val D'Esnoms wind farm,--,28.0,2010,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000049743J|eic:17W000000050791A|eic:17W000000148681D
+G100000917249,FR,Joyeux Developers wind farm,--,36.0,2017,commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000387448N|eic:17W000000416650V|eic:17W0000004298421
+G100000917262,FR,Les Vignottes wind farm,--,36.0,2015,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000046114S|eic:17W0000001537332|eic:17W000000429203Z
+G100000917316,FR,Tulipes wind farm,--,36.0,2020,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001023698W
+G100000918273,FR,Pelade wind farm,--,48.0,2020,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000002040506P|eic:17W000002040507N|eic:17W000002040508L|eic:17W000002040509J
+G100000924012,FR,Basse-Marche wind farm,4,13.0,2020,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000009733847
+G100000924015,FR,Bena wind farm,--,13.5,2023,name+geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000002424630P
+G100000924021,FR,Binas wind farm,--,11.5,2006,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000430757V
+G100000924028,FR,Bois Briffaut wind farm,--,14.4,2020,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000998994H
+G100000924029,FR,Bois d'Olivet wind farm,--,12.0,2016,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000379633O
+G100000924076,FR,Champarts wind farm,--,15.2,2023,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001603266V
+G100000924095,FR,Chenu wind farm,--,11.0,2024,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001713510X
+G100000924127,FR,Crouy et Cuffies wind farm,--,12.0,2017,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000147723S
+G100000924158,FR,Falvieux wind farm,1,25.0,2020,geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001023690B
+G100000924162,FR,Fère-Champenoise-Euvy-Corroy wind farm,2,17.5,2011,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001469882V
+G100000924211,FR,Haut-Vignoble wind farm,--,14.1,2024,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001700845N
+G100000924226,FR,L'Epine Aux Bois wind farm,--,18.0,2018,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000461182X|eic:17W000000461267P
+G100000924254,FR,Lavacquerie wind farm,--,15.4,2019,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000958105O|eic:17W000000958242E
+G100000924265,FR,Le Nitis 1 wind farm,--,11.8,2017,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000388445O
+G100000924290,FR,Les Plaines wind farm,--,13.2,2019,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000954769V
+G100000924297,FR,Les Trois Fermes wind farm,--,10.0,2007,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000023975615
+G100000924301,FR,Leury wind farm,--,12.0,2017,geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000147723S
+G100000924313,FR,Lunaires wind farm,--,17.6,2023,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001603387J|eic:17W000001638149T
+G100000924321,FR,Marchéville wind farm,--,13.2,2020,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000002169103K
+G100000924329,FR,Martelotte wind farm,--,17.3,2023,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001553786J
+G100000924352,FR,Mont Louis wind farm (France),--,15.0,2024,commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001978293E
+G100000924359,FR,Monterfil wind farm,--,10.8,2022,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001457123H
+G100000924411,FR,Plateau-De-Gres wind farm,--,33.0,2017,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000004922931|eic:17W000000492297U
+G100000924463,FR,Sacquenay wind farm,--,10.0,2019,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000501913C
+G100000924525,FR,Tout Vent wind farm,--,18.0,2021,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W0000010309576|eic:17W000001234394R
+G100000924541,FR,Varimpré wind farm,--,12.5,2007,name+geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000147375P
+G100000924560,FR,Villers-le-Tourneur wind farm,--,15.0,2021,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001313737X
+G100001004578,FR,Soutets wind farm,--,13.8,2019,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000910658A
+G100001004745,FR,Vaux-Andigny wind farm,1,21.0,2014,name+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000041439P|eic:17W000000148372Q
+G100001056921,FR,Pays de Caux wind farm,--,12.9,2023,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001577896H
+G100001056925,FR,Brux wind farm,--,10.5,2021,name+geo+commune_sum,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000002423817E
+G100001056971,FR,Bornay 2 wind farm,--,15.0,2022,name,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000001446837Q
+G100001057083,FR,Tripleville wind farm,--,11.8,2012,name+geo,odre_registre_eolien_2026-09-25.csv sha256:4516279afa3a; fr_communes_centre_2026-09-25.json sha256:586e745d2bdd,eic:17W000000162137H
+G100000913072,NO,Gismarvik wind farm,--,12.6,2021,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:1093
+G100000915816,NO,Svaheia wind farm,--,25.0,2018,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:53
+G100000917027,NO,Haram wind farm,--,34.0,2021,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:1084
+G100000917445,NO,Havøygavlen wind farm,RP1,38.0,2021,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:3
+G100000918129,NO,Tysvaer wind farm,--,47.0,2021,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:1089
+G100000918701,NO,Lutelandet wind farm,--,51.0,2021,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:1092
+G100000919287,NO,Stokkfjellet wind farm,--,88.0,2021,name,nve_wind_in_operation_2026-09-25.json sha256:993ecb9c8716,nve:1087

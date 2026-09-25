@@ -43,6 +43,7 @@ from pyvwf.datasets.gwpt import (  # noqa: E402
     fleet_for,
     load_exclusions,
     load_gwpt,
+    load_start_years,
 )
 from pyvwf.datasets.gwpt import default_path as gwpt_default_path  # noqa: E402
 
@@ -53,6 +54,9 @@ BACKUP_SUFFIX = ".uniform.bak.csv"
 #: Records the tracker marks operating that independent registers contradict.
 #: Each row states its evidence; see the file.
 EXCLUSIONS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_exclusions.csv"
+
+#: Start years for records the tracker leaves undated, from national registers.
+START_YEARS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_start_years.csv"
 
 
 def tag_zones(frame: pd.DataFrame, country: str) -> pd.DataFrame:
@@ -199,7 +203,9 @@ def process_per_year(
         grid["cluster"] = grid["zone"].str.rsplit("_", n=1).str[-1].astype(int) - 1
 
     def weights_for(year: int) -> pd.Series:
-        fleet = fleet_for(gwpt, code, year, load_exclusions(EXCLUSIONS_PATH))
+        fleet = fleet_for(
+            gwpt, code, year, load_exclusions(EXCLUSIONS_PATH), load_start_years(START_YEARS_PATH)
+        )
         if zone_aware and not fleet.empty:
             fleet = tag_zones(fleet, code)
         return assign_to_grid(grid, fleet, zone_aware=zone_aware)
@@ -250,7 +256,9 @@ def process(
         return
 
     grid = pd.read_csv(grid_path)
-    fleet = fleet_for(gwpt, code, year, load_exclusions(EXCLUSIONS_PATH))
+    fleet = fleet_for(
+        gwpt, code, year, load_exclusions(EXCLUSIONS_PATH), load_start_years(START_YEARS_PATH)
+    )
     weights = assign_to_grid(grid, fleet)
 
     table = report(code, grid, weights)
