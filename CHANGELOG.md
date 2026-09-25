@@ -64,6 +64,14 @@ this file stay in step with it.
 
 ### Changed
 
+- **Six study drivers read frozen configs** (`configs/regions/study/`). The
+  cluster-selection, correction-identifiability, national-single-cluster,
+  hourly-resolution and scalar-bounds drivers read the maintained region
+  configs, and the European ones changed after those studies ran (ERA5
+  directory and roughness default, `a023b4d`), so a re-run would have used
+  other inputs than the recorded one. Each now reads a copy of the config as
+  it stood when the study ran, with the roughness it ran under stated.
+
 - **`pytest-xdist` is in the dev extra.** `pytest -n 4 --dist loadfile -m "not
   realdata"` runs every test that needs no local data, one test file per
   worker; on the maintainer's machine that is 1,066 tests in 24 seconds.

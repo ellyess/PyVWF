@@ -47,7 +47,11 @@ def main(out_dir: str, label: str, *counts: str) -> None:
     _, stem, mode, _ = match[0]
     from vwf.harness import regions
 
-    spec = regions.load_region(REPO / "configs" / "regions" / f"{stem}.toml")
+    # The frozen config this study ran on, not the maintained one, which moved to
+    # era5/EU_2026-09 and derived roughness after it ran (configs/regions/study/).
+    spec = regions.load_region(
+        REPO / "configs" / "regions" / "study" / f"{stem}_era5_eu_stored.toml"
+    )
 
     print(
         f"{label}: training {wanted} on {spec.train_years}, scoring {spec.test_years[0]}",

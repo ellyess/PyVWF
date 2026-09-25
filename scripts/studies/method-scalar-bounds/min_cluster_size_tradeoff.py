@@ -66,7 +66,9 @@ OUT = Path("output/min_cluster_size")
 
 def main(out: Path = OUT) -> int:
     out = Path(out)
-    base = load_region(Path("configs/regions/cl.toml"))
+    # The config as it stood when this study ran, frozen in configs/regions/study/;
+    # the maintained cl.toml has changed only in comments since.
+    base = load_region(Path("configs/regions/study/cl_2026-08-12.toml"))
     rows = []
 
     for m in SIZES:

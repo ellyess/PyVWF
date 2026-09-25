@@ -167,7 +167,9 @@ def _long(cf: pd.DataFrame, name: str) -> pd.DataFrame:
 
 
 def main(out: Path = OUT, train_run: Path = TRAIN_RUN, raw_cen: Path = RAW_CEN) -> int:
-    spec = load_region(Path("configs/regions/cl.toml"))
+    # The config as it stood when this study ran, frozen in configs/regions/study/;
+    # the maintained cl.toml has changed only in comments since.
+    spec = load_region(Path("configs/regions/study/cl_2026-08-12.toml"))
     source = get_source(spec.source, spec.code)
 
     turb_info = source.load_metadata()

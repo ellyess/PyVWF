@@ -1,0 +1,37 @@
+# Frozen 2026-09-25 from configs/regions/de.toml as it stood before a023b4d,
+# for the studies that ran on it (cluster selection, correction
+# identifiability, national single cluster; 2026-09-15 to 16). Byte for byte
+# that file, except the roughness line below: the file named none, and the
+# default was "stored" until a023b4d made it "derived".
+# Region config for the multi-region validation harness (docs/design/harness.md).
+# Seasons are EXPLICIT month lists; never rely on the legacy NH mapping.
+
+[region]
+code = "DE"
+name = "Germany"
+
+[observations]
+source = "european-turbine"
+obs_level = "turbine"
+obs_unit = "turbine"
+train_years = [2015, 2018]
+test_years = [2019]
+# Unit-metered observations, but geolocation is postcode-centroid only.
+location_resolution = "postcode"
+
+[era5]
+path = "era5/EU"
+bbox = [5.0, 16.0, 47.0, 55.2]
+file_tag = "EU"
+roughness = "stored"  # the default these studies ran under
+
+[correction]
+model = "affine-wind"
+cluster_list = [1, 50]  # sweep knee (docs/findings/method-cluster-count.md)
+time_slices = ["fixed", "season"]
+
+[seasons]
+summer = [6, 7, 8]
+autumn = [9, 10, 11]
+winter = [12, 1, 2]
+spring = [3, 4, 5]

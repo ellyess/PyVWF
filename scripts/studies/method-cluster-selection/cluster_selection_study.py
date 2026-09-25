@@ -159,7 +159,9 @@ def main(out_dir: str, *only: str) -> None:
     for label, stem, mode, chapter_count in CONFIGURATIONS:
         if only and label not in only:
             continue
-        spec = regions.load_region(Path("configs/regions") / f"{stem}.toml")
+        # The frozen config this study ran on, not the maintained one, which moved to
+        # era5/EU_2026-09 and derived roughness after it ran (configs/regions/study/).
+        spec = regions.load_region(Path("configs/regions/study") / f"{stem}_era5_eu_stored.toml")
         started = time.monotonic()
         print(f"\n=== {label}: train {spec.train_years}, test {spec.test_years}", flush=True)
 
