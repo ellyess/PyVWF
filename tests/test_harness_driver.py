@@ -212,3 +212,21 @@ def test_the_clipped_count_reaches_the_manifest_and_the_metrics(tmp_path):
     assert recorded["clipped_share"] == pytest.approx(3 / 2000)
     # It has to survive json, since that is how a manifest stores it.
     assert json.loads(json.dumps(recorded))["n_clipped"] == 3
+
+
+def test_a_reused_run_name_is_refused(synthetic_dk):
+    """A second run under the same name would write beside the first one's files."""
+    spec = make_spec()
+    out = synthetic_dk["root"] / "reuse"
+    run_train(spec, out, mode="onshore", run_name="same")
+    with pytest.raises(FileExistsError, match="already holds a run"):
+        run_train(spec, out, mode="onshore", run_name="same")
+
+
+def test_an_empty_run_directory_can_be_used(synthetic_dk):
+    """Only a directory that holds files is refused, so a pre-made one still works."""
+    spec = make_spec()
+    out = synthetic_dk["root"] / "empty"
+    (out / spec.code / "train-fresh").mkdir(parents=True)
+    run_dir = run_train(spec, out, mode="onshore", run_name="fresh")
+    assert (run_dir / "run_manifest.json").is_file()
