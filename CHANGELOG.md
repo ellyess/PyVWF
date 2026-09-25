@@ -64,6 +64,11 @@ this file stay in step with it.
 
 ### Changed
 
+- **CI tests every extra.** A new job installs `pinn`, `grid` and `data` and
+  runs the fast set, so the physics-informed and gridded-export tests, which
+  skip in the other jobs, run in CI. It fails if any test still skips for a
+  missing import.
+
 - **`vwf.data` and `vwf.clustering` are split** (`vwf.country_level`,
   `vwf.sampling`). The country-level observation and grid-fleet helpers moved
   out of `vwf.data` (969 lines to 713), and every name is still importable
