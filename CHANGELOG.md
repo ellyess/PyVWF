@@ -64,6 +64,11 @@ this file stay in step with it.
 
 ### Changed
 
+- **The joint national fit interpolates each cluster's winds once per period**
+  (`vwf.correction.find_offsets_country_level`), not on every evaluation of
+  its objective. The winds do not depend on the offsets, so the result is
+  identical; the FR k=10 training pin runs in 114 s instead of 247 s.
+
 - **`vwf.data` and `vwf.clustering` are split** (`vwf.country_level`,
   `vwf.sampling`). The country-level observation and grid-fleet helpers moved
   out of `vwf.data` (969 lines to 713), and every name is still importable

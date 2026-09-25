@@ -5,7 +5,12 @@ import warnings
 import numpy as np
 from scipy.optimize import brentq, minimize
 
-from vwf.wind import interpolate_wind, train_simulate_wind, prepare_offset_arrays, fast_simulate_cf
+from vwf.wind import (
+    fast_simulate_cf,
+    interpolate_wind,
+    prepare_offset_arrays,
+    train_simulate_wind_from_ws,
+)
 from vwf.time_utils import parse_time_slice
 from vwf.metrics import weighted_mean
 
@@ -285,6 +290,12 @@ def find_offsets_country_level(
     # Get capacity weights for aggregation
     capacity_by_cluster = turb_info.groupby("cluster")["capacity"].sum()
 
+    # Each cluster's hub-height winds, interpolated once per period. The
+    # objective used to interpolate them again on every evaluation, which the
+    # optimiser calls several times per iteration; interpolation does not
+    # depend on the offsets, so the result is the same to the bit.
+    cluster_ws: dict = {}
+
     def objective(offsets):
         """Objective function: squared error between simulated and observed country CF."""
         cluster_cfs = []
@@ -294,15 +305,12 @@ def find_offsets_country_level(
             scalar = scalars_by_cluster.get(cluster_id, 1.0)
             offset = offsets[i]
 
-            # Get turbines in this cluster
-            cluster_turbs = turb_info[turb_info["cluster"] == cluster_id]
-
-            if len(cluster_turbs) == 0:
+            if cluster_id not in cluster_ws:
                 continue
 
             # Simulate with this cluster's corrections
-            mean_cf = train_simulate_wind(
-                reanalysis_period, cluster_turbs, powerCurveFile, scalar, offset
+            mean_cf = train_simulate_wind_from_ws(
+                cluster_ws[cluster_id], powerCurveFile, scalar, offset
             )
 
             cluster_cfs.append(mean_cf)
@@ -334,6 +342,12 @@ def find_offsets_country_level(
     refused = {cluster_id: np.nan for cluster_id in clusters}
     where = f"year={year}, time_slice={time_slice}"
     try:
+        # Inside the try, so an interpolation that raises is refused like any
+        # other failure of the fit, as it was when the objective interpolated.
+        for cluster_id in clusters:
+            cluster_turbs = turb_info[turb_info["cluster"] == cluster_id]
+            if len(cluster_turbs):
+                cluster_ws[cluster_id] = interpolate_wind(reanalysis_period, cluster_turbs)
         result = minimize(
             objective,
             x0,
