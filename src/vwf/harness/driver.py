@@ -59,6 +59,16 @@ from vwf.metrics import weighted_mean
 TRANSFER_HUB = "AU-NEM"
 
 
+class CurveSubstitutionError(ValueError):
+    """A country-level fleet names a power curve the loaded library lacks.
+
+    Every unit of a country grid carries one representative turbine, so a
+    missing curve is never a minor share of the fleet: it moves the whole row
+    onto the curve table's first column. That is how all eight country rows ran
+    on a 100 kW distributed-wind curve until 2026-09-25.
+    """
+
+
 def check_transfer_pair(source_code: str, target_code: str) -> None:
     """Reject transfer pairs outside the approved AU↔Europe set."""
     codes = {source_code.upper(), target_code.upper()}
@@ -137,7 +147,12 @@ def _record_observation_quality(source) -> dict:
 
 
 def _record_curve_resolution(
-    run_dir: Path, fleet: pd.DataFrame, power_curves: pd.DataFrame, code: str
+    run_dir: Path,
+    fleet: pd.DataFrame,
+    power_curves: pd.DataFrame,
+    code: str,
+    *,
+    refuse_substitution: bool = False,
 ) -> dict:
     """Write ``curve_resolution.csv`` for the fleet a run simulates.
 
@@ -146,11 +161,24 @@ def _record_curve_resolution(
     100 kW fallback curve for two months unnoticed. The record goes in the run
     directory, its summary in the manifest, and the substituted share into
     every metrics row, so it travels with the numbers the way ``fit_quality``
-    does. Recording only: a substitution never stops a run.
+    does.
+
+    With ``refuse_substitution``, which country-level runs pass, any
+    substitution raises :class:`CurveSubstitutionError` once the record is
+    written, so the run directory still says which keys were missing.
     """
     resolution = curve_resolution(fleet, power_curves)
     resolution.to_csv(run_dir / CURVE_RESOLUTION_NAME, index=False)
     summary = summarise_curve_resolution(resolution)
+    if summary["n_models_substituted"] and refuse_substitution:
+        raise CurveSubstitutionError(
+            f"{code}: the loaded curve library has no curve for "
+            f"{sorted(summary['substitutions'])}, so "
+            f"{summary['substituted_capacity_share']:.1%} of fleet capacity would be "
+            f"simulated on {sorted(set(summary['substitutions'].values()))}. Country "
+            "grids name licensed Vestas curves: run with PYVWF_INPUT=input/combined. "
+            f"Record: {run_dir / CURVE_RESOLUTION_NAME}."
+        )
     if summary["n_models_substituted"]:
         warnings.warn(
             f"{code}: {summary['substituted_capacity_share']:.1%} of fleet capacity "
@@ -302,7 +330,13 @@ def run_train(
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, "train", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
-    curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
+    curves = _record_curve_resolution(
+        run_dir,
+        turb_info,
+        power_curves,
+        spec.code,
+        refuse_substitution=spec.obs_level == "country",
+    )
     era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
     fit_record: dict[str, dict] = {}
     accepted_years: dict[str, dict] = {}
@@ -469,7 +503,9 @@ def run_evaluate(
     model = get_correction(spec.correction_model)
     run_dir = _run_dir(out_root, spec, f"evaluate-{year}", run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
-    curves = _record_curve_resolution(run_dir, turb_info, power_curves, spec.code)
+    curves = _record_curve_resolution(
+        run_dir, turb_info, power_curves, spec.code, refuse_substitution=is_country
+    )
     era5_extent = _record_era5_extent(reanalysis, turb_info, spec)
 
     # A zonal source can also be scored zone by zone. The national metric is the

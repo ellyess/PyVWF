@@ -20,7 +20,7 @@ import vwf.wind as wind
 from test_harness_driver import make_spec
 from vwf.config import PyVWFPaths
 from vwf.curves import _default_power_curve, add_models
-from vwf.harness.driver import run_evaluate, run_train, run_transfer
+from vwf.harness.driver import CurveSubstitutionError, run_evaluate, run_train, run_transfer
 from vwf.provenance import curve_resolution, summarise_curve_resolution
 from vwf.sources import InMemoryCountrySource, get_source
 
@@ -210,53 +210,73 @@ def test_driver_records_resolution_in_train_and_evaluate(synthetic_dk):
     assert (metrics["substituted_capacity_share"] == 0.0).all()
 
 
-def test_driver_country_run_with_a_missing_model_is_recorded(synthetic_dk):
-
-    grid = pd.DataFrame(
+def _country_grid(model):
+    return pd.DataFrame(
         {
             "ID": ["g0", "g1", "g2", "g3"],
             "lon": [8.1, 8.3, 9.2, 9.4],
             "lat": [55.2, 55.4, 55.6, 55.8],
             "height": [100.0] * 4,
             "capacity": [2000.0, 2000.0, 4000.0, 4000.0],
-            "model": ["Vestas.V90.3000"] * 4,
+            "model": [model] * 4,
             "cluster": [0, 0, 1, 1],
             "type": ["onshore"] * 4,
         }
     )
-    idx = {
-        y: pd.date_range(f"{y}-01-01", f"{y}-12-31 23:00", freq="h", tz="UTC") for y in (2015, 2016)
-    }
-    spec = make_spec(
-        source="in-memory-country", obs_level="country", obs_unit="country", cluster_list=(2,)
-    )
+
+
+def _country_source(grid, year):
+    idx = pd.date_range(f"{year}-01-01", f"{year}-12-31 23:00", freq="h", tz="UTC")
+    return InMemoryCountrySource(grid, pd.DataFrame({"capacity_factor": 0.2}, index=idx))
+
+
+COUNTRY_SPEC = dict(
+    source="in-memory-country", obs_level="country", obs_unit="country", cluster_list=(2,)
+)
+
+
+def test_a_country_run_with_a_missing_model_is_refused_and_recorded(synthetic_dk):
+    """Every grid point names one key, so a missing curve is the whole row.
+
+    Until 2026-09-25 this was recorded and the run went on, on the 100 kW
+    fallback; the record is still written before the refusal.
+    """
+    spec = make_spec(**COUNTRY_SPEC)
     out = synthetic_dk["root"] / "cl"
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
-        train_dir = run_train(
-            spec,
-            out,
-            run_name="t",
-            source=InMemoryCountrySource(
-                grid, pd.DataFrame({"capacity_factor": 0.2}, index=idx[2015])
-            ),
+    with pytest.raises(CurveSubstitutionError, match=r"Vestas\.V90\.3000.*input/combined"):
+        run_train(
+            spec, out, run_name="t", source=_country_source(_country_grid("Vestas.V90.3000"), 2015)
         )
-        eval_dir = run_evaluate(
+    res = pd.read_csv(out / "DK" / "train-t" / "curve_resolution.csv")
+    assert res["curve_used"].tolist() == [BUNDLED_FALLBACK]
+    assert res["status"].tolist() == ["substituted"]
+
+
+def test_a_country_run_whose_model_resolves_trains_and_evaluates(synthetic_dk):
+    spec = make_spec(**COUNTRY_SPEC)
+    out = synthetic_dk["root"] / "cl"
+    grid = _country_grid("VestasV82_1.65MW_82")
+    train_dir = run_train(spec, out, run_name="t", source=_country_source(grid, 2015))
+    eval_dir = run_evaluate(spec, train_dir, out, run_name="e", source=_country_source(grid, 2016))
+    metrics = pd.read_csv(eval_dir / "metrics.csv")
+    assert (metrics["substituted_capacity_share"] == 0.0).all()
+
+
+def test_a_country_evaluation_with_a_missing_model_is_refused(synthetic_dk):
+    """The training fleet resolved; the test-year fleet names a key that does not."""
+    spec = make_spec(**COUNTRY_SPEC)
+    out = synthetic_dk["root"] / "cl"
+    train_dir = run_train(
+        spec, out, run_name="t", source=_country_source(_country_grid("VestasV82_1.65MW_82"), 2015)
+    )
+    with pytest.raises(CurveSubstitutionError):
+        run_evaluate(
             spec,
             train_dir,
             out,
             run_name="e",
-            source=InMemoryCountrySource(
-                grid, pd.DataFrame({"capacity_factor": 0.2}, index=idx[2016])
-            ),
+            source=_country_source(_country_grid("Vestas.V90.3000"), 2016),
         )
-
-    metrics = pd.read_csv(eval_dir / "metrics.csv")
-    assert (metrics["substituted_capacity_share"] == 1.0).all()
-    res = pd.read_csv(eval_dir / "curve_resolution.csv")
-    assert res["curve_used"].tolist() == [BUNDLED_FALLBACK]
-    manifest = json.loads((eval_dir / "run_manifest.json").read_text())
-    assert manifest["curve_resolution"]["substitutions"] == {"Vestas.V90.3000": BUNDLED_FALLBACK}
 
 
 def test_driver_transfer_records_resolution(synthetic_dk):

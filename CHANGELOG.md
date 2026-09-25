@@ -145,6 +145,16 @@ this file stay in step with it.
   national series, instead of the documented joint fit. It now compares the
   spread against a tolerance. This moves every country-level scorecard row
   with more than one cluster; see the scorecard's notice.
+- **A country-level run on a curve the library lacks is refused**
+  (`vwf.harness.driver.CurveSubstitutionError`). Every country grid point
+  names one Vestas key, `Vestas.V80.2000`, `Vestas.V90.2000` or
+  `Vestas.V90.3000`, which exist only in the licensed library, so on the
+  default input root every unit of all eight country rows was simulated on
+  the bundled library's first column, a 100 kW distributed-wind curve, with a
+  warning and a record but no stop. Country-level training and evaluation now
+  raise once `curve_resolution.csv` is written; the country rows run on
+  `input/combined`. Turbine-level runs still record a substitution and go on.
+  This moves every country-level scorecard row; see the scorecard's notice.
 - **The joint national fit closes a small error instead of stopping at zero**
   (`vwf.correction.find_offsets_country_level`). Its objective is the squared
   capacity-factor error, near 1e-4 at the start, and L-BFGS-B's `ftol` of
