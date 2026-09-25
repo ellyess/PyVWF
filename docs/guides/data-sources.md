@@ -157,6 +157,27 @@ ES-WS) and per-phase capacity (AR). Also supplies capacity weights for every
 country-level grid via `scripts/region_tools/weight_country_grid_points.py`
 (§4 and the region guide); start/retirement years let the fleet be reconstructed by year. One known
 spurious record is excluded in `configs/curation/gwpt_exclusions.csv`.
+Records the tracker leaves undated take a start year from
+`configs/curation/gwpt_start_years.csv` where a national register dates them;
+the rest are counted in every year.
+
+**Registers that date the tracker's records.** Written into
+`configs/curation/gwpt_start_years.csv` by
+`scripts/region_tools/backfill_gwpt_start_years.py`, which reads them from
+`input/reference/registers/` (local, git-ignored):
+
+- `nve_wind_in_operation_<date>.json`: NVE's wind plants in operation, with
+  each plant's turbines and their dates, from
+  `https://api.nve.no/web/WindPowerplant/GetWindPowerPlantsInOperation`
+  (NLOD).
+- `odre_registre_eolien_<date>.csv`: the ODRE national register of production
+  installations, filtered to wind (`codefiliere = "EOLIE"`), from
+  `odre.opendatasoft.com`, dataset
+  `registre-national-installation-production-stockage-electricite-agrege`
+  (Licence Ouverte). Most installation names are confidential, so matching is
+  by commune and capacity.
+- `fr_communes_centre_<date>.json`: French commune centres, from
+  `https://geo.api.gouv.fr/communes?fields=code,nom,centre` (Licence Ouverte).
 
 **Bidding-zone geometry.** Real polygons vendored under
 `configs/curation/zones/` (SE/DK/IT from entsoe-py, MIT; NO from NVE, NLOD).

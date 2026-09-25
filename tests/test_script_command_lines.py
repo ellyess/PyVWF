@@ -57,6 +57,25 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         (["realdata"], ("main", ("realdata",), {})),
         (["pinn"], ("main", ("pinn",), {})),
     ],
+    # The start-year backfill's own docstring gives both.
+    "scripts/region_tools/backfill_gwpt_start_years.py": [
+        (
+            ["--dry-run"],
+            (
+                "main",
+                (),
+                {"out": ROOT / "configs/curation/gwpt_start_years.csv", "dry_run": True},
+            ),
+        ),
+        (
+            [],
+            (
+                "main",
+                (),
+                {"out": ROOT / "configs/curation/gwpt_start_years.csv", "dry_run": False},
+            ),
+        ),
+    ],
     "scripts/analysis/baseline_bootstrap.py": [
         (
             ["DK", "output/curve_library_study_2026-09-11/baseline_bootstrap"],
