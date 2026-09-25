@@ -64,6 +64,14 @@ this file stay in step with it.
 
 ### Changed
 
+- **CI's test matrix and lint job install through pinned constraints**
+  (`constraints/py310.txt` to `py312.txt`, written by `scripts/dev/lock.py`).
+  A CI result on Python 3.10 to 3.12 now depends on the repository, not on
+  that day's PyPI. The pandas split is kept: 3.10 resolves pandas 2, and 3.11
+  and 3.12 pandas 3. Python 3.13 and the extras job stay unpinned, so a new
+  release still reaches CI. A test checks that the workflow, the files and the
+  script agree, and that every direct dependency is pinned.
+
 - **`pytest-xdist` is in the dev extra.** `pytest -n 4 --dist loadfile -m "not
   realdata"` runs every test that needs no local data, one test file per
   worker; on the maintainer's machine that is 1,066 tests in 24 seconds.
