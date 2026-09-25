@@ -64,6 +64,12 @@ this file stay in step with it.
 
 ### Changed
 
+- **The harness driver is split in three** (`vwf.harness.records`,
+  `vwf.harness.scoring`). What a run records about its inputs and how an
+  evaluate run is scored moved out of `vwf.harness.driver`, which drops from
+  1,121 lines to 699 and keeps the run functions. Every name is still
+  importable from the driver. No behaviour changes.
+
 - **A run refuses a run directory that already holds files**
   (`vwf.harness.driver`). A reused `--run-name` wrote into the earlier run's
   directory, so files the new run did not write, such as a factors file of
