@@ -68,6 +68,11 @@ this file stay in step with it.
   realdata"` runs every test that needs no local data, one test file per
   worker; on the maintainer's machine that is 1,066 tests in 24 seconds.
 
+- **The joint national fit interpolates each cluster's winds once per period**
+  (`vwf.correction.find_offsets_country_level`), not on every evaluation of
+  its objective. The winds do not depend on the offsets, so the result is
+  identical; the FR k=10 training pin runs in 114 s instead of 247 s.
+
 - **CI tests every extra.** A new job installs `pinn`, `grid` and `data` and
   runs the fast set, so the physics-informed and gridded-export tests, which
   skip in the other jobs, run in CI. It fails if any test still skips for a
