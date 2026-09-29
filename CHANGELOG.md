@@ -408,6 +408,14 @@ this file stay in step with it.
   move, the set of refused fits is unchanged, and the golden regression test
   is unmoved. The real-data pins of both configurations' fixed-slice
   factors, recorded before the change, are re-recorded with it.
+- **A failed ENTSO-E query raises instead of coming back empty**
+  (`ENTSOEWindDataFetcher.fetch_generation`, `fetch_installed_capacity` and
+  their Norwegian per-zone helpers). Every error was caught and returned as an
+  empty frame, which callers read as "no data here": a network or
+  authentication failure skipped the country, and a failed Norwegian zone was
+  left out of a national sum that still looked complete. Only ENTSO-E's own
+  no-data answer (`NoMatchingDataError`) is still empty, so a zone with no
+  wind is still skipped.
 
 ### Documentation
 
