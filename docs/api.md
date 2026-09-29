@@ -148,8 +148,8 @@ are capacity-weighted.
 
 ```{eval-rst}
 .. automodule:: pyvwf.metrics
-   :members: calculate_error, overall_error, prepare_monthly_data,
-             weighted_average_vectorized
+   :members: calculate_error, prepare_monthly_data, weighted_average_vectorized,
+             weighted_mean, weighted_mean_by
 ```
 
 ## Visualisation

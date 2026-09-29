@@ -1,8 +1,9 @@
 """Farm-level observation source for the Australian NEM (design §2).
 
-Phase 1 delivers the adapter contract and the pure transformation logic,
-exercised against synthetic fixtures; fetching real AEMO data is a Phase 2
-step. The transformations encode two decisions made at design review:
+The adapter reads files already on disk: ``scripts/fetch/aemo_au.sh``
+downloads them and ``scripts/process/aemo_au.py`` builds them
+(``docs/runbooks/au_nem.md``). Its transformations are tested on synthetic
+fixtures, and encode two decisions made at design review:
 
 - **Timezone**: AEMO SCADA timestamps are market time (AEST, UTC+10, no
   DST). They are converted to UTC at ingest and monthly bins are UTC,
@@ -274,8 +275,8 @@ class AEMONemSource(ObservationSource):
         if not path.is_file():
             raise FileNotFoundError(
                 f"AEMO farm metadata not found at {path}. This adapter reads "
-                "pre-downloaded files; see the class docstring for the schema "
-                "(data acquisition is a Phase 2 step)."
+                "pre-downloaded files; see the class docstring for the schema, "
+                "and docs/runbooks/au_nem.md for how to fetch and build them."
             )
         meta = pd.read_csv(path)
         required = {"ID", "lon", "lat", "height", "capacity", "model"}
@@ -316,8 +317,8 @@ class AEMONemSource(ObservationSource):
             raise FileNotFoundError(
                 f"AEMO SCADA not found at {path} (and no precomputed partials at "
                 f"{partials_path.name}). This adapter reads pre-downloaded files; "
-                "see the class docstring for the schema (data acquisition is a "
-                "Phase 2 step)."
+                "see the class docstring for the schema, and "
+                "docs/runbooks/au_nem.md for how to fetch and build them."
             )
         scada = pd.read_csv(path)
         return finalise_monthly_cf(

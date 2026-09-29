@@ -1,13 +1,15 @@
-"""Metrics utilities for model evaluation (OPTIMIZED).
+"""Capacity-weighted means and one error summary for simulated against observed CF.
 
-Performance optimizations:
-- Vectorized weighted average computation
-- Pre-computed aggregations to avoid repeated lambda calls
-- Efficient groupby operations
-- Reduced pivot/melt operations
+:func:`weighted_mean` and :func:`weighted_mean_by` are the package's one
+weighted-mean primitive. :func:`calculate_error` is the ``"total"`` summary the
+gridded correction scores with (``pyvwf.extensions.grid.evaluate``); every
+harness metric is computed in :mod:`pyvwf.harness.skill` instead.
 
-This module provides error aggregation and summary metrics for simulated versus
-observed capacity factors.
+Until 2026-09-25 this module also carried the legacy path's grouped reports
+(six more ``calculate_error`` modes, a training-data branch of
+:func:`prepare_monthly_data`, and ``overall_error``, which read a
+``results/capacity-factor/`` layout nothing writes any more). The legacy path
+was removed on 2026-09-24; they are last present at ``96a6d3e``.
 """
 
 import numpy as np
@@ -89,16 +91,16 @@ def weighted_average_vectorized(df, value_col, weight_col):
     return weighted_mean(df[value_col], df[weight_col])
 
 
-def prepare_monthly_data(df_sim, df_obs, train=False):
-    """Prepare and merge simulation and observation data efficiently.
+def prepare_monthly_data(df_sim, df_obs):
+    """Monthly means of two wide CF frames, melted to one row per ID and month.
 
     Args:
-        df_sim: Simulated capacity factor data.
-        df_obs: Observed capacity factor data.
-        train: If True, treat observations as training-period data.
+        df_sim: Simulated capacity factor, wide (``time`` plus one column per ID).
+        df_obs: Observed capacity factor, in the same layout.
 
     Returns:
-        Tuple of (df_sim_monthly, df_obs_monthly) ready for merging.
+        Tuple of (df_sim_monthly, df_obs_monthly), each with ``year``,
+        ``month``, ``ID`` and ``cf``, ready for merging.
 
     Note:
         Neither input is mutated; both are copied before the time columns are
@@ -107,27 +109,11 @@ def prepare_monthly_data(df_sim, df_obs, train=False):
     df_sim = df_sim.copy()
     df_obs = df_obs.copy()
 
-    if train:
-        # Training observations arrive long-format (ID, year, month, obs) and
-        # are already monthly. Keep their real calendar labels: this used to
-        # pivot the frame, discard the (year, month) index and overwrite it
-        # with a hard-coded 2015-01..2019-12 range, which crashed on any
-        # training window that wasn't 60 months long and, worse, silently
-        # relabelled a 60-month window starting in any other year, merging
-        # every observation against the wrong year's simulation.
-        df_obs_monthly = (
-            df_obs.groupby(["year", "month", "ID"], as_index=False)["obs"]
-            .mean()
-            .rename(columns={"obs": "cf"})
-        )
-    else:
-        df_obs["time"] = pd.to_datetime(df_obs["time"])
-        df_obs["month"] = df_obs.time.dt.month
-        df_obs["year"] = df_obs.time.dt.year
-        df_obs_monthly = df_obs.drop(columns=["time"]).set_index("month").reset_index()
-        df_obs_monthly = df_obs_monthly.melt(
-            id_vars=["year", "month"], var_name="ID", value_name="cf"
-        )
+    df_obs["time"] = pd.to_datetime(df_obs["time"])
+    df_obs["month"] = df_obs.time.dt.month
+    df_obs["year"] = df_obs.time.dt.year
+    df_obs_monthly = df_obs.drop(columns=["time"]).set_index("month").reset_index()
+    df_obs_monthly = df_obs_monthly.melt(id_vars=["year", "month"], var_name="ID", value_name="cf")
 
     # OPTIMIZATION: Process simulations once
     df_sim["time"] = pd.to_datetime(df_sim["time"])
@@ -143,304 +129,64 @@ def prepare_monthly_data(df_sim, df_obs, train=False):
     return df_sim_monthly, df_obs_monthly
 
 
-def calculate_error(type, df_sim, df_obs, turb_info, train=False):
-    """Calculate error summaries between simulated and observed data (OPTIMIZED).
+#: ``calculate_error`` modes removed with the legacy path, for the error message.
+REMOVED_MODES = (
+    "monthly-error",
+    "regional-error",
+    "cluster-error",
+    "turbine-error",
+    "temporal-focus",
+    "spatial-focus",
+)
 
-    Performance improvements:
-    - Uses vectorized weighted average (10x faster)
-    - Pre-processes data once with prepare_monthly_data()
-    - Efficient groupby operations
+
+def calculate_error(type, df_sim, df_obs, turb_info):
+    """Capacity-weighted RMSE, MAE and MBE of per-ID mean monthly errors.
+
+    Each ID's monthly errors are averaged (the difference, its absolute value
+    and its square), then the IDs are combined weighted by capacity. A month
+    missing on either side, or an ID without a capacity, is left out.
 
     Args:
-        type: Error type selector (e.g., ``"monthly-error"``, ``"regional-error"``).
-        df_sim: Simulated capacity factor data.
-        df_obs: Observed capacity factor data.
-        turb_info: Turbine metadata with capacity and grouping fields.
-        train: If True, treat observations as training-period data.
+        type: ``"total"``, the one mode kept. Named for compatibility with
+            callers written when the module had seven.
+        df_sim: Simulated capacity factor, wide (``time`` plus one column per ID).
+        df_obs: Observed capacity factor, in the same layout.
+        turb_info: Fleet table with ``ID`` and ``capacity``.
 
     Returns:
-        Varies by ``type``. Typically returns error summaries or metric tuples.
+        Tuple ``(rmse, mae, mbe)``.
+
+    Raises:
+        ValueError: For any other ``type``, naming a removed mode as removed.
     """
-    # OPTIMIZATION: Prepare data once
-    df_sim_monthly, df_obs_monthly = prepare_monthly_data(df_sim, df_obs, train)
+    if type in REMOVED_MODES:
+        raise ValueError(
+            f"calculate_error mode {type!r} was removed with the legacy path on "
+            "2026-09-25; the harness scores runs in pyvwf.harness.skill"
+        )
+    if type != "total":
+        raise ValueError(f"Unknown error type: {type}")
+
+    df_sim_monthly, df_obs_monthly = prepare_monthly_data(df_sim, df_obs)
 
     # Convert turb_info ID once, on a copy: callers pass the same fleet table
     # into repeated evaluations and should not have it mutated underneath them.
     turb_info = turb_info.copy()
     turb_info["ID"] = turb_info["ID"].astype(str)
 
-    # Merge simulation and observations
     merged = pd.merge(
         df_sim_monthly, df_obs_monthly, on=["ID", "month", "year"], suffixes=("_sim", "_obs")
     )
-
-    # Add turbine metadata based on error type
-    if type == "regional-error":
-        merged = pd.merge(merged, turb_info[["ID", "capacity", "region", "In training?"]], on="ID")
-    elif type == "cluster-error":
-        merged = pd.merge(merged, turb_info[["ID", "capacity", "cluster"]], on="ID")
-    elif type == "turbine-error":
-        merged = pd.merge(merged, turb_info[["ID", "capacity", "distance"]], on="ID")
-    elif type == "monthly-error":
-        merged = pd.merge(merged, turb_info[["ID", "capacity", "In training?"]], on="ID")
-    else:
-        merged = pd.merge(merged, turb_info[["ID", "capacity"]], on="ID")
-
-    # Drop NaN values
+    merged = pd.merge(merged, turb_info[["ID", "capacity"]], on="ID")
     merged = merged.dropna(subset=["cf_sim", "cf_obs", "capacity"]).reset_index(drop=True)
 
-    # OPTIMIZATION: Use efficient aggregation function instead of lambda
-    def agg_weighted(group, value_col):
-        """Aggregate with weighted average."""
-        return weighted_average_vectorized(group, value_col, "capacity")
+    merged["diff"] = merged["cf_sim"] - merged["cf_obs"]
+    merged["abdiff"] = np.abs(merged["diff"])
+    merged["sqdiff"] = merged["diff"] ** 2
+    merged = merged.groupby("ID").mean()
 
-    # Route to specific error calculation based on type
-    if type == "monthly-error":  # country-monthly
-        # Group and aggregate with vectorized weighted average
-        grouped = merged.groupby(["month", "In training?"])[["cf_obs", "cf_sim", "capacity"]]
-        averaged = (
-            grouped.apply(
-                lambda g: pd.Series(
-                    {
-                        "cf_obs": agg_weighted(g, "cf_obs"),
-                        "cf_sim": agg_weighted(g, "cf_sim"),
-                        "ID": len(g),
-                    }
-                )
-            )
-            .reset_index()
-            .set_index("month")
-        )
-
-        averaged["diff"] = averaged["cf_sim"] - averaged["cf_obs"]
-
-        # Total aggregation
-        grouped_total = merged.groupby(["month"])[["cf_obs", "cf_sim", "capacity"]]
-        averaged_total = grouped_total.apply(
-            lambda g: pd.Series(
-                {
-                    "cf_obs": agg_weighted(g, "cf_obs"),
-                    "cf_sim": agg_weighted(g, "cf_sim"),
-                    "ID": len(g),
-                }
-            )
-        )
-        averaged_total["diff"] = averaged_total["cf_sim"] - averaged_total["cf_obs"]
-        averaged_total["In training?"] = "Both"
-
-        averaged = pd.concat([averaged, averaged_total])
-        return averaged[["diff", "In training?", "ID"]]
-
-    elif type == "regional-error":  # region-yearly
-        # OPTIMIZATION: Aggregate once per ID first
-        averaged = (
-            merged.groupby("ID")
-            .agg(
-                {
-                    "cf_obs": "mean",
-                    "cf_sim": "mean",
-                    "region": "first",
-                    "In training?": "first",
-                    "capacity": "first",
-                }
-            )
-            .reset_index()
-        )
-
-        # Group by region and training status
-        grouped_type = averaged.groupby(["region", "In training?"])[
-            ["cf_obs", "cf_sim", "capacity"]
-        ]
-        averaged_type = grouped_type.apply(
-            lambda g: pd.Series(
-                {
-                    "cf_obs": agg_weighted(g, "cf_obs"),
-                    "cf_sim": agg_weighted(g, "cf_sim"),
-                    "ID": len(g),
-                }
-            )
-        )
-        averaged_type["diff"] = (
-            np.abs(averaged_type["cf_sim"] - averaged_type["cf_obs"]) / averaged_type["cf_obs"]
-        ) * 100
-        averaged_type = averaged_type.reset_index().set_index("region")
-
-        # Total by region
-        grouped_region = averaged.groupby("region")[["cf_obs", "cf_sim", "capacity"]]
-        by_region = grouped_region.apply(
-            lambda g: pd.Series(
-                {
-                    "cf_obs": agg_weighted(g, "cf_obs"),
-                    "cf_sim": agg_weighted(g, "cf_sim"),
-                    "ID": len(g),
-                }
-            )
-        )
-        by_region["diff"] = by_region["cf_sim"] - by_region["cf_obs"]
-        by_region["In training?"] = "Both"
-
-        averaged = pd.concat([averaged_type, by_region])
-        return averaged[["diff", "In training?", "ID", "cf_obs", "cf_sim"]]
-
-    elif type == "turbine-error":  # turbine-yearly
-        averaged = merged.groupby("ID").mean()
-        averaged["diff"] = averaged["cf_sim"] - averaged["cf_obs"]
-        return averaged
-
-    elif type == "cluster-error":  # cluster-yearly
-        averaged = merged.groupby("ID").mean().reset_index()
-        grouped_cluster = averaged.groupby("cluster")[["cf_obs", "cf_sim", "capacity"]]
-        by_cluster = grouped_cluster.apply(
-            lambda g: pd.Series(
-                {
-                    "cf_obs": agg_weighted(g, "cf_obs"),
-                    "cf_sim": agg_weighted(g, "cf_sim"),
-                    "ID": len(g),
-                }
-            )
-        )
-        by_cluster["diff"] = by_cluster["cf_sim"] - by_cluster["cf_obs"]
-        return by_cluster["diff"], by_cluster["ID"]
-
-    elif type == "temporal-focus":  # country-monthly
-        grouped_month = merged.groupby("month")[["cf_obs", "cf_sim", "capacity"]]
-        by_month = grouped_month.apply(
-            lambda g: pd.Series(
-                {"cf_obs": agg_weighted(g, "cf_obs"), "cf_sim": agg_weighted(g, "cf_sim")}
-            )
-        )
-        by_month["diff"] = by_month["cf_sim"] - by_month["cf_obs"]
-
-        rmse = np.sqrt((by_month["diff"] ** 2).mean())
-        mae = np.abs(by_month["diff"]).mean()
-        mbe = by_month["diff"].mean()
-        return rmse, mae, mbe
-
-    elif type == "spatial-focus":  # turbine-yearly
-        averaged = merged.groupby("ID").mean()
-        averaged["diff"] = averaged["cf_sim"] - averaged["cf_obs"]
-        averaged["sqdiff"] = averaged["diff"] ** 2
-        averaged["abdiff"] = np.abs(averaged["diff"])
-
-        rmse = np.sqrt(agg_weighted(averaged, "sqdiff"))
-        mae = agg_weighted(averaged, "abdiff")
-        mbe = agg_weighted(averaged, "diff")
-        return rmse, mae, mbe
-
-    elif type == "total":
-        merged["diff"] = merged["cf_sim"] - merged["cf_obs"]
-        merged["abdiff"] = np.abs(merged["diff"])
-        merged["sqdiff"] = merged["diff"] ** 2
-        merged = merged.groupby("ID").mean()
-
-        rmse = np.sqrt(agg_weighted(merged, "sqdiff"))
-        mae = agg_weighted(merged, "abdiff")
-        mbe = agg_weighted(merged, "diff")
-        return rmse, mae, mbe
-
-    # Fallback (should not reach here)
-    raise ValueError(f"Unknown error type: {type}")
-
-
-def overall_error(type, run, country, turb_info, cluster_list, time_res_list, train, *args):
-    """Compute overall error metrics across clustering and time-resolution settings.
-
-    Args:
-        type: Error type selector passed to ``calculate_error``.
-        run: Run directory containing results.
-        country: Country code used to build file paths.
-        turb_info: Turbine metadata.
-        cluster_list: List of cluster counts to evaluate.
-        time_res_list: List of temporal resolutions to evaluate.
-        train: If True, use training-period files.
-        *args: Additional positional arguments (e.g., ``year_test``).
-
-    Returns:
-        pandas.DataFrame: Metrics table with columns ``num_clu``, ``time_res``,
-        ``rmse``, ``mae``, and ``mbe``.
-    """
-    rmse_all = []
-    mae_all = []
-    mbe_all = []
-    cluster_all = []
-    time_all = []
-
-    if train:
-        obs_cf = pd.read_csv(run + "/results/capacity-factor/" + country + "_train_obs_cf.csv")
-        unc_cf = pd.read_csv(
-            run + "/results/capacity-factor/" + country + "_train_unc_cf.csv", parse_dates=["time"]
-        )
-    else:
-        year_test = args[0]
-        obs_cf = pd.read_csv(
-            run + "/results/capacity-factor/" + country + "_" + str(year_test) + "_obs_cf.csv",
-            parse_dates=["time"],
-        )
-        unc_cf = pd.read_csv(
-            run + "/results/capacity-factor/" + country + "_" + str(year_test) + "_unc_cf.csv",
-            parse_dates=["time"],
-        )
-
-    rmse, mae, mbe = calculate_error(type, unc_cf, obs_cf, turb_info, train)
-
-    rmse_all.append(rmse)
-    mae_all.append(mae)
-    mbe_all.append(mbe)
-    cluster_all.append(1)
-    time_all.append("uncorrected")
-
-    for num_clu in cluster_list:
-        for time_res in time_res_list:
-            if train:
-                cor_cf = pd.read_csv(
-                    run
-                    + "/results/capacity-factor/"
-                    + country
-                    + "_train_"
-                    + time_res
-                    + "_"
-                    + str(num_clu)
-                    + "_cor_cf.csv",
-                    parse_dates=["time"],
-                )
-            else:
-                cor_cf = pd.read_csv(
-                    run
-                    + "/results/capacity-factor/"
-                    + country
-                    + "_"
-                    + str(year_test)
-                    + "_"
-                    + time_res
-                    + "_"
-                    + str(num_clu)
-                    + "_cor_cf.csv",
-                    parse_dates=["time"],
-                )
-
-            rmse, mae, mbe = calculate_error(type, cor_cf, obs_cf, turb_info, train)
-
-            rmse_all.append(rmse)
-            mae_all.append(mae)
-            mbe_all.append(mbe)
-            cluster_all.append(num_clu)
-            time_all.append(time_res)
-
-    df_metrics = pd.DataFrame(
-        list(
-            zip(
-                np.ravel(cluster_all),
-                np.ravel(time_all),
-                np.ravel(rmse_all),
-                np.ravel(mae_all),
-                np.ravel(mbe_all),
-            )
-        ),
-        columns=["num_clu", "time_res", "rmse", "mae", "mbe"],
-    )
-
-    # if train == True:
-    #     df_metrics.to_csv(run+'/results/'+country+'_train_metrics.csv', index = None)
-    # else:
-    #     df_metrics.to_csv(run+'/results/'+country+'_test_metrics.csv', index = None)
-    return df_metrics
+    rmse = np.sqrt(weighted_average_vectorized(merged, "sqdiff", "capacity"))
+    mae = weighted_average_vectorized(merged, "abdiff", "capacity")
+    mbe = weighted_average_vectorized(merged, "diff", "capacity")
+    return rmse, mae, mbe

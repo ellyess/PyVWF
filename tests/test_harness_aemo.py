@@ -1,6 +1,7 @@
 """AEMO NEM source: AEST→UTC binning, CF arithmetic, masks (design §2).
 
-All fixtures are synthetic; real AEMO acquisition is Phase 2. The fixtures
+All fixtures are synthetic; the real data is fetched and built as
+docs/runbooks/au_nem.md describes. The fixtures
 carry AEST-labelled timestamps on purpose: the UTC conversion is part of
 the contract under test, not an implementation detail.
 """
@@ -102,9 +103,9 @@ def test_registry_resolution():
 def test_missing_files_fail_with_instructions(tmp_path, monkeypatch):
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path)
     src = AEMONemSource()
-    with pytest.raises(FileNotFoundError, match="Phase 2"):
+    with pytest.raises(FileNotFoundError, match="runbooks/au_nem.md"):
         src.load_metadata()
-    with pytest.raises(FileNotFoundError, match="Phase 2"):
+    with pytest.raises(FileNotFoundError, match="runbooks/au_nem.md"):
         src.load_observations(2019, 2019)
 
 
