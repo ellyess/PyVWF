@@ -474,15 +474,21 @@ class ENTSOEWindDataFetcher:
         if gen.empty:
             return pd.DataFrame()
 
-        # Fetch capacity
+        # Fetch capacity. A missing register is refused, not estimated. This
+        # used to fall back to gen.max() / 0.9, a denominator derived from its
+        # own numerator: every series built that way peaks at exactly 0.900
+        # and holds a flat capacity whatever the fleet did, which is how
+        # Sweden's zonal files were made (docs/findings/method-country-level.md).
+        # Those capacity factors look like observations and are not, so the
+        # fetch stops here and the caller has to find a real register.
         cap = self.fetch_installed_capacity(country, start, end, psr_type)
         if cap.empty:
-            print("  Warning: No capacity data - using mean generation as proxy")
-            # Fallback: estimate capacity as max generation / 0.9 (assuming 90% availability)
-            estimated_cap = gen["generation_mw"].max() / 0.9
-            cap = pd.DataFrame(
-                {"capacity_mw": estimated_cap},
-                index=gen.index,
+            raise ValueError(
+                f"{country}: ENTSO-E returned no installed capacity for "
+                f"{start:%Y-%m-%d} to {end:%Y-%m-%d} (psr_type={psr_type!r}), "
+                "so there is no denominator for a capacity factor. Supply a "
+                "capacity register from another source rather than deriving "
+                "one from the generation series."
             )
 
         # The numerator and denominator have to cover the same fleet. NL's

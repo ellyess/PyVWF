@@ -79,6 +79,16 @@ def test_the_error_says_how_to_fix_it():
     assert "psr_type" in str(excinfo.value)
 
 
+def test_missing_capacity_is_refused_not_estimated():
+    """An empty register used to become gen.max() / 0.9, a denominator made
+    from the numerator, which is how every Swedish zonal series came to peak at
+    exactly 0.900."""
+    fetcher = fetcher_with(None, None)
+    fetcher.fetch_installed_capacity = lambda *a, **k: pd.DataFrame()
+    with pytest.raises(ValueError, match="no installed capacity"):
+        calculate(fetcher)
+
+
 def test_unlabelled_queries_are_not_blocked():
     """A single-psr_type fetch records no coverage, and must still work rather
     than failing closed on missing metadata."""

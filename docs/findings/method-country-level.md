@@ -273,7 +273,12 @@ nothing, `estimated_cap = gen.max() / 0.9`. **Sweden's denominator is derived
 from its own numerator**, which is why it is flat for five years, why GWPT
 disagrees by a factor of two, and why the resulting capacity factors look like
 a national fleet: they were constructed to peak near 0.9. Sweden needs a real
-register and neither source on hand is one. Portugal,
+register and neither source on hand is one. *[Code change, 2026-09-29: the
+fetcher no longer derives a capacity-factor denominator from generation. From
+`ad589d0`, `calculate_capacity_factor` refuses a series whose installed-capacity
+query returns nothing. The Swedish files on disk predate the change and are
+unchanged, so this paragraph still describes them. A refetch of Sweden that
+meets the same empty query now stops rather than rebuilding them.]* Portugal,
 flat at 4486 MW over the same years, is the opposite: GWPT disagrees by at most
 5%, moves where the register does not, and every repaired year peaks between
 0.95 and 0.98. The test before running the repair is whether the repaired
@@ -391,6 +396,11 @@ files, `se_1` through `se_4` across every split, peak at **exactly 0.900**,
 which is that fallback's signature. The four zonal registers sum to 8354.4 MW,
 which is the national aggregated register for 2015 to 2019 exactly, so the
 national denominator inherits the derivation as well.
+
+*[Code change, 2026-09-29: the fallback described above was removed in
+`ad589d0`; the fetcher now refuses a series with no installed capacity instead.
+The sixteen files were written before that, are unchanged, and everything in
+this notice still applies to them.]*
 
 What survives and what does not:
 

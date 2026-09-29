@@ -230,6 +230,14 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The ENTSO-E fetcher refuses a series with no capacity register**
+  (`ENTSOEWindDataFetcher.calculate_capacity_factor`). It used to estimate
+  the missing capacity by scaling up the series' own peak generation, and
+  printed that it was using mean generation. That denominator is derived from
+  the numerator, so every such series peaks at the same fixed value and holds
+  a flat capacity whatever the fleet did; Sweden's zonal files were built this
+  way. It now raises and names the country and period. Files already on disk
+  are unchanged.
 - **A year's GWPT fleet is the fleet as it stood that year**
   (`pyvwf.datasets.gwpt.fleet_for`). It read only records the tracker marks
   operating today, so a project retired since was missing from every year it
