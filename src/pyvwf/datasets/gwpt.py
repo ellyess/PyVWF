@@ -140,6 +140,8 @@ def fleet_for(
     year: int | None,
     exclusions: set[str] | frozenset[str] = frozenset(),
     start_years: dict[str, int] | None = None,
+    *,
+    with_type: bool = False,
 ) -> pd.DataFrame:
     """Geolocated projects for one country: operating now, or as of a year.
 
@@ -159,9 +161,12 @@ def fleet_for(
         start_years: Start years for records the tracker leaves undated, by
             GEM phase ID (:func:`load_start_years`). A year the tracker gives
             is never replaced.
+        with_type: Also return ``offshore``, True where the tracker's
+            ``Installation Type`` is an offshore one (hard mount or floating).
+            Off by default, so the frame the other callers read is unchanged.
 
     Returns:
-        Frame with ``lat``, ``lon`` and ``mw``.
+        Frame with ``lat``, ``lon`` and ``mw``, and ``offshore`` when asked.
     """
     name = COUNTRY_NAME.get(country.upper())
     if name is None:
@@ -198,9 +203,13 @@ def fleet_for(
         # understate every year instead.
         fleet = fleet[(start.isna() | (start <= year)) & (retired.isna() | (retired > year))]
 
-    return fleet[["Latitude", "Longitude", "Capacity (MW)"]].rename(
+    out = fleet[["Latitude", "Longitude", "Capacity (MW)"]].rename(
         columns={"Latitude": "lat", "Longitude": "lon", "Capacity (MW)": "mw"}
     )
+    if with_type:
+        kind = fleet["Installation Type"].astype(str).str.strip().str.lower()
+        out["offshore"] = kind.str.startswith("offshore").to_numpy()
+    return out
 
 
 def operating_projects(gwpt: pd.DataFrame, country: str) -> pd.DataFrame:

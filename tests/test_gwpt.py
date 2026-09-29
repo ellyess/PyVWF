@@ -109,3 +109,20 @@ def test_projects_with_keys_columns():
 
 def test_load_exclusions_of_a_missing_file_is_empty(tmp_path):
     assert gwpt.load_exclusions(tmp_path / "absent.csv") == set()
+
+
+def test_the_installation_type_is_returned_only_when_asked():
+    frame = tracker()
+    frame["Installation Type"] = [
+        "Onshore",
+        "Onshore",
+        "Onshore",
+        "Offshore hard mount",
+        "Offshore floating",
+        "Onshore",
+    ]
+    plain = gwpt.fleet_for(frame, "IE", 2011)
+    typed = gwpt.fleet_for(frame, "IE", 2011, with_type=True)
+    assert list(plain.columns) == ["lat", "lon", "mw"]
+    assert typed["offshore"].tolist() == [False, True, True]
+    pd.testing.assert_frame_equal(typed.drop(columns="offshore"), plain)

@@ -138,6 +138,79 @@ def assign_to_grid(
     return out
 
 
+def offshore_sites(
+    offshore: pd.DataFrame, grid: pd.DataFrame, country: str, *, zone_aware: bool = False
+) -> pd.DataFrame:
+    """One grid point per offshore site, at the site's own position.
+
+    The country lattices cover land only, so an offshore project snapped to the
+    nearest land point is simulated with coastal winds tens of kilometres from
+    where it stands: Belgium's whole offshore fleet, 57% of its capacity in
+    2021, sat on two coastal points. The lattices are also coarse (0.25 to 1.5
+    degrees), so an offshore point on the lattice could still be 80 km from its
+    farm. Each site therefore gets its own point, and phases at one position
+    share it. ERA5 is interpolated at any position, so nothing downstream
+    changes.
+
+    A new point takes the grid's height and model, which are one value per
+    country (one representative turbine), and the cluster of the nearest land
+    point, or its bidding zone's with ``zone_aware``, so a region's cluster
+    count does not change.
+
+    Args:
+        offshore: Offshore projects with ``lat`` and ``lon``, from any years.
+        grid: The land grid the points join.
+        country: Region code, for the zone polygons.
+        zone_aware: Take the cluster from the bidding zone.
+
+    Returns:
+        New points with the grid's columns, capacity zero, IDs ``offshore_<lat>_<lon>``.
+    """
+    sites = (
+        offshore[["lat", "lon"]]
+        .round(4)
+        .drop_duplicates()
+        .sort_values(["lat", "lon"])
+        .reset_index(drop=True)
+    )
+    points = sites.copy()
+    points["ID"] = [f"offshore_{lat:.4f}_{lon:.4f}" for lat, lon in zip(sites["lat"], sites["lon"])]
+    for col in ("height", "model"):
+        values = grid[col].unique()
+        if len(values) != 1:
+            raise ValueError(f"{country}: grid has {len(values)} {col} values; expected one")
+        points[col] = values[0]
+    points["capacity"] = 0.0
+    if "weight" in grid.columns:
+        points["weight"] = 0.0
+    if "type" in grid.columns:
+        points["type"] = "offshore"
+    if points.empty:
+        return points.reindex(columns=grid.columns)
+    if zone_aware:
+        points = tag_zones(points, country)
+        points["cluster"] = points["zone"].str.rsplit("_", n=1).str[-1].astype(int) - 1
+    else:
+        scale = float(np.cos(np.deg2rad(grid["lat"].mean())))
+        d2 = (
+            (points["lon"].to_numpy()[:, None] - grid["lon"].to_numpy()[None, :]) * scale
+        ) ** 2 + (points["lat"].to_numpy()[:, None] - grid["lat"].to_numpy()[None, :]) ** 2
+        points["cluster"] = grid["cluster"].to_numpy()[d2.argmin(axis=1)]
+    return points.reindex(columns=grid.columns)
+
+
+def site_weights(points: pd.DataFrame, offshore: pd.DataFrame) -> pd.Series:
+    """Offshore capacity summed onto its own site's point, indexed like ``points``."""
+    key = pd.Series(range(len(points)), index=points["ID"].to_numpy())
+    ids = [
+        f"offshore_{lat:.4f}_{lon:.4f}"
+        for lat, lon in zip(offshore["lat"].round(4), offshore["lon"].round(4))
+    ]
+    weights = np.zeros(len(points))
+    np.add.at(weights, key.loc[ids].to_numpy(dtype=int), offshore["mw"].to_numpy())
+    return pd.Series(weights, index=points.index)
+
+
 def report(country: str, grid: pd.DataFrame, weights: pd.Series) -> pd.DataFrame:
     """Per-cluster comparison of area weighting against fleet weighting."""
     frame = grid[["cluster"]].copy()
@@ -179,6 +252,11 @@ def process_per_year(
     ``cluster_list`` has to match, while still letting the fleet grow: NL more
     than doubled between its training window and its test year, and a single
     snapshot cannot represent that at all.
+
+    Onshore projects are summed onto the nearest land point, and each offshore
+    site onto its own point (:func:`offshore_sites`), since 2026-09-29. The
+    single-snapshot grid written without ``--per-year`` still snaps offshore
+    projects to land; the runs read the per-year grids.
     """
     code = country.upper()
     grid_dir = PyVWFPaths.COUNTRY_LEVEL_DATA / "grid_points" / code.lower()
@@ -202,13 +280,25 @@ def process_per_year(
         grid = tag_zones(grid, code)
         grid["cluster"] = grid["zone"].str.rsplit("_", n=1).str[-1].astype(int) - 1
 
+    excluded, dated = load_exclusions(EXCLUSIONS_PATH), load_start_years(START_YEARS_PATH)
+    fleets = {y: fleet_for(gwpt, code, y, excluded, dated, with_type=True) for y in years}
+    all_offshore = pd.concat([f[f["offshore"]] for f in fleets.values()])
+    land = grid
+    points = offshore_sites(all_offshore, land, code, zone_aware=zone_aware)
+    grid = pd.concat([land, points], ignore_index=True)
+    if len(points):
+        print(f"  {len(points)} offshore site point(s) added")
+
     def weights_for(year: int) -> pd.Series:
-        fleet = fleet_for(
-            gwpt, code, year, load_exclusions(EXCLUSIONS_PATH), load_start_years(START_YEARS_PATH)
-        )
-        if zone_aware and not fleet.empty:
-            fleet = tag_zones(fleet, code)
-        return assign_to_grid(grid, fleet, zone_aware=zone_aware)
+        fleet = fleets[year]
+        onshore, offshore = fleet[~fleet["offshore"]], fleet[fleet["offshore"]]
+        if zone_aware and not onshore.empty:
+            onshore = tag_zones(onshore, code)
+        on_land = assign_to_grid(land, onshore, zone_aware=zone_aware)
+        at_sea = site_weights(points, offshore)
+        out = pd.Series(np.concatenate([on_land.to_numpy(), at_sea.to_numpy()]), index=grid.index)
+        out.attrs["stranded"] = on_land.attrs.get("stranded", 0)
+        return out
 
     per_year = {year: weights_for(year) for year in years}
     stranded = sum(w.attrs.get("stranded", 0) for w in per_year.values())
