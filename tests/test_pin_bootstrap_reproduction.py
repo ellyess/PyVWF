@@ -77,6 +77,22 @@ ALL_ROWS = [
 ]
 TURBINE_ROWS = ["DE", "DK", "UK", "US", "BR", "AU-NEM", "NZ", "CL", "AR"]
 
+# Rows whose recorded runs no longer reproduce from current inputs, and so are
+# not rerun here. These scripts rescore a recorded run with the fleet loaded
+# from the input root today, and an evaluate run does not save its fleet. FR's
+# grids were rebuilt on 2026-09-29 on the corrected fleet register (acfbbfa),
+# which took 41 MW off its 2023 grid, and every FR case then failed its
+# script's own check that the rescored run reproduces metrics.csv: by 3.5e-5
+# to 7.2e-5 across the baseline bootstrap's RMSE and MBE, and by 7.1e-5 in
+# uncorrected RMSE, the first figure the roughness and EU re-run scripts check
+# (the common-row rescore reports no figure). The recorded FR runs are on the
+# 100 kW fallback curve, whose figures the scorecard's third notice of
+# 2026-09-25 already superseded, so they are kept in output/ as the record of
+# what those studies produced, and no longer rerun. The other rows go on
+# checking the scripts.
+REGRIDDED = {"FR"}
+RESCORED_ROWS = [c for c in ALL_ROWS if c not in REGRIDDED]
+
 
 def _root(code: str) -> str:
     return "input/combined" if code in COMBINED else "input"
@@ -111,7 +127,7 @@ def _need(*paths: Path) -> None:
         pytest.skip(f"local run records absent: {missing[0]}")
 
 
-@pytest.mark.parametrize("code", ALL_ROWS)
+@pytest.mark.parametrize("code", RESCORED_ROWS)
 def test_baseline_bootstrap_reproduces(code, tmp_path):
     recorded = STUDY / "baseline_bootstrap"
     _need(BACKFILL / code, recorded / f"{code}_bootstrap.csv")
@@ -127,7 +143,7 @@ def test_unit_concentration_reproduces(code, tmp_path):
     _same(tmp_path, recorded, [f"{code}_concentration.csv", f"{code}_top5_units.csv"])
 
 
-@pytest.mark.parametrize("code", ALL_ROWS)
+@pytest.mark.parametrize("code", RESCORED_ROWS)
 def test_common_row_rescore_reproduces(code, tmp_path):
     recorded = STUDY / "common_row_rescore"
     _need(BACKFILL / code, recorded / f"{code}_rescore.csv")
@@ -138,7 +154,7 @@ def test_common_row_rescore_reproduces(code, tmp_path):
     _same(tmp_path, recorded, names)
 
 
-@pytest.mark.parametrize("code", ["DK", "FR"])
+@pytest.mark.parametrize("code", ["DK"])  # FR: see REGRIDDED
 def test_roughness_treatment_study_reproduces(code, tmp_path):
     _need(ROUGHNESS / "R0" / code, ROUGHNESS / "R1" / code)
     r0 = next((ROUGHNESS / "R0" / code).glob("evaluate-*"))
@@ -159,7 +175,7 @@ def test_roughness_treatment_study_reproduces(code, tmp_path):
     )
 
 
-@pytest.mark.parametrize("code", ["BE", "DE", "DK", "FR", "IE", "NO", "SE", "UK"])
+@pytest.mark.parametrize("code", ["BE", "DE", "DK", "IE", "NO", "SE", "UK"])  # FR: see REGRIDDED
 def test_eu_rerun_compare_reproduces(code, tmp_path):
     _need(BACKFILL / code, EU_RERUN / "new" / code)
     conditions = [f"published={next((BACKFILL / code).glob('evaluate-*-backfill'))}"]

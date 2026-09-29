@@ -22,6 +22,72 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-09-29: Ireland's row moves with the corrected
+wind-fleet register, and the other country rows stand.** Since `acfbbfa`
+(#73), a year's fleet from the Global Wind Power Tracker includes projects
+retired since, placed by their start and retirement years, and takes start
+years from national registers for records the tracker leaves undated
+(`configs/curation/gwpt_start_years.csv`). Until then a retired project was
+missing from every year it ran, and an undated one was counted in every year.
+The per-year country grids, and Ireland's capacity-factor denominator, which is
+built from the same register (`scripts/region_tools/repair_country_capacity.py`),
+were regenerated, and all eight rows were trained and evaluated again at
+`6ab07ef` from a clean tree, with the scorecard configs, on `input/combined`
+(`power_curves.csv` sha256 `689cfee7…`); every run records 0% of capacity
+substituted. Training years 2015-21 (IE 2017-21), test year 2023, national
+scope.
+
+A scorecard run reads two grids per row: the last training year's (2021) and
+the test year's (2023). Those moved in three rows:
+
+- **Ireland:** +60 MW in 2021, the Derrybrien wind farm (2006 to 2022), restored
+  at one grid point. The training denominator rises by the same 60 MW in every
+  training year, which lowers the observed mean capacity factor over 2017-21
+  from 0.322 to 0.316. The 2023 grid and observations are unchanged.
+- **France:** -159 MW in 2021 across ten grid points, and -41 MW in 2023, from
+  records the registers date after 2021 that had been counted in every year.
+- **Italy:** +20 MW in 2021, Camporeale phase 1 (2005 to 2023).
+
+Belgium, Sweden, Norway, Spain and Portugal read byte-identical grids, and their
+runs reproduce the previous `metrics.csv` byte for byte, which also shows that
+nothing else changed between the two sets of runs. Norway's correction (296 MW
+of 2018-21 projects that had been counted from 2015, and a retired phase
+restored) falls in 2015-20 only, which no scorecard run reads.
+
+Every variant of the three rows that moved, before (`bf97f4a`, the third
+notice of 2026-09-25) and after (`6ab07ef`):
+
+| Row | Variant | RMSE before | RMSE after | MBE before | MBE after | Max scalar before / after | Implausible / failed after | Months scored after |
+|---|---|---|---|---|---|---|---|---|
+| FR | uncorrected | 0.0204 | 0.0204 | -0.0015 | -0.0016 |  |  | 12 of 12 |
+| FR | fixed N=1 | 0.0301 | 0.0302 | +0.0155 | +0.0156 | 1.07 / 1.07 | 0 / 0 | 12 of 12 |
+| FR | **fixed N=10** (reported) | 0.0271 | 0.0271 | +0.0123 | +0.0123 | 4.61 / 4.61 | 1 / 0 | 12 of 12 |
+| FR | season N=1 | 0.0280 | 0.0281 | +0.0166 | +0.0167 | 1.23 / 1.23 | 0 / 0 | 12 of 12 |
+| FR | season N=10 | 0.0251 | 0.0251 | +0.0139 | +0.0138 | 9.94 / 9.94 | 4 / 0 | 12 of 12 |
+| IE | uncorrected | 0.0453 | 0.0453 | +0.0361 | +0.0361 |  |  | 12 of 12 |
+| IE | fixed N=1 | 0.0264 | 0.0239 | +0.0115 | +0.0062 | 0.93 / 0.91 | 0 / 0 | 12 of 12 |
+| IE | fixed N=3 | 0.0260 | 0.0236 | +0.0107 | +0.0052 | 0.97 / 0.96 | 0 / 0 | 12 of 12 |
+| IE | **season N=1** (reported) | 0.0239 | 0.0213 | +0.0114 | +0.0061 | 0.96 / 0.94 | 0 / 0 | 12 of 12 |
+| IE | season N=3 | 0.0237 | 0.0211 | +0.0108 | +0.0053 | 1.02 / 1.00 | 0 / 0 | 12 of 12 |
+| IT | uncorrected | n/a | n/a | n/a | n/a |  |  | 0 of 12 |
+| IT | fixed N=1 | n/a | n/a | n/a | n/a | n/a / n/a | 0 / 1 | 0 of 12 |
+| IT | fixed N=3 | n/a | n/a | n/a | n/a | n/a / n/a | 0 / 3 | 0 of 12 |
+| IT | season N=1 | n/a | n/a | n/a | n/a | 2.67 / 2.26 | 0 / 3 | 0 of 12 |
+| IT | **season N=3** (reported) | n/a | n/a | n/a | n/a | 3.49 / 3.74 | 1 / 9 | 0 of 12 |
+
+**Ireland's corrected RMSE falls from 0.024 to 0.021, and its corrected mean
+bias from +0.011 to +0.006**, by 0.002 to 0.003 in RMSE in every variant, with
+no implausible scalar and no refused factor. France changes in the fourth
+decimal and its reported row not at all: it stays worse than uncorrected, on
+the same degenerate fit. Italy stays suspended and scores no month; its season
+N=1 fit refuses one more factor than before (3 against 2). Ireland's reported
+configuration is still not its lowest-RMSE variant (season N=3, 0.0211,
+against 0.0213), and was chosen on the same test year.
+
+Data: `output/grid_regen_2026-09-29/` (`after/`, `before_after_metrics.txt`,
+`grid_diff.txt`, `repair_ie.log`), with every replaced grid and observation
+file, and their checksums, under `before/`.
+
 **Correction notice, 2026-09-25 (third): the eight country-level rows now
 simulate each grid's own turbine, and Italy and Portugal are suspended.** Every
 country grid point names one Vestas key: `Vestas.V80.2000` (FR, IT, PT),
@@ -893,13 +959,15 @@ Substituted column is 0%; see the third notice of that date.]* *[Note, 2026-09-2
 joint-fit figures; see the notice of that date. Norway's corrected RMSE, 0.0351,
 is still above its uncorrected 0.0350.]* *[Note, 2026-09-25, later: every row now
 carries the figures after the joint fit's tolerance fix (`26e0b67`); see the
-second notice of that date. Norway's corrected RMSE is 0.0357.]*
+second notice of that date. Norway's corrected RMSE is 0.0357.]* *[Note, 2026-09-29: Ireland's row carries the
+figures after the fleet-register correction, 0.024 to 0.021 corrected; France
+and Italy move below this table's precision. See the notice of that date.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
 | France (FR) | 0.020 | 0.027 | -0.002 | +0.012 | N=10 fixed † | per timestep | 0% |
 | Belgium (BE) | 0.123 | **0.021** | +0.116 | +0.007 | N=3 season | per timestep | 0% |
-| Ireland (IE) | 0.045 | **0.024** | +0.036 | +0.011 | N=1 season | per timestep | 0% |
+| Ireland (IE) | 0.045 | **0.021** | +0.036 | +0.006 | N=1 season | per timestep | 0% |
 | Sweden (SE) | 0.098 | **0.035** | -0.097 | -0.031 | N=4 fixed | per timestep | 0% |
 | Norway (NO) | 0.129 | **0.028** | -0.125 | -0.016 | N=4 fixed † | per timestep | 0% |
 | Spain (ES) | 0.071 | **0.030** | -0.070 | +0.010 | N=4 fixed | per timestep | 0% |
