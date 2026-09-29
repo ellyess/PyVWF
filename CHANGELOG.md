@@ -87,6 +87,19 @@ this file stay in step with it.
 
 ### Changed
 
+- **The country grids and Ireland's capacity-factor denominator are rebuilt on
+  the corrected fleet register** (`acfbbfa`), and the eight country rows re-run,
+  training and evaluation, from a clean tree. What moved: Ireland's row, whose
+  restored retired project enters both its last training year's grid and its
+  training denominator, in every variant; France and Italy below the
+  scorecard's precision, Italy staying suspended with one more refused factor;
+  the other five rows read byte-identical grids and reproduce their figures
+  byte for byte. The FR case of the offset-fit pin is re-recorded, and FR
+  leaves the four study-reproduction pins that rescore recorded runs with
+  today's fleet: its recorded runs are fallback-curve figures already
+  superseded, and are kept as the record. The scorecard's notice of
+  2026-09-29 has the figures.
+
 - **Six study drivers read frozen configs** (`configs/regions/study/`). The
   cluster-selection, correction-identifiability, national-single-cluster,
   hourly-resolution and scalar-bounds drivers read the maintained region

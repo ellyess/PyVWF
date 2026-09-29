@@ -44,7 +44,10 @@ CASES = {
     # years unchanged in both. Moved to input/combined and re-recorded the same
     # day, when a country run on a curve the library lacks started to be
     # refused: the grids name licensed Vestas curves, and until then every unit
-    # ran on the bundled 100 kW fallback.
+    # ran on the bundled 100 kW fallback. FR re-recorded 2026-09-29, when the
+    # grids were rebuilt on the corrected GWPT fleet (acfbbfa): 159 MW left ten
+    # of its 2021 grid points, and its scalars moved by at most 0.006 and its
+    # offsets by at most 0.024 m/s; ES's 2021 grid did not change.
     "fr_country_k10": (
         "configs/regions/scorecard/fr_country.toml",
         "input/combined",
