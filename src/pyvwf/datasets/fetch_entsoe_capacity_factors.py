@@ -233,11 +233,11 @@ class ENTSOEWindDataFetcher:
             return gen
 
         except NoMatchingDataError:
+            # ENTSO-E holds nothing for this period: an answer, not a failure,
+            # so it stays an empty frame. Anything else (network, auth, a
+            # malformed response) propagates, because an empty frame is
+            # indistinguishable from "no data" to every caller.
             print(f"  ✗ No data available for {country} (period {start.date()} to {end.date()})")
-            return pd.DataFrame()
-
-        except Exception as e:
-            print(f"  ✗ Error fetching generation for {country}: {e}")
             return pd.DataFrame()
 
     def _fetch_norway_generation(
@@ -292,9 +292,10 @@ class ENTSOEWindDataFetcher:
                     print(f"    ✓ {zone_code}: {len(gen)} data points")
 
             except NoMatchingDataError:
+                # A zone with no wind (NO_5) is skipped. Any other error
+                # propagates: skipping that zone would sum the rest into a
+                # national total that silently leaves part of the fleet out.
                 print(f"    ✗ {zone_code}: No data available")
-            except Exception as e:
-                print(f"    ✗ {zone_code}: Error - {e}")
 
         if not all_zones_data:
             print("  ✗ No data available from any Norwegian zone")
@@ -377,11 +378,8 @@ class ENTSOEWindDataFetcher:
             return cap
 
         except NoMatchingDataError:
+            # As in fetch_generation: only "no data" becomes an empty frame.
             print(f"  ✗ No capacity data available for {country}")
-            return pd.DataFrame()
-
-        except Exception as e:
-            print(f"  ✗ Error fetching capacity for {country}: {e}")
             return pd.DataFrame()
 
     def _fetch_norway_capacity(
@@ -436,9 +434,9 @@ class ENTSOEWindDataFetcher:
                     print(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
 
             except NoMatchingDataError:
+                # As in _fetch_norway_generation: skip a zone with no data,
+                # never one whose query failed.
                 print(f"    ✗ {zone_code}: No capacity data available")
-            except Exception as e:
-                print(f"    ✗ {zone_code}: Error - {e}")
 
         if not all_zones_data:
             print("  ✗ No capacity data available from any Norwegian zone")
