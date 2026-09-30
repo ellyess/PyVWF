@@ -51,7 +51,7 @@ geopandas==1.1.4
     # via pyvwf (pyproject.toml)
 grimp==3.17
     # via import-linter
-identify==2.6.19
+identify==2.6.20
     # via pre-commit
 import-linter==2.15
     # via pyvwf (pyproject.toml)
