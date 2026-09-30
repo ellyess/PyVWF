@@ -25,7 +25,7 @@ cloudpickle==3.1.2
     #   joblib
 contourpy==1.4.0
     # via matplotlib
-coverage==7.16.1
+coverage==7.16.2
     # via pytest-cov
 cycler==0.12.1
     # via matplotlib
