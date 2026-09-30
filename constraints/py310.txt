@@ -200,7 +200,7 @@ toolz==1.1.0
     # via
     #   dask
     #   partd
-types-pytz==2026.3.1.20260727
+types-pytz==2026.4.0.20260926
     # via pandas-stubs
 typing-extensions==4.16.0
     # via
