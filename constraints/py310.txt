@@ -169,7 +169,7 @@ requirements-parser==0.13.1
     # via deptry
 rich==15.0.0
     # via import-linter
-ruff==0.16.8
+ruff==0.16.9
     # via pyvwf (pyproject.toml)
 scikit-learn==1.7.2
     # via pyvwf (pyproject.toml)
