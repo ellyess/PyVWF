@@ -37,7 +37,7 @@ distlib==0.4.3
     # via virtualenv
 execnet==2.1.2
     # via pytest-xdist
-filelock==4.0.3
+filelock==4.0.4
     # via
     #   python-discovery
     #   virtualenv
