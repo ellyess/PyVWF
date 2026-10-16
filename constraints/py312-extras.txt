@@ -56,7 +56,7 @@ contourpy==1.4.0
     # via
     #   -c constraints/py312.txt
     #   matplotlib
-coverage==7.16.1
+coverage==7.16.2
     # via
     #   -c constraints/py312.txt
     #   pytest-cov
