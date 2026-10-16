@@ -6,20 +6,18 @@ per cluster count, and on every run on disk they differ only in ``cluster``, so
 the pick was harmless; nothing would have noticed the day they did not.
 """
 
-import importlib.util
 import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import load_script
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts" / "analysis"))
-_SPEC = importlib.util.spec_from_file_location(
-    "curve_match_audit_under_test", ROOT / "scripts" / "analysis" / "curve_match_audit.py"
+audit = load_script(
+    ROOT / "scripts" / "analysis" / "curve_match_audit.py", "curve_match_audit_under_test"
 )
-audit = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(audit)
 
 
 def write(path, clusters, models=("A", "B")):

@@ -10,8 +10,8 @@ cluster, which `format_bc_factors` leaves out of the accepted years.
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import pytest
+from support import two_cluster_fleet
 from scipy.optimize import OptimizeResult
 
 from pyvwf import correction
@@ -20,17 +20,7 @@ from pyvwf import correction
 @pytest.fixture
 def fleet():
     """Two clusters of two turbines inside the conftest grid."""
-    return pd.DataFrame(
-        {
-            "ID": ["a", "b", "c", "d"],
-            "lat": [55.2, 55.4, 55.6, 55.8],
-            "lon": [8.2, 8.4, 8.6, 8.8],
-            "height": [100.0] * 4,
-            "capacity": [1000.0, 3000.0, 2000.0, 2000.0],
-            "model": ["GE.1.5sle"] * 4,
-            "cluster": [0, 0, 1, 1],
-        }
-    )
+    return two_cluster_fleet()
 
 
 def _fit(obs, fleet, reanalysis, power_curve):

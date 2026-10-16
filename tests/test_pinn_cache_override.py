@@ -16,6 +16,7 @@ import pandas as pd
 import pytest
 
 from pyvwf.pinn.cache import apply_fleet_override
+from support import load_script
 
 
 def _fleet():
@@ -89,14 +90,7 @@ def test_a_cache_override_without_its_ratios_is_refused():
 
 
 def _turbine_loro():
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location(
-        "turbine_loro", "scripts/studies/physics-informed/turbine_loro.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return load_script("scripts/studies/physics-informed/turbine_loro.py", "turbine_loro")
 
 
 def _raw(named_offset):

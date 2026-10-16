@@ -9,12 +9,12 @@ be resolved freely inside an otherwise pinned install.
 
 from __future__ import annotations
 
-import importlib.util
 import re
 import sys
 from pathlib import Path
 
 import pytest
+from support import load_script
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -25,9 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _lock():
-    spec = importlib.util.spec_from_file_location("lock", ROOT / "scripts" / "dev" / "lock.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(ROOT / "scripts" / "dev" / "lock.py", "lock")
     return module
 
 

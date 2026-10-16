@@ -8,17 +8,15 @@ the check has to apply each run's own exclusions before comparing, or it
 refuses a sound run for using the scoring convention it was written under.
 """
 
-import importlib.util
 from pathlib import Path
 
 import pandas as pd
+from support import load_script
 
-_SPEC = importlib.util.spec_from_file_location(
-    "eu_rerun_compare",
+compare = load_script(
     Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "eu_rerun_compare.py",
+    "eu_rerun_compare",
 )
-compare = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(compare)
 
 KEYS = ["ID", "year", "month"]
 

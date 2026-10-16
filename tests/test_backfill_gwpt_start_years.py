@@ -8,20 +8,18 @@ refuses one it should not.
 
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from support import load_script
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _module():
     path = ROOT / "scripts/region_tools/backfill_gwpt_start_years.py"
-    spec = importlib.util.spec_from_file_location("backfill_gwpt_start_years", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(path, "backfill_gwpt_start_years")
     return module
 
 

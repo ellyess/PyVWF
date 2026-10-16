@@ -16,8 +16,8 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-import test_pipeline as tp
-from test_harness_driver import make_spec
+import support as tp
+from support import make_spec
 from pyvwf.era5 import prep_era5
 from pyvwf.harness.driver import run_evaluate, run_train
 from pyvwf.harness.regions import load_region
@@ -99,7 +99,7 @@ def test_a_fleet_inside_the_extent_is_unchanged():
 
 
 def test_prep_era5_warns_when_the_data_stops_short_of_the_bbox(tmp_path):
-    tp._write_era5(tmp_path / "era5")
+    tp.write_era5(tmp_path / "era5")
     with pytest.warns(UserWarning, match="stops short of the requested bbox"):
         ds = prep_era5("ZZ", False, True, bbox=(7.0, 9.5, 55.0, 56.0), era5_dir=tmp_path / "era5")
     assert ds.attrs[EXTRAPOLATION_ATTR] is False

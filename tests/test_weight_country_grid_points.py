@@ -8,20 +8,18 @@ sat on two coastal points. These cases check the helpers on synthetic grids.
 
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import load_script
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _module():
     path = ROOT / "scripts/region_tools/weight_country_grid_points.py"
-    spec = importlib.util.spec_from_file_location("weight_country_grid_points", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(path, "weight_country_grid_points")
     return module
 
 

@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test_harness_driver import make_spec
+from support import make_spec
 from pyvwf.config import PyVWFPaths
 from pyvwf.pinn.cache import (
     MW_TO_KW,

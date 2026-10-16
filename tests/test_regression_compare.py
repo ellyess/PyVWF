@@ -1,17 +1,15 @@
 """The regression frame comparator (scripts/analysis/regression_compare.py)."""
 
-import importlib.util
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import load_script
 
-_SPEC = importlib.util.spec_from_file_location(
-    "regression_compare",
+compare = load_script(
     Path(__file__).resolve().parents[1] / "scripts" / "analysis" / "regression_compare.py",
+    "regression_compare",
 )
-compare = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(compare)
 
 
 def _factors(path, scalar):
