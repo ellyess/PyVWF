@@ -27,6 +27,8 @@ from typing import Literal
 
 import pandas as pd
 
+from pyvwf.datasets.country_grid import NORWAY_ZONES
+
 # entsoe-py lives in the optional `data` extra: acquisition needs it, the pure
 # transforms in this module do not, and CI deliberately installs the package
 # without that extra. Importing it lazily keeps this module importable (and so
@@ -88,22 +90,10 @@ COUNTRY_CODES = {
     "SI": "SI",  # Slovenia (~0.003 GW)
 }
 
-# Norwegian bidding zones (detailed info)
-NORWAY_ZONES = {
-    "NO_1": "Oslo / Eastern Norway",
-    "NO_2": "Kristiansand / Southern Norway",
-    "NO_3": "Trondheim / Mid-Norway",
-    "NO_4": "Tromsø / Northern Norway",
-    "NO_5": "Bergen / Western Norway",
-}
-
-# Swedish bidding zones (detailed info)
-SWEDEN_ZONES = {
-    "SE_1": "Luleå / Northern Sweden",
-    "SE_2": "Sundsvall / North-Central Sweden",
-    "SE_3": "Stockholm / Central Sweden",
-    "SE_4": "Malmö / Southern Sweden",
-}
+#: Ceiling a series' capacity factor is clipped to. Above 1 is kept up to
+#: here because a short overshoot is a timing artefact, not an error;
+#: pyvwf.loaders.country_obs_checks flags any series that reaches it.
+CAPACITY_FACTOR_CEILING = 1.5
 
 # Production types for wind
 PSR_TYPES = {
@@ -261,8 +251,8 @@ class ENTSOEWindDataFetcher:
         all_zones_data = []
         summed: list[str] = []
 
-        for zone_code, zone_name in NORWAY_ZONES.items():
-            print(f"  Fetching {zone_code} ({zone_name})...")
+        for zone_code, zone in NORWAY_ZONES.items():
+            print(f"  Fetching {zone_code} ({zone['name']})...")
 
             try:
                 if psr_type == "all":
@@ -410,7 +400,7 @@ class ENTSOEWindDataFetcher:
         all_zones_data = []
         summed: list[str] = []
 
-        for zone_code, zone_name in NORWAY_ZONES.items():
+        for zone_code in NORWAY_ZONES:
             print(f"  Fetching capacity for {zone_code}...")
 
             try:
@@ -547,7 +537,7 @@ class ENTSOEWindDataFetcher:
         # Clip to [0, 1] range (sometimes exceeds due to short-term overgeneration)
         # NOTE: saturation here destroys the true value, so
         # pyvwf.loaders.country_obs_checks flags any series that reaches it.
-        df["capacity_factor"] = df["capacity_factor"].clip(0, 1.5)
+        df["capacity_factor"] = df["capacity_factor"].clip(0, CAPACITY_FACTOR_CEILING)
 
         return df
 

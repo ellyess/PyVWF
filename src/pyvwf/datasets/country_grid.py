@@ -15,11 +15,13 @@ Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
 from shapely.geometry import box
 
+from pyvwf.config import PyVWFPaths
 from pyvwf.sampling import cluster_with_geometries, create_sampling_points
 
 
@@ -202,14 +204,24 @@ def generate_grid_points(
     return generate_kmeans_grid(country, config, output_dir, save_geojson)
 
 
+def bidding_zone_shapes(code: str) -> Path:
+    """A country's bidding-zone polygons, under the input root in use.
+
+    Until 2026-10-16 these were ``Path("input/reference/shapes/...")``, which
+    ignored ``PYVWF_INPUT``: under ``input/combined`` the grids were built from
+    ``input/``'s shapes (#84).
+    """
+    return PyVWFPaths.INPUT_ROOT / "reference" / "shapes" / f"{code.lower()}_bidding_zones.geojson"
+
+
 def generate_norway_zone_grids(
     config: dict,
     output_dir: Path,
     save_geojson: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Generate grid points for Norwegian bidding zones using actual zone geometries.
+    """Grid points for Norway's bidding zones, from the zones' own polygons.
 
-    Creates separate grid for each zone, with zone ID as cluster.
+    Falls back to each zone's bounding box when the polygons are missing.
 
     Args:
         config: Norway configuration dictionary.
@@ -219,136 +231,23 @@ def generate_norway_zone_grids(
     Returns:
         Tuple of (all_grid_points, zone_geometries).
     """
-    print("\n✓ Norway detected - using actual bidding zone geometries")
-    print("  Each zone will be treated as a separate cluster\n")
-
-    # Load actual bidding zone geometries
-    import geopandas as gpd
-
-    zones_path = Path("input/reference/shapes/no_bidding_zones.geojson")
+    zones_path = bidding_zone_shapes("no")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
         print("  Falling back to bounding boxes")
-        # Fall back to old behavior with bounding boxes
         return generate_norway_zone_grids_fallback(config, output_dir, save_geojson)
-
-    zones_gdf = gpd.read_file(zones_path)
-    print(f"  ✓ Loaded {len(zones_gdf)} bidding zones from: {zones_path}")
-
-    all_zones_grids = []
-    zone_geometries = []
-
-    # Map zone names: 'NO 1' -> 'NO_1' for consistency
-    zone_name_map = {
-        "NO 1": "NO_1",
-        "NO 2": "NO_2",
-        "NO 3": "NO_3",
-        "NO 4": "NO_4",
-        "NO 5": "NO_5",
-    }
-
-    for idx, zone_row in zones_gdf.iterrows():
-        zone_name_orig = zone_row["Price area"]
-        zone_id = zone_name_map.get(zone_name_orig, zone_name_orig.replace(" ", "_"))
-        zone_geom = zone_row.geometry
-
-        # Extract zone number (NO_1 -> 0, NO_2 -> 1, etc.)
-        zone_num = int(zone_id.split("_")[1]) - 1
-
-        # Get grid resolution from NORWAY_ZONES config
-        zone_config = NORWAY_ZONES.get(zone_id, {"grid_resolution": 0.5})
-        grid_resolution = zone_config.get("grid_resolution", 0.5)
-
-        print(f"{'─' * 70}")
-        print(f"Zone {zone_id} ({zone_name_orig})")
-        print(f"{'─' * 70}")
-        print(f"  Grid resolution: {grid_resolution}°")
-        print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
-
-        # Create grid for this zone using actual geometry bounds
-        zone_bounds = zone_geom.bounds  # (minx, miny, maxx, maxy)
-        zone_bbox = box(zone_bounds[0], zone_bounds[1], zone_bounds[2], zone_bounds[3])
-
-        zone_grid = create_sampling_points(
-            country_bounds=zone_bbox,
-            method="grid",
-            resolution=grid_resolution,
-            add_metadata=True,
-            default_height=config["height"],
-            default_model=config["model"],
-            default_capacity=config["capacity"],
-        )
-
-        # Filter grid points to only those inside the actual zone geometry
-        # Create point geometries for filtering
-        from shapely.geometry import Point as ShapelyPoint
-
-        zone_grid_gdf = gpd.GeoDataFrame(
-            zone_grid,
-            geometry=[
-                ShapelyPoint(lon, lat) for lon, lat in zip(zone_grid["lon"], zone_grid["lat"])
-            ],
-            crs="EPSG:4326",
-        )
-
-        # Keep only points inside the actual zone geometry
-        zone_grid_filtered = zone_grid_gdf[zone_grid_gdf.geometry.within(zone_geom)].copy()
-        zone_grid_filtered.drop(columns=["geometry"], inplace=True)
-
-        # Assign zone as cluster
-        zone_grid_filtered["cluster"] = zone_num
-        zone_grid_filtered["zone"] = zone_id
-
-        print(
-            f"  ✓ Created {len(zone_grid_filtered)} grid points for {zone_id} (filtered from {len(zone_grid)})"
-        )
-
-        all_zones_grids.append(zone_grid_filtered)
-
-        # Use actual zone geometry
-        zone_geometries.append(
-            {
-                "cluster": zone_num,
-                "zone": zone_id,
-                "name": zone_config.get("name", zone_name_orig),
-                "geometry": zone_geom,
-                "n_points": len(zone_grid_filtered),
-            }
-        )
-
-    # Combine all zones
-    grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
-
-    print(f"\n{'─' * 70}")
-    print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones")
-    print("\nZone distribution:")
-    for zone_id in sorted(grid_all_zones["zone"].unique()):
-        count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
-        print(f"  {zone_id}: {count} points")
-
-    # Save grid points
-    grid_dir = output_dir / "grid_points" / "no"
-    grid_dir.mkdir(parents=True, exist_ok=True)
-
-    grid_path = grid_dir / "no_grid_points_zones.csv"
-    grid_all_zones.to_csv(grid_path, index=False)
-    print(f"\n✓ Saved grid points: {grid_path}")
-
-    # Save zone geometries as GeoJSON
-    if save_geojson:
-        try:
-            zone_gdf = gpd.GeoDataFrame(zone_geometries, crs="EPSG:4326")
-            geom_path = grid_dir / "no_bidding_zones.geojson"
-            zone_gdf.to_file(geom_path, driver="GeoJSON")
-            print(f"✓ Saved zone geometries: {geom_path}")
-        except ImportError:
-            print("Warning: GeoPandas not available - skipping GeoJSON export")
-            zone_gdf = pd.DataFrame(zone_geometries)
-
-    else:
-        zone_gdf = pd.DataFrame(zone_geometries)
-
-    return grid_all_zones, zone_gdf
+    # Norway's polygons name a zone "NO 1" in "Price area"; empty zones are kept.
+    return _zone_grids_from_shapes(
+        "NO",
+        NORWAY_ZONES,
+        zones_path,
+        config,
+        output_dir,
+        save_geojson,
+        zone_id_of=lambda row: row["Price area"].replace(" ", "_"),
+        default_resolution=0.5,
+        skip_empty=False,
+    )
 
 
 def generate_sweden_zone_grids(
@@ -356,9 +255,9 @@ def generate_sweden_zone_grids(
     output_dir: Path,
     save_geojson: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Generate grid points for Swedish bidding zones using actual zone geometries.
+    """Grid points for Sweden's bidding zones, from the zones' own polygons.
 
-    Creates separate grid for each zone, with zone ID as cluster.
+    Refuses when the polygons are missing: Sweden has no bounding-box fallback.
 
     Args:
         config: Sweden configuration dictionary.
@@ -368,39 +267,77 @@ def generate_sweden_zone_grids(
     Returns:
         Tuple of (all_grid_points, zone_geometries).
     """
-    print("\n✓ Sweden detected - using actual bidding zone geometries")
-    print("  Each zone will be treated as a separate cluster\n")
-
-    # Load actual bidding zone geometries
-    import geopandas as gpd
-
-    zones_path = Path("input/reference/shapes/se_bidding_zones.geojson")
+    zones_path = bidding_zone_shapes("se")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
-        print("  Warning: Cannot proceed without zone geometries")
         raise FileNotFoundError(f"Swedish bidding zones file not found: {zones_path}")
+    # Sweden's polygons carry zone_id (or zone_name) as "SE_1"; empty zones are dropped.
+    return _zone_grids_from_shapes(
+        "SE",
+        SWEDEN_ZONES,
+        zones_path,
+        config,
+        output_dir,
+        save_geojson,
+        zone_id_of=lambda row: row.get("zone_id") or row.get("zone_name"),
+        default_resolution=0.75,
+        skip_empty=True,
+    )
 
+
+def _zone_grids_from_shapes(
+    code: str,
+    zones: dict,
+    zones_path: Path,
+    config: dict,
+    output_dir: Path,
+    save_geojson: bool,
+    *,
+    zone_id_of: Callable,
+    default_resolution: float,
+    skip_empty: bool,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """One grid per bidding-zone polygon, the zone as cluster.
+
+    Norway and Sweden had one copy of this each (#84). What differs between
+    them is passed in: how a polygon names its zone, the resolution of a zone
+    the table does not list, and whether a zone with no grid point is kept.
+
+    Args:
+        code: Country code, ``"NO"`` or ``"SE"``.
+        zones: The country's zone table (``NORWAY_ZONES``, ``SWEDEN_ZONES``).
+        zones_path: The polygons, from :func:`bidding_zone_shapes`.
+        config: The country's configuration (height, model, capacity).
+        output_dir: Output directory.
+        save_geojson: If True, save zone geometries.
+        zone_id_of: Returns a polygon row's zone id (``"NO_1"``), or a falsy
+            value to skip the row.
+        default_resolution: Grid resolution, in degrees, for a zone missing
+            from ``zones``.
+        skip_empty: Drop a zone whose polygon holds no grid point.
+
+    Returns:
+        Tuple of (all_grid_points, zone_geometries).
+    """
+    import geopandas as gpd
+    from shapely.geometry import Point as ShapelyPoint
+
+    print(f"\n✓ {code} detected - using actual bidding zone geometries")
     zones_gdf = gpd.read_file(zones_path)
     print(f"  ✓ Loaded {len(zones_gdf)} bidding zones from: {zones_path}")
 
     all_zones_grids = []
     zone_geometries = []
-
     for idx, zone_row in zones_gdf.iterrows():
-        # Get zone_id from properties (already in SE_1 format from our extraction)
-        zone_id = zone_row.get("zone_id") or zone_row.get("zone_name")
+        zone_id = zone_id_of(zone_row)
         if not zone_id:
             print(f"  Warning: Missing zone_id for feature {idx}, skipping")
             continue
-
         zone_geom = zone_row.geometry
-
-        # Extract zone number (SE_1 -> 0, SE_2 -> 1, etc.)
+        # NO_1 -> 0, NO_2 -> 1, etc.
         zone_num = int(zone_id.split("_")[1]) - 1
-
-        # Get grid resolution from SWEDEN_ZONES config
-        zone_config = SWEDEN_ZONES.get(zone_id, {"grid_resolution": 0.75})
-        grid_resolution = zone_config.get("grid_resolution", 0.75)
+        zone_config = zones.get(zone_id, {"grid_resolution": default_resolution})
+        grid_resolution = zone_config.get("grid_resolution", default_resolution)
 
         print(f"{'─' * 70}")
         print(f"Zone {zone_id}")
@@ -408,12 +345,9 @@ def generate_sweden_zone_grids(
         print(f"  Grid resolution: {grid_resolution}°")
         print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
 
-        # Create grid for this zone using actual geometry bounds
         zone_bounds = zone_geom.bounds  # (minx, miny, maxx, maxy)
-        zone_bbox = box(zone_bounds[0], zone_bounds[1], zone_bounds[2], zone_bounds[3])
-
         zone_grid = create_sampling_points(
-            country_bounds=zone_bbox,
+            country_bounds=box(*zone_bounds),
             method="grid",
             resolution=grid_resolution,
             add_metadata=True,
@@ -421,11 +355,7 @@ def generate_sweden_zone_grids(
             default_model=config["model"],
             default_capacity=config["capacity"],
         )
-
-        # Filter grid points to only those inside the actual zone geometry
-        # Create point geometries for filtering
-        from shapely.geometry import Point as ShapelyPoint
-
+        # Keep only the points inside the zone's own polygon.
         zone_grid_gdf = gpd.GeoDataFrame(
             zone_grid,
             geometry=[
@@ -433,24 +363,17 @@ def generate_sweden_zone_grids(
             ],
             crs="EPSG:4326",
         )
-
-        # Keep only points inside the actual zone geometry
         zone_grid_filtered = zone_grid_gdf[zone_grid_gdf.geometry.within(zone_geom)].copy()
         zone_grid_filtered.drop(columns=["geometry"], inplace=True)
-
-        # Assign zone as cluster
         zone_grid_filtered["cluster"] = zone_num
         zone_grid_filtered["zone"] = zone_id
+        print(f"  ✓ {len(zone_grid_filtered)} grid points (filtered from {len(zone_grid)})")
 
-        print(f"  Grid points: {len(zone_grid_filtered)}")
-
-        if len(zone_grid_filtered) == 0:
+        if skip_empty and len(zone_grid_filtered) == 0:
             print(f"  Warning: No grid points generated for {zone_id}")
             continue
 
         all_zones_grids.append(zone_grid_filtered)
-
-        # Use actual zone geometry
         zone_geometries.append(
             {
                 "cluster": zone_num,
@@ -461,7 +384,17 @@ def generate_sweden_zone_grids(
             }
         )
 
-    # Combine all zones
+    return _save_zone_grids(code, all_zones_grids, zone_geometries, output_dir, save_geojson)
+
+
+def _save_zone_grids(
+    code: str,
+    all_zones_grids: list,
+    zone_geometries: list,
+    output_dir: Path,
+    save_geojson: bool,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Combine a country's zone grids and write them, with the zone polygons."""
     grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
 
     print(f"\n{'─' * 70}")
@@ -471,25 +404,24 @@ def generate_sweden_zone_grids(
         count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
         print(f"  {zone_id}: {count} points")
 
-    # Save grid points
-    grid_dir = output_dir / "grid_points" / "se"
+    c = code.lower()
+    grid_dir = output_dir / "grid_points" / c
     grid_dir.mkdir(parents=True, exist_ok=True)
-
-    grid_path = grid_dir / "se_grid_points_zones.csv"
+    grid_path = grid_dir / f"{c}_grid_points_zones.csv"
     grid_all_zones.to_csv(grid_path, index=False)
     print(f"\n✓ Saved grid points: {grid_path}")
 
-    # Save zone geometries as GeoJSON
     if save_geojson:
         try:
+            import geopandas as gpd
+
             zone_gdf = gpd.GeoDataFrame(zone_geometries, crs="EPSG:4326")
-            geom_path = grid_dir / "se_bidding_zones.geojson"
+            geom_path = grid_dir / f"{c}_bidding_zones.geojson"
             zone_gdf.to_file(geom_path, driver="GeoJSON")
             print(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
             print("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
-
     else:
         zone_gdf = pd.DataFrame(zone_geometries)
 
@@ -501,9 +433,7 @@ def generate_norway_zone_grids_fallback(
     output_dir: Path,
     save_geojson: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Fallback: Generate grid points for Norwegian bidding zones using bounding boxes.
-
-    Creates separate grid for each zone, with zone ID as cluster.
+    """Fallback: grid points for Norway's bidding zones from their bounding boxes.
 
     Args:
         config: Norway configuration dictionary.
@@ -517,19 +447,14 @@ def generate_norway_zone_grids_fallback(
 
     all_zones_grids = []
     zone_geometries = []
-
     for zone_id, zone_config in NORWAY_ZONES.items():
         print(f"{'─' * 70}")
         print(f"Zone {zone_id}: {zone_config['name']}")
         print(f"{'─' * 70}")
-
-        # Extract zone number (NO_1 -> 0, NO_2 -> 1, etc.)
         zone_num = int(zone_id.split("_")[1]) - 1
-
         print(f"  Grid resolution: {zone_config['grid_resolution']}°")
         print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
 
-        # Create grid for this zone
         zone_grid = create_sampling_points(
             country_bounds=zone_config["bounds"],
             method="grid",
@@ -539,16 +464,11 @@ def generate_norway_zone_grids_fallback(
             default_model=config["model"],
             default_capacity=config["capacity"],
         )
-
-        # Assign zone as cluster
         zone_grid["cluster"] = zone_num
         zone_grid["zone"] = zone_id
-
         print(f"  ✓ Created {len(zone_grid)} grid points for {zone_id}")
 
         all_zones_grids.append(zone_grid)
-
-        # Create zone geometry (bounding box)
         zone_geometries.append(
             {
                 "cluster": zone_num,
@@ -559,41 +479,7 @@ def generate_norway_zone_grids_fallback(
             }
         )
 
-    # Combine all zones
-    grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
-
-    print(f"\n{'─' * 70}")
-    print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(NORWAY_ZONES)} zones")
-    print("\nZone distribution:")
-    for zone_id in sorted(grid_all_zones["zone"].unique()):
-        count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
-        print(f"  {zone_id}: {count} points")
-
-    # Save grid points
-    grid_dir = output_dir / "grid_points" / "no"
-    grid_dir.mkdir(parents=True, exist_ok=True)
-
-    grid_path = grid_dir / "no_grid_points_zones.csv"
-    grid_all_zones.to_csv(grid_path, index=False)
-    print(f"\n✓ Saved grid points: {grid_path}")
-
-    # Save zone geometries as GeoJSON
-    if save_geojson:
-        try:
-            import geopandas as gpd
-
-            zone_gdf = gpd.GeoDataFrame(zone_geometries, crs="EPSG:4326")
-            geom_path = grid_dir / "no_bidding_zones.geojson"
-            zone_gdf.to_file(geom_path, driver="GeoJSON")
-            print(f"✓ Saved zone geometries: {geom_path}")
-        except ImportError:
-            print("Warning: GeoPandas not available - skipping GeoJSON export")
-            zone_gdf = pd.DataFrame(zone_geometries)
-
-    else:
-        zone_gdf = pd.DataFrame(zone_geometries)
-
-    return grid_all_zones, zone_gdf
+    return _save_zone_grids("NO", all_zones_grids, zone_geometries, output_dir, save_geojson)
 
 
 def generate_kmeans_grid(
