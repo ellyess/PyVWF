@@ -124,6 +124,10 @@ def mask_before_commissioning(
         commissioning = pd.to_datetime(dates, errors="coerce").dropna()
     else:
         commissioning = pd.to_datetime(dates.dropna())
+    if commissioning.empty:
+        # Nothing to mask, and pandas 3 cannot map through an empty datetime
+        # Series (it casts the all-missing result to float and fails).
+        return
     month_start = pd.to_datetime(
         monthly["year"].astype(str) + "-" + monthly["month"].astype(str) + "-01"
     )
