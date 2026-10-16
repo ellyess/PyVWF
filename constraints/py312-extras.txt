@@ -173,7 +173,7 @@ msgpack==1.2.3
     # via distributed
 multiurl==0.3.9
     # via ecmwf-datastores-client
-mypy==2.3.1
+mypy==2.4.0
     # via
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
@@ -385,7 +385,7 @@ rich==15.0.0
     # via
     #   -c constraints/py312.txt
     #   import-linter
-ruff==0.16.8
+ruff==0.17.0
     # via
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
