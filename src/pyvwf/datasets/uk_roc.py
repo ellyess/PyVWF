@@ -39,6 +39,8 @@ from collections.abc import Sequence
 
 import pandas as pd
 
+from pyvwf.datasets.monthly import wide_monthly
+
 #: ROCs issued per MWh, by technology and accreditation vintage (grandfathered
 #: for the station's life). From Ofgem "Renewables Obligation (RO): Guidance
 #: for Generators", Appendix 4, Table A4.1 (RO/ROS). Before 1 April 2009 it was
@@ -234,13 +236,7 @@ def pseudo_replicate_observations(
         Wide per-turbine frame in the ``ukobs.csv`` schema.
     """
     mcols = [str(m) for m in range(1, 13)]
-    wide = (
-        station_monthly.pivot_table(
-            index=["ID", "year"], columns="month", values="mwh", aggfunc="sum"
-        )
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
+    wide = wide_monthly(station_monthly, value="mwh", aggfunc="sum")
     wide.columns = ["station", "year"] + mcols
     rows = []
     for _, r in wide.iterrows():  # explicit column access, no positional itertuples

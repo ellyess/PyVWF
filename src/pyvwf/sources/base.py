@@ -25,6 +25,20 @@ import pandas as pd
 ObsLevel = Literal["turbine", "country"]
 
 
+#: Columns every turbine-level adapter's metadata file must carry.
+METADATA_COLUMNS = frozenset({"ID", "lon", "lat", "height", "capacity", "model"})
+
+
+def require_columns(frame: pd.DataFrame, required, where) -> None:
+    """Refuse a frame missing any of ``required``, naming ``where`` it came from.
+
+    Seven adapters checked their metadata file with the same four lines (#85).
+    """
+    missing = set(required) - set(frame.columns)
+    if missing:
+        raise ValueError(f"{where} is missing required columns {sorted(missing)}")
+
+
 class ObservationSource(ABC):
     """Base class for every observed-generation adapter.
 

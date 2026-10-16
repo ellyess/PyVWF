@@ -47,14 +47,12 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from pyvwf.time_utils import month_days
+from pyvwf.datasets.monthly import DEFAULT_MIN_COVERAGE, coverage_mean, empty_monthly, wide_monthly
 
 #: New Zealand civil time. EMI trading dates and periods are defined in this
 #: zone (NZST/NZDT); the zone database handles the DST transitions.
 NZ_TZ = ZoneInfo("Pacific/Auckland")
 
-#: Months with less than this fraction of expected half-hourly samples are NaN.
-DEFAULT_MIN_COVERAGE = 0.9
 
 #: Below-final-build mask threshold: months where the then-current registered
 #: capacity is under this fraction of the final build are listed for masking.
@@ -270,21 +268,8 @@ def monthly_cf(
     hh["month"] = hh["timestamp"].dt.month
     hh = hh[(hh["year"] >= int(year_start)) & (hh["year"] <= int(year_end))]
     if hh.empty:
-        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
-
-    agg = (
-        hh.groupby(["ID", "year", "month"]).agg(cf=("cf", "mean"), n=("cf", "count")).reset_index()
-    )
-    expected = month_days(agg["year"], agg["month"]) * 48.0
-    agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
-
-    wide = (
-        agg.pivot(index=["ID", "year"], columns="month", values="cf")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
+        return empty_monthly()
+    return wide_monthly(coverage_mean(hh, samples_per_day=48, min_coverage=min_coverage))
 
 
 def below_final_build_mask(
@@ -485,7 +470,7 @@ def metadata_contract(farms: pd.DataFrame, fallback_model: str) -> pd.DataFrame:
     manufacturer and model string is carried in ``true_model`` for provenance,
     never as the curve key.
     """
-    from pyvwf.datasets.eia_us import assign_curves_from_library
+    from pyvwf.datasets.curve_assignment import assign_curves_from_library
 
     md = farms.rename(columns={"turbine_model": "true_model"}).copy()
     md["model"] = fallback_model
