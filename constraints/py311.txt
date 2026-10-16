@@ -61,7 +61,7 @@ joblib==1.6.0
     # via scikit-learn
 kiwisolver==1.5.1
     # via matplotlib
-librt==0.15.0
+librt==0.16.0
     # via mypy
 locket==1.0.0
     # via partd

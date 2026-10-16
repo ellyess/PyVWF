@@ -42,7 +42,7 @@ dependencies:
   # Development tools (optional). ruff is pinned to the version CI and the
   # pre-commit hook use (tests/test_tool_pins.py checks all three agree).
   - pytest>=7.0.0
-  - ruff==0.16.8
+  - ruff==0.17.0
 
   # Install additional packages via pip
   - pip

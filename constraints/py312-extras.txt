@@ -144,7 +144,7 @@ kiwisolver==1.5.1
     # via
     #   -c constraints/py312.txt
     #   matplotlib
-librt==0.15.0
+librt==0.16.0
     # via
     #   -c constraints/py312.txt
     #   mypy
