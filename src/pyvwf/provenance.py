@@ -313,7 +313,8 @@ def build_manifest(
 
     Args:
         spec: Region config for this run, if the run is harness-driven.
-            Legacy ``PyVWF`` runs pass ``None`` and describe themselves via
+            Runs that are not harness-driven, such as the physics-informed
+            study drivers, pass ``None`` and describe themselves via
             ``extra``.
         correction: Correction settings; defaults to the spec's when present.
         extra: Additional top-level entries (legacy run parameters, notes).

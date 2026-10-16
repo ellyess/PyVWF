@@ -207,7 +207,7 @@ target-version = "py310"
 [tool.ruff.lint]
 # E: pycodestyle errors, F: pyflakes. Kept intentionally lean so the legacy
 # research scripts pass while still catching dead code, unused imports, and
-# real bugs (e.g. a discarded-merge bug once fixed in the legacy vwf/vwf.py).
+# real bugs (e.g. a discarded-merge bug once fixed in the removed vwf/vwf.py).
 select = ["E", "F"]
 ignore = [
     "E501",  # line length handled case-by-case in research code

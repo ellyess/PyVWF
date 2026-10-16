@@ -11,6 +11,14 @@ affine baseline is wrapped rather than modified, so an alternative correction
 compares against the validated core in `pyvwf/correction.py` and `pyvwf/wind.py`
 without touching it.
 
+*[Note, 2026-10-16: the legacy `PyVWF` class, its `pyvwf-train` entry point
+and its batch scripts were removed on 2026-09-24 (the last commit with them is
+`d039608`, recorded in `docs/publications.md`), so the harness is now the only
+path. The affine baseline is still wrapped, not modified, and
+`tests/test_harness_corrections.py` pins it bit for bit against the core
+functions called directly. Statements below about the legacy path describe
+the design as it was before the removal.]*
+
 ## What it is built to make cheap
 
 1. Adding a region is a config change plus, for a new observation family, one
@@ -226,7 +234,9 @@ reportable from a manifest with `library == "external"`.
 
 The legacy `PyVWF.train` and `simulate_cf` write the manifest too. A
 manifest-write failure never aborts a run, in the harness or the legacy path:
-provenance is diagnostic, not load-bearing.
+provenance is diagnostic, not load-bearing. *[Note, 2026-10-16: the legacy
+path was removed on 2026-09-24; the harness's runs still write the manifest,
+and a failure to write it still does not abort them.]*
 
 ## Driver
 
@@ -294,6 +304,9 @@ synthetic, no network.
   monthly generation data does not. This caveat travels with every Australian
   finding.
 - **Two config systems** coexist, legacy dicts and TOML, with the precedence
-  rule above.
+  rule above. *[Note, 2026-10-16: the legacy entry points went with the legacy
+  path on 2026-09-24, so every run reads TOML. The dict defaults left in
+  `pyvwf.config`, such as `BoundingBoxes`, serve direct calls that pass no
+  config value; they are not a second config system.]*
 - **Antimeridian-crossing ERA5 subsets are not supported.** No current region
   needs one.
