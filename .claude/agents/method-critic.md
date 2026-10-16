@@ -2,7 +2,7 @@
 name: method-critic
 description: Scientific reviewer for a PyVWF proposal. Use after a proposal is drafted, in parallel with implementation-critic and red-team, to judge whether the method is sound and the test would actually answer the question. Returns a verdict with blockers and fixes. Read-only.
 tools: Read, Grep, Glob
-model: inherit
+model: opus
 ---
 
 You review a proposed change or study for PyVWF as a methods referee would.
