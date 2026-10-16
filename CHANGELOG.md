@@ -87,6 +87,15 @@ this file stay in step with it.
 
 ### Changed
 
+- **pandas 2.2 is the declared floor, and `environment.yaml` follows the
+  package.** The code needs pandas 2.2 (month-end `"ME"` and
+  `include_groups=`), but `pyproject.toml` allowed 2.0. `environment.yaml`
+  pinned versions CI never tested, including a pandas with no Python 3.13
+  build, an unpinned ruff and an unused black; it now takes the package's
+  lower bounds and CI's ruff, and its header says what CI installs.
+  `tests/test_tool_pins.py` checks both. `pyproject.toml` says why it has
+  no upper bounds.
+
 - **The country grids and Ireland's capacity-factor denominator are rebuilt on
   the corrected fleet register** (`acfbbfa`), and the eight country rows re-run,
   training and evaluation, from a clean tree. What moved: Ireland's row, whose
