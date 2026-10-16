@@ -69,6 +69,17 @@ def _preactivation_for(value: float, lo: float, hi: float) -> float:
     return float(np.arctanh(2.0 * frac - 1.0))
 
 
+def preactivation_for(value: float, lo: float, hi: float) -> float:
+    """Public name for :func:`_preactivation_for`, for analyses outside the package.
+
+    The identifiability diagnostic (``scripts/studies/physics-informed/
+    d6_identifiability.py``) starts a head at a chosen physical value, which
+    needs the same inverse the model's own initialisation uses. Scripts reach
+    ``pyvwf`` through public names only (``tests/test_public_analysis_api.py``).
+    """
+    return _preactivation_for(value, lo, hi)
+
+
 class _Head(nn.Module):
     """Linear, or a small MLP when ``hidden`` is given."""
 

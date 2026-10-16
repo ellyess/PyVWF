@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pyvwf.pinn.train as T  # noqa: E402
 from pyvwf.harness.skill import skill_metrics  # noqa: E402
-from pyvwf.pinn.model import ETA_BOUNDS, PhysicsCorrection, _preactivation_for  # noqa: E402
+from pyvwf.pinn.model import ETA_BOUNDS, PhysicsCorrection, preactivation_for  # noqa: E402
 
 CACHE = ROOT / "output" / "pinn" / "cache"
 OUT = ROOT / "output" / "pinn" / "d6"
@@ -51,7 +51,7 @@ def fit_from(tr, start: float, epochs: int = 60, seed: int = 0):
     std = T.Standardiser.fit(tr)
     m = PhysicsCorrection(14, 4, hidden=None, physics=True)
     with torch.no_grad():
-        m.eta.net.bias.fill_(_preactivation_for(start, *ETA_BOUNDS))
+        m.eta.net.bias.fill_(preactivation_for(start, *ETA_BOUNDS))
     opt = torch.optim.Adam(m.parameters(), lr=0.05, weight_decay=1e-3)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     quad = T.gauss_hermite(T.N_QUAD)
