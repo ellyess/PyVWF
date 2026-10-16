@@ -87,14 +87,6 @@ this file stay in step with it.
 
 ### Changed
 
-- **`scripts/pinn/` is `scripts/studies/physics-informed/`** (#12), moved as
-  one unit now that the turbine-only study has run on its registered paths.
-  The drivers resolve the repository root one level further up, and the three
-  shell scripts that launch its stages call the new paths. The registered
-  commands in the pre-registrations name the old paths and stay as written;
-  `scripts/studies/README.md` maps each old path to its new one, with the last
-  commit there.
-
 - **The country grids and Ireland's capacity-factor denominator are rebuilt on
   the corrected fleet register** (`acfbbfa`), and the eight country rows re-run,
   training and evaluation, from a clean tree. What moved: Ireland's row, whose
@@ -107,6 +99,14 @@ this file stay in step with it.
   today's fleet: its recorded runs are fallback-curve figures already
   superseded, and are kept as the record. The scorecard's notice of
   2026-09-29 has the figures.
+
+- **`scripts/pinn/` is `scripts/studies/physics-informed/`** (#12), moved as
+  one unit now that the turbine-only study has run on its registered paths.
+  The drivers resolve the repository root one level further up, and the three
+  shell scripts that launch its stages call the new paths. The registered
+  commands in the pre-registrations name the old paths and stay as written;
+  `scripts/studies/README.md` maps each old path to its new one, with the last
+  commit there.
 
 - **Six study drivers read frozen configs** (`configs/regions/study/`). The
   cluster-selection, correction-identifiability, national-single-cluster,
