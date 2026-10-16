@@ -21,6 +21,31 @@ from importlib import resources
 from pathlib import Path
 
 
+#: Suffix of a national series summed over bidding zones (NO, SE).
+AGGREGATED_SUFFIX = "_aggregated"
+
+
+def country_obs_stem(code: str, split: str, years) -> str:
+    """The file stem of a country-level observation series, without ``.csv``.
+
+    The writer (``pyvwf.datasets.entsoe_country_obs``) and the reader
+    (``pyvwf.sources.entsoe_files``) both build names here, so the two cannot
+    drift (#84). A zone-summed national series adds ``AGGREGATED_SUFFIX``.
+
+    Args:
+        code: Region or bidding-zone code, any case.
+        split: ``"train"`` or ``"test"``.
+        years: ``(first, last)`` for a training split, the year for a test split.
+    """
+    c = code.lower()
+    if split == "train":
+        first, last = years
+        return f"{c}_train_{int(first)}_{int(last)}"
+    if split == "test":
+        return f"{c}_test_{int(years)}"
+    raise ValueError(f"split must be 'train' or 'test', got {split!r}")
+
+
 class PyVWFPaths:
     """Central configuration for data directories and file paths."""
 

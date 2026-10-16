@@ -15,8 +15,12 @@ from typing import Literal
 
 import pandas as pd
 
+from pyvwf.config import AGGREGATED_SUFFIX, country_obs_stem
 from pyvwf.datasets.country_grid import NORWAY_ZONES, SWEDEN_ZONES
-from pyvwf.datasets.fetch_entsoe_capacity_factors import ENTSOEWindDataFetcher
+from pyvwf.datasets.fetch_entsoe_capacity_factors import (
+    CAPACITY_FACTOR_CEILING,
+    ENTSOEWindDataFetcher,
+)
 
 
 def fetch_observations(
@@ -80,107 +84,10 @@ def fetch_norway_zone_observations(
     output_dir: Path,
     psr_type: Literal["onshore", "offshore", "all"] = "all",
 ) -> dict:
-    """Fetch observations for Norwegian bidding zones.
-
-    Args:
-        fetcher: ENTSO-E API client.
-        train_years: List of training years.
-        test_year: Test year.
-        output_dir: Output directory.
-        psr_type: Wind type.
-
-    Returns:
-        Dictionary with zone data and aggregated country data.
-    """
-    print("\n✓ Norway detected - fetching bidding zones separately")
-
-    zone_train_data = {}
-    zone_test_data = {}
-
-    # Fetch each zone
-    for zone_id in NORWAY_ZONES.keys():
-        print(f"\n{'─' * 70}")
-        print(f"Fetching {zone_id}")
-        print(f"{'─' * 70}")
-
-        zone_results = fetch_country_observations(
-            fetcher, zone_id, train_years, test_year, output_dir, psr_type
-        )
-
-        if zone_results:
-            zone_train_data[zone_id] = zone_results["train"]
-            zone_test_data[zone_id] = zone_results["test"]
-
-    # Aggregate zones for country-level
-    print(f"\n{'─' * 70}")
-    print("Aggregating zones to country-level")
-    print(f"{'─' * 70}")
-
-    if zone_train_data:
-        # Combine all zones with sum
-        train_combined = pd.concat(
-            [df[["generation_mw", "capacity_mw"]] for df in zone_train_data.values()], axis=1
-        )
-
-        train_agg = pd.DataFrame(
-            {
-                "generation_mw": train_combined.filter(like="generation").sum(axis=1),
-                "capacity_mw": train_combined.filter(like="capacity").sum(axis=1),
-            }
-        )
-        train_agg["capacity_factor"] = train_agg["generation_mw"] / train_agg["capacity_mw"]
-        train_agg["capacity_factor"] = train_agg["capacity_factor"].clip(0, 1.5)
-
-        print(f"  ✓ Aggregated training: {len(train_agg)} data points")
-        print(f"    Mean CF: {train_agg['capacity_factor'].mean():.2%}")
-
-    else:
-        train_agg = pd.DataFrame()
-
-    if zone_test_data:
-        test_combined = pd.concat(
-            [df[["generation_mw", "capacity_mw"]] for df in zone_test_data.values()], axis=1
-        )
-
-        test_agg = pd.DataFrame(
-            {
-                "generation_mw": test_combined.filter(like="generation").sum(axis=1),
-                "capacity_mw": test_combined.filter(like="capacity").sum(axis=1),
-            }
-        )
-        test_agg["capacity_factor"] = test_agg["generation_mw"] / test_agg["capacity_mw"]
-        test_agg["capacity_factor"] = test_agg["capacity_factor"].clip(0, 1.5)
-
-        print(f"  ✓ Aggregated test: {len(test_agg)} data points")
-        print(f"    Mean CF: {test_agg['capacity_factor'].mean():.2%}")
-
-    else:
-        test_agg = pd.DataFrame()
-
-    # Save aggregated country-level data
-    obs_dir = output_dir / "observations" / "no"
-    obs_dir.mkdir(parents=True, exist_ok=True)
-
-    if not train_agg.empty:
-        train_path = obs_dir / f"no_train_{min(train_years)}_{max(train_years)}_aggregated.csv"
-        train_agg.to_csv(train_path)
-        print(f"\n✓ Saved aggregated training: {train_path}")
-
-    if not test_agg.empty:
-        test_path = obs_dir / f"no_test_{test_year}_aggregated.csv"
-        test_agg.to_csv(test_path)
-        print(f"✓ Saved aggregated test: {test_path}")
-
-    return {
-        "zones": {
-            "train": zone_train_data,
-            "test": zone_test_data,
-        },
-        "aggregated": {
-            "train": train_agg,
-            "test": test_agg,
-        },
-    }
+    """Norway's bidding zones, and their sum as the national series."""
+    return fetch_zone_observations(
+        "NO", NORWAY_ZONES, fetcher, train_years, test_year, output_dir, psr_type
+    )
 
 
 def fetch_sweden_zone_observations(
@@ -190,11 +97,49 @@ def fetch_sweden_zone_observations(
     output_dir: Path,
     psr_type: Literal["onshore", "offshore", "all"] = "all",
 ) -> dict:
-    """Fetch observations for Swedish bidding zones.
+    """Sweden's bidding zones, and their sum as the national series."""
+    return fetch_zone_observations(
+        "SE", SWEDEN_ZONES, fetcher, train_years, test_year, output_dir, psr_type
+    )
+
+
+def _sum_zones(zone_data: dict) -> pd.DataFrame:
+    """Generation and capacity summed over the zones that returned data."""
+    if not zone_data:
+        return pd.DataFrame()
+    combined = pd.concat(
+        [df[["generation_mw", "capacity_mw"]] for df in zone_data.values()], axis=1
+    )
+    summed = pd.DataFrame(
+        {
+            "generation_mw": combined.filter(like="generation").sum(axis=1),
+            "capacity_mw": combined.filter(like="capacity").sum(axis=1),
+        }
+    )
+    summed["capacity_factor"] = summed["generation_mw"] / summed["capacity_mw"]
+    summed["capacity_factor"] = summed["capacity_factor"].clip(0, CAPACITY_FACTOR_CEILING)
+    return summed
+
+
+def fetch_zone_observations(
+    code: str,
+    zones: dict,
+    fetcher: ENTSOEWindDataFetcher,
+    train_years: list[int],
+    test_year: int,
+    output_dir: Path,
+    psr_type: Literal["onshore", "offshore", "all"] = "all",
+) -> dict:
+    """Fetch each bidding zone of a country, and write their sum as its national series.
+
+    Norway and Sweden had one copy of this each, differing only in names (#84).
+    A zone with no data is left out of both sums.
 
     Args:
+        code: The country code (``"NO"``, ``"SE"``).
+        zones: Its zone table, from :mod:`pyvwf.datasets.country_grid`.
         fetcher: ENTSO-E API client.
-        train_years: List of training years.
+        train_years: Training years.
         test_year: Test year.
         output_dir: Output directory.
         psr_type: Wind type.
@@ -202,94 +147,46 @@ def fetch_sweden_zone_observations(
     Returns:
         Dictionary with zone data and aggregated country data.
     """
-    print("\n✓ Sweden detected - fetching bidding zones separately")
+    print(f"\n✓ {code} detected - fetching bidding zones separately")
 
     zone_train_data = {}
     zone_test_data = {}
-
-    # Fetch each zone
-    for zone_id in SWEDEN_ZONES.keys():
+    for zone_id in zones:
         print(f"\n{'─' * 70}")
         print(f"Fetching {zone_id}")
         print(f"{'─' * 70}")
-
         zone_results = fetch_country_observations(
             fetcher, zone_id, train_years, test_year, output_dir, psr_type
         )
-
         if zone_results:
             zone_train_data[zone_id] = zone_results["train"]
             zone_test_data[zone_id] = zone_results["test"]
 
-    # Aggregate zones for country-level
     print(f"\n{'─' * 70}")
     print("Aggregating zones to country-level")
     print(f"{'─' * 70}")
+    train_agg = _sum_zones(zone_train_data)
+    test_agg = _sum_zones(zone_test_data)
+    for label, agg in (("training", train_agg), ("test", test_agg)):
+        if not agg.empty:
+            print(f"  ✓ Aggregated {label}: {len(agg)} data points")
+            print(f"    Mean CF: {agg['capacity_factor'].mean():.2%}")
 
-    if zone_train_data:
-        # Combine all zones with sum
-        train_combined = pd.concat(
-            [df[["generation_mw", "capacity_mw"]] for df in zone_train_data.values()], axis=1
-        )
-
-        train_agg = pd.DataFrame(
-            {
-                "generation_mw": train_combined.filter(like="generation").sum(axis=1),
-                "capacity_mw": train_combined.filter(like="capacity").sum(axis=1),
-            }
-        )
-        train_agg["capacity_factor"] = train_agg["generation_mw"] / train_agg["capacity_mw"]
-        train_agg["capacity_factor"] = train_agg["capacity_factor"].clip(0, 1.5)
-
-        print(f"  ✓ Aggregated training: {len(train_agg)} data points")
-        print(f"    Mean CF: {train_agg['capacity_factor'].mean():.2%}")
-
-    else:
-        train_agg = pd.DataFrame()
-
-    if zone_test_data:
-        test_combined = pd.concat(
-            [df[["generation_mw", "capacity_mw"]] for df in zone_test_data.values()], axis=1
-        )
-
-        test_agg = pd.DataFrame(
-            {
-                "generation_mw": test_combined.filter(like="generation").sum(axis=1),
-                "capacity_mw": test_combined.filter(like="capacity").sum(axis=1),
-            }
-        )
-        test_agg["capacity_factor"] = test_agg["generation_mw"] / test_agg["capacity_mw"]
-        test_agg["capacity_factor"] = test_agg["capacity_factor"].clip(0, 1.5)
-
-        print(f"  ✓ Aggregated test: {len(test_agg)} data points")
-        print(f"    Mean CF: {test_agg['capacity_factor'].mean():.2%}")
-
-    else:
-        test_agg = pd.DataFrame()
-
-    # Save aggregated country-level data
-    obs_dir = output_dir / "observations" / "se"
+    obs_dir = output_dir / "observations" / code.lower()
     obs_dir.mkdir(parents=True, exist_ok=True)
-
+    years = (min(train_years), max(train_years))
     if not train_agg.empty:
-        train_path = obs_dir / f"se_train_{min(train_years)}_{max(train_years)}_aggregated.csv"
+        train_path = obs_dir / f"{country_obs_stem(code, 'train', years)}{AGGREGATED_SUFFIX}.csv"
         train_agg.to_csv(train_path)
         print(f"\n✓ Saved aggregated training: {train_path}")
-
     if not test_agg.empty:
-        test_path = obs_dir / f"se_test_{test_year}_aggregated.csv"
+        test_path = obs_dir / f"{country_obs_stem(code, 'test', test_year)}{AGGREGATED_SUFFIX}.csv"
         test_agg.to_csv(test_path)
         print(f"✓ Saved aggregated test: {test_path}")
 
     return {
-        "zones": {
-            "train": zone_train_data,
-            "test": zone_test_data,
-        },
-        "aggregated": {
-            "train": train_agg,
-            "test": test_agg,
-        },
+        "zones": {"train": zone_train_data, "test": zone_test_data},
+        "aggregated": {"train": train_agg, "test": test_agg},
     }
 
 
@@ -358,11 +255,12 @@ def fetch_country_observations(
     obs_dir = output_dir / "observations" / country.lower()
     obs_dir.mkdir(parents=True, exist_ok=True)
 
-    train_path = obs_dir / f"{country.lower()}_train_{min(train_years)}_{max(train_years)}.csv"
+    train_years_span = (min(train_years), max(train_years))
+    train_path = obs_dir / f"{country_obs_stem(country, 'train', train_years_span)}.csv"
     train_data.to_csv(train_path)
     print(f"\n✓ Saved training data: {train_path}")
 
-    test_path = obs_dir / f"{country.lower()}_test_{test_year}.csv"
+    test_path = obs_dir / f"{country_obs_stem(country, 'test', test_year)}.csv"
     test_data.to_csv(test_path)
     print(f"✓ Saved test data: {test_path}")
 
