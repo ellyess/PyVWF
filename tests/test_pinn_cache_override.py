@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vwf.pinn.cache import apply_fleet_override
+from pyvwf.pinn.cache import apply_fleet_override
 
 
 def _fleet():
@@ -84,3 +84,67 @@ def test_a_cache_override_without_its_ratios_is_refused():
     assert "mismatched = sorted(set(cache_of) - set(gwa_of))" in source
     assert "both must move" in source
     assert spec is not None
+
+
+def _turbine_loro():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("turbine_loro", "scripts/pinn/turbine_loro.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _raw(named_offset):
+    """Every arm on two seeds, whole fleet and named units, for one gated fold."""
+    rows = []
+    spatial = {"uncorrected": 0.20, "no-terrain": 0.10, "relief-only": 0.08, "full": 0.07}
+    spatial |= {"gwa-ratio": 0.09, "in-region": 0.06}
+    for arm, value in spatial.items():
+        for seed in (0, 1):
+            for subset, shift in (("all", 0.0), ("named", named_offset)):
+                v = value + shift * (arm == "relief-only")
+                rows.append(
+                    dict(
+                        fold="DE",
+                        arm=arm,
+                        seed=seed,
+                        subset=subset,
+                        spatial_rmse=v + 0.0001 * seed,
+                        level_rmse=0.01,
+                        rmse=v,
+                        mbe=0.0,
+                        n_units=100 if subset == "all" else 70,
+                    )
+                )
+    return pd.DataFrame(rows)
+
+
+def test_the_gates_read_the_whole_fleet_rows_only():
+    """Known positive and negative: named-unit rows that would flip T1 do not.
+
+    The 2026-09-20 driver wrote matched-unit rows beside the whole-fleet rows
+    and averaged both into one seed mean, so the German fold's gates mixed two
+    fleets. With the named rows made to lose T1 by a wide margin, T1 must
+    still be read from the whole fleet, where it passes.
+    """
+    loro = _turbine_loro()
+    clean = loro.gates(_raw(0.0), ["DE"], "DK")
+    poisoned = loro.gates(_raw(0.5), ["DE"], "DK")
+    assert clean["folds"]["DE"]["T1"][0] is True
+    assert poisoned["folds"]["DE"] == clean["folds"]["DE"]
+    table = loro.arm_table(_raw(0.5))
+    assert set(table["n_units"]) == {100}
+    named = loro.arm_table(_raw(0.5), "named")
+    assert set(named["n_units"]) == {70}
+    # Without the filter the poisoned rows do flip T1: the check can fail.
+    mixed = _raw(0.5).assign(subset="all")
+    assert loro.gates(mixed, ["DE"], "DK")["folds"]["DE"]["T1"][0] is False
+
+
+def test_a_table_from_before_the_subset_column_is_read_whole():
+    loro = _turbine_loro()
+    raw = _raw(0.0)
+    old = raw[raw["subset"] == "all"].drop(columns="subset")
+    assert loro.arm_table(old).equals(loro.arm_table(raw))
+    assert loro.scored_on(old, "named").empty

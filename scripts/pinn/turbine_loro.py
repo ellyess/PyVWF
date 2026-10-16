@@ -65,10 +65,25 @@ def margin(sd_a: float, sd_b: float) -> float:
     return max(0.002, 2.0 * pooled)
 
 
-def arm_table(raw: pd.DataFrame) -> pd.DataFrame:
-    """Per fold and arm: seed means and seed SDs of each metric."""
+def scored_on(raw: pd.DataFrame, subset: str = "all") -> pd.DataFrame:
+    """The rows scored on one unit set.
+
+    With ``--score-subset`` a fold writes each arm and seed twice, on the whole
+    fleet (``subset == "all"``) and on the named units (``"named"``). Only the
+    whole-fleet rows are gated; averaging both together would mix two fleets
+    in one seed mean and one seed spread. A table from before the column
+    existed holds whole-fleet rows only.
+    """
+    if "subset" not in raw.columns:
+        return raw if subset == "all" else raw.iloc[0:0]
+    return raw[raw["subset"] == subset]
+
+
+def arm_table(raw: pd.DataFrame, subset: str = "all") -> pd.DataFrame:
+    """Per fold and arm: seed means and seed SDs of each metric, on one unit set."""
     return (
-        raw.groupby(["fold", "arm"])
+        scored_on(raw, subset)
+        .groupby(["fold", "arm"])
         .agg(
             spatial=("spatial_rmse", "mean"),
             spatial_sd=("spatial_rmse", "std"),
@@ -156,6 +171,12 @@ def report(out: Path, tag: str) -> None:
     with open(out / f"turbine_{tag}_gates.json", "w", encoding="utf-8") as fh:
         json.dump(g, fh, indent=2)
         fh.write("\n")
+    named = arm_table(raw, "named")
+    if len(named):
+        print("\n### Reported, not gated: the named units only (--score-subset)\n")
+        for col in ("spatial", "level", "rmse", "mbe"):
+            print(f"{col}:")
+            print(named.pivot(index="fold", columns="arm", values=col).round(5).to_string())
     sec = out / f"turbine_{tag}_secondary.csv"
     if sec.exists():
         s = pd.read_csv(sec)
@@ -439,7 +460,7 @@ def main():
         with open(out / f"turbine_{args.tag}_record.json", "w", encoding="utf-8") as fh:
             json.dump(records, fh, indent=2)
             fh.write("\n")
-        sub = raw[raw.fold == fold].groupby("arm", sort=False)
+        sub = scored_on(raw[raw.fold == fold]).groupby("arm", sort=False)
         for arm, g in sub:
             print(
                 f"  {arm:12s} spatial {g.spatial_rmse.mean():.5f}  level {g.level_rmse.mean():.5f}"
