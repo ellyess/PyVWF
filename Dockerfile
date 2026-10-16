@@ -26,11 +26,18 @@ WORKDIR /src
 # not invalidate the expensive dependency layer below.
 COPY pyproject.toml README.md LICENSE ./
 COPY src/ src/
+COPY constraints/ constraints/
 
 # Optional extras: --build-arg EXTRAS="[pinn]" adds torch for the
 # physics-informed correction. Empty by default, because torch is close to a
 # gigabyte and nothing in the affine pipeline imports it.
 ARG EXTRAS=""
+
+# Optional pip constraints file, relative to the build context: CI passes
+# --build-arg CONSTRAINTS=constraints/py312.txt so the image is built from the
+# versions the test matrix pinned. Empty by default, so a plain build resolves
+# from pyproject.toml as before.
+ARG CONSTRAINTS=""
 
 # Built into a virtualenv so the runtime stage copies one self-contained tree
 # and leaves the toolchain behind. Dependencies are resolved from
@@ -41,7 +48,7 @@ ARG EXTRAS=""
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
- && /opt/venv/bin/pip install ".${EXTRAS}"
+ && /opt/venv/bin/pip install ".${EXTRAS}" ${CONSTRAINTS:+-c "$CONSTRAINTS"}
 
 # --------------------------------------------------------------- runtime ---
 FROM python:${PYTHON_VERSION}-slim AS runtime
