@@ -50,7 +50,7 @@ any fit, and refuses a dirty tree unless ``--allow-dirty`` is given.
 Usage, from the repository root:
 
     python scripts/dev/run_locked.py -- env PYVWF_INPUT=input/combined PYTHONPATH=src \\
-      /opt/anaconda3/bin/python -u scripts/studies/method-wake-unit/k0_density_slopes.py \\
+      /opt/miniconda3/envs/pyvwf/bin/python -u scripts/studies/method-wake-unit/k0_density_slopes.py \\
       --cache output/pinn_rerun_2026-09-16/cache \\
       --config DK=configs/regions/scorecard/dk_k100.toml \\
       --config DE=configs/regions/scorecard/de_k100.toml \\
@@ -74,7 +74,7 @@ import pandas as pd
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
-from vwf.cli.common import make_parser
+from pyvwf.cli.common import make_parser
 
 CACHE = Path("output/pinn_rerun_2026-09-16/cache")
 E1_RAW = Path("output/pinn_rerun_2026-09-16/e1/e1_primary_raw.csv")
@@ -225,8 +225,8 @@ class RegionResult(NamedTuple):
 
 def _rows_for_region(r_train, r_test, spec, e1_rmse: dict[int, float]) -> RegionResult:
     """Fit the clean control per seed and build the residual frame."""
-    from vwf.pinn.runs import score_on_common_rows
-    from vwf.pinn.train import FLEET_FEATURES, fit, predict_frame
+    from pyvwf.pinn.runs import score_on_common_rows
+    from pyvwf.pinn.train import FLEET_FEATURES, fit, predict_frame
 
     keys = ["ID", "year", "month"]
     frame: pd.DataFrame | None = None
@@ -381,10 +381,10 @@ def main(
     """Fit the clean control per region, and write residuals, slopes and gates."""
     import torch
 
-    from vwf.harness.regions import load_region
-    from vwf.pinn.runs import config_record, region_record, resolve_configs
-    from vwf.pinn.train import load_regions
-    from vwf.provenance import build_manifest, write_manifest
+    from pyvwf.harness.regions import load_region
+    from pyvwf.pinn.runs import config_record, region_record, resolve_configs
+    from pyvwf.pinn.train import load_regions
+    from pyvwf.provenance import build_manifest, write_manifest
 
     launch = build_manifest()
     if launch["git_dirty"] and not allow_dirty:

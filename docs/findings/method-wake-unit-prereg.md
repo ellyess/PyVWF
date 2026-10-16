@@ -10,7 +10,7 @@ not registered here, and are not registered at all unless K0 passes.
 
 **K0 asks whether in-region residuals already show the unit contrast that the
 per-unit hypothesis needs.** If they do not, no per-unit coefficient has
-anything to fit, and the idea stops here without any change to `vwf.pinn`.
+anything to fit, and the idea stops here without any change to `pyvwf.pinn`.
 
 **Everything below is fixed before any residual is computed.** A gate or
 condition added later is labelled post hoc and cannot pass.
@@ -19,7 +19,7 @@ condition added later is labelled post hoc and cannot pass.
 
 The wake term multiplies conversion efficiency by `1/(1 + cD)`, where `D` is
 installed capacity within 10 km in MW/km2 and `c >= 0` is one global coefficient
-(`src/vwf/pinn/model.py`, `wake_coefficient()`). In E9 it cut the dense-bin
+(`src/pyvwf/pinn/model.py`, `wake_coefficient()`). In E9 it cut the dense-bin
 residual span by 61% and worsened zero-shot transfer in 5 of 5 holdouts, mean
 skill +0.338 to +0.235, against the post-hoc nine-region configuration
 (`git show c2eb17e:docs/findings/pinn_wake_term.md`; prediction 11 of
@@ -41,7 +41,7 @@ K0 is built to separate the two before anything is implemented.
 
 Measured read-only from the E1 rerun cache, `output/pinn_rerun_2026-09-16/cache/`
 (manifest `git_commit` `9faa192`), on the test split. Capacity density is
-`vwf.pinn.train._capacity_density(meta, 10.0)`.
+`pyvwf.pinn.train._capacity_density(meta, 10.0)`.
 
 | Region | Unit | Test year | Units | Capacity (MW) | D median | D max | Capacity share with D > 0.747 |
 |---|---|---|---|---|---|---|---|
@@ -259,13 +259,13 @@ In this order, from the run directory:
 
 The driver, `scripts/studies/method-wake-unit/k0_density_slopes.py`, is
 committed after this document and before the run. It fits the condition
-through `vwf.pinn.train.fit(..., fleet_columns=...)` and writes the per-row
+through `pyvwf.pinn.train.fit(..., fleet_columns=...)` and writes the per-row
 frame (ID, year, month, `cf_sim` per seed, `cf_obs`, capacity, D, type, block,
 shared flag), the slope table and a manifest with `registration` set to this
 file. `--sensitivity DE=PATH` fits a region a second time from another cache
 directory, writes its outputs under `sensitivity/<CODE>/`, and records the
 path and that directory's manifest commit. It changes no gate, and no module
-under `src/vwf`. A test pins its recorded command line.
+under `src/pyvwf`. A test pins its recorded command line.
 
 Run from the repository root, on a clean tree:
 
