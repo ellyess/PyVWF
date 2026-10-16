@@ -32,9 +32,9 @@ your brief.
    correction, read `method-physics-informed.md` (including its correction
    notices), `method-physics-informed-prespecification.md`, the
    `method-physics-informed-*` preregistrations and results, and the docstrings
-   of the `scripts/pinn/` drivers, whose D and E series record diagnostics
-   already run. Say which existing cache or driver output could answer the
-   idea without training.
+   of the `scripts/studies/physics-informed/` drivers, whose D and E series
+   record diagnostics already run. Say which existing cache or driver output
+   could answer the idea without training.
 3. **Open preregistrations** (`*-prereg.md`) on the same question, and their
    gates.
 4. **Scorecard rows** it would affect, with their training years, test year,

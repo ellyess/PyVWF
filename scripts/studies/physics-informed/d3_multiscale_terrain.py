@@ -21,7 +21,7 @@ multi-scale set, which contains NO longitude/latitude and so cannot encode
 region identity, beats the published SET_A on wind-space transfer skill in
 >= 3 of 5 regions, and specifically improves the two failing regions, US and UK.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d3_multiscale_terrain.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/d3_multiscale_terrain.py
 """
 
 from pathlib import Path
@@ -33,7 +33,7 @@ import xarray as xr
 from scipy.ndimage import uniform_filter, maximum_filter, minimum_filter
 from sklearn.ensemble import RandomForestRegressor
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from analysis.ml_transfer_retest import (  # noqa: E402
     RUNS,
     SEEDS,
@@ -43,7 +43,7 @@ from analysis.ml_transfer_retest import (  # noqa: E402
     terrain_features,
 )
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "output" / "pinn" / "d3"
 ETOPO = ROOT / "input/reference/terrain/etopo_global.nc"
 

@@ -24,7 +24,7 @@ explain.
 
 This is a measurement, not a model: no fitting to the evaluation, no gate.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d4_target_noise_floor.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/d4_target_noise_floor.py
 """
 
 from pathlib import Path
@@ -34,10 +34,10 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from analysis.ml_transfer_retest import RUNS, build_centroids  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "output" / "pinn" / "d4"
 
 # Bin edges in km. The first bin is deliberately narrower than one ERA5 cell

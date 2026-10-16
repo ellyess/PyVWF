@@ -7,8 +7,10 @@ file checks two things: that every wrapper behaves as the function it wraps,
 and that no script under ``scripts/`` or ``examples/`` names a private ``pyvwf``
 attribute again.
 
-``scripts/pinn/`` is exempt: it is deferred until the turbine-only study runs
-(issue #12), and is tidied then.
+``scripts/studies/physics-informed/`` is exempt: its ``d6_identifiability.py``
+imports ``pyvwf.pinn.model._preactivation_for``, and whether that driver is
+fixed or retired is open in issue #92. No other driver there names a private
+attribute.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-EXEMPT = ("scripts/pinn/",)
+EXEMPT = ("scripts/studies/physics-informed/",)
 
 
 def private_vwf_references(source: str) -> list[str]:

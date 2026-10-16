@@ -13,7 +13,7 @@ Two incumbent columns, because the choice matters and neither alone is fair:
   affine (config)  the configuration the region's TOML actually names as its
                    sweep knee -- what a user of the repository would get.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/e1_report.py --tag primary
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/e1_report.py --tag primary
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 from pyvwf.harness.regions import load_region  # noqa: E402
 

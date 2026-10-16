@@ -17,7 +17,7 @@ from pathlib import Path
 import pandas as pd
 
 from pyvwf.extensions.ml import transfer
-from pyvwf.extensions.ml.transfer import (  # noqa: F401  (the drivers in scripts/pinn/ import these from here)
+from pyvwf.extensions.ml.transfer import (  # noqa: F401  (the drivers in scripts/studies/physics-informed/ import these from here)
     RF_KW,
     SEEDS,
     SET_A,

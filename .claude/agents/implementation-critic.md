@@ -34,9 +34,9 @@ Read `AGENTS.md`, `CONTRIBUTING.md` and `.importlinter` first.
   name the tests the change needs, and note that
   `python scripts/dev/stamp.py pinn` must pass before the commit. A change to
   the forward operator keeps the identity-reduction test passing. New drivers
-  go in `scripts/pinn/`, parse with `argparse`, write a manifest, and refuse a
-  dirty tree unless `--allow-dirty`, as the existing ones do. A long programme
-  launches through `scripts/dev/run_locked.py`.
+  go in `scripts/studies/physics-informed/`, parse with `argparse`, write a
+  manifest, and refuse a dirty tree unless `--allow-dirty`, as the existing
+  ones do. A long programme launches through `scripts/dev/run_locked.py`.
 
 ## Output
 

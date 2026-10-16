@@ -77,8 +77,10 @@ def test_a_cache_override_without_its_ratios_is_refused():
     """
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("turbine_loro", "scripts/pinn/turbine_loro.py")
-    source = Path("scripts/pinn/turbine_loro.py").read_text(encoding="utf-8")
+    spec = importlib.util.spec_from_file_location(
+        "turbine_loro", "scripts/studies/physics-informed/turbine_loro.py"
+    )
+    source = Path("scripts/studies/physics-informed/turbine_loro.py").read_text(encoding="utf-8")
     assert "--gwa-override" in source
     # The guard: a cache override with no ratio override stops the run.
     assert "mismatched = sorted(set(cache_of) - set(gwa_of))" in source
@@ -89,7 +91,9 @@ def test_a_cache_override_without_its_ratios_is_refused():
 def _turbine_loro():
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("turbine_loro", "scripts/pinn/turbine_loro.py")
+    spec = importlib.util.spec_from_file_location(
+        "turbine_loro", "scripts/studies/physics-informed/turbine_loro.py"
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

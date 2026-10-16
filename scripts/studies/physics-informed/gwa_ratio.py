@@ -11,7 +11,7 @@ region and split into ``--out``. It also writes ``gwa_record.json``, with the
 clipped and neutral shares of capacity, and a ``run_manifest.json``. It
 refuses a dirty tree unless ``--allow-dirty`` is given.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/gwa_ratio.py \
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/gwa_ratio.py \
          --cache output/pinn_loco_2026-09-16/cache --gwa input/raw/gwa4 \
          --out output/pinn_turbine_2026-09-18/gwa
 """
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 from pyvwf.provenance import build_manifest, write_manifest  # noqa: E402
 from pyvwf.pinn.cache import load_cache  # noqa: E402
 from pyvwf.pinn.gwa import RATIO_BOUNDS, gwa_ratio  # noqa: E402

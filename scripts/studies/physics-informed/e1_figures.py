@@ -10,7 +10,7 @@ Three panels, each answering one question the tables answer less legibly:
   3. What the model learned: fitted speed-up against ERA5-cell relief, which is
      the relationship the whole parameterisation rests on.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/e1_figures.py --tag primary
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/e1_figures.py --tag primary
 """
 
 from __future__ import annotations
@@ -23,9 +23,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts" / "pinn"))
+sys.path.insert(0, str(ROOT / "scripts" / "studies" / "physics-informed"))
 
 from pyvwf.viz.palettes import OKABE_ITO  # noqa: E402
 from pyvwf.viz.style import plot_style, savefig  # noqa: E402

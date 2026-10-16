@@ -14,7 +14,7 @@ Arms:
   relief-only   fitted on the pool; the relief term with one global strength.
   full          fitted on the pool; terrain features set the strength and shear.
   gwa-ratio     fitted on the pool; the speed-up is the Global Wind Atlas ratio,
-                not learned, from scripts/pinn/gwa_ratio.py.
+                not learned, from scripts/studies/physics-informed/gwa_ratio.py.
   in-region     fitted on the fold's own training years.
 
 The fleet head is the same in every fitted arm. A secondary scoring fits
@@ -22,7 +22,7 @@ no-terrain, relief-only and full on all nine regions and applies them to the
 nine country-level European folds, as national series.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python -u \
-         scripts/pinn/turbine_loro.py --cache <caches> --gwa <ratios> --out <dir> \
+         scripts/studies/physics-informed/turbine_loro.py --cache <caches> --gwa <ratios> --out <dir> \
          --config CODE=PATH ...
      Add --report-only to recompute the summary and gates from the CSVs.
 """
@@ -38,7 +38,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 REGIONS = ["DE", "UK", "US", "BR", "AR", "AU-NEM", "CL", "DK", "NZ"]

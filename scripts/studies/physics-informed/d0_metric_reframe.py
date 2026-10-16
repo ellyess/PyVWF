@@ -15,7 +15,7 @@ experiment never scored: the pooled training-region mean.
 Diagnostic only -- no model is tuned here and no gate is claimed. It measures
 existing artefacts to decide which metric later gates should be written in.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d0_metric_reframe.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/d0_metric_reframe.py
 """
 
 from pathlib import Path
@@ -24,7 +24,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from analysis.ml_transfer_retest import (  # noqa: E402
     RUNS,
     SEEDS,
@@ -35,7 +35,7 @@ from analysis.ml_transfer_retest import (  # noqa: E402
 )
 from sklearn.ensemble import RandomForestRegressor  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "output" / "pinn" / "d0"
 
 # The identity correction: what you apply when you decline to correct at all.
