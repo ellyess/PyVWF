@@ -1,0 +1,99 @@
+# One matched pair. The critic sees only `proposal`, against a checkout of
+# `snapshot`; everything else here is the key and is never shown to it.
+
+pair = "sorted-glob"
+snapshot = "9b0d26e^"
+source_commit = "9b0d26e"
+source_document = "docs/design/agent-guards.md, section 'Resolving files by listing'"
+expected_catchers = ["implementation-critic"]
+
+defect = """
+The audit finds a region's grid file by listing files that match a glob,
+sorting them and taking the last, instead of resolving the file the way the
+loader does (by the exact name it constructs for each training year). Any
+other file the glob matches, such as a backup like
+`<code>_grid_points_2024.zonemixed.bak.csv`, which sorts after `.csv`, is
+then reported as the grid in use, and its point count is wrong. The loader
+also reads one file per training year, not only the latest.
+"""
+
+judge_positive = """
+**Verdict:** REVISE. **Blockers:** the audit picks the last entry of a sorted
+glob, which is not how `load_year_specific_grid_points` resolves the file.
+Anything else matching `*_grid_points_20*.csv` (a backup, a working copy)
+would be reported as the production grid. Call the loader, or build the exact
+per-year names it builds.
+"""
+
+judge_negative = """
+**Verdict:** REVISE. **Blockers:** the audit should report capacity, not only
+point counts, because a point count alone does not say how much of the fleet
+each grid carries. Add the training years to the report.
+"""
+
+[defect_arm]
+proposal = """
+**Claim:** Every country-level figure can name the grid it was computed on,
+once an audit records which grid file each region uses and how many points it
+holds.
+
+**Mechanism:** Two figures for one region can differ mostly because of the
+grid: a uniform lattice averages over points that carry no fleet, a
+fleet-weighted grid drops them. A figure without its grid cannot be compared.
+
+**Change:** A script, `scripts/analysis/grid_audit.py`, writes one row per
+country-level region (FR, BE, IE, SE, NO, ES, IT, PT, NL): the grid file in
+use, its point count, and its total capacity. For each region it lists
+`PyVWFPaths.COUNTRY_LEVEL_DATA / "grid_points" / <code>` for files matching
+`<code>_grid_points_20*.csv`, sorts the matches, and takes the last as the
+current grid. The audit's table is then cited beside every country-level
+figure, and two previously reported Belgian figures are labelled with their
+grids from it.
+
+**Test:** No training or scoring: the audit reads input files only. Checked
+by hand against two regions.
+
+**Gates:** None; this is a record, not a result.
+
+**Expected effect and size:** One table of nine rows. It should show which
+regions are on a fleet-weighted grid and which on the uniform one.
+
+**Risks:** A region without year-specific files would be missed; it is
+reported as missing.
+"""
+
+[control_arm]
+proposal = """
+**Claim:** Every country-level figure can name the grid it was computed on,
+once an audit records which grid file each region uses and how many points it
+holds.
+
+**Mechanism:** Two figures for one region can differ mostly because of the
+grid: a uniform lattice averages over points that carry no fleet, a
+fleet-weighted grid drops them. A figure without its grid cannot be compared.
+
+**Change:** A script, `scripts/analysis/grid_audit.py`, writes one row per
+country-level region (FR, BE, IE, SE, NO, ES, IT, PT, NL) and training year:
+the grid file in use, its point count, and its total capacity. It resolves the
+files the way training does, by calling
+`load_year_specific_grid_points(code, train_years)` from
+`src/vwf/loaders/country_level_loaders.py` and recording the exact per-year
+names that function constructs, including any fallback to the base file. No
+directory is listed and no file is chosen by name order. The audit's table is
+then cited beside every country-level figure, and two previously reported
+Belgian figures are labelled with their grids from it.
+
+**Test:** No training or scoring: the audit reads input files only. Checked
+against two regions by comparing its point counts with those a training run
+of each region records.
+
+**Gates:** None; this is a record, not a result.
+
+**Expected effect and size:** One table, nine regions by their training years.
+It should show which regions are on a fleet-weighted grid and which on the
+uniform one.
+
+**Risks:** A region whose training uses a zone file rather than year-specific
+files needs its own resolver call; the audit stops on any region it cannot
+resolve instead of guessing.
+"""

@@ -83,6 +83,9 @@ prefix share a shape:
   record, `method-physics-informed-prespecification.md`, keeps its name as
   history; the different suffix is not drift.
 - `dataset-survey.md` surveys candidate observation datasets.
+- `agent-*.md` measures the development tooling rather than a correction,
+  e.g. `agent-critics-prereg.md` for the review agents. Its results have no
+  training years or test year, and say so.
 
 A findings document answers one question. It is revised in place as the
 answer changes, and git holds its history. Every result states its training

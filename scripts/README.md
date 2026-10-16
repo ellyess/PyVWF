@@ -53,6 +53,7 @@ scripts/
     stamp.py                       run a local-only suite (realdata, pinn) and stamp the code it tested
     lock.py                        write the CI constraints files (constraints/), or --check them
     repo_stats.py                  count commits, PRs, tests and records at one commit: --rev <commit>
+    agent_evals/evals.py           score the review agents on pre-registered cases: prepare, judge, score
   analysis/         tools that run across regions
     validate_region.py             train, evaluate or transfer one region (also pyvwf-validate)
     run_hindcast.py                national monthly CF hindcast against the record
