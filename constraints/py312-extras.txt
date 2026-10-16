@@ -95,7 +95,7 @@ execnet==2.1.2
     # via
     #   -c constraints/py312.txt
     #   pytest-xdist
-filelock==4.0.3
+filelock==4.1.0
     # via
     #   -c constraints/py312.txt
     #   python-discovery
