@@ -1,10 +1,16 @@
 # Development with coding agents
 
-PyVWF is developed with Claude Code, a coding agent, working under written
-rules and machine-checked guards. The maintainer owns the method, the gates and
-every scientific decision. Agents implement changes, write tests and drivers,
-draft documents, run studies and critique proposals. `AGENTS.md` requires each
-diff to be shown to the maintainer before it is committed.
+PyVWF began as the code of the maintainer's PhD, written by hand from 2022
+through the thesis (`docs/publications.md`). The method, the affine correction
+and its first validation were built that way, before any coding agent. Of the
+844 commits on `main` at `1e6e7e1`, 81 predate July 2026. Since mid-2026 it has
+been developed with Claude Code, a coding agent, working under written rules
+and machine-checked guards; the agent instructions and skills were first
+committed on 2026-09-11 and the guard hooks on 2026-09-23. The maintainer owns
+the method, the gates and every scientific decision. Agents implement changes,
+write tests and drivers, draft documents, run studies and critique proposals.
+`AGENTS.md` requires each diff to be shown to the maintainer before it is
+committed.
 
 Commits carry no AI co-author line, by the maintainer's choice, and every
 commit is made under the maintainer's name. The git history therefore does not

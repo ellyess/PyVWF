@@ -148,11 +148,14 @@ behind each published result in [publications.md](docs/publications.md).
 
 ## How this is built
 
-PyVWF is developed with Claude Code, a coding agent, under written rules and
-guards a machine checks. The maintainer owns the method, the gates and every
-scientific decision; agents implement changes, write tests, draft documents
-and critique proposals, and each diff is shown to the maintainer before it is
-committed. The rules are in [AGENTS.md](AGENTS.md), and
+PyVWF began as the code of the maintainer's PhD at Imperial College London,
+written by hand from 2022 through the thesis: the method, the affine correction
+and its first validation predate any coding agent. Since mid-2026 it has been
+developed AI-natively, with Claude Code, a coding agent, under written rules and
+guards a machine checks. The maintainer still owns the method, the gates and
+every scientific decision; agents implement changes, write tests, draft
+documents and critique proposals, and each diff is shown to the maintainer
+before it is committed. The rules are in [AGENTS.md](AGENTS.md), and
 [agent-guards.md](docs/design/agent-guards.md) records the failures behind
 each guard and what each guard misses. How agents are used, with counts and a
 worked example of an error the process caught, is in
