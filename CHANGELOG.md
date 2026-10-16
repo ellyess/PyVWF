@@ -261,6 +261,14 @@ this file stay in step with it.
   is superseded. The real-data layer still skips under any other version,
   because its digest cannot tell a version change from a code change.
 
+- **Scripts: a retirement rule, a public pre-activation, one launcher
+  retired.** `scripts/README.md` lists every script without argparse, names
+  the scripts that import beyond their own directory, and says how a script
+  is retired. `pyvwf.pinn.model.preactivation_for` is public, so the last
+  directory exempt from the public-names check is no longer exempt.
+  `scripts/studies/physics-informed/run_remaining.sh`, a partial re-launch of
+  `run_overnight.sh`, is removed.
+
 ### Fixed
 
 - **The parallel offset fit says when it cannot run, and no longer hides a

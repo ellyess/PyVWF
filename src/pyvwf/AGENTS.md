@@ -43,8 +43,8 @@ The root `AGENTS.md` applies too. These rules cover the package code.
   run without the extra rather than stamping a run of skips. A hook refuses a
   commit touching `pinn/` without a matching passing stamp, so a change is
   checked before it is pushed, not only after.
-- **Drivers live in `scripts/studies/physics-informed/`,** which is exempt
-  from the public-name test. Launch a programme through
+- **Drivers live in `scripts/studies/physics-informed/`.** Like every other
+  script they use public `pyvwf` names only. Launch a programme through
   `scripts/dev/run_locked.py`, the whole programme under one lock:
   `run_overnight.sh` launches each stage fresh, so a file written in the
   evening makes the night's later stages refuse or run dirty.
@@ -55,7 +55,6 @@ The root `AGENTS.md` applies too. These rules cover the package code.
 
 - Respect the layers in `.importlinter`. A module imports only from layers
   below it. Scripts use only public `pyvwf` names
-  (`tests/test_public_analysis_api.py`), `scripts/studies/physics-informed/`
-  excepted.
+  (`tests/test_public_analysis_api.py`), with no directory excepted.
 - Before committing: `mypy` (with `pandas-stubs`) and `lint-imports`, and the
   test files the change touches.

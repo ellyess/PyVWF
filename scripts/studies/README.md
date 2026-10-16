@@ -69,6 +69,6 @@ and the document's header names the commit its numbers came from.
 | `scripts/pinn/mastr_match.py` | `scripts/studies/physics-informed/mastr_match.py` | `5562bf4` |
 | `scripts/pinn/prep_rf_features.py` | `scripts/studies/physics-informed/prep_rf_features.py` | `4d06163` |
 | `scripts/pinn/run_overnight.sh` | `scripts/studies/physics-informed/run_overnight.sh` | `141f91f` |
-| `scripts/pinn/run_remaining.sh` | `scripts/studies/physics-informed/run_remaining.sh` | `141f91f` |
+| `scripts/pinn/run_remaining.sh` | removed 2026-10-16 (last at `94bf999` under `scripts/studies/physics-informed/`) | `141f91f` |
 | `scripts/pinn/run_turbine_study.sh` | `scripts/studies/physics-informed/run_turbine_study.sh` | `5562bf4` |
 | `scripts/pinn/turbine_loro.py` | `scripts/studies/physics-informed/turbine_loro.py` | `36c735c` |

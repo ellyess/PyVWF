@@ -5,12 +5,9 @@ Analyses in ``scripts/`` used to import the harness's private helpers
 could break a study that no test ran. Each now has a public wrapper that calls the private function, and this
 file checks two things: that every wrapper behaves as the function it wraps,
 and that no script under ``scripts/`` or ``examples/`` names a private ``pyvwf``
-attribute again.
-
-``scripts/studies/physics-informed/`` is exempt: its ``d6_identifiability.py``
-imports ``pyvwf.pinn.model._preactivation_for``, and whether that driver is
-fixed or retired is open in issue #92. No other driver there names a private
-attribute.
+attribute again. No directory is exempt: the last one,
+``scripts/studies/physics-informed/``, lost its exemption on 2026-10-16, when
+``d6_identifiability.py`` moved to ``pyvwf.pinn.model.preactivation_for`` (#92).
 """
 
 from __future__ import annotations
@@ -24,7 +21,7 @@ import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-EXEMPT = ("scripts/studies/physics-informed/",)
+EXEMPT: tuple[str, ...] = ()
 
 
 def private_vwf_references(source: str) -> list[str]:
@@ -122,3 +119,11 @@ def test_the_other_wrappers_are_the_functions_they_wrap():
     assert got[1].keys() == want[1].keys()
     stamps = pd.Series(pd.to_datetime(["2024-01-01 00:00", "2024-07-01 12:30"]))
     pd.testing.assert_series_equal(cen_cl.local_to_utc(stamps), cen_cl._local_to_utc(stamps))
+
+
+def test_the_pinn_preactivation_wrapper_is_the_function_it_wraps():
+    model = pytest.importorskip("pyvwf.pinn.model")
+    public, private = model.preactivation_for, model._preactivation_for
+    assert inspect.signature(public) == inspect.signature(private)
+    for value, lo, hi in [(0.9, 0.3, 1.0), (0.0, -0.5, 0.5), (2.0, 0.0, 1.0)]:
+        assert public(value, lo, hi) == private(value, lo, hi)
