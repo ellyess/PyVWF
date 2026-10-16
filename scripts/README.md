@@ -5,7 +5,10 @@ that run across regions, and the drivers of each study. Logic that more than
 one script needs belongs in `src/pyvwf/`. Every Python script parses its
 arguments with `argparse`, so `--help` lists its options. The exceptions are
 seven drivers in `studies/physics-informed/` (`d0` to `d4`, `d6` and
-`prep_rf_features.py`) and the two ML transfer scripts.
+`prep_rf_features.py`), the two ML transfer scripts, and two rule modules in
+`studies/method-curve-library/` (`curve_library_assign.py` and
+`curve_library_match.py`), which the study's driver and tests import and which
+have no entry point of their own.
 
 The download scripts are user-executed: they use your own credentials, passed
 in the environment for one command. No raw or derived data is committed
@@ -42,11 +45,13 @@ scripts/
     apply_turbine_specs.py         power curves and hub heights from a spec table (CL, AR)
     assign_au_curves.py            curve assignment for the AU fleet, per curve library
     assign_country_zones.py        grid points to the bidding zone that contains them
+    backfill_gwpt_start_years.py   start years for undated GWPT records, from national registers
     repair_country_capacity.py     a country CF series rebuilt on a capacity register
     weight_country_grid_points.py  GWPT capacity weights for country-level grid points
   dev/              development guards (docs/design/agent-guards.md)
     run_locked.py                  run a command holding the run lock: -- <command>
     stamp.py                       run a local-only suite (realdata, pinn) and stamp the code it tested
+    lock.py                        write the CI constraints files (constraints/), or --check them
   analysis/         tools that run across regions
     validate_region.py             train, evaluate or transfer one region (also pyvwf-validate)
     run_hindcast.py                national monthly CF hindcast against the record
@@ -63,6 +68,28 @@ scripts/
     ml_transfer_expanded.py        ML transfer, round two
   studies/          one directory per study, named by its findings document (studies/README.md)
 ```
+
+## Importing another script
+
+Logic that more than one script needs belongs in `src/pyvwf/`. A script may
+still import a sibling in its own directory, or a tool in `analysis/`, by
+putting that directory on `sys.path`. These reach further and are kept as they
+are rather than rewritten: `analysis/eu_rerun_compare.py` imports the
+roughness study's driver, and `studies/physics-informed/e1_loro.py`,
+`prep_rf_features.py` and `d0` to `d4` import from `analysis/` through the
+`scripts/` root. A new script does not add another: move the shared code into
+the package instead.
+
+## Retiring a script
+
+A script is retired when nothing runs it any more: no test, no guide or
+runbook, no other script, and no command a findings document or pre-registration
+records as current. Delete it in its own commit, and say in that commit why,
+and which commit last had it. A script whose output a findings document reports
+stays as long as that document stands, so its numbers can be regenerated;
+`scripts/studies/README.md` maps a moved script's old path to its new one, and
+records a removal the same way. Pre-registrations keep the command lines they
+registered, whatever happens to the script.
 
 Region curation data (coordinate and capacity overrides, curated farm tables,
 turbine-model maps, fleet exclusions) lives in
