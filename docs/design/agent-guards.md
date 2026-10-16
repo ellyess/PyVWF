@@ -18,7 +18,7 @@ because a guard that has never been seen to fire is an assumption.
 |---|---|---|
 | Deny rules, `.claude/settings.json` | `git tag`, `gh release`, `gh pr merge`, a bare `git push`, and a push naming `main`, `HEAD`, tags or a version | Anything that reaches git by another text: `git -C . push`, a full path, `sh -c`, a script. A branch whose name contains `main` or `HEAD` is blocked too. |
 | `.claude/hooks/guard_run_lock.py` | While `scripts/dev/run_locked.py` holds `output/.run-lock`: no Write, Edit, MultiEdit or NotebookEdit on a path git does not ignore, and no tree-changing git command | A run not started through the wrapper; a shell write that is not a git command; a lock whose process id was reused. The liveness check assumes a POSIX system. |
-| `.claude/hooks/guard_local_suites.py` | For each local-only suite in `scripts/dev/stamp.py`, `realdata` (the real-data pins) and `pinn` (the physics-informed tests, which need an extra only CI's extras job installs, so the stamp is the check before a push): a commit that stages the code the suite covers needs a stamp whose fingerprint matches the staged content and whose run passed. `git commit -a` is refused, and so is anything else that stages covered code after the hook has read the index: `git commit <paths>`, and a `git add`, `stage`, `rm` or `mv` in the same command as the commit, whenever its paths can reach covered code (a glob, `.`, `-A`, `-u` or a directory above covered code all can). | A commit made outside Claude Code or by a script it cannot see into. The `-a` refusal reads only a `git commit` it can parse in command position, skipping option values and heredoc bodies, so a message quoting `git commit -a` does not trip it; a commit hidden in `sh -c` or an alias still gets the staged-code check, through a plain text match, but not the `-a` refusal. A `realdata` run where every pin skipped still passes, which is why the skips are read and stated; the `pinn` suite instead refuses to run without its extra. Changes to `scripts/studies/physics-informed/` are not covered, because no test exercises the drivers. `tests/test_agent_guards.py` checks that every `test_pinn_*.py` file is in the `pinn` suite and that the realdata paths agree with `CONTRIBUTING.md` and `src/pyvwf/AGENTS.md`. Relative paths in a same-command `git add` are read against the session's working directory, so an `add` after a `cd` into a subdirectory is judged against the wrong base; `-C` on the `add` is not followed either. |
+| `.claude/hooks/guard_local_suites.py` | For each local-only suite in `scripts/dev/stamp.py`, `realdata` (the real-data pins) and `pinn` (the physics-informed tests, which need an extra only CI's extras job installs, so the stamp is the check before a push): a commit that stages the code the suite covers needs a stamp whose fingerprint matches the staged content and whose run passed. The fingerprint reads a covered `.py` file's syntax tree without its docstrings, so an edit to comments or docstrings alone keeps the stamp valid; every other file, and a `.py` file that does not parse, is read byte for byte. `git commit -a` is refused, and so is anything else that stages covered code after the hook has read the index: `git commit <paths>`, and a `git add`, `stage`, `rm` or `mv` in the same command as the commit, whenever its paths can reach covered code (a glob, `.`, `-A`, `-u` or a directory above covered code all can). | A commit made outside Claude Code or by a script it cannot see into. The `-a` refusal reads only a `git commit` it can parse in command position, skipping option values and heredoc bodies, so a message quoting `git commit -a` does not trip it; a commit hidden in `sh -c` or an alias still gets the staged-code check, through a plain text match, but not the `-a` refusal. A `realdata` run where every pin skipped still passes, which is why the skips are read and stated; the `pinn` suite instead refuses to run without its extra. Changes to `scripts/studies/physics-informed/` are not covered, because no test exercises the drivers. `tests/test_agent_guards.py` checks that every `test_pinn_*.py` file is in the `pinn` suite and that the realdata paths agree with `CONTRIBUTING.md` and `src/pyvwf/AGENTS.md`. Relative paths in a same-command `git add` are read against the session's working directory, so an `add` after a `cd` into a subdirectory is judged against the wrong base; `-C` on the `add` is not followed either. |
 | `no-em-dash` hooks, `.pre-commit-config.yaml` | No em dash in a committed file or a commit message | Nothing, once `pre-commit install` has run for both hook types. |
 
 Both hooks fail open: an unexpected error exits 1, which lets the tool call
@@ -114,6 +114,26 @@ default input root produces a difference that looks exactly like a code
 change. That mistake has been made: a UK pin was reported as moving by
 0.0014 in MBE when the row had simply been run on the wrong curve library,
 and the real movement was 1e-16.
+
+**A stamp survives an edit to comments or docstrings, and nothing else.**
+*[Added 2026-10-16, when two of the day's stamps, about eleven minutes each,
+were spent on a comment and a `# type: ignore`.]* `scripts/dev/stamp.py`
+fingerprints each covered `.py` file by its parsed syntax tree with the
+module, class and function docstrings removed. Comments never reach the tree,
+and neither do line numbers, so blank lines and moved comments do not count
+either. Any edit the interpreter would run differently changes the tree, and
+the fingerprint with it. Files that are not `.py`, and a `.py` file that does
+not parse, are fingerprinted byte for byte. This is safe for one reason: no
+covered code reads its own source or a docstring to compute anything. The one
+`__doc__` read under `src/pyvwf` outside `cli/` is the argparse epilog of
+`pyvwf.datasets.generate_country_level_training_data`, which changes help
+text, not a number. Code that starts reading docstrings, or its own source,
+would end that; search for `__doc__`, `inspect.getdoc` and `inspect.getsource`
+before relying on the rule. The tree is written out by the script's own
+serializer, not `ast.dump`: the hook runs under the first `python3` on
+`PATH` and the stamp under the project's environment, and `ast.dump` writes
+the same tree differently on 3.12 and 3.13. A test pins the digest of one
+snippet on every Python in the test matrix.
 
 ### Commit messages written before the checks
 

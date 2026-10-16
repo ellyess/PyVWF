@@ -15,16 +15,30 @@ unless the staged content matches a passing stamp for that suite.
 
 A suite always runs in full: a stamp is a claim about the whole suite, so no
 pytest selection is accepted.
+
+The fingerprint ignores what cannot change a result. A covered `.py` file is
+fingerprinted by its parsed syntax tree, with module, class and function
+docstrings removed, so an edit to a comment, a `# type: ignore`, a docstring
+or the blank lines keeps an existing stamp valid. Any other edit moves it,
+since the tree differs. A file that does not parse, and every covered file
+that is not `.py`, is fingerprinted by its git blob, byte for byte. The tree
+is written out by `_canonical`, not `ast.dump`, whose text differs between
+Python versions, because the hook may run under another interpreter than the
+stamp did. This is safe because no covered code reads its own source or a
+docstring to compute anything; the one `__doc__` it reads is an argparse
+epilog. `docs/design/agent-guards.md` says more.
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import importlib.util
 import json
 import subprocess
 import sys
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
@@ -98,6 +112,76 @@ def _digest(entries: list[str]) -> str:
     return hashlib.sha256("\n".join(sorted(entries)).encode()).hexdigest()
 
 
+_DOC_OWNERS = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def _canonical(node: object) -> str:
+    """The tree as text: each node's type and fields, with no line or column numbers.
+
+    Fields that are None or empty are left out, so a field a newer Python added
+    with an empty default reads the same as its absence under an older one.
+    """
+    if isinstance(node, ast.AST):
+        fields = [
+            f"{name}={_canonical(value)}"
+            for name, value in ast.iter_fields(node)
+            if value is not None and value != []
+        ]
+        return f"{type(node).__name__}({', '.join(fields)})"
+    if isinstance(node, list):
+        return "[" + ", ".join(_canonical(item) for item in node) + "]"
+    return repr(node)
+
+
+def _code_digest(source: bytes) -> str | None:
+    """A digest of the code in a Python source, docstrings removed; None if it does not parse."""
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return None
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, _DOC_OWNERS)
+            and node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
+            node.body = node.body[1:]
+    return hashlib.sha256(_canonical(tree).encode()).hexdigest()
+
+
+def _entry(path: str, blob: str, read) -> str:
+    """One file's line in the fingerprint: its code digest for `.py`, else its blob."""
+    if path.endswith(".py"):
+        digest = _code_digest(read())
+        if digest is not None:
+            return f"ast:{digest} {path}"
+    return f"{blob} {path}"
+
+
+def _blob_contents(root: Path, blobs: list[str]) -> dict[str, bytes]:
+    """The content of each blob, read in one `git cat-file --batch` call."""
+    if not blobs:
+        return {}
+    out = subprocess.run(
+        ["git", "cat-file", "--batch"],
+        cwd=root,
+        input="".join(f"{b}\n" for b in blobs).encode(),
+        capture_output=True,
+        check=True,
+    ).stdout
+    contents, pos = {}, 0
+    for blob in blobs:
+        header_end = out.index(b"\n", pos)
+        size = int(out[pos:header_end].split()[2])
+        contents[blob] = out[header_end + 1 : header_end + 1 + size]
+        pos = header_end + 1 + size + 1
+    return contents
+
+
 def worktree_fingerprint(root: Path, covered: tuple[str, ...]) -> str:
     """Fingerprint of the covered files as they are on disk, untracked included."""
     listed = _git(root, "ls-files", "--cached", "--others", "--exclude-standard", "--", *covered)
@@ -105,16 +189,22 @@ def worktree_fingerprint(root: Path, covered: tuple[str, ...]) -> str:
     if not paths:
         return _digest([])
     blobs = _git(root, "hash-object", "--", *paths).split()
-    return _digest([f"{blob} {path}" for blob, path in zip(blobs, paths)])
+    return _digest(
+        [
+            _entry(path, blob, lambda path=path: (root / path).read_bytes())
+            for blob, path in zip(blobs, paths)
+        ]
+    )
 
 
 def index_fingerprint(root: Path, covered: tuple[str, ...]) -> str:
     """Fingerprint of the covered files as staged, comparable to the worktree one."""
-    entries = []
+    staged = []
     for line in _git(root, "ls-files", "--stage", "--", *covered).splitlines():
         meta, path = line.split("\t", 1)
-        entries.append(f"{meta.split()[1]} {path}")
-    return _digest(entries)
+        staged.append((meta.split()[1], path))
+    contents = _blob_contents(root, sorted({b for b, p in staged if p.endswith(".py")}))
+    return _digest([_entry(path, blob, lambda blob=blob: contents[blob]) for blob, path in staged])
 
 
 def staged_covered_paths(root: Path, covered: tuple[str, ...]) -> list[str]:

@@ -152,6 +152,16 @@ this file stay in step with it.
   `tests/test_tool_pins.py` checks both. `pyproject.toml` says why it has
   no upper bounds.
 
+- **A realdata or pinn stamp survives an edit to comments or docstrings**
+  (`scripts/dev/stamp.py`). The stamp's fingerprint now reads each covered
+  `.py` file's syntax tree, docstrings removed, instead of its bytes, so a
+  comment, a `# type: ignore` or a docstring no longer needs a fresh run of the
+  suite. Any other edit to code still does, and other files are still compared
+  byte for byte. Every existing stamp is invalid once, because its fingerprint
+  was taken the old way: run the suite again before the next commit that
+  changes covered code. `docs/design/agent-guards.md` says why the rule is
+  safe.
+
 - **`pyvwf.datasets` is type-checked, and its library code logs instead of
   printing.** The mypy exemption for the package is gone. Progress lines from
   the grid builders, the ENTSO-E fetcher and writer, the ERA5 combiner and
