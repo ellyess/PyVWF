@@ -42,12 +42,12 @@ that exists to catch a failure rather than to compute a number, confirm it has
 been proved to catch that failure, and record when it was. Proving one is
 cheap: point it at input you know is wrong and watch it refuse.
 
-Three are in play, and their state as of 2026-09-13:
+Three are in play, and their state as of 2026-09-13 (the override refusal updated 2026-10-16):
 
 | Guard | What it refuses | Proved to fire |
 |---|---|---|
 | The ERA5 extent guard (`pyvwf.wind.ExtrapolationError`) | a unit outside the loaded extent | not deliberately; it fired on Denmark in the course of work |
-| The curve library study's override refusal | a fleet that is not the one a condition asked for | no |
+| The curve library study's override refusal | a fleet that is not the one a condition asked for | **yes, 2026-10-16**, inside a real harness run on the synthetic Denmark fleet: the late-override hybrid, an override reaching no unit, and a stale inventory each refused, the control passed, and with the check removed all three refusals failed (`tests/test_curve_library_study.py`, #22) |
 | The same study's library check | a run that resolved the wrong curve library | **yes, 2026-09-13**, by naming the open library's hash for a run on the combined one |
 
 A guard in the "no" column is not evidence that the failure it names has not
