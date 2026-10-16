@@ -342,12 +342,12 @@ regions are the seven marked above.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **T0** records | The study manifest records `git_dirty: false` at a commit containing this document and the code below. The cache manifest records `5960efd` and `git_dirty: false`. The library hash is `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. No cache has a substituted unit, and roughness is `derived` in every cache. **A failure means no metric is read until it is explained.** | |
-| **T1** terrain term | `relief-only` spatial RMSE is below `no-terrain` by more than the margin in at least 5 of 7 gated regions. | |
-| **T2** features | `full` spatial RMSE is below `relief-only` by more than the margin in at least 5 of 7 gated regions. | |
-| **T3** negative control | In DK, `full` and `relief-only` are each within the margin of `no-terrain` on spatial RMSE. | |
-| **T4** floor | `full` per-unit RMSE is below `uncorrected` in at least 5 of 7 gated regions, and above it by more than 10% relative in none. | |
-| **T5** learned against atlas | `full` spatial RMSE is below `gwa-ratio` by more than the margin in at least 5 of 7 gated regions. | |
+| **T0** records | The study manifest records `git_dirty: false` at a commit containing this document and the code below. The cache manifest records `5960efd` and `git_dirty: false`. The library hash is `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. No cache has a substituted unit, and roughness is `derived` in every cache. **A failure means no metric is read until it is explained.** | **Pass** (2026-10-16, `method-physics-informed-turbine.md`) |
+| **T1** terrain term | `relief-only` spatial RMSE is below `no-terrain` by more than the margin in at least 5 of 7 gated regions. | **Pass**, 5 of 7 |
+| **T2** features | `full` spatial RMSE is below `relief-only` by more than the margin in at least 5 of 7 gated regions. | **Fail**, 2 of 7 |
+| **T3** negative control | In DK, `full` and `relief-only` are each within the margin of `no-terrain` on spatial RMSE. | **Fail**: `full` 0.021 below `no-terrain`, margin 0.0043 |
+| **T4** floor | `full` per-unit RMSE is below `uncorrected` in at least 5 of 7 gated regions, and above it by more than 10% relative in none. | **Pass**, 7 of 7, none above |
+| **T5** learned against atlas | `full` spatial RMSE is below `gwa-ratio` by more than the margin in at least 5 of 7 gated regions. | **Fail**, 2 of 7 |
 
 ### What each outcome means
 
@@ -395,13 +395,13 @@ availability. Per-unit data teaches none of them.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| 1 | T1 passes. The training years show the same sign in all seven gated regions and gradients of -0.065 to -0.269. | |
-| 2 | T2 fails. Features beyond relief add less than the margin in at least 3 of 7. | |
-| 3 | T3 passes: DK shows no terrain gain. | |
-| 4 | BR shows the largest spatial gain of the `relief-only` arm over `no-terrain`, having the steepest training-year gradient. | |
-| 5 | The secondary national scoring is worse than Study A's transfer arm in the median over the six gated country-level folds. | |
-| 6 | T5 passes: `full` beats `gwa-ratio` in at least 5 of 7 gated regions. | |
-| 7 | `gwa-ratio` beats `no-terrain` on spatial RMSE by more than the margin in fewer than 4 of 7 gated regions. Gruber et al. (2022) found GWA correction of reanalysis gave little or negative improvement, and Nayak et al. (2025) found raw ERA5 beat GWA scaling in several countries. | |
+| 1 | T1 passes. The training years show the same sign in all seven gated regions and gradients of -0.065 to -0.269. | Held |
+| 2 | T2 fails. Features beyond relief add less than the margin in at least 3 of 7. | Held |
+| 3 | T3 passes: DK shows no terrain gain. | Failed |
+| 4 | BR shows the largest spatial gain of the `relief-only` arm over `no-terrain`, having the steepest training-year gradient. | Failed: AU-NEM largest |
+| 5 | The secondary national scoring is worse than Study A's transfer arm in the median over the six gated country-level folds. | Depends on the arm: `full` better, `no-terrain` and `relief-only` worse |
+| 6 | T5 passes: `full` beats `gwa-ratio` in at least 5 of 7 gated regions. | Failed |
+| 7 | `gwa-ratio` beats `no-terrain` on spatial RMSE by more than the margin in fewer than 4 of 7 gated regions. Gruber et al. (2022) found GWA correction of reanalysis gave little or negative improvement, and Nayak et al. (2025) found raw ERA5 beat GWA scaling in several countries. | Failed: 6 of 7 |
 
 ## Code this needs
 
