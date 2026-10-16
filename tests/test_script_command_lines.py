@@ -72,6 +72,29 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         ([], ("main", ("HEAD",), {})),
         (["--rev", "219567a"], ("main", ("219567a",), {})),
     ],
+    # The commands the driver's docstring and docs/findings/agent-critics-prereg.md give.
+    "scripts/dev/agent_evals/evals.py": [
+        (
+            [
+                "prepare",
+                "--label",
+                "2026-10-16",
+                "--critic-model",
+                "claude-opus-5-5",
+                "--judge-model",
+                "claude-sonnet-5-5",
+            ],
+            ("main", ("prepare", "2026-10-16", "claude-opus-5-5", "claude-sonnet-5-5", None), {}),
+        ),
+        (
+            ["judge", "--label", "2026-10-16"],
+            ("main", ("judge", "2026-10-16", None, None, None), {}),
+        ),
+        (
+            ["score", "--label", "2026-10-16"],
+            ("main", ("score", "2026-10-16", None, None, None), {}),
+        ),
+    ],
     # The start-year backfill's own docstring gives both.
     "scripts/region_tools/backfill_gwpt_start_years.py": [
         (

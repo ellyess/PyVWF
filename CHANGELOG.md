@@ -13,6 +13,16 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Added
+
+- An evaluation of the three review agents (`method-critic`,
+  `implementation-critic`, `red-team`) on proposals carrying defects this
+  repository has already found, each matched with the same proposal fixed.
+  The cases, the scoring rule and the pass bar are pre-registered in
+  `docs/findings/agent-critics-prereg.md`; the cases and the driver are in
+  `scripts/dev/agent_evals/`, and `tests/test_agent_evals.py` checks the
+  scoring.
+
 ## [0.6.0] - 2026-10-16
 
 This version was first dated 2026-09-19 and was not published then. It is
