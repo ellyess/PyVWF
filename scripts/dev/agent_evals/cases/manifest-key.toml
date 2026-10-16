@@ -1,0 +1,107 @@
+# One matched pair. The critic sees only `proposal`, against a checkout of
+# `snapshot`; everything else here is the key and is never shown to it.
+
+pair = "manifest-key"
+snapshot = "cc9fc14^"
+source_commit = "cc9fc14"
+source_document = "docs/design/agent-guards.md, section 'Detectors trusted in one direction'"
+expected_catchers = ["implementation-critic", "method-critic"]
+
+defect = """
+The audit reads `cluster_list` at the top level of `run_manifest.json`, but
+the harness writes it under the `correction` block
+(`manifest["correction"]["cluster_list"]`). Every run therefore appears to
+declare nothing, is skipped as predating the field, and nothing is flagged:
+a clean answer from a check that never ran. Running the audit first on runs
+already known to be contaminated (a known positive) would have exposed it.
+A review that names either the wrong key location or the missing known-positive
+check on the contaminated runs identifies this defect.
+"""
+
+judge_positive = """
+**Verdict:** REVISE. **Blockers:** `cluster_list` is not a top-level key of the
+manifest; `build_manifest` in `src/vwf/harness/provenance.py` nests it under
+`correction`. As written every run looks undeclared and is skipped, so the
+audit returns zero flags whatever the truth. Run it on the two contaminated
+rows first: if it does not flag them, it is broken.
+"""
+
+judge_negative = """
+**Verdict:** PROCEED. **Should fix:** write the flagged runs to a CSV rather
+than printing them, and record the commit the audit ran at. The re-run list
+should be reviewed by the maintainer before anything is deleted.
+"""
+
+[defect_arm]
+proposal = """
+**Claim:** The path collision found in the cluster-selection study's first run
+is confined to that study, so only its contaminated rows need re-running.
+
+**Mechanism:** A training run directory is keyed on the region code and the
+run name. A study that varied something the path does not carry could write
+two configurations' `factors_*.csv` into one directory, and `run_evaluate`
+scores every `factors_*.csv` it finds. Two rows of the cluster-selection study
+(DK and UK, onshore and offshore sharing `train-fold-<year>`) are known to have
+been contaminated this way.
+
+**Change:** A read-only audit, `scripts/analysis/undeclared_factors_audit.py`.
+For every `run_manifest.json` under `output/` belonging to a training run, it
+reads `manifest.get("cluster_list")`, lists the run directory's
+`factors_*.csv`, parses the cluster count from each name, and flags the run if
+any count is not declared. A run whose manifest declares no `cluster_list` is
+skipped, since older runs predate the field. It prints the number of runs
+audited, skipped and flagged, and the flagged paths.
+
+**Test:** Every training run under `output/` (about 220). No training or
+scoring. Training and test years are those of each audited run; the audit does
+not depend on them.
+
+**Gates:** If no run outside the cluster-selection study is flagged, only that
+study's contaminated rows are re-run. If any other run is flagged, its study is
+re-run too.
+
+**Expected effect and size:** No run outside the study flagged, because every
+earlier study put its varying dimension in the run path.
+
+**Risks:** A run whose `factors_*.csv` names do not parse is reported, not
+silently skipped.
+"""
+
+[control_arm]
+proposal = """
+**Claim:** The path collision found in the cluster-selection study's first run
+is confined to that study, so only its contaminated rows need re-running.
+
+**Mechanism:** A training run directory is keyed on the region code and the
+run name. A study that varied something the path does not carry could write
+two configurations' `factors_*.csv` into one directory, and `run_evaluate`
+scores every `factors_*.csv` it finds. Two rows of the cluster-selection study
+(DK and UK, onshore and offshore sharing `train-fold-<year>`) are known to have
+been contaminated this way.
+
+**Change:** A read-only audit, `scripts/analysis/undeclared_factors_audit.py`.
+For every `run_manifest.json` under `output/` belonging to a training run, it
+reads the declared counts from `manifest["correction"]["cluster_list"]`, where
+`build_manifest` in `src/vwf/harness/provenance.py` writes them, lists the run
+directory's `factors_*.csv`, parses the cluster count from each name, and flags
+the run if any count is not declared. A run whose manifest declares no
+`cluster_list` is reported as undeclared, never treated as clean. It prints the
+number of runs audited, undeclared and flagged, and the flagged paths. Before
+it is run on everything, it is run on the cluster-selection study's
+contaminated DK and UK runs, which it must flag, and on one clean run of that
+study, which it must not.
+
+**Test:** Every training run under `output/` (about 220). No training or
+scoring. Training and test years are those of each audited run; the audit does
+not depend on them.
+
+**Gates:** If no run outside the cluster-selection study is flagged, and the
+known contaminated runs are, only that study's contaminated rows are re-run.
+If any other run is flagged, its study is re-run too.
+
+**Expected effect and size:** No run outside the study flagged, because every
+earlier study put its varying dimension in the run path.
+
+**Risks:** A run whose `factors_*.csv` names do not parse is reported, not
+silently skipped.
+"""
