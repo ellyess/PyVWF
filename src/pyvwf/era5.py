@@ -109,7 +109,7 @@ Z0_BOUNDS = (1e-6, 2.0)
 #: Floor on a wind speed before it enters a logarithm or a division, in m/s.
 WIND_SPEED_FLOOR = 1e-4
 
-#: Smallest |w100 - w10| from which a roughness is derived, in m/s; below it
+#: Smallest ``|w100 - w10|`` from which a roughness is derived, in m/s; below it
 #: the profile is too flat to invert.
 SHEAR_FLOOR = 1e-4
 
