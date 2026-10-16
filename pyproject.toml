@@ -196,7 +196,8 @@ omit = [
     # Data-acquisition CLIs: they talk to the ENTSO-E API (needs a key) or parse
     # raw registry spreadsheets that are not redistributable, so they cannot run
     # in CI. Measuring them would only dilute the number the gate below defends.
-    # They are excluded from mypy and the API reference for the same reason.
+    # They are left out of the API reference for the same reason; since
+    # 2026-10-16 they are type-checked like the rest of the package (#89).
     "*/pyvwf/datasets/fetch_entsoe_capacity_factors.py",
     "*/pyvwf/datasets/generate_country_level_training_data.py",
     "*/pyvwf/datasets/process_dk_raw_data.py",
@@ -272,9 +273,6 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 no_implicit_optional = true
 
-[[tool.mypy.overrides]]
-# Data-acquisition scripts: procedural, CLI-shaped, and exercised against live
-# APIs rather than the test suite. Not worth typing yet; revisit if they grow
-# into a supported surface.
-module = "pyvwf.datasets.*"
-ignore_errors = true
+# pyvwf.datasets was exempt (ignore_errors) until 2026-10-16, as
+# "data-acquisition scripts"; by then sources/ imported it for every adapter's
+# monthly series, so it is checked like the rest of the package (#89).

@@ -26,6 +26,8 @@ GWPT capacity and must be re-curated, not trusted).
 
 from __future__ import annotations
 
+from typing import cast
+
 from collections.abc import Sequence
 
 import pandas as pd
@@ -96,7 +98,7 @@ def capacity_suspect_ids(wide: pd.DataFrame, *, threshold: float = CAP_SUSPECT_C
     but for the denominator rather than the location.
     """
     oc = [f"obs_{m}" for m in range(1, 13)]
-    med = wide.set_index("ID")[oc].stack().groupby(level=0).median()
+    med = cast(pd.Series, wide.set_index("ID")[oc].stack().groupby(level=0).median())
     return sorted(med[med > threshold].index.astype(str))
 
 
@@ -222,7 +224,7 @@ def join_coords_caps(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFra
     )
     rows, unmatched = [], []
     for f in fleet.itertuples():
-        fid, nm = str(f.ID), ar_plant_key(f.site_name)
+        fid, nm = str(f.ID), ar_plant_key(cast(str, f.site_name))
         if fid in ov:
             lo, la, c = ov[fid]
             rows.append((fid, lo, la, c, "override"))

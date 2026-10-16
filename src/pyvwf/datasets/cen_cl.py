@@ -36,6 +36,8 @@ Two facts about the CEN series shape the design, verified against the real
 
 from __future__ import annotations
 
+from typing import cast
+
 from datetime import timedelta, timezone
 from collections.abc import Sequence
 
@@ -267,7 +269,7 @@ def match_coordinates(fleet: pd.DataFrame, g: pd.DataFrame, overrides: pd.DataFr
     )
     rows, residual = [], []
     for f in fleet.itertuples():
-        fid, cap, nm = str(f.ID), f.capacity_mw, cl_plant_key(f.site_name)
+        fid, cap, nm = str(f.ID), cast(float, f.capacity_mw), cl_plant_key(cast(str, f.site_name))
         if fid in ov:
             rows.append((fid, ov[fid][0], ov[fid][1], "override"))
             continue

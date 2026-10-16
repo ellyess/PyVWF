@@ -20,6 +20,8 @@ Usage:
     python pyvwf/datasets/fetch_entsoe_capacity_factors.py --countries NO_1 NO_3 --year-start 2020 --year-end 2021
 """
 
+import logging
+import sys
 import argparse
 import os
 from pathlib import Path
@@ -38,13 +40,18 @@ try:
     from entsoe import EntsoePandasClient
     from entsoe.exceptions import NoMatchingDataError
 except ImportError:  # pragma: no cover - exercised only without the extra
-    EntsoePandasClient = None  # type: ignore[assignment,misc]
+    # The ignore is needed where entsoe-py is installed and unused where it is
+    # not (CI), so it also silences warn_unused_ignores.
+    EntsoePandasClient = None  # type: ignore[assignment,misc,unused-ignore]
 
     class NoMatchingDataError(Exception):  # type: ignore[no-redef]
         """Stand-in so the ``except`` clauses below stay importable.
 
         Unreachable without entsoe-py, since nothing can be fetched at all.
         """
+
+
+logger = logging.getLogger(__name__)
 
 
 # ENTSO-E country and zone codes
@@ -175,7 +182,7 @@ class ENTSOEWindDataFetcher:
         if country.upper() == "NO":
             return self._fetch_norway_generation(start, end, psr_type)
 
-        print(
+        logger.info(
             f"Fetching {psr_type} wind generation for {country} ({start.date()} to {end.date()})..."
         )
 
@@ -219,7 +226,7 @@ class ENTSOEWindDataFetcher:
                 else:
                     gen = gen.to_frame(name="generation_mw")
 
-            print(f"  ✓ Fetched {len(gen)} data points")
+            logger.info(f"  ✓ Fetched {len(gen)} data points")
             return gen
 
         except NoMatchingDataError:
@@ -227,7 +234,9 @@ class ENTSOEWindDataFetcher:
             # so it stays an empty frame. Anything else (network, auth, a
             # malformed response) propagates, because an empty frame is
             # indistinguishable from "no data" to every caller.
-            print(f"  ✗ No data available for {country} (period {start.date()} to {end.date()})")
+            logger.info(
+                f"  ✗ No data available for {country} (period {start.date()} to {end.date()})"
+            )
             return pd.DataFrame()
 
     def _fetch_norway_generation(
@@ -246,13 +255,13 @@ class ENTSOEWindDataFetcher:
         Returns:
             DataFrame with aggregated Norwegian generation in MW.
         """
-        print(f"Fetching {psr_type} wind generation for Norway (all zones)...")
+        logger.info(f"Fetching {psr_type} wind generation for Norway (all zones)...")
 
         all_zones_data = []
         summed: list[str] = []
 
         for zone_code, zone in NORWAY_ZONES.items():
-            print(f"  Fetching {zone_code} ({zone['name']})...")
+            logger.info(f"  Fetching {zone_code} ({zone['name']})...")
 
             try:
                 if psr_type == "all":
@@ -267,9 +276,9 @@ class ENTSOEWindDataFetcher:
                         gen = gen_data[wind_cols].sum(axis=1)
                         all_zones_data.append(gen)
                         summed.append(zone_code)
-                        print(f"    ✓ {zone_code}: {len(gen)} data points")
+                        logger.info(f"    ✓ {zone_code}: {len(gen)} data points")
                     else:
-                        print(f"    ✗ {zone_code}: No wind data")
+                        logger.info(f"    ✗ {zone_code}: No wind data")
                 else:
                     psr_code = PSR_TYPES[psr_type]
                     gen = self.client.query_generation(
@@ -282,16 +291,16 @@ class ENTSOEWindDataFetcher:
                         gen = gen.sum(axis=1)
                     all_zones_data.append(gen)
                     summed.append(zone_code)
-                    print(f"    ✓ {zone_code}: {len(gen)} data points")
+                    logger.info(f"    ✓ {zone_code}: {len(gen)} data points")
 
             except NoMatchingDataError:
                 # A zone with no wind (NO_5) is skipped. Any other error
                 # propagates: skipping that zone would sum the rest into a
                 # national total that silently leaves part of the fleet out.
-                print(f"    ✗ {zone_code}: No data available")
+                logger.info(f"    ✗ {zone_code}: No data available")
 
         if not all_zones_data:
-            print("  ✗ No data available from any Norwegian zone")
+            logger.info("  ✗ No data available from any Norwegian zone")
             return pd.DataFrame()
 
         # Aggregate all zones
@@ -302,7 +311,9 @@ class ENTSOEWindDataFetcher:
         # its own, so generation and capacity can sum different zones.
         aggregated_df.attrs["zones"] = sorted(summed)
 
-        print(f"  ✓ Aggregated {len(all_zones_data)} zones: {len(aggregated_df)} total data points")
+        logger.info(
+            f"  ✓ Aggregated {len(all_zones_data)} zones: {len(aggregated_df)} total data points"
+        )
         return aggregated_df
 
     def fetch_installed_capacity(
@@ -331,7 +342,7 @@ class ENTSOEWindDataFetcher:
         if country.upper() == "NO":
             return self._fetch_norway_capacity(start, end, psr_type)
 
-        print(f"Fetching {psr_type} wind capacity for {country}...")
+        logger.info(f"Fetching {psr_type} wind capacity for {country}...")
 
         try:
             if psr_type == "all":
@@ -371,12 +382,12 @@ class ENTSOEWindDataFetcher:
                 else:
                     cap = cap.to_frame(name="capacity_mw")
 
-            print(f"  ✓ Fetched capacity: {cap['capacity_mw'].iloc[-1]:.0f} MW")
+            logger.info(f"  ✓ Fetched capacity: {cap['capacity_mw'].iloc[-1]:.0f} MW")
             return cap
 
         except NoMatchingDataError:
             # As in fetch_generation: only "no data" becomes an empty frame.
-            print(f"  ✗ No capacity data available for {country}")
+            logger.info(f"  ✗ No capacity data available for {country}")
             return pd.DataFrame()
 
     def _fetch_norway_capacity(
@@ -395,13 +406,13 @@ class ENTSOEWindDataFetcher:
         Returns:
             DataFrame with aggregated Norwegian capacity in MW.
         """
-        print(f"Fetching {psr_type} wind capacity for Norway (all zones)...")
+        logger.info(f"Fetching {psr_type} wind capacity for Norway (all zones)...")
 
         all_zones_data = []
         summed: list[str] = []
 
         for zone_code in NORWAY_ZONES:
-            print(f"  Fetching capacity for {zone_code}...")
+            logger.info(f"  Fetching capacity for {zone_code}...")
 
             try:
                 if psr_type == "all":
@@ -416,9 +427,9 @@ class ENTSOEWindDataFetcher:
                         cap = cap_data[wind_cols].sum(axis=1)
                         all_zones_data.append(cap)
                         summed.append(zone_code)
-                        print(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
+                        logger.info(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
                     else:
-                        print(f"    ✗ {zone_code}: No wind capacity data")
+                        logger.info(f"    ✗ {zone_code}: No wind capacity data")
                 else:
                     psr_code = PSR_TYPES[psr_type]
                     cap = self.client.query_installed_generation_capacity(
@@ -431,15 +442,15 @@ class ENTSOEWindDataFetcher:
                         cap = cap.sum(axis=1)
                     all_zones_data.append(cap)
                     summed.append(zone_code)
-                    print(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
+                    logger.info(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
 
             except NoMatchingDataError:
                 # As in _fetch_norway_generation: skip a zone with no data,
                 # never one whose query failed.
-                print(f"    ✗ {zone_code}: No capacity data available")
+                logger.info(f"    ✗ {zone_code}: No capacity data available")
 
         if not all_zones_data:
-            print("  ✗ No capacity data available from any Norwegian zone")
+            logger.info("  ✗ No capacity data available from any Norwegian zone")
             return pd.DataFrame()
 
         # Aggregate all zones
@@ -447,7 +458,7 @@ class ENTSOEWindDataFetcher:
         aggregated_df = aggregated.to_frame(name="capacity_mw")
         aggregated_df.attrs["zones"] = sorted(summed)
 
-        print(f"  ✓ Aggregated capacity: {aggregated_df['capacity_mw'].iloc[-1]:.0f} MW")
+        logger.info(f"  ✓ Aggregated capacity: {aggregated_df['capacity_mw'].iloc[-1]:.0f} MW")
         return aggregated_df
 
     def calculate_capacity_factor(
@@ -564,16 +575,16 @@ class ENTSOEWindDataFetcher:
         results = {}
 
         for country in countries:
-            print(f"\n{'=' * 70}")
-            print(f"Processing {country.upper()}")
-            print(f"{'=' * 70}")
+            logger.info(f"\n{'=' * 70}")
+            logger.info(f"Processing {country.upper()}")
+            logger.info(f"{'=' * 70}")
 
             df = self.calculate_capacity_factor(country, start, end, psr_type)
 
             if not df.empty:
                 # Resample if requested
                 if resample is not None:
-                    print(f"  Resampling to {resample}...")
+                    logger.info(f"  Resampling to {resample}...")
                     df = df.resample(resample).agg(
                         {
                             "generation_mw": "mean",
@@ -583,9 +594,9 @@ class ENTSOEWindDataFetcher:
                     )
 
                 results[country.upper()] = df
-                print(f"  ✓ {country.upper()} complete: {len(df)} data points")
-                print(f"    Mean CF: {df['capacity_factor'].mean():.2%}")
-                print(f"    Capacity: {df['capacity_mw'].mean():.0f} MW")
+                logger.info(f"  ✓ {country.upper()} complete: {len(df)} data points")
+                logger.info(f"    Mean CF: {df['capacity_factor'].mean():.2%}")
+                logger.info(f"    Capacity: {df['capacity_mw'].mean():.0f} MW")
 
         return results
 
@@ -612,12 +623,12 @@ def save_capacity_factors(
         if format in ["csv", "both"]:
             csv_path = output_dir / f"{country.lower()}_capacity_factors.csv"
             df.to_csv(csv_path)
-            print(f"  ✓ Saved: {csv_path}")
+            logger.info(f"  ✓ Saved: {csv_path}")
 
         if format in ["parquet", "both"]:
             parquet_path = output_dir / f"{country.lower()}_capacity_factors.parquet"
             df.to_parquet(parquet_path)
-            print(f"  ✓ Saved: {parquet_path}")
+            logger.info(f"  ✓ Saved: {parquet_path}")
 
     # Save combined file
     if len(data) > 1:
@@ -627,16 +638,18 @@ def save_capacity_factors(
         if format in ["csv", "both"]:
             combined_csv = output_dir / "combined_capacity_factors.csv"
             combined.to_csv(combined_csv)
-            print(f"  ✓ Saved combined: {combined_csv}")
+            logger.info(f"  ✓ Saved combined: {combined_csv}")
 
         if format in ["parquet", "both"]:
             combined_parquet = output_dir / "combined_capacity_factors.parquet"
             combined.to_parquet(combined_parquet)
-            print(f"  ✓ Saved combined: {combined_parquet}")
+            logger.info(f"  ✓ Saved combined: {combined_parquet}")
 
 
 def main():
     """Main execution."""
+    # The library functions this runs log at INFO; show them as the prints did.
+    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
     parser = argparse.ArgumentParser(description="Fetch wind capacity factors from ENTSO-E API")
     parser.add_argument(
         "--countries",

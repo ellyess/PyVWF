@@ -152,6 +152,12 @@ this file stay in step with it.
   `tests/test_tool_pins.py` checks both. `pyproject.toml` says why it has
   no upper bounds.
 
+- **`pyvwf.datasets` is type-checked, and its library code logs instead of
+  printing.** The mypy exemption for the package is gone. Progress lines from
+  the grid builders, the ENTSO-E fetcher and writer, the ERA5 combiner and
+  the DK processor go to a module logger at INFO; the three command-line
+  entry points keep their own output and show the library lines on stdout.
+
 - **CI's test matrix and lint job install through pinned constraints**
   (`constraints/py310.txt` to `py312.txt`, written by `scripts/dev/lock.py`).
   A CI result on Python 3.10 to 3.12 now depends on the repository, not on

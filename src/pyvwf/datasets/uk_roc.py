@@ -35,6 +35,8 @@ methodology) and their reproducibility:
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from collections.abc import Sequence
 
 import pandas as pd
@@ -211,7 +213,7 @@ def roc_issuance_to_station_monthly(
     )
     monthly["band"] = [
         band_for(r.tech if tech_col else tech_of({"ID": r.ID, tech_col: r.tech}), acc.get(r.ID))
-        for r in monthly.itertuples()
+        for r in cast(Any, monthly).itertuples()
     ]
     monthly["mwh"] = monthly["certs"] / monthly["band"]
     return monthly[["ID", "year", "month", "mwh"]]
@@ -280,16 +282,18 @@ def repd_wind_metadata(
     df = repd.copy()
     df = df[df["Technology Type"].astype(str).str.startswith("Wind")].copy()
     if operational_only:
-        status = df.get("Development Status (short)", df.get("Development Status"))
+        status = cast(pd.Series, df.get("Development Status (short)", df.get("Development Status")))
         df = df[status.astype(str).str.contains("Operational", case=False, na=False)]
 
     coords = osgb_to_wgs84(df["X-coordinate"], df["Y-coordinate"])
     df["lon"], df["lat"] = coords["lon"], coords["lat"]
     df["n_turbines"] = pd.to_numeric(df["No. of Turbines"], errors="coerce")
     installed_kw = pd.to_numeric(df["Installed Capacity (MWelec)"], errors="coerce") * 1000.0
-    turb_cap = pd.to_numeric(df.get("Turbine Capacity (MW)"), errors="coerce") * 1000.0
+    turb_cap = (
+        pd.to_numeric(cast(pd.Series, df.get("Turbine Capacity (MW)")), errors="coerce") * 1000.0
+    )
     df["capacity"] = turb_cap.where(turb_cap > 0, installed_kw / df["n_turbines"])
-    tip = pd.to_numeric(df.get("Height of Turbines (m)"), errors="coerce")
+    tip = pd.to_numeric(cast(pd.Series, df.get("Height of Turbines (m)")), errors="coerce")
     df["height"] = tip.where(tip > 1, float(height_default))
     df["height_source"] = (
         tip.where(tip > 1).notna().map({True: "repd-tip-height", False: "default-uniform"})
@@ -299,7 +303,9 @@ def repd_wind_metadata(
     )
     df["model"] = model
     df["model_source"] = "default-uniform"
-    df["operational"] = pd.to_datetime(df.get("Operational"), errors="coerce", dayfirst=True)
+    df["operational"] = pd.to_datetime(
+        cast(pd.Series, df.get("Operational")), errors="coerce", dayfirst=True
+    )
     out = df.rename(columns={"Ref ID": "station", "Site Name": "site_name"})
     out = out[
         out["n_turbines"].notna()
@@ -328,7 +334,7 @@ def repd_wind_metadata(
 def pseudo_replicate_metadata(station_md: pd.DataFrame) -> pd.DataFrame:
     """Expand per-station open metadata to per-turbine rows (ID ``<st>-<n>``)."""
     rows = []
-    for r in station_md.itertuples(index=False):
+    for r in cast(Any, station_md).itertuples(index=False):
         for t in range(1, int(r.n_turbines) + 1):
             rows.append(
                 {

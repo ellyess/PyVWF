@@ -41,6 +41,8 @@ Two NZ-specific facts shape the design:
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from collections.abc import Iterable
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -82,8 +84,8 @@ def expected_trading_periods(trading_dates: pd.Series) -> pd.Series:
     any hardcoded transition dates.
     """
     dates = pd.to_datetime(trading_dates)
-    start = day_start_utc(dates)
-    end = day_start_utc(dates + pd.Timedelta(days=1))
+    start: Any = day_start_utc(dates)
+    end: Any = day_start_utc(dates + pd.Timedelta(days=1))
     return ((end - start) / pd.Timedelta(minutes=30)).astype(int)
 
 
@@ -439,7 +441,7 @@ def wind_half_hourly(
         .groupby(["ID", "timestamp"], as_index=False)["kwh"]
         .sum()
     )
-    return half_hourly, unmapped
+    return cast(pd.DataFrame, half_hourly), unmapped
 
 
 #: The columns of ``nz_md.csv``, the metadata contract EMINewZealandSource reads.
