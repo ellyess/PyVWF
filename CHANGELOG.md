@@ -22,6 +22,10 @@ this file stay in step with it.
   `docs/findings/agent-critics-prereg.md`; the cases and the driver are in
   `scripts/dev/agent_evals/`, and `tests/test_agent_evals.py` checks the
   scoring.
+- The evaluation's first run, recorded in `docs/findings/agent-critics.md`
+  with every review and judgement under `scripts/dev/agent_evals/runs/`. It did
+  not pass its pre-registered bar. `docs/design/ai-native-development.md`
+  gains a section on it.
 
 ## [0.6.0] - 2026-10-16
 

@@ -71,8 +71,10 @@ forbids that route rather than preventing it.
 
 ## What this record does not show
 
-- **The critics are not evaluated.** Nothing in the repository records how
-  often a critic's blocker was right, or what the critics miss.
+- **The critics are evaluated once, on five cases.** The run below says
+  whether they named five known defects and left the fixed versions alone. It
+  is one draw per review, not a rate, and it does not record how often a
+  critic's blocker on a new proposal was right.
 - **Authorship is not recorded per change.** No commit says whether an agent
   wrote it, so no count below separates agent work from the maintainer's.
 - **The counts measure volume, not correctness.** A correction notice records
@@ -81,6 +83,27 @@ forbids that route rather than preventing it.
   first committed on that date (`7a3bfd5`). Before it, agent instructions were
   kept in a local `CLAUDE.md`, which `.gitignore` has excluded since `1b10581`
   (2026-08-12).
+
+## Evaluating the critics
+
+A critic is a check, so `AGENTS.md` asks the same of it as of any check: show
+it fires on a known positive and stays quiet on a known negative. Five
+defects this repository found and fixed were each written into a proposal,
+and each proposal was paired with a copy carrying the fix instead. Each critic
+reviewed all ten, blind, against a checkout of the repository from before the
+fix. A second model judged whether each review named the defect, quoting it.
+The cases, the scoring rule and the pass bar were committed before any critic
+saw a case: `docs/findings/agent-critics-prereg.md`. The driver and the cases
+are in `scripts/dev/agent_evals/`, and `tests/test_agent_evals.py` checks the
+scoring both ways.
+
+The one run, on 2026-10-16, did not pass its bar. All three critics named all
+five defects and blocked on them. The panel also raised the paired defect on
+2 of the 5 fixed proposals, where the bar allowed 1, and no critic gave
+PROCEED on any of the 30 proposals, fixed or not. The table, the quoted
+passages and the departures from the registration are in
+`docs/findings/agent-critics.md`. No training year or test year applies: the
+run measures the review agents, not a correction.
 
 ## Counts
 
