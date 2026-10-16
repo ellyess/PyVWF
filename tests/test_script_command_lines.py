@@ -405,6 +405,30 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
     "scripts/studies/method-joint-fit-reachability/offcurve_tables.py": [
         (["output/reachability_2026-09-25"], ("main", ("output/reachability_2026-09-25",), {})),
     ],
+    # The country weighting study's denominator table and row rule.
+    "scripts/studies/method-country-weighting/denominators.py": [
+        (
+            ["output/country_weighting_2026-10-16/denominators"],
+            ("main", ("output/country_weighting_2026-10-16/denominators",), {}),
+        ),
+    ],
+    # The country weighting study's Stage 0 (method-country-weighting-prereg.md).
+    "scripts/studies/method-country-weighting/stage0.py": [
+        (
+            [
+                "configs/regions/scorecard/fr_country.toml",
+                "output/country_weighting_2026-10-16/stage0",
+            ],
+            (
+                "main",
+                (
+                    "configs/regions/scorecard/fr_country.toml",
+                    "output/country_weighting_2026-10-16/stage0",
+                ),
+                {},
+            ),
+        ),
+    ],
     "scripts/studies/method-loco-interpolation/loco_interpolation.py": [
         (["output/loco_2026-09-13"], ("main", ("output/loco_2026-09-13",), {"pool_path": POOL})),
     ],

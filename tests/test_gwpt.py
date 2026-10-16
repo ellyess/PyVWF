@@ -126,3 +126,41 @@ def test_the_installation_type_is_returned_only_when_asked():
     assert list(plain.columns) == ["lat", "lon", "mw"]
     assert typed["offshore"].tolist() == [False, True, True]
     pd.testing.assert_frame_equal(typed.drop(columns="offshore"), plain)
+
+
+def test_mid_year_halves_a_project_in_its_start_and_retirement_years():
+    """Known positive and negative against the end-of-year fleet of the same year.
+
+    A starts in 2010 and D (2005 to 2016) retires in 2016: each counts at half
+    capacity in that year mid-year, while end-of-year counts A in full and D
+    not at all. E is undated and counts in full either way.
+    """
+    assert gwpt.fleet_for(tracker(), "IE", 2010, convention="mid-year")["mw"].tolist() == [
+        5.0,
+        40.0,
+        50.0,
+    ]
+    assert gwpt.fleet_for(tracker(), "IE", 2010)["mw"].tolist() == [10.0, 40.0, 50.0]
+    assert gwpt.fleet_for(tracker(), "IE", 2016, convention="mid-year")["mw"].tolist() == [
+        10.0,
+        20.0,
+        50.0,
+    ]
+    assert 40.0 not in gwpt.fleet_for(tracker(), "IE", 2016)["mw"].tolist()
+    # In a year it ran throughout, mid-year and end-of-year agree.
+    assert (
+        gwpt.fleet_for(tracker(), "IE", 2013, convention="mid-year")["mw"].tolist()
+        == gwpt.fleet_for(tracker(), "IE", 2013)["mw"].tolist()
+    )
+
+
+def test_mid_year_quarters_a_project_started_and_retired_in_one_year():
+    frame = tracker()
+    frame.loc[frame["Project Name"] == "D", "Start year"] = 2016
+    mw = gwpt.fleet_for(frame, "IE", 2016, convention="mid-year")["mw"].tolist()
+    assert mw == [10.0, 10.0, 50.0]
+
+
+def test_an_unknown_convention_is_refused():
+    with pytest.raises(ValueError, match="convention"):
+        gwpt.fleet_for(tracker(), "IE", 2016, convention="start-of-year")

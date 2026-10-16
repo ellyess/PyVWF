@@ -28,6 +28,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -199,16 +200,33 @@ def offshore_sites(
     return points.reindex(columns=grid.columns)
 
 
-def site_weights(points: pd.DataFrame, offshore: pd.DataFrame) -> pd.Series:
-    """Offshore capacity summed onto its own site's point, indexed like ``points``."""
+def site_weights(
+    points: pd.DataFrame, offshore: pd.DataFrame, *, drop_unknown: bool = False
+) -> pd.Series:
+    """Offshore capacity summed onto its own site's point, indexed like ``points``.
+
+    A site with no point raises, unless ``drop_unknown``: then its capacity is
+    left out and its megawatts recorded in the result's ``attrs["left_out"]``.
+    The mid-year grids need that, because they keep the end-of-year point set,
+    and a farm counted at half capacity in its retirement year can sit on a
+    site no end-of-year grid in the range carries.
+    """
     key = pd.Series(range(len(points)), index=points["ID"].to_numpy())
     ids = [
         f"offshore_{lat:.4f}_{lon:.4f}"
         for lat, lon in zip(offshore["lat"].round(4), offshore["lon"].round(4))
     ]
+    left_out = 0.0
+    if drop_unknown:
+        known = np.isin(ids, key.index)
+        left_out = float(offshore["mw"].to_numpy()[~known].sum())
+        offshore = offshore[known]
+        ids = [i for i, k in zip(ids, known) if k]
     weights = np.zeros(len(points))
     np.add.at(weights, key.loc[ids].to_numpy(dtype=int), offshore["mw"].to_numpy())
-    return pd.Series(weights, index=points.index)
+    out = pd.Series(weights, index=points.index)
+    out.attrs["left_out"] = left_out
+    return out
 
 
 def report(country: str, grid: pd.DataFrame, weights: pd.Series) -> pd.DataFrame:
@@ -243,6 +261,7 @@ def process_per_year(
     *,
     dry_run: bool,
     zone_aware: bool = False,
+    mid_year: bool = False,
 ) -> None:
     """Write one grid per year, on a point set fixed across the whole range.
 
@@ -257,6 +276,13 @@ def process_per_year(
     site onto its own point (:func:`offshore_sites`), since 2026-09-29. The
     single-snapshot grid written without ``--per-year`` still snaps offshore
     projects to land; the runs read the per-year grids.
+
+    With ``mid_year``, each year also gets ``<c>_grid_points_<year>_midyear.csv``:
+    the fleet averaged over the year (:func:`fleet_for`'s ``"mid-year"``
+    convention), on exactly the end-of-year point set, so only capacity
+    differs. Capacity that falls on no kept point is left out, and its
+    megawatts per year are written to ``<c>_midyear_left_out.json``. The
+    end-of-year files are written exactly as without it.
     """
     code = country.upper()
     grid_dir = PyVWFPaths.COUNTRY_LEVEL_DATA / "grid_points" / code.lower()
@@ -289,18 +315,18 @@ def process_per_year(
     if len(points):
         print(f"  {len(points)} offshore site point(s) added")
 
-    def weights_for(year: int) -> pd.Series:
-        fleet = fleets[year]
+    def weights_for(fleet: pd.DataFrame, *, drop_unknown: bool = False) -> pd.Series:
         onshore, offshore = fleet[~fleet["offshore"]], fleet[fleet["offshore"]]
         if zone_aware and not onshore.empty:
             onshore = tag_zones(onshore, code)
         on_land = assign_to_grid(land, onshore, zone_aware=zone_aware)
-        at_sea = site_weights(points, offshore)
+        at_sea = site_weights(points, offshore, drop_unknown=drop_unknown)
         out = pd.Series(np.concatenate([on_land.to_numpy(), at_sea.to_numpy()]), index=grid.index)
         out.attrs["stranded"] = on_land.attrs.get("stranded", 0)
+        out.attrs["left_out"] = at_sea.attrs.get("left_out", 0.0)
         return out
 
-    per_year = {year: weights_for(year) for year in years}
+    per_year = {year: weights_for(fleets[year]) for year in years}
     stranded = sum(w.attrs.get("stranded", 0) for w in per_year.values())
     if stranded:
         print(f"  {stranded} project-years had no grid point in their own zone")
@@ -324,6 +350,25 @@ def process_per_year(
         out = _apply(kept, weights[keep_mask].reset_index(drop=True))
         out.to_csv(grid_dir / f"{code.lower()}_grid_points_{year}.csv", index=False)
     print(f"  wrote {len(per_year)} year-specific grids to {grid_dir.name}/")
+
+    if mid_year:
+        left_out = {}
+        for year in years:
+            fleet = fleet_for(
+                gwpt, code, year, excluded, dated, with_type=True, convention="mid-year"
+            )
+            weights = weights_for(fleet, drop_unknown=True)
+            # Off the kept points: a dropped land point, or a site with no point.
+            left_out[year] = float(weights[~keep_mask].sum()) + weights.attrs["left_out"]
+            out = _apply(kept, weights[keep_mask].reset_index(drop=True))
+            out.to_csv(grid_dir / f"{code.lower()}_grid_points_{year}_midyear.csv", index=False)
+            print(
+                f"  mid-year {year}: {out['capacity'].sum():,.0f} MW, {left_out[year]:,.1f} MW left out"
+            )
+        (grid_dir / f"{code.lower()}_midyear_left_out.json").write_text(
+            json.dumps({str(y): v for y, v in left_out.items()}, indent=2) + "\n"
+        )
+        print(f"  wrote {len(left_out)} mid-year grids to {grid_dir.name}/")
 
 
 def process(
@@ -406,6 +451,12 @@ def main() -> int:
         help="with --per-year: never assign a project to a grid point outside "
         "its own bidding zone (requires configs/curation/zones polygons)",
     )
+    parser.add_argument(
+        "--mid-year",
+        action="store_true",
+        help="with --per-year: also write <c>_grid_points_<year>_midyear.csv, the "
+        "fleet averaged over each year, on the same points",
+    )
     parser.add_argument("--dry-run", action="store_true", help="report only")
     parser.add_argument(
         "--keep-empty",
@@ -415,6 +466,8 @@ def main() -> int:
     parser.add_argument("--gwpt", type=Path, default=GWPT_PATH)
     args = parser.parse_args()
 
+    if args.mid_year and not args.per_year:
+        parser.error("--mid-year needs --per-year")
     countries = sorted(COUNTRY_NAME) if args.all else [c.upper() for c in args.countries]
     if not countries:
         parser.error("give at least one country code, or --all")
@@ -429,6 +482,7 @@ def main() -> int:
                 range(start, end + 1),
                 dry_run=args.dry_run,
                 zone_aware=args.zone_aware,
+                mid_year=args.mid_year,
             )
         else:
             process(
