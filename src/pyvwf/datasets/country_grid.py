@@ -20,6 +20,7 @@ from pathlib import Path
 import pandas as pd
 from shapely.geometry import box
 
+from pyvwf.config import PyVWFPaths
 from pyvwf.sampling import cluster_with_geometries, create_sampling_points
 
 
@@ -202,6 +203,16 @@ def generate_grid_points(
     return generate_kmeans_grid(country, config, output_dir, save_geojson)
 
 
+def bidding_zone_shapes(code: str) -> Path:
+    """A country's bidding-zone polygons, under the input root in use.
+
+    Until 2026-10-16 these were ``Path("input/reference/shapes/...")``, which
+    ignored ``PYVWF_INPUT``: under ``input/combined`` the grids were built from
+    ``input/``'s shapes (#84).
+    """
+    return PyVWFPaths.INPUT_ROOT / "reference" / "shapes" / f"{code.lower()}_bidding_zones.geojson"
+
+
 def generate_norway_zone_grids(
     config: dict,
     output_dir: Path,
@@ -225,7 +236,7 @@ def generate_norway_zone_grids(
     # Load actual bidding zone geometries
     import geopandas as gpd
 
-    zones_path = Path("input/reference/shapes/no_bidding_zones.geojson")
+    zones_path = bidding_zone_shapes("no")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
         print("  Falling back to bounding boxes")
@@ -374,7 +385,7 @@ def generate_sweden_zone_grids(
     # Load actual bidding zone geometries
     import geopandas as gpd
 
-    zones_path = Path("input/reference/shapes/se_bidding_zones.geojson")
+    zones_path = bidding_zone_shapes("se")
     if not zones_path.exists():
         print(f"  ✗ Bidding zones file not found: {zones_path}")
         print("  Warning: Cannot proceed without zone geometries")
