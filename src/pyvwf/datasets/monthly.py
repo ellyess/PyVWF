@@ -22,6 +22,8 @@ the adapters in ``pyvwf.sources`` use it, and the import layers let
 
 from __future__ import annotations
 
+from typing import Any
+
 from datetime import tzinfo
 
 import pandas as pd
@@ -40,9 +42,7 @@ def empty_monthly() -> pd.DataFrame:
     return pd.DataFrame(columns=["ID", "year"] + OBS_COLUMNS)
 
 
-def wide_monthly(
-    frame: pd.DataFrame, value: str = "cf", aggfunc: str | None = None
-) -> pd.DataFrame:
+def wide_monthly(frame: pd.DataFrame, value: str = "cf", aggfunc: Any = None) -> pd.DataFrame:
     """Pivot a long (``ID``, ``year``, ``month``) frame to the wide contract.
 
     Args:

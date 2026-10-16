@@ -80,9 +80,10 @@ def test_load_start_years(tmp_path):
     assert gwpt.load_start_years(path) == {"G5": 2019}
 
 
-def test_fleet_for_drops_curated_exclusions(capsys):
+def test_fleet_for_drops_curated_exclusions(caplog):
+    caplog.set_level("INFO", logger="pyvwf.datasets.gwpt")
     assert gwpt.fleet_for(tracker(), "IE", None, {"G1"})["mw"].tolist() == [50.0]
-    assert "excluding 1 curated GWPT record(s): A" in capsys.readouterr().out
+    assert "excluding 1 curated GWPT record(s): A" in caplog.text
 
 
 def test_fleet_for_refuses_an_unmapped_region():

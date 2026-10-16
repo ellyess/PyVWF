@@ -15,6 +15,10 @@ Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 
 from __future__ import annotations
 
+from typing import Any
+
+import logging
+
 from collections.abc import Callable
 from pathlib import Path
 
@@ -23,6 +27,8 @@ from shapely.geometry import box
 
 from pyvwf.config import PyVWFPaths
 from pyvwf.sampling import cluster_with_geometries, create_sampling_points
+
+logger = logging.getLogger(__name__)
 
 
 # Country configurations
@@ -188,9 +194,9 @@ def generate_grid_points(
     Returns:
         Tuple of (grid_points_clustered, cluster_geometries).
     """
-    print(f"\n{'=' * 70}")
-    print(f"Generating Grid Points for {config['name']} ({country})")
-    print(f"{'=' * 70}")
+    logger.info(f"\n{'=' * 70}")
+    logger.info(f"Generating Grid Points for {config['name']} ({country})")
+    logger.info(f"{'=' * 70}")
 
     # Special handling for Norway - use bidding zones
     if country.upper() == "NO" and config.get("use_bidding_zones", False):
@@ -233,8 +239,8 @@ def generate_norway_zone_grids(
     """
     zones_path = bidding_zone_shapes("no")
     if not zones_path.exists():
-        print(f"  ✗ Bidding zones file not found: {zones_path}")
-        print("  Falling back to bounding boxes")
+        logger.info(f"  ✗ Bidding zones file not found: {zones_path}")
+        logger.info("  Falling back to bounding boxes")
         return generate_norway_zone_grids_fallback(config, output_dir, save_geojson)
     # Norway's polygons name a zone "NO 1" in "Price area"; empty zones are kept.
     return _zone_grids_from_shapes(
@@ -269,7 +275,7 @@ def generate_sweden_zone_grids(
     """
     zones_path = bidding_zone_shapes("se")
     if not zones_path.exists():
-        print(f"  ✗ Bidding zones file not found: {zones_path}")
+        logger.info(f"  ✗ Bidding zones file not found: {zones_path}")
         raise FileNotFoundError(f"Swedish bidding zones file not found: {zones_path}")
     # Sweden's polygons carry zone_id (or zone_name) as "SE_1"; empty zones are dropped.
     return _zone_grids_from_shapes(
@@ -322,16 +328,16 @@ def _zone_grids_from_shapes(
     import geopandas as gpd
     from shapely.geometry import Point as ShapelyPoint
 
-    print(f"\n✓ {code} detected - using actual bidding zone geometries")
+    logger.info(f"\n✓ {code} detected - using actual bidding zone geometries")
     zones_gdf = gpd.read_file(zones_path)
-    print(f"  ✓ Loaded {len(zones_gdf)} bidding zones from: {zones_path}")
+    logger.info(f"  ✓ Loaded {len(zones_gdf)} bidding zones from: {zones_path}")
 
     all_zones_grids = []
     zone_geometries = []
     for idx, zone_row in zones_gdf.iterrows():
         zone_id = zone_id_of(zone_row)
         if not zone_id:
-            print(f"  Warning: Missing zone_id for feature {idx}, skipping")
+            logger.info(f"  Warning: Missing zone_id for feature {idx}, skipping")
             continue
         zone_geom = zone_row.geometry
         # NO_1 -> 0, NO_2 -> 1, etc.
@@ -339,11 +345,13 @@ def _zone_grids_from_shapes(
         zone_config = zones.get(zone_id, {"grid_resolution": default_resolution})
         grid_resolution = zone_config.get("grid_resolution", default_resolution)
 
-        print(f"{'─' * 70}")
-        print(f"Zone {zone_id}")
-        print(f"{'─' * 70}")
-        print(f"  Grid resolution: {grid_resolution}°")
-        print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
+        logger.info(f"{'─' * 70}")
+        logger.info(f"Zone {zone_id}")
+        logger.info(f"{'─' * 70}")
+        logger.info(f"  Grid resolution: {grid_resolution}°")
+        logger.info(
+            f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW"
+        )
 
         zone_bounds = zone_geom.bounds  # (minx, miny, maxx, maxy)
         zone_grid = create_sampling_points(
@@ -367,10 +375,10 @@ def _zone_grids_from_shapes(
         zone_grid_filtered.drop(columns=["geometry"], inplace=True)
         zone_grid_filtered["cluster"] = zone_num
         zone_grid_filtered["zone"] = zone_id
-        print(f"  ✓ {len(zone_grid_filtered)} grid points (filtered from {len(zone_grid)})")
+        logger.info(f"  ✓ {len(zone_grid_filtered)} grid points (filtered from {len(zone_grid)})")
 
         if skip_empty and len(zone_grid_filtered) == 0:
-            print(f"  Warning: No grid points generated for {zone_id}")
+            logger.info(f"  Warning: No grid points generated for {zone_id}")
             continue
 
         all_zones_grids.append(zone_grid_filtered)
@@ -397,19 +405,21 @@ def _save_zone_grids(
     """Combine a country's zone grids and write them, with the zone polygons."""
     grid_all_zones = pd.concat(all_zones_grids, ignore_index=True)
 
-    print(f"\n{'─' * 70}")
-    print(f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones")
-    print("\nZone distribution:")
+    logger.info(f"\n{'─' * 70}")
+    logger.info(
+        f"✓ Combined grid: {len(grid_all_zones)} points across {len(zone_geometries)} zones"
+    )
+    logger.info("\nZone distribution:")
     for zone_id in sorted(grid_all_zones["zone"].unique()):
         count = len(grid_all_zones[grid_all_zones["zone"] == zone_id])
-        print(f"  {zone_id}: {count} points")
+        logger.info(f"  {zone_id}: {count} points")
 
     c = code.lower()
     grid_dir = output_dir / "grid_points" / c
     grid_dir.mkdir(parents=True, exist_ok=True)
     grid_path = grid_dir / f"{c}_grid_points_zones.csv"
     grid_all_zones.to_csv(grid_path, index=False)
-    print(f"\n✓ Saved grid points: {grid_path}")
+    logger.info(f"\n✓ Saved grid points: {grid_path}")
 
     if save_geojson:
         try:
@@ -418,9 +428,9 @@ def _save_zone_grids(
             zone_gdf = gpd.GeoDataFrame(zone_geometries, crs="EPSG:4326")
             geom_path = grid_dir / f"{c}_bidding_zones.geojson"
             zone_gdf.to_file(geom_path, driver="GeoJSON")
-            print(f"✓ Saved zone geometries: {geom_path}")
+            logger.info(f"✓ Saved zone geometries: {geom_path}")
         except ImportError:
-            print("Warning: GeoPandas not available - skipping GeoJSON export")
+            logger.info("Warning: GeoPandas not available - skipping GeoJSON export")
             zone_gdf = pd.DataFrame(zone_geometries)
     else:
         zone_gdf = pd.DataFrame(zone_geometries)
@@ -443,17 +453,19 @@ def generate_norway_zone_grids_fallback(
     Returns:
         Tuple of (all_grid_points, zone_geometries).
     """
-    print("\n✓ Using bounding box fallback for Norway zones")
+    logger.info("\n✓ Using bounding box fallback for Norway zones")
 
     all_zones_grids = []
     zone_geometries = []
     for zone_id, zone_config in NORWAY_ZONES.items():
-        print(f"{'─' * 70}")
-        print(f"Zone {zone_id}: {zone_config['name']}")
-        print(f"{'─' * 70}")
+        logger.info(f"{'─' * 70}")
+        logger.info(f"Zone {zone_id}: {zone_config['name']}")
+        logger.info(f"{'─' * 70}")
         zone_num = int(zone_id.split("_")[1]) - 1
-        print(f"  Grid resolution: {zone_config['grid_resolution']}°")
-        print(f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW")
+        logger.info(f"  Grid resolution: {zone_config['grid_resolution']}°")
+        logger.info(
+            f"  Turbine metadata: {config['height']}m, {config['model']}, {config['capacity']}MW"
+        )
 
         zone_grid = create_sampling_points(
             country_bounds=zone_config["bounds"],
@@ -466,7 +478,7 @@ def generate_norway_zone_grids_fallback(
         )
         zone_grid["cluster"] = zone_num
         zone_grid["zone"] = zone_id
-        print(f"  ✓ Created {len(zone_grid)} grid points for {zone_id}")
+        logger.info(f"  ✓ Created {len(zone_grid)} grid points for {zone_id}")
 
         all_zones_grids.append(zone_grid)
         zone_geometries.append(
@@ -501,13 +513,13 @@ def generate_kmeans_grid(
     """
 
     # Create grid with turbine metadata
-    print(
+    logger.info(
         f"\nGrid resolution: {config['grid_resolution']}° (~{config['grid_resolution'] * 100:.0f} km)"
     )
-    print("Representative turbine:")
-    print(f"  Hub height: {config['height']} m")
-    print(f"  Power curve: {config['model']}")
-    print(f"  Capacity: {config['capacity']} MW")
+    logger.info("Representative turbine:")
+    logger.info(f"  Hub height: {config['height']} m")
+    logger.info(f"  Power curve: {config['model']}")
+    logger.info(f"  Capacity: {config['capacity']} MW")
 
     grid_points = create_sampling_points(
         country_bounds=config["bounds"],
@@ -519,10 +531,11 @@ def generate_kmeans_grid(
         default_capacity=config["capacity"],
     )
 
-    print(f"\n✓ Created {len(grid_points)} grid points")
+    logger.info(f"\n✓ Created {len(grid_points)} grid points")
 
     # Cluster spatially with Voronoi tessellation
-    print(f"\nClustering into {config['num_clusters']} regions (Voronoi)...")
+    logger.info(f"\nClustering into {config['num_clusters']} regions (Voronoi)...")
+    cluster_geoms: Any
     grid_clustered, cluster_geoms = cluster_with_geometries(
         sampling_points=grid_points,
         num_clusters=config["num_clusters"],
@@ -534,9 +547,9 @@ def generate_kmeans_grid(
 
     # Print cluster distribution
     cluster_counts = grid_clustered["cluster"].value_counts().sort_index()
-    print("\nCluster distribution:")
+    logger.info("\nCluster distribution:")
     for cluster_id, count in cluster_counts.items():
-        print(f"  Cluster {cluster_id}: {count} points")
+        logger.info(f"  Cluster {cluster_id}: {count} points")
 
     # Save grid points
     grid_dir = output_dir / "grid_points" / country.lower()
@@ -544,18 +557,18 @@ def generate_kmeans_grid(
 
     grid_path = grid_dir / f"{country.lower()}_grid_points.csv"
     grid_clustered.to_csv(grid_path, index=False)
-    print(f"\n✓ Saved grid points: {grid_path}")
+    logger.info(f"\n✓ Saved grid points: {grid_path}")
 
     # Save cluster geometries as GeoJSON
     if save_geojson and cluster_geoms is not None:
         geom_path = grid_dir / f"{country.lower()}_correction_regions.geojson"
         cluster_geoms.to_file(geom_path, driver="GeoJSON")
-        print(f"✓ Saved cluster geometries: {geom_path}")
+        logger.info(f"✓ Saved cluster geometries: {geom_path}")
 
     # Print metadata summary
-    print("\nGrid points ready for PyVWF simulation!")
-    print(f"Columns: {list(grid_clustered.columns)}")
-    print(
+    logger.info("\nGrid points ready for PyVWF simulation!")
+    logger.info(f"Columns: {list(grid_clustered.columns)}")
+    logger.info(
         "\nNOTE: every point carries the same synthetic capacity, so the "
         "simulated country aggregate is weighted by land area while the "
         "observation is weighted by installed capacity. Run\n"

@@ -25,6 +25,7 @@ Usage, from the repository root:
 """
 
 import argparse
+import logging
 import os
 import sys
 from pathlib import Path
@@ -36,6 +37,8 @@ from pyvwf.datasets.fetch_entsoe_capacity_factors import ENTSOEWindDataFetcher
 
 def main():
     """Main execution."""
+    # The library functions this runs log at INFO; show them as the prints did.
+    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
     parser = argparse.ArgumentParser(
         description="Generate training and test data for country-level PyVWF workflows",
         formatter_class=argparse.RawDescriptionHelpFormatter,

@@ -10,8 +10,10 @@ Split from ``generate_country_level_training_data.py``, whose ``main`` runs it.
 
 from __future__ import annotations
 
+import logging
+
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -21,6 +23,8 @@ from pyvwf.datasets.fetch_entsoe_capacity_factors import (
     CAPACITY_FACTOR_CEILING,
     ENTSOEWindDataFetcher,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_observations(
@@ -46,12 +50,12 @@ def fetch_observations(
     Returns:
         Dictionary with training and test data for each country.
     """
-    results = {}
+    results: dict[str, Any] = {}
 
     for country in countries:
-        print(f"\n{'=' * 70}")
-        print(f"Fetching Observations for {country}")
-        print(f"{'=' * 70}")
+        logger.info(f"\n{'=' * 70}")
+        logger.info(f"Fetching Observations for {country}")
+        logger.info(f"{'=' * 70}")
 
         # Special handling for Norway - fetch zones separately
         if country.upper() == "NO":
@@ -147,14 +151,14 @@ def fetch_zone_observations(
     Returns:
         Dictionary with zone data and aggregated country data.
     """
-    print(f"\n✓ {code} detected - fetching bidding zones separately")
+    logger.info(f"\n✓ {code} detected - fetching bidding zones separately")
 
     zone_train_data = {}
     zone_test_data = {}
     for zone_id in zones:
-        print(f"\n{'─' * 70}")
-        print(f"Fetching {zone_id}")
-        print(f"{'─' * 70}")
+        logger.info(f"\n{'─' * 70}")
+        logger.info(f"Fetching {zone_id}")
+        logger.info(f"{'─' * 70}")
         zone_results = fetch_country_observations(
             fetcher, zone_id, train_years, test_year, output_dir, psr_type
         )
@@ -162,15 +166,15 @@ def fetch_zone_observations(
             zone_train_data[zone_id] = zone_results["train"]
             zone_test_data[zone_id] = zone_results["test"]
 
-    print(f"\n{'─' * 70}")
-    print("Aggregating zones to country-level")
-    print(f"{'─' * 70}")
+    logger.info(f"\n{'─' * 70}")
+    logger.info("Aggregating zones to country-level")
+    logger.info(f"{'─' * 70}")
     train_agg = _sum_zones(zone_train_data)
     test_agg = _sum_zones(zone_test_data)
     for label, agg in (("training", train_agg), ("test", test_agg)):
         if not agg.empty:
-            print(f"  ✓ Aggregated {label}: {len(agg)} data points")
-            print(f"    Mean CF: {agg['capacity_factor'].mean():.2%}")
+            logger.info(f"  ✓ Aggregated {label}: {len(agg)} data points")
+            logger.info(f"    Mean CF: {agg['capacity_factor'].mean():.2%}")
 
     obs_dir = output_dir / "observations" / code.lower()
     obs_dir.mkdir(parents=True, exist_ok=True)
@@ -178,11 +182,11 @@ def fetch_zone_observations(
     if not train_agg.empty:
         train_path = obs_dir / f"{country_obs_stem(code, 'train', years)}{AGGREGATED_SUFFIX}.csv"
         train_agg.to_csv(train_path)
-        print(f"\n✓ Saved aggregated training: {train_path}")
+        logger.info(f"\n✓ Saved aggregated training: {train_path}")
     if not test_agg.empty:
         test_path = obs_dir / f"{country_obs_stem(code, 'test', test_year)}{AGGREGATED_SUFFIX}.csv"
         test_agg.to_csv(test_path)
-        print(f"✓ Saved aggregated test: {test_path}")
+        logger.info(f"✓ Saved aggregated test: {test_path}")
 
     return {
         "zones": {"train": zone_train_data, "test": zone_test_data},
@@ -197,7 +201,7 @@ def fetch_country_observations(
     test_year: int,
     output_dir: Path,
     psr_type: Literal["onshore", "offshore", "all"] = "all",
-) -> dict:
+) -> dict | None:
     """Fetch observations for a single country or zone.
 
     Args:
@@ -212,7 +216,7 @@ def fetch_country_observations(
         Dictionary with train and test data, or None if no data.
     """
     # Training data
-    print(f"\nTraining period: {min(train_years)}-{max(train_years)}")
+    logger.info(f"\nTraining period: {min(train_years)}-{max(train_years)}")
     train_start = pd.Timestamp(f"{min(train_years)}-01-01", tz="UTC")
     train_end = pd.Timestamp(f"{max(train_years)}-12-31 23:59", tz="UTC")
 
@@ -224,15 +228,15 @@ def fetch_country_observations(
     )
 
     if train_data.empty:
-        print(f"  ✗ No training data for {country}")
+        logger.info(f"  ✗ No training data for {country}")
         return None
 
-    print(f"  ✓ Training: {len(train_data)} data points")
-    print(f"    Mean CF: {train_data['capacity_factor'].mean():.2%}")
-    print(f"    Capacity: {train_data['capacity_mw'].mean():.0f} MW")
+    logger.info(f"  ✓ Training: {len(train_data)} data points")
+    logger.info(f"    Mean CF: {train_data['capacity_factor'].mean():.2%}")
+    logger.info(f"    Capacity: {train_data['capacity_mw'].mean():.0f} MW")
 
     # Test data
-    print(f"\nTest period: {test_year}")
+    logger.info(f"\nTest period: {test_year}")
     test_start = pd.Timestamp(f"{test_year}-01-01", tz="UTC")
     test_end = pd.Timestamp(f"{test_year}-12-31 23:59", tz="UTC")
 
@@ -244,12 +248,12 @@ def fetch_country_observations(
     )
 
     if test_data.empty:
-        print(f"  ✗ No test data for {country}")
+        logger.info(f"  ✗ No test data for {country}")
         return None
 
-    print(f"  ✓ Test: {len(test_data)} data points")
-    print(f"    Mean CF: {test_data['capacity_factor'].mean():.2%}")
-    print(f"    Capacity: {test_data['capacity_mw'].mean():.0f} MW")
+    logger.info(f"  ✓ Test: {len(test_data)} data points")
+    logger.info(f"    Mean CF: {test_data['capacity_factor'].mean():.2%}")
+    logger.info(f"    Capacity: {test_data['capacity_mw'].mean():.0f} MW")
 
     # Save training and test data separately
     obs_dir = output_dir / "observations" / country.lower()
@@ -258,11 +262,11 @@ def fetch_country_observations(
     train_years_span = (min(train_years), max(train_years))
     train_path = obs_dir / f"{country_obs_stem(country, 'train', train_years_span)}.csv"
     train_data.to_csv(train_path)
-    print(f"\n✓ Saved training data: {train_path}")
+    logger.info(f"\n✓ Saved training data: {train_path}")
 
     test_path = obs_dir / f"{country_obs_stem(country, 'test', test_year)}.csv"
     test_data.to_csv(test_path)
-    print(f"✓ Saved test data: {test_path}")
+    logger.info(f"✓ Saved test data: {test_path}")
 
     return {
         "train": train_data,

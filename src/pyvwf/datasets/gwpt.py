@@ -20,6 +20,8 @@ region's join was built with (:data:`DROP_AR`, :data:`DROP_CL`).
 
 from __future__ import annotations
 
+import logging
+
 import re
 import unicodedata
 from collections.abc import Callable
@@ -28,6 +30,8 @@ from pathlib import Path
 import pandas as pd
 
 from pyvwf.config import PyVWFPaths
+
+logger = logging.getLogger(__name__)
 
 #: The tracker release every committed result used.
 FILENAME = "Global-Wind-Power-Tracker-February-2026.xlsx"
@@ -196,7 +200,7 @@ def fleet_for(
         drop = fleet["GEM phase ID"].astype(str).isin(exclusions)
         if drop.any():
             names = ", ".join(fleet.loc[drop, "Project Name"].astype(str))
-            print(f"  excluding {int(drop.sum())} curated GWPT record(s): {names}")
+            logger.info(f"  excluding {int(drop.sum())} curated GWPT record(s): {names}")
             fleet = fleet[~drop]
 
     if year is not None:

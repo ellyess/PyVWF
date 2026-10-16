@@ -19,6 +19,9 @@ Usage:
     python combine_era5_files.py --years 2019 --add-roughness --roughness-source pyvwf
 """
 
+from typing import cast
+import logging
+import sys
 import argparse
 import xarray as xr
 import numpy as np
@@ -26,6 +29,8 @@ from pathlib import Path
 from datetime import datetime
 
 from pyvwf.era5 import log_roughness_from_shear
+
+logger = logging.getLogger(__name__)
 
 
 def find_available_years(era5_dir):
@@ -65,10 +70,10 @@ def load_era5_winds(era5_dir, year):
     if not u100_file.exists():
         raise FileNotFoundError(f"100m wind file not found: {u100_file}")
 
-    print(f"  Loading 10m winds: {u10_file.name}")
+    logger.info(f"  Loading 10m winds: {u10_file.name}")
     ds_10m = xr.open_dataset(u10_file)
 
-    print(f"  Loading 100m winds: {u100_file.name}")
+    logger.info(f"  Loading 100m winds: {u100_file.name}")
     ds_100m = xr.open_dataset(u100_file)
 
     return ds_10m, ds_100m
@@ -92,7 +97,7 @@ def calculate_roughness_from_winds(combined_ds):
         Solving for z0 from winds at two heights (10m and 100m):
             z0 = exp[(wnd100m * ln(10) - wnd10m * ln(100)) / (wnd100m - wnd10m)]
     """
-    print("  Calculating roughness length from wind shear (PyVWF method)...")
+    logger.info("  Calculating roughness length from wind shear (PyVWF method)...")
 
     # Calculate wind speeds
     wnd10m = np.sqrt(combined_ds["u10"] ** 2 + combined_ds["v10"] ** 2)
@@ -107,7 +112,7 @@ def calculate_roughness_from_winds(combined_ds):
     z0_log = log_roughness_from_shear(wnd10m, wnd100m)
 
     # Convert from log space
-    z0 = np.exp(z0_log)
+    z0 = cast(xr.DataArray, np.exp(z0_log))
     z0 = z0.clip(min=1e-6, max=2.0)
 
     # Time-average for representative roughness
@@ -124,7 +129,7 @@ def calculate_roughness_from_winds(combined_ds):
         "temporal_aggregation": "time-averaged",
     }
 
-    print(f"    z0 range: [{float(z0_mean.min()):.6f}, {float(z0_mean.max()):.6f}] m")
+    logger.info(f"    z0 range: [{float(z0_mean.min()):.6f}, {float(z0_mean.max()):.6f}] m")
 
     return combined_ds
 
@@ -139,7 +144,7 @@ def add_constant_roughness(combined_ds, z0_value=0.03):
     Returns:
         Dataset with z0 variable added.
     """
-    print(f"  Adding constant roughness z0={z0_value}m")
+    logger.info(f"  Adding constant roughness z0={z0_value}m")
     z0_const = np.full((len(combined_ds.latitude), len(combined_ds.longitude)), z0_value)
     combined_ds["z0"] = (
         ("latitude", "longitude"),
@@ -169,14 +174,14 @@ def combine_era5_year(
     Returns:
         Path to output file.
     """
-    print(f"\nProcessing year {year}...")
-    print("=" * 60)
+    logger.info(f"\nProcessing year {year}...")
+    logger.info("=" * 60)
 
     # Load wind data
     ds_10m, ds_100m = load_era5_winds(era5_dir, year)
 
     # Combine datasets
-    print("  Combining 10m and 100m winds...")
+    logger.info("  Combining 10m and 100m winds...")
     combined_ds = xr.Dataset(
         {
             "u10": ds_10m["u10"],
@@ -218,7 +223,7 @@ def combine_era5_year(
 
     # Save with compression
     output_file = output_dir / f"era5_combined_{year}_EU.nc"
-    print(f"  Saving combined file: {output_file.name}")
+    logger.info(f"  Saving combined file: {output_file.name}")
 
     # Optimize encoding for faster access
     encoding = {}
@@ -239,13 +244,15 @@ def combine_era5_year(
 
     # Print file info
     output_size_mb = output_file.stat().st_size / 1e6
-    print(f"  ✓ Saved: {output_file.name} ({output_size_mb:.1f} MB)")
+    logger.info(f"  ✓ Saved: {output_file.name} ({output_size_mb:.1f} MB)")
 
     return output_file
 
 
 def main():
     """Main execution."""
+    # The library functions this runs log at INFO; show them as the prints did.
+    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
     parser = argparse.ArgumentParser(description="Combine ERA5 wind files with optional roughness")
     parser.add_argument(
         "--years", type=int, nargs="+", help="Years to process (e.g., 2019 2020 2021)"

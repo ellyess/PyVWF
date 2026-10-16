@@ -325,7 +325,7 @@ def plant_hub_heights_from_uswtdb(uswtdb: pd.DataFrame) -> pd.DataFrame:
             )
             by_cap = by_cap[by_cap.index.str.len() > 0]
             if len(by_cap):
-                model = by_cap.idxmax()
+                model = str(by_cap.idxmax())
         rows.append(
             {
                 "ID": plant_id,

@@ -9,10 +9,18 @@ Pure transforms for the two ens.dk workbooks:
 The command-line entry point is ``scripts/process/dk.py``.
 """
 
+import logging
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, date
 import warnings
+
+logger = logging.getLogger(__name__)
+
+
+def _kwh_to_gwh(x: pd.Series) -> float:
+    """Total generation of a group, kWh to GWh."""
+    return x.sum() / 1e6
 
 
 def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = True) -> pd.DataFrame:
@@ -27,17 +35,17 @@ def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = Tru
         Processed metadata DataFrame
     """
     if verbose:
-        print("=" * 80)
-        print("PROCESSING DENMARK METADATA")
-        print("=" * 80)
-        print(f"Input:  {input_file}")
-        print(f"Output: {output_file}")
+        logger.info("=" * 80)
+        logger.info("PROCESSING DENMARK METADATA")
+        logger.info("=" * 80)
+        logger.info(f"Input:  {input_file}")
+        logger.info(f"Output: {output_file}")
 
     # Read metadata file (header is at row 9)
     df_raw = pd.read_excel(input_file, header=9)
 
     if verbose:
-        print(f"Initial shape: {df_raw.shape}")
+        logger.info(f"Initial shape: {df_raw.shape}")
 
     # Remove rows with missing GSRN (turbine ID)
     df = df_raw.dropna(subset=["Turbine identifier (GSRN)"]).copy()
@@ -47,7 +55,7 @@ def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = Tru
     df = df[df["GSRN_str"].str.isdigit()].copy()
 
     if verbose:
-        print(f"After filtering: {len(df)} turbines")
+        logger.info(f"After filtering: {len(df)} turbines")
 
     # Extract relevant columns
     columns_map = {
@@ -104,7 +112,7 @@ def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = Tru
             df_clean.loc[valid_coords, "lat"] = lats
 
             if verbose:
-                print(f"Converted {valid_coords.sum()} coordinates to lat/lon")
+                logger.info(f"Converted {valid_coords.sum()} coordinates to lat/lon")
 
     except ImportError:
         warnings.warn(
@@ -133,15 +141,15 @@ def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = Tru
     df_clean.to_csv(output_file, index=False)
 
     if verbose:
-        print(f"\n✓ Saved metadata: {len(df_clean)} turbines")
-        print(f"  Columns: {', '.join(df_clean.columns)}")
-        print(
+        logger.info(f"\n✓ Saved metadata: {len(df_clean)} turbines")
+        logger.info(f"  Columns: {', '.join(df_clean.columns)}")
+        logger.info(
             f"  Date range: {df_clean['connection_date'].min()} to {df_clean['connection_date'].max()}"
         )
         if "lat" in df_clean.columns:
-            valid_coords = df_clean["lat"].notna().sum()
-            print(
-                f"  Valid coordinates: {valid_coords} ({valid_coords / len(df_clean) * 100:.1f}%)"
+            n_with_coords = int(df_clean["lat"].notna().sum())
+            logger.info(
+                f"  Valid coordinates: {n_with_coords} ({n_with_coords / len(df_clean) * 100:.1f}%)"
             )
 
     return df_clean
@@ -167,11 +175,11 @@ def process_dk_monthly_observations(
         Processed observations DataFrame
     """
     if verbose:
-        print("\n" + "=" * 80)
-        print("PROCESSING DENMARK MONTHLY OBSERVATIONS")
-        print("=" * 80)
-        print(f"Input:  {input_file}")
-        print(f"Output: {output_file}")
+        logger.info("\n" + "=" * 80)
+        logger.info("PROCESSING DENMARK MONTHLY OBSERVATIONS")
+        logger.info("=" * 80)
+        logger.info(f"Input:  {input_file}")
+        logger.info(f"Output: {output_file}")
 
     all_records = []
 
@@ -247,38 +255,38 @@ def process_dk_monthly_observations(
                     )
 
             if verbose:
-                print(f"✓ {len(df)} turbines, {len(month_cols)} months")
+                logger.info(f"✓ {len(df)} turbines, {len(month_cols)} months")
 
         except Exception as e:
             if verbose:
-                print(f"✗ Error: {e}")
+                logger.info(f"✗ Error: {e}")
             continue
 
     df_long = pd.DataFrame(all_records)
 
     if verbose:
-        print(f"\n{'=' * 80}")
-        print("Combined data:")
-        print(f"  Total turbine-months: {len(df_long):,}")
-        print(f"  Unique turbines: {df_long['ID'].nunique():,}")
-        print(f"  Year range: {df_long['year'].min()}-{df_long['year'].max()}")
+        logger.info(f"\n{'=' * 80}")
+        logger.info("Combined data:")
+        logger.info(f"  Total turbine-months: {len(df_long):,}")
+        logger.info(f"  Unique turbines: {df_long['ID'].nunique():,}")
+        logger.info(f"  Year range: {df_long['year'].min()}-{df_long['year'].max()}")
 
     # Save to CSV
     output_file.parent.mkdir(parents=True, exist_ok=True)
     df_long.to_csv(output_file, index=False)
 
     if verbose:
-        print(f"\n✓ Saved observations to: {output_file}")
+        logger.info(f"\n✓ Saved observations to: {output_file}")
 
         # Summary by year
         year_summary = df_long.groupby("year").agg(
             {
                 "ID": "nunique",
-                "generation_kwh": lambda x: x.sum() / 1e6,  # Convert to GWh
+                "generation_kwh": _kwh_to_gwh,
             }
         )
         year_summary.columns = ["Turbines", "Generation (GWh)"]
-        print("\nGeneration by year:")
-        print(year_summary.to_string())
+        logger.info("\nGeneration by year:")
+        logger.info(year_summary.to_string())
 
     return df_long

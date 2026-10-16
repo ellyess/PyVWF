@@ -26,6 +26,8 @@ writes):
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import re
 
 import pandas as pd
@@ -261,7 +263,7 @@ def resolve_duid_aliases(
 
     rows, resolved_ids = [], []
     for duid, targets in alias_map.items():
-        fleet_row = unmatched_fleet[unmatched_fleet["ID"] == duid]
+        fleet_row: Any = unmatched_fleet[unmatched_fleet["ID"] == duid]
         if fleet_row.empty:
             continue  # already matched by name, or not in this fleet subset
         fleet_row = fleet_row.iloc[0]
@@ -272,7 +274,7 @@ def resolve_duid_aliases(
         lon = pd.to_numeric(sel["Longitude"], errors="coerce")
         # Capacity-weighted centroid; uniform weights if capacities are absent.
         weights = cap if cap.sum() > 0 else pd.Series(1.0, index=cap.index)
-        start = pd.to_numeric(sel.get("Start year"), errors="coerce").min()
+        start = pd.to_numeric(cast(pd.Series, sel.get("Start year")), errors="coerce").min()
 
         rows.append(
             {
