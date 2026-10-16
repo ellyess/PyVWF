@@ -152,6 +152,32 @@ this file stay in step with it.
   `tests/test_tool_pins.py` checks both. `pyproject.toml` says why it has
   no upper bounds.
 
+- **`scripts/dev/ci_local.py` runs CI's checks locally, before a stamp.** It
+  builds Python 3.12 environments from `constraints/py312.txt` and
+  `constraints/py312-docs.txt` under `output/ci-local/`, as the lint, test and
+  docs jobs install them, and runs ruff, mypy, `lint-imports`, deptry,
+  vulture, the fast set and the Sphinx build, with one pass or fail line each.
+  The project environment runs pandas 2 with the `data` extra, so it missed
+  two failures CI then caught, each after a realdata stamp had been spent.
+  `tests/test_ci_local.py` checks the commands against the workflow.
+
+- **`scripts/dev/stamp.py realdata --workers N` runs the pins in parallel.**
+  Opt-in, with serial the default; the stamp records the count. Two and
+  three workers were measured against a serial run, every pin passing each
+  time, and the script refuses more than three. The physics-informed suite
+  stays serial. `docs/design/agent-guards.md` has the measurements and the
+  memory they used.
+
+- **A realdata or pinn stamp survives an edit to comments or docstrings**
+  (`scripts/dev/stamp.py`). The stamp's fingerprint now reads each covered
+  `.py` file's syntax tree, docstrings removed, instead of its bytes, so a
+  comment, a `# type: ignore` or a docstring no longer needs a fresh run of the
+  suite. Any other edit to code still does, and other files are still compared
+  byte for byte. Every existing stamp is invalid once, because its fingerprint
+  was taken the old way: run the suite again before the next commit that
+  changes covered code. `docs/design/agent-guards.md` says why the rule is
+  safe.
+
 - **`pyvwf.datasets` is type-checked, and its library code logs instead of
   printing.** The mypy exemption for the package is gone. Progress lines from
   the grid builders, the ENTSO-E fetcher and writer, the ERA5 combiner and
@@ -514,6 +540,15 @@ this file stay in step with it.
   as a failure too.
 
 ### Documentation
+
+- **The physics-informed findings compare the model with the current affine
+  rows, on its own rows** (`method-physics-informed.md`, correction notice of
+  2026-10-16). Its "affine, in region" figures came from the cluster sweep of
+  2026-07-24 and were scored on the harness's rows, which leave out the units
+  the affine fit refused; those units are harder than the rest. Two
+  comparisons in section 3 are withdrawn and one stands, and the gates are
+  unaffected. `scripts/studies/physics-informed/affine_on_pinn_rows.py` does
+  the rescoring.
 
 - **How agents are used in development is written down**
   (`docs/design/ai-native-development.md`, linked from the README's "How this

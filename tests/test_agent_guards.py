@@ -243,6 +243,221 @@ def test_one_suite_stamp_does_not_cover_the_other(repo):
     assert _commit(repo) == 2
 
 
+# The fingerprint ignores comments and docstrings, and nothing else
+
+CODE = '''"""Module docstring."""
+import numpy as np  # type: ignore[import]
+
+
+class Fit:
+    """Class docstring."""
+
+    def scale(self, x: float, k: float = 1.5) -> float:
+        """Function docstring."""
+        return np.sqrt(x) * k  # a comment
+'''
+
+#: Each edit leaves the code as the interpreter runs it unchanged.
+SAME_CODE = [
+    CODE.replace('"""Module docstring."""', '"""Edited, with a |sub| substitution."""'),
+    CODE.replace('    """Class docstring."""\n', ""),
+    CODE.replace("Function docstring.", "Function docstring.\n\n        More.\n        "),
+    CODE.replace("# type: ignore[import]", "# type: ignore[import, unused-ignore]"),
+    CODE.replace("  # a comment", "").replace("class Fit:", "#: comment\n\n\nclass Fit:"),
+]
+
+#: Each edit can change what the code computes.
+OTHER_CODE = [
+    CODE.replace("1.5", "1.6"),
+    CODE.replace("* k", "/ k"),
+    CODE.replace("k: float = 1.5", "k: float = 1.5, j: float = 0.0"),
+    CODE.replace('"""Function docstring."""', '"""Function docstring."""\n        x = x + 0'),
+]
+
+
+def _fingerprints(repo: Path, rel: str = "src/pyvwf/metrics.py") -> tuple[str, str]:
+    """(worktree, index) fingerprints of the realdata suite, after staging ``rel``."""
+    _git(repo, "add", rel)
+    sys.path.insert(0, str(repo / "scripts/dev"))
+    try:
+        from stamp import SUITES as defined
+        from stamp import index_fingerprint, worktree_fingerprint
+
+        covered = defined["realdata"].covered
+        return worktree_fingerprint(repo, covered), index_fingerprint(repo, covered)
+    finally:
+        sys.path.pop(0)
+        sys.modules.pop("stamp", None)
+
+
+@pytest.fixture
+def code_repo(repo):
+    (repo / "src/pyvwf/metrics.py").write_text(CODE)
+    _git(repo, "add", "src/pyvwf/metrics.py")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "code")
+    return repo
+
+
+@pytest.mark.parametrize(
+    "edited", SAME_CODE, ids=["module-doc", "class-doc", "function-doc", "type-ignore", "comments"]
+)
+def test_fingerprint_ignores_comments_and_docstrings(code_repo, edited):
+    worktree, index = _fingerprints(code_repo)
+    assert worktree == index
+    (code_repo / "src/pyvwf/metrics.py").write_text(edited)
+    assert _fingerprints(code_repo) == (worktree, worktree)
+
+
+@pytest.mark.parametrize(
+    "edited", OTHER_CODE, ids=["constant", "operator", "argument", "statement"]
+)
+def test_fingerprint_moves_on_any_code_change(code_repo, edited):
+    before, _ = _fingerprints(code_repo)
+    (code_repo / "src/pyvwf/metrics.py").write_text(edited)
+    worktree, index = _fingerprints(code_repo)
+    assert worktree == index != before
+
+
+def test_fingerprint_ignores_whitespace_inside_a_line(code_repo):
+    before, _ = _fingerprints(code_repo)
+    (code_repo / "src/pyvwf/metrics.py").write_text(
+        CODE.replace("np.sqrt(x) * k", "np.sqrt( x )*k")
+    )
+    assert _fingerprints(code_repo) == (before, before)
+
+
+def test_fingerprint_moves_on_a_file_that_is_not_python(code_repo):
+    (code_repo / "src/pyvwf/pinn/table.csv").write_text("a,b\n1,2\n")
+    _git(code_repo, "add", "src/pyvwf/pinn/table.csv")
+    sys.path.insert(0, str(code_repo / "scripts/dev"))
+    try:
+        from stamp import SUITES as defined
+        from stamp import index_fingerprint, worktree_fingerprint
+
+        covered = defined["pinn"].covered
+        before = worktree_fingerprint(code_repo, covered)
+        # A comment character in a CSV is data, not a comment.
+        (code_repo / "src/pyvwf/pinn/table.csv").write_text("a,b\n1,2\n# 3\n")
+        _git(code_repo, "add", "src/pyvwf/pinn/table.csv")
+        after = worktree_fingerprint(code_repo, covered)
+        assert after == index_fingerprint(code_repo, covered) != before
+    finally:
+        sys.path.pop(0)
+        sys.modules.pop("stamp", None)
+
+
+def test_fingerprint_of_a_file_that_does_not_parse_is_its_bytes(code_repo):
+    (code_repo / "src/pyvwf/metrics.py").write_text("x = (\n")
+    before, index = _fingerprints(code_repo)
+    assert before == index
+    # Would be a no-op edit to code that parsed; here every byte counts.
+    (code_repo / "src/pyvwf/metrics.py").write_text("x = (  # comment\n")
+    worktree, index = _fingerprints(code_repo)
+    assert worktree == index != before
+
+
+def test_comment_only_commit_keeps_the_stamp_valid(code_repo):
+    _stamp(code_repo, "realdata", exit_code=0)
+    _change(code_repo, "src/pyvwf/metrics.py", SAME_CODE[3])
+    assert _commit(code_repo) == 0
+    _change(code_repo, "src/pyvwf/metrics.py", OTHER_CODE[0])
+    assert _commit(code_repo) == 2
+
+
+def test_code_digest_is_the_same_on_every_python():
+    """The hook runs under whatever `python3` is first on PATH, and the stamp
+    under the project's environment, so the digest cannot depend on the version.
+    `ast.dump` does: its text changed in 3.13. This value was computed under
+    3.9 to 3.14, and the test matrix checks it under each of its versions."""
+    sys.path.insert(0, str(ROOT / "scripts/dev"))
+    try:
+        from stamp import _code_digest
+    finally:
+        sys.path.pop(0)
+        sys.modules.pop("stamp", None)
+    assert _code_digest(EVERY_CONSTRUCT.encode()) == EVERY_CONSTRUCT_DIGEST
+
+
+#: Syntax from 3.9 onward, so the digest can be checked on every supported version.
+EVERY_CONSTRUCT = (
+    CODE
+    + """
+@dataclass(frozen=True)
+class Row(Base, metaclass=Meta):
+    name: str = "x"
+    values: list[int] = field(default_factory=list)
+
+    async def fetch(self, *args, key=None, **kwargs):
+        async with session() as s:
+            async for item in s:
+                yield await item
+
+
+def body(a, /, b, *, c=-1.0, d=1e-12, e=None, f=b"x", g=..., h=3j):
+    global TOTAL
+    try:
+        with open(a) as fh, open(b) as gh:
+            rows = [r for r in fh if r if not r.startswith("#")]
+    except (OSError, ValueError) as err:
+        raise RuntimeError(f"{a!r:>10} {b=}") from err
+    else:
+        rows = {k: v for k, v in zip(rows, rows[1:])}
+    finally:
+        del a
+    lam = lambda x, y=2: x ** y if x else -x
+    s = rows[1:-1:2], rows[..., None], {1, 2}, (yield), not b, a is not b
+    while (n := len(rows)) > 0 and n in rows:
+        n -= 1
+        continue
+    for i, (j, *k) in enumerate(rows):
+        break
+    assert c < d <= e, "message"
+    return sum(x async for x in s) if c else ~1 << 2 >> 3 & 4 | 5 ^ 6 @ m
+"""
+)
+
+EVERY_CONSTRUCT_DIGEST = "b8b56366da08ee755ee83bb6ca878caf64590becc7359f6bd390995e6d4fddec"
+
+
+# stamp.py --workers: opt-in, capped at what each suite was measured at
+
+
+def _stamp_module():
+    from support import load_script
+
+    return load_script(ROOT / "scripts/dev/stamp.py", "stamp_under_test")
+
+
+@pytest.mark.parametrize(("suite", "workers"), [("realdata", 0), ("realdata", 4), ("pinn", 2)])
+def test_stamp_refuses_an_unmeasured_worker_count(suite, workers, monkeypatch):
+    module = _stamp_module()
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: pytest.fail("ran pytest"))
+    assert module.main(suite, workers) == 2
+
+
+@pytest.mark.parametrize(("workers", "expected"), [(1, []), (2, ["-n", "2", "--dist", "loadfile"])])
+def test_stamp_passes_workers_to_pytest_and_records_them(workers, expected, tmp_path, monkeypatch):
+    module = _stamp_module()
+    commands = []
+
+    class FakeRun:
+        def __init__(self, command, **kwargs):
+            commands.append(command)
+            self.stdout = iter(["===== 43 passed in 1.00s =====\n"])
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(module.subprocess, "Popen", FakeRun)
+    monkeypatch.setattr(module, "_git", lambda root, *args: f"{tmp_path}\n")
+    monkeypatch.setattr(module, "worktree_fingerprint", lambda root, covered: "f")
+    assert module.main("realdata", workers) == 0
+    (command,) = commands
+    assert command[3:-2] == ["-rs", *expected]
+    stamp = json.loads((tmp_path / "output/.stamp-realdata.json").read_text())
+    assert stamp["workers"] == workers
+
+
 # The suite definitions against the real repository
 
 
