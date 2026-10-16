@@ -47,7 +47,12 @@ CASES = {
     # ran on the bundled 100 kW fallback. FR re-recorded 2026-09-29, when the
     # grids were rebuilt on the corrected GWPT fleet (acfbbfa): 159 MW left ten
     # of its 2021 grid points, and its scalars moved by at most 0.006 and its
-    # offsets by at most 0.024 m/s; ES's 2021 grid did not change.
+    # offsets by at most 0.024 m/s; ES's 2021 grid did not change. Both
+    # re-recorded 2026-10-16, when offshore farms got their own grid points
+    # (fc8c7f5): ES's 20 MW offshore site left the coast, and its scalars moved
+    # by at most 0.0024 and its offsets by at most 0.044 m/s; FR's 2021 grid
+    # gained only zero-capacity offshore points, and its offsets moved by at
+    # most 1.3e-5 m/s, scalars unchanged. Accepted years unchanged in both.
     "fr_country_k10": (
         "configs/regions/scorecard/fr_country.toml",
         "input/combined",

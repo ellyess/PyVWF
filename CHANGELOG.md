@@ -87,6 +87,22 @@ this file stay in step with it.
 
 ### Changed
 
+- **Offshore wind farms get their own points in the per-year country grids,
+  and Hywind Tampen leaves Norway's fleet.** The lattices cover land only, so
+  every offshore project was summed onto the nearest land point and simulated
+  with coastal winds; Belgium's whole offshore fleet sat on two coastal points.
+  Each offshore site now has a point at its own position, with the grid's
+  turbine and hub height and the cluster of the nearest land point. Hywind
+  Tampen supplies oil and gas platforms, not the grid Norway's observations
+  measure, and is excluded with that evidence in
+  `configs/curation/gwpt_exclusions.csv`. The grids were regenerated and the
+  eight country rows re-run from a clean tree. What moved: Belgium's row, whose
+  uncorrected error rises and reported corrected error falls; France and
+  Norway on the same degenerate fits; the other rows little or not at all.
+  The FR and ES cases of the offset-fit pin are re-recorded, and every country
+  row leaves the study-reproduction pins on the terms FR left them on
+  2026-09-29. The scorecard's notice of 2026-10-16 has the figures.
+
 - **The country grids and Ireland's capacity-factor denominator are rebuilt on
   the corrected fleet register** (`acfbbfa`), and the eight country rows re-run,
   training and evaluation, from a clean tree. What moved: Ireland's row, whose
