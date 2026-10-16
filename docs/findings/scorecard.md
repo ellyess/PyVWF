@@ -22,6 +22,108 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-10-16: offshore wind farms get their own grid
+points, and Belgium's row moves.** The country lattices cover land only, so
+until now every offshore project was summed onto the nearest land point and
+simulated with coastal winds. Belgium's whole offshore fleet, 2,256 MW and 62%
+of its 2021 grid, sat on two coastal points at 51.25N; its farms stand at
+51.53-51.72N. From `fc8c7f5` each offshore site has its own point at its own
+position, with the grid's turbine, hub height and the cluster of the nearest
+land point, and from `6b3e6d9` Hywind Tampen (88 MW, 2022), which supplies oil
+and gas platforms rather than the grid Norway's observations measure, is out of
+Norway's fleet. The per-year grids were regenerated and all eight rows trained
+and evaluated again at `6b3e6d9` from a clean tree, with the scorecard configs,
+on `input/combined` (`power_curves.csv` sha256 `689cfee7…`); every run records
+0% of capacity substituted and none extrapolated. Training years 2015-21 (IE
+2017-21), test year 2023, national scope.
+
+Offshore capacity on its own points, in the 2021 and 2023 grids a scorecard
+run reads:
+
+| Row | Sites | 2021 | 2023 |
+|---|---|---|---|
+| BE | 11 | 2,256 MW of 3,617 | 2,256 MW of 3,864 |
+| FR | 5 | 0 of 20,662 | 480 MW of 23,409 (Saint-Nazaire) |
+| SE | 5 | 188 MW of 10,312 | 188 MW of 14,923 |
+| NO | 5 | 50 MW of 4,427 | 50 MW of 5,033 (Hywind Tampen out: 5,121 before) |
+| IE | 1 | 25 MW of 3,722 | 25 MW of 4,118 |
+| ES | 1 | 20 MW of 27,701 | 20 MW of 29,906 |
+| PT | 1 | 25 MW of 4,883 | 25 MW of 5,071 |
+| IT | 1 | 0 of 9,460 | 30 MW of 10,061 |
+
+Grid totals are unchanged except Norway's 2023; only where capacity sits moved.
+
+Every variant of every row, before (`6ab07ef`, the notice of 2026-09-29) and
+after (`6b3e6d9`):
+
+| Row | Variant | RMSE before | RMSE after | MBE before | MBE after | Max scalar before / after | Implausible / failed after | Months scored after |
+|---|---|---|---|---|---|---|---|---|
+| FR | uncorrected | 0.0204 | 0.0204 | -0.0016 | -0.0035 |  |  | 12 of 12 |
+| FR | fixed N=1 | 0.0302 | 0.0291 | +0.0156 | +0.0137 | 1.07 / 1.07 | 0 / 0 | 12 of 12 |
+| FR | **fixed N=10** (reported) | 0.0271 | 0.0260 | +0.0123 | +0.0106 | 4.61 / 4.61 | 1 / 0 | 12 of 12 |
+| FR | season N=1 | 0.0281 | 0.0270 | +0.0167 | +0.0148 | 1.23 / 1.23 | 0 / 0 | 12 of 12 |
+| FR | season N=10 | 0.0251 | 0.0240 | +0.0138 | +0.0121 | 9.94 / 9.94 | 4 / 0 | 12 of 12 |
+| BE | uncorrected | 0.1226 | 0.1610 | +0.1164 | +0.1560 |  |  | 12 of 12 |
+| BE | fixed N=1 | 0.0162 | 0.0199 | -0.0001 | -0.0061 | 0.67 / 0.58 | 0 / 0 | 12 of 12 |
+| BE | fixed N=3 | 0.0160 | 0.0147 | +0.0062 | +0.0027 | 0.95 / 0.95 | 0 / 0 | 12 of 12 |
+| BE | season N=1 | 0.0178 | 0.0207 | -0.0000 | -0.0065 | 0.69 / 0.59 | 0 / 0 | 12 of 12 |
+| BE | **season N=3** (reported) | 0.0205 | 0.0191 | +0.0073 | +0.0034 | 1.23 / 1.23 | 0 / 0 | 12 of 12 |
+| IE | uncorrected | 0.0453 | 0.0454 | +0.0361 | +0.0363 |  |  | 12 of 12 |
+| IE | fixed N=1 | 0.0239 | 0.0238 | +0.0062 | +0.0062 | 0.91 / 0.91 | 0 / 0 | 12 of 12 |
+| IE | fixed N=3 | 0.0236 | 0.0235 | +0.0052 | +0.0051 | 0.96 / 0.95 | 0 / 0 | 12 of 12 |
+| IE | **season N=1** (reported) | 0.0213 | 0.0213 | +0.0061 | +0.0061 | 0.94 / 0.94 | 0 / 0 | 12 of 12 |
+| IE | season N=3 | 0.0211 | 0.0211 | +0.0053 | +0.0053 | 1.00 / 0.99 | 0 / 0 | 12 of 12 |
+| SE | uncorrected | 0.0984 | 0.0980 | -0.0967 | -0.0963 |  |  | 12 of 12 |
+| SE | fixed N=1 | 0.0358 | 0.0358 | -0.0329 | -0.0330 | 1.37 / 1.37 | 0 / 0 | 12 of 12 |
+| SE | **fixed N=4** (reported) | 0.0348 | 0.0347 | -0.0313 | -0.0310 | 1.64 / 1.64 | 0 / 0 | 12 of 12 |
+| SE | season N=1 | 0.0359 | 0.0360 | -0.0336 | -0.0336 | 1.47 / 1.47 | 0 / 0 | 12 of 12 |
+| SE | season N=4 | 0.0336 | 0.0335 | -0.0303 | -0.0304 | 1.84 / 1.84 | 0 / 0 | 12 of 12 |
+| NO | uncorrected | 0.1286 | 0.1277 | -0.1245 | -0.1236 |  |  | 12 of 12 |
+| NO | fixed N=1 | 0.0392 | 0.0376 | -0.0326 | -0.0313 | 1.47 / 1.47 | 0 / 0 | 12 of 12 |
+| NO | **fixed N=4** (reported) | 0.0279 | 0.0260 | -0.0160 | -0.0138 | 3.05 / 3.05 | 1 / 0 | 12 of 12 |
+| NO | season N=1 | 0.0397 | 0.0382 | -0.0324 | -0.0311 | 1.57 / 1.57 | 0 / 0 | 12 of 12 |
+| NO | season N=4 | 0.0330 | 0.0258 | -0.0219 | -0.0147 | 3.30 / 3.30 | 3 / 0 | 12 of 12 |
+| ES | uncorrected | 0.0709 | 0.0709 | -0.0697 | -0.0696 |  |  | 12 of 12 |
+| ES | fixed N=1 | 0.0339 | 0.0339 | +0.0097 | +0.0098 | 1.50 / 1.50 | 0 / 0 | 12 of 12 |
+| ES | **fixed N=4** (reported) | 0.0302 | 0.0302 | +0.0099 | +0.0098 | 1.90 / 1.90 | 0 / 0 | 12 of 12 |
+| ES | season N=1 | 0.0313 | 0.0313 | +0.0101 | +0.0099 | 1.86 / 1.85 | 0 / 0 | 12 of 12 |
+| ES | season N=4 | 0.0259 | 0.0271 | +0.0109 | +0.0111 | 2.45 / 2.45 | 0 / 0 | 12 of 12 |
+| IT | uncorrected | n/a | n/a | n/a | n/a |  |  | 0 of 12 |
+| IT | fixed N=1 | n/a | n/a | n/a | n/a | n/a / n/a | 0 / 1 | 0 of 12 |
+| IT | fixed N=3 | n/a | n/a | n/a | n/a | n/a / n/a | 0 / 3 | 0 of 12 |
+| IT | season N=1 | n/a | n/a | n/a | n/a | 2.26 / 2.26 | 0 / 3 | 0 of 12 |
+| IT | **season N=3** (reported) | n/a | n/a | n/a | n/a | 3.74 / 3.74 | 1 / 9 | 0 of 12 |
+| PT | uncorrected | 0.2205 | 0.2205 | -0.2201 | -0.2201 |  |  | 3 of 12 |
+| PT | fixed N=1 | 0.0463 | 0.0490 | -0.0343 | -0.0373 | 3.03 / 3.03 | 1 / 0 | 3 of 12 |
+| PT | fixed N=2 | 0.0133 | 0.0133 | -0.0101 | -0.0094 | 3.96 / 3.92 | 1 / 0 | 3 of 12 |
+| PT | **season N=1** (reported) | 0.0266 | 0.0300 | +0.0027 | -0.0073 | 3.10 / 3.12 | 1 / 1 | 3 of 12 |
+| PT | season N=2 | 0.1493 | 0.1021 | +0.1463 | +0.1007 | 3.66 / 3.60 | 1 / 6 | 3 of 12 |
+
+**Belgium's uncorrected error rises from 0.123 to 0.161, and its reported
+corrected RMSE falls from 0.0205 to 0.0191.** Simulated at sea, its offshore
+fleet produces more, so the uncorrected mean bias grows from +0.116 to +0.156;
+the correction absorbs it, and the reported season N=3 variant ends closer to
+the observations (MBE +0.0073 to +0.0034). Not every variant improves: both
+N=1 variants get worse (fixed 0.0162 to 0.0199, season 0.0178 to 0.0207),
+their scalar falling from 0.67 to 0.58, while both N=3 variants get better.
+Belgium's offshore sites all join cluster 0, with the coastal land points; only
+an N=3 fit gives that cluster factors of its own. The reported configuration was
+chosen on this test year, before this change.
+
+France's reported row moves from 0.0271 to 0.0260 and stays worse than
+uncorrected (0.0204), on the same degenerate fit (scalar 4.61); every training
+scalar is unchanged, because France's 2021 grid carries no offshore capacity,
+and the move comes from Saint-Nazaire in the 2023 grid. Norway's reported row
+moves from 0.0279 to 0.0260 on the same degenerate fit (3.05); its season N=4
+variant now has three implausible scalars against two. Spain's reported row is
+unchanged, but its season N=4 variant gets worse (0.0259 to 0.0271). Ireland
+and Sweden move in the fourth decimal at most. Italy stays suspended with no
+month scored, and Portugal with 3 of 12.
+
+Data: `output/offshore_regen_2026-10-16/` (`after/`, `before_after_metrics.txt`,
+`grid_diff.txt`, `regen_grids.log`), with every replaced grid under `before/`,
+its checksums in `before.sha256`, and the new grids' in `after.sha256`.
+
 **Correction notice, 2026-09-29: Ireland's row moves with the corrected
 wind-fleet register, and the other country rows stand.** Since `acfbbfa`
 (#73), a year's fleet from the Global Wind Power Tracker includes projects
@@ -962,18 +1064,23 @@ carries the figures after the joint fit's tolerance fix (`26e0b67`); see the
 second notice of that date. Norway's corrected RMSE is 0.0357.]* *[Note, 2026-09-29: Ireland's row carries the
 figures after the fleet-register correction, 0.024 to 0.021 corrected; France
 and Italy move below this table's precision. See the notice of that date.]*
+*[Note, 2026-10-16: every row carries the figures with offshore farms on their
+own grid points. Belgium moves, 0.123 to 0.161 uncorrected and 0.021 to 0.019
+corrected; France 0.027 to 0.026 corrected, still worse than uncorrected, and
+its uncorrected MBE from -0.002 to -0.004; Norway 0.028 to 0.026 on the same
+degenerate fit. See the notice of that date.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
-| France (FR) | 0.020 | 0.027 | -0.002 | +0.012 | N=10 fixed † | per timestep | 0% |
-| Belgium (BE) | 0.123 | **0.021** | +0.116 | +0.007 | N=3 season | per timestep | 0% |
+| France (FR) | 0.020 | 0.026 | -0.004 | +0.011 | N=10 fixed † | per timestep | 0% |
+| Belgium (BE) | 0.161 | **0.019** | +0.156 | +0.003 | N=3 season | per timestep | 0% |
 | Ireland (IE) | 0.045 | **0.021** | +0.036 | +0.006 | N=1 season | per timestep | 0% |
-| Sweden (SE) | 0.098 | **0.035** | -0.097 | -0.031 | N=4 fixed | per timestep | 0% |
-| Norway (NO) | 0.129 | **0.028** | -0.125 | -0.016 | N=4 fixed † | per timestep | 0% |
+| Sweden (SE) | 0.098 | **0.035** | -0.096 | -0.031 | N=4 fixed | per timestep | 0% |
+| Norway (NO) | 0.128 | **0.026** | -0.124 | -0.014 | N=4 fixed † | per timestep | 0% |
 | Spain (ES) | 0.071 | **0.030** | -0.070 | +0.010 | N=4 fixed | per timestep | 0% |
 
 France's corrected RMSE is above its uncorrected one: on its own curve the
-uncorrected series is nearly unbiased (MBE -0.002), and the correction adds
+uncorrected series is nearly unbiased (MBE -0.004), and the correction adds
 error.
 
 **† The fit behind this row is degenerate** (bounds as in the turbine-level
