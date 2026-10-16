@@ -283,8 +283,63 @@ def _curve_matrix(
     return speeds, cf, names, turbine_curve, missing
 
 
-def build_cache(spec: RegionSpec, split: str = "train") -> RegionCache:
-    """Build one region/split cache from the same inputs the incumbent uses."""
+def apply_fleet_override(
+    turb_info: pd.DataFrame, override: pd.DataFrame
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Replace a unit's coordinates and hub height from a per-unit source.
+
+    The German fleet sits at postcode centroids, and the Marktstammdatenregister
+    gives a coordinate and a hub height per turbine (issue #12). A unit the
+    override does not name keeps what it had, because its observations still
+    cover it: the result is a fleet of mixed location resolution, and the
+    record says how much of it moved.
+
+    Args:
+        turb_info: Fleet metadata with ``ID``, ``lon``, ``lat`` and ``height``.
+        override: ``ID`` and any of ``lon``, ``lat``, ``height`` to replace.
+
+    Returns:
+        The fleet, and a record of how many units and how much capacity moved.
+    """
+    fleet = turb_info.copy()
+    fleet["ID"] = fleet["ID"].astype(str)
+    table = override.copy()
+    table["ID"] = table["ID"].astype(str)
+    columns = [c for c in ("lon", "lat", "height") if c in table.columns]
+    table = table.drop_duplicates("ID").set_index("ID")[columns]
+
+    named = fleet["ID"].isin(table.index)
+    for column in columns:
+        replacement = fleet["ID"].map(table[column])
+        fleet[column] = replacement.where(replacement.notna(), fleet[column])
+
+    if "capacity" in fleet.columns:
+        capacity = pd.to_numeric(fleet["capacity"], errors="coerce").fillna(0.0)
+    else:
+        capacity = pd.Series(0.0, index=fleet.index)
+    record = {
+        "units_total": int(len(fleet)),
+        "units_overridden": int(named.sum()),
+        "capacity_share_overridden": float(capacity[named].sum() / capacity.sum())
+        if capacity.sum() > 0
+        else 0.0,
+        "columns": columns,
+        "distinct_locations_before": int(len(turb_info[["lon", "lat"]].drop_duplicates())),
+        "distinct_locations_after": int(len(fleet[["lon", "lat"]].drop_duplicates())),
+    }
+    return fleet, record
+
+
+def build_cache(
+    spec: RegionSpec, split: str = "train", fleet_override: pd.DataFrame | None = None
+) -> RegionCache:
+    """Build one region/split cache from the same inputs the incumbent uses.
+
+    ``fleet_override`` replaces per-unit coordinates and hub heights before any
+    ERA5 or terrain work, so the whole cache rests on the moved locations. It
+    applies to a turbine-level fleet only, and the record travels in
+    ``fleet_record["fleet_override"]``.
+    """
     if split not in ("train", "test"):
         raise ValueError(f"split must be 'train' or 'test', got {split!r}")
 
@@ -302,8 +357,23 @@ def build_cache(spec: RegionSpec, split: str = "train") -> RegionCache:
         capacity_years = np.zeros(0, dtype="int64")
         capacity_by_year = np.zeros((0, 0))
         fleet_record = {}
+        if fleet_override is not None:
+            turb_info, override_record = apply_fleet_override(turb_info, fleet_override)
+            fleet_record["fleet_override"] = override_record
+            print(
+                f"  {spec.code}/{split}: moved {override_record['units_overridden']} of "
+                f"{override_record['units_total']} units "
+                f"({override_record['capacity_share_overridden']:.1%} of capacity), "
+                f"{override_record['distinct_locations_before']} -> "
+                f"{override_record['distinct_locations_after']} distinct locations"
+            )
     else:
         raise ValueError(f"{spec.code}: unsupported obs_level {spec.obs_level!r}")
+    if fleet_override is not None and spec.obs_level != "turbine":
+        raise ValueError(
+            f"{spec.code}: a fleet override applies to a turbine-level fleet, "
+            f"not to obs_level {spec.obs_level!r}"
+        )
     print(f"  {spec.code}/{split}: {len(turb_info)} units ({spec.obs_level}), years {years}")
 
     lon = turb_info["lon"].to_numpy(dtype=float)

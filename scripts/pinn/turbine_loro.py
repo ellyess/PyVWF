@@ -65,10 +65,25 @@ def margin(sd_a: float, sd_b: float) -> float:
     return max(0.002, 2.0 * pooled)
 
 
-def arm_table(raw: pd.DataFrame) -> pd.DataFrame:
-    """Per fold and arm: seed means and seed SDs of each metric."""
+def scored_on(raw: pd.DataFrame, subset: str = "all") -> pd.DataFrame:
+    """The rows scored on one unit set.
+
+    With ``--score-subset`` a fold writes each arm and seed twice, on the whole
+    fleet (``subset == "all"``) and on the named units (``"named"``). Only the
+    whole-fleet rows are gated; averaging both together would mix two fleets
+    in one seed mean and one seed spread. A table from before the column
+    existed holds whole-fleet rows only.
+    """
+    if "subset" not in raw.columns:
+        return raw if subset == "all" else raw.iloc[0:0]
+    return raw[raw["subset"] == subset]
+
+
+def arm_table(raw: pd.DataFrame, subset: str = "all") -> pd.DataFrame:
+    """Per fold and arm: seed means and seed SDs of each metric, on one unit set."""
     return (
-        raw.groupby(["fold", "arm"])
+        scored_on(raw, subset)
+        .groupby(["fold", "arm"])
         .agg(
             spatial=("spatial_rmse", "mean"),
             spatial_sd=("spatial_rmse", "std"),
@@ -156,6 +171,12 @@ def report(out: Path, tag: str) -> None:
     with open(out / f"turbine_{tag}_gates.json", "w", encoding="utf-8") as fh:
         json.dump(g, fh, indent=2)
         fh.write("\n")
+    named = arm_table(raw, "named")
+    if len(named):
+        print("\n### Reported, not gated: the named units only (--score-subset)\n")
+        for col in ("spatial", "level", "rmse", "mbe"):
+            print(f"{col}:")
+            print(named.pivot(index="fold", columns="arm", values=col).round(5).to_string())
     sec = out / f"turbine_{tag}_secondary.csv"
     if sec.exists():
         s = pd.read_csv(sec)
@@ -172,7 +193,41 @@ def main():
     ap.add_argument("--hidden", type=int, default=0)
     ap.add_argument("--config", action="append", default=[], metavar="CODE=PATH")
     ap.add_argument("--cache", required=True)
+    ap.add_argument(
+        "--cache-override",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="read CODE's cache from PATH instead of --cache; repeatable. DE "
+        "is rebuilt on MaStR coordinates and hub heights in its own directory "
+        "(issue #12), and the other regions' caches are untouched.",
+    )
+    ap.add_argument(
+        "--score-subset",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="also score CODE's fold on the units named in PATH (a CSV with an "
+        "ID column), reported beside the full fleet as subset=named. Reported, "
+        "not gated: the MaStR location check of issue #12.",
+    )
+    ap.add_argument(
+        "--folds",
+        nargs="+",
+        default=None,
+        help="score these folds only, leaving the training pool as --regions "
+        "defines it. Used to repeat one fold on another cache.",
+    )
     ap.add_argument("--gwa", required=True, help="directory written by gwa_ratio.py")
+    ap.add_argument(
+        "--gwa-override",
+        action="append",
+        default=[],
+        metavar="CODE=PATH",
+        help="read CODE's GWA ratios from PATH instead of --gwa; repeatable. "
+        "A ratio is computed at the cache's own locations, so a region read "
+        "from an overridden cache needs the ratios built on that cache.",
+    )
     ap.add_argument("--out", required=True)
     ap.add_argument("--tag", default="primary")
     ap.add_argument("--no-secondary", action="store_true")
@@ -222,24 +277,74 @@ def main():
                 f"{config_paths[c]} is {spec.code}/{spec.obs_level}, not a turbine-level {c}"
             )
 
+    cache_of = {}
+    for item in args.cache_override:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--cache-override expects CODE=PATH, got {item!r}")
+        cache_of[code] = path
+    unknown = set(cache_of) - set(codes) - set(extra)
+    if unknown:
+        raise SystemExit(
+            f"--cache-override names regions this run does not load: {sorted(unknown)}"
+        )
+
+    def cache_for(code):
+        return cache_of.get(code, args.cache)
+
+    subsets = {}
+    for item in args.score_subset:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--score-subset expects CODE=PATH, got {item!r}")
+        subsets[code] = set(pd.read_csv(path, dtype={"ID": str})["ID"].astype(str))
+
+    folds = list(codes) if args.folds is None else [c for c in codes if c in set(args.folds)]
+    missing = set(args.folds or []) - set(codes)
+    if missing:
+        raise SystemExit(f"--folds names regions this run does not load: {sorted(missing)}")
+
+    gwa_of = {}
+    for item in args.gwa_override:
+        code, sep, path = item.partition("=")
+        if not sep or not path:
+            raise SystemExit(f"--gwa-override expects CODE=PATH, got {item!r}")
+        gwa_of[code] = path
+    unknown_gwa = set(gwa_of) - set(codes) - set(extra)
+    if unknown_gwa:
+        raise SystemExit(
+            f"--gwa-override names regions this run does not load: {sorted(unknown_gwa)}"
+        )
+    # A cache read from elsewhere needs its ratios from the same locations, or
+    # the fold would train on MaStR coordinates and centroid-derived ratios.
+    mismatched = sorted(set(cache_of) - set(gwa_of))
+    if mismatched:
+        raise SystemExit(
+            f"--cache-override without --gwa-override for {mismatched}: the GWA "
+            "ratio is computed at the cache's own locations, so both must move "
+            "together. Build the ratios on the overridden cache first."
+        )
+
     def ratios(code, split):
-        table = pd.read_csv(Path(args.gwa) / f"{code}_{split}.csv", dtype={"ID": str})
+        table = pd.read_csv(
+            Path(gwa_of.get(code, args.gwa)) / f"{code}_{split}.csv", dtype={"ID": str}
+        )
         return table.set_index("ID")["ratio"]
 
     train = {
         c: attach_fixed_speedup(
-            load_regions([c], "train", args.cache, quiet=True)[0], ratios(c, "train")
+            load_regions([c], "train", cache_for(c), quiet=True)[0], ratios(c, "train")
         )
         for c in codes
     }
     test = {
         c: attach_fixed_speedup(
-            load_regions([c], "test", args.cache, quiet=True)[0], ratios(c, "test")
+            load_regions([c], "test", cache_for(c), quiet=True)[0], ratios(c, "test")
         )
         for c in codes
     }
     countries = (
-        {c: load_regions([c], "test", args.cache, quiet=True)[0] for c in extra}
+        {c: load_regions([c], "test", cache_for(c), quiet=True)[0] for c in extra}
         if secondary
         else {}
     )
@@ -256,6 +361,8 @@ def main():
                 "argv": sys.argv[1:],
                 "torch_version": torch.__version__,
                 "cache": args.cache,
+                "cache_overrides": cache_of,
+                "gwa_overrides": gwa_of,
                 "gwa": args.gwa,
                 "gwa_record": gwa_record,
                 "configs": config_record(config_paths),
@@ -274,6 +381,8 @@ def main():
                     "fleet_columns": list(FLEET),
                     "secondary": secondary,
                     "country_folds": extra,
+                    "folds": folds,
+                    "score_subsets": {c: len(ids) for c, ids in subsets.items()},
                 },
                 "regions": {
                     c: {"train": region_record(train[c]), "test": region_record(test[c])}
@@ -300,7 +409,7 @@ def main():
         )
 
     rows, physics, records = [], [], {}
-    for fold in codes:
+    for fold in folds:
         t0 = time.time()
         te, spec = test[fold], specs[fold]
         pool = [c for c in codes if c != fold]
@@ -323,15 +432,35 @@ def main():
             f = restricted[label]
             m = level_spatial(f)
             m["mbe"] = float(np.average(f.cf_sim - f.cf_obs, weights=f.capacity))
-            rows.append(dict(fold=fold, arm=arm, seed=seed, **m))
+            rows.append(dict(fold=fold, arm=arm, seed=seed, subset="all", **m))
+            named = subsets.get(fold)
+            if named:
+                # The same arms and seeds, scored on the named units only, so
+                # the subset can be compared with the same units elsewhere.
+                g = f[f["ID"].astype(str).isin(named)]
+                if len(g):
+                    m = level_spatial(g)
+                    m["mbe"] = float(np.average(g.cf_sim - g.cf_obs, weights=g.capacity))
+                    rows.append(dict(fold=fold, arm=arm, seed=seed, subset="named", **m))
         records[fold] = {"pool": pool, "rows_excluded": int(len(excluded))}
+        if fold in subsets:
+            scored = restricted["uncorrected"]
+            named_rows = scored["ID"].astype(str).isin(subsets[fold])
+            records[fold]["named_subset"] = {
+                "units_named": len(subsets[fold]),
+                "rows_named": int(named_rows.sum()),
+                "rows_all": int(len(scored)),
+                "capacity_share": float(
+                    scored.loc[named_rows, "capacity"].sum() / scored["capacity"].sum()
+                ),
+            }
         raw = pd.DataFrame(rows)
         raw.to_csv(out / f"turbine_{args.tag}_raw.csv", index=False)
         pd.DataFrame(physics).to_csv(out / f"turbine_{args.tag}_physics.csv", index=False)
         with open(out / f"turbine_{args.tag}_record.json", "w", encoding="utf-8") as fh:
             json.dump(records, fh, indent=2)
             fh.write("\n")
-        sub = raw[raw.fold == fold].groupby("arm", sort=False)
+        sub = scored_on(raw[raw.fold == fold]).groupby("arm", sort=False)
         for arm, g in sub:
             print(
                 f"  {arm:12s} spatial {g.spatial_rmse.mean():.5f}  level {g.level_rmse.mean():.5f}"

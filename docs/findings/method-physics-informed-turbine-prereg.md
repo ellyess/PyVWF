@@ -79,6 +79,146 @@ If the match fails, the DE fold runs on the caches as they stand, and the
 postcode resolution is a caveat on the DE result. Either way the gates, arms and
 predictions do not change.
 
+### Deviation, 2026-09-20: the match, and what was rebuilt
+
+**Recorded before any fit.** The MaStR export completed on 2026-09-18 at the
+size its README states. `scripts/pinn/mastr_match.py` (`c4c6dc1`) parsed
+`EinheitenWind.xml`: 43,540 wind units, 42,234 with a coordinate.
+
+**The match is on postcode, capacity, commissioning date and rotor diameter,
+not model.** This registration named model, and the German register has none:
+it records a manufacturer, a rating, a rotor diameter and a date, and no model
+designation (`scorecard.md`). Rotor diameter stands in for it and hub height
+breaks ties. A pair must clear 2% on rating, 2 m on rotor and 400 days on the
+commissioning date, inside one postcode, and each MaStR unit is used at most
+once.
+
+**Match rate.** 6,206 of the register's 11,433 turbines, 54.3%. On the fleets
+the caches use it is higher, because the register holds machines that were
+dismantled before MaStR began: **72.0% of the DE training fleet's 4,288 units
+and 70.9% of its capacity**, and 64.9% of the test fleet's 4,814 units and
+60.4% of its capacity. Unmatched: 4,697 with no candidate within tolerance and
+530 in a postcode MaStR does not cover. The rate rises with commissioning
+decade across the register: 7% for the 1980s, 38% for the 1990s, 69% for the
+2000s, 80% for the 2010s.
+
+**What was rebuilt.** The DE caches only, at `14722be` from a clean tree, into
+`output/pinn_turbine_2026-09-18/cache_mastr/`, with the same
+`configs/regions/scorecard/de_k100.toml` the existing caches used, so
+locations and hub heights are the only inputs that change. Train: 3,074 of
+4,288 units moved, 70.7% of capacity, 579 to 3,297 distinct locations. Test:
+3,114 of 4,814 moved, 60.2% of capacity, 622 to 3,410. A unit the match did
+not cover keeps its postcode centroid, so **the DE fold runs on a fleet of
+mixed location resolution**, and that is a caveat on the DE result rather than
+on the study. Every other region's cache is untouched.
+
+**Commands that change.** The turbine study reads DE from the rebuilt
+directory with `--cache-override DE=output/pinn_turbine_2026-09-18/cache_mastr`,
+added to `scripts/pinn/turbine_loro.py` for this deviation; every other region
+still comes from `--cache`.
+
+**A GWA ratio belongs to the locations it was computed at**, so DE's ratios
+are built a second time on the rebuilt caches, into their own directory
+`output/pinn_turbine_2026-09-18/gwa_mastr/`, and the study reads them with
+`--gwa-override DE=...`. The centroid ratios stay in
+`output/pinn_turbine_2026-09-18/gwa/` because the centroid comparison run
+needs them. The medians differ as the move would suggest: DE train 1.1666 at
+the centroids against 1.1752 at the MaStR points, DE test 1.1425 against
+1.1494. `turbine_loro.py` refuses to start where a cache is overridden and
+its ratios are not, so the two cannot drift apart unnoticed: the first attempt
+on 2026-09-20 began with centroid ratios under the rebuilt cache, was stopped
+after seven minutes with no result written, and that guard is the fix.
+
+### Reported check, not a gate: does moving the locations help?
+
+**Recorded before the run starts.** The rebuild changes DE's locations for
+about 70% of its capacity and leaves the rest on postcode centroids, so the
+full DE fold mixes two resolutions and cannot say on its own whether the
+move helped. Three figures are therefore reported together for the DE
+holdout, on the same arms and seeds:
+
+1. **Mixed fleet, MaStR run.** The DE fold as the study runs it, on
+   `cache_mastr`, scored on the whole fleet. This is the figure the study
+   reports.
+2. **Matched units, MaStR run.** The same run, scored on the matched units
+   alone (`--score-subset DE=.../de_fleet_override.csv`).
+3. **Matched units, centroid run.** The same fold, same pool, same arms and
+   seeds, on the previous centroid caches, scored on those same units
+   (`--folds DE --tag de-centroid`, no cache override).
+
+2 against 3 is the comparison that isolates the locations: identical units,
+identical observations, identical training pool, and the only difference is
+where those units stand and how tall they are. 1 is reported beside them so
+the mixed-fleet figure the study carries is never read as though it were
+that comparison.
+
+**What each outcome would mean for the location hypothesis**, written down
+before the numbers exist:
+
+| Matched units, MaStR against centroid | Mixed fleet against the centroid fold | Reading |
+|---|---|---|
+| better | better | The locations were a real limit on the DE fold, and the rebuild relieves part of it. The residual gap to other folds is then about the 30% still on centroids, not about Germany being different. |
+| better | not better | The move helps where it reaches and the unmoved 70% of units dilute it. The mixed figure understates the method, and the DE result stays caveated on resolution rather than on the model. |
+| no change | either | Location resolution was not what held the DE fold back at this scale. The postcode caveat stands as a caveat but stops being the leading explanation, and the German gap needs another one. |
+| worse | either | Something in the rebuild is wrong, not informative: the same units cannot genuinely simulate worse from their own coordinates than from a postcode centroid. The first suspects are the match itself (a wrong unit's coordinates), the hub heights, and the ERA5 interpolation at the new points. No claim would be made from it without that being settled. |
+
+The check reports RMSE, its level and spatial decomposition and MBE, as the
+study's own metrics section defines them. It gates nothing, and it cannot
+change a gate's outcome.
+
+**The gates, arms and predictions do not change.**
+
+### Deviation, 2026-10-16: the run, four weeks on
+
+**Recorded before any fit.** The study did not run on 2026-09-20. The
+deviation above and its code sat on a branch that was never merged, and this
+records what changed before the run on 2026-10-16. Claude Code made these
+changes overnight, at the maintainer's request that open work proceed without
+them; the maintainer had not reviewed them when this was committed. None
+changes a fold, arm, metric, gate or prediction.
+
+- **The code is ported.** The 2026-09-20 commits (`c4c6dc1`, `14722be`,
+  `c85b765`, `deafc5b`, `bfb8c5f`) are carried onto current `main` as new
+  commits. The originals stay on branch `terrain-study-run` as the record of
+  the code the German caches (`14722be`) and their ratios (`deafc5b`) were
+  built with; neither is rebuilt.
+- **The interpreter.** `/opt/anaconda3/bin/python` was retired on 2026-09-24.
+  The run uses `/opt/miniconda3/envs/pyvwf/bin/python`: Python 3.13, torch
+  2.13.0, numpy 2.3.5, pandas 2.3.3.
+- **Code that moved since registration, outside this study's own files.** The
+  package is imported as `pyvwf`, not `vwf` (`4d06163`); the UK station collapse
+  changed (`967b485`), and so did the rule for missing values in every
+  capacity-weighted mean, `pyvwf.pinn.train` and `pyvwf.pinn.runs` included
+  (`d68b542`, after the 2026-09-20 branch was cut). The run uses the code as it
+  stands.
+- **A defect fixed before the run.** With `--score-subset`, the matched-unit
+  rows were written beside the whole-fleet rows and the gates averaged both
+  together, so the German fold's gated means and seed spreads would have mixed
+  the two. The gates, the arm table and the progress lines now read the
+  whole-fleet rows only; the matched-unit rows are reported in a table of their
+  own, as the check above registers.
+- **The ratios are reused.** `gwa/` and `gwa_mastr/` were built on a clean tree
+  at `deafc5b` and are not regenerated.
+- **The run goes through the run lock** (`scripts/dev/run_locked.py`), and
+  `scripts/pinn/run_turbine_study.sh` is its single command.
+- **T0's wording.** The German cache manifest records `14722be`, the commit it
+  was built at, not the leave-one-country-out caches' commit.
+- **Secondary scoring.** The country caches carry their 2023 grids as built on
+  2026-09-16. Those predate the rebuild on the corrected fleet register (#76)
+  and the offshore grid points of 2026-10-16. The secondary scoring is ungated,
+  and its country figures are read as of those grids.
+
+**The command**, from the repository root on a clean tree:
+
+```bash
+caffeinate -i /opt/miniconda3/envs/pyvwf/bin/python scripts/dev/run_locked.py -- \
+  bash scripts/pinn/run_turbine_study.sh
+```
+
+It skips both ratio passes, whose outputs exist, and runs the primary study
+and then the German centroid comparison, each with the flags the deviation of
+2026-09-20 gives.
+
 ## Folds
 
 Nine turbine-level regions, one held out at a time. Each is trained on its
@@ -202,12 +342,12 @@ regions are the seven marked above.
 
 | Gate | Requirement | Outcome |
 |---|---|---|
-| **T0** records | The study manifest records `git_dirty: false` at a commit containing this document and the code below. The cache manifest records `5960efd` and `git_dirty: false`. The library hash is `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. No cache has a substituted unit, and roughness is `derived` in every cache. **A failure means no metric is read until it is explained.** | |
-| **T1** terrain term | `relief-only` spatial RMSE is below `no-terrain` by more than the margin in at least 5 of 7 gated regions. | |
-| **T2** features | `full` spatial RMSE is below `relief-only` by more than the margin in at least 5 of 7 gated regions. | |
-| **T3** negative control | In DK, `full` and `relief-only` are each within the margin of `no-terrain` on spatial RMSE. | |
-| **T4** floor | `full` per-unit RMSE is below `uncorrected` in at least 5 of 7 gated regions, and above it by more than 10% relative in none. | |
-| **T5** learned against atlas | `full` spatial RMSE is below `gwa-ratio` by more than the margin in at least 5 of 7 gated regions. | |
+| **T0** records | The study manifest records `git_dirty: false` at a commit containing this document and the code below. The cache manifest records `5960efd` and `git_dirty: false`. The library hash is `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. No cache has a substituted unit, and roughness is `derived` in every cache. **A failure means no metric is read until it is explained.** | **Pass** (2026-10-16, `method-physics-informed-turbine.md`) |
+| **T1** terrain term | `relief-only` spatial RMSE is below `no-terrain` by more than the margin in at least 5 of 7 gated regions. | **Pass**, 5 of 7 |
+| **T2** features | `full` spatial RMSE is below `relief-only` by more than the margin in at least 5 of 7 gated regions. | **Fail**, 2 of 7 |
+| **T3** negative control | In DK, `full` and `relief-only` are each within the margin of `no-terrain` on spatial RMSE. | **Fail**: `full` 0.021 below `no-terrain`, margin 0.0043 |
+| **T4** floor | `full` per-unit RMSE is below `uncorrected` in at least 5 of 7 gated regions, and above it by more than 10% relative in none. | **Pass**, 7 of 7, none above |
+| **T5** learned against atlas | `full` spatial RMSE is below `gwa-ratio` by more than the margin in at least 5 of 7 gated regions. | **Fail**, 2 of 7 |
 
 ### What each outcome means
 
@@ -255,13 +395,13 @@ availability. Per-unit data teaches none of them.
 
 | # | Prediction | Outcome |
 |---|---|---|
-| 1 | T1 passes. The training years show the same sign in all seven gated regions and gradients of -0.065 to -0.269. | |
-| 2 | T2 fails. Features beyond relief add less than the margin in at least 3 of 7. | |
-| 3 | T3 passes: DK shows no terrain gain. | |
-| 4 | BR shows the largest spatial gain of the `relief-only` arm over `no-terrain`, having the steepest training-year gradient. | |
-| 5 | The secondary national scoring is worse than Study A's transfer arm in the median over the six gated country-level folds. | |
-| 6 | T5 passes: `full` beats `gwa-ratio` in at least 5 of 7 gated regions. | |
-| 7 | `gwa-ratio` beats `no-terrain` on spatial RMSE by more than the margin in fewer than 4 of 7 gated regions. Gruber et al. (2022) found GWA correction of reanalysis gave little or negative improvement, and Nayak et al. (2025) found raw ERA5 beat GWA scaling in several countries. | |
+| 1 | T1 passes. The training years show the same sign in all seven gated regions and gradients of -0.065 to -0.269. | Held |
+| 2 | T2 fails. Features beyond relief add less than the margin in at least 3 of 7. | Held |
+| 3 | T3 passes: DK shows no terrain gain. | Failed |
+| 4 | BR shows the largest spatial gain of the `relief-only` arm over `no-terrain`, having the steepest training-year gradient. | Failed: AU-NEM largest |
+| 5 | The secondary national scoring is worse than Study A's transfer arm in the median over the six gated country-level folds. | Depends on the arm: `full` better, `no-terrain` and `relief-only` worse |
+| 6 | T5 passes: `full` beats `gwa-ratio` in at least 5 of 7 gated regions. | Failed |
+| 7 | `gwa-ratio` beats `no-terrain` on spatial RMSE by more than the margin in fewer than 4 of 7 gated regions. Gruber et al. (2022) found GWA correction of reanalysis gave little or negative improvement, and Nayak et al. (2025) found raw ERA5 beat GWA scaling in several countries. | Failed: 6 of 7 |
 
 ## Code this needs
 
@@ -295,9 +435,22 @@ PYTHONPATH=src /opt/anaconda3/bin/python -u scripts/pinn/gwa_ratio.py \
   --out output/pinn_turbine_2026-09-18/gwa
 ```
 
+Then, for the rebuilt German caches (deviation of 2026-09-20), into the same
+ratio directory:
+
+```bash
+PYTHONPATH=src /opt/anaconda3/bin/python -u scripts/pinn/gwa_ratio.py \
+  --regions DE --splits train test \
+  --cache output/pinn_turbine_2026-09-18/cache_mastr --gwa input/raw/gwa4 \
+  --out output/pinn_turbine_2026-09-18/gwa_mastr
+```
+
 ```bash
 PYVWF_INPUT=input/combined PYTHONPATH=src /opt/anaconda3/bin/python -u \
   scripts/pinn/turbine_loro.py --tag primary \
+  --cache-override DE=output/pinn_turbine_2026-09-18/cache_mastr \
+  --gwa-override DE=output/pinn_turbine_2026-09-18/gwa_mastr \
+  --score-subset DE=output/pinn_turbine_2026-09-18/mastr/de_fleet_override.csv \
   --cache output/pinn_loco_2026-09-16/cache \
   --gwa output/pinn_turbine_2026-09-18/gwa \
   --out output/pinn_turbine_2026-09-18/study \

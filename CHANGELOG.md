@@ -461,6 +461,14 @@ this file stay in step with it.
   its test does, because rerunning a combined-library row under the default
   root produces a difference that reads as a code change.
 
+- **The turbine-only terrain study (#12) has run and is reported**
+  (`method-physics-informed-turbine.md`). Its records gate passes; of the skill
+  gates, the terrain-term and per-unit floor gates pass and the features,
+  negative-control and atlas gates fail, and because the negative control
+  fails, the registration reads neither terrain gate as evidence about
+  terrain. Its 2026-09-20 code is carried onto the package, and a defect that
+  mixed two fleets in the German fold's gates is fixed before the run.
+
 - **The maintainer's manuscript note is out of version control.**
   `docs/design/manuscript-chapters-45.md` records decisions not yet made about
   work outside this repository, and is not documentation for anyone else. It is
