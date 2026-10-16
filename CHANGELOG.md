@@ -514,6 +514,12 @@ this file stay in step with it.
   NZ, CL and AR runbooks gain one, stating each source's terms, what is
   committed from it, and which committed curation tables cite a source per
   row. New runbooks cover AU-NEM and the eight country-level regions.
+- **Guides and design notes no longer present the removed `PyVWF` class as
+  current.** The adapter guide told contributors to call
+  `PyVWF.load_country_data()`, removed on 2026-09-24; it now shows an
+  `InMemoryCountrySource` passed to the driver as `source=`. The harness
+  design note and the output-structure guide gain dated brackets, and two
+  code comments and a docstring stop describing the legacy path as live.
 
 ## [0.6.0] - 2026-09-19
 

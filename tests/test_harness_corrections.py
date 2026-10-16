@@ -53,7 +53,7 @@ def test_affine_golden_regression_bit_for_bit(synthetic_dk):
     """AffineWindCorrection(seasons=None) == the legacy path, exactly."""
     gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
 
-    # --- legacy path, as PyVWF.train(dask_n_workers=0) runs it ---
+    # --- the core functions called directly, as the removed PyVWF.train ran them ---
     bias_df, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
     valid = bias_df[bias_df["obs"].notna() & (bias_df["obs"] > 0)].copy()
     valid["offset"] = valid.apply(

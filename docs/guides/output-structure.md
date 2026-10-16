@@ -156,15 +156,13 @@ right machine. `pyvwf.curves.add_models` matches manufacturers fuzzily, and can
 assign another manufacturer's model at the same specific power (see its
 docstring). That shows up in `assigned_by`, not in `status`.
 
-**Known gaps.** This file is written by the harness's train, evaluate and
-transfer runs only:
+**Known gap.** This file is written by the harness's train, evaluate and
+transfer runs only. `pyvwf.harness.hindcast.run_hindcast` returns frames and
+writes no run directory or manifest, so there is nowhere to put the record.
+There, a substitution is visible only as the run-time warning.
 
-- `pyvwf.harness.hindcast.run_hindcast` returns frames and writes no run
-  directory or manifest, so there is nowhere to put the record.
-- The legacy `PyVWF` path uses the same fallback curve but is not wired to
-  this file.
-
-In both, a substitution is visible only as the run-time warning.
+*[Changed 2026-10-16: the legacy `PyVWF` path was a second gap until it was
+removed on 2026-09-24.]*
 
 ## Loaded ERA5 extent (`era5_extent`)
 

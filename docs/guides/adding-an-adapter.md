@@ -105,21 +105,28 @@ commands that run it.
 | `client-csv-turbine` | turbine | none | Your own fleet, from two CSVs: metadata and monthly generation. Column names can be remapped. Build it yourself and pass it to the driver as `source=`. See [`your-own-data.md`](your-own-data.md). |
 | `entsoe-country` | country | none | The nine ENTSO-E regions' national series, from the `observations/country/` layout that `generate_country_level_training_data` writes. The driver builds one per split. |
 | `entsoe-zonal` | country | none | Per-bidding-zone observations over the same layout, one per cluster. Zonal fits are therefore exactly determined. |
-| `in-memory-country` | country | none | Wraps grid points and an observed capacity-factor series that the caller supplies. It backs `PyVWF.load_country_data()`. |
+| `in-memory-country` | country | none | Wraps grid points and an observed capacity-factor series that the caller supplies. Pass one per split to the driver as `source=`. |
 
 ## Country-level data supplied by the caller
 
 Country-level observations, such as ENTSO-E series, are fetched and cached
-outside the library. They are then handed to PyVWF:
+outside the library. Wrap the grid points and each split's observations in an
+`InMemoryCountrySource`. Pass it to the driver as `source=`:
 
 ```python
-model.load_country_data(grid_points, obs_train, obs_test)
+from pyvwf.harness.driver import run_evaluate, run_train
+from pyvwf.sources import InMemoryCountrySource
+
+train_dir = run_train(spec, out, source=InMemoryCountrySource(grid_points, obs_train))
+run_evaluate(spec, train_dir, out, source=InMemoryCountrySource(grid_points, obs_test))
 ```
 
-That call wraps each frame in an `InMemoryCountrySource`. You might ask for
-`obs_level="country"` without loading data this way, and without an adapter
-for the region. Resolution then raises `NotImplementedError`, which explains
-both options. Nothing falls back silently.
+You might ask for `obs_level="country"` without a source and without an
+adapter for the region. Resolution then raises `NotImplementedError`, which
+explains both options. Nothing falls back silently.
+
+*[Changed 2026-10-16: this section described `PyVWF.load_country_data()`,
+which was removed with the legacy path on 2026-09-24.]*
 
 The ENTSO-E regions use their own path. See
 [A country-level region](adding-a-region.md#a-country-level-region).
