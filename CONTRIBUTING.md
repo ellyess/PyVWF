@@ -179,6 +179,17 @@ versioning and stays in step with `CITATION.cff`.
   see `pyproject.toml`).
 - Keep new heavy/optional dependencies behind `try/except` imports, mirroring the
   optional visualisation import in `pyvwf/__init__.py`.
+- Split a long function on the pinned path when a change has to open it
+  anyway, not as a refactor of its own. These functions sit under the real-data
+  pins, so a split for its own sake costs a stamp and can move a pin. Split
+  only alongside a change, and run `python scripts/dev/stamp.py realdata` for
+  that change. The longest, as of 2026-09-29 (#91):
+  `sampling.cluster_with_geometries`, `sampling.create_sampling_points`,
+  `harness.driver.run_evaluate`, `data.train_set` (its country and turbine
+  branches), `correction.find_offsets_country_level`,
+  `harness.driver.run_transfer`, `harness.regions.load_region`,
+  `harness.export.export_correction_field`, `era5.prep_era5` and
+  `extensions.grid.surface.correction_surface`.
 
 ## Scientific contributions
 
