@@ -28,7 +28,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
-from pyvwf.era5 import log_roughness_from_shear
+from pyvwf.era5 import WIND_SPEED_FLOOR, Z0_BOUNDS, log_roughness_from_shear
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +104,8 @@ def calculate_roughness_from_winds(combined_ds):
     wnd100m = np.sqrt(combined_ds["u100"] ** 2 + combined_ds["v100"] ** 2)
 
     # Clip to avoid division by zero
-    wnd10m = wnd10m.clip(min=1e-4)
-    wnd100m = wnd100m.clip(min=1e-4)
+    wnd10m = wnd10m.clip(min=WIND_SPEED_FLOOR)
+    wnd100m = wnd100m.clip(min=WIND_SPEED_FLOOR)
 
     # Calculate z0 from the logarithmic profile, masked, back-filled in time
     # and clipped to the realistic range [1e-6 m, 2.0 m]
@@ -113,7 +113,7 @@ def calculate_roughness_from_winds(combined_ds):
 
     # Convert from log space
     z0 = cast(xr.DataArray, np.exp(z0_log))
-    z0 = z0.clip(min=1e-6, max=2.0)
+    z0 = z0.clip(min=Z0_BOUNDS[0], max=Z0_BOUNDS[1])
 
     # Time-average for representative roughness
     z0_mean = z0.mean(dim="time")

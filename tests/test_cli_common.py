@@ -141,3 +141,16 @@ def test_only_an_input_flag_that_leaves_the_root_is_reported(monkeypatch, capsys
 
     common.announce_path_overrides(parser, parser.parse_args(["--obs", "/tmp/elsewhere"]))
     assert "outside the input root: --obs=/tmp/elsewhere" in capsys.readouterr().err
+
+
+def test_the_label_follows_the_root_in_use_not_the_environment_alone(monkeypatch, capsys):
+    """Known positive for #88: the environment names one root, the run reads another.
+
+    PyVWFPaths reads PYVWF_INPUT once, at import. If the root is reassigned
+    afterwards, or the environment changes, the label must not claim the
+    environment chose the root the run is reading.
+    """
+    out = _announced(monkeypatch, capsys, env={"PYVWF_INPUT": "input/combined"}, root="input")
+    assert out.err.strip() == "input root: input (set in code)"
+    out = _announced(monkeypatch, capsys, root="/data/elsewhere")
+    assert out.err.strip() == "input root: /data/elsewhere (set in code)"

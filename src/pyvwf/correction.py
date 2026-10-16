@@ -87,6 +87,12 @@ OFFSET_BRACKET_STEP = 0.5
 #: The bracketed search's tolerance on the offset itself, in m/s.
 OFFSET_XTOL = 1e-6
 
+#: The interval every offset search is confined to, in m/s: the per-cluster
+#: bracketed search and the country-level joint fit. A root at either end, to
+#: within ``OFFSET_XTOL``, is refused. ``fit_quality`` and the reachability
+#: work read this limit, so it is named once.
+OFFSET_BOUNDS = (-10.0, 10.0)
+
 #: Largest capacity-factor residual the bracketed search may leave. Brent's
 #: method converges to within ``OFFSET_XTOL`` of the root, and the capacity
 #: factor changes by at most about 0.2 per m/s of offset, so a genuine root
@@ -110,7 +116,7 @@ JOINT_FIT_GTOL = 1e-8
 def _find_offset_bracketed(
     row,
     offset_arrays,
-    bounds=(-10.0, 10.0),
+    bounds=OFFSET_BOUNDS,
     bracket_step=OFFSET_BRACKET_STEP,
     xtol=OFFSET_XTOL,
     residual_tolerance=BRACKETED_MAX_RESIDUAL,
@@ -178,7 +184,7 @@ def find_offset(
     turb_info,
     reanalysis,
     powerCurveFile,
-    bounds=(-10, 10),
+    bounds=OFFSET_BOUNDS,
     verbose=False,
     seasons=None,
 ):
@@ -194,7 +200,8 @@ def find_offset(
         reanalysis (xarray.Dataset): Wind parameters on a grid.
         powerCurveFile (pandas.DataFrame): Capacity factor vs. wind speed curves.
         bounds (tuple): The interval the search is confined to, in m/s
-            (default: (-10, 10)). A root at either end is refused.
+            (default: ``OFFSET_BOUNDS``, -10 to 10). A root at either end is
+            refused.
         verbose (bool): Print warnings for failed optimizations (default: False).
         seasons: Optional season-name → month-list mapping, for regions
             whose seasons differ from the Northern-Hemisphere defaults.
@@ -331,8 +338,7 @@ def find_offsets_country_level(
     # Initial guess: all offsets = 0
     x0 = np.zeros(len(clusters))
 
-    # Bounds: offsets between -10 and +10 m/s seem reasonable
-    bounds = [(-10, 10) for _ in clusters]
+    bounds = [OFFSET_BOUNDS for _ in clusters]
 
     # A failed joint fit is refused, never replaced by a value: every offset of
     # the period is NaN, so format_bc_factors leaves the year out of each

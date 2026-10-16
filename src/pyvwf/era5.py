@@ -106,6 +106,13 @@ ROUGHNESS_TREATMENTS = ("stored", "derived")
 #: The roughness lengths the inversion may return, in metres.
 Z0_BOUNDS = (1e-6, 2.0)
 
+#: Floor on a wind speed before it enters a logarithm or a division, in m/s.
+WIND_SPEED_FLOOR = 1e-4
+
+#: Smallest |w100 - w10| from which a roughness is derived, in m/s; below it
+#: the profile is too flat to invert.
+SHEAR_FLOOR = 1e-4
+
 
 def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.DataArray:
     """The log of the roughness length z0, from the 10 m and 100 m wind speeds.
@@ -130,7 +137,7 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     num = wind100 * np.log(10) - wind10 * np.log(100)
     denom = wind100 - wind10
     # mask near-zero shear (this is what avoids divide-by-zero)
-    denom = denom.where(np.abs(denom) > 1e-4)
+    denom = denom.where(np.abs(denom) > SHEAR_FLOOR)
     z0_log = num / denom
     # physically: log(z0) < 0  ->  z0 < 1 m
     z0_log = z0_log.where(z0_log < 0)
@@ -286,8 +293,8 @@ def prep_era5(
             # np.sqrt keeps the DataArray; numpy's stubs only say ndarray.
             wnd10m = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2))
 
-            wnd10m = wnd10m.clip(min=1e-4)
-            ds["wnd100m"] = ds["wnd100m"].clip(min=1e-4)
+            wnd10m = wnd10m.clip(min=WIND_SPEED_FLOOR)
+            ds["wnd100m"] = ds["wnd100m"].clip(min=WIND_SPEED_FLOOR)
 
             z0_log = log_roughness_from_shear(wnd10m, ds["wnd100m"])
 
