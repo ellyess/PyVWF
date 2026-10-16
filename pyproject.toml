@@ -94,6 +94,15 @@ grid = [
     "rasterio>=1.3.0",
 ]
 
+# The parallel offset fit only (PYVWF_OFFSET_WORKERS > 1 in
+# pyvwf.harness.corrections): dask.distributed runs the row-wise fit across
+# worker processes. Without it a request for workers warns and fits
+# sequentially, which gives the identical result, more slowly. CI's extras job
+# installs it, and a test checks the parallel result is bit-identical.
+parallel = [
+    "dask[distributed]>=2023.0.0",
+]
+
 # The TouchDesigner export (scripts/analysis/export_voronoi_frames.py) only:
 # earcut triangulates the clipped Voronoi cells, because TouchDesigner's own
 # Python has numpy but no scipy or shapely, so every polygon has to arrive as

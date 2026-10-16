@@ -177,10 +177,18 @@ def _fit_offsets(
     (``tests/test_harness_corrections.py``). Set ``PYVWF_OFFSET_WORKERS``
     above 1 to fan the row-wise fit across that many worker processes with
     :mod:`dask.distributed`: the shared reanalysis and curves are scattered
-    once and broadcast, then ``find_offset`` runs per partition. ``find_offset`` is a pure row function, so the parallel result
-    is identical, only faster; large sweeps (high cluster counts, monthly
-    slices) are where it matters. Falls back to sequential on a small row
-    count or any cluster-startup failure.
+    once and broadcast, then ``find_offset`` runs per partition.
+    ``find_offset`` is a pure row function, so the parallel result is
+    identical, only faster; large sweeps (high cluster counts, monthly slices)
+    are where it matters.
+
+    A small row count runs sequentially, silently: it is faster that way. A
+    missing ``dask.distributed`` (the ``parallel`` extra) or a cluster that
+    fails to start also runs sequentially, with a ``RuntimeWarning``, so a
+    request for workers that cannot be met says so. A failure once the
+    workers are running, such as a worker running out of memory, propagates:
+    until 2026-10-16 every failure re-ran the fit sequentially, so a crash
+    looked like a slow run.
 
     Returns:
         A ``Series`` of offsets indexed like ``valid``.
@@ -201,7 +209,14 @@ def _fit_offsets(
     try:
         import dask.dataframe as dd
         from dask.distributed import Client, LocalCluster
-    except Exception:
+    except ImportError as exc:
+        warnings.warn(
+            f"PYVWF_OFFSET_WORKERS={workers} asks for parallel offset fits, but "
+            f"dask.distributed could not be imported ({exc}); install the "
+            "'parallel' extra. Fitting sequentially.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         return _sequential()
 
     def _fit_partition(df, clus_arg, reanalysis_arg, power_curves_arg):
@@ -213,29 +228,38 @@ def _fit_offsets(
         )
 
     npartitions = max(workers * 4, 1)
+    cluster = None
     try:
         cluster = LocalCluster(n_workers=workers, threads_per_worker=1, processes=True)
         client = Client(cluster)
-        try:
-            ddf = dd.from_pandas(valid, npartitions=npartitions)
-            clus_arg = client.scatter(clus_info, broadcast=True)
-            reanalysis_arg = client.scatter(reanalysis, broadcast=True)
-            power_curves_arg = client.scatter(power_curves, broadcast=True)
-            ddf["offset"] = ddf.map_partitions(
-                _fit_partition,
-                clus_arg,
-                reanalysis_arg,
-                power_curves_arg,
-                meta=("offset", "float"),
-            )
-            # compute preserves the row index, so the caller's index-aligned
-            # assignment lands each offset on its own row.
-            return ddf.compute()["offset"]
-        finally:
-            client.close()
+    except Exception as exc:  # noqa: BLE001 - any startup failure means no workers
+        if cluster is not None:
             cluster.close()
-    except Exception:
+        warnings.warn(
+            f"PYVWF_OFFSET_WORKERS={workers}: the dask cluster did not start "
+            f"({type(exc).__name__}: {exc}). Fitting sequentially.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         return _sequential()
+    try:
+        ddf = dd.from_pandas(valid, npartitions=npartitions)
+        clus_arg = client.scatter(clus_info, broadcast=True)
+        reanalysis_arg = client.scatter(reanalysis, broadcast=True)
+        power_curves_arg = client.scatter(power_curves, broadcast=True)
+        ddf["offset"] = ddf.map_partitions(
+            _fit_partition,
+            clus_arg,
+            reanalysis_arg,
+            power_curves_arg,
+            meta=("offset", "float"),
+        )
+        # compute preserves the row index, so the caller's index-aligned
+        # assignment lands each offset on its own row.
+        return ddf.compute()["offset"]
+    finally:
+        client.close()
+        cluster.close()
 
 
 _CORRECTIONS: dict[str, type["CorrectionModel"]] = {}

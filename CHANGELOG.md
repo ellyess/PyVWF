@@ -254,6 +254,16 @@ this file stay in step with it.
 
 ### Fixed
 
+- **The parallel offset fit says when it cannot run, and no longer hides a
+  crash.** `PYVWF_OFFSET_WORKERS` above 1 needs `dask.distributed`, which no
+  install declared, so on a clean install it silently fitted sequentially; any
+  failure once the workers ran, a worker running out of memory included,
+  silently re-ran the fit sequentially too. `dask.distributed` is now the
+  `parallel` extra; a missing one or a cluster that fails to start warns and
+  fits sequentially, and a failure on the workers propagates. The result is
+  unchanged when it runs: a new test checks the parallel fit is bit-identical
+  to the sequential one on synthetic rows, in CI's extras job.
+
 - **The ENTSO-E fetcher refuses a series with no capacity register**
   (`ENTSOEWindDataFetcher.calculate_capacity_factor`). It used to estimate
   the missing capacity by scaling up the series' own peak generation, and
