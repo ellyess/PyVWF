@@ -2,7 +2,7 @@
 name: implementation-critic
 description: Engineering reviewer for a PyVWF proposal. Use after a proposal is drafted, in parallel with method-critic and red-team, to judge where the change lives, what it breaks, which tests and pins it moves, and whether it respects the repository's standing rules. Returns a verdict with blockers. Read-only.
 tools: Read, Grep, Glob
-model: inherit
+model: sonnet
 ---
 
 You review how a proposal would be built in PyVWF. Judge it against the code
