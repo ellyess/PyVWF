@@ -94,3 +94,54 @@ def test_a_norwegian_zone_with_no_data_is_skipped(method):
     answers["NO_5"] = NoMatchingDataError()
     result = getattr(fetcher(answers), method)("NO", START, END)
     assert result.iloc[:, 0].tolist() == [400.0] * 4
+
+
+class SplitClient:
+    """Separate answers for generation and for installed capacity, per zone."""
+
+    def __init__(self, generation: dict[str, object], capacity: dict[str, object]):
+        self.generation, self.capacity = generation, capacity
+
+    @staticmethod
+    def _answer(answers, country_code):
+        answer = answers[country_code]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    def query_generation(self, country_code, **_):
+        return self._answer(self.generation, country_code)
+
+    def query_installed_generation_capacity(self, country_code, **_):
+        return self._answer(self.capacity, country_code)
+
+
+def split_fetcher(generation, capacity) -> ENTSOEWindDataFetcher:
+    obj = object.__new__(ENTSOEWindDataFetcher)
+    obj.client = SplitClient(generation, capacity)
+    return obj
+
+
+@pytest.mark.parametrize("psr_type", ["all", "onshore"])
+def test_norway_refuses_zones_present_on_one_side_only(psr_type):
+    """Known positive: capacity reports NO_3, generation has no data for it (#79)."""
+    generation: dict[str, object] = {zone: wind_frame(50.0) for zone in NORWAY_ZONES}
+    capacity: dict[str, object] = {zone: wind_frame(100.0) for zone in NORWAY_ZONES}
+    generation["NO_5"] = capacity["NO_5"] = NoMatchingDataError()
+    generation["NO_3"] = NoMatchingDataError()
+    with pytest.raises(ValueError, match=r"capacity only: \['NO_3'\]"):
+        split_fetcher(generation, capacity).calculate_capacity_factor(
+            "NO", START, END, psr_type=psr_type
+        )
+
+
+@pytest.mark.parametrize("psr_type", ["all", "onshore"])
+def test_norway_with_the_same_zones_on_both_sides_passes(psr_type):
+    """Known negative: NO_5 missing from both sides is the normal case."""
+    generation: dict[str, object] = {zone: wind_frame(50.0) for zone in NORWAY_ZONES}
+    capacity: dict[str, object] = {zone: wind_frame(100.0) for zone in NORWAY_ZONES}
+    generation["NO_5"] = capacity["NO_5"] = NoMatchingDataError()
+    cf = split_fetcher(generation, capacity).calculate_capacity_factor(
+        "NO", START, END, psr_type=psr_type
+    )
+    assert cf["capacity_factor"].tolist() == [0.5] * 4

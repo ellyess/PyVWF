@@ -259,6 +259,7 @@ class ENTSOEWindDataFetcher:
         print(f"Fetching {psr_type} wind generation for Norway (all zones)...")
 
         all_zones_data = []
+        summed: list[str] = []
 
         for zone_code, zone_name in NORWAY_ZONES.items():
             print(f"  Fetching {zone_code} ({zone_name})...")
@@ -275,6 +276,7 @@ class ENTSOEWindDataFetcher:
                     if wind_cols:
                         gen = gen_data[wind_cols].sum(axis=1)
                         all_zones_data.append(gen)
+                        summed.append(zone_code)
                         print(f"    ✓ {zone_code}: {len(gen)} data points")
                     else:
                         print(f"    ✗ {zone_code}: No wind data")
@@ -289,6 +291,7 @@ class ENTSOEWindDataFetcher:
                     if isinstance(gen, pd.DataFrame):
                         gen = gen.sum(axis=1)
                     all_zones_data.append(gen)
+                    summed.append(zone_code)
                     print(f"    ✓ {zone_code}: {len(gen)} data points")
 
             except NoMatchingDataError:
@@ -304,6 +307,10 @@ class ENTSOEWindDataFetcher:
         # Aggregate all zones
         aggregated = pd.concat(all_zones_data, axis=1).sum(axis=1)
         aggregated_df = aggregated.to_frame(name="generation_mw")
+        # Which zones the sum covers, for the coverage check in
+        # calculate_capacity_factor: each side skips a zone with no data on
+        # its own, so generation and capacity can sum different zones.
+        aggregated_df.attrs["zones"] = sorted(summed)
 
         print(f"  ✓ Aggregated {len(all_zones_data)} zones: {len(aggregated_df)} total data points")
         return aggregated_df
@@ -401,6 +408,7 @@ class ENTSOEWindDataFetcher:
         print(f"Fetching {psr_type} wind capacity for Norway (all zones)...")
 
         all_zones_data = []
+        summed: list[str] = []
 
         for zone_code, zone_name in NORWAY_ZONES.items():
             print(f"  Fetching capacity for {zone_code}...")
@@ -417,6 +425,7 @@ class ENTSOEWindDataFetcher:
                     if wind_cols:
                         cap = cap_data[wind_cols].sum(axis=1)
                         all_zones_data.append(cap)
+                        summed.append(zone_code)
                         print(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
                     else:
                         print(f"    ✗ {zone_code}: No wind capacity data")
@@ -431,6 +440,7 @@ class ENTSOEWindDataFetcher:
                     if isinstance(cap, pd.DataFrame):
                         cap = cap.sum(axis=1)
                     all_zones_data.append(cap)
+                    summed.append(zone_code)
                     print(f"    ✓ {zone_code}: {cap.iloc[-1]:.0f} MW")
 
             except NoMatchingDataError:
@@ -445,6 +455,7 @@ class ENTSOEWindDataFetcher:
         # Aggregate all zones
         aggregated = pd.concat(all_zones_data, axis=1).sum(axis=1)
         aggregated_df = aggregated.to_frame(name="capacity_mw")
+        aggregated_df.attrs["zones"] = sorted(summed)
 
         print(f"  ✓ Aggregated capacity: {aggregated_df['capacity_mw'].iloc[-1]:.0f} MW")
         return aggregated_df
@@ -504,6 +515,24 @@ class ENTSOEWindDataFetcher:
                 "from these is wrong by the share of the fleet the two disagree "
                 "about. Fetch a psr_type both sides report, or fetch each kind "
                 "separately and add the energies."
+            )
+
+        # Norway's national series sums its bidding zones, generation and
+        # capacity separately, and each sum skips a zone that reports no data.
+        # A zone on one side only would divide one fleet by another, and the
+        # wind-kind check above cannot see it: the Norwegian helpers record
+        # zones, not kinds.
+        gen_zones = gen.attrs.get("zones")
+        cap_zones = cap.attrs.get("zones")
+        if gen_zones is not None and cap_zones is not None and set(gen_zones) != set(cap_zones):
+            only_gen = sorted(set(gen_zones) - set(cap_zones))
+            only_cap = sorted(set(cap_zones) - set(gen_zones))
+            raise ValueError(
+                f"{country}: generation sums zones {sorted(gen_zones)} but installed "
+                f"capacity sums {sorted(cap_zones)} (generation only: {only_gen}; "
+                f"capacity only: {only_cap}). A capacity factor from these divides "
+                "one fleet by another. Fetch the zones separately, or for a period "
+                "both sides report."
             )
 
         # Align timeseries (capacity is usually less frequent than generation)

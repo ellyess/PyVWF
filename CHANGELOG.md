@@ -279,6 +279,14 @@ this file stay in step with it.
   `fleet_for` are not yet regenerated; the current fleet (no year) is
   unchanged.
 
+- **Norway's capacity factor is refused when generation and capacity sum
+  different bidding zones.** The national series sums the zones on each side
+  separately, and each sum skips a zone that reports no data, so a zone could
+  count in one and not the other; the existing wind-kind check never ran for
+  Norway. Both sums now record their zones, and `calculate_capacity_factor`
+  raises naming the zones on one side only. No file on disk is known to be
+  affected: NO_5 drops out of both sides.
+
 - **The physics-informed curve bank keeps its gradient on a grid knot under
   torch 2.14** (`pyvwf.pinn.physics.PowerCurveBank`). It clamped the
   interpolation fraction to 0 to 1 everywhere, and from torch 2.14 clamp
