@@ -7,18 +7,16 @@ first is pinned here (``test_the_run_name_carries_the_fleet_mode``), with the
 selection rule and the folds; the per-row output files are not tested.
 """
 
-import importlib.util
 from pathlib import Path
 
 import pandas as pd
+from support import load_script
 
 REPO = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location(
-    "cluster_selection_study",
+study = load_script(
     REPO / "scripts" / "studies" / "method-cluster-selection" / "cluster_selection_study.py",
+    "cluster_selection_study",
 )
-study = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(study)
 
 
 def test_the_run_name_carries_the_fleet_mode():

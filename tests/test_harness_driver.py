@@ -9,36 +9,8 @@ import pytest
 from pyvwf.data import train_set
 from pyvwf.harness import get_correction
 from pyvwf.harness.driver import run_evaluate, run_train
-from pyvwf.harness.regions import RegionSpec
 from pyvwf.sources import InMemoryCountrySource
-
-NH = {
-    "winter": (12, 1, 2),
-    "spring": (3, 4, 5),
-    "summer": (6, 7, 8),
-    "autumn": (9, 10, 11),
-}
-
-
-def make_spec(**overrides) -> RegionSpec:
-    base = dict(
-        code="DK",
-        name="Denmark (synthetic)",
-        source="european-turbine",
-        obs_level="turbine",
-        obs_unit="turbine",
-        train_years=(2015, 2015),
-        test_years=(2016,),
-        era5_path="era5",
-        bbox=(7.5, 13.5, 54.0, 58.2),
-        file_tag="SYN",
-        correction_model="affine-wind",
-        cluster_list=(2,),
-        time_slices=("fixed",),
-        seasons=NH,
-    )
-    base.update(overrides)
-    return RegionSpec(**base)
+from support import make_spec
 
 
 def test_driver_train_then_evaluate(synthetic_dk):

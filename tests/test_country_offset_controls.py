@@ -26,7 +26,7 @@ from pyvwf.harness.driver import _country_skill, _zonal_skill
 
 
 @pytest.fixture
-def grid():
+def grid_points():
     return pd.DataFrame(
         {
             "ID": ["g0", "g1", "g2", "g3"],
@@ -42,7 +42,7 @@ def grid():
 
 
 @pytest.fixture
-def paired(grid):
+def paired(grid_points):
     """Training pairs: two clusters, one national observation, two years."""
     rng = np.random.default_rng(0)
     frames = []
@@ -53,8 +53,8 @@ def paired(grid):
                     {
                         "year": year,
                         "month": month,
-                        "ID": grid["ID"],
-                        "sim": 0.15 + 0.2 * rng.random(len(grid)),
+                        "ID": grid_points["ID"],
+                        "sim": 0.15 + 0.2 * rng.random(len(grid_points)),
                         "obs": 0.22,
                     }
                 )
@@ -73,10 +73,10 @@ def test_scalar_only_is_registered():
     assert "scalar-only" in available_corrections()
 
 
-def test_scalar_only_offsets_are_all_zero(paired, grid):
+def test_scalar_only_offsets_are_all_zero(paired, grid_points):
     factors, _ = get_correction("scalar-only").fit(
         paired,
-        grid,
+        grid_points,
         None,
         pd.DataFrame(),
         num_clusters=2,
@@ -86,12 +86,12 @@ def test_scalar_only_offsets_are_all_zero(paired, grid):
     assert (factors["offset"] == 0).all()
 
 
-def test_scalar_only_needs_no_reanalysis(paired, grid):
+def test_scalar_only_needs_no_reanalysis(paired, grid_points):
     """It must not touch the offset solver, which is the expensive part and the
     part under test. Passing None for the reanalysis proves it never gets there."""
     factors, _ = get_correction("scalar-only").fit(
         paired,
-        grid,
+        grid_points,
         None,
         pd.DataFrame(),
         num_clusters=2,
@@ -101,7 +101,7 @@ def test_scalar_only_needs_no_reanalysis(paired, grid):
     assert len(factors) == 2
 
 
-def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
+def test_scalar_only_scalars_match_the_affine_models(paired, grid_points, monkeypatch):
     """The control is only valid if the two models differ in exactly one term.
     The affine model's offset solver is stubbed out so the comparison can run
     without ERA5, leaving the scalars as the only thing being compared."""
@@ -115,7 +115,7 @@ def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
 
     affine, _ = get_correction("affine-wind").fit(
         paired,
-        grid,
+        grid_points,
         None,
         pd.DataFrame(),
         num_clusters=2,
@@ -124,7 +124,7 @@ def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
     )
     scalar_only, _ = get_correction("scalar-only").fit(
         paired,
-        grid,
+        grid_points,
         None,
         pd.DataFrame(),
         num_clusters=2,
@@ -141,10 +141,10 @@ def test_scalar_only_scalars_match_the_affine_models(paired, grid, monkeypatch):
     assert (merged["offset_s"] == 0).all()
 
 
-def test_scalar_only_inherits_the_turbine_path(paired, grid):
+def test_scalar_only_inherits_the_turbine_path(paired, grid_points):
     factors, clus_info = get_correction("scalar-only").fit(
         paired,
-        grid,
+        grid_points,
         None,
         pd.DataFrame(),
         num_clusters=2,
@@ -160,11 +160,11 @@ def test_scalar_only_inherits_the_turbine_path(paired, grid):
 # ---------------------------------------------------------------------------
 
 
-def sim_wide(cluster_cfs, grid, periods=24):
+def sim_wide(cluster_cfs, grid_points, periods=24):
     """Wide (time x ID) simulation where each cluster holds a constant CF."""
     times = pd.date_range("2023-01-01", periods=periods, freq="15D")
     data = {"time": times}
-    for _, row in grid.iterrows():
+    for _, row in grid_points.iterrows():
         data[row["ID"]] = np.full(periods, cluster_cfs[row["cluster"]])
     return pd.DataFrame(data)
 
@@ -179,58 +179,58 @@ def zonal_obs(cluster_cfs, periods=24):
     )
 
 
-def test_per_zone_scoring_sees_error_the_national_metric_cancels(grid):
+def test_per_zone_scoring_sees_error_the_national_metric_cancels(grid_points):
     """The decisive case: one zone over-predicted and the other under-predicted
     by the same capacity-weighted amount. The national aggregate is perfect and
     every zone is wrong, so a national-only metric reports success."""
-    sim = sim_wide({0: 0.30, 1: 0.10}, grid)
+    sim = sim_wide({0: 0.30, 1: 0.10}, grid_points)
     obs = zonal_obs({0: 0.10, 1: 0.30})
 
-    per_zone = _zonal_skill(sim, obs, grid)
+    per_zone = _zonal_skill(sim, obs, grid_points)
     assert per_zone["rmse"] == pytest.approx(0.20)
     assert per_zone["n_zones"] == 2
 
     # Capacity weights are 4000 and 4000, so the national means coincide.
     national_obs = pd.DataFrame({"time": obs.index.unique(), "obs": 0.20})
-    national = _country_skill(sim, national_obs, grid)
+    national = _country_skill(sim, national_obs, grid_points)
     assert national["rmse"] == pytest.approx(0.0, abs=1e-9)
 
 
-def test_per_zone_and_national_agree_when_every_zone_is_right(grid):
-    sim = sim_wide({0: 0.25, 1: 0.25}, grid)
+def test_per_zone_and_national_agree_when_every_zone_is_right(grid_points):
+    sim = sim_wide({0: 0.25, 1: 0.25}, grid_points)
     obs = zonal_obs({0: 0.25, 1: 0.25})
-    assert _zonal_skill(sim, obs, grid)["rmse"] == pytest.approx(0.0, abs=1e-9)
+    assert _zonal_skill(sim, obs, grid_points)["rmse"] == pytest.approx(0.0, abs=1e-9)
 
 
-def test_per_zone_pools_every_zone_month(grid):
-    sim = sim_wide({0: 0.30, 1: 0.10}, grid, periods=24)
+def test_per_zone_pools_every_zone_month(grid_points):
+    sim = sim_wide({0: 0.30, 1: 0.10}, grid_points, periods=24)
     obs = zonal_obs({0: 0.10, 1: 0.30}, periods=24)
-    result = _zonal_skill(sim, obs, grid)
+    result = _zonal_skill(sim, obs, grid_points)
     # 24 fortnightly steps span 12 months; two zones pooled.
     assert result["n_months"] == 24
     assert result["n_zones"] == 2
 
 
-def test_per_zone_skips_a_zone_with_no_observation(grid):
-    sim = sim_wide({0: 0.30, 1: 0.10}, grid)
+def test_per_zone_skips_a_zone_with_no_observation(grid_points):
+    sim = sim_wide({0: 0.30, 1: 0.10}, grid_points)
     obs = zonal_obs({0: 0.30})
-    result = _zonal_skill(sim, obs, grid)
+    result = _zonal_skill(sim, obs, grid_points)
     assert result["n_zones"] == 1
     assert result["rmse"] == pytest.approx(0.0, abs=1e-9)
 
 
-def test_per_zone_returns_empty_metrics_when_nothing_lines_up(grid):
-    sim = sim_wide({0: 0.30, 1: 0.10}, grid)
-    result = _zonal_skill(sim, zonal_obs({7: 0.30}), grid)
+def test_per_zone_returns_empty_metrics_when_nothing_lines_up(grid_points):
+    sim = sim_wide({0: 0.30, 1: 0.10}, grid_points)
+    result = _zonal_skill(sim, zonal_obs({7: 0.30}), grid_points)
     assert result["n_zones"] == 0
     assert np.isnan(result["rmse"])
 
 
-def test_per_zone_weights_within_a_zone_by_capacity(grid):
+def test_per_zone_weights_within_a_zone_by_capacity(grid_points):
     """Within a zone the aggregate is capacity-weighted, matching how the
     national metric and the training path both aggregate."""
     times = pd.date_range("2023-01-01", periods=4, freq="15D")
     sim = pd.DataFrame({"time": times, "g0": 0.10, "g1": 0.30, "g2": 0.20, "g3": 0.20})
     # Zone 0 is 1000 MW at 0.10 and 3000 MW at 0.30, so 0.25.
     obs = zonal_obs({0: 0.25, 1: 0.20}, periods=4)
-    assert _zonal_skill(sim, obs, grid)["rmse"] == pytest.approx(0.0, abs=1e-9)
+    assert _zonal_skill(sim, obs, grid_points)["rmse"] == pytest.approx(0.0, abs=1e-9)

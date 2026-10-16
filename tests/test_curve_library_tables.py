@@ -8,22 +8,20 @@ that covers both fleets, and the refusal that fires when one unit would need
 two keys.
 """
 
-import importlib.util
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import load_script
 
-_SPEC = importlib.util.spec_from_file_location(
-    "curve_library_tables",
+tables = load_script(
     Path(__file__).resolve().parents[1]
     / "scripts"
     / "studies"
     / "method-curve-library"
     / "curve_library_tables.py",
+    "curve_library_tables",
 )
-tables = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(tables)
 
 
 def frame(ids, models, capacity=None, diameter=None):

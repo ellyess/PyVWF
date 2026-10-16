@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
-import importlib.util
 import io
 import sys
 from pathlib import Path
@@ -48,6 +47,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+from support import load_script
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "analysis" / "ml_transfer_retest.py"
@@ -65,9 +65,7 @@ REAL_CENTROIDS_SHA256 = "d2c897729da1d59ad597883de95c7bed14f77426e5aef30af59983c
 
 
 def _load():
-    spec = importlib.util.spec_from_file_location("ml_transfer_retest", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(SCRIPT, "ml_transfer_retest")
     return module
 
 

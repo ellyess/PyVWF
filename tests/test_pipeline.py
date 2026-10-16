@@ -18,109 +18,13 @@ also drove the legacy ``PyVWF`` class end to end; that class was removed.
 
 from __future__ import annotations
 
-from calendar import monthrange
 
-import numpy as np
-import pandas as pd
 import pytest
-import xarray as xr
 
 from pyvwf.data import cluster_train_set, train_set
 
 
-# The reanalysis spans these years; observations are generated for the same
-# window so the training merge (on year+month) has something to join on.
-YEARS = (2015, 2016)
-YEAR_TEST = 2016
-
-# The planted bias: turbines actually generate at this capacity factor, while
-# the synthetic reanalysis winds are strong enough to simulate well above it.
-# A correct bias correction must therefore scale the wind speeds *down*.
-TRUE_CF = 0.25
-
-
-def _write_era5(era5_dir, seed=11):
-    """Hourly u/v at 10 m and 100 m on a small grid inside the DK bounding box.
-
-    A west-east wind gradient gives the two turbine clusters genuinely
-    different biases, so a per-cluster correction has something to learn that a
-    single global correction could not capture.
-    """
-    era5_dir.mkdir(parents=True, exist_ok=True)
-    rng = np.random.default_rng(seed)
-
-    times = pd.date_range(f"{YEARS[0]}-01-01", f"{YEARS[-1]}-12-31 23:00", freq="h")
-    lats = np.array([55.0, 55.5, 56.0])
-    lons = np.array([8.0, 8.75, 9.5])
-    shape = (len(times), len(lats), len(lons))
-
-    # Windier in the west (low lon) than the east.
-    gradient = np.linspace(1.5, -1.5, len(lons))[None, None, :]
-    base = 10.0 + gradient + rng.normal(0.0, 1.5, size=shape)
-    base = np.clip(base, 0.5, None)
-
-    # Split into u/v components; 10 m winds follow a log profile with z0 ~ 0.05 m.
-    u100 = base / np.sqrt(2.0)
-    v100 = base / np.sqrt(2.0)
-    shear = np.log(10 / 0.05) / np.log(100 / 0.05)
-    u10, v10 = u100 * shear, v100 * shear
-
-    xr.Dataset(
-        {
-            "u100": (("time", "lat", "lon"), u100),
-            "v100": (("time", "lat", "lon"), v100),
-            "u10": (("time", "lat", "lon"), u10),
-            "v10": (("time", "lat", "lon"), v10),
-        },
-        coords={"time": times, "lat": lats, "lon": lons},
-    ).to_netcdf(era5_dir / "era5_synthetic.nc")
-
-
-def _write_fleet(dk_dir):
-    """Six onshore turbines in two spatial groups, in the DK loader's schema.
-
-    Manufacturer/capacity/diameter give a p_density of ~398, so `add_models`
-    resolves them to the nearest bundled open-library curve
-    (`NREL_Reference_5MW_126`, p_density ~401).
-    """
-    dk_dir.mkdir(parents=True, exist_ok=True)
-
-    west = [(55.1, 8.1), (55.4, 8.2), (55.2, 8.3)]
-    east = [(55.6, 9.3), (55.9, 9.4), (55.7, 9.2)]
-    rows = []
-    for i, (lat, lon) in enumerate(west + east):
-        rows.append(
-            {
-                "ID": f"t{i}",
-                "manufacturer": "Synthetic",
-                "capacity": 2000.0,  # kW
-                "diameter": 80.0,
-                "height": 100.0,
-                "lon": lon,
-                "lat": lat,
-                "location_type": "Land",
-            }
-        )
-    fleet = pd.DataFrame(rows)
-    fleet.to_csv(dk_dir / "dk_md.csv", index=False)
-
-    # Monthly generation (kWh) consistent with TRUE_CF, which is how
-    # prep_country inverts it: cf = generation / (days * 24 * capacity_kW).
-    obs = []
-    for turb in fleet.itertuples():
-        for year in YEARS:
-            for month in range(1, 13):
-                hours = monthrange(year, month)[1] * 24
-                obs.append(
-                    {
-                        "ID": turb.ID,
-                        "year": year,
-                        "month": month,
-                        "generation_kwh": TRUE_CF * hours * turb.capacity,
-                    }
-                )
-    pd.DataFrame(obs).to_csv(dk_dir / "dk_obs_2002_2020.csv", index=False)
-    return fleet
+from support import TRUE_CF, YEARS
 
 
 # ---------------------------------------------------------------------------

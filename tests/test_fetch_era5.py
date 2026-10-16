@@ -12,7 +12,6 @@ touches the network: ``cdsapi`` is imported inside ``main`` only when there is
 something to fetch.
 """
 
-import importlib.util
 import shutil
 import threading
 import time
@@ -20,13 +19,11 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from support import load_script
 
-_SPEC = importlib.util.spec_from_file_location(
-    "fetch_era5",
-    Path(__file__).resolve().parents[1] / "scripts" / "fetch" / "era5.py",
+fetch = load_script(
+    Path(__file__).resolve().parents[1] / "scripts" / "fetch" / "era5.py", "fetch_era5"
 )
-fetch = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(fetch)
 
 EU_BOX = [-12.0, 31.5, 36.0, 72.0]
 

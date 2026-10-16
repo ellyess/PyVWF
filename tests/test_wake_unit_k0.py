@@ -9,12 +9,12 @@ positive and to return a negative, as the root ``AGENTS.md`` asks.
 
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+from support import load_script
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVER = ROOT / "scripts" / "studies" / "method-wake-unit" / "k0_density_slopes.py"
@@ -22,9 +22,7 @@ DRIVER = ROOT / "scripts" / "studies" / "method-wake-unit" / "k0_density_slopes.
 
 @pytest.fixture(scope="module")
 def k0():
-    spec = importlib.util.spec_from_file_location("k0_density_slopes", DRIVER)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(DRIVER, "k0_density_slopes")
     return module
 
 

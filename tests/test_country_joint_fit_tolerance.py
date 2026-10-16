@@ -11,25 +11,15 @@ periods (45 stopped after one iteration, 2 after two), all in ES, NO and BE.
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import pytest
+from support import two_cluster_fleet
 
 from pyvwf import correction
 from pyvwf.wind import train_simulate_wind
 
 
 def _fleet(n_clusters):
-    return pd.DataFrame(
-        {
-            "ID": ["a", "b", "c", "d"],
-            "lat": [55.2, 55.4, 55.6, 55.8],
-            "lon": [8.2, 8.4, 8.6, 8.8],
-            "height": [100.0] * 4,
-            "capacity": [1000.0, 3000.0, 2000.0, 2000.0],
-            "model": ["GE.1.5sle"] * 4,
-            "cluster": [0, 0, 0, 0] if n_clusters == 1 else [0, 0, 1, 1],
-        }
-    )
+    return two_cluster_fleet((0, 0, 0, 0) if n_clusters == 1 else (0, 0, 1, 1))
 
 
 def _national_cf(fleet, offsets, reanalysis, power_curve):

@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-from test_harness_driver import make_spec
-from test_pipeline import TRUE_CF, YEARS
+from support import make_spec
+from support import TRUE_CF, YEARS
 
 from pyvwf.harness.driver import run_train
 from pyvwf.harness.export import export_correction_field
