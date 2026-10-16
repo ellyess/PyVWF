@@ -1,10 +1,12 @@
 # A conda environment for running PyVWF: the conda-forge scientific stack, the
 # `data` extra (entsoe-py, openpyxl, pyarrow) and an editable install.
 #
-# It pins some versions that pyproject.toml leaves as ranges, and it is not the
-# environment CI tests. CI installs `pip install -e ".[dev,docs]"`, without the
-# `data` extra; CONTRIBUTING.md describes that route. A harness run's manifest
-# records the versions it actually ran with.
+# It takes the lower bounds pyproject.toml declares and pins nothing else, so
+# it builds on any Python PyVWF supports, 3.13 included. It is not the
+# environment CI tests: CI installs `pip install -e ".[dev]"` with the
+# constraints file for its Python version (constraints/py310.txt and so on),
+# without the `data` extra; CONTRIBUTING.md describes that route. A harness
+# run's manifest records the versions it actually ran with.
 name: pyvwf
 channels:
   - conda-forge
@@ -14,11 +16,12 @@ dependencies:
 
   # Core scientific stack
   - numpy>=1.24.0
-  - pandas=2.2.2
-  - xarray=2024.9.0
-  - dask=2025.11.0
-  - scipy=1.14.1
-  - scikit-learn=1.5.2
+  - pandas>=2.2.0
+  - xarray>=2023.0.0
+  - dask>=2023.0.0
+  - scipy>=1.10.0
+  - scikit-learn>=1.3.0
+  - threadpoolctl>=3.1.0
 
   # Geospatial
   - geopandas>=0.13.0
@@ -26,20 +29,20 @@ dependencies:
   - pyproj>=3.6.0
 
   # Visualization
-  - matplotlib=3.11.0
+  - matplotlib>=3.7.0
 
   # Data formats
-  - netcdf4=1.7.1
-  - openpyxl=3.1.5
+  - netcdf4>=1.6.0
+  - openpyxl>=3.1.0
   - pyarrow>=12.0.0
 
   # Performance
-  - bottleneck=1.4.0
+  - bottleneck>=1.3.0
 
-  # Development tools (optional)
+  # Development tools (optional). ruff is pinned to the version CI and the
+  # pre-commit hook use (tests/test_tool_pins.py checks all three agree).
   - pytest>=7.0.0
-  - black>=23.0.0
-  - ruff>=0.1.0
+  - ruff==0.16.8
 
   # Install additional packages via pip
   - pip

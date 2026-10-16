@@ -33,9 +33,14 @@ dynamic = ["version"]
 # acquisition (ENTSO-E, raw Excel fleet registries) is deliberately NOT here:
 # it needs credentials and extra libraries most users never touch. See the
 # `data` extra.
+#
+# Lower bounds only, deliberately: a library pinned from above conflicts with
+# whatever else its users install. The versions CI actually tests are the
+# constraints files in constraints/ (scripts/dev/lock.py).
 dependencies = [
-    # Core scientific stack
-    "pandas>=2.0.0",
+    # Core scientific stack. pandas 2.2 is the floor the code needs: month-end
+    # frequency "ME" and groupby(...).apply(include_groups=...) arrived in it.
+    "pandas>=2.2.0",
     "numpy>=1.24.0",
     "xarray>=2023.0.0",
     "dask[dataframe]>=2023.0.0",
