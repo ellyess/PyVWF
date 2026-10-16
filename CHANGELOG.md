@@ -13,6 +13,17 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Documentation
+
+- **The README gives a reviewer a short route through the project.** A line
+  near the top links how it is built, an "If you have five minutes" section
+  points to the results, the scorecard, the account of development with
+  coding agents and its case study, one study from registration to result and
+  one negative result, and the results section leads with a table of
+  uncorrected and corrected error per region, its markers explained directly
+  under it. The table is a copy of the scorecard's, and
+  `tests/test_readme_results.py` fails when the two disagree.
+
 ## [0.6.0] - 2026-10-16
 
 This version was first dated 2026-09-19 and was not published then. It is
