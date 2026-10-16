@@ -21,7 +21,7 @@ from typing import ClassVar, Literal
 
 import pandas as pd
 
-from pyvwf.config import PyVWFPaths
+from pyvwf.config import AGGREGATED_SUFFIX, PyVWFPaths, country_obs_stem
 from pyvwf.loaders.country_obs_checks import CountryObsReport, check_country_cf
 from pyvwf.sources.base import ObservationSource, ObsLevel
 from pyvwf.sources.registry import register
@@ -91,9 +91,8 @@ class EntsoeFileSource(ObservationSource):
         return candidates[-1]
 
     def _obs_stem(self) -> str:
-        if self.split == "train":
-            return f"{self._c}_train_{self.train_years[0]}_{self.train_years[1]}"
-        return f"{self._c}_test_{self.test_year}"
+        years = self.train_years if self.split == "train" else self.test_year
+        return country_obs_stem(self._c, self.split, years)
 
     def _obs_candidates(self) -> list[Path]:
         """Paths to try, in order.
@@ -106,7 +105,7 @@ class EntsoeFileSource(ObservationSource):
         """
         obs_dir = self._base / "observations" / self._c
         stem = self._obs_stem()
-        return [obs_dir / f"{stem}.csv", obs_dir / f"{stem}_aggregated.csv"]
+        return [obs_dir / f"{stem}.csv", obs_dir / f"{stem}{AGGREGATED_SUFFIX}.csv"]
 
     def _obs_path(self) -> Path:
         candidates = self._obs_candidates()
