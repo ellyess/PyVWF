@@ -40,7 +40,9 @@ try:
     from entsoe import EntsoePandasClient
     from entsoe.exceptions import NoMatchingDataError
 except ImportError:  # pragma: no cover - exercised only without the extra
-    EntsoePandasClient = None  # type: ignore[assignment,misc]
+    # The ignore is needed where entsoe-py is installed and unused where it is
+    # not (CI), so it also silences warn_unused_ignores.
+    EntsoePandasClient = None  # type: ignore[assignment,misc,unused-ignore]
 
     class NoMatchingDataError(Exception):  # type: ignore[no-redef]
         """Stand-in so the ``except`` clauses below stay importable.
