@@ -43,6 +43,7 @@ import ast
 import hashlib
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import warnings
@@ -106,6 +107,13 @@ SUITES = {
         requires=("torch", "rasterio"),
     ),
 }
+
+
+#: pytest's result line, with or without the `=` rule around it: counts such as
+#: "43 passed, 1232 deselected, 33 warnings", or "no tests ran", then the time.
+#: Under `-q` (the ini sets it) the rule is absent, so the last `=` line is a
+#: section header such as "warnings summary", not the result.
+RESULT_LINE = re.compile(r"(?:no tests ran|\d+ \w+(?:, \d+ \w+)*) in \d+(?:\.\d+)?s\b")
 
 
 def stamp_path(name: str) -> Path:
@@ -270,7 +278,7 @@ def main(name: str, workers: int = 1) -> int:
         )
         return 1
 
-    summary = next((ln for ln in reversed(lines) if ln.startswith("=")), "")
+    summary = next((ln for ln in reversed(lines) if RESULT_LINE.match(ln.strip("= "))), "")
     stamp = {
         "suite": name,
         "fingerprint": before,

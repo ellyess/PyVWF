@@ -458,6 +458,50 @@ def test_stamp_passes_workers_to_pytest_and_records_them(workers, expected, tmp_
     assert stamp["workers"] == workers
 
 
+#: The tail of a realdata run under `-q`: the result line has no `=` around it,
+#: so the last `=` line is the warnings header. The 2026-10-16 stamp recorded it.
+QUIET_TAIL = [
+    "........................................... [100%]\n",
+    "=============================== warnings summary ===============================\n",
+    "tests/test_x.py::test_y\n",
+    "  FutureWarning: 'H' is deprecated\n",
+    "\n",
+    "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n",
+    "43 passed, 1232 deselected, 33 warnings in 727.67s (0:12:07)\n",
+]
+
+
+@pytest.mark.parametrize(
+    ("output", "summary"),
+    [
+        (QUIET_TAIL, "43 passed, 1232 deselected, 33 warnings in 727.67s (0:12:07)"),
+        (
+            ["4 workers [43 items]\n", "===== 1 failed, 42 passed in 9.12s =====\n"],
+            "1 failed, 42 passed in 9.12s",
+        ),
+        (["===== no tests ran in 0.01s =====\n"], "no tests ran in 0.01s"),
+        (["ERROR: usage: pytest [options]\n", "= warnings summary =\n"], ""),
+    ],
+    ids=["quiet-after-warnings", "decorated", "no-tests", "no-result"],
+)
+def test_stamp_records_pytests_result_line(output, summary, tmp_path, monkeypatch):
+    module = _stamp_module()
+
+    class FakeRun:
+        def __init__(self, command, **kwargs):
+            self.stdout = iter(output)
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(module.subprocess, "Popen", FakeRun)
+    monkeypatch.setattr(module, "_git", lambda root, *args: f"{tmp_path}\n")
+    monkeypatch.setattr(module, "worktree_fingerprint", lambda root, covered: "f")
+    assert module.main("realdata") == 0
+    stamp = json.loads((tmp_path / "output/.stamp-realdata.json").read_text())
+    assert stamp["summary"] == summary
+
+
 # The suite definitions against the real repository
 
 
