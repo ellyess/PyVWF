@@ -515,6 +515,13 @@ this file stay in step with it.
 
 ### Documentation
 
+- **How agents are used in development is written down**
+  (`docs/design/ai-native-development.md`). It says who decides what, lists
+  the instructions, skills, subagents and guards with where each lives, states
+  what the record does not show, and carries a case study: the physics-informed study's stale
+  affine comparison, its first explanation and its correction notice. Its
+  counts come from `scripts/dev/repo_stats.py` at a stated commit.
+
 - **`scripts/dev/repo_stats.py` counts the development record at one commit**:
   commits, merged pull requests, test files and functions, findings documents,
   pre-registrations, correction notices, and the agent instruction files,

@@ -68,6 +68,7 @@ which is right. These are the homes of the facts most often repeated:
 | Fetching and combining ERA5 | `guides/data-sources.md`, section 3 |
 | The approved term for a concept | `CONTEXT.md` |
 | The rules for agents | `AGENTS.md` |
+| How agents are used in development, and the counts that describe it | `design/ai-native-development.md` |
 | The commit behind a published result | `publications.md` |
 
 `findings/` names carry their document type as a prefix, so two files sharing a
