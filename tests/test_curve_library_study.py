@@ -255,3 +255,72 @@ def test_the_recorded_overrides_say_which_of_them_applied_here(tmp_path):
     study._write_overrides(tmp_path, overrides({"a": "P", "b": "Q"}), absent=["b"])
     got = pd.read_csv(tmp_path / "curve_overrides.csv")
     assert list(got["applied_here"]) == [True, False]
+
+
+# --- the refusal inside a real run (#22) --------------------------------------
+#
+# The tests above pin check_overrides on hand-built frames and run_condition
+# around a faked driver. These run the real harness on the synthetic Denmark
+# fixture with the bundled open library: the real run_train, train_set and
+# prep_country, and a real override. The late-override hybrid the guard exists
+# for is a wiring failure, and wiring is what the fakes replace. Case 1 is the
+# control: each refusal below differs from it in one input only.
+
+E2E_KEYS = {"t0": "VestasV47_660kW_47", "t3": "EWT_DW52_900kW_51.5"}
+
+
+@pytest.fixture
+def real_run(synthetic_dk, monkeypatch):
+    """run_condition on the synthetic DK fleet, with only the TOML read replaced."""
+    from test_harness_driver import make_spec
+
+    monkeypatch.setattr(study, "load_region", lambda _config: make_spec())
+
+    out = synthetic_dk["root"] / "study"
+
+    def run(overrides_, **kwargs):
+        return study.run_condition(
+            "DK", "T1", out, overrides_, config=Path("synthetic.toml"), mode="onshore", **kwargs
+        )
+
+    return types.SimpleNamespace(run=run, out=out)
+
+
+def test_a_real_run_carries_the_condition_onto_the_fleet(real_run):
+    train_dir, eval_dir = real_run.run(overrides(E2E_KEYS))
+
+    for run in (train_dir, eval_dir):
+        assert run.is_dir()
+    assert (train_dir / "factors_fixed_2.csv").is_file()
+    fleet = pd.read_csv(train_dir / "train_turb_info_2.csv").assign(
+        ID=lambda f: f["ID"].astype(str)
+    )
+    carried = fleet.set_index("ID")["model"]
+    assert carried.loc["t0"] == E2E_KEYS["t0"]
+    assert carried.loc["t3"] == E2E_KEYS["t3"]
+    # The other four units keep the key add_models gave them.
+    others = carried.drop(index=["t0", "t3"])
+    assert not others.isin(E2E_KEYS.values()).any()
+
+
+def test_a_real_run_refuses_the_late_override_hybrid(real_run, monkeypatch):
+    # The condition never reaches prep_country, so the fleet the fit reads is
+    # the unmodified one. The check on train_set must refuse before any factor
+    # is written.
+    monkeypatch.setattr(study, "applied_fleet", lambda _overrides: lambda prep: prep)
+
+    with pytest.raises(
+        study.OverrideError, match=r"^train: .*carry a key the condition did not ask"
+    ):
+        real_run.run(overrides(E2E_KEYS))
+    assert not list(real_run.out.rglob("factors_*.csv"))
+
+
+def test_a_real_run_refuses_an_override_that_reaches_nothing(real_run):
+    with pytest.raises(study.OverrideError, match="not in the fleet and were not declared absent"):
+        real_run.run(overrides({"t0": E2E_KEYS["t0"], "no-such-unit": E2E_KEYS["t3"]}))
+
+
+def test_a_real_run_refuses_a_stale_inventory(real_run):
+    with pytest.raises(study.OverrideError, match="declares absent from this fleet are in it"):
+        real_run.run(overrides(E2E_KEYS), absent={"train": ["t3"]})
