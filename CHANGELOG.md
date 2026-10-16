@@ -424,6 +424,12 @@ this file stay in step with it.
   left out of a national sum that still looked complete. Only ENTSO-E's own
   no-data answer (`NoMatchingDataError`) is still empty, so a zone with no
   wind is still skipped.
+- **A country whose grid cannot be built stops the country data generator**
+  (`generate_country_level_training_data`). It used to print the error, skip
+  the country and report the run complete with exit 0, its grid missing. The
+  other countries' grids are still built; the run then lists the failures,
+  fetches no observations and exits 1. A country with no configuration counts
+  as a failure too.
 
 ### Documentation
 

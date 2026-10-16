@@ -126,10 +126,16 @@ def main():
         print("STEP 1: Generate Grid Points with Turbine Metadata")
         print("=" * 70)
 
+        # A country whose grid cannot be built is recorded and the others go on,
+        # but the run then stops with a non-zero exit naming it. It used to be
+        # skipped and the run reported "DATA GENERATION COMPLETE" with that
+        # country's grid missing, the pattern #78 removed from the fetcher.
+        failed: dict[str, str] = {}
         for country in args.countries:
             config = COUNTRY_CONFIGS.get(country.upper())
             if config is None:
                 print(f"\n✗ No configuration for {country}")
+                failed[country.upper()] = "no configuration"
                 continue
 
             try:
@@ -144,6 +150,15 @@ def main():
                 import traceback
 
                 traceback.print_exc()
+                failed[country.upper()] = f"{type(e).__name__}: {e}"
+
+        if failed:
+            print("\n" + "=" * 70)
+            print(f"✗ GRID GENERATION FAILED for {len(failed)} of {len(args.countries)}")
+            for country, reason in failed.items():
+                print(f"  {country}: {reason}")
+            print("Observations were not fetched. Fix these, or rerun without them.")
+            return 1
 
     # Fetch observations
     if not args.skip_observations:
