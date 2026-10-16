@@ -515,6 +515,15 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The physics-informed findings compare the model with the current affine
+  rows, on its own rows** (`method-physics-informed.md`, correction notice of
+  2026-10-16). Its "affine, in region" figures came from the cluster sweep of
+  2026-07-24 and were scored on the harness's rows, which leave out the units
+  the affine fit refused; those units are harder than the rest. Two
+  comparisons in section 3 are withdrawn and one stands, and the gates are
+  unaffected. `scripts/studies/physics-informed/affine_on_pinn_rows.py` does
+  the rescoring.
+
 - **The country weighting study (#67) is registered and stops at its row
   rule** (`method-country-weighting-prereg.md`, `method-country-weighting.md`).
   In five of the six rows the per-year grid capacity and the observed

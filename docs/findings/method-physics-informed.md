@@ -16,7 +16,8 @@ physics columns of section 3's first table come from the rerun at `9faa192`,
 whose cache and `e1` manifests record a clean tree
 (`output/pinn_rerun_2026-09-16/`). No other figure here is tied to a commit:
 the primary run's log names `bd1c721`, which no branch contains, and the later
-runs recorded none.
+runs recorded none. *[2026-10-16: the affine figures of the correction notice
+of that date are tied to `8dd2c2c`, in `output/pinn_affine_rescore_2026-10-16/`.]*
 
 The affine correction `w' = a*w + b` is fitted per cluster per time slice
 against observed generation. It works where it is fitted and does not transfer
@@ -48,7 +49,10 @@ different plants.** Section 3's CL "affine, in region" figure, 0.105, was
 scored on 55 plants, while its uncorrected 0.1225 covers 59 (`scorecard.md`,
 daggered-rows notice of the same date). On the same rows, the affine figure
 is 0.104 against an uncorrected 0.110. The zero-shot and MLP columns come from
-this document's own pipeline and were not rescored.
+this document's own pipeline and were not rescored. *[2026-10-16: superseded.
+On the model's own rows CL's affine figure is 0.1178 with the uncorrected value
+for its refused plants, against the model's uncorrected 0.1225; see the
+correction notice of that date.]*
 
 **Reproduction note, 2026-09-16: section 3's leave-one-region-out figures
 reproduce from a commit.** Until this date no figure in this document could be
@@ -71,7 +75,8 @@ Data: `output/pinn_rerun_2026-09-16/e1/`.
 - **What the rerun does not cover.** The RF transfer column and gate P2, the
   affine in-region column, the table of four fresh regions with Q1 and Q2, and
   the diagnostics and sensitivities of sections 1, 4 and 5. Those figures are
-  still not tied to a commit.
+  still not tied to a commit. *[2026-10-16: the affine in-region column is
+  withdrawn and replaced; see the correction notice of that date.]*
 - **How to read the ablation column.** The unconstrained model sends a mean of
   32% to 35% of capacity-weighted unit-days in the UK, US and BR past the top
   of the power curves, and up to 72% for a single seed. The curve bank scores
@@ -106,6 +111,76 @@ tree, licensed library. Test years: DK 2020, DE 2019, UK 2019, US 2022, BR
 Under the registration, the per-unit statement stops here. Stages testing
 transfer were not registered. Section 4's text stands as written, and the
 full table is in the registration's run record.
+
+**Correction notice, 2026-10-16: the "affine, in region" figures were stale
+and scored on easier rows than the model.** Both of section 3's affine columns
+were read by `e1_report.py` from the cluster sweep of 2026-07-24, which the
+scorecard has since replaced (the European re-run of 2026-09-13, the
+accepted-years refusal of 2026-09-19, the refresh of 2026-09-20 and the
+re-evaluation of 2026-09-24). They were also scored on the harness's common
+rows, which leave out every unit in a cluster the affine fit refused, while
+the model is scored on every row. The left-out units are harder than the
+rest: in Chile, where the affine frames cover 84.0% of the model's test
+capacity, leaving them out lowers the uncorrected RMSE from 0.1226 to 0.1100.
+Section 3's comparison therefore set the model against a fit scored on an
+easier subset. The two simulation chains are not the difference: on the
+model's own rows the harness's uncorrected RMSE matches the model's
+uncorrected column to within 0.0008 in every region (largest in DK, 0.1482
+against 0.1475, where the model scored 513 fewer unit-months).
+
+The current scorecard rows were rescored on the model's test rows, the way the
+model's drivers score: pseudo-replicates collapsed, then capacity-weighted
+RMSE. Data: `output/pinn_affine_rescore_2026-10-16/affine_on_pinn_rows.csv`,
+sha256 `23d28d5e…`, written by
+`scripts/studies/physics-informed/affine_on_pinn_rows.py` at `8dd2c2c` from a
+clean tree. Test years: DK 2020, DE 2019, UK 2019, US 2022, BR 2024, AR 2024,
+AU-NEM 2023, CL 2024, NZ 2024, each on the scorecard config's training years.
+"With fallback" scores the affine row on every model row, taking the
+uncorrected value for a unit the affine fit refused, which is what a user of
+the correction gets there; it is the like-for-like comparison with the model.
+"Own rows" is the scorecard's convention. The model's figures are unchanged;
+for the four fresh regions they are still not tied to a commit.
+
+| holdout | uncorrected | zero-shot | MLP, 9 regions | in region (model) | affine, with fallback | affine, own rows | capacity covered | published |
+|---|---|---|---|---|---|---|---|---|
+| DK | 0.1475 | 0.0989 | | 0.0823 | **0.0853** | 0.0853 | 100.0% | 0.0855 |
+| DE | 0.0861 | 0.0790 | | 0.0597 | **0.0571** † | 0.0570 | 99.9% | 0.0572 |
+| UK | 0.1456 | 0.1429 | | 0.1267 | **0.1253** † | 0.1159 | 94.9% | 0.1146 |
+| US | 0.1098 | 0.1072 | | 0.0909 | **0.0979** † | 0.0959 | 99.1% | 0.0978 |
+| BR | 0.1386 | 0.1062 | | 0.0954 | **0.1043** † | 0.0996 | 98.2% | 0.1054 |
+| AR | 0.1512 | 0.1294 | 0.1351 | | **0.1351** † | 0.1215 | 94.7% | 0.133 |
+| AU-NEM | 0.1153 | 0.0788 | 0.0801 | | **0.0787** † | 0.0787 | 97.6% | 0.094 |
+| CL | 0.1225 | 0.1279 | 0.1181 | | **0.1178** † | 0.1036 | 84.0% | 0.105 |
+| NZ | 0.1567 | 0.0848 | 0.0851 | | **0.1046** | 0.1046 | 100.0% | 0.106 |
+
+The uncorrected column is the model's own (the rerun for the five original
+regions). † marks a scorecard row whose fit is degenerate (`scorecard.md`), and
+every affine configuration is still chosen on the test year.
+
+What changes, on the like-for-like column:
+
+- **Zero-shot against the affine fit, original five regions:** the affine fit is
+  lower in all five, as before. Brazil's gap is 0.0019 (zero-shot 1.8% above),
+  not the 0.8% section 3 states.
+- **Zero-shot against the affine fit, four fresh regions:** the linear model is
+  lower in 2 of 4 (AR by 0.0057, NZ by 0.0198), level in AU-NEM (0.0788 against
+  0.0787) and higher in CL (by 0.0101). Section 3 states 3 of 4. The MLP model is
+  lower in NZ only, level in AR (0.1351 against 0.1351) and CL (0.1181 against
+  0.1178), and higher in AU-NEM. On the "own rows" column, the convention the
+  published figures used, the linear model is lower in NZ alone.
+- **The model fitted in region against the affine fit:** lower in DK, US and BR,
+  3 of 5, as section 3 states; higher in DE and the UK, as section 6 states.
+- **The degenerate rows:** section 3's "scalars reaching 4.8 and 46.4" in Brazil
+  and the United States were scalars of clusters since refused. Both rows are
+  still degenerate, through failed offsets (maximum scalars 2.87 and 2.72), and
+  the scorecard now daggers seven of the nine rows, not two.
+- **What stands:** P1 to P3 and Q1 to Q2, which do not read the affine columns;
+  the model's harm-free record against uncorrected ERA5; and section 6's
+  statement that the affine fit still wins in region in Germany and the UK.
+
+Single test year per region throughout. The model's seed spread is 0.0002 to
+0.0011, so the AU-NEM, AR (MLP) and CL (MLP) differences, 0.0003 or less, are
+not orderings.
 
 ## 1. Why the incumbent does not transfer
 
@@ -220,7 +295,7 @@ fitted on training regions only, five seeds.
 Leave-one-region-out: fit on the others, apply zero-shot to the holdout, score
 capacity-factor RMSE on its held-out test year.
 
-| holdout | uncorrected | RF transfer | **zero-shot** | ablation | in region | affine, in region |
+| holdout | uncorrected | RF transfer | **zero-shot** | ablation | in region | affine, in region (withdrawn 2026-10-16) |
 |---|---|---|---|---|---|---|
 | DK | 0.1464 | 0.1011 | **0.0989** | 0.2298 | 0.0823 | 0.0855 |
 | DE | 0.0860 | 0.0702 | **0.0790** | 0.1692 | 0.0597 | 0.0572 |
@@ -259,14 +334,18 @@ more than the size of the average gain.
 configuration is chosen on the test year, and `scorecard.md` flags the Brazilian
 and American rows as degenerate, with scalars reaching 4.8 and 46.4. Read those
 two as beating a fit known to be degenerate. Zero-shot Brazil matches Brazil's
-own fitted correction to 0.8%; fitted in region the model wins 3 of 5.
+own fitted correction to 0.8%; fitted in region the model wins 3 of 5. *[2026-10-16:
+withdrawn in part. The affine figures were stale and scored on easier rows; on
+the model's rows zero-shot Brazil is 1.8% above the affine fit, the 3 of 5
+stands, and the 4.8 and 46.4 belonged to clusters since refused. See the
+correction notice of that date.]*
 
 **A second gate on four regions never used as holdouts.** New Zealand, Chile,
 Argentina and the Australian NEM, chosen for difficulty: Chile and New Zealand
 have the lowest physiographic coverage in the study at 33.9% and 33.3%, and New
 Zealand has twelve farms.
 
-| holdout | uncorrected | linear, 5 regions | MLP, 9 regions | affine, in region |
+| holdout | uncorrected | linear, 5 regions | MLP, 9 regions | affine, in region (withdrawn 2026-10-16) |
 |---|---|---|---|---|
 | AR | 0.1512 | **0.1294** | 0.1351 | 0.133 † |
 | AU-NEM | 0.1153 | **0.0788** | 0.0801 | 0.094 |
@@ -275,6 +354,9 @@ Zealand has twelve farms.
 
 Both configurations beat uncorrected ERA5 in 4 of 4. Zero-shot also beats the
 in-region affine fit in 3 of 4, two of those affine rows being degenerate.
+*[2026-10-16: withdrawn. On the model's rows the linear model is lower than the
+affine fit in 2 of 4 (AR, NZ), level in AU-NEM and higher in CL, and all four
+affine rows but NZ's are degenerate. See the correction notice of that date.]*
 
 **The headline configuration is linear heads on five regions.** MLP heads on
 nine regions reach a higher mean skill on the original five (+0.338 against
