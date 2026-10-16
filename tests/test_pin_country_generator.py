@@ -159,3 +159,39 @@ def test_generator_main(case, tmp_path, monkeypatch):
         )
     else:
         assert geometry.empty
+
+
+@pytest.mark.parametrize("how", ["build raises", "no configuration"])
+def test_a_country_whose_grid_fails_stops_the_run(how, tmp_path, monkeypatch, capsys):
+    """Known positive and negative: one failed grid makes the run exit 1, naming it.
+
+    Until 2026-10-16 a failed grid build was printed and skipped, and the run
+    went on to report "DATA GENERATION COMPLETE" with exit 0. FR fails either
+    because its build raises or because its configuration is missing.
+    """
+    if how == "build raises":
+        real = gen.generate_grid_points
+
+        def failing(country, **kwargs):
+            if country == "FR":
+                raise RuntimeError("synthetic grid failure")
+            return real(country=country, **kwargs)
+
+        monkeypatch.setattr(gen, "generate_grid_points", failing)
+    else:
+        configs = {k: v for k, v in gen.COUNTRY_CONFIGS.items() if k != "FR"}
+        monkeypatch.setattr(gen, "COUNTRY_CONFIGS", configs)
+    monkeypatch.setattr(gen, "ENTSOEWindDataFetcher", FakeFetcher)
+    monkeypatch.setenv("ENTSOE_API_KEY", "not-a-real-key")
+    monkeypatch.chdir(ROOT)
+    argv = ["generate", "--countries", "BE", "FR", *YEARS, "--output-dir", str(tmp_path / "bad")]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert gen.main() == 1
+    out = capsys.readouterr().out
+    assert "  FR:" in out
+    assert "DATA GENERATION COMPLETE" not in out
+    assert not (tmp_path / "bad" / "observations").exists()
+    # The control: the same call without FR completes.
+    ok = ["generate", "--countries", "BE", *YEARS, "--output-dir", str(tmp_path / "ok")]
+    monkeypatch.setattr(sys, "argv", ok)
+    assert gen.main() in (None, 0)
