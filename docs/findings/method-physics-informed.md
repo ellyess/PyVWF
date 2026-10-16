@@ -1,5 +1,21 @@
 # A physics-informed correction for ERA5 wind
 
+**Reproduction record, added 2026-10-16.** Drivers, in
+`scripts/studies/physics-informed/`: `e1_loro.py`, `e1_report.py`,
+`e1_figures.py`, `e2_physics_audit.py`, `prep_rf_features.py`, the diagnostics
+`d0_metric_reframe.py` to `d8_hub_height_sensitivity.py`, and
+`run_overnight.sh` and `run_remaining.sh`, which launch the E stages; caches
+from `build_cache.py`, compared with the published ones by
+`g0_cache_reproduction.py`. Until
+2026-10-16 they were in `scripts/pinn/`, the path the commands of
+`method-physics-informed-rerun-prereg.md` use; `scripts/studies/README.md` maps
+each old path to its new one. Numbers: the zero-shot, ablation and in-region
+physics columns of section 3's first table come from the rerun at `9faa192`,
+whose cache and `e1` manifests record a clean tree
+(`output/pinn_rerun_2026-09-16/`). No other figure here is tied to a commit:
+the primary run's log names `bd1c721`, which no branch contains, and the later
+runs recorded none.
+
 The affine correction `w' = a*w + b` is fitted per cluster per time slice
 against observed generation. It works where it is fitted and does not transfer
 (`method-ml-transfer.md`). This documents an alternative for the case where a
@@ -10,7 +26,7 @@ mean the same thing in every region.
 Gates were fixed before any model was fitted; the record of what was registered
 and how each prediction turned out is in
 `method-physics-informed-prespecification.md`. Code: `src/pyvwf/pinn/`, drivers in
-`scripts/pinn/`, 53 tests in `tests/test_pinn_physics.py` and 7 in
+`scripts/studies/physics-informed/`, 53 tests in `tests/test_pinn_physics.py` and 7 in
 `tests/test_pinn_era5_record.py`.
 
 **Correction notice, 2026-09-11: the UK's in-region affine drop is not
