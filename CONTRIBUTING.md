@@ -78,6 +78,7 @@ That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions
 pytest -m realdata                     # every pin that reads local inputs
 python scripts/dev/ci_local.py         # first: CI's checks, in CI's Python 3.12 environment
 python scripts/dev/stamp.py realdata   # the same pins, stamped for the commit guard
+python scripts/dev/stamp.py realdata --workers 2   # the same in two processes, in about half the time
 ```
 
 Run `scripts/dev/ci_local.py` before the stamp, so a commit CI would fail does

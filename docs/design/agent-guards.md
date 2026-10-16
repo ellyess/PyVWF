@@ -135,6 +135,29 @@ serializer, not `ast.dump`: the hook runs under the first `python3` on
 the same tree differently on 3.12 and 3.13. A test pins the digest of one
 snippet on every Python in the test matrix.
 
+**A stamp may run the realdata suite in two or three processes.**
+*[Added 2026-10-16.]* `python scripts/dev/stamp.py realdata --workers N`
+runs the suite under pytest-xdist with `--dist loadfile`, one test file per
+process, and records `workers` in the stamp. Serial stays the default. Each
+pin already trains in its own subprocess, but the suite had never been run
+in parallel, so it was measured first, from the main checkout with no
+`PYVWF_INPUT` set and nothing else heavy running, on a 16 GB machine. The
+parallel runs were at `8dd2c2c` and the serial stamp at `83442de`:
+
+| Workers | Wall time | Passed / failed / skipped | Largest process | Swap used, before and after |
+|---|---|---|---|---|
+| 1 (that day's stamp) | 728 s | 43 / 0 / 0 | not measured | not measured |
+| 2 | 404 s | 43 / 0 / 0 | 9.6 GB | 1.8 GB, 2.5 GB |
+| 3 | 340 s | 43 / 0 / 0 | 8.8 GB | 2.5 GB, 3.2 GB of 4.0 GB |
+
+The largest process is `/usr/bin/time -l`'s maximum resident set, which is
+one process, not the sum. Three workers left under 1 GB of swap free, so two
+is the count to use on that machine; the script refuses more than three,
+the most measured. The wall time cannot fall much further with `loadfile`:
+`tests/test_pin_offset_fits.py` runs in one process and takes about 330 s on
+its own. The physics-informed suite has not been measured in parallel and
+accepts only one worker.
+
 ### Commit messages written before the checks
 
 **Read the checks before the commit command, not after.** Run the

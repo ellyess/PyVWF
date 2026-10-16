@@ -12,9 +12,16 @@ unless the staged content matches a passing stamp for that suite.
 
     python scripts/dev/stamp.py realdata
     python scripts/dev/stamp.py pinn
+    python scripts/dev/stamp.py realdata --workers 2
 
 A suite always runs in full: a stamp is a claim about the whole suite, so no
-pytest selection is accepted.
+pytest selection is accepted. `--workers N` runs it in N pytest-xdist
+processes, one test file per process; serial is the default, and the count is
+recorded in the stamp. A suite accepts only the counts it has been measured
+at (`max_workers`). On 2026-10-16 the realdata suite passed 43 of 43 serially
+in 728 s, with 2 workers in 404 s and with 3 in 340 s, on a 16 GB machine
+where 3 left under 1 GB of swap free. `docs/design/agent-guards.md` has the
+table.
 
 The fingerprint ignores what cannot change a result. A covered `.py` file is
 fingerprinted by its parsed syntax tree, with module, class and function
@@ -50,6 +57,8 @@ class Suite(NamedTuple):
     covered: tuple[str, ...]
     pytest_args: tuple[str, ...]
     requires: tuple[str, ...] = ()
+    #: The most xdist workers the suite has passed in full under.
+    max_workers: int = 1
 
 
 # The realdata paths are also named in src/pyvwf/AGENTS.md and CONTRIBUTING.md;
@@ -83,6 +92,7 @@ SUITES = {
             "src/pyvwf/provenance.py",
         ),
         pytest_args=("-m", "realdata"),
+        max_workers=3,
     ),
     "pinn": Suite(
         covered=("src/pyvwf/pinn/",),
@@ -212,11 +222,19 @@ def staged_covered_paths(root: Path, covered: tuple[str, ...]) -> list[str]:
     return _git(root, "diff", "--cached", "--name-only", "--", *covered).split()
 
 
-def main(name: str) -> int:
+def main(name: str, workers: int = 1) -> int:
     """Run one suite in full and write its stamp; return pytest's exit code."""
     suite = SUITES[name]
+    if not 1 <= workers <= suite.max_workers:
+        print(
+            f"The {name} suite has been measured with at most {suite.max_workers} "
+            f"worker(s), not {workers}. No stamp written.",
+            file=sys.stderr,
+        )
+        return 2
 
-    missing = [m for m in suite.requires if importlib.util.find_spec(m) is None]
+    requires = suite.requires + (("xdist",) if workers > 1 else ())
+    missing = [m for m in requires if importlib.util.find_spec(m) is None]
     if missing:
         print(
             f"The {name} suite needs {', '.join(missing)}; its tests would skip. "
@@ -231,7 +249,8 @@ def main(name: str) -> int:
     started = datetime.now(timezone.utc)
     log_path = root / "output" / f"stamp-{name}-{started:%Y%m%dT%H%M%SZ}.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    command = [sys.executable, "-m", "pytest", "-rs", *suite.pytest_args]
+    parallel = ["-n", str(workers), "--dist", "loadfile"] if workers > 1 else []
+    command = [sys.executable, "-m", "pytest", "-rs", *parallel, *suite.pytest_args]
     lines: list[str] = []
     with open(log_path, "w", encoding="utf-8") as log:
         proc = subprocess.Popen(
@@ -257,6 +276,7 @@ def main(name: str) -> int:
         "fingerprint": before,
         "head": _git(root, "rev-parse", "HEAD").strip(),
         "exit_code": code,
+        "workers": workers,
         "summary": summary.strip("= "),
         "log": str(log_path.relative_to(root)),
         "finished_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -269,8 +289,14 @@ def main(name: str) -> int:
 def cli(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("suite", choices=sorted(SUITES), help="the suite to run")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="pytest-xdist processes, one test file each (default 1, serial)",
+    )
     args = parser.parse_args(argv)
-    return main(args.suite)
+    return main(args.suite, args.workers)
 
 
 if __name__ == "__main__":

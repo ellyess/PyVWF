@@ -161,6 +161,13 @@ this file stay in step with it.
   two failures CI then caught, each after a realdata stamp had been spent.
   `tests/test_ci_local.py` checks the commands against the workflow.
 
+- **`scripts/dev/stamp.py realdata --workers N` runs the pins in parallel.**
+  Opt-in, with serial the default; the stamp records the count. Two and
+  three workers were measured against a serial run, every pin passing each
+  time, and the script refuses more than three. The physics-informed suite
+  stays serial. `docs/design/agent-guards.md` has the measurements and the
+  memory they used.
+
 - **A realdata or pinn stamp survives an edit to comments or docstrings**
   (`scripts/dev/stamp.py`). The stamp's fingerprint now reads each covered
   `.py` file's syntax tree, docstrings removed, instead of its bytes, so a

@@ -58,8 +58,9 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         ),
     ],
     "scripts/dev/stamp.py": [
-        (["realdata"], ("main", ("realdata",), {})),
-        (["pinn"], ("main", ("pinn",), {})),
+        (["realdata"], ("main", ("realdata", 1), {})),
+        (["pinn"], ("main", ("pinn", 1), {})),
+        (["realdata", "--workers", "2"], ("main", ("realdata", 2), {})),
     ],
     # The docstring gives both.
     "scripts/dev/ci_local.py": [

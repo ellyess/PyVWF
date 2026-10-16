@@ -419,6 +419,45 @@ def body(a, /, b, *, c=-1.0, d=1e-12, e=None, f=b"x", g=..., h=3j):
 EVERY_CONSTRUCT_DIGEST = "b8b56366da08ee755ee83bb6ca878caf64590becc7359f6bd390995e6d4fddec"
 
 
+# stamp.py --workers: opt-in, capped at what each suite was measured at
+
+
+def _stamp_module():
+    from support import load_script
+
+    return load_script(ROOT / "scripts/dev/stamp.py", "stamp_under_test")
+
+
+@pytest.mark.parametrize(("suite", "workers"), [("realdata", 0), ("realdata", 4), ("pinn", 2)])
+def test_stamp_refuses_an_unmeasured_worker_count(suite, workers, monkeypatch):
+    module = _stamp_module()
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: pytest.fail("ran pytest"))
+    assert module.main(suite, workers) == 2
+
+
+@pytest.mark.parametrize(("workers", "expected"), [(1, []), (2, ["-n", "2", "--dist", "loadfile"])])
+def test_stamp_passes_workers_to_pytest_and_records_them(workers, expected, tmp_path, monkeypatch):
+    module = _stamp_module()
+    commands = []
+
+    class FakeRun:
+        def __init__(self, command, **kwargs):
+            commands.append(command)
+            self.stdout = iter(["===== 43 passed in 1.00s =====\n"])
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(module.subprocess, "Popen", FakeRun)
+    monkeypatch.setattr(module, "_git", lambda root, *args: f"{tmp_path}\n")
+    monkeypatch.setattr(module, "worktree_fingerprint", lambda root, covered: "f")
+    assert module.main("realdata", workers) == 0
+    (command,) = commands
+    assert command[3:-2] == ["-rs", *expected]
+    stamp = json.loads((tmp_path / "output/.stamp-realdata.json").read_text())
+    assert stamp["workers"] == workers
+
+
 # The suite definitions against the real repository
 
 
