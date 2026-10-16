@@ -76,8 +76,18 @@ That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions
 
 ```bash
 pytest -m realdata                     # every pin that reads local inputs
-python scripts/dev/stamp.py realdata   # the same, stamped for the commit guard
+python scripts/dev/ci_local.py         # first: CI's checks, in CI's Python 3.12 environment
+python scripts/dev/stamp.py realdata   # the same pins, stamped for the commit guard
+python scripts/dev/stamp.py realdata --workers 2   # the same in two processes, in about half the time
 ```
+
+Run `scripts/dev/ci_local.py` before the stamp, so a commit CI would fail does
+not cost a stamp. It builds Python 3.12 environments from the CI constraints
+under `output/ci-local/`, without the `data` extra, so it sees pandas 3 and a
+missing `entsoe` as CI does, and runs the lint job's checks, the fast set and
+the docs build in a minute or two once the environments exist. A stamp
+survives a later edit to comments or docstrings only, so a fix to code that CI
+asks for needs a new one.
 
 State the counts, and for each pin that moved, the size of the movement.
 "No pin moved" is a claim about output you have seen, not an expectation.
@@ -141,6 +151,10 @@ and every push to `main`:
   checks that the example corrected something, that the console script and
   the curve library resolve, and that the image does not run as root
   ([docs/guides/docker.md](docs/guides/docker.md)).
+
+`python scripts/dev/ci_local.py` runs the lint job's checks, the fast set and
+the docs build locally, installed as those jobs install them; `--skip <check>`
+leaves one out.
 
 CI installs neither the `data` extra nor the other optional extras, so the
 suite and the example must pass without them. Tests that need `torch`,
