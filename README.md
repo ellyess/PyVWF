@@ -16,6 +16,10 @@ model: it implements the granular bias-correction method of
 extends it with a validation harness that fits and scores the correction
 against observed generation in fifteen regions, at turbine and country level.
 
+It was written by hand during a PhD from 2022 and has been developed AI-natively,
+with Claude Code, since mid-2026: [how it is built, and an error the process
+caught](docs/design/ai-native-development.md).
+
 Raw reanalysis winds carry systematic, location-dependent biases, so capacity
 factors simulated straight from ERA5 drift away from what fleets actually
 generate. PyVWF learns a per-cluster, per-time-slice affine correction of the
@@ -42,6 +46,24 @@ Every run writes a manifest recording the package version, the git state, the
 region config and the curve library behind the numbers, and
 [`pyvwf.viz`](docs/guides/visualisation.md) turns it into diagnostic figures,
 including maps of what the correction learned per cluster.
+
+## If you have five minutes
+
+- **What it does, and how well:** the [results table](#results) below, corrected
+  against uncorrected error in fifteen regions, each on a test year it never
+  saw, including the region where the correction makes things worse.
+- **Where each number comes from:** the [scorecard](docs/findings/scorecard.md),
+  with the run directory and the fit quality behind every row.
+- **How it is built:** [development with coding agents](docs/design/ai-native-development.md),
+  and its [case study](docs/design/ai-native-development.md#case-study-a-stale-comparison-in-the-physics-informed-study)
+  of an agent's error caught, tested and withdrawn on the record.
+- **One study from registration to result:** the turbine-only terrain study,
+  [registered](docs/findings/method-physics-informed-turbine-prereg.md) before
+  any fit and [reported](docs/findings/method-physics-informed-turbine.md) with
+  the control that failed it.
+- **A negative result:** [why correction factors do not
+  transfer](docs/findings/method-why-corrections-do-not-transfer.md) between
+  regions.
 
 ## Installation
 
@@ -88,21 +110,53 @@ plain Markdown in [`docs/`](docs/README.md), which indexes every page.
 
 ## Results
 
-The correction is fitted and scored against observed generation in fifteen
-regions on four continents, each on training years and a single test year it
-never saw. It lowers capacity-factor RMSE in all nine turbine-level fleets. In
-the country-level fleets, simulated on each grid's representative turbine, it
-lowers RMSE in five of six and raises it in France; Italy and Portugal are
-suspended, because on that turbine's curve most of their fits are refused.
-Seven of the nine turbine-level rows and two of the six country-level rows
-nevertheless rest on a degenerate fit, where a cluster's scalar falls outside
-0.2 to 3.0 or its offset did not converge, so the aggregate is real while the
-per-cluster factors are not all usable; only Denmark and New Zealand are clean
-at turbine level. A further marker on three rows says their
-gain cannot be distinguished from zero when the test year's units are
-resampled. Every number, its source path and its markers are in the
-[scorecard](docs/findings/scorecard.md), and the regions where the correction
-does not help are written up beside it in [docs/findings/](docs/findings/).
+Capacity-factor RMSE before and after correction, each region scored on
+training years and a single test year it never saw. Turbine-level rows score
+each farm or turbine; country-level rows score the national series, simulated
+on each grid's representative turbine.
+
+| Region | Level | Train → test | Uncorrected | Corrected |
+|---|---|---|---|---|
+| Germany (DE) | turbine | 2015-18 → 2019 | 0.086 | **0.057** † |
+| Denmark (DK) | turbine | 2015-19 → 2020 | 0.148 | **0.085** § |
+| Brazil (BR) | turbine | 2021-23 → 2024 | 0.130 | **0.097** † |
+| United States (US) | turbine | 2019-21 → 2022 | 0.108 | **0.096** † |
+| Australia (AU-NEM) | turbine | 2020-22 → 2023 | 0.116 | **0.079** † |
+| United Kingdom (UK) | turbine | 2015-18 → 2019 | 0.139 | 0.116 † ‡ |
+| New Zealand (NZ) | turbine | 2019-23 → 2024 | 0.157 | 0.105 ‡ |
+| Chile (CL) | turbine | 2021-23 → 2024 | 0.110 | 0.104 † ‡ |
+| Argentina (AR) | turbine | 2021-23 → 2024 | 0.140 | **0.122** † |
+| France (FR) | country | 2015-21 → 2023 | 0.020 | 0.026 † (worse) |
+| Belgium (BE) | country | 2015-21 → 2023 | 0.161 | **0.019** |
+| Ireland (IE) | country | 2017-21 → 2023 | 0.045 | **0.021** |
+| Sweden (SE) | country | 2015-21 → 2023 | 0.098 | **0.035** |
+| Norway (NO) | country | 2015-21 → 2023 | 0.128 | **0.026** † |
+| Spain (ES) | country | 2015-21 → 2023 | 0.071 | **0.030** |
+
+The correction lowers RMSE in all nine turbine-level fleets and in five of the
+six country-level ones; in France, whose uncorrected series is already nearly
+unbiased, it raises it. Read the numbers with their markers:
+
+- **†** The fit is degenerate: a cluster's scalar falls outside 0.2 to 3.0 or its
+  offset did not converge. The aggregate is real, but the per-cluster factors
+  are not all usable. Seven of the nine turbine-level rows and two of the six
+  country-level rows carry it; only Denmark and New Zealand are clean at
+  turbine level.
+- **‡** The gain cannot be distinguished from zero when the test year's units
+  are resampled.
+- **§** A small share of the fleet lies outside the loaded ERA5 extent, and its
+  winds were extrapolated.
+- Italy and Portugal are suspended: on their representative turbine's curve
+  most of their fits are refused. The Netherlands is excluded for a defect in
+  its observed series.
+- One test year per region, and screening-level throughout, not an accredited
+  yield assessment.
+
+Every number, its source path, its fit quality and the size of each marked
+share are in the [scorecard](docs/findings/scorecard.md), which is their home;
+`tests/test_readme_results.py` checks this table against it. The regions where
+the correction does not help are written up beside it in
+[docs/findings/](docs/findings/).
 
 ## Physics-informed correction (experimental)
 
