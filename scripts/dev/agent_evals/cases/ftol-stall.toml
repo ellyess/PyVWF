@@ -1,0 +1,106 @@
+# One matched pair. The critic sees only `proposal`, against a checkout of
+# `snapshot`; everything else here is the key and is never shown to it.
+
+pair = "ftol-stall"
+snapshot = "26e0b67^"
+source_commit = "26e0b67"
+source_document = "docs/findings/scorecard.md, the note on the joint fit's stopping tolerance"
+expected_catchers = ["method-critic", "implementation-critic"]
+
+defect = """
+The joint national offset fit minimises a squared capacity-factor error of
+about 1e-4 with L-BFGS-B at ftol 1e-6. L-BFGS-B divides the change in the
+objective by max(|f|, 1), so with f far below 1 the ftol acts as an absolute
+threshold: a fit whose first step lowers the error by less than 1e-6 stops
+there and reports success with the offsets still at or near their zero start.
+Offsets near zero, and success=True, are then artefacts of the stopping rule,
+not evidence that no offset is needed.
+"""
+
+judge_positive = """
+**Verdict:** REVISE. **Blockers:** the stopping tolerance is wrong for this
+objective. The squared error starts near 1e-4, and SciPy's L-BFGS-B tests the
+relative reduction against max(|f|, 1), so ftol=1e-6 is effectively absolute
+here; the optimiser can stop after one step with success=True and offsets
+still at zero. Offsets near zero would then say nothing about the physics.
+"""
+
+judge_negative = """
+**Verdict:** REVISE. **Blockers:** the test year is not stated for Ireland,
+and the comparison should be against the uncorrected run as well as the
+current affine correction, on the same curve library. The seasons are
+Northern-Hemisphere defaults; say so.
+"""
+
+[defect_arm]
+proposal = """
+**Claim:** In the country-level rows, the national capacity-factor series is
+matched by the fitted scalar alone in most periods, so the joint offset is
+near zero and could be dropped for national observations.
+
+**Mechanism:** The scalar absorbs the multiplicative wind-speed bias. If the
+remaining bias is small, the offset that closes the national error should be
+small too.
+
+**Change:** None to the method. A diagnostic reads the offsets that
+`find_offsets_country_level` in `src/vwf/correction.py` returns for every
+period of the scorecard's country rows. That fit minimises the squared error
+between the capacity-weighted simulated national capacity factor and the
+observed one, about 1e-4 at the start of a typical period, with L-BFGS-B
+(`maxiter` 50, `ftol` 1e-6), starting from zero offsets with bounds of
+±10 m/s. A period counts as fitted when `result.success` is true and no offset
+is on a bound.
+
+**Test:** The eight country rows (FR, BE, IE, SE, NO, ES, IT, PT), scorecard
+configs, training years 2015 to 2021 (IE 2017 to 2021). No test year: the
+diagnostic reads training fits only. Fleet, curve library and ERA5 files held
+fixed.
+
+**Gates:** "Offset negligible" if at least 80% of accepted periods have every
+offset within 0.1 m/s of zero. Otherwise the offset stays.
+
+**Expected effect and size:** If the scalar does its job, most offsets
+within 0.1 m/s, and the gate passes in most rows.
+
+**Risks:** Refused periods are excluded, which could bias the share upward if
+refusals cluster in hard periods.
+"""
+
+[control_arm]
+proposal = """
+**Claim:** In the country-level rows, the national capacity-factor series is
+matched by the fitted scalar alone in most periods, so the joint offset is
+near zero and could be dropped for national observations.
+
+**Mechanism:** The scalar absorbs the multiplicative wind-speed bias. If the
+remaining bias is small, the offset that closes the national error should be
+small too.
+
+**Change:** None to the method beyond its stopping tolerances. A diagnostic
+reads the offsets that `find_offsets_country_level` in `src/vwf/correction.py`
+returns for every period of the scorecard's country rows. That fit minimises
+the squared error between the capacity-weighted simulated national capacity
+factor and the observed one, about 1e-4 at the start of a typical period, with
+L-BFGS-B (`maxiter` 50), starting from zero offsets with bounds of ±10 m/s.
+Because L-BFGS-B divides the change in the objective by max(|f|, 1), the
+tolerances are set to `ftol` 1e-12 and `gtol` 1e-8 so that a small error is
+closed rather than left at the start. A period counts as fitted when
+`result.success` is true, no offset is on a bound, and the remaining squared
+error is below 1e-6; the diagnostic reports each period's iteration count and
+remaining error beside its offsets.
+
+**Test:** The eight country rows (FR, BE, IE, SE, NO, ES, IT, PT), scorecard
+configs, training years 2015 to 2021 (IE 2017 to 2021). No test year: the
+diagnostic reads training fits only. Fleet, curve library and ERA5 files held
+fixed. A synthetic fleet with known gaps from -1e-3 to 0.1 in capacity factor
+checks first that the fit closes each one.
+
+**Gates:** "Offset negligible" if at least 80% of accepted periods have every
+offset within 0.1 m/s of zero. Otherwise the offset stays.
+
+**Expected effect and size:** If the scalar does its job, most offsets
+within 0.1 m/s, and the gate passes in most rows.
+
+**Risks:** Refused periods are excluded, which could bias the share upward if
+refusals cluster in hard periods.
+"""

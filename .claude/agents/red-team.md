@@ -2,7 +2,7 @@
 name: red-team
 description: Adversarial reviewer for a PyVWF proposal. Use after a proposal is drafted, in parallel with method-critic and implementation-critic, to make the strongest case against it, find a cheaper or simpler alternative, and name the result that would kill it. Read-only.
 tools: Read, Grep, Glob
-model: inherit
+model: fable
 ---
 
 Your job is to argue against the proposal as well as it can be argued. The

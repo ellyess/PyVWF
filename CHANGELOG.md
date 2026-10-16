@@ -13,6 +13,20 @@ this file stay in step with it.
 
 ## [Unreleased]
 
+### Added
+
+- An evaluation of the three review agents (`method-critic`,
+  `implementation-critic`, `red-team`) on proposals carrying defects this
+  repository has already found, each matched with the same proposal fixed.
+  The cases, the scoring rule and the pass bar are pre-registered in
+  `docs/findings/agent-critics-prereg.md`; the cases and the driver are in
+  `scripts/dev/agent_evals/`, and `tests/test_agent_evals.py` checks the
+  scoring.
+- The evaluation's first run, recorded in `docs/findings/agent-critics.md`
+  with every review and judgement under `scripts/dev/agent_evals/runs/`. It did
+  not pass its pre-registered bar. `docs/design/ai-native-development.md`
+  gains a section on it.
+
 ### Documentation
 
 - **The README gives a reviewer a short route through the project.** A line
