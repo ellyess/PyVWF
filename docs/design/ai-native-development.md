@@ -118,7 +118,9 @@ was not trained on, with the affine correction fitted in that region. Its
 findings document is `docs/findings/method-physics-informed.md`. The error and
 its first explanation are recorded there, in the correction notice of
 2026-10-16, and in two commits: `8dd2c2c`, which adds the driver that rescored
-the comparison, and `46a039f`, which adds the correction notice.
+the comparison, and `46a039f`, which adds the correction notice. The
+comparison and its first explanation were an agent's work; no commit records
+that, and the maintainer confirmed it on 2026-10-16.
 
 **Before.** Since 2026-08-24 (`ed6c3b6`, in
 `method-physics-informed-fresh-gate.md`, folded into the findings document on
