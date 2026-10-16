@@ -42,7 +42,14 @@ from collections.abc import Sequence
 import pandas as pd
 
 from pyvwf.datasets.gwpt import DROP_CL, plant_key
-from pyvwf.time_utils import month_days
+from pyvwf.datasets.monthly import (  # noqa: F401 - re-exported names
+    DEFAULT_MIN_COVERAGE,
+    coverage_mean,
+    empty_monthly,
+    naive_local_to_utc,
+    strip_commissioning_prefix,
+    wide_monthly,
+)
 
 #: CEN generation timestamps are fixed Chilean standard time (UTC-4), with NO
 #: daylight saving applied (verified on the 2024 spring-forward day). Adding
@@ -53,9 +60,6 @@ CHILE_STD = timezone(timedelta(hours=-4))
 #: unaccented ``"Eolica"`` silently matches nothing in the CEN data.
 WIND = "eólica"
 
-#: Months with less than this fraction of expected hourly samples are NaN.
-DEFAULT_MIN_COVERAGE = 0.9
-
 
 def local_to_utc(timestamps: pd.Series) -> pd.Series:
     """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC, as the adapter does."""
@@ -64,10 +68,9 @@ def local_to_utc(timestamps: pd.Series) -> pd.Series:
 
 def _local_to_utc(timestamps: pd.Series) -> pd.Series:
     """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC."""
-    ts = pd.to_datetime(timestamps)
-    if getattr(ts.dt, "tz", None) is not None:
-        raise ValueError("CEN timestamps must be naive Chilean standard time; got tz-aware")
-    return ts.dt.tz_localize(CHILE_STD).dt.tz_convert("UTC").dt.tz_localize(None)
+    return naive_local_to_utc(
+        timestamps, CHILE_STD, "CEN timestamps must be naive Chilean standard time"
+    )
 
 
 def wind_rows(gen: pd.DataFrame) -> pd.DataFrame:
@@ -148,64 +151,8 @@ def monthly_cf_from_generation(
     wind["month"] = wind["timestamp"].dt.month
     wind = wind[(wind["year"] >= int(year_start)) & (wind["year"] <= int(year_end))]
     if wind.empty:
-        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
-
-    agg = (
-        wind.groupby(["ID", "year", "month"])
-        .agg(cf=("cf", "mean"), n=("cf", "count"))
-        .reset_index()
-    )
-    expected = month_days(agg["year"], agg["month"]) * 24.0
-    agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
-
-    wide = (
-        agg.pivot(index=["ID", "year"], columns="month", values="cf")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
-
-
-def strip_commissioning_prefix(wide: pd.DataFrame, *, threshold: float = 0.02) -> pd.DataFrame:
-    """NaN each plant's leading months before it is operational.
-
-    ``potencia_maxima`` is the full nameplate from the first row, but CEN
-    reports pre-commissioning months as ~0 MW, so those months have monthly CF
-    near zero and are NOT resource signal: the static-nameplate ramp trap the
-    AU and US adapters guard against. This strips the leading run of months
-    with CF below ``threshold`` (per plant, up to its first operational month);
-    later sub-threshold months are KEPT, since after commissioning a near-zero
-    month is a real outage or curtailment event in the delivered CF, not a
-    fleet-entry artefact.
-
-    This does NOT touch curtailment in operational months. The CEN
-    ``gen_real_mw`` is *delivered* energy, and Chile's northern grid curtails
-    wind heavily ("vertimiento"), so the observed CF understates the resource
-    where curtailment bites: the same standing caveat as Brazil's Nordeste.
-    Screening that needs a CEN wind-curtailment series (not wired here).
-
-    Args:
-        wide: ``ID``, ``year``, ``obs_1``..``obs_12`` frame.
-        threshold: monthly CF below which a leading month is pre-operational.
-
-    Returns:
-        The frame with leading pre-operational months set to NaN.
-    """
-    out = wide.sort_values(["ID", "year"]).copy()
-    for pid, block in out.groupby("ID"):
-        # flatten to a chronological (year, month) series
-        series = []
-        for _, row in block.iterrows():
-            for m in range(1, 13):
-                series.append((row.name, f"obs_{m}", row[f"obs_{m}"]))
-        # walk forward, NaNing until the first month at/above threshold
-        for idx, col, val in series:
-            if pd.notna(val) and val >= threshold:
-                break
-            if pd.notna(val):
-                out.at[idx, col] = float("nan")
-    return out
+        return empty_monthly()
+    return wide_monthly(coverage_mean(wind, samples_per_day=24, min_coverage=min_coverage))
 
 
 def build_cl_metadata(

@@ -24,7 +24,7 @@ from typing import ClassVar
 import pandas as pd
 
 from pyvwf.config import PyVWFPaths
-from pyvwf.sources.base import ObservationSource, ObsLevel
+from pyvwf.sources.base import METADATA_COLUMNS, ObsLevel, ObservationSource, require_columns
 from pyvwf.sources.registry import register
 
 #: Default training window per WindStats country (inclusive), from each
@@ -89,10 +89,7 @@ class WindStatsSource(ObservationSource):
                 "docs/runbooks/es.md. (Data is git-ignored and commercial.)"
             )
         meta = pd.read_csv(path)
-        required = {"ID", "lon", "lat", "height", "capacity", "model"}
-        missing = required - set(meta.columns)
-        if missing:
-            raise ValueError(f"{path} is missing required columns {sorted(missing)}")
+        require_columns(meta, METADATA_COLUMNS, path)
         meta["ID"] = meta["ID"].astype(str)
         if "type" not in meta.columns:
             meta["type"] = "onshore"

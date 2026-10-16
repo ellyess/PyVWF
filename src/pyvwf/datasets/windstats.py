@@ -31,6 +31,7 @@ from collections.abc import Sequence
 
 import pandas as pd
 
+from pyvwf.datasets.monthly import empty_monthly, wide_monthly
 from pyvwf.time_utils import month_days
 
 #: Per-country WindStats column layout. ``id`` is the metadata key column;
@@ -130,16 +131,10 @@ def windstats_monthly_cf(
     df = df[df["capacity"].notna() & (df["capacity"] > 0)]
     df = df[(df["year"] >= int(year_start)) & (df["year"] <= int(year_end))]
     if df.empty:
-        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
+        return empty_monthly()
     days = month_days(df["year"], df["month"])
     df["cf"] = df["output"] / (df["capacity"] * days * 24.0)
-    wide = (
-        df.pivot_table(index=["ID", "year"], columns="month", values="cf", aggfunc="mean")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
+    return wide_monthly(df, aggfunc="mean")
 
 
 def match_twp_to_coords(

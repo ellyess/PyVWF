@@ -24,10 +24,16 @@ from typing import ClassVar
 
 import pandas as pd
 
+from pyvwf.datasets.monthly import (
+    DEFAULT_MIN_COVERAGE,
+    mask_before_commissioning,
+    naive_local_to_utc,
+    wide_monthly,
+)
 from pyvwf.time_utils import month_days
 
 from pyvwf.config import PyVWFPaths
-from pyvwf.sources.base import ObservationSource, ObsLevel
+from pyvwf.sources.base import METADATA_COLUMNS, ObsLevel, ObservationSource, require_columns
 from pyvwf.sources.registry import register
 
 #: AEMO market time: UTC+10, fixed, no daylight saving.
@@ -36,8 +42,6 @@ AEST = timezone(timedelta(hours=10))
 #: SCADA dispatch interval in minutes.
 SCADA_INTERVAL_MINUTES = 5
 
-#: Months with less than this fraction of expected SCADA intervals are NaN.
-DEFAULT_MIN_COVERAGE = 0.9
 
 #: Training window used when no explicit year range is requested.
 #: Trimmed to 2020-2022: the validation needs a couple of full held-out
@@ -51,12 +55,9 @@ def aest_to_utc(timestamps: pd.Series) -> pd.Series:
     AEMO publishes market time with no DST, so the conversion is a fixed
     -10 h shift; the result is naive UTC to match the rest of the pipeline.
     """
-    ts = pd.to_datetime(timestamps)
-    if getattr(ts.dt, "tz", None) is not None:
-        raise ValueError(
-            "AEMO SCADA timestamps must be naive market time (AEST); got timezone-aware input"
-        )
-    return ts.dt.tz_localize(AEST).dt.tz_convert("UTC").dt.tz_localize(None)
+    return naive_local_to_utc(
+        timestamps, AEST, "AEMO SCADA timestamps must be naive market time (AEST)"
+    )
 
 
 def scada_partial_aggregate(scada: pd.DataFrame) -> pd.DataFrame:
@@ -155,14 +156,7 @@ def finalise_monthly_cf(
 
     # Commissioning mask: any month that STARTS before the commissioning date
     # is NaN; the first fully post-commissioning month is the first valid one.
-    if "commissioning_date" in meta.columns:
-        commissioning = meta.set_index("ID")["commissioning_date"].dropna()
-        commissioning = pd.to_datetime(commissioning)
-        month_start = pd.to_datetime(
-            monthly["year"].astype(str) + "-" + monthly["month"].astype(str) + "-01"
-        )
-        commissioned = monthly["ID"].map(commissioning)
-        monthly.loc[commissioned.notna() & (month_start < commissioned), "cf"] = float("nan")
+    mask_before_commissioning(monthly, meta)
 
     # Registered-capacity mask (see docstring): explicit month list wins over
     # everything computed above.
@@ -180,13 +174,7 @@ def finalise_monthly_cf(
         ]
         monthly.loc[in_mask, "cf"] = float("nan")
 
-    wide = (
-        monthly.pivot(index=["ID", "year"], columns="month", values="cf")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
+    return wide_monthly(monthly)
 
 
 def scada_to_monthly_cf(
@@ -279,10 +267,7 @@ class AEMONemSource(ObservationSource):
                 "and docs/runbooks/au_nem.md for how to fetch and build them."
             )
         meta = pd.read_csv(path)
-        required = {"ID", "lon", "lat", "height", "capacity", "model"}
-        missing = required - set(meta.columns)
-        if missing:
-            raise ValueError(f"{path} is missing required columns {sorted(missing)}")
+        require_columns(meta, METADATA_COLUMNS, path)
         meta["ID"] = meta["ID"].astype(str)
         if "type" not in meta.columns:
             meta["type"] = "onshore"

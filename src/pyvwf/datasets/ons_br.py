@@ -48,7 +48,13 @@ from datetime import timedelta, timezone
 
 import pandas as pd
 
-from pyvwf.time_utils import month_days
+from pyvwf.datasets.monthly import (
+    DEFAULT_MIN_COVERAGE,
+    coverage_mean,
+    empty_monthly,
+    naive_local_to_utc,
+    wide_monthly,
+)
 
 #: ONS timestamps are Brasília civil time, UTC-3 with no daylight saving over
 #: the usable window (DST was abolished in 2019, and the Nordeste wind fleet
@@ -59,16 +65,12 @@ BRASILIA = timezone(timedelta(hours=-3))
 #: ONS ``nom_tipousina`` value selecting wind complexes.
 WIND_TIPO = "eólica"
 
-#: Months with less than this fraction of expected hourly samples are NaN.
-DEFAULT_MIN_COVERAGE = 0.9
-
 
 def _brasilia_to_utc(timestamps: pd.Series) -> pd.Series:
     """Convert naive Brasília (UTC-3) timestamps to naive UTC."""
-    ts = pd.to_datetime(timestamps)
-    if getattr(ts.dt, "tz", None) is not None:
-        raise ValueError("ONS timestamps must be naive Brasília civil time; got tz-aware input")
-    return ts.dt.tz_localize(BRASILIA).dt.tz_convert("UTC").dt.tz_localize(None)
+    return naive_local_to_utc(
+        timestamps, BRASILIA, "ONS timestamps must be naive Brasília civil time"
+    )
 
 
 def wind_rows(fc: pd.DataFrame) -> pd.DataFrame:
@@ -159,22 +161,10 @@ def monthly_cf_from_fc(
     wind["year"] = wind["timestamp"].dt.year
     wind["month"] = wind["timestamp"].dt.month
     wind = wind[(wind["year"] >= int(year_start)) & (wind["year"] <= int(year_end))]
-
-    agg = (
-        wind.groupby(["ID", "year", "month"])
-        .agg(cf=("cf", "mean"), n=("cf", "count"))
-        .reset_index()
-    )
-    expected = month_days(agg["year"], agg["month"]) * 24.0
-    agg.loc[agg["n"] / expected < min_coverage, "cf"] = float("nan")
-
-    wide = (
-        agg.pivot(index=["ID", "year"], columns="month", values="cf")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
+    # The empty guard the CL and NZ copies had and this one lacked (#85).
+    if wind.empty:
+        return empty_monthly()
+    return wide_monthly(coverage_mean(wind, samples_per_day=24, min_coverage=min_coverage))
 
 
 def constrained_off_account(coff: pd.DataFrame) -> pd.DataFrame:

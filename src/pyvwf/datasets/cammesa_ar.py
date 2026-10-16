@@ -30,6 +30,7 @@ from collections.abc import Sequence
 
 import pandas as pd
 
+from pyvwf.datasets.monthly import empty_monthly, strip_commissioning_prefix, wide_monthly  # noqa: F401
 from pyvwf.datasets.gwpt import DROP_AR, plant_key
 from pyvwf.time_utils import month_days
 
@@ -78,18 +79,12 @@ def monthly_cf_from_gwh(
     df = df[df["capacity_mw"].notna() & (df["capacity_mw"] > 0)]
     df = df[(df["year"] >= int(year_start)) & (df["year"] <= int(year_end))]
     if df.empty:
-        return pd.DataFrame(columns=["ID", "year"] + [f"obs_{m}" for m in range(1, 13)])
+        return empty_monthly()
 
     days = month_days(df["year"], df["month"])
     df["cf"] = df["gwh"] * 1000.0 / (df["capacity_mw"] * days * 24.0)
 
-    wide = (
-        df.pivot_table(index=["ID", "year"], columns="month", values="cf", aggfunc="first")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
+    return wide_monthly(df, aggfunc="first")
 
 
 def capacity_suspect_ids(wide: pd.DataFrame, *, threshold: float = CAP_SUSPECT_CF) -> list[str]:
@@ -103,41 +98,6 @@ def capacity_suspect_ids(wide: pd.DataFrame, *, threshold: float = CAP_SUSPECT_C
     oc = [f"obs_{m}" for m in range(1, 13)]
     med = wide.set_index("ID")[oc].stack().groupby(level=0).median()
     return sorted(med[med > threshold].index.astype(str))
-
-
-def strip_commissioning_prefix(
-    wide: pd.DataFrame, *, threshold: float = COMMISSIONING_CF
-) -> pd.DataFrame:
-    """NaN each plant's leading months before it is operational.
-
-    A farm that came online mid-window reports near-zero energy before it runs;
-    against the static GWPT nameplate that reads as CF~0. This strips the
-    leading run of sub-``threshold`` months per plant; later low months are
-    kept (a real low-wind or partial-availability month, not a fleet-entry
-    artefact). Note this does NOT fix the *partial-build* ramp: a farm at
-    half its turbines for a year reads at half CF against the full nameplate;
-    a below-plateau mask is the named follow-up (cf. the NZ capacity history).
-
-    Args:
-        wide: ``ID``, ``year``, ``obs_1``..``obs_12`` frame.
-        threshold: monthly CF below which a leading month is pre-operational.
-
-    Returns:
-        The frame with leading pre-operational months set to NaN.
-    """
-    out = wide.sort_values(["ID", "year"]).copy()
-    for _, block in out.groupby("ID"):
-        cells = [
-            (row.name, f"obs_{m}", row[f"obs_{m}"])
-            for _, row in block.iterrows()
-            for m in range(1, 13)
-        ]
-        for idx, col, val in cells:
-            if pd.notna(val) and val >= threshold:
-                break
-            if pd.notna(val):
-                out.at[idx, col] = float("nan")
-    return out
 
 
 def build_ar_metadata(

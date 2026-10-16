@@ -34,10 +34,11 @@ from typing import ClassVar
 
 import pandas as pd
 
+from pyvwf.datasets.monthly import mask_before_commissioning, wide_monthly
 from pyvwf.time_utils import month_days
 
 from pyvwf.config import PyVWFPaths
-from pyvwf.sources.base import ObservationSource, ObsLevel
+from pyvwf.sources.base import METADATA_COLUMNS, ObsLevel, ObservationSource, require_columns
 from pyvwf.sources.registry import register
 
 #: Respondent-frequency flags whose monthly cells are EIA-imputed, not measured.
@@ -108,23 +109,8 @@ def netgen_to_monthly_cf(
 
     # Commissioning mask: any month that STARTS before the commissioning date
     # is NaN; the first fully post-commissioning month is the first valid one.
-    if "commissioning_date" in meta.columns:
-        commissioning = pd.to_datetime(
-            meta.set_index("ID")["commissioning_date"], errors="coerce"
-        ).dropna()
-        month_start = pd.to_datetime(
-            monthly["year"].astype(str) + "-" + monthly["month"].astype(str) + "-01"
-        )
-        commissioned = monthly["ID"].map(commissioning)
-        monthly.loc[commissioned.notna() & (month_start < commissioned), "cf"] = float("nan")
-
-    wide = (
-        monthly.pivot(index=["ID", "year"], columns="month", values="cf")
-        .reindex(columns=range(1, 13))
-        .reset_index()
-    )
-    wide.columns = ["ID", "year"] + [f"obs_{m}" for m in range(1, 13)]
-    return wide
+    mask_before_commissioning(monthly, meta, coerce=True)
+    return wide_monthly(monthly)
 
 
 @register
@@ -179,10 +165,7 @@ class EIAUSSource(ObservationSource):
                 "(data acquisition is a Phase 2 step)."
             )
         meta = pd.read_csv(path)
-        required = {"ID", "lon", "lat", "height", "capacity", "model"}
-        missing = required - set(meta.columns)
-        if missing:
-            raise ValueError(f"{path} is missing required columns {sorted(missing)}")
+        require_columns(meta, METADATA_COLUMNS, path)
         meta["ID"] = meta["ID"].astype(str)
         if "type" not in meta.columns:
             meta["type"] = "onshore"
