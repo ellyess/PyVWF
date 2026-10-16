@@ -16,7 +16,7 @@ The probe: start the efficiency at four different values, fit everything else
 identically, and see where each lands. Convergence to the same place means the
 data pins it; divergence at equal loss means it does not.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d6_identifiability.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/d6_identifiability.py
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from pathlib import Path
 import pandas as pd
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 import pyvwf.pinn.train as T  # noqa: E402

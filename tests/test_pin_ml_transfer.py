@@ -2,8 +2,8 @@
 
 ``scripts/analysis/ml_transfer_retest.py`` is both the round-one driver of
 ``docs/findings/method-ml-transfer.md`` and, in practice, a library: seven
-``scripts/pinn/`` drivers and three analysis scripts import its
-``build_centroids``, ``terrain_features``, ``rf_eval``, ``loro``,
+``scripts/studies/physics-informed/`` drivers and three analysis scripts
+import its ``build_centroids``, ``terrain_features``, ``rf_eval``, ``loro``,
 ``random_cv`` and ``variance_decomposition``. Those six moved to
 ``pyvwf.extensions.ml.transfer``; the run list and the gate stayed in the
 script, which re-exports the six. Their output was pinned before the move, and

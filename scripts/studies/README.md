@@ -3,19 +3,13 @@
 One directory per study, named by the stem of its findings document in
 `docs/findings/`. Each holds the drivers that produce that study's numbers.
 Reusable tools stay in `scripts/analysis/`; logic more than one study needs
-belongs in `src/pyvwf/`.
+belongs in `src/pyvwf/`. One directory is named for a family instead:
+`physics-informed/` holds the drivers of every `method-physics-informed*`
+document.
 
 [`docs/guides/adding-a-study.md`](../../docs/guides/adding-a-study.md) says how
 to add a study: where each piece goes, the order of commits, and the rules a
-driver follows. This file keeps what is specific to this folder: the deferred
-move and the path map.
-
-## Deferred
-
-`scripts/pinn/` moves here as one unit, to `scripts/studies/physics-informed/`,
-once the turbine-only study has run on its registered paths (issue #12).
-`scripts/analysis/ml_transfer_retest.py` and `ml_transfer_expanded.py` move
-with it, because the `scripts/pinn/` drivers import the first by that path.
+driver follows. This file keeps what is specific to this folder: the path map.
 
 ## Path map
 
@@ -55,3 +49,26 @@ and the document's header names the commit its numbers came from.
 | `scripts/analysis/refit_control_points.py` | `scripts/studies/manuscript-chapters-45/refit_control_points.py` | `3930f26` |
 | `scripts/region_tools/export_au_grid_netcdf.py` | `scripts/studies/method-generalisation/export_au_grid_netcdf.py` | `6effe0e` |
 | `examples/notebooks/au_nem_validation.ipynb` | `scripts/studies/method-generalisation/au_nem_validation.ipynb` | `6effe0e` |
+| `scripts/pinn/build_cache.py` | `scripts/studies/physics-informed/build_cache.py` | `ba54dec` |
+| `scripts/pinn/d0_metric_reframe.py` | `scripts/studies/physics-informed/d0_metric_reframe.py` | `141f91f` |
+| `scripts/pinn/d1_subgrid_terrain.py` | `scripts/studies/physics-informed/d1_subgrid_terrain.py` | `141f91f` |
+| `scripts/pinn/d2_reparameterise.py` | `scripts/studies/physics-informed/d2_reparameterise.py` | `141f91f` |
+| `scripts/pinn/d3_multiscale_terrain.py` | `scripts/studies/physics-informed/d3_multiscale_terrain.py` | `141f91f` |
+| `scripts/pinn/d4_target_noise_floor.py` | `scripts/studies/physics-informed/d4_target_noise_floor.py` | `141f91f` |
+| `scripts/pinn/d5_regime_coverage.py` | `scripts/studies/physics-informed/d5_regime_coverage.py` | `4d06163` |
+| `scripts/pinn/d6_identifiability.py` | `scripts/studies/physics-informed/d6_identifiability.py` | `4d06163` |
+| `scripts/pinn/d7_residual_anatomy.py` | `scripts/studies/physics-informed/d7_residual_anatomy.py` | `4d06163` |
+| `scripts/pinn/d8_hub_height_sensitivity.py` | `scripts/studies/physics-informed/d8_hub_height_sensitivity.py` | `4d06163` |
+| `scripts/pinn/e1_figures.py` | `scripts/studies/physics-informed/e1_figures.py` | `4d06163` |
+| `scripts/pinn/e1_loro.py` | `scripts/studies/physics-informed/e1_loro.py` | `4d06163` |
+| `scripts/pinn/e1_report.py` | `scripts/studies/physics-informed/e1_report.py` | `4d06163` |
+| `scripts/pinn/e2_physics_audit.py` | `scripts/studies/physics-informed/e2_physics_audit.py` | `4d06163` |
+| `scripts/pinn/g0_cache_reproduction.py` | `scripts/studies/physics-informed/g0_cache_reproduction.py` | `4d06163` |
+| `scripts/pinn/gwa_ratio.py` | `scripts/studies/physics-informed/gwa_ratio.py` | `4d06163` |
+| `scripts/pinn/loco.py` | `scripts/studies/physics-informed/loco.py` | `4d06163` |
+| `scripts/pinn/mastr_match.py` | `scripts/studies/physics-informed/mastr_match.py` | `5562bf4` |
+| `scripts/pinn/prep_rf_features.py` | `scripts/studies/physics-informed/prep_rf_features.py` | `4d06163` |
+| `scripts/pinn/run_overnight.sh` | `scripts/studies/physics-informed/run_overnight.sh` | `141f91f` |
+| `scripts/pinn/run_remaining.sh` | `scripts/studies/physics-informed/run_remaining.sh` | `141f91f` |
+| `scripts/pinn/run_turbine_study.sh` | `scripts/studies/physics-informed/run_turbine_study.sh` | `5562bf4` |
+| `scripts/pinn/turbine_loro.py` | `scripts/studies/physics-informed/turbine_loro.py` | `36c735c` |

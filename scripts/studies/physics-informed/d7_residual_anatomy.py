@@ -24,7 +24,7 @@ Fits once on all regions (in-region, so the residual is the model's floor rather
 than a transfer penalty) and reports per-region and pooled.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
-         scripts/pinn/d7_residual_anatomy.py
+         scripts/studies/physics-informed/d7_residual_anatomy.py
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 from pyvwf.pinn.terrain import FEATURES as TERRAIN_FEATURES  # noqa: E402

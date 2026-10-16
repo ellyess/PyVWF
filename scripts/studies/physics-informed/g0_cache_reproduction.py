@@ -11,7 +11,7 @@ This is the input check a rerun is gated on before any model is fitted: if the
 winds agree, a difference in a fitted arm is a difference of code or of the
 roughness treatment, not of data.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/g0_cache_reproduction.py \
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/g0_cache_reproduction.py \
          --old <published cache root> --new <rebuilt cache root> --out <dir>
 """
 
@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 from pyvwf.pinn.cache import load_cache  # noqa: E402
 
 FIELDS = ("w_mean", "w_std", "shear", "z0")

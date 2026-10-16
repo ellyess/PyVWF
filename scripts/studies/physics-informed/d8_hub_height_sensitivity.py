@@ -24,7 +24,7 @@ what happens if they are spread as a modern fleet's are, which bounds the error
 the uniform default can be making.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
-         scripts/pinn/d8_hub_height_sensitivity.py
+         scripts/studies/physics-informed/d8_hub_height_sensitivity.py
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 import pyvwf.pinn.train as T  # noqa: E402

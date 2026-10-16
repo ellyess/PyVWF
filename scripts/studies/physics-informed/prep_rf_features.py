@@ -8,7 +8,7 @@ anywhere in this workstream. Doing it here, once, in a process that holds
 nothing else, keeps that spike out of the long fitting run -- where an
 out-of-memory kill would cost hours rather than a minute.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/prep_rf_features.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/prep_rf_features.py
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 

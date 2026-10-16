@@ -23,7 +23,7 @@ register row takes a MaStR unit only if no better pairing for that unit
 exists. Rows that fail any tolerance stay unmatched and keep their postcode
 centroid.
 
-    PYTHONPATH=src python scripts/pinn/mastr_match.py
+    PYTHONPATH=src python scripts/studies/physics-informed/mastr_match.py
 
 Writes `mastr_units.csv` (the parsed register), `de_match.csv` (one row per
 register turbine, matched or not), `de_fleet_override.csv` (the matched units

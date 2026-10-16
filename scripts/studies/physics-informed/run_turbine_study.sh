@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The turbine-only terrain study, as its registration records it.
 #
-#   nohup caffeinate -i bash scripts/pinn/run_turbine_study.sh > <log> 2>&1 &
+#   nohup caffeinate -i bash scripts/studies/physics-informed/run_turbine_study.sh > <log> 2>&1 &
 #
 # About twelve hours for the primary run, plus about ninety minutes for the
 # German centroid comparison it queues after it. Every stage must succeed
@@ -10,7 +10,7 @@
 # not stop it.
 set -euo pipefail
 
-cd "$(dirname "$0")/../.." || exit 1
+cd "$(dirname "$0")/../../.." || exit 1
 [ -z "$(git status --porcelain)" ] || { echo "tree dirty, stop"; exit 1; }
 echo "HEAD $(git rev-parse --short HEAD) start $(date +%FT%T)"
 
@@ -29,11 +29,11 @@ stage() { echo; echo "=== $* $(date +%T)"; }
 # rebuilt ones. A ratio computed elsewhere would not describe the unit.
 if [ ! -f "$GWA/DK_train.csv" ]; then
   stage "gwa_ratio on the leave-one-country-out caches"
-  PYTHONPATH=src $PY -u scripts/pinn/gwa_ratio.py --cache "$LOCO" --gwa input/raw/gwa4 --out "$GWA"
+  PYTHONPATH=src $PY -u scripts/studies/physics-informed/gwa_ratio.py --cache "$LOCO" --gwa input/raw/gwa4 --out "$GWA"
 fi
 if [ ! -f "$GWA_MASTR/DE_train.csv" ]; then
   stage "gwa_ratio on the rebuilt German caches"
-  PYTHONPATH=src $PY -u scripts/pinn/gwa_ratio.py --regions DE --splits train test \
+  PYTHONPATH=src $PY -u scripts/studies/physics-informed/gwa_ratio.py --regions DE --splits train test \
     --cache "$MASTR" --gwa input/raw/gwa4 --out "$GWA_MASTR"
 fi
 
@@ -48,12 +48,12 @@ CONFIGS=(--config DK=configs/regions/scorecard/dk_k100.toml --config DE=configs/
   --config PT=configs/regions/scorecard/pt_country.toml --config NL=configs/regions/pinn_loco/nl_country.toml)
 
 stage "turbine_loro primary (DE on the rebuilt caches and their ratios)"
-PYVWF_INPUT=input/combined PYTHONPATH=src $PY -u scripts/pinn/turbine_loro.py \
+PYVWF_INPUT=input/combined PYTHONPATH=src $PY -u scripts/studies/physics-informed/turbine_loro.py \
   --tag primary --cache "$LOCO" --cache-override DE="$MASTR" --gwa-override DE="$GWA_MASTR" \
   --score-subset DE="$OVERRIDE" --gwa "$GWA" --out "$STUDY" "${CONFIGS[@]}" --registration "$REG"
 
 stage "turbine_loro de-centroid (the same DE fold on the centroid caches and ratios)"
-PYVWF_INPUT=input/combined PYTHONPATH=src $PY -u scripts/pinn/turbine_loro.py \
+PYVWF_INPUT=input/combined PYTHONPATH=src $PY -u scripts/studies/physics-informed/turbine_loro.py \
   --tag de-centroid --cache "$LOCO" --folds DE --score-subset DE="$OVERRIDE" --no-secondary \
   --gwa "$GWA" --out "$STUDY" "${CONFIGS[@]}" --registration "$REG"
 

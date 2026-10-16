@@ -1,5 +1,13 @@
 # Leaving one country out: the physics-informed model corrects national capacity factor in most European countries, and its answer depends on the training pool
 
+**Reproduction record, added 2026-10-16.** Driver:
+`scripts/studies/physics-informed/loco.py`, on caches from `build_cache.py` in
+the same directory. Until 2026-10-16 both were in `scripts/pinn/`, the path the
+commands of `method-physics-informed-loco-prereg.md` use;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+caches and Study A at `5960efd`, Study B at `9d1767c`; each manifest records a
+clean tree (`output/pinn_loco_2026-09-16/`).
+
 **Date:** 2026-09-17, Study B added 2026-09-18
 **Scope:** whether the physics-informed model simulates accurate monthly
 capacity factors in European countries it was never trained on, scored as the

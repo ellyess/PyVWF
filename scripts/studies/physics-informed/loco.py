@@ -21,7 +21,7 @@ Arms, all fitted with the same settings:
 Flagged folds are scored like the others and are never in any pool.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python -u \
-         scripts/pinn/loco.py --cache <cache root> --out <dir> --config CODE=PATH ...
+         scripts/studies/physics-informed/loco.py --cache <cache root> --out <dir> --config CODE=PATH ...
      Add --report-only to recompute the summary and gates from the CSVs.
 """
 
@@ -36,7 +36,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 GATED = ["DK", "DE", "UK", "FR", "BE", "ES", "IE", "IT", "NO"]

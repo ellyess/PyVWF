@@ -1,9 +1,10 @@
 """Shared pieces of the physics-informed run drivers.
 
-``scripts/pinn/e1_loro.py`` (leave one region out) and ``scripts/pinn/loco.py``
-(leave one country out) resolve configs, record what each region was built
-from, and score conditions on common rows the same way. Keeping one copy is
-what makes their records comparable. Nothing here imports torch.
+``scripts/studies/physics-informed/e1_loro.py`` (leave one region out) and
+``scripts/studies/physics-informed/loco.py`` (leave one country out) resolve
+configs, record what each region was built from, and score conditions on common
+rows the same way. Keeping one copy is what makes their records comparable.
+Nothing here imports torch.
 """
 
 from __future__ import annotations

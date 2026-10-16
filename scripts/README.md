@@ -4,7 +4,8 @@ Entry points over the `pyvwf` package: data acquisition and processing, tools
 that run across regions, and the drivers of each study. Logic that more than
 one script needs belongs in `src/pyvwf/`. Every Python script parses its
 arguments with `argparse`, so `--help` lists its options. The exceptions are
-`pinn/` and the two ML transfer scripts, which move together (issue #12).
+seven drivers in `studies/physics-informed/` (`d0` to `d4`, `d6` and
+`prep_rf_features.py`) and the two ML transfer scripts.
 
 The download scripts are user-executed: they use your own credentials, passed
 in the environment for one command. No raw or derived data is committed
@@ -58,10 +59,9 @@ scripts/
     eu_rerun_compare.py            paired comparison of evaluate runs of one row
     regression_compare.py          frame-level diff of two runs' outputs
     export_voronoi_frames.py       cluster maps for TouchDesigner (the touchdesigner extra)
-    ml_transfer_retest.py          ML transfer, round one (moves with pinn/, issue #12)
-    ml_transfer_expanded.py        ML transfer, round two (moves with pinn/, issue #12)
+    ml_transfer_retest.py          ML transfer, round one (also imported by physics-informed drivers)
+    ml_transfer_expanded.py        ML transfer, round two
   studies/          one directory per study, named by its findings document (studies/README.md)
-  pinn/             the physics-informed study; moves to studies/ after its turbine-only run (issue #12)
 ```
 
 Region curation data (coordinate and capacity overrides, curated farm tables,

@@ -1,5 +1,17 @@
 # Does a terrain correction learned from turbine and farm data transfer between regions?
 
+**Reproduction record, added 2026-10-16.** Drivers, in
+`scripts/studies/physics-informed/`: `turbine_loro.py` and `gwa_ratio.py`, run
+by `run_turbine_study.sh`, with the German caches rebuilt by `mastr_match.py`
+and `build_cache.py`. Until 2026-10-16 they were in `scripts/pinn/`, the path
+the commands of `method-physics-informed-turbine-prereg.md` use;
+`scripts/studies/README.md` maps each old path to its new one. Numbers: the
+study at `285fd80`, on caches built at `5960efd`, German caches rebuilt at
+`14722be` and atlas ratios computed at `deafc5b`; each of those manifests
+records a clean tree (`output/pinn_turbine_2026-09-18/`,
+`output/pinn_loco_2026-09-16/cache/`). The MaStR match writes no manifest; the
+registration's deviation of 2026-09-20 records it at `c4c6dc1`.
+
 **Date:** 2026-10-16
 **Scope:** the nine turbine-level regions, each held out in turn from a model
 trained on the other eight (seven gated, DK the negative control, NZ reported

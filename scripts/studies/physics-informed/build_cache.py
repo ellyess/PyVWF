@@ -12,7 +12,7 @@ git state, curve library and the configs by sha256. The build refuses a dirty
 tree unless ``--allow-dirty`` is given.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
-         scripts/pinn/build_cache.py --regions DK DE UK US BR
+         scripts/studies/physics-informed/build_cache.py --regions DK DE UK US BR
 """
 
 import argparse
@@ -21,14 +21,14 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 import pandas as pd  # noqa: E402
 
 from pyvwf.provenance import build_manifest, write_manifest  # noqa: E402
 from pyvwf.harness.regions import load_region  # noqa: E402
 from pyvwf.pinn.cache import build_cache, save_cache  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 CONFIGS = ROOT / "configs" / "regions"
 CACHE = ROOT / "output" / "pinn" / "cache"
 

@@ -15,7 +15,7 @@ can fail: values outside the physical ranges below would mean the terms are
 absorbing each other rather than measuring what they are named for.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
-         scripts/pinn/e2_physics_audit.py
+         scripts/studies/physics-informed/e2_physics_audit.py
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 
 from pyvwf.pinn.train import fit, load_regions, predict_frame  # noqa: E402

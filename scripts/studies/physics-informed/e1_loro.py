@@ -31,7 +31,7 @@ out. A ``run_manifest.json`` is written into ``--out`` before any fit, and the
 run refuses a dirty tree unless ``--allow-dirty`` is given.
 
 Run: PYVWF_INPUT=input/combined PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python \
-         scripts/pinn/e1_loro.py --seeds 0 1 2 3 42
+         scripts/studies/physics-informed/e1_loro.py --seeds 0 1 2 3 42
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -92,7 +92,7 @@ AFFINE_SCORECARD = {"DK": 0.085, "DE": 0.057, "UK": 0.115, "US": 0.098, "BR": 0.
 # ------------------------------------------------------------- RF baseline ---
 # The published SET_A features depend only on position, so they are identical
 # for every holdout, and deriving them means differentiating a 22-million-pixel
-# ETOPO window for the American box. scripts/pinn/prep_rf_features.py does that
+# ETOPO window for the American box. scripts/studies/physics-informed/prep_rf_features.py does that
 # once, in a process holding nothing else; this reads the result. Falling back
 # to computing them inline keeps the script self-sufficient, at the cost of
 # that memory spike.
@@ -132,7 +132,7 @@ def _unit_features(holdout: str, test_meta: pd.DataFrame) -> pd.DataFrame:
             feats = pd.read_csv(path, dtype={"ID": str})
             if "ID" not in feats.columns:
                 raise ValueError(
-                    f"{path} predates ID-based alignment; rerun scripts/pinn/prep_rf_features.py"
+                    f"{path} predates ID-based alignment; rerun scripts/studies/physics-informed/prep_rf_features.py"
                 )
             feats = (
                 test_meta[["ID"]]
@@ -528,7 +528,7 @@ def summarise(res: pd.DataFrame, tag: str, out: Path = OUT):
         )
         print(
             f"    per-holdout results are in e1_{tag}_raw.csv; score them with "
-            f"scripts/pinn/e1_report.py --tag {tag}"
+            f"scripts/studies/physics-informed/e1_report.py --tag {tag}"
         )
         return
 

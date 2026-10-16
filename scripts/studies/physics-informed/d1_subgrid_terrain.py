@@ -22,7 +22,7 @@ ERA5's own resolved orography is only on disk for Europe, so the cell-mean
 elevation is taken as the ETOPO mean over each 0.25 deg cell -- available
 globally and a reasonable stand-in for what the model resolves.
 
-Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/pinn/d1_subgrid_terrain.py
+Run: PYTHONPATH=src /opt/miniconda3/envs/pyvwf/bin/python scripts/studies/physics-informed/d1_subgrid_terrain.py
 """
 
 from pathlib import Path
@@ -33,10 +33,10 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from analysis.ml_transfer_retest import RUNS, build_centroids  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "output" / "pinn" / "d1"
 ETOPO = ROOT / "input/reference/terrain/etopo_global.nc"
 

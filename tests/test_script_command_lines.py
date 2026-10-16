@@ -34,8 +34,12 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
     # the ones AGENTS.md and src/pyvwf/AGENTS.md give.
     "scripts/dev/run_locked.py": [
         (
-            ["--", "bash", "scripts/pinn/run_overnight.sh"],
-            ("main", (["bash", "scripts/pinn/run_overnight.sh"],), {"allow_dirty": False}),
+            ["--", "bash", "scripts/studies/physics-informed/run_overnight.sh"],
+            (
+                "main",
+                (["bash", "scripts/studies/physics-informed/run_overnight.sh"],),
+                {"allow_dirty": False},
+            ),
         ),
         (
             [
@@ -194,7 +198,7 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    "scripts/pinn/mastr_match.py": [
+    "scripts/studies/physics-informed/mastr_match.py": [
         (
             [],
             (
@@ -550,7 +554,7 @@ def test_no_driver_reads_its_arguments_by_position_and_every_parser_is_pinned():
     for path in sorted((ROOT / "scripts").rglob("*.py")):
         rel = path.relative_to(ROOT).as_posix()
         text = path.read_text()
-        if rel.startswith("scripts/pinn/") or "__main__" not in text:
+        if rel.startswith("scripts/studies/physics-informed/") or "__main__" not in text:
             continue
         if "sys.argv[" in text:
             positional.append(rel)
