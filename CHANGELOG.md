@@ -443,6 +443,14 @@ this file stay in step with it.
 
 ### Documentation
 
+- **The country weighting study (#67) is registered and stops at its row
+  rule** (`method-country-weighting-prereg.md`, `method-country-weighting.md`).
+  In five of the six rows the per-year grid capacity and the observed
+  capacity-factor denominator disagree beyond the registered tolerance, so
+  too few rows are scoreable and nothing was fitted. Mid-year country grids
+  (`weight_country_grid_points.py --mid-year`, `fleet_for(convention="mid-year")`)
+  and the study's two drivers are added.
+
 - **A change under the pins' own code has to run the real-data set.** The
   `realdata` pins skip where their inputs are absent, which includes CI, so no
   pull request check can report that one moved. `CONTRIBUTING.md` and
