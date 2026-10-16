@@ -118,7 +118,7 @@ grimp==3.17
     # via
     #   -c constraints/py312.txt
     #   import-linter
-identify==2.6.19
+identify==2.6.20
     # via
     #   -c constraints/py312.txt
     #   pre-commit
