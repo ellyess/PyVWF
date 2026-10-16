@@ -105,3 +105,16 @@ def test_a_grid_with_two_heights_is_refused():
     f = fleet()
     with pytest.raises(ValueError, match="height"):
         m.offshore_sites(f[f["offshore"]], grid, "BE")
+
+
+def test_a_site_with_no_point_is_refused_unless_left_out_and_counted():
+    """The mid-year grids keep the end-of-year points, so a site can be missing."""
+    m = _module()
+    f = fleet()
+    points = m.offshore_sites(f[f["offshore"]].iloc[:2], land_grid(), "BE")
+    offshore = f[f["offshore"]]
+    with pytest.raises(KeyError):
+        m.site_weights(points, offshore)
+    w = m.site_weights(points, offshore, drop_unknown=True)
+    assert w.tolist() == [330.0]
+    assert w.attrs["left_out"] == 30.0

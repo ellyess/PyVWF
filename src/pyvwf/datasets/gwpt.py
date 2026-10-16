@@ -142,6 +142,7 @@ def fleet_for(
     start_years: dict[str, int] | None = None,
     *,
     with_type: bool = False,
+    convention: str = "end-of-year",
 ) -> pd.DataFrame:
     """Geolocated projects for one country: operating now, or as of a year.
 
@@ -164,6 +165,14 @@ def fleet_for(
         with_type: Also return ``offshore``, True where the tracker's
             ``Installation Type`` is an offshore one (hard mount or floating).
             Off by default, so the frame the other callers read is unchanged.
+        convention: Which fleet a year means. ``"end-of-year"``, the default,
+            counts a project from its start year and not in its retirement
+            year: the fleet as it stood at the end of ``year``.
+            ``"mid-year"`` counts a project at half capacity in its start year
+            and in its retirement year, and a quarter if both fall in
+            ``year``: the fleet averaged over the year, to set beside a
+            denominator dated 1 January (the country weighting study, #67).
+            Ignored without a year.
 
     Returns:
         Frame with ``lat``, ``lon`` and ``mw``, and ``offshore`` when asked.
@@ -201,7 +210,15 @@ def fleet_for(
         # recent, as the French ones mostly are
         # (``configs/curation/gwpt_start_years.csv``), but dropping them would
         # understate every year instead.
-        fleet = fleet[(start.isna() | (start <= year)) & (retired.isna() | (retired > year))]
+        if convention == "end-of-year":
+            fleet = fleet[(start.isna() | (start <= year)) & (retired.isna() | (retired > year))]
+        elif convention == "mid-year":
+            keep = (start.isna() | (start <= year)) & (retired.isna() | (retired >= year))
+            share = (1.0 - 0.5 * start.eq(year)) * (1.0 - 0.5 * retired.eq(year))
+            capacity = pd.to_numeric(fleet["Capacity (MW)"], errors="coerce") * share
+            fleet = fleet.assign(**{"Capacity (MW)": capacity})[keep]
+        else:
+            raise ValueError(f"convention must be 'end-of-year' or 'mid-year', got {convention!r}")
 
     out = fleet[["Latitude", "Longitude", "Capacity (MW)"]].rename(
         columns={"Latitude": "lat", "Longitude": "lon", "Capacity (MW)": "mw"}
