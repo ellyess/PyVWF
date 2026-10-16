@@ -4,7 +4,9 @@
 `scripts/studies/physics-informed/`: `e1_loro.py`, `e1_report.py`,
 `e1_figures.py`, `e2_physics_audit.py`, `prep_rf_features.py`, the diagnostics
 `d0_metric_reframe.py` to `d8_hub_height_sensitivity.py`, and
-`run_overnight.sh` and `run_remaining.sh`, which launch the E stages; caches
+`run_overnight.sh` and `run_remaining.sh`, which launch the E stages
+(`run_remaining.sh`, a partial re-launch of `run_overnight.sh`'s stages, was
+removed on 2026-10-16; it was last at `94bf999`); caches
 from `build_cache.py`, compared with the published ones by
 `g0_cache_reproduction.py`. Until
 2026-10-16 they were in `scripts/pinn/`, the path the commands of
