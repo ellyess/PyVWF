@@ -8,7 +8,7 @@ licensed library (`input/combined`, `power_curves.csv` sha256 `689cfee7…`), an
 the country grids as rebuilt on 2026-10-16: on the corrected fleet register
 (`acfbbfa`, #76), with offshore projects at their own grid points and Hywind
 Tampen excluded from Norway (`fc8c7f5`, `6b3e6d9`, branch
-`offshore-grid-points`; files and checksums in
+`offshore-grid-regen`, #100; files and checksums in
 `output/offshore_regen_2026-10-16/`). Training years 2015-21 (IE 2017-21), test
 year 2023. Italy and Portugal are suspended (#57) and are not in the study.
 Issue #67. Terms follow `CONTEXT.md`.
@@ -37,7 +37,7 @@ stood during that year, instead of the last training year's fleet for every
 year, lowers the corrected national monthly RMSE on the 2023 test year.** It
 runs in two stages. Stage 0 fits nothing and can stop the study. Stage 1 fits
 three conditions and is read against two gates, G1 on skill and G2 on fit
-health. The gates, row rules, bootstrap and readings below are fixed before any
+quality. The gates, row rules, bootstrap and readings below are fixed before any
 number they judge exists; what had been seen before registration is listed in
 its own section.
 
@@ -185,7 +185,7 @@ directory: `output/country_weighting_<date>/<condition>/<CODE>/`, with
 - **A reproduces the scorecard.** Condition A's `metrics.csv` for every row
   must match the run on the offshore grids
   (`output/offshore_regen_2026-10-16/after/<CODE>/evaluate-2023-after/metrics.csv`),
-  which becomes the scorecard's when `offshore-grid-points` merges.
+  which becomes the scorecard's when #100 merges.
   A row that does not match is reported and not gated; a mismatch means the
   study commit changed something other than the weighting.
 - **B moved what it must move.** In every row that cleared Stage 0, B's fitted
@@ -219,7 +219,7 @@ the same draws for every condition of a row.
   interval on B − A below zero, in a strict majority of the scoreable rows
   (floor(n/2) + 1 of n). In no scoreable row does B raise it with an interval
   above zero.
-- **G2 (fit health).** B introduces no degenerate fit that A does not have, and
+- **G2 (fit quality).** B introduces no degenerate fit that A does not have, and
   refuses no factor A kept. Refused factors and each cluster's `n_years` are
   reported for every condition.
 
@@ -234,7 +234,7 @@ G1 and G2 both have to pass for the study to support per-year weighting.
 - **Weighting does not help** if G1 fails. That is the finding, reported with
   the full table; the red team expects G1 to be underpowered with 12 test
   months, so a failure is read as "no effect shown", not as "no effect".
-- **Weighting harms fit health** if G2 fails, whatever G1 says.
+- **Weighting harms fit quality** if G2 fails, whatever G1 says.
 - **Secondary, not gating:** G1 is also read over the scoreable rows without a
   degenerate fit, and reported beside the main reading.
 - **Mechanism.** The effect is attributed from the fitted scalars and offsets,
