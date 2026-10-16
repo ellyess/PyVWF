@@ -96,18 +96,18 @@ def power_curve():
 
 @pytest.fixture
 def synthetic_dk(tmp_path, monkeypatch):
-    """The synthetic Denmark input tree of tests/test_pipeline.py, on disk.
+    """The synthetic Denmark input tree (tests/support.py), on disk.
 
     Every path the harness reads resolves inside ``tmp_path``, the input root
     included, so a test never reaches the repository's own ``input/`` tree:
     locally that tree holds the real curve library, and in CI it is absent.
     """
-    import test_pipeline as tp
+    import support
 
     from pyvwf.config import PyVWFPaths
 
-    tp._write_era5(tmp_path / "era5")
-    fleet = tp._write_fleet(tmp_path / "observations/turbine" / "DK")
+    support.write_era5(tmp_path / "era5")
+    fleet = support.write_fleet(tmp_path / "observations/turbine" / "DK")
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")

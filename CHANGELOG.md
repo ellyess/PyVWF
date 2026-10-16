@@ -124,6 +124,17 @@ this file stay in step with it.
   `scripts/studies/README.md` maps each old path to its new one, with the last
   commit there.
 
+- **Every CI job that installs extras is pinned, and the setup is shared.**
+  The extras job and the docs build install through constraints files of
+  their own (`constraints/py312-extras.txt`, `py312-docs.txt`), resolved
+  against the 3.12 test cell's file so shared packages match; torch comes
+  from the CPU index at the pinned version. The examples job and the Docker
+  image install through the 3.12 file (the image through a new `CONSTRAINTS`
+  build argument, empty for a plain build). The 3.13 cell and the clean-wheel
+  package job stay unpinned on purpose. A composite action replaces the
+  repeated setup; the minimal example runs once on the host instead of five
+  times, and coverage is measured in one cell.
+
 - **Six study drivers read frozen configs** (`configs/regions/study/`). The
   cluster-selection, correction-identifiability, national-single-cluster,
   hourly-resolution and scalar-bounds drivers read the maintained region
@@ -267,6 +278,14 @@ this file stay in step with it.
   is superseded. The real-data layer still skips under any other version,
   because its digest cannot tell a version change from a code change.
 
+- **Scripts: a retirement rule, a public pre-activation, one launcher
+  retired.** `scripts/README.md` lists every script without argparse, names
+  the scripts that import beyond their own directory, and says how a script
+  is retired. `pyvwf.pinn.model.preactivation_for` is public, so the last
+  directory exempt from the public-names check is no longer exempt.
+  `scripts/studies/physics-informed/run_remaining.sh`, a partial re-launch of
+  `run_overnight.sh`, is removed.
+
 ### Fixed
 
 - **The parallel offset fit says when it cannot run, and no longer hides a
@@ -287,6 +306,12 @@ this file stay in step with it.
   a flat capacity whatever the fleet did; Sweden's zonal files were built this
   way. It now raises and names the country and period. Files already on disk
   are unchanged.
+- **Norway's and Sweden's bidding-zone grids read the shapes of the input
+  root in use.** They opened `input/reference/shapes/` literally, ignoring
+  `PYVWF_INPUT`. The two countries' copies of the zone-grid builder and of
+  the zone-observation writer are folded into one each, with one zone table
+  per country and the observation file names built in `pyvwf.config`.
+
 - **A year's GWPT fleet is the fleet as it stood that year**
   (`pyvwf.datasets.gwpt.fleet_for`). It read only records the tracker marks
   operating today, so a project retired since was missing from every year it

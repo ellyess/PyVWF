@@ -40,7 +40,7 @@ def curves():
 
 
 @pytest.fixture
-def grid():
+def grid_points():
     return pd.DataFrame(
         {
             "ID": ["g0", "g1", "g2", "g3"],
@@ -59,34 +59,34 @@ def grid():
 # ---------------------------------------------------------------------------
 
 
-def test_unparseable_fields_are_dropped(grid, curves):
+def test_unparseable_fields_are_dropped(grid_points, curves):
     # pandas 3 raises rather than upcasting a float column in place, so widen
     # it first. The point of the test is what prepare_country_fleet does with
     # an unparseable capacity, not how the bad value got there.
-    grid["capacity"] = grid["capacity"].astype(object)
-    grid.loc[1, "capacity"] = "not a number"
-    out = prepare_country_fleet(grid, curves)
+    grid_points["capacity"] = grid_points["capacity"].astype(object)
+    grid_points.loc[1, "capacity"] = "not a number"
+    out = prepare_country_fleet(grid_points, curves)
     assert out["ID"].tolist() == ["g0", "g2", "g3"]
     assert out["capacity"].dtype.kind == "f"
 
 
-def test_a_grid_without_models_gets_the_default_curve(grid, curves):
-    grid["model"] = np.nan
-    out = prepare_country_fleet(grid, curves)
+def test_a_grid_without_models_gets_the_default_curve(grid_points, curves):
+    grid_points["model"] = np.nan
+    out = prepare_country_fleet(grid_points, curves)
     assert out["model"].nunique() == 1
     assert out["model"].iloc[0] in curves.columns
 
 
-def test_fix_turb_wins_over_the_default(grid, curves):
-    grid["model"] = np.nan
-    out = prepare_country_fleet(grid, curves, fix_turb="Chosen")
+def test_fix_turb_wins_over_the_default(grid_points, curves):
+    grid_points["model"] = np.nan
+    out = prepare_country_fleet(grid_points, curves, fix_turb="Chosen")
     assert (out["model"] == "Chosen").all()
 
 
-def test_preparation_does_not_mutate_the_caller(grid, curves):
-    before = grid.copy()
-    prepare_country_fleet(grid, curves)
-    pd.testing.assert_frame_equal(grid, before)
+def test_preparation_does_not_mutate_the_caller(grid_points, curves):
+    before = grid_points.copy()
+    prepare_country_fleet(grid_points, curves)
+    pd.testing.assert_frame_equal(grid_points, before)
 
 
 # ---------------------------------------------------------------------------
@@ -159,34 +159,34 @@ def test_mixed_offset_index_is_handled():
 # ---------------------------------------------------------------------------
 
 
-def test_one_cluster_collapses_the_country(grid):
-    out = assign_country_clusters(grid, 1)
+def test_one_cluster_collapses_the_country(grid_points):
+    out = assign_country_clusters(grid_points, 1)
     assert out["cluster"].nunique() == 1
 
 
-def test_matching_count_keeps_the_grids_own_clusters(grid):
-    out = assign_country_clusters(grid, 2)
+def test_matching_count_keeps_the_grids_own_clusters(grid_points):
+    out = assign_country_clusters(grid_points, 2)
     assert out["cluster"].tolist() == [0, 0, 1, 1]
 
 
-def test_a_mismatched_count_is_refused(grid):
+def test_a_mismatched_count_is_refused(grid_points):
     """The old behaviour silently ignored num_clu, so every ENTSO-E config
     asking for 5 clusters produced a factors_*_5.csv holding however many the
     grid happened to define."""
     with pytest.raises(ValueError, match="asked for 5 clusters"):
-        assign_country_clusters(grid, 5)
+        assign_country_clusters(grid_points, 5)
 
 
-def test_the_error_names_both_usable_values(grid):
+def test_the_error_names_both_usable_values(grid_points):
     with pytest.raises(ValueError) as excinfo:
-        assign_country_clusters(grid, 5)
+        assign_country_clusters(grid_points, 5)
     message = str(excinfo.value)
     assert "[1]" in message and "[2]" in message
 
 
-def test_metadata_without_clusters_is_refused(grid):
+def test_metadata_without_clusters_is_refused(grid_points):
     with pytest.raises(ValueError, match="'cluster' column"):
-        assign_country_clusters(grid.drop(columns=["cluster"]), 2)
+        assign_country_clusters(grid_points.drop(columns=["cluster"]), 2)
 
 
 # ---------------------------------------------------------------------------
@@ -194,48 +194,48 @@ def test_metadata_without_clusters_is_refused(grid):
 # ---------------------------------------------------------------------------
 
 
-def paired(grid, sims, obs=0.22):
+def paired(grid_points, sims, obs=0.22):
     """The frame _country_cluster_means sees: simulations already joined to
     their cluster and capacity, with the one national observation broadcast."""
     return pd.DataFrame(
         {
             "year": 2015,
             "fixed": "1/1",
-            "ID": grid["ID"],
+            "ID": grid_points["ID"],
             "sim": sims,
             "obs": obs,
-            "cluster": grid["cluster"],
-            "capacity": grid["capacity"],
+            "cluster": grid_points["cluster"],
+            "capacity": grid_points["capacity"],
         }
     )
 
 
-def test_cluster_mean_is_capacity_weighted(grid):
-    frame = paired(grid, [0.10, 0.30, 0.20, 0.20])
+def test_cluster_mean_is_capacity_weighted(grid_points):
+    frame = paired(grid_points, [0.10, 0.30, 0.20, 0.20])
     out = _country_cluster_means(frame, "fixed")
     # Cluster 0 is 100 MW at 0.10 and 300 MW at 0.30.
     assert out.loc[out["cluster"] == 0, "sim"].iloc[0] == pytest.approx(0.25)
     assert out.loc[out["cluster"] == 1, "sim"].iloc[0] == pytest.approx(0.20)
 
 
-def test_uniform_capacity_matches_an_unweighted_mean(grid):
-    grid["capacity"] = 3.0
-    frame = paired(grid, [0.10, 0.30, 0.20, 0.40])
+def test_uniform_capacity_matches_an_unweighted_mean(grid_points):
+    grid_points["capacity"] = 3.0
+    frame = paired(grid_points, [0.10, 0.30, 0.20, 0.40])
     out = _country_cluster_means(frame, "fixed")
     assert out.loc[out["cluster"] == 0, "sim"].iloc[0] == pytest.approx(0.20)
 
 
-def test_a_cluster_with_no_fleet_is_dropped(grid):
+def test_a_cluster_with_no_fleet_is_dropped(grid_points):
     """Year-specific weights routinely zero out a cluster. Falling back to an
     equal-weight mean there would fit a correction for a region that has no
     turbines in that year."""
-    grid.loc[grid["cluster"] == 1, "capacity"] = 0.0
-    out = _country_cluster_means(paired(grid, [0.1, 0.3, 0.2, 0.2]), "fixed")
+    grid_points.loc[grid_points["cluster"] == 1, "capacity"] = 0.0
+    out = _country_cluster_means(paired(grid_points, [0.1, 0.3, 0.2, 0.2]), "fixed")
     assert out["cluster"].tolist() == [0]
 
 
-def test_a_grid_with_no_capacities_at_all_still_works(grid):
-    frame = paired(grid, [0.10, 0.30, 0.20, 0.40]).drop(columns=["capacity"])
+def test_a_grid_with_no_capacities_at_all_still_works(grid_points):
+    frame = paired(grid_points, [0.10, 0.30, 0.20, 0.40]).drop(columns=["capacity"])
     out = _country_cluster_means(frame, "fixed")
     assert out.loc[out["cluster"] == 0, "sim"].iloc[0] == pytest.approx(0.20)
 
@@ -245,27 +245,27 @@ def test_a_grid_with_no_capacities_at_all_still_works(grid):
 # ---------------------------------------------------------------------------
 
 
-def test_year_specific_capacity_on_the_pairs_is_the_weight(grid):
+def test_year_specific_capacity_on_the_pairs_is_the_weight(grid_points):
     """The legacy path merges each year's capacity onto the pairs before this
     call. That capacity must weight the cluster mean; merging the grid's static
     capacity as well split it into capacity_x/capacity_y, and the mean fell back
     to equal weights without a word."""
-    frame = paired(grid, [0.10, 0.30, 0.20, 0.20]).drop(columns=["cluster"])
+    frame = paired(grid_points, [0.10, 0.30, 0.20, 0.20]).drop(columns=["cluster"])
     frame["capacity"] = [300.0, 100.0, 50.0, 50.0]  # this year's, not the grid's
-    factors, _ = cluster_train_set(frame, "fixed", 1, grid, obs_level="country")
+    factors, _ = cluster_train_set(frame, "fixed", 1, grid_points, obs_level="country")
     weighted = np.average([0.10, 0.30, 0.20, 0.20], weights=[300.0, 100.0, 50.0, 50.0])
     assert factors["scalar"].iloc[0] == pytest.approx(0.22 / weighted)
 
 
-def test_single_cluster_fit_has_one_row_per_period(grid):
+def test_single_cluster_fit_has_one_row_per_period(grid_points):
     # cluster_train_set joins the cluster and capacity itself, so it receives
     # only the simulation paired with the national observation.
-    frame = paired(grid, [0.10, 0.30, 0.20, 0.20]).drop(columns=["cluster", "capacity"])
-    factors, clus_info = cluster_train_set(frame, "fixed", 1, grid, obs_level="country")
+    frame = paired(grid_points, [0.10, 0.30, 0.20, 0.20]).drop(columns=["cluster", "capacity"])
+    factors, clus_info = cluster_train_set(frame, "fixed", 1, grid_points, obs_level="country")
     assert len(factors) == 1
     assert clus_info["cluster"].nunique() == 1
     # One observation against one offset: exactly determined, unlike the
     # N-offsets-against-one-number joint fit. The scalar is the national
     # observation over the capacity-weighted national simulation.
-    national_sim = np.average([0.10, 0.30, 0.20, 0.20], weights=grid["capacity"])
+    national_sim = np.average([0.10, 0.30, 0.20, 0.20], weights=grid_points["capacity"])
     assert factors["scalar"].iloc[0] == pytest.approx(0.22 / national_sim)

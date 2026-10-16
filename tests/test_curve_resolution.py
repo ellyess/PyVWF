@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 
 import pyvwf.wind as wind
-from test_harness_driver import make_spec
+from support import fleet_frame, make_spec
 from pyvwf.curves import _default_power_curve, add_models
 from pyvwf.harness.driver import CurveSubstitutionError, run_evaluate, run_train, run_transfer
 from pyvwf.provenance import curve_resolution, summarise_curve_resolution
@@ -38,16 +38,13 @@ def bundled_curves():
 
 def _fleet(models, capacities=None, **extra):
     n = len(models)
-    return pd.DataFrame(
-        {
-            "ID": [f"u{i}" for i in range(n)],
-            "lat": [55.2 + 0.1 * i for i in range(n)],
-            "lon": [8.2 + 0.1 * i for i in range(n)],
-            "height": [100.0] * n,
-            "capacity": capacities if capacities is not None else [1000.0] * n,
-            "model": models,
-            **extra,
-        }
+    return fleet_frame(
+        ID=[f"u{i}" for i in range(n)],
+        lat=[55.2 + 0.1 * i for i in range(n)],
+        lon=[8.2 + 0.1 * i for i in range(n)],
+        capacity=capacities if capacities is not None else 1000.0,
+        model=list(models),
+        **extra,
     )
 
 

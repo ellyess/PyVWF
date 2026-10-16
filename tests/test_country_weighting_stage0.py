@@ -10,12 +10,12 @@ check is shown to refuse a known bad input and to pass a good one.
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+from support import load_script
 
 _PATH = (
     Path(__file__).resolve().parents[1]
@@ -24,12 +24,10 @@ _PATH = (
     / "method-country-weighting"
     / "stage0.py"
 )
-_SPEC = importlib.util.spec_from_file_location("stage0", _PATH)
-stage0 = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(stage0)
+stage0 = load_script(_PATH, "stage0")
 
 
-def grid(capacity=(10.0, 30.0, 0.0)) -> pd.DataFrame:
+def grid_frame(capacity=(10.0, 30.0, 0.0)) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "lat": [50.0, 51.0, 52.0],
@@ -44,15 +42,15 @@ def grid(capacity=(10.0, 30.0, 0.0)) -> pd.DataFrame:
 
 
 def test_grids_that_differ_only_in_capacity_pass():
-    stage0.check_same_points(grid(), grid(capacity=(5.0, 30.0, 20.0)), "XX 2015")
+    stage0.check_same_points(grid_frame(), grid_frame(capacity=(5.0, 30.0, 20.0)), "XX 2015")
 
 
 @pytest.mark.parametrize("column, value", [("lat", 50.25), ("cluster", 1), ("height", 80.0)])
 def test_grids_that_differ_in_a_site_are_refused(column, value):
-    moved = grid()
+    moved = grid_frame()
     moved.loc[0, column] = value
     with pytest.raises(ValueError, match="other than capacity"):
-        stage0.check_same_points(grid(), moved, "XX 2015")
+        stage0.check_same_points(grid_frame(), moved, "XX 2015")
 
 
 def test_the_national_mean_leaves_a_missing_point_out_of_both_sums():
@@ -60,7 +58,7 @@ def test_the_national_mean_leaves_a_missing_point_out_of_both_sums():
         {"g0": [0.2, np.nan], "g1": [0.4, 0.4], "offshore_52.0000_3.0000": [0.9, 0.9]},
         index=pd.MultiIndex.from_tuples([(2015, 1), (2015, 2)], names=["year", "month"]),
     )
-    capacity = grid().set_index("ID")["capacity"]
+    capacity = grid_frame().set_index("ID")["capacity"]
     out = stage0.national(sim, capacity)
     # (10 * 0.2 + 30 * 0.4) / 40, then only g1 has a value and a weight.
     assert out.tolist() == pytest.approx([0.35, 0.4])
@@ -79,8 +77,8 @@ def test_the_kill_rule_quantities_are_as_registered():
 
 
 def test_zero_capacity_reports_a_points_and_a_clusters_absence_in_any_grid():
-    mids = {2015: grid(capacity=(0.0, 30.0, np.nan))}
-    out = stage0.zero_capacity(grid(), mids)
+    mids = {2015: grid_frame(capacity=(0.0, 30.0, np.nan))}
+    out = stage0.zero_capacity(grid_frame(), mids)
     points = out[out["level"] == "point"]
     assert set(map(tuple, points[["grid", "ID"]].to_numpy())) == {
         ("A", "offshore_52.0000_3.0000"),
@@ -95,7 +93,7 @@ def test_a_grid_a_that_is_not_the_registered_one_is_refused(tmp_path, monkeypatc
     grid_dir = tmp_path / "grid_points" / "xx"
     grid_dir.mkdir(parents=True)
     path = grid_dir / "xx_grid_points_2021.csv"
-    grid().to_csv(path, index=False)
+    grid_frame().to_csv(path, index=False)
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     listed = tmp_path / "after.sha256"
     monkeypatch.setattr(stage0, "grid_dir", lambda code: tmp_path / "grid_points" / code.lower())
@@ -111,9 +109,7 @@ def test_a_grid_a_that_is_not_the_registered_one_is_refused(tmp_path, monkeypatc
 
 # --- the denominator table's flat rule -------------------------------------------
 
-_DSPEC = importlib.util.spec_from_file_location("denominators", _PATH.with_name("denominators.py"))
-denominators = importlib.util.module_from_spec(_DSPEC)
-_DSPEC.loader.exec_module(denominators)
+denominators = load_script(_PATH.with_name("denominators.py"), "denominators")
 
 
 def test_three_consecutive_years_within_a_megawatt_are_flat():

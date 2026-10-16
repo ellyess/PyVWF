@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test_harness_driver import make_spec
+from support import make_spec
 from pyvwf.harness.driver import run_evaluate, run_train
 from pyvwf.viz import (
     load_results,

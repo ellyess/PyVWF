@@ -22,7 +22,6 @@ Three layers:
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import runpy
 import sys
 from pathlib import Path
@@ -30,6 +29,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from support import load_script
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "process" / "emi_nz.py"
@@ -48,9 +48,7 @@ PRODUCTION_SHA256 = {
 
 
 def _load_script():
-    spec = importlib.util.spec_from_file_location("process_emi_nz", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(SCRIPT, "process_emi_nz")
     return module
 
 

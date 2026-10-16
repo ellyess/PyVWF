@@ -6,22 +6,20 @@ moves. These tests pin which units move, where they go, and which are left
 alone on purpose, on a catalogue small enough to check by hand.
 """
 
-import importlib.util
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import load_script
 
-_SPEC = importlib.util.spec_from_file_location(
-    "curve_library_assign",
+assign = load_script(
     Path(__file__).resolve().parents[1]
     / "scripts"
     / "studies"
     / "method-curve-library"
     / "curve_library_assign.py",
+    "curve_library_assign",
 )
-assign = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(assign)
 
 #: Four utility machines at 2 MW and one distributed machine far below the band.
 MODELS = pd.DataFrame(

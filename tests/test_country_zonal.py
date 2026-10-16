@@ -172,9 +172,9 @@ def test_national_collapse_survives_a_missing_observation(zonal_layout):
 def country_fixture(tmp_path, monkeypatch):
     """Synthetic ERA5 plus a four-point, two-cluster grid."""
     from pyvwf.config import PyVWFPaths
-    from tests import test_pipeline as tp
+    from tests import support as tp
 
-    tp._write_era5(tmp_path / "era5")
+    tp.write_era5(tmp_path / "era5")
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
     monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
 

@@ -9,40 +9,27 @@ call a reachable period unreachable.
 
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from pyvwf import correction
 from pyvwf.wind import interpolate_wind, train_simulate_wind_from_ws
+from support import load_script, two_cluster_fleet
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _module():
     path = ROOT / "scripts/studies/method-joint-fit-reachability/reachability_pass.py"
-    spec = importlib.util.spec_from_file_location("reachability_pass", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(path, "reachability_pass")
     return module
 
 
 @pytest.fixture
 def fleet():
-    return pd.DataFrame(
-        {
-            "ID": ["a", "b", "c", "d"],
-            "lat": [55.2, 55.4, 55.6, 55.8],
-            "lon": [8.2, 8.4, 8.6, 8.8],
-            "height": [100.0] * 4,
-            "capacity": [1000.0, 3000.0, 2000.0, 2000.0],
-            "model": ["GE.1.5sle"] * 4,
-            "cluster": [0, 0, 1, 1],
-        }
-    )
+    return two_cluster_fleet()
 
 
 def _range(module, fleet, reanalysis, power_curve):
@@ -154,9 +141,7 @@ def test_an_observation_inside_the_range_is_matched(fleet, reanalysis, power_cur
 
 def _offcurve():
     path = ROOT / "scripts/studies/method-joint-fit-reachability/reachability_offcurve.py"
-    spec = importlib.util.spec_from_file_location("reachability_offcurve", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_script(path, "reachability_offcurve")
     return module
 
 

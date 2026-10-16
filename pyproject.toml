@@ -201,7 +201,6 @@ omit = [
     "*/pyvwf/datasets/fetch_entsoe_capacity_factors.py",
     "*/pyvwf/datasets/generate_country_level_training_data.py",
     "*/pyvwf/datasets/process_dk_raw_data.py",
-    "*/pyvwf/datasets/combine_era5_files.py",
 ]
 
 [tool.coverage.report]

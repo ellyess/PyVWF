@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from test_harness_driver import make_spec
+from support import fleet_frame, make_spec
 from pyvwf.harness.corrections import fit_quality
 from pyvwf.harness.driver import run_evaluate, run_train
 from pyvwf.wind import fit_diagnostics
@@ -36,16 +36,13 @@ def _reanalysis():
 
 
 def _fleet():
-    return pd.DataFrame(
-        {
-            "ID": ["a", "b", "c"],
-            "lon": [8.2, 8.6, 9.2],
-            "lat": [55.2, 55.6, 55.8],
-            "height": 100.0,
-            "capacity": [1.0, 3.0, 2.0],
-            "model": "m",
-            "cluster": [0, 1, 2],
-        }
+    return fleet_frame(
+        ID=["a", "b", "c"],
+        lon=[8.2, 8.6, 9.2],
+        lat=[55.2, 55.6, 55.8],
+        capacity=[1.0, 3.0, 2.0],
+        model="m",
+        cluster=[0, 1, 2],
     )
 
 

@@ -8,24 +8,17 @@ likely true result. These tests pin the refusal that separates them: no
 condition runs on a fleet that is not the one it asked for.
 """
 
-import importlib.util
 import json
 import types
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import load_script
 
-_SPEC = importlib.util.spec_from_file_location(
-    "curve_library_study",
-    Path(__file__).resolve().parents[1]
-    / "scripts"
-    / "studies"
-    / "method-curve-library"
-    / "curve_library_study.py",
+study = load_script(
+    "scripts/studies/method-curve-library/curve_library_study.py", "curve_library_study"
 )
-study = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(study)
 
 
 def fleet(ids=("a", "b", "c"), models=("X", "Y", "Z"), capacity=(1.0, 2.0, 7.0)):
@@ -272,7 +265,7 @@ E2E_KEYS = {"t0": "VestasV47_660kW_47", "t3": "EWT_DW52_900kW_51.5"}
 @pytest.fixture
 def real_run(synthetic_dk, monkeypatch):
     """run_condition on the synthetic DK fleet, with only the TOML read replaced."""
-    from test_harness_driver import make_spec
+    from support import make_spec
 
     monkeypatch.setattr(study, "load_region", lambda _config: make_spec())
 
