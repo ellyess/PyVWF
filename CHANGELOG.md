@@ -281,6 +281,12 @@ this file stay in step with it.
   a flat capacity whatever the fleet did; Sweden's zonal files were built this
   way. It now raises and names the country and period. Files already on disk
   are unchanged.
+- **Norway's and Sweden's bidding-zone grids read the shapes of the input
+  root in use.** They opened `input/reference/shapes/` literally, ignoring
+  `PYVWF_INPUT`. The two countries' copies of the zone-grid builder and of
+  the zone-observation writer are folded into one each, with one zone table
+  per country and the observation file names built in `pyvwf.config`.
+
 - **A year's GWPT fleet is the fleet as it stood that year**
   (`pyvwf.datasets.gwpt.fleet_for`). It read only records the tracker marks
   operating today, so a project retired since was missing from every year it
