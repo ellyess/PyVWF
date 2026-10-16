@@ -168,6 +168,57 @@ change a gate's outcome.
 
 **The gates, arms and predictions do not change.**
 
+### Deviation, 2026-10-16: the run, four weeks on
+
+**Recorded before any fit.** The study did not run on 2026-09-20. The
+deviation above and its code sat on a branch that was never merged, and this
+records what changed before the run on 2026-10-16. Claude Code made these
+changes overnight, at the maintainer's request that open work proceed without
+them; the maintainer had not reviewed them when this was committed. None
+changes a fold, arm, metric, gate or prediction.
+
+- **The code is ported.** The 2026-09-20 commits (`c4c6dc1`, `14722be`,
+  `c85b765`, `deafc5b`, `bfb8c5f`) are carried onto current `main` as new
+  commits. The originals stay on branch `terrain-study-run` as the record of
+  the code the German caches (`14722be`) and their ratios (`deafc5b`) were
+  built with; neither is rebuilt.
+- **The interpreter.** `/opt/anaconda3/bin/python` was retired on 2026-09-24.
+  The run uses `/opt/miniconda3/envs/pyvwf/bin/python`: Python 3.13, torch
+  2.13.0, numpy 2.3.5, pandas 2.3.3.
+- **Code that moved since registration, outside this study's own files.** The
+  package is imported as `pyvwf`, not `vwf` (`4d06163`); the UK station collapse
+  changed (`967b485`), and so did the rule for missing values in every
+  capacity-weighted mean, `pyvwf.pinn.train` and `pyvwf.pinn.runs` included
+  (`d68b542`, after the 2026-09-20 branch was cut). The run uses the code as it
+  stands.
+- **A defect fixed before the run.** With `--score-subset`, the matched-unit
+  rows were written beside the whole-fleet rows and the gates averaged both
+  together, so the German fold's gated means and seed spreads would have mixed
+  the two. The gates, the arm table and the progress lines now read the
+  whole-fleet rows only; the matched-unit rows are reported in a table of their
+  own, as the check above registers.
+- **The ratios are reused.** `gwa/` and `gwa_mastr/` were built on a clean tree
+  at `deafc5b` and are not regenerated.
+- **The run goes through the run lock** (`scripts/dev/run_locked.py`), and
+  `scripts/pinn/run_turbine_study.sh` is its single command.
+- **T0's wording.** The German cache manifest records `14722be`, the commit it
+  was built at, not the leave-one-country-out caches' commit.
+- **Secondary scoring.** The country caches carry their 2023 grids as built on
+  2026-09-16. Those predate the rebuild on the corrected fleet register (#76)
+  and the offshore grid points of 2026-10-16. The secondary scoring is ungated,
+  and its country figures are read as of those grids.
+
+**The command**, from the repository root on a clean tree:
+
+```bash
+caffeinate -i /opt/miniconda3/envs/pyvwf/bin/python scripts/dev/run_locked.py -- \
+  bash scripts/pinn/run_turbine_study.sh
+```
+
+It skips both ratio passes, whose outputs exist, and runs the primary study
+and then the German centroid comparison, each with the flags the deviation of
+2026-09-20 gives.
+
 ## Folds
 
 Nine turbine-level regions, one held out at a time. Each is trained on its
