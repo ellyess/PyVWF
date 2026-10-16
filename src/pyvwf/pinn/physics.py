@@ -25,6 +25,8 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+from pyvwf.era5 import Z0_BOUNDS
+
 # Reference height of the ERA5 wind field the correction starts from.
 REF_HEIGHT = 100.0
 
@@ -118,7 +120,7 @@ def hub_wind_ratio(
     if profile == "log":
         if z0 is None:
             raise ValueError("profile='log' needs z0")
-        z0 = z0.clamp(min=1e-6, max=2.0)
+        z0 = z0.clamp(min=Z0_BOUNDS[0], max=Z0_BOUNDS[1])
         denom = torch.log(torch.tensor(REF_HEIGHT, dtype=z0.dtype, device=z0.device) / z0)
         # Guard the pathological z0 -> 100 m case exactly as pyvwf.wind does.
         denom = torch.where(denom.abs() > 1e-12, denom, torch.full_like(denom, float("nan")))
@@ -132,7 +134,7 @@ def hub_wind_ratio(
             raise ValueError("profile='shear-log' needs shear")
         z0 = roughness_from_shear(shear)
         if log_z0_offset is not None:
-            z0 = (z0 * torch.exp(log_z0_offset)).clamp(min=1e-6, max=2.0)
+            z0 = (z0 * torch.exp(log_z0_offset)).clamp(min=Z0_BOUNDS[0], max=Z0_BOUNDS[1])
         denom = torch.log(torch.tensor(REF_HEIGHT, dtype=z0.dtype, device=z0.device) / z0)
         denom = torch.where(denom.abs() > 1e-6, denom, torch.full_like(denom, 1e-6))
         return torch.log(height / z0) / denom
@@ -210,7 +212,7 @@ def roughness_from_shear(shear: torch.Tensor) -> torch.Tensor:
     # reversed profile, which no roughness reproduces. Hold r off 1 from above.
     r = r.clamp(min=1.0 + 1e-4)
     ln_z0 = ln10 * (r - 2.0) / (r - 1.0)
-    return torch.exp(ln_z0.clamp(min=float(np.log(1e-6)), max=float(np.log(2.0))))
+    return torch.exp(ln_z0.clamp(min=float(np.log(Z0_BOUNDS[0])), max=float(np.log(Z0_BOUNDS[1]))))
 
 
 def gauss_hermite(n: int, device=None, dtype=torch.float32):

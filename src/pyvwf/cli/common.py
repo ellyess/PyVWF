@@ -56,11 +56,23 @@ def resolved_input_root() -> tuple[Path, str]:
 
     Returns:
         ``(root, provenance)``. Provenance is ``"PYVWF_INPUT"`` where the
-        environment names the root, and ``"default"`` where nothing does and
-        it falls back to ``input/``.
+        environment names the root in use, ``"default"`` where nothing does
+        and the root is ``input/``, and ``"set in code"`` where the root in use
+        is neither: ``PyVWFPaths.INPUT_ROOT`` was reassigned after import, or
+        the environment changed after it was read.
+
+    The label is derived from the root in use, not from the environment
+    alone. ``PyVWFPaths`` reads ``PYVWF_INPUT`` once, at import, so reading the
+    environment again here (as this did until 2026-10-16) could name a root
+    the run was not reading (#88).
     """
     root = Path(PyVWFPaths.INPUT_ROOT)
-    return root, "PYVWF_INPUT" if os.environ.get("PYVWF_INPUT") else "default"
+    env = os.environ.get("PYVWF_INPUT")
+    if env and Path(env) == root:
+        return root, "PYVWF_INPUT"
+    if not env and root == Path("input"):
+        return root, "default"
+    return root, "set in code"
 
 
 #: Attribute holding the flags :func:`add_input_path` put on a parser. Only

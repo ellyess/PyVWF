@@ -25,6 +25,9 @@ import xarray as xr
 
 from pyvwf.era5 import (
     ROUGHNESS_TREATMENTS,
+    SHEAR_FLOOR,
+    WIND_SPEED_FLOOR,
+    Z0_BOUNDS,
     unify_time_coordinate,
     _normalise_longitudes,
     _slice_bbox,
@@ -32,7 +35,7 @@ from pyvwf.era5 import (
 
 # Matches prep_era5's guards, so the roughness computed here for regions whose
 # files carry no z0 agrees with the one the incumbent pipeline derives.
-_Z0_MIN, _Z0_MAX = 1e-6, 2.0
+_Z0_MIN, _Z0_MAX = Z0_BOUNDS
 
 
 def _open_normalised(path: Path, bbox) -> xr.Dataset:
@@ -110,11 +113,13 @@ def _hourly_fields(
             )
         applied = "derived"
         # The same inversion of the neutral log profile prep_era5 falls back to.
-        wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(min=1e-4)
-        w100 = wnd100.clip(min=1e-4)
+        wnd10 = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2)).clip(
+            min=WIND_SPEED_FLOOR
+        )
+        w100 = wnd100.clip(min=WIND_SPEED_FLOOR)
         num = w100 * np.log(10.0) - wnd10 * np.log(100.0)
         denom = w100 - wnd10
-        denom = denom.where(np.abs(denom) > 1e-4)
+        denom = denom.where(np.abs(denom) > SHEAR_FLOOR)
         z0_log = (num / denom).where(lambda a: a < 0)
         z0_log = z0_log.bfill("time").clip(min=np.log(1e-6), max=np.log(_Z0_MAX))
         z0 = np.exp(z0_log)
