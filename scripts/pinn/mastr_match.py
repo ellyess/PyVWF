@@ -44,8 +44,8 @@ sys.path.insert(0, "src")
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from vwf.cli.common import make_parser  # noqa: E402
-from vwf.config import PyVWFPaths  # noqa: E402
+from pyvwf.cli.common import make_parser  # noqa: E402
+from pyvwf.config import PyVWFPaths  # noqa: E402
 
 ARCHIVE = Path("input/raw/mastr/Gesamtdatenexport_20260918_26.1.zip")
 MEMBER = "EinheitenWind.xml"

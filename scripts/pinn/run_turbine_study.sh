@@ -21,7 +21,7 @@ GWA=output/pinn_turbine_2026-09-18/gwa
 GWA_MASTR=output/pinn_turbine_2026-09-18/gwa_mastr
 STUDY=output/pinn_turbine_2026-09-18/study
 OVERRIDE=output/pinn_turbine_2026-09-18/mastr/de_fleet_override.csv
-PY=/opt/anaconda3/bin/python
+PY=/opt/miniconda3/envs/pyvwf/bin/python
 
 stage() { echo; echo "=== $* $(date +%T)"; }
 
