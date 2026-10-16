@@ -515,6 +515,13 @@ this file stay in step with it.
 
 ### Documentation
 
+- **`scripts/dev/repo_stats.py` counts the development record at one commit**:
+  commits, merged pull requests, test files and functions, findings documents,
+  pre-registrations, correction notices, and the agent instruction files,
+  skills, subagents and hooks. It reads git and the tracked tree, never the
+  working tree, and `tests/test_repo_stats.py` checks each count on a
+  repository built to known counts and on one with none.
+
 - **The country weighting study (#67) is registered and stops at its row
   rule** (`method-country-weighting-prereg.md`, `method-country-weighting.md`).
   In five of the six rows the per-year grid capacity and the observed
