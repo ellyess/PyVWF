@@ -61,6 +61,11 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         (["realdata"], ("main", ("realdata",), {})),
         (["pinn"], ("main", ("pinn",), {})),
     ],
+    # The docstring gives both.
+    "scripts/dev/ci_local.py": [
+        ([], ("main", (set(), False), {})),
+        (["--skip", "docs", "--skip", "pytest"], ("main", ({"docs", "pytest"}, False), {})),
+    ],
     # The start-year backfill's own docstring gives both.
     "scripts/region_tools/backfill_gwpt_start_years.py": [
         (

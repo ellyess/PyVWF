@@ -152,6 +152,15 @@ this file stay in step with it.
   `tests/test_tool_pins.py` checks both. `pyproject.toml` says why it has
   no upper bounds.
 
+- **`scripts/dev/ci_local.py` runs CI's checks locally, before a stamp.** It
+  builds Python 3.12 environments from `constraints/py312.txt` and
+  `constraints/py312-docs.txt` under `output/ci-local/`, as the lint, test and
+  docs jobs install them, and runs ruff, mypy, `lint-imports`, deptry,
+  vulture, the fast set and the Sphinx build, with one pass or fail line each.
+  The project environment runs pandas 2 with the `data` extra, so it missed
+  two failures CI then caught, each after a realdata stamp had been spent.
+  `tests/test_ci_local.py` checks the commands against the workflow.
+
 - **A realdata or pinn stamp survives an edit to comments or docstrings**
   (`scripts/dev/stamp.py`). The stamp's fingerprint now reads each covered
   `.py` file's syntax tree, docstrings removed, instead of its bytes, so a

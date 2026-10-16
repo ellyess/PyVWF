@@ -10,6 +10,7 @@ each guard does and misses, are in `docs/design/agent-guards.md`.
 
 ```bash
 pytest -m "not slow and not realdata"          # the fast set, what CI runs
+python scripts/dev/ci_local.py                 # CI's checks in CI's 3.12 env: before stamping
 python scripts/dev/stamp.py realdata           # the real-data pins, stamped
 python scripts/dev/stamp.py pinn               # the physics-informed tests, stamped
 ruff check src tests scripts examples && ruff format --check src tests scripts examples
