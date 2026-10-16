@@ -14,21 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # mypy runs on a single Python rather than the test matrix: numpy's
+      # bundled stubs use PEP 695 syntax that mypy only parses when targeting
+      # 3.12+. The composite action's default is 3.12.
       - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          # mypy runs on a single Python rather than the test matrix: numpy's
-          # bundled stubs use PEP 695 syntax that mypy only parses when
-          # targeting 3.12+.
-          python-version: "3.12"
-          cache: pip
+        uses: ./.github/actions/setup-python-pip
 
       - name: Install package and dev tooling
         # Pinned by constraints/py312.txt, so ruff, mypy and pandas-stubs are
         # the versions the repository was checked with (scripts/dev/lock.py).
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]" -c constraints/py312.txt
+        run: pip install -e ".[dev]" -c constraints/py312.txt
 
       - name: Lint (ruff)
         # The whole code tree, scripts and examples included, and the formatting
@@ -85,10 +80,9 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: ./.github/actions/setup-python-pip
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
 
       - name: Install package and test dependencies
         # Install from pyproject rather than a hand-curated pip list, so CI
@@ -98,7 +92,6 @@ jobs:
         # The `data` extra is deliberately NOT installed: the test suite and the
         # example must pass without the data-acquisition libraries.
         run: |
-          python -m pip install --upgrade pip
           if [ -n "${{ matrix.constraints }}" ]; then
             pip install -e ".[dev]" -c "${{ matrix.constraints }}"
           else
@@ -109,16 +102,19 @@ jobs:
       - name: Run tests
         # The fast set on pushes and pull requests; every test on a manual
         # dispatch. The realdata tests skip here either way, since the data they
-        # read is git-ignored; the markers are in pyproject.toml.
+        # read is git-ignored; the markers are in pyproject.toml. Coverage, and
+        # its gate, is measured in the 3.12 cell only: it is one number for
+        # the repository, not one per Python.
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            pytest tests -q --cov=pyvwf --cov-report=term-missing
-          else
-            pytest tests -q --cov=pyvwf --cov-report=term-missing -m "not slow and not realdata"
+          COV=""
+          if [ "${{ matrix.python-version }}" = "3.12" ]; then
+            COV="--cov=pyvwf --cov-report=term-missing"
           fi
-
-      - name: Run minimal example (end-to-end on bundled synthetic data)
-        run: python examples/run_minimal.py
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            pytest tests -q $COV
+          else
+            pytest tests -q $COV -m "not slow and not realdata"
+          fi
 
   extras:
     name: Test with every extra (Python 3.12)
@@ -132,18 +128,18 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
+        uses: ./.github/actions/setup-python-pip
 
       - name: Install the package with every extra
-        # torch from the CPU index: the default wheel carries CUDA and is
-        # several gigabytes, none of which the tests use.
+        # Pinned by constraints/py312-extras.txt (scripts/dev/lock.py), resolved
+        # against py312.txt so the packages the two share are the same
+        # versions. torch from the CPU index, at the pinned version: the
+        # default wheel carries CUDA and is several gigabytes, none of which
+        # the tests use, and the CPU wheel's local "+cpu" satisfies the pin.
         run: |
-          python -m pip install --upgrade pip
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -e ".[dev,pinn,grid,data,parallel]"
+          TORCH=$(grep -E '^torch==' constraints/py312-extras.txt | cut -d= -f3)
+          pip install "torch==${TORCH}" --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,pinn,grid,data,parallel]" -c constraints/py312-extras.txt
 
       - name: Run tests
         # No -q: the ini already sets it, and a second one hides the summary line.
@@ -169,15 +165,13 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
+        uses: ./.github/actions/setup-python-pip
 
       - name: Install the package
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
+        # The core install, pinned by the test matrix's 3.12 file: the core
+        # dependencies are a subset of what it resolves. This job is the one
+        # place every example runs, run_minimal.py included.
+        run: pip install -e . -c constraints/py312.txt
 
       - name: Run every example
         # Sorted, so data/generate_example_data.py regenerates the bundled data
@@ -229,15 +223,11 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
+        uses: ./.github/actions/setup-python-pip
 
       - name: Install package and docs tooling
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[docs]"
+        # Pinned by constraints/py312-docs.txt (scripts/dev/lock.py).
+        run: pip install -e ".[docs]" -c constraints/py312-docs.txt
 
       - name: Build the API reference and guides
         # -W turns warnings into errors: a docstring that stops parsing, or a
@@ -262,12 +252,15 @@ jobs:
         # Plain docker build rather than buildx with a registry cache: this job
         # exists to prove the image builds from a clean checkout, and a warm
         # cache would hide a broken dependency layer.
-        run: docker build -t pyvwf:ci .
+        # CONSTRAINTS pins the image's install to the test matrix's 3.12 file,
+        # so the image is built from the versions CI tested; a user's plain
+        # `docker build` still resolves freely.
+        run: docker build --build-arg CONSTRAINTS=constraints/py312.txt -t pyvwf:ci .
 
       - name: The default command runs end to end on bundled data
-        # Same synthetic example the test job runs on the host, so a failure
-        # here is specifically a packaging or environment problem rather than a
-        # regression in the correction.
+        # Same synthetic example the examples job runs on the host, so a
+        # failure here is specifically a packaging or environment problem
+        # rather than a regression in the correction.
         run: docker run --rm pyvwf:ci | tee /tmp/demo.log
 
       - name: The example actually corrected something
@@ -307,14 +300,11 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-          cache: pip
+        uses: ./.github/actions/setup-python-pip
 
       - name: Build sdist and wheel
         run: |
-          python -m pip install --upgrade pip build twine
+          pip install build twine
           python -m build
 
       - name: Check distribution metadata
@@ -323,6 +313,8 @@ jobs:
       - name: Install the wheel into a clean environment
         # No repo on sys.path: proves the *installed artefact* is self-contained
         # and that the declared dependencies are sufficient to import and run it.
+        # Unpinned on purpose, like the 3.13 test cell: this is the install a
+        # user's `pip install pyvwf` gets today.
         run: |
           python -m venv /tmp/clean
           /tmp/clean/bin/pip install dist/*.whl

@@ -124,6 +124,17 @@ this file stay in step with it.
   `scripts/studies/README.md` maps each old path to its new one, with the last
   commit there.
 
+- **Every CI job that installs extras is pinned, and the setup is shared.**
+  The extras job and the docs build install through constraints files of
+  their own (`constraints/py312-extras.txt`, `py312-docs.txt`), resolved
+  against the 3.12 test cell's file so shared packages match; torch comes
+  from the CPU index at the pinned version. The examples job and the Docker
+  image install through the 3.12 file (the image through a new `CONSTRAINTS`
+  build argument, empty for a plain build). The 3.13 cell and the clean-wheel
+  package job stay unpinned on purpose. A composite action replaces the
+  repeated setup; the minimal example runs once on the host instead of five
+  times, and coverage is measured in one cell.
+
 - **Six study drivers read frozen configs** (`configs/regions/study/`). The
   cluster-selection, correction-identifiability, national-single-cluster,
   hourly-resolution and scalar-bounds drivers read the maintained region
