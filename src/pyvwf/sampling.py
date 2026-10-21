@@ -81,7 +81,7 @@ def add_turbine_metadata(
     return points
 
 
-def create_sampling_points(
+def create_sampling_points(  # noqa: C901
     country_bounds: Polygon | None = None,
     method: str = "grid",
     resolution: float = 0.25,
@@ -197,7 +197,7 @@ def create_sampling_points(
 
         return points.reset_index(drop=True)
 
-    elif method == "grid":
+    if method == "grid":
         if country_bounds is None:
             raise ValueError("country_bounds required for method='grid'")
 
@@ -236,7 +236,7 @@ def create_sampling_points(
 
         return points
 
-    elif method == "random":
+    if method == "random":
         if country_bounds is None:
             raise ValueError("country_bounds required for method='random'")
 
@@ -281,11 +281,10 @@ def create_sampling_points(
 
         return points_df
 
-    else:
-        raise ValueError(f"Unknown method: {method}. Use 'grid', 'turbines', or 'random'.")
+    raise ValueError(f"Unknown method: {method}. Use 'grid', 'turbines', or 'random'.")
 
 
-def cluster_with_geometries(
+def cluster_with_geometries(  # noqa: C901
     sampling_points: pd.DataFrame,
     num_clusters: int,
     method: str = "kmeans",
@@ -493,7 +492,7 @@ def cluster_with_geometries(
 
         return sampling_points, cluster_gdf
 
-    elif method == "predefined":
+    if method == "predefined":
         # Use predefined cluster assignments (e.g., for bidding zones)
         # Assumes sampling_points already has 'cluster' column
 
@@ -519,5 +518,4 @@ def cluster_with_geometries(
 
         return sampling_points, cluster_gdf
 
-    else:
-        raise ValueError(f"Unknown method: {method}. Use 'kmeans' or 'predefined'.")
+    raise ValueError(f"Unknown method: {method}. Use 'kmeans' or 'predefined'.")

@@ -25,8 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _lock():
-    module = load_script(ROOT / "scripts" / "dev" / "lock.py", "lock")
-    return module
+    return load_script(ROOT / "scripts" / "dev" / "lock.py", "lock")
 
 
 def _workflow_constraints() -> dict[str, str]:

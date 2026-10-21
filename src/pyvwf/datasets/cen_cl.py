@@ -103,7 +103,7 @@ def wind_fleet_from_generation(gen: pd.DataFrame) -> pd.DataFrame:
     wind = wind_rows(gen)
     wind["ID"] = wind["id_central"].astype(str).str.strip()
     wind["cap_mw"] = pd.to_numeric(wind["potencia_maxima"], errors="coerce")
-    grouped = (
+    return (
         wind.groupby("ID")
         .agg(
             site_name=("central", "first"),
@@ -113,7 +113,6 @@ def wind_fleet_from_generation(gen: pd.DataFrame) -> pd.DataFrame:
         )
         .reset_index()
     )
-    return grouped
 
 
 def monthly_cf_from_generation(

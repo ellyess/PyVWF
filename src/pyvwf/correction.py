@@ -70,10 +70,6 @@ def calculate_scalar(gen_cf, time_res):
 
     df["scalar"] = df["obs"] / df["sim"]
 
-    # Constrain scalars to prevent extreme corrections
-    # Values outside [0.5, 1.5] indicate potential overfitting or data issues
-    # df['scalar'] = df['scalar'].clip(lower=0.1, upper=2.0)
-
     df = df.reset_index()
     df.columns = ["time_slice", "cluster", "year", "obs", "sim", "scalar"]
 
@@ -332,8 +328,7 @@ def find_offsets_country_level(
         )
 
         # Return squared error
-        error = (country_cf_sim - obs_country_cf) ** 2
-        return error
+        return (country_cf_sim - obs_country_cf) ** 2
 
     # Initial guess: all offsets = 0
     x0 = np.zeros(len(clusters))

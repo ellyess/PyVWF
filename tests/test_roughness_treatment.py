@@ -104,7 +104,8 @@ def test_region_config_parses_the_treatment(tmp_path):
     the per-timestep treatment. What a row is set to belongs in the tests that
     check the shipped tree, not in one that checks a parser.
     """
-    base = open("configs/regions/scorecard/dk_k100.toml").read()
+    with open("configs/regions/scorecard/dk_k100.toml") as fh:
+        base = fh.read()
     without = base.replace('roughness = "derived"\n', "")
     (tmp_path / "absent.toml").write_text(without)
     (tmp_path / "derived.toml").write_text(

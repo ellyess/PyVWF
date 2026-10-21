@@ -198,10 +198,7 @@ def get_country_shape(country_code: str, cluster_mode: str = "onshore", repair: 
     code_map = {"UK": "GB", "GB": "UK"}
     codes_to_try = [country_code, code_map.get(country_code, country_code)]
 
-    if cluster_mode == "offshore":
-        shapes_df = offshore_shapes
-    else:
-        shapes_df = country_shapes
+    shapes_df = offshore_shapes if cluster_mode == "offshore" else country_shapes
 
     if shapes_df.empty:
         return None
@@ -379,7 +376,6 @@ def cluster_turbines(
     if train:
         turb_info_train["cluster"] = _labels(turb_info_train)
         return turb_info_train
-    else:
-        turb_info = args[0]
-        turb_info["cluster"] = _labels(turb_info)
-        return turb_info
+    turb_info = args[0]
+    turb_info["cluster"] = _labels(turb_info)
+    return turb_info

@@ -117,7 +117,7 @@ def test_curtailment_mask_threshold():
     )
     mask = curtailment_mask_months(account, threshold=0.05)
     assert mask["ID"].tolist() == ["A"]  # only the 10% month is masked
-    assert (2023, 5) == (mask.iloc[0]["year"], mask.iloc[0]["month"])
+    assert (mask.iloc[0]["year"], mask.iloc[0]["month"]) == (2023, 5)
 
 
 def test_build_metadata_contract_and_provenance():

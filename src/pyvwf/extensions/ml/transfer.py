@@ -139,13 +139,12 @@ def loro(df, feats, target, seeds=SEEDS):
         for s in seeds:
             r2, mae = rf_eval(tr, te, feats, target, s)
             recs.append(dict(holdout=region, seed=s, r2=r2, mae=mae))
-    r = (
+    return (
         pd.DataFrame(recs)
         .groupby("holdout")
         .agg(r2_mean=("r2", "mean"), r2_std=("r2", "std"), mae_mean=("mae", "mean"))
         .reset_index()
     )
-    return r
 
 
 def random_cv(df, feats, target, seeds=SEEDS):

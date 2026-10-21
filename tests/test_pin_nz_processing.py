@@ -48,8 +48,7 @@ PRODUCTION_SHA256 = {
 
 
 def _load_script():
-    module = load_script(SCRIPT, "process_emi_nz")
-    return module
+    return load_script(SCRIPT, "process_emi_nz")
 
 
 nz = _load_script()

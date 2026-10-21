@@ -165,9 +165,7 @@ def clean_obs_data(df, country, train=False):
     # turbine should atleast have a cf of atleast 1%
     df["cf_mean"] = df[df.columns[df.columns.str.startswith("obs")]].mean(axis=1)
     df = df.drop(df[df["cf_mean"] <= 0.01].index)
-    df = df.drop(["cf_mean"], axis=1)
-
-    return df
+    return df.drop(["cf_mean"], axis=1)
 
 
 # ============================================================================

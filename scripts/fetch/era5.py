@@ -183,7 +183,7 @@ def check_bbox(bbox) -> tuple[float, float, float, float]:
     w, e, s, n = (float(v) for v in bbox)
     if w >= e or s >= n:
         sys.exit(f"bbox must be [W, E, S, N] with W < E and S < N, got {list(bbox)}")
-    if not (-180 <= w and e <= 360 and -90 <= s and n <= 90):
+    if not (w >= -180 and e <= 360 and s >= -90 and n <= 90):
         sys.exit(f"bbox is outside the globe: {list(bbox)}")
     return (w, e, s, n)
 

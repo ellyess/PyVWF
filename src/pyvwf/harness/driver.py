@@ -520,7 +520,7 @@ def collapse_factors(
     merged["_ws"] = merged["scalar"].where(usable, 0.0) * merged["_w"]
     merged["_wo"] = merged["offset"].where(usable, 0.0) * merged["_w"]
     grouped = merged.groupby(time_res, as_index=False)[["_ws", "_wo", "_w"]].sum()
-    collapsed = pd.DataFrame(
+    return pd.DataFrame(
         {
             "cluster": 0,
             time_res: grouped[time_res],
@@ -528,7 +528,6 @@ def collapse_factors(
             "offset": grouped["_wo"] / grouped["_w"].where(grouped["_w"] > 0),
         }
     )
-    return collapsed
 
 
 def run_transfer(

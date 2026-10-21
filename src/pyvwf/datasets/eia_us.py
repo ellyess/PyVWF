@@ -473,5 +473,4 @@ def build_us_metadata(
             "n_turbines",
         ]
     ].copy()
-    out = out[out["lon"].notna() & out["lat"].notna()].reset_index(drop=True)
-    return out
+    return out[out["lon"].notna() & out["lat"].notna()].reset_index(drop=True)

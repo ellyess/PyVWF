@@ -157,7 +157,7 @@ def _hourly_observations(raw_cen: Path = RAW_CEN) -> pd.DataFrame:
         path = Path(raw_cen) / f"cen_gen_{YEAR}_{month:02d}.json"
         if not path.exists():
             continue
-        frames.append(pd.DataFrame(json.load(open(path))))
+        frames.append(pd.DataFrame(json.loads(path.read_text())))
     gen = pd.concat(frames, ignore_index=True)
     w = wind_rows(gen).copy()
 

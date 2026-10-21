@@ -19,8 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _module():
     path = ROOT / "scripts/region_tools/weight_country_grid_points.py"
-    module = load_script(path, "weight_country_grid_points")
-    return module
+    return load_script(path, "weight_country_grid_points")
 
 
 def land_grid() -> pd.DataFrame:

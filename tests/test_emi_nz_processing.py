@@ -34,7 +34,7 @@ from pyvwf.sources.emi_nz import EMINewZealandSource, apply_month_mask
 
 
 def test_day_start_utc_winter_and_summer_offsets():
-    # NZST (winter) is UTC+12; NZDT (summer) is UTC+13.
+    # New Zealand standard time (winter) is 12 hours ahead of UTC, daylight time (summer) 13.
     starts = day_start_utc(pd.Series(["2023-06-15", "2023-01-15"]))
     assert starts.iloc[0] == pd.Timestamp("2023-06-14 12:00")
     assert starts.iloc[1] == pd.Timestamp("2023-01-14 11:00")

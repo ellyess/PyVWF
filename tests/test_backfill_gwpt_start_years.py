@@ -19,8 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _module():
     path = ROOT / "scripts/region_tools/backfill_gwpt_start_years.py"
-    module = load_script(path, "backfill_gwpt_start_years")
-    return module
+    return load_script(path, "backfill_gwpt_start_years")
 
 
 def turbine(date, n, kw, out=None):

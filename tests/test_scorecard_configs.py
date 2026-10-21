@@ -21,7 +21,8 @@ from pyvwf.harness.regions import load_region
 ROOT = Path(__file__).resolve().parents[1]
 SCORECARD = ROOT / "docs" / "findings" / "scorecard.md"
 CONFIG_DIR = ROOT / "configs" / "regions" / "scorecard"
-# "| Germany (DE) | ...", "| Denmark (DK) § 0.6% | ...", "| Australia (AU-NEM) |"
+# Matches rows that open with a name and a code, such as Germany (DE), Denmark (DK) § 0.6%
+# or Australia (AU-NEM).
 ROW = re.compile(r"^\|\s*[A-Z][A-Za-z .]*\(([A-Z][A-Z-]*)\)")
 
 

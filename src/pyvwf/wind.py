@@ -451,16 +451,14 @@ def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None 
         np.asarray(turb_info["height"], dtype=float), dims="turbine", coords={"turbine": ids}
     )
 
-    # print(f"Interpolating wind speeds for {len(turb_info)} turbines (this may take a few minutes)...")
     sim_ws = ws.interp(lon=lon, lat=lat, height=height, kwargs={"fill_value": None})
 
-    sim_ws = sim_ws.assign_coords(
+    return sim_ws.assign_coords(
         {
             "model": ("turbine", np.asarray(turb_info["model"], dtype=object)),
             "capacity": ("turbine", np.asarray(turb_info["capacity"], dtype=float)),
         }
     )
-    return sim_ws
 
 
 def simulate_wind(reanalysis, turb_info, powerCurveFile, *args, aggregate=False, seasons=None):

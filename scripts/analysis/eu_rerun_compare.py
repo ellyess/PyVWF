@@ -114,7 +114,7 @@ def _conditions(argv) -> dict[str, Path]:
     return out
 
 
-def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:
+def main(code: str, out_dir: str, argv, tag: str = "rerun") -> None:  # noqa: C901
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     runs = _conditions(argv)

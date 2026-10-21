@@ -73,7 +73,7 @@ def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = Tru
     }
 
     # Select and rename columns
-    available_cols = [col for col in columns_map.keys() if col in df.columns]
+    available_cols = [col for col in columns_map if col in df.columns]
     df_clean = df[available_cols].copy()
     df_clean = df_clean.rename(columns=columns_map)
 
@@ -155,7 +155,7 @@ def process_dk_metadata(input_file: Path, output_file: Path, verbose: bool = Tru
     return df_clean
 
 
-def process_dk_monthly_observations(
+def process_dk_monthly_observations(  # noqa: C901
     input_file: Path,
     output_file: Path,
     year_start: int = 2002,
@@ -214,12 +214,11 @@ def process_dk_monthly_observations(
             # Identify month columns (they should be datetime columns)
             month_cols = []
             for col in df.columns:
-                if col not in ["ID", "connection_date", "decommission_date"]:
-                    # Check if column name is a date (pd.Timestamp or datetime)
-                    if isinstance(col, (pd.Timestamp, datetime, date)):
-                        month_cols.append(col)
-                    elif hasattr(col, "year") and hasattr(col, "month"):
-                        month_cols.append(col)
+                if col not in ["ID", "connection_date", "decommission_date"] and (
+                    isinstance(col, (pd.Timestamp, datetime, date))
+                    or (hasattr(col, "year") and hasattr(col, "month"))
+                ):
+                    month_cols.append(col)
 
             # Convert month columns to numeric
             for col in month_cols:
