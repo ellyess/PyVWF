@@ -453,7 +453,7 @@ typing-extensions==4.16.0
     #   torch
 urllib3==2.8.0
     # via requests
-virtualenv==21.12.1
+virtualenv==21.14.11
     # via
     #   -c constraints/py312.txt
     #   pre-commit
