@@ -56,6 +56,54 @@ def test_height_log_law_scaling(make_reanalysis):
     assert factor < 1.0
 
 
+def test_cropping_the_grid_to_the_units_changes_no_bit():
+    """interpolate_wind crops the grid to the units before the log-law.
+
+    The reference applies the same log-law to the whole grid, uncropped, then
+    interpolates. They must agree bit for bit, including for a unit beyond the
+    grid's east edge, which is extrapolated from the edge interval. A crop that
+    drops a cell interp reads, at the units or at the edge, changes them.
+    """
+    rng = np.random.default_rng(3)
+    lats = np.arange(60.0, 54.0, -0.25)  # descending, as ERA5 stores it
+    lons = np.arange(5.0, 12.5, 0.25)
+    shape = (24, len(lats), len(lons))
+    ds = xr.Dataset(
+        {
+            "wnd100m": (("time", "lat", "lon"), rng.uniform(2.0, 15.0, shape)),
+            "roughness": (("time", "lat", "lon"), rng.uniform(1e-4, 0.8, shape)),
+        },
+        coords={
+            "time": pd.date_range("2020-01-01", periods=24, freq="h"),
+            "lat": lats,
+            "lon": lons,
+        },
+    )
+    cluster = pd.DataFrame(
+        {
+            "ID": ["a", "b", "c"],
+            "lat": [57.13, 57.61, 56.9],
+            "lon": [8.07, 8.66, 12.6],  # c lies past the last column, 12.25
+            "height": [80.0, 110.0, 80.0],
+            "model": "m",
+            "capacity": 1.0,
+        }
+    )
+    full = ds.assign_coords(height=("height", cluster["height"].unique()))
+    z0 = full["roughness"].clip(min=1e-6)
+    denom = np.log(100.0 / z0)
+    denom = denom.where(np.abs(denom) > 1e-12)
+    profile = full["wnd100m"] * (np.log(full["height"] / z0) / denom)
+    at = {
+        c: xr.DataArray(cluster[c].to_numpy(float), dims="turbine")
+        for c in ("lon", "lat", "height")
+    }
+    expected = profile.interp(**at, kwargs={"fill_value": None})
+
+    got = interpolate_wind(ds, cluster, allow_extrapolation=True)
+    np.testing.assert_array_equal(got.values, expected.values)
+
+
 def test_simulate_wind_cf_bounds(reanalysis, turbines, power_curve):
     _, cf = simulate_wind(reanalysis, turbines, power_curve)
     vals = cf[["t1", "t2"]].to_numpy()
