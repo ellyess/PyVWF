@@ -222,14 +222,24 @@ target-version = "py310"
 # E: pycodestyle errors, F: pyflakes. Kept intentionally lean so the legacy
 # research scripts pass while still catching dead code, unused imports, and
 # real bugs (e.g. a discarded-merge bug once fixed in the removed vwf/vwf.py).
-select = ["E", "F"]
+# C901, SIM, RET, PIE and ERA back the "Code size" rules in AGENTS.md. ARG and
+# PLR0912/PLR0915 were tried on 2026-10-21 and dropped: ARG was nearly all
+# pytest fixtures and interface signatures, and PLR09xx flagged the same
+# functions as C901.
+select = ["E", "F", "C901", "SIM", "RET", "PIE", "ERA"]
 ignore = [
     "E501",  # line length handled case-by-case in research code
     "E741",  # ambiguous names (l, I) are common in maths-heavy code
 ]
 
+[tool.ruff.lint.mccabe]
+# The existing functions above this carry `noqa: C901` rather than being split
+# for its own sake (CONTRIBUTING.md, "Split a long function").
+max-complexity = 15
+
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E402"]  # sys.path manipulation before imports in a few tests
+"scripts/studies/*" = ["C901"]  # one-off research drivers
 
 [tool.deptry]
 # Checks src/ against the declared dependencies; CI runs `deptry src`.
