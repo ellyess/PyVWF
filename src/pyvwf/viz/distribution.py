@@ -32,15 +32,6 @@ from scipy import stats
 __all__ = ["Results", "load_results", "plot_cf_distribution", "plot_qq"]
 
 
-def _ks_distance(sim: np.ndarray, obs: np.ndarray) -> float:
-    """Two-sample Kolmogorov-Smirnov distance (max CDF gap) over finite values."""
-    s = sim[np.isfinite(sim)]
-    o = obs[np.isfinite(obs)]
-    if s.size == 0 or o.size == 0:
-        return float("nan")
-    return float(stats.ks_2samp(s, o).statistic)
-
-
 # Stable colour mapping so plot_cf_distribution and plot_qq read as a pair.
 # Obs is always black; sims pick up tab10 colours by canonical label, with
 # anything unrecognised falling through to the matplotlib prop cycle.
@@ -50,11 +41,6 @@ _DEFAULT_COLOURS = {
     "uncorrected": "#1f77b4",
     "linear": "#ff7f0e",
 }
-
-
-# ---------------------------------------------------------------------------
-# Results loader
-# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -232,11 +218,6 @@ def load_results(
     )
 
 
-# ---------------------------------------------------------------------------
-# Helpers shared by the two plot functions
-# ---------------------------------------------------------------------------
-
-
 def _to_array(x) -> np.ndarray:
     a = np.asarray(x, dtype=float).ravel()
     return a[np.isfinite(a)]
@@ -244,17 +225,6 @@ def _to_array(x) -> np.ndarray:
 
 def _colour_for(label: str, fallback) -> str:
     return _DEFAULT_COLOURS.get(label.lower(), fallback)
-
-
-def _legend_label(label: str, sim: np.ndarray, obs: np.ndarray) -> str:
-    mu = float(np.mean(sim)) if sim.size else float("nan")
-    ks = _ks_distance(sim, obs)
-    return f"{label}  (μ={mu:.3f}, KS={ks:.3f})"
-
-
-# ---------------------------------------------------------------------------
-# Plot 1: CF distribution (hist + ECDF + tail inset)
-# ---------------------------------------------------------------------------
 
 
 def plot_cf_distribution(
@@ -291,7 +261,7 @@ def plot_cf_distribution(
     """
     obs_arr = _to_array(obs)
     if bins is None:
-        n_min = min([obs_arr.size] + [_to_array(s).size for s in sims.values()] or [1])
+        n_min = min([obs_arr.size] + [_to_array(s).size for s in sims.values()])
         bins = max(5, min(50, n_min // 5))
 
     fig, (ax_hist, ax_cdf) = plt.subplots(
@@ -305,7 +275,6 @@ def plot_cf_distribution(
 
     bin_edges = np.linspace(0.0, 1.0, bins + 1)
 
-    # Observed series: filled grey histogram (reference) + black step CDF
     ax_hist.hist(
         obs_arr,
         bins=bin_edges,
@@ -340,6 +309,7 @@ def plot_cf_distribution(
         if arr.size == 0:
             continue
         colour = _colour_for(label, next(cycle_iter, None) or "C0")
+        ks = stats.ks_2samp(arr, obs_arr).statistic if obs_arr.size else float("nan")
         ax_hist.hist(
             arr,
             bins=bin_edges,
@@ -347,7 +317,7 @@ def plot_cf_distribution(
             histtype="step",
             color=colour,
             linewidth=1.4,
-            label=_legend_label(label, arr, obs_arr),
+            label=f"{label}  (μ={arr.mean():.3f}, KS={ks:.3f})",
         )
         _plot_ecdf(ax_cdf, arr, color=colour, label=label, linewidth=1.2)
         if inset is not None:
@@ -391,11 +361,6 @@ def _plot_ecdf(ax, arr: np.ndarray, *, color, label, linewidth=1.2) -> None:
     xs = np.sort(arr)
     ys = np.arange(1, xs.size + 1) / xs.size
     ax.plot(xs, ys, color=color, label=label, linewidth=linewidth)
-
-
-# ---------------------------------------------------------------------------
-# Plot 2: QQ
-# ---------------------------------------------------------------------------
 
 
 def plot_qq(
