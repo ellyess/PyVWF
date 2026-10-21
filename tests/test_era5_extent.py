@@ -118,7 +118,8 @@ def test_prep_era5_warns_when_the_data_stops_short_of_the_bbox(tmp_path):
 
 
 def test_region_config_parses_the_opt_in(tmp_path):
-    base = open("configs/regions/scorecard/fr_country.toml").read()
+    with open("configs/regions/scorecard/fr_country.toml") as fh:
+        base = fh.read()
     on = base.replace("[era5]\n", "[era5]\nallow_extrapolation = true\n", 1)
     bad = base.replace("[era5]\n", '[era5]\nallow_extrapolation = "yes"\n', 1)
     (tmp_path / "on.toml").write_text(on)

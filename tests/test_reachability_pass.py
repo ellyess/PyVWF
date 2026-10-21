@@ -23,8 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _module():
     path = ROOT / "scripts/studies/method-joint-fit-reachability/reachability_pass.py"
-    module = load_script(path, "reachability_pass")
-    return module
+    return load_script(path, "reachability_pass")
 
 
 @pytest.fixture
@@ -141,8 +140,7 @@ def test_an_observation_inside_the_range_is_matched(fleet, reanalysis, power_cur
 
 def _offcurve():
     path = ROOT / "scripts/studies/method-joint-fit-reachability/reachability_offcurve.py"
-    module = load_script(path, "reachability_offcurve")
-    return module
+    return load_script(path, "reachability_offcurve")
 
 
 def test_counting_off_curve_steps_as_zero_can_only_lower_the_floor(fleet, reanalysis, power_curve):

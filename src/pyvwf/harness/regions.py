@@ -138,7 +138,7 @@ def _int_list(value, where: str, path: Path) -> tuple[int, ...]:
     return tuple(value)
 
 
-def load_region(path: str | Path) -> RegionSpec:
+def load_region(path: str | Path) -> RegionSpec:  # noqa: C901
     """Load and validate a region config.
 
     Args:

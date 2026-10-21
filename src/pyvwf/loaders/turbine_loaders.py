@@ -82,7 +82,7 @@ def load_turbine_metadata(country: str) -> pd.DataFrame:
         }
 
         # Keep only available columns
-        available_cols = [col for col in columns_map.keys() if col in dk_md.columns]
+        available_cols = [col for col in columns_map if col in dk_md.columns]
         dk_md = dk_md[available_cols].copy()
         dk_md = dk_md.rename(columns=columns_map)
 
@@ -174,9 +174,7 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
 
         # Rename columns to match expected format (1, 2, 3, ..., 12)
         month_cols = {i: str(i) for i in range(1, 13)}
-        obs = obs.rename(columns=month_cols)
-
-        return obs
+        return obs.rename(columns=month_cols)
 
     if country == "DE":
         # Load Germany observations from observations/turbine
@@ -188,13 +186,12 @@ def load_turbine_observations(country: str, year_start: int, year_end: int) -> p
         )
         de_data.columns = ["ID", "year", "month", "output"]
         de_data = de_data.dropna(subset=["ID", "year", "month"])
-        obs = (
+        return (
             de_data.pivot(index=["ID", "year"], columns="month", values="output")
             .reset_index()
             .fillna(0)
             .infer_objects()
         )
-        return obs
 
     if country == "UK":
         # Load UK observations from observations/turbine

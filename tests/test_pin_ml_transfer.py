@@ -65,8 +65,7 @@ REAL_CENTROIDS_SHA256 = "d2c897729da1d59ad597883de95c7bed14f77426e5aef30af59983c
 
 
 def _load():
-    module = load_script(SCRIPT, "ml_transfer_retest")
-    return module
+    return load_script(SCRIPT, "ml_transfer_retest")
 
 
 ml = _load()

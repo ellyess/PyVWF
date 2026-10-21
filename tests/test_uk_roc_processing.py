@@ -76,7 +76,7 @@ def test_roc_technology_from_accreditation_code():
     assert sm[sm.ID == "R00002RQEN"].iloc[0]["mwh"] == pytest.approx(90 / 0.9)  # onshore
 
 
-# ----------------------------------------------- pseudo-replication (obs)
+# ----------------------------------------------- pseudo-replication of observations
 def test_pseudo_replicate_equal_split_reproduces_committed_arithmetic():
     """A 3-turbine station's monthly MWh is split into 3 identical kWh rows,
     the exact committed convention (R00116SQSC-1 Jan 2015 = 569666.67 kWh)."""

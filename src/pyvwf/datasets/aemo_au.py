@@ -88,8 +88,7 @@ def normalise_farm_name(name: str) -> str:
     # AEMO workbook annotation ("Key Connection Information"), never part of
     # a farm's actual name.
     s = re.sub(r"\bkci\b", " ", s)
-    s = re.sub(r"[^a-z0-9]+", "", s)
-    return s
+    return re.sub(r"[^a-z0-9]+", "", s)
 
 
 def wind_fleet_from_gen_info(gen_info: pd.DataFrame) -> pd.DataFrame:

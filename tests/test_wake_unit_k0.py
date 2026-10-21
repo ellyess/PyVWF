@@ -22,8 +22,7 @@ DRIVER = ROOT / "scripts" / "studies" / "method-wake-unit" / "k0_density_slopes.
 
 @pytest.fixture(scope="module")
 def k0():
-    module = load_script(DRIVER, "k0_density_slopes")
-    return module
+    return load_script(DRIVER, "k0_density_slopes")
 
 
 def test_blocks_link_equal_nonzero_values_and_nothing_else(k0):

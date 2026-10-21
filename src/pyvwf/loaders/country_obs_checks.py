@@ -239,7 +239,7 @@ def _span_years(index: pd.DatetimeIndex | None) -> float | None:
     return float((index.max() - index.min()).total_seconds() / (365.25 * 24 * 3600))
 
 
-def check_country_cf(
+def check_country_cf(  # noqa: C901
     obs: pd.DataFrame,
     label: str = "country observations",
     *,

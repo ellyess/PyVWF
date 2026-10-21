@@ -32,7 +32,6 @@ def unify_time_coordinate(ds):
 
     # CASE 2: only valid_time exists
     elif "valid_time" in ds.coords and "time" not in ds.coords:
-        # print("Only valid_time exists → renaming to time")
         ds = ds.rename({"valid_time": "time"})
 
     # CASE 3: only time exists → nothing to do
@@ -223,9 +222,8 @@ def prep_era5(
     ds = _normalise_longitudes(ds)
 
     # Apply bbox slice early (big memory/time win before .load())
-    if bbox is None:
-        if BoundingBoxes.has_bbox(country):
-            bbox = BoundingBoxes.get(country)
+    if bbox is None and BoundingBoxes.has_bbox(country):
+        bbox = BoundingBoxes.get(country)
     if bbox is not None:
         ds = _slice_bbox(ds, bbox)
         # The cheap check: a download that stops short of the box would leave
@@ -307,7 +305,6 @@ def prep_era5(
             )
             print("Calculated surface roughness length")
     else:
-        # ds = ds.rename({"fsr": "roughness"})
         ds = ds.drop_vars(["u100", "v100", "u10", "v10", "number", "expver"], errors="ignore")
 
     # Daily resampling (the published resolution; see resample_daily).

@@ -111,7 +111,7 @@ def wind_complexes_from_fc(fc: pd.DataFrame) -> pd.DataFrame:
         nn = series.dropna()
         return nn.iloc[0] if len(nn) else float("nan")
 
-    grouped = (
+    return (
         wind.groupby("ID")
         .agg(
             site_name=("nom_usina_conjunto", "first"),
@@ -123,7 +123,6 @@ def wind_complexes_from_fc(fc: pd.DataFrame) -> pd.DataFrame:
         )
         .reset_index()
     )
-    return grouped
 
 
 def monthly_cf_from_fc(
@@ -291,8 +290,7 @@ def build_br_metadata(
             "state",
         ]
     ].copy()
-    out = out[out["lon"].notna() & out["lat"].notna()].reset_index(drop=True)
-    return out
+    return out[out["lon"].notna() & out["lat"].notna()].reset_index(drop=True)
 
 
 def commissioning_from_siga(siga: pd.DataFrame, fc: pd.DataFrame) -> pd.DataFrame:

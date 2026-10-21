@@ -161,8 +161,7 @@ def country_monthly(sim_cf, obs, turb_info):
     sim = pd.DataFrame({"ym": pd.to_datetime(sim_cf["time"]).dt.to_period("M"), "cf_sim": country})
     sim_m = sim.groupby("ym")["cf_sim"].mean()
     o = obs.assign(ym=pd.to_datetime(obs["time"]).dt.to_period("M")).groupby("ym")["obs"].mean()
-    both = pd.concat([sim_m, o.rename("cf_obs")], axis=1).dropna()
-    return both
+    return pd.concat([sim_m, o.rename("cf_obs")], axis=1).dropna()
 
 
 def _scoring_exclusions(ev, spec, code):
@@ -191,7 +190,7 @@ def _drop_excluded(tidy, excluded):
     return tidy[[k not in excluded for k in keys]]
 
 
-def main(code, out_dir, backfill=BACKFILL):
+def main(code, out_dir, backfill=BACKFILL):  # noqa: C901
     spec = load_region(Path("configs/regions/scorecard") / f"{CONFIGS[code]}.toml")
     ev = next((Path(backfill) / code).glob("evaluate-*-backfill"))
     manifest = json.loads((ev / "run_manifest.json").read_text())

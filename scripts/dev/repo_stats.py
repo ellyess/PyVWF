@@ -46,7 +46,7 @@ def count(root: Path, rev: str) -> list[tuple[str, int, str]]:
     subjects = _git(root, "log", "--format=%B%x00", rev)
     tests = [f for f in files if re.fullmatch(r"tests/(.+/)?test_[^/]*\.py", f)]
     findings = [f for f in files if re.fullmatch(r"docs/findings/[^/]+\.md", f)]
-    prereg = [f for f in findings if f.endswith("-prereg.md") or f.endswith("-prespecification.md")]
+    prereg = [f for f in findings if f.endswith(("-prereg.md", "-prespecification.md"))]
     text = {f: _show(root, rev, f) for f in tests + findings + ["CHANGELOG.md"] if f in files}
     guards = "tests/test_agent_guards.py"
     return [
