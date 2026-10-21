@@ -425,6 +425,20 @@ def interpolate_wind(reanalysis, turb_info, *, allow_extrapolation: bool | None 
         )
     reanalysis = reanalysis.assign_coords(height=("height", turb_info["height"].unique()))
 
+    # Compute the profile only around the units. interp reads just the cells
+    # within two of them (xarray's _localize), but only after the profile is
+    # built over the whole grid, which a small cluster's offset search repeated
+    # for every row. Three cells either side is a superset of that window, so
+    # interp sees the same cells. A unit outside the grid snaps to the edge
+    # cell, so extrapolation keeps the same edge interval.
+    window = {}
+    for dim in ("lon", "lat"):
+        ends = reanalysis.indexes[dim].get_indexer(
+            [turb_info[dim].min(), turb_info[dim].max()], method="nearest"
+        )
+        window[dim] = slice(max(ends.min() - 3, 0), ends.max() + 4)
+    reanalysis = reanalysis.isel(window)
+
     EPS = 1e-6  # meters
     z0 = reanalysis["roughness"].clip(min=EPS)
 
