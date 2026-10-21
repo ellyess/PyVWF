@@ -385,7 +385,7 @@ rich==15.0.0
     # via
     #   -c constraints/py312.txt
     #   import-linter
-ruff==0.17.0
+ruff==0.17.1
     # via
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
