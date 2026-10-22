@@ -92,7 +92,10 @@ def test_the_derived_roughness_matches_prep_era5(tmp_path):
     physics-informed run and a scorecard row measures the implementations.
 
     Compared at a grid node, so interpolation plays no part, and on one file,
-    so the backfill has the same span in both.
+    so the backfill has the same span in both. The fixture has no undefined
+    hour. Where a file's last hours are undefined the two differ: prep_era5
+    fills them forward within the year, the per-file reduction leaves them
+    missing.
     """
     era5 = _hourly_file(tmp_path / "e")
     dates, _, _, z0, _, _ = _reduce(era5, "derived")

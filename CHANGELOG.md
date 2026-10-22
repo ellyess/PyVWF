@@ -32,12 +32,19 @@ this file stay in step with it.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.
-  `prep_era5` takes `years=(start, end)`, reads those years plus the following
-  January, and returns them identical to the whole record cut the same way.
-  The January is there because the roughness back-fill reads forward; when it
-  does not fill every cell, the whole record is read instead, with a warning.
-  The manifest's `era5_extent` block records `loaded_years`. Results do not
-  change; loading is faster and holds less in memory.
+  `prep_era5` takes `years=(start, end)` and returns those years identical to
+  the whole record cut the same way. The manifest's `era5_extent` block
+  records `loaded_years`. Loading is faster and holds less in memory.
+- **The derived roughness is filled within each calendar year.** An hour whose
+  wind profile cannot be inverted was back-filled along the whole loaded
+  record, so a year's last hours could take the next year's roughness, which
+  for a training run can be its test year. `prep_era5` now back-fills within
+  the year and fills a year's trailing gap forward; a cell with no defined
+  hour in a year stays missing, with a warning. The January margin
+  `prep_era5` read for that reason is gone. The manifest's `era5_roughness`
+  block records `fill`. Results move slightly; the offset-fit pins are
+  re-recorded and the route-B scorecard rows lag the code until the next
+  refresh (`docs/findings/method-roughness-fill-prereg.md`).
 
 ### Documentation
 

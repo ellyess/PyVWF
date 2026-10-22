@@ -148,6 +148,9 @@ def _record_roughness(reanalysis, spec: RegionSpec) -> dict:
     return {
         "requested": spec.roughness,
         "applied": reanalysis.attrs.get("pyvwf_roughness_treatment"),
+        # Set for the derived treatment only. Manifests from before it existed
+        # filled the derived roughness along the whole loaded record.
+        "fill": reanalysis.attrs.get("pyvwf_roughness_fill"),
     }
 
 
