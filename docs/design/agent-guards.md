@@ -30,11 +30,14 @@ than worked around.
 
 `idea-review` sends a proposal to three critics for independent judgements.
 Until 2026-10-16 all three ran on the session's own model (`model: inherit`),
-so three verdicts were one model prompted three ways. Each now names a different
-one: `method-critic` runs on `opus`, `implementation-critic` on `sonnet` and
-`red-team` on `fable`. That should make their errors less correlated, which has
-not been measured, but not uncorrelated: all three are Claude models from one
-developer, and they read the same proposal and the same repository. A blocker
+so three verdicts were one model prompted three ways. Each now names its own:
+`method-critic` and `red-team` run on `opus`, `implementation-critic` on
+`sonnet`. From 2026-10-16 to 2026-10-22 `red-team` ran on `fable`, so the three
+used three different models; since then two share one, so their errors are
+likely more correlated than in that week. Different models should make errors
+less correlated, which has not been measured, but not uncorrelated: all three
+are Claude models from one developer, and they read the same proposal and the
+same repository. A blocker
 all three raise is weaker evidence than three independent referees would give.
 The aliases resolve to whichever version Claude Code maps them to, and nothing
 records which model produced a critique, or how often a critic's blocker was
