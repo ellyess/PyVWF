@@ -145,6 +145,81 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     return z0_log.clip(min=np.log(Z0_BOUNDS[0]), max=np.log(Z0_BOUNDS[1]))
 
 
+def _apply_roughness(ds, country, calc_z0, roughness, years, archive_end):
+    """:func:`prep_era5`'s roughness step, split out of it as CONTRIBUTING.md asks.
+
+    Returns:
+        ``(ds, applied, unfilled)``: the loaded dataset with ``roughness`` set
+        and the wind components dropped; the treatment applied (None when
+        ``calc_z0`` is False); and whether a windowed load (``years``) left a
+        cell unfilled at the window's last hour while the archive goes on.
+    """
+    applied = None
+    unfilled = False
+    if calc_z0:
+        ds = ds.drop_vars("fsr", errors="ignore")
+
+        if roughness == "derived":
+            # Asked for the per-timestep derivation, so a stored field is not
+            # used even when the files carry one.
+            missing = [v for v in ("u10", "v10") if v not in ds.data_vars]
+            if missing:
+                raise ValueError(
+                    f"roughness='derived' needs the 10 m wind components, and the ERA5 "
+                    f"files for {country} lack {missing}. The stored field is the only "
+                    "roughness those files can supply."
+                )
+            ds = ds.drop_vars(["z0", "roughness"], errors="ignore")
+
+        # Check if roughness already exists (from preprocessing)
+        if "z0" in ds.data_vars or "roughness" in ds.data_vars:
+            # Use existing pre-calculated roughness
+            if "z0" in ds.data_vars:
+                ds = ds.rename({"z0": "roughness"})
+                print("Using pre-calculated roughness (z0) from combined ERA5 files")
+            else:
+                print("Using pre-calculated roughness from combined ERA5 files")
+
+            applied = "stored"
+            # Drop unnecessary wind component variables
+            ds = ds.drop_vars(
+                ["u100", "v100", "u10", "v10", "number", "expver"],
+                errors="ignore",
+            )
+        else:
+            applied = "derived"
+            # Calculate roughness from wind shear (fallback if not preprocessed)
+            print("Calculating surface roughness from 10m/100m wind shear...")
+
+            # np.sqrt keeps the DataArray; numpy's stubs only say ndarray.
+            wnd10m = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2))
+
+            wnd10m = wnd10m.clip(min=WIND_SPEED_FLOOR)
+            ds["wnd100m"] = ds["wnd100m"].clip(min=WIND_SPEED_FLOOR)
+
+            z0_log = log_roughness_from_shear(wnd10m, ds["wnd100m"])
+
+            ds["roughness"] = np.exp(z0_log)
+            ds["roughness"] = ds["roughness"].clip(min=1e-6)  # prevents log(0) later
+
+            # The back-fill reads forward only, so if every cell is filled at
+            # the window's last hour, every window hour took the same value the
+            # whole record gives it. A cell still unfilled there may be filled
+            # by data past the January this load stopped at.
+            if years is not None and ds.time.values[-1] < archive_end:
+                last_hour = ds["roughness"].sel(time=slice(None, f"{years[1]}-12-31"))[-1]
+                unfilled = bool(last_hour.isnull().any())
+
+            ds = ds.drop_vars(
+                ["u100", "v100", "u10", "v10", "number", "expver", "wnd10m"],
+                errors="ignore",
+            )
+            print("Calculated surface roughness length")
+    else:
+        ds = ds.drop_vars(["u100", "v100", "u10", "v10", "number", "expver"], errors="ignore")
+    return ds, applied, unfilled
+
+
 def prep_era5(
     country,
     train=False,
@@ -154,6 +229,7 @@ def prep_era5(
     resample_daily=True,
     allow_extrapolation=False,
     roughness="derived",
+    years: tuple[int, int] | None = None,
 ):
     """Preprocess ERA5 reanalysis data.
 
@@ -202,6 +278,16 @@ def prep_era5(
             it asked for and what it applied. The three routes and the two
             treatments they produce are in
             ``docs/design/roughness-temporal-treatment.md``.
+        years: Optional inclusive ``(start, end)`` years. When given, only
+            those years plus the following January are read, and the result is
+            cut to the years, identical to the whole record cut the same way.
+            Loading is the slow step (decompressing every file), so a run that
+            needs one year of nine reads one. The January is there because the
+            roughness back-fill reads forward past the window's end; if any
+            cell is still unfilled at the window's last hour and the archive
+            goes on, the whole record is loaded instead, with a warning. The
+            window, and whether that happened, is recorded as
+            ``pyvwf_era5_window``. Default None reads the whole record.
 
     Returns:
         xarray.Dataset: Preprocessed ERA5 dataset.
@@ -239,6 +325,9 @@ def prep_era5(
                 stacklevel=2,
             )
 
+    archive_end = ds.time.values[-1]
+    if years is not None:
+        ds = ds.sel(time=slice(f"{years[0]}-01-01", f"{years[1] + 1}-01-31"))
     ds = ds.load()  # now load only the sliced subset
 
     # Wind speed at 100m. Pre-combined files may already carry wnd100m
@@ -252,60 +341,7 @@ def prep_era5(
     if roughness not in ROUGHNESS_TREATMENTS:
         raise ValueError(f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}")
 
-    applied = None
-    if calc_z0:
-        ds = ds.drop_vars("fsr", errors="ignore")
-
-        if roughness == "derived":
-            # Asked for the per-timestep derivation, so a stored field is not
-            # used even when the files carry one.
-            missing = [v for v in ("u10", "v10") if v not in ds.data_vars]
-            if missing:
-                raise ValueError(
-                    f"roughness='derived' needs the 10 m wind components, and the ERA5 "
-                    f"files for {country} lack {missing}. The stored field is the only "
-                    "roughness those files can supply."
-                )
-            ds = ds.drop_vars(["z0", "roughness"], errors="ignore")
-
-        # Check if roughness already exists (from preprocessing)
-        if "z0" in ds.data_vars or "roughness" in ds.data_vars:
-            # Use existing pre-calculated roughness
-            if "z0" in ds.data_vars:
-                ds = ds.rename({"z0": "roughness"})
-                print("Using pre-calculated roughness (z0) from combined ERA5 files")
-            else:
-                print("Using pre-calculated roughness from combined ERA5 files")
-
-            applied = "stored"
-            # Drop unnecessary wind component variables
-            ds = ds.drop_vars(
-                ["u100", "v100", "u10", "v10", "number", "expver"],
-                errors="ignore",
-            )
-        else:
-            applied = "derived"
-            # Calculate roughness from wind shear (fallback if not preprocessed)
-            print("Calculating surface roughness from 10m/100m wind shear...")
-
-            # np.sqrt keeps the DataArray; numpy's stubs only say ndarray.
-            wnd10m = cast(xr.DataArray, np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2))
-
-            wnd10m = wnd10m.clip(min=WIND_SPEED_FLOOR)
-            ds["wnd100m"] = ds["wnd100m"].clip(min=WIND_SPEED_FLOOR)
-
-            z0_log = log_roughness_from_shear(wnd10m, ds["wnd100m"])
-
-            ds["roughness"] = np.exp(z0_log)
-            ds["roughness"] = ds["roughness"].clip(min=1e-6)  # prevents log(0) later
-
-            ds = ds.drop_vars(
-                ["u100", "v100", "u10", "v10", "number", "expver", "wnd10m"],
-                errors="ignore",
-            )
-            print("Calculated surface roughness length")
-    else:
-        ds = ds.drop_vars(["u100", "v100", "u10", "v10", "number", "expver"], errors="ignore")
+    ds, applied, unfilled = _apply_roughness(ds, country, calc_z0, roughness, years, archive_end)
 
     # Daily resampling (the published resolution; see resample_daily).
     if resample_daily:
@@ -323,5 +359,27 @@ def prep_era5(
     # What was applied, not what was asked for: a run that asks for the stored
     # field and gets the derivation, because the files carry none, must say so.
     ds.attrs["pyvwf_roughness_treatment"] = applied if applied else "reanalysis-field"
+
+    if years is not None:
+        if unfilled:
+            warnings.warn(
+                f"ERA5 roughness for {country} is unfilled at the end of {years[1]} after "
+                "the January past it; loading the whole record so the window matches it.",
+                stacklevel=2,
+            )
+            ds = prep_era5(
+                country,
+                train=train,
+                calc_z0=calc_z0,
+                bbox=bbox,
+                era5_dir=era5_dir,
+                resample_daily=resample_daily,
+                allow_extrapolation=allow_extrapolation,
+                roughness=roughness,
+            )
+        ds = ds.sel(time=slice(f"{years[0]}-01-01", f"{years[1]}-12-31"))
+        ds.attrs["pyvwf_era5_window"] = f"{years[0]}-{years[1]}" + (
+            ", whole record loaded" if unfilled else ""
+        )
     print("ERA5 for " + country + " ready")
     return ds
