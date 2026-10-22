@@ -67,7 +67,12 @@ def client_csv_output(tmp_path: Path, unit: str) -> pd.DataFrame:
 def _compare(got: pd.DataFrame, name: str) -> None:
     want = pd.read_csv(PINS / name, dtype={"ID": str}, float_precision="round_trip")
     got = got.astype({"ID": str}).reset_index(drop=True)
-    pd.testing.assert_frame_equal(got, want, check_dtype=False, rtol=0, atol=0)
+    # The column labels are compared, not their index's dtype: from pandas 3.1,
+    # read_csv gives the labels a string dtype while the computed frame's are
+    # object, with the same labels and values.
+    pd.testing.assert_frame_equal(
+        got, want, check_dtype=False, check_column_type=False, rtol=0, atol=0
+    )
 
 
 def test_windstats_monthly_cf():

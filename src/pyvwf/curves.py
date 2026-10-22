@@ -105,11 +105,17 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
     # --- Fuzzy match manufacturer against model manufacturers ---
     # Create candidate pairs by manufacturer similarity, then pick closest p_density
     # (This keeps your original logic but makes it robust.)
-    cand = models.assign(
-        match=models["manufacturer"].apply(
-            lambda x: difflib.get_close_matches(x, df["manufacturer"].tolist(), cutoff=0.3, n=50)
-        )
-    ).explode("match")
+    # Built as an object column on purpose: from pandas 3.1, .apply on a string
+    # column that returns lists gives an Arrow list column, and when every list
+    # is empty (no manufacturer is close) its explode raises.
+    fleet_manufacturers = df["manufacturer"].tolist()
+    matches = [
+        difflib.get_close_matches(x, fleet_manufacturers, cutoff=0.3, n=50)
+        for x in models["manufacturer"]
+    ]
+    cand = models.assign(match=pd.Series(matches, index=models.index, dtype=object)).explode(
+        "match"
+    )
 
     if cand["match"].isna().all():
         # If no manufacturer matches at all, fall back to nearest p_density later
