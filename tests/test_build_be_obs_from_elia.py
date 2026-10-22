@@ -45,6 +45,16 @@ def test_an_hour_missing_one_segment_is_dropped_not_shrunk():
     assert len(out) == 1
 
 
+def test_a_step_with_no_capacity_is_a_gap_not_an_infinite_factor():
+    raw = elia_rows("2023-01-01", 8)
+    gap = raw.datetime == pd.Timestamp("2023-01-01 00:15", tz="UTC")
+    raw.loc[gap, "capacity"] = 0.0
+    out = _module().hourly_national(raw)
+    assert out["capacity_factor"].tolist() == [0.5, 0.5]
+    raw.loc[raw.datetime < pd.Timestamp("2023-01-01 01:00", tz="UTC"), "capacity"] = 0.0
+    assert len(_module().hourly_national(raw)) == 1
+
+
 def test_split_takes_utc_years_and_stamps_brussels_time():
     module = _module()
     raw = elia_rows("2022-12-31 22:00", 4 * 4)

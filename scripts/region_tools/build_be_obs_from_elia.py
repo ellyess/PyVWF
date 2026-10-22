@@ -78,7 +78,10 @@ def hourly_national(raw: pd.DataFrame) -> pd.DataFrame:
     """One hourly national series: generation, monitored capacity, and their ratio.
 
     An hour counts only when both segments reported in it, so a missing segment
-    shows as a missing hour rather than as a fleet that shrank.
+    shows as a missing hour rather than as a fleet that shrank. A 15-minute step
+    with no monitored capacity is a gap, not a fleet of zero: Elia reports 108
+    such steps in 2015-24, all with generation above zero, which would otherwise
+    become infinite capacity factors.
 
     Args:
         raw: rows of ``datetime`` (UTC), ``offshoreonshore``, ``measured`` and
@@ -88,6 +91,7 @@ def hourly_national(raw: pd.DataFrame) -> pd.DataFrame:
         Hourly frame indexed in UTC with ``generation_mw``, ``capacity_mw`` and
         ``capacity_factor``.
     """
+    raw = raw[raw["capacity"] > 0]
     wide = raw.pivot_table(
         index="datetime", columns="offshoreonshore", values=["measured", "capacity"]
     )
