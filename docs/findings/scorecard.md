@@ -22,6 +22,20 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Notice, 2026-10-22: the derived roughness fill changed, and the fifteen rows
+on it lag the code.** From 2026-10-22 the roughness derived at load is filled
+within each calendar year instead of along the whole loaded record
+(`docs/findings/method-roughness-fill-prereg.md`). Every row below except US
+and BR, which read stored daily roughness, was computed with the old fill. Five
+were re-run under both fills on the test year (training and test years as in
+their tables): DK k100, DE k100 and CL k10 moved by at most 1.1e-7 in RMSE and
+MBE; ES country by at most 2.8e-5 in RMSE and 6.0e-5 in MBE; FR country N=10
+season by 2.3e-5 in RMSE and 1.61e-4 in MBE, a degenerate fit, and its
+registered gate was breached and the change adopted by the maintainer's
+decision (outcome tables and Data paths in that document). AR, AU-NEM, NZ, UK,
+BE, IE, IT, NO, PT and SE were not re-run. The figures below stand as computed
+until the next scorecard refresh re-runs them.
+
 **Correction notice, 2026-10-16: offshore wind farms get their own grid
 points, and Belgium's row moves.** The country lattices cover land only, so
 until now every offshore project was summed onto the nearest land point and

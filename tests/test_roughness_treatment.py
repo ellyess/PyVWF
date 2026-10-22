@@ -155,7 +155,11 @@ def test_a_run_records_what_it_asked_for_and_what_it_applied(synthetic_dk):
     spec = make_spec(roughness="stored")
     train_dir = run_train(spec, synthetic_dk["root"] / "validation", mode="onshore", run_name="t")
     record = json.loads((train_dir / "run_manifest.json").read_text())["era5_roughness"]
-    assert record == {"requested": "stored", "applied": "derived"}
+    assert record == {
+        "requested": "stored",
+        "applied": "derived",
+        "fill": "within each calendar year",
+    }
 
 
 def test_a_default_run_records_the_derived_treatment(synthetic_dk):
@@ -164,4 +168,8 @@ def test_a_default_run_records_the_derived_treatment(synthetic_dk):
         make_spec(), synthetic_dk["root"] / "validation", mode="onshore", run_name="d"
     )
     record = json.loads((train_dir / "run_manifest.json").read_text())["era5_roughness"]
-    assert record == {"requested": "derived", "applied": "derived"}
+    assert record == {
+        "requested": "derived",
+        "applied": "derived",
+        "fill": "within each calendar year",
+    }

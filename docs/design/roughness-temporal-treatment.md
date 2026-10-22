@@ -41,10 +41,14 @@ route set the key explicitly and say why.
 
 **B and C are the same treatment, computed at different stages.** Both derive
 z0 hour by hour and average it to daily, with the same clipping. They differ
-only in where the backfill of undefined hours reaches: `prep_era5` backfills
-across the whole loaded record, `combine.py` within one month file, so an
-undefined hour at a month's end can be filled in B and not in C. That is an
-edge-level difference and has not been measured.
+only in where the fill of undefined hours reaches. `prep_era5` back-fills
+within each calendar year, then fills a year's trailing undefined hours forward
+from the year's last defined hour; `combine.py` back-fills within one month
+file and leaves a month's trailing hours undefined. So an undefined hour at a
+month's end is filled in B and not in C. That is an edge-level difference and
+has not been measured. Until 2026-10-22 B back-filled along the whole loaded
+record, which let a year's last hours take the next year's value, for a
+training run its test year (`docs/findings/method-roughness-fill-prereg.md`).
 
 **The record cannot tell A from C.** This matters for the archive rather
 than for a new run, since no current row is on route A. A run's manifest reports

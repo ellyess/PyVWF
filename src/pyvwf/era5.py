@@ -124,10 +124,13 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     ``scripts/era5/combine.py``.
 
     Where the shear is near zero (``|w100 - w10| <= 1e-4``) or the result would
-    give z0 of 1 m or more, the value is missing, then back-filled along time.
-    The result is clipped to the logs of :data:`Z0_BOUNDS`. The caller clips
-    the speeds first and takes the exponential, because the routes differ
-    there.
+    give z0 of 1 m or more, the value is missing, then back-filled along time
+    over whatever the caller passes. The routes pass different spans, so the
+    fill reaches differently: :func:`prep_era5` passes one calendar year at a
+    time (and then fills a year's trailing gap forward), ``scripts/era5/combine.py``
+    one month, and ``combine_era5_files.py`` its whole record. The result is
+    clipped to the logs of :data:`Z0_BOUNDS`. The caller clips the speeds first
+    and takes the exponential, because the routes differ there.
 
     Args:
         wind10: 10 m wind speed, m/s, already clipped away from zero.
@@ -145,17 +148,15 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     return z0_log.clip(min=np.log(Z0_BOUNDS[0]), max=np.log(Z0_BOUNDS[1]))
 
 
-def _apply_roughness(ds, country, calc_z0, roughness, years, archive_end):
+def _apply_roughness(ds, country, calc_z0, roughness):
     """:func:`prep_era5`'s roughness step, split out of it as CONTRIBUTING.md asks.
 
     Returns:
-        ``(ds, applied, unfilled)``: the loaded dataset with ``roughness`` set
-        and the wind components dropped; the treatment applied (None when
-        ``calc_z0`` is False); and whether a windowed load (``years``) left a
-        cell unfilled at the window's last hour while the archive goes on.
+        ``(ds, applied)``: the loaded dataset with ``roughness`` set and the
+        wind components dropped, and the treatment applied (None when
+        ``calc_z0`` is False).
     """
     applied = None
-    unfilled = False
     if calc_z0:
         ds = ds.drop_vars("fsr", errors="ignore")
 
@@ -197,18 +198,38 @@ def _apply_roughness(ds, country, calc_z0, roughness, years, archive_end):
             wnd10m = wnd10m.clip(min=WIND_SPEED_FLOOR)
             ds["wnd100m"] = ds["wnd100m"].clip(min=WIND_SPEED_FLOOR)
 
-            z0_log = log_roughness_from_shear(wnd10m, ds["wnd100m"])
+            # The fill stays inside each calendar year, back then forward, so a
+            # year's roughness depends on that year's ERA5 alone. Filled along
+            # the whole record, a year's last undefined hours took the next
+            # year's value, which for a training run can be its test year
+            # (docs/findings/method-roughness-fill-prereg.md).
+            year = ds["time"].dt.year.values
+            axis = wnd10m.get_axis_num("time")
+            z0_log = None
+            undefined = []
+            for y in np.unique(year):
+                part = year == y
+                filled = log_roughness_from_shear(
+                    wnd10m.isel(time=part), ds["wnd100m"].isel(time=part)
+                ).ffill("time")
+                if z0_log is None:
+                    z0_log = np.empty(wnd10m.shape, dtype=filled.dtype)
+                index = [slice(None)] * wnd10m.ndim
+                index[axis] = part
+                z0_log[tuple(index)] = filled.transpose(*wnd10m.dims).values
+                n_undefined = int(filled.isnull().all("time").sum())
+                if n_undefined:
+                    undefined.append(f"{y}: {n_undefined}")
+            if undefined:
+                warnings.warn(
+                    f"ERA5 roughness for {country} is undefined for a whole year in some "
+                    f"cells (year: cells) {', '.join(undefined)}; they stay missing, and so "
+                    "does any wind interpolated from them.",
+                    stacklevel=3,
+                )
 
-            ds["roughness"] = np.exp(z0_log)
+            ds["roughness"] = np.exp(xr.DataArray(z0_log, coords=wnd10m.coords, dims=wnd10m.dims))
             ds["roughness"] = ds["roughness"].clip(min=1e-6)  # prevents log(0) later
-
-            # The back-fill reads forward only, so if every cell is filled at
-            # the window's last hour, every window hour took the same value the
-            # whole record gives it. A cell still unfilled there may be filled
-            # by data past the January this load stopped at.
-            if years is not None and ds.time.values[-1] < archive_end:
-                last_hour = ds["roughness"].sel(time=slice(None, f"{years[1]}-12-31"))[-1]
-                unfilled = bool(last_hour.isnull().any())
 
             ds = ds.drop_vars(
                 ["u100", "v100", "u10", "v10", "number", "expver", "wnd10m"],
@@ -217,7 +238,7 @@ def _apply_roughness(ds, country, calc_z0, roughness, years, archive_end):
             print("Calculated surface roughness length")
     else:
         ds = ds.drop_vars(["u100", "v100", "u10", "v10", "number", "expver"], errors="ignore")
-    return ds, applied, unfilled
+    return ds, applied
 
 
 def prep_era5(
@@ -279,14 +300,11 @@ def prep_era5(
             treatments they produce are in
             ``docs/design/roughness-temporal-treatment.md``.
         years: Optional inclusive ``(start, end)`` years. When given, only
-            those years plus the following January are read, and the result is
-            cut to the years, identical to the whole record cut the same way.
-            Loading is the slow step (decompressing every file), so a run that
-            needs one year of nine reads one. The January is there because the
-            roughness back-fill reads forward past the window's end; if any
-            cell is still unfilled at the window's last hour and the archive
-            goes on, the whole record is loaded instead, with a warning. The
-            window, and whether that happened, is recorded as
+            those years are read. Loading is the slow step (decompressing every
+            file), so a run that needs one year of nine reads one. The result
+            is identical to the whole record cut to the same years, because the
+            derived roughness is filled within each calendar year and nothing
+            else reads across a year's end. The years are recorded as
             ``pyvwf_era5_window``. Default None reads the whole record.
 
     Returns:
@@ -325,9 +343,8 @@ def prep_era5(
                 stacklevel=2,
             )
 
-    archive_end = ds.time.values[-1]
     if years is not None:
-        ds = ds.sel(time=slice(f"{years[0]}-01-01", f"{years[1] + 1}-01-31"))
+        ds = ds.sel(time=slice(f"{years[0]}-01-01", f"{years[1]}-12-31"))
     ds = ds.load()  # now load only the sliced subset
 
     # Wind speed at 100m. Pre-combined files may already carry wnd100m
@@ -341,7 +358,7 @@ def prep_era5(
     if roughness not in ROUGHNESS_TREATMENTS:
         raise ValueError(f"roughness must be one of {ROUGHNESS_TREATMENTS}, got {roughness!r}")
 
-    ds, applied, unfilled = _apply_roughness(ds, country, calc_z0, roughness, years, archive_end)
+    ds, applied = _apply_roughness(ds, country, calc_z0, roughness)
 
     # Daily resampling (the published resolution; see resample_daily).
     if resample_daily:
@@ -359,27 +376,9 @@ def prep_era5(
     # What was applied, not what was asked for: a run that asks for the stored
     # field and gets the derivation, because the files carry none, must say so.
     ds.attrs["pyvwf_roughness_treatment"] = applied if applied else "reanalysis-field"
-
+    if applied == "derived":
+        ds.attrs["pyvwf_roughness_fill"] = "within each calendar year"
     if years is not None:
-        if unfilled:
-            warnings.warn(
-                f"ERA5 roughness for {country} is unfilled at the end of {years[1]} after "
-                "the January past it; loading the whole record so the window matches it.",
-                stacklevel=2,
-            )
-            ds = prep_era5(
-                country,
-                train=train,
-                calc_z0=calc_z0,
-                bbox=bbox,
-                era5_dir=era5_dir,
-                resample_daily=resample_daily,
-                allow_extrapolation=allow_extrapolation,
-                roughness=roughness,
-            )
-        ds = ds.sel(time=slice(f"{years[0]}-01-01", f"{years[1]}-12-31"))
-        ds.attrs["pyvwf_era5_window"] = f"{years[0]}-{years[1]}" + (
-            ", whole record loaded" if unfilled else ""
-        )
+        ds.attrs["pyvwf_era5_window"] = f"{years[0]}-{years[1]}"
     print("ERA5 for " + country + " ready")
     return ds
