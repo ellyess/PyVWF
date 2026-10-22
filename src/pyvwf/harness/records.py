@@ -121,6 +121,7 @@ def _record_era5_extent(reanalysis, fleet: pd.DataFrame, spec: RegionSpec) -> di
         **coverage,
         "requested_bbox": list(spec.bbox),
         "allow_extrapolation": bool(spec.allow_extrapolation),
+        "loaded_years": reanalysis.attrs.get("pyvwf_era5_window", "whole record"),
         "meaning": (
             "units inside the loaded ERA5 extent are interpolated, not extrapolated; "
             "this does not verify the data in those cells"

@@ -27,6 +27,18 @@ this file stay in step with it.
   not pass its pre-registered bar. `docs/design/ai-native-development.md`
   gains a section on it.
 
+### Changed
+
+- **Evaluate and transfer runs read ERA5 for their test year only, and
+  turbine-level training runs for their training years only.** Country-level
+  training still reads every year.
+  `prep_era5` takes `years=(start, end)`, reads those years plus the following
+  January, and returns them identical to the whole record cut the same way.
+  The January is there because the roughness back-fill reads forward; when it
+  does not fill every cell, the whole record is read instead, with a warning.
+  The manifest's `era5_extent` block records `loaded_years`. Results do not
+  change; loading is faster and holds less in memory.
+
 ### Documentation
 
 - **The README gives a reviewer a short route through the project.** A line

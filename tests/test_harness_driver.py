@@ -204,3 +204,65 @@ def test_an_empty_run_directory_can_be_used(synthetic_dk):
     (out / spec.code / "train-fresh").mkdir(parents=True)
     run_dir = run_train(spec, out, mode="onshore", run_name="fresh")
     assert (run_dir / "run_manifest.json").is_file()
+
+
+def test_evaluate_reads_only_its_test_year_and_matches_reading_every_year(
+    synthetic_dk, monkeypatch
+):
+    """val_set asks prep_era5 for the test year alone; the outputs must not change.
+
+    The second evaluate reads the whole record and cuts it to the test year
+    afterwards, as val_set did before it passed ``years``, so the two runs
+    differ only in what was read.
+    """
+    import pyvwf.data
+
+    spec = make_spec()
+    out = synthetic_dk["root"] / "window"
+    train_dir = run_train(spec, out, mode="onshore", run_name="t")
+    windowed = run_evaluate(spec, train_dir, out, mode="onshore", run_name="windowed")
+
+    read_all = pyvwf.data.prep_era5
+    monkeypatch.setattr(
+        pyvwf.data,
+        "prep_era5",
+        lambda *a, years, **k: read_all(*a, **k).sel(time=str(years[0])),
+    )
+    whole = run_evaluate(spec, train_dir, out, mode="onshore", run_name="whole")
+
+    for name in ("metrics.csv", "unc_cf.csv", "cor_cf_fixed_2.csv"):
+        assert (windowed / name).read_bytes() == (whole / name).read_bytes(), name
+    loaded = {
+        d: json.loads((d / "run_manifest.json").read_text())["era5_extent"]["loaded_years"]
+        for d in (windowed, whole)
+    }
+    assert loaded == {windowed: "2016-2016", whole: "whole record"}
+
+
+def test_training_reads_only_its_training_years_and_matches_reading_every_year(
+    synthetic_dk, monkeypatch
+):
+    """A turbine-level train_set asks prep_era5 for its training years only.
+
+    The second run drops ``years`` on the way into prep_era5, so it reads the
+    whole record; train_set cuts to the observation years either way.
+    """
+    import pyvwf.data
+
+    spec = make_spec()
+    out = synthetic_dk["root"] / "train-window"
+    windowed = run_train(spec, out, mode="onshore", run_name="windowed")
+    read_all = pyvwf.data.prep_era5
+    monkeypatch.setattr(pyvwf.data, "prep_era5", lambda *a, years=None, **k: read_all(*a, **k))
+    whole = run_train(spec, out, mode="onshore", run_name="whole")
+
+    names = sorted(p.name for p in windowed.glob("*.csv"))
+    assert names == sorted(p.name for p in whole.glob("*.csv"))
+    assert "factors_fixed_2.csv" in names
+    for name in names:
+        assert (windowed / name).read_bytes() == (whole / name).read_bytes(), name
+    loaded = {
+        d: json.loads((d / "run_manifest.json").read_text())["era5_extent"]["loaded_years"]
+        for d in (windowed, whole)
+    }
+    assert loaded == {windowed: "2015-2015", whole: "whole record"}
