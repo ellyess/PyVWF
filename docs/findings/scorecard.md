@@ -101,8 +101,9 @@ before to 0.64 to 0.67 after.
   `method-country-weighting.md`, `method-cluster-selection.md`,
   `method-curve-library.md`, `method-eu-rerun.md` and
   `method-physics-informed-loco.md`.
-- The country-level table below and every other citation of Belgium's row
-  still carry the old figures; updating them is a separate change.
+- The country-level table below carries the rerun figures. Every Belgian
+  figure in the earlier notices and in the superseded rows read the old files;
+  they stay as the record of what was published and are not rerun.
 
 **Correction notice, 2026-10-16: offshore wind farms get their own grid
 points, and Belgium's row moves.** The country lattices cover land only, so
@@ -1151,11 +1152,18 @@ own grid points. Belgium moves, 0.123 to 0.161 uncorrected and 0.021 to 0.019
 corrected; France 0.027 to 0.026 corrected, still worse than uncorrected, and
 its uncorrected MBE from -0.002 to -0.004; Norway 0.028 to 0.026 on the same
 degenerate fit. See the notice of that date.]*
+*[Note, 2026-10-22: Belgium's row is rerun at `6c5272d` on Elia's complete
+observations (`ods031`, onshore and offshore), in the input root
+`input/combined-be-elia/`; the other rows still read ENTSO-E. Belgium moves
+0.161 to 0.081 uncorrected and 0.019 to 0.018 corrected, its corrected MBE
++0.003 to +0.001. Both N=1 variants get worse (fixed 0.020 to 0.021, season
+0.021 to 0.025). Its 2023 grid puts 58% of its weight on offshore against
+Elia's 43%. See the notice of that date.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
 | France (FR) | 0.020 | 0.026 | -0.004 | +0.011 | N=10 fixed † | per timestep | 0% |
-| Belgium (BE) | 0.161 | **0.019** | +0.156 | +0.003 | N=3 season | per timestep | 0% |
+| Belgium (BE) | 0.081 | **0.018** | +0.079 | +0.001 | N=3 season | per timestep | 0% |
 | Ireland (IE) | 0.045 | **0.021** | +0.036 | +0.006 | N=1 season | per timestep | 0% |
 | Sweden (SE) | 0.098 | **0.035** | -0.096 | -0.031 | N=4 fixed | per timestep | 0% |
 | Norway (NO) | 0.128 | **0.026** | -0.124 | -0.014 | N=4 fixed † | per timestep | 0% |
@@ -1214,7 +1222,9 @@ What moved, and why, is in `method-eu-rerun.md`.
 A superseded row is not withdrawn. It states what was published, on what
 input, and the date it was replaced. The three that were suspended were never
 results at all, and their figures are kept only so the correction can be
-checked.
+checked. *[Note, 2026-10-22: Belgium's superseded row, like every Belgian
+figure before that date, read observations that left out offshore generation
+in 2015-19 and 2023; see the notice of that date.]*
 
 The country-level fit removes very large mean biases (FR, BE and IE all from
 0.17-0.34 down to ~0.01-0.02). Two honest notes: NO is already close to
@@ -1233,7 +1243,11 @@ re-established for the joint fit. See the notice of that date.]* *[Note,
 grids' own curves the mean biases this paragraph names were largely the
 fallback curve's. Uncorrected RMSE is 0.020 for FR, 0.123 for BE and 0.045 for
 IE, and NO's is 0.129, which the correction lowers to 0.028 with a degenerate
-fit. See the third notice of that date.]*
+fit. See the third notice of that date.]* *[Note, 2026-10-22: Belgium's
+uncorrected RMSE is 0.081 on Elia's complete observations. On the same grids,
+replacing the old files halves its uncorrected MBE, from +0.156 to +0.079, so
+part of every Belgian mean bias this paragraph names came from observations
+that left out offshore generation. See the notice of that date.]*
 
 ## What must NOT be overclaimed
 
@@ -1289,4 +1303,5 @@ Confidential inputs (WindStats DE/ES, Ofgem certificate warehouse, licensed
 curve library) are not redistributed and are not required to reproduce the open
 rows above, which run on the bundled open curve library. *[Note, 2026-09-25: the
 country-level rows now need the licensed curve library; CL and AR are the open
-rows.]*
+rows.]* *[Note, 2026-10-22: Belgium's country-level observations come from Elia
+Open Data `ods031`, not ENTSO-E.]*

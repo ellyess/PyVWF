@@ -127,7 +127,7 @@ on each grid's representative turbine.
 | Chile (CL) | turbine | 2021-23 → 2024 | 0.110 | 0.104 † ‡ |
 | Argentina (AR) | turbine | 2021-23 → 2024 | 0.140 | **0.122** † |
 | France (FR) | country | 2015-21 → 2023 | 0.020 | 0.026 † (worse) |
-| Belgium (BE) | country | 2015-21 → 2023 | 0.161 | **0.019** |
+| Belgium (BE) | country | 2015-21 → 2023 | 0.081 | **0.018** |
 | Ireland (IE) | country | 2017-21 → 2023 | 0.045 | **0.021** |
 | Sweden (SE) | country | 2015-21 → 2023 | 0.098 | **0.035** |
 | Norway (NO) | country | 2015-21 → 2023 | 0.128 | **0.026** † |
