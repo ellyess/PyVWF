@@ -394,7 +394,7 @@ def val_set(
         power_curves=power_curves,
     )
 
-    # preping era5 for val
+    # Only the test year is read; prep_era5 cuts the result to it.
     reanalysis = prep_era5(
         country,
         False,
@@ -403,11 +403,8 @@ def val_set(
         era5_dir=era5_dir,
         allow_extrapolation=allow_extrapolation,
         roughness=roughness,
+        years=None if year_test is None else (year_test, year_test),
     )
-
-    # Filter to test year only
-    if year_test is not None:
-        reanalysis = reanalysis.sel(time=str(year_test))
 
     return obs, turb_info, reanalysis, power_curves
 
