@@ -22,6 +22,88 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-10-22: Belgium's
+observations measured onshore generation in five of seven training years and
+in the test year, and the row is rerun on Elia's complete series.** Training
+years 2015-21, test year 2023, national scope, the scorecard config
+`configs/regions/scorecard/be_country.toml`, licensed curve library
+(`power_curves.csv` sha256 `689cfee7…`, one curve, Vestas.V90.3000, origin
+`external`, 0% substituted, 0% extrapolated).
+
+*What was wrong.* The Belgian files under
+`observations/country/observations/be/` do not measure one quantity. Matched
+hour by hour against ENTSO-E's per-type series (B18 offshore, B19 onshore) and
+Elia's Open Data series `ods031`, the 2015-19 rows and the 2023 test file equal
+onshore generation alone (r 0.998 to 1.000, ratio of means 1.00 to 1.01), with
+onshore capacity as the denominator; the 2020-21 rows equal onshore plus
+offshore. ENTSO-E holds offshore generation for every year, so the omission is
+in how the files were built, not in the source. The 2015-19 rows carry no
+`country` value and the 2020-21 rows carry `BE`, so the training file was
+joined from two fetches. Every physical gate passed, because generation and
+capacity were onshore together. The model simulates the whole fleet, offshore
+on its own points since `fc8c7f5`, so the correction was fitted to turn
+whole-fleet output into onshore output: the reported fit's cluster 0, which
+holds the offshore and coastal points, carried scalars of 0.48 to 0.52.
+
+| Year | Old file, TWh | ENTSO-E onshore | ENTSO-E offshore | Elia onshore + offshore | Eurostat gross |
+|---|---|---|---|---|---|
+| 2015 | 2.45 | 2.45 | 2.54 | 5.02 | 5.57 |
+| 2016 | 2.24 | 2.24 | 2.32 | 4.58 | 5.42 |
+| 2017 | 2.64 | 2.64 | 2.79 | 5.43 | 6.52 |
+| 2018 | 2.96 | 2.96 | 3.32 | 6.28 | 7.57 |
+| 2019 | 3.36 | 3.36 | 4.68 | 8.01 | 9.76 |
+| 2020 | 10.97 | 4.09 | 6.87 | 10.82 | 12.82 |
+| 2021 | 10.78 | 3.98 | 6.78 | 10.76 | 12.00 |
+| 2023 (test) | 6.27 | 6.27 | 7.88 | 14.35 | 15.44 |
+
+*What changed.* `scripts/region_tools/build_be_obs_from_elia.py` (`2e53985`,
+`6c5272d`) rebuilds every Belgian split from `ods031`: offshore and onshore
+summed, hourly means, divided by the summed monitored capacity, dropping the 108
+quarter-hours in 2015-24 where Elia reports no monitored capacity. The new files
+live in a separate input root, `input/combined-be-elia/`, which links every
+other input to `input/combined/`; the old files are unchanged. Checksums:
+`output/be_elia_2026-10-22/elia_obs.sha256`. The audit now compares each year's
+energy with Eurostat (`dbb5352`): the old BE train and test series fail it (0.34
+to 0.44 of the statistic), the new ones pass.
+
+Every variant, before (`6b3e6d9`, the notice of 2026-10-16) and after
+(`6c5272d`, clean tree, `PYVWF_INPUT=input/combined-be-elia`). Data:
+`output/offshore_regen_2026-10-16/after/BE/` and
+`output/be_elia_2026-10-22/evaluate-2023-elia-2026-10-22/metrics.csv`.
+
+| Variant | RMSE before | RMSE after | MBE before | MBE after | Scalar range after | Implausible / failed after | Months scored after |
+|---|---|---|---|---|---|---|---|
+| uncorrected | 0.1610 | 0.0812 | +0.1560 | +0.0788 |  |  | 12 of 12 |
+| fixed N=1 | 0.0199 | 0.0212 | -0.0061 | -0.0147 | 0.754 | 0 / 0 | 12 of 12 |
+| fixed N=3 | 0.0147 | 0.0111 | +0.0027 | +0.0003 | 0.657 to 1.239 | 0 / 0 | 12 of 12 |
+| season N=1 | 0.0207 | 0.0247 | -0.0065 | -0.0148 | 0.737 to 0.773 | 0 / 0 | 12 of 12 |
+| **season N=3** (reported) | 0.0191 | 0.0183 | +0.0034 | +0.0010 | 0.640 to 1.651 | 0 / 0 | 12 of 12 |
+
+The reported configuration stays season N=3: it was chosen on the 2023 test
+year before this change, and choosing again on the corrected series would be a
+second selection on the same year. Cluster 0's scalars move from 0.48 to 0.52
+before to 0.64 to 0.67 after.
+
+*Still open, not corrected here.*
+- The 2023 grid holds 1,608 MW onshore against Elia's 2,991 MW monitored, and
+  2,256 MW offshore against 2,255 MW, so the national weighting puts 58% on
+  offshore against a real 43%. Not measured: how much of cluster 0's scalar
+  this accounts for.
+- France's 2023 test file is onshore generation alone (46.95 TWh, equal to
+  ENTSO-E B19, r 1.000), so Saint-Nazaire's 1.11 TWh, 2.3% of the national
+  total, is missing while the 2023 grid simulates its 480 MW. France's
+  training years predate any French offshore farm.
+- The current fetcher (`fetch_entsoe_capacity_factors.py`, `psr_type="all"`)
+  sums every column containing "Wind", which for Belgium includes
+  `("Wind Offshore", "Actual Consumption")`, about 1 to 3% of offshore output.
+- Findings documents that score Belgium's country row read the same files and
+  are not yet reviewed, among them `method-country-level.md`,
+  `method-country-weighting.md`, `method-cluster-selection.md`,
+  `method-curve-library.md`, `method-eu-rerun.md` and
+  `method-physics-informed-loco.md`.
+- The country-level table below and every other citation of Belgium's row
+  still carry the old figures; updating them is a separate change.
+
 **Correction notice, 2026-10-16: offshore wind farms get their own grid
 points, and Belgium's row moves.** The country lattices cover land only, so
 until now every offshore project was summed onto the nearest land point and
