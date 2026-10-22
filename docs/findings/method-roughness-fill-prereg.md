@@ -317,6 +317,86 @@ registered consequence, not a pass of G4: G4 stays recorded as breached. The
 pins are re-recorded with the year-local fill and the realdata stamp is run,
 as G5 asks.
 
+## Amendment, 2026-10-22: the scorecard refresh, fixed before it runs
+
+The fifteen route-B scorecard rows were computed with the record-wide fill.
+They are re-run with the year-local fill; US and BR, which read stored daily
+roughness, are not, and stay on `output/validation/refresh_2026-09-20/`. This
+amendment is committed before any refresh run.
+
+**How it runs.** Training and evaluation, each step in its own process, at one
+commit on `main`, from a clean tree, through `scripts/dev/run_locked.py`, into
+`output/validation/refresh_2026-10-22/<CODE>/` (the date of the run if later),
+with the scorecard configs as committed in `configs/regions/scorecard/`, their
+full time slices, and `PYVWF_OFFSET_WORKERS=0`. One region at a time, smallest
+peak memory first, nothing else running, and peak memory logged per process.
+
+| Row | Scorecard config | Input root | Training years | Test year | Published run | Order |
+|---|---|---|---|---|---|---|
+| BE country | `be_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/BE`, `6b3e6d9` | 1 |
+| PT country (suspended) | `pt_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/PT`, `6b3e6d9` | 2 |
+| IE country | `ie_country.toml` | `input/combined` | 2017-2021 | 2023 | `offshore_regen_2026-10-16/after/IE`, `6b3e6d9` | 3 |
+| NZ k7 | `nz_k7.toml` | `input/combined` | 2019-2023 | 2024 | training `refresh_2026-09-20/NZ`, `967b485`; evaluation `c1_turbine_order_2026-09-24/after`, `a94670c` | 4 |
+| DK k100 | `dk_k100.toml` | `input/combined` | 2015-2019 | 2020 | `refresh_2026-09-20/DK`, `967b485` | 5 |
+| CL k10 | `cl_k10.toml` | `input` | 2021-2023 | 2024 | `refresh_2026-09-20/CL`, `967b485` | 6 |
+| AR k10 | `ar_k10.toml` | `input` | 2021-2023 | 2024 | `refresh_2026-09-20/AR`, `967b485` | 7 |
+| ES country | `es_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/ES`, `6b3e6d9` | 8 |
+| DE k100 | `de_k100.toml` | `input/combined` | 2015-2018 | 2019 | `refresh_2026-09-20/DE`, `967b485` | 9 |
+| IT country (suspended) | `it_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/IT`, `6b3e6d9` | 10 |
+| FR country | `fr_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/FR`, `6b3e6d9` | 11 |
+| UK k50 | `uk_k50.toml` | `input/combined` | 2015-2018 | 2019 | `refresh_2026-09-20/UK`, `967b485` | 12 |
+| SE country | `se_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/SE`, `6b3e6d9` | 13 |
+| AU-NEM k45 | `au_nem_k45.toml` | `input/combined` | 2020-2022 | 2023 | training `refresh_2026-09-20/AU-NEM`, `967b485`; evaluation `c1_turbine_order_2026-09-24/after`, `a94670c` | 14 |
+| NO country | `no_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/NO`, `6b3e6d9` | 15 |
+
+Published runs are under `output/` (`output/validation/` for the
+`refresh_2026-09-20` ones). Input roots are read from each published run's
+manifest (`curve_library.power_curves_path`), not assumed. Peak memory
+measured on 2026-10-22 for DK (4.2 GB), CL (5.6 to 6.0), DE (6.2 to 6.8), ES
+(5.7 to 8.4) and FR (8.3 to 10.0); the others are estimates, with NO, the last,
+the largest. If a process comes within 2 GB of the machine's 16 GB, the refresh
+stops there.
+
+**Why the five measured rows can be held to an exact answer.** On 2026-10-22
+the old-fill runs of the Outcome section reproduced the published runs'
+`metrics.csv` exactly, every row of every file, for DK, DE and CL (published at
+`967b485`) and FR and ES (published at `6b3e6d9`): no code change between those
+commits and the registration commit moves them except the fill. The commit the
+refresh runs at adds only `#142`, which keeps `add_models` on an object column,
+the column it already had under the local pandas 2.3.3; the realdata stamp
+passed 43 of 43 on the merged code.
+
+**Expectations, fixed now:**
+
+- **R1, the five measured rows (DK, DE, CL, FR, ES).** Every row of each
+  refreshed `metrics.csv` equals the new-fill `metrics.csv` of the Outcome
+  section exactly. A mismatch means something other than the fill moved, and
+  stops the refresh before anything is published.
+- **R2, the other ten.** Against each row's published `metrics.csv`, on every
+  row of the file: the non-degenerate rows (NZ, BE, IE, SE) move by at most
+  1e-4 in RMSE and in MBE; the degenerate rows (AR, AU-NEM, UK, NO) are
+  predicted below 1e-3 and reported with their fit quality; IT and PT are
+  reported and stay suspended.
+- **R3, stop rule.** Any row that moves by more than 1e-3 in RMSE or MBE, or
+  whose scored count, fleet count, accepted years, refused factors, curve
+  resolution or § share changes, is not published until the movement is
+  explained in a dated deviation, labelled post hoc.
+- **R4, curve-match audit.** For the turbine rows, the other-brand,
+  reference-curve and unverifiable shares from
+  `scripts/analysis/curve_match_audit.py` are unchanged, since neither fleets
+  nor curves change. A change stops as R3 does.
+- **The ‡ marker** is recomputed by `scripts/analysis/baseline_bootstrap.py` on
+  the refreshed turbine runs and set by its existing rule; any marker that
+  changes is reported, with its interval.
+
+**Consequences, stated in advance.** If R1 to R4 hold, the scorecard tables,
+their markers and the fit-quality table take the refreshed figures, every
+number citing its run directory; the 2026-10-22 notice gains a dated note
+saying the rows were refreshed and by how much they moved; the paragraph that
+says every row comes from one refresh says instead that fifteen come from this
+refresh and US and BR from `refresh_2026-09-20`; and the README's copy of the
+table follows. The diff is shown to the maintainer before it is committed.
+
 ## Caveats
 
 - The leak removed is of reanalysis input, small, and confined to the training
