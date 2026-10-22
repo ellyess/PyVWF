@@ -5,6 +5,17 @@
 route, `prep_era5`) fills the hours its inversion leaves undefined. Terms follow
 `docs/CONTEXT.md`; the routes are in `docs/design/roughness-temporal-treatment.md`.
 
+**Correction notice, 2026-10-22: the Rows table called FR country N=10 "not
+degenerate", and it is degenerate.** `docs/findings/scorecard.md` already marks
+France's N=10 fixed fit with a dagger for a scalar of 4.61, outside the 0.2 to
+3.0 a degenerate fit is defined by (`docs/CONTEXT.md`), and in this study's own
+runs the N=10 fits reach scalars of 4.61 (fixed) and 9.94 (season). The error
+was in the registration, made before any run; it was found after G4's results
+were seen, while reading the row that breached G4. The Rows table keeps the
+wrong entry, marked. G4 is judged as registered, with FR among the gating
+rows; the Deviations section records the breach and what this misclassification
+would have changed, labelled post hoc.
+
 **Route B's roughness fill is to be confined to each calendar year, so that a
 run's roughness depends only on ERA5 from its own years. Today the last hours of
 a year can take their roughness from the next year, which for seven
@@ -71,7 +82,7 @@ The fill was never chosen on evidence: it came from a notebook (`6cdac5b`,
 | DK k100 | `dk_k100.toml` | turbine | `input/combined` | 2015-2019 | 2020 | not degenerate |
 | CL k10 | `cl_k10.toml` | turbine | `input` | 2021-2023 | 2024 | degenerate † |
 | DE k100 | `de_k100.toml` | turbine | `input/combined` | 2015-2018 | 2019 | degenerate † |
-| FR country N=10 | `fr_country.toml` | country | `input/combined` | 2015-2021 | 2023 | not degenerate |
+| FR country N=10 | `fr_country.toml` | country | `input/combined` | 2015-2021 | 2023 | not degenerate [wrong, corrected 2026-10-22: degenerate †, scalar 4.61; see the correction notice] |
 | ES country N=4 | `es_country.toml` | country | `input/combined` | 2015-2021 | 2023 | not degenerate |
 
 DK, CL, FR and ES are the four pinned fits, so their movement is measured by
@@ -195,9 +206,116 @@ in its own process, before any heavier region is re-run.
 - G4 fails on DK, FR or ES: adoption stops until the movement is explained in a
   dated deviation.
 
+## Outcome, 2026-10-22
+
+Run on the uncommitted change, on top of the registration commit. "Old" is the
+record-wide fill (the code at the registration commit), "new" the year-local
+fill. Each condition ran in its own process, its condition in the run path.
+
+### G3, correctness: passes
+
+The oracle tests pass on the new fill. On the old fill, the trailing-gap, the
+record-wide comparison, the undefined-year and the fill-attribute tests fail;
+the no-margin window test fails once the old fill's margin is removed; the
+leading-gap test passes on both, since the old fill also filled a year's first
+gap from inside the year.
+
+Data: `output/roughness_fill_2026-10-22/diffmask.jsonl`. Every other variable,
+coordinate and dtype is identical in all four reads.
+
+| Row | Read | Years | Cell-days | Differing | Predicted | Differing outside prediction | Predicted but equal |
+|---|---|---|---|---|---|---|---|
+| DK k100 | training | 2015-2019 | 776,050 | 172 | 172 | 0 | 0 |
+| DK k100 | test | 2020 | 155,550 | 34 | 40 | 0 | 6 |
+| CL k10 | training | 2021-2023 | 2,953,215 | 129 | 155 | 0 | 26 |
+| CL k10 | test | 2024 | 987,102 | 27 | 27 | 0 | 0 |
+
+Why 32 predicted cell-days came out equal under both fills was not checked.
+
+### G4, movement: breached on FR
+
+Data: each region's `metrics.csv` under
+`output/bench/roughness-fill-g4/{old,new}/<CODE>/evaluate-<year>-g4-{old,new}/`,
+and `factors_*.csv` under `.../train-g4-{old,new}/`, tabulated in
+`output/roughness_fill_2026-10-22/g4_tables.txt`. Curve library, from each
+run's `curve_resolution.csv`: DK and DE on `input/combined`, with curves of
+both `open` and `external` origin; FR and ES on `input/combined`, one
+`external` curve each; CL on `input`, `open` curves only. No model key was
+substituted in any run. Every row of each `metrics.csv`, uncorrected first, on
+the test year (Δ is new minus old):
+
+| Row (training years / test year) | Variant | k | Time slice | RMSE old | RMSE new | ΔRMSE | MBE old | MBE new | ΔMBE | n | Max scalar | Failed offsets |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| DK k100 (2015-2019 / 2020) | uncorrected | 1 | none | 0.148239 | 0.148239 | -1.0e-08 | 0.111780 | 0.111780 | -1.5e-08 | 64,090 | | |
+| DK k100 (2015-2019 / 2020) | affine-wind | 100 | season | 0.085303 | 0.085303 | 5.6e-09 | 0.022330 | 0.022330 | -2.7e-08 | 64,090 | 1.135 | 0 |
+| CL k10 (2021-2023 / 2024) | uncorrected | 1 | none | 0.109976 | 0.109976 | 0 | -0.015355 | -0.015355 | 0 | 628 | | |
+| CL k10 (2021-2023 / 2024) | affine-wind | 10 | fixed | 0.103648 | 0.103648 | 0 | 0.001201 | 0.001201 | 0 | 628 | 3.246 | 2 |
+| CL k10 (2021-2023 / 2024) | affine-wind | 10 | season | 0.099659 | 0.099659 | 0 | 0.003138 | 0.003138 | 0 | 628 | 4.045 | 8 |
+| DE k100 (2015-2018 / 2019) | uncorrected | 1 | none | 0.086113 | 0.086113 | -1.1e-07 | 0.042733 | 0.042732 | -6.8e-08 | 54,114 | | |
+| DE k100 (2015-2018 / 2019) | affine-wind | 100 | fixed | 0.057044 | 0.057044 | -1.1e-07 | 0.000606 | 0.000606 | 6.7e-09 | 54,114 | 1.346 | 1 |
+| FR country (2015-2021 / 2023) | uncorrected | 1 | none | 0.020404 | 0.020404 | 1.9e-09 | -0.003451 | -0.003451 | -3.1e-08 | 12 | | |
+| FR country (2015-2021 / 2023) | affine-wind | 1 | fixed | 0.029097 | 0.029097 | -1.8e-07 | 0.013697 | 0.013697 | -2.4e-07 | 12 | 1.066 | 0 |
+| FR country (2015-2021 / 2023) | affine-wind | 10 | fixed | 0.025954 | 0.025947 | -6.7e-06 | 0.010624 | 0.010616 | -7.8e-06 | 12 | 4.606 | 0 |
+| FR country (2015-2021 / 2023) | affine-wind | 1 | season | 0.026969 | 0.026969 | -3.4e-08 | 0.014764 | 0.014763 | -2.2e-07 | 12 | 1.235 | 0 |
+| FR country (2015-2021 / 2023) | affine-wind | 10 | season | 0.023953 | 0.023930 | -2.3e-05 | 0.012109 | 0.011948 | **-1.61e-04** | 12 | 9.936 | 0 |
+| ES country (2015-2021 / 2023) | uncorrected | 1 | none | 0.070853 | 0.070854 | 8.2e-07 | -0.069641 | -0.069642 | -7.3e-07 | 12 | | |
+| ES country (2015-2021 / 2023) | affine-wind | 1 | fixed | 0.033926 | 0.033925 | -3.9e-07 | 0.009751 | 0.009750 | -1.2e-06 | 12 | 1.497 | 0 |
+| ES country (2015-2021 / 2023) | affine-wind | 4 | fixed | 0.030240 | 0.030268 | 2.8e-05 | 0.009773 | 0.009833 | 6.0e-05 | 12 | 1.901 | 0 |
+| ES country (2015-2021 / 2023) | affine-wind | 1 | season | 0.031298 | 0.031298 | 2.8e-07 | 0.009907 | 0.009906 | -8.6e-07 | 12 | 1.851 | 0 |
+| ES country (2015-2021 / 2023) | affine-wind | 4 | season | 0.027111 | 0.027116 | 4.3e-06 | 0.011081 | 0.011100 | 1.8e-05 | 12 | 2.446 | 0 |
+
+n is scored unit-months for turbine-level rows and months for country-level
+ones. Factors, largest change between the two fills:
+
+| Row | Factors file | Factors | Changed | Max \|Δscalar\| | Max \|Δoffset\| (m/s) |
+|---|---|---|---|---|---|
+| DK k100 | `factors_season_100.csv` | 400 | 63 | 1.85e-05 | 9.04e-05 |
+| CL k10 | `factors_fixed_10.csv` | 10 | 0 | 0 | 0 |
+| CL k10 | `factors_season_10.csv` | 40 | 0 | 0 | 0 |
+| DE k100 | `factors_fixed_100.csv` | 100 | 95 | 1.35e-05 | 5.77e-05 |
+| FR country | `factors_fixed_1.csv` | 1 | 1 | 8.73e-07 | 3.55e-06 |
+| FR country | `factors_fixed_10.csv` | 10 | 10 | 1.46e-06 | 0.00541 |
+| FR country | `factors_season_1.csv` | 4 | 1 | 2.38e-06 | 9.71e-06 |
+| FR country | `factors_season_10.csv` | 40 | 10 | 4.08e-06 | 0.151 |
+| ES country | `factors_fixed_1.csv` | 1 | 1 | 3.95e-07 | 8.41e-08 |
+| ES country | `factors_fixed_4.csv` | 4 | 4 | 6.96e-07 | 0.00849 |
+| ES country | `factors_season_1.csv` | 4 | 1 | 9.95e-07 | 3.65e-07 |
+| ES country | `factors_season_4.csv` | 16 | 4 | 1.47e-06 | 0.0337 |
+
+Against the registered gate: on DK every row is within 1e-4; on ES the largest
+is |ΔMBE| 6.0e-5; on FR, N=10 season has |ΔMBE| 1.61e-4, above 1e-4. **G4 is
+breached and adoption stops.** CL and DE, not gating, move by at most 1.1e-7,
+inside their predicted 1e-3. Peak memory after training, from
+`output/roughness_fill_2026-10-22/g4_runs.jsonl`: DE 6.17 GB old, 6.83 GB new,
+one run each.
+
+G5 was not run: the pins were not re-recorded, since adoption stopped.
+
 ## Deviations
 
-None.
+**2026-10-22, after G4's results were seen; post hoc.** G4 was breached by FR
+country N=10, season (training years 2015-2021, test year 2023): |ΔMBE| 1.61e-4
+against the registered 1e-4. Adoption stopped, as registered, pending the
+maintainer's decision.
+
+Read after the breach, and not part of any gate:
+
+- The breaching fit is degenerate. Its largest scalar is 9.94, and the N=10
+  fixed fit's is 4.61, the value the scorecard daggers. The Rows table had
+  classified FR N=10 as not degenerate, which was wrong (correction notice at
+  the top). Had it been classified correctly, the registration's own rule
+  would have reported this row rather than gated on it. That reclassification
+  is made after the result and cannot pass G4.
+- In the same fit, ten of forty factors changed, with offsets moving by up to
+  0.151 m/s, while scalars moved by at most 4.1e-6. The N=1 FR fits and every
+  ES fit moved by less than 1e-4 in MBE.
+- FR's test year is scored on 12 national months.
+
+**2026-10-22, maintainer decision, made after G4's results were seen.** The
+year-local fill is adopted despite the breach. This is a decision against the
+registered consequence, not a pass of G4: G4 stays recorded as breached. The
+pins are re-recorded with the year-local fill and the realdata stamp is run,
+as G5 asks.
 
 ## Caveats
 
