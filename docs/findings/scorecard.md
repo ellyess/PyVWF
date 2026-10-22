@@ -60,16 +60,22 @@ holds the offshore and coastal points, carried scalars of 0.48 to 0.52.
 `6c5272d`) rebuilds every Belgian split from `ods031`: offshore and onshore
 summed, hourly means, divided by the summed monitored capacity, dropping the 108
 quarter-hours in 2015-24 where Elia reports no monitored capacity. The new files
-live in a separate input root, `input/combined-be-elia/`, which links every
-other input to `input/combined/`; the old files are unchanged. Checksums:
-`output/be_elia_2026-10-22/elia_obs.sha256`. The audit now compares each year's
-energy with Eurostat (`dbb5352`): the old BE train and test series fail it (0.34
-to 0.44 of the statistic), the new ones pass.
+were built first in a separate input root, `input/combined-be-elia/`, which
+linked every other input to `input/combined/`, and were then promoted into
+`input/combined/` with the builder's `--replace`, which keeps each old file
+beside its replacement as `.entsoe-mixed.bak.csv`. Checksums:
+`output/be_elia_2026-10-22/elia_obs.sha256` for the new files and
+`output/be_elia_2026-10-22/promote/old_files.sha256` for the old. The audit
+now compares each year's energy with Eurostat (`dbb5352`): the old BE train and
+test series fail it (0.34 to 0.44 of the statistic), the new ones pass.
 
 Every variant, before (`6b3e6d9`, the notice of 2026-10-16) and after
 (`6c5272d`, clean tree, `PYVWF_INPUT=input/combined-be-elia`). Data:
 `output/offshore_regen_2026-10-16/after/BE/` and
-`output/be_elia_2026-10-22/evaluate-2023-elia-2026-10-22/metrics.csv`.
+`output/be_elia_2026-10-22/evaluate-2023-elia-2026-10-22/metrics.csv`. Rerun on
+`input/combined/` after the promotion (`dc2ce83`, clean tree), every output
+file except the manifest is byte-identical to that run, `metrics.csv`
+included. Data: `output/be_elia_2026-10-22/promote/`.
 
 | Variant | RMSE before | RMSE after | MBE before | MBE after | Scalar range after | Implausible / failed after | Months scored after |
 |---|---|---|---|---|---|---|---|
@@ -1153,12 +1159,12 @@ corrected; France 0.027 to 0.026 corrected, still worse than uncorrected, and
 its uncorrected MBE from -0.002 to -0.004; Norway 0.028 to 0.026 on the same
 degenerate fit. See the notice of that date.]*
 *[Note, 2026-10-22: Belgium's row is rerun at `6c5272d` on Elia's complete
-observations (`ods031`, onshore and offshore), in the input root
-`input/combined-be-elia/`; the other rows still read ENTSO-E. Belgium moves
-0.161 to 0.081 uncorrected and 0.019 to 0.018 corrected, its corrected MBE
-+0.003 to +0.001. Both N=1 variants get worse (fixed 0.020 to 0.021, season
-0.021 to 0.025). Its 2023 grid puts 58% of its weight on offshore against
-Elia's 43%. See the notice of that date.]*
+observations (`ods031`, onshore and offshore), now in `input/combined/`; the
+other rows still read ENTSO-E. Belgium moves 0.161 to 0.081 uncorrected and
+0.019 to 0.018 corrected, its corrected MBE +0.003 to +0.001. Both N=1
+variants get worse (fixed 0.020 to 0.021, season 0.021 to 0.025). Its 2023
+grid puts 58% of its weight on offshore against Elia's 43%. See the notice of
+that date.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
