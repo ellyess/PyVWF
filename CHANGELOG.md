@@ -29,7 +29,9 @@ this file stay in step with it.
 
 ### Changed
 
-- **Evaluate and transfer runs read ERA5 for their test year only.**
+- **Evaluate and transfer runs read ERA5 for their test year only, and
+  turbine-level training runs for their training years only.** Country-level
+  training still reads every year.
   `prep_era5` takes `years=(start, end)`, reads those years plus the following
   January, and returns them identical to the whole record cut the same way.
   The January is there because the roughness back-fill reads forward; when it

@@ -207,8 +207,9 @@ def train_set(
         bbox: Optional bounding box forwarded to prep_era5. Default None keeps
             the legacy BoundingBoxes lookup.
         train_years: Inclusive window forwarded to :func:`prep_country` for
-            turbine-level observations. Default None keeps the source's own
-            default window.
+            turbine-level observations, and to :func:`prep_era5` so only those
+            years are read. Default None keeps the source's own default window
+            and reads the whole record.
 
     Returns:
         Tuple of (gen_cf, turb_info, reanalysis, power_curves).
@@ -223,7 +224,9 @@ def train_set(
     if fix_turb is not None:
         turb_info["model"] = fix_turb
 
-    # prep era5 + curves once
+    # prep era5 + curves once. A turbine-level fit reads only its training
+    # years; the country-level branch keeps the whole record, because its
+    # observation window is the source's default, not train_years.
     reanalysis = prep_era5(
         country,
         True,
@@ -232,6 +235,7 @@ def train_set(
         era5_dir=era5_dir,
         allow_extrapolation=allow_extrapolation,
         roughness=roughness,
+        years=train_years if obs_level == "turbine" else None,
     )
     power_curves = load_power_curves()
 

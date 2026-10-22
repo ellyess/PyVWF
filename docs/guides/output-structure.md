@@ -182,12 +182,13 @@ outside, and whether the region opted in. It is written for every run, with
 zeros when nothing is outside.
 
 `loaded_years` says which years the run read. An evaluate or transfer run reads
-its test year only, recorded as `"2020-2020"` for example, and gives the same
-result as reading every year: `prep_era5` also reads the following January,
+its test year only, recorded as `"2020-2020"` for example, and a turbine-level
+training run its training years only. Both give the same result as reading
+every year: `prep_era5` also reads the following January,
 because the roughness back-fill reads forward, and reads the whole record
 instead when that January does not fill every cell. That case is recorded as
-`"2020-2020, whole record loaded"`. A run that read every year records
-`"whole record"`.
+`"2020-2020, whole record loaded"`. A run that read every year, such as a
+country-level training run, records `"whole record"`.
 
 Inside the loaded extent is a statement about position only. It does not
 check the data in those cells. A unit can sit inside the extent over cells
