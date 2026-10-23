@@ -1400,6 +1400,19 @@ that left out offshore generation. See the notice of that date.]*
   from 0.129 to 0.028 on a degenerate fit (scalar 3.05), and France's raises it
   from 0.020 to 0.027. Italy and Portugal are suspended. See the third notice
   of that date.]*
+- **Sweden's training capacity for 2015-19 is built from its own generation.**
+  *[Added 2026-10-24.]* The training file carries 8,354 MW in every one of those
+  five years: the sum of four zonal capacities that the fetcher of the time
+  derived as peak generation over 0.9 when ENTSO-E returned none
+  (`method-country-level.md`). ENTSO-E's national register gives 3,500 to
+  7,506 MW over the same years and the GWPT grid 4,048 to 6,082 MW
+  (`output/entsoe_audit_2026-10-23/classification.csv`). 8,354 MW is above
+  both in every one of those years, by 11% (2019) to 139% (2015) against
+  ENTSO-E's, so those years' capacity factors are understated if either
+  register is right; neither is established as the fleet. The row's generation
+  matches ENTSO-E hour by hour, and the capacity of 2020-21 and the 2023 test
+  year matches ENTSO-E's register within 0.5%. Its figures are not corrected
+  here.
 - **The country-level rows are licensed-lineage.** Since 2026-09-25 they
   simulate each grid's own Vestas curve, which only the licensed library holds,
   so a third party cannot reproduce them. Each grid carries one representative
