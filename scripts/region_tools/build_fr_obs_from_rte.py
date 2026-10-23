@@ -5,8 +5,8 @@ against ENTSO-E's per-type series (audited 2026-10-23), the 2023 test file is
 onshore generation alone, while the 2023 grid simulates Saint-Nazaire; and
 ENTSO-E holds no French offshore before June 2023 at all. Their capacity is
 ENTSO-E's installed-capacity register, which follows the fleet to 2017 and
-then falls 1.5 to 2.9 GW behind it in 2018 and 2019, so those years'
-capacity factors are overstated by about 9% and 12%.
+then falls 1.0 to 2.9 GW behind it in 2018 and 2019, so those years' mean
+capacity factors are overstated by about 8% and 12%.
 
 RTE is the French TSO and the source ENTSO-E republishes for France. Its annual
 definitive eCO2mix files give national wind output (``Eolien``, onshore and
