@@ -99,9 +99,14 @@ before to 0.64 to 0.67 after.
   ENTSO-E B19, r 1.000), so Saint-Nazaire's 1.11 TWh, 2.3% of the national
   total, is missing while the 2023 grid simulates its 480 MW. France's
   training years predate any French offshore farm.
-- The current fetcher (`fetch_entsoe_capacity_factors.py`, `psr_type="all"`)
-  sums every column containing "Wind", which for Belgium includes
-  `("Wind Offshore", "Actual Consumption")`, about 1 to 3% of offshore output.
+- The fetcher (`fetch_entsoe_capacity_factors.py`) summed ENTSO-E's
+  consumption columns into wind generation, in all four of its generation
+  paths; for Belgium that is `("Wind Offshore", "Actual Consumption")`, 0.27%
+  of offshore output in 2021 and 0.22% in 2023, fetched on 2026-10-22. That
+  replaces this notice's first estimate of 1 to 3%. Data:
+  `output/be_elia_2026-10-22/entsoe_consumption/compare.txt`. Fixed in
+  `6311446`. Whether any other country's stored files carry consumption is not
+  checked.
 - Findings documents that score Belgium's country row read the same files and
   are not yet reviewed, among them `method-country-level.md`,
   `method-country-weighting.md`, `method-cluster-selection.md`,
