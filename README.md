@@ -126,7 +126,7 @@ on each grid's representative turbine.
 | New Zealand (NZ) | turbine | 2019-23 → 2024 | 0.157 | 0.105 ‡ |
 | Chile (CL) | turbine | 2021-23 → 2024 | 0.110 | 0.104 † ‡ |
 | Argentina (AR) | turbine | 2021-23 → 2024 | 0.140 | **0.122** † |
-| France (FR) | country | 2015-21 → 2023 | 0.020 | 0.026 † (worse) |
+| France (FR) | country | 2015-21 → 2023 | 0.019 | 0.022 † (worse) |
 | Belgium (BE) | country | 2015-21 → 2023 | 0.081 | **0.018** |
 | Ireland (IE) | country | 2017-21 → 2023 | 0.045 | **0.021** |
 | Sweden (SE) | country | 2015-21 → 2023 | 0.098 | **0.035** |
@@ -134,8 +134,8 @@ on each grid's representative turbine.
 | Spain (ES) | country | 2015-21 → 2023 | 0.071 | **0.030** |
 
 The correction lowers RMSE in all nine turbine-level fleets and in five of the
-six country-level ones; in France, whose uncorrected series is already nearly
-unbiased, it raises it. Read the numbers with their markers:
+six country-level ones; in France it raises it, from 0.019 to 0.022. Read the
+numbers with their markers:
 
 - **†** The fit is degenerate: a cluster's scalar falls outside 0.2 to 3.0 or its
   offset did not converge. The aggregate is real, but the per-cluster factors

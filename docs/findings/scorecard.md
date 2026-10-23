@@ -22,6 +22,84 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-10-23: France's observations left out offshore
+generation in the test year and understated the fleet in 2018 and 2019, and
+the row is rerun on RTE's complete series.** Training years 2015-21, test year
+2023, national scope, the scorecard config
+`configs/regions/scorecard/fr_country.toml`, licensed curve library
+(`power_curves.csv` sha256 `689cfee7…`, one curve, Vestas.V80.2000, origin
+`external`, 0% substituted, 0% extrapolated).
+
+*What was wrong.* Matched hour by hour against ENTSO-E's per-type series
+(`output/entsoe_audit_2026-10-23/REPORT.md`), the 2023 test file equals onshore
+generation alone (B19, ratio 1.000); built again with the generator's own call
+and `psr_type="onshore"` it is reproduced byte for byte, and the generator's
+command line has defaulted to `--psr-type onshore` since `a95e134`. ENTSO-E
+holds no French offshore before June 2023, while RTE's definitive eCO2mix
+series reports offshore output in every month, 1.89 TWh in the year; peaks of
+667 to 704 MW from September show Saint-Brieuc feeding in beside
+Saint-Nazaire's 480 MW. The training files' capacity is ENTSO-E's register,
+which matches RTE's year-end fleet in 2015-17 and then falls 1.0 to 2.5 GW
+below it through 2018 and 1.5 to 2.9 GW through 2019, overstating those years'
+mean capacity factors by 8% and 12%.
+
+| Year | Old file, TWh | Old capacity, MW | RTE, TWh | RTE capacity, MW (1 Jan to 31 Dec) | Eurostat gross, TWh | Old / Eurostat | RTE / Eurostat | Mean CF old | Mean CF RTE |
+|---|---|---|---|---|---|---|---|---|---|
+| 2015 | 19.59 | 10,322 | 21.09 | 9,303 to 10,313 | 21.86 | 0.896 | 0.965 | 0.217 | 0.246 |
+| 2016 | 19.56 | 11,757 | 20.91 | 10,313 to 11,794 | 21.82 | 0.897 | 0.958 | 0.190 | 0.218 |
+| 2017 | 22.84 | 13,564 | 24.10 | 11,794 to 13,508 | 25.11 | 0.910 | 0.960 | 0.192 | 0.218 |
+| 2018 | 26.79 | 12,521 | 28.12 | 13,508 to 15,067 | 29.18 | 0.918 | 0.964 | 0.244 | 0.226 |
+| 2019 | 32.70 | 13,607 | 33.81 | 15,067 to 16,458 | 35.46 | 0.922 | 0.954 | 0.274 | 0.245 |
+| 2020 | 38.36 | 16,592 | 39.68 | 16,458 to 17,548 | 40.71 | 0.942 | 0.975 | 0.263 | 0.266 |
+| 2021 | 35.18 | 17,225 | 36.86 | 17,548 to 18,831 | 37.69 | 0.933 | 0.978 | 0.233 | 0.232 |
+| 2023 (test) | 46.95 | 20,842 | 50.84 | 21,054 to 22,687 | 51.46 | 0.912 | 0.988 | 0.257 | 0.265 |
+
+*What changed.* `scripts/region_tools/build_fr_obs_from_rte.py` (`65efa06`)
+rebuilds every French split from RTE's annual definitive eCO2mix files
+(national `Eolien`, onshore and offshore, half-hourly), hourly means, divided
+by RTE's 31 December wind fleet (`parc-prod-par-filiere`) interpolated linearly
+through the year; two hours a year are dropped at the October clock change.
+The files were built first in a separate input root, `input/combined-fr-rte/`,
+and then promoted into `input/combined/` with the builder's `--replace`, which
+keeps each old file as `.entsoe.bak.csv`. Checksums:
+`output/fr_rte_2026-10-23/rte_obs.sha256`, and for the downloads
+`rte_downloads.sha256` beside it. Every split passes the physical gates.
+
+Every variant, before (`6b3e6d9`, the notice of 2026-10-16) and after
+(`65efa06`, clean tree, `PYVWF_INPUT=input/combined-fr-rte`). Data:
+`output/offshore_regen_2026-10-16/after/FR/` and
+`output/fr_rte_2026-10-23/evaluate-2023-rte-2026-10-23/metrics.csv`. The
+current code on the old files (`evaluate-2023-control-2026-10-23`) reproduces
+the before `metrics.csv` byte for byte, so the movement is the observations'.
+Rerun on `input/combined/` after the promotion, every output file except the
+manifest is byte-identical to the after run, `metrics.csv` included. Data:
+`output/fr_rte_2026-10-23/promote/`.
+
+| Variant | RMSE before | RMSE after | MBE before | MBE after | Max scalar before / after | Implausible / failed after | Months scored after |
+|---|---|---|---|---|---|---|---|
+| uncorrected | 0.0204 | 0.0190 | -0.0035 | -0.0116 |  |  | 12 of 12 |
+| fixed N=1 | 0.0291 | 0.0248 | +0.0137 | +0.0118 | 1.07 / 1.09 | 0 / 0 | 12 of 12 |
+| **fixed N=10** (reported) | 0.0260 | 0.0216 | +0.0106 | +0.0087 | 4.61 / 4.71 | 1 / 0 | 12 of 12 |
+| season N=1 | 0.0270 | 0.0227 | +0.0148 | +0.0126 | 1.23 / 1.21 | 0 / 0 | 12 of 12 |
+| season N=10 | 0.0240 | 0.0197 | +0.0121 | +0.0098 | 9.94 / 9.62 | 4 / 0 | 12 of 12 |
+
+Every corrected variant's RMSE falls, and every one stays above the
+uncorrected 0.0190. The reported fit stays degenerate: cluster 7 carries a
+scalar of 4.71. The reported configuration stays fixed N=10: it was chosen on
+the 2023 test year before this change.
+
+*Still open, not corrected here.*
+- The 2023 grid holds Saint-Nazaire's 480 MW offshore and not Saint-Brieuc,
+  which fed in from September 2023.
+- The capacity is interpolated evenly between year ends, while offshore farms
+  arrive in steps.
+- RTE's energy is 3 to 8% above ENTSO-E's in every year, so the training years
+  move as well as the test year.
+- Italy's and Portugal's 2023 test files also leave out offshore output (0.2%
+  and 0.6%); rebuilt files exist and are not yet staged.
+- Findings documents that score France's country row read the old files and
+  are not yet reviewed.
+
 **Correction notice, 2026-10-22: Belgium's
 observations measured onshore generation in five of seven training years and
 in the test year, and the row is rerun on Elia's complete series.** Training
@@ -98,7 +176,9 @@ before to 0.64 to 0.67 after.
 - France's 2023 test file is onshore generation alone (46.95 TWh, equal to
   ENTSO-E B19, r 1.000), so Saint-Nazaire's 1.11 TWh, 2.3% of the national
   total, is missing while the 2023 grid simulates its 480 MW. France's
-  training years predate any French offshore farm.
+  training years predate any French offshore farm. *[2026-10-23: corrected by
+  the notice of that date. The 1.11 TWh is ENTSO-E's June to December only;
+  RTE gives 1.89 TWh for the year.]*
 - The fetcher (`fetch_entsoe_capacity_factors.py`) summed ENTSO-E's
   consumption columns into wind generation, in all four of its generation
   paths; for Belgium that is `("Wind Offshore", "Actual Consumption")`, 0.27%
@@ -1170,26 +1250,31 @@ other rows still read ENTSO-E. Belgium moves 0.161 to 0.081 uncorrected and
 variants get worse (fixed 0.020 to 0.021, season 0.021 to 0.025). Its 2023
 grid puts 58% of its weight on offshore against Elia's 43%. See the notice of
 that date.]*
+*[Note, 2026-10-23: France's row is rerun at `65efa06` on RTE's complete
+observations (total wind over RTE's interpolated fleet), now in
+`input/combined/`. France moves 0.020 to 0.019 uncorrected and 0.026 to 0.022
+corrected, still worse than uncorrected, its uncorrected MBE -0.004 to -0.012,
+on a fit as degenerate as before (scalar 4.71). See the notice of that date.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
-| France (FR) | 0.020 | 0.026 | -0.004 | +0.011 | N=10 fixed † | per timestep | 0% |
+| France (FR) | 0.019 | 0.022 | -0.012 | +0.009 | N=10 fixed † | per timestep | 0% |
 | Belgium (BE) | 0.081 | **0.018** | +0.079 | +0.001 | N=3 season | per timestep | 0% |
 | Ireland (IE) | 0.045 | **0.021** | +0.036 | +0.006 | N=1 season | per timestep | 0% |
 | Sweden (SE) | 0.098 | **0.035** | -0.096 | -0.031 | N=4 fixed | per timestep | 0% |
 | Norway (NO) | 0.128 | **0.026** | -0.124 | -0.014 | N=4 fixed † | per timestep | 0% |
 | Spain (ES) | 0.071 | **0.030** | -0.070 | +0.010 | N=4 fixed | per timestep | 0% |
 
-France's corrected RMSE is above its uncorrected one: on its own curve the
-uncorrected series is nearly unbiased (MBE -0.004), and the correction adds
-error.
+France's corrected RMSE, 0.022, is above its uncorrected 0.019: the
+correction adds error. *[Note, 2026-10-23: until then this read "nearly
+unbiased (MBE -0.004)"; on RTE's series the uncorrected MBE is -0.012.]*
 
 **† The fit behind this row is degenerate** (bounds as in the turbine-level
 table):
 
 | Region | Config | Max scalar | Implausible scalars | Failed offsets |
 |---|---|---|---|---|
-| France (FR) | N=10 fixed | **4.61** | 1 | 0 |
+| France (FR) | N=10 fixed | **4.71** | 1 | 0 |
 | Norway (NO) | N=4 fixed | **3.05** | 1 | 0 |
 
 **Suspended rows, 2026-09-25.** On their grids' own curves most of their
@@ -1315,4 +1400,5 @@ curve library) are not redistributed and are not required to reproduce the open
 rows above, which run on the bundled open curve library. *[Note, 2026-09-25: the
 country-level rows now need the licensed curve library; CL and AR are the open
 rows.]* *[Note, 2026-10-22: Belgium's country-level observations come from Elia
-Open Data `ods031`, not ENTSO-E.]*
+Open Data `ods031`, not ENTSO-E.]* *[Note, 2026-10-23: France's come from
+RTE's eCO2mix definitive series and its annual wind fleet, not ENTSO-E.]*
