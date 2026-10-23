@@ -96,7 +96,8 @@ the 2023 test year before this change.
 - RTE's energy is 3 to 8% above ENTSO-E's in every year, so the training years
   move as well as the test year.
 - Italy's and Portugal's 2023 test files also leave out offshore output (0.2%
-  and 0.6%); rebuilt files exist and are not yet staged.
+  and 0.6%); rebuilt files exist and are not yet staged. *[2026-10-24: staged
+  and both rows rerun; see the note under the suspended rows.]*
 - Findings documents that score France's country row read the old files and
   are not yet reviewed.
 
@@ -1286,6 +1287,29 @@ fallback curve:
 |---|---|---|---|---|---|---|
 | Italy (IT) | 0.070 | 0.015 | -0.069 | -0.004 | N=3 season | in the table, 100% substituted |
 | Portugal (PT) | 0.089 | 0.027 | -0.085 | +0.018 | N=1 season | in the table, 100% substituted |
+
+*[Note, 2026-10-24: Italy's and Portugal's 2023 test files left out offshore
+output, the Taranto farm's 0.053 TWh (0.2%) and WindFloat Atlantic's 0.079 TWh (0.6%),
+because they were built with the generator's `--psr-type onshore` default; the
+same call reproduces them byte for byte. They are rebuilt with onshore and
+offshore (`psr_type="all"`), equal to ENTSO-E's total in every hour, 0.986 and
+0.983 of Eurostat against 0.984 and 0.977 before; the old files are kept as
+`.entsoe-onshore.bak.csv`. Their training files were already complete. Both rows
+were rerun at `7fc0e16` from a clean tree (training years 2015-21, test year
+2023, licensed library, 0% substituted); the current code on the old files
+reproduces the 2026-10-16 `metrics.csv` byte for byte, and the trained factors
+are unchanged. Italy still scores no month. Portugal, on the same 3 of 12
+months:*
+
+| Variant | RMSE before | RMSE after | MBE before | MBE after | Max scalar after | Implausible / failed after |
+|---|---|---|---|---|---|---|
+| uncorrected | 0.2205 | 0.2206 | -0.2201 | -0.2202 |  |  |
+| fixed N=1 | 0.0490 | 0.0493 | -0.0373 | -0.0373 | 3.03 | 1 / 0 |
+| fixed N=2 | 0.0133 | 0.0135 | -0.0094 | -0.0095 | 3.92 | 1 / 0 |
+| **season N=1** (reported) | 0.0300 | 0.0304 | -0.0073 | -0.0073 | 3.12 | 1 / 1 |
+| season N=2 | 0.1021 | 0.1021 | +0.1007 | +0.1007 | 3.60 | 1 / 6 |
+
+*Both rows stay suspended. Data: `output/it_pt_2023_2026-10-24/`.]*
 
 **No country-level row carries § any more.** Sweden and Norway did, at 0.8%
 and 4.4% of capacity, and the wider download of 2026-09-12 covers both fleets;
