@@ -58,7 +58,12 @@ CASES = {
     # DK 63 of 100 factors moved, scalars by at most 6.4e-6 and offsets by
     # 3.0e-5 m/s; FR's scalars by 1.5e-6 and offsets by 0.0054 m/s; ES's
     # scalars by 7.0e-7 and offsets by 0.0085 m/s; CL unchanged. Accepted
-    # years unchanged in all four.
+    # years unchanged in all four. FR re-recorded 2026-10-24, when its
+    # observations were rebuilt from RTE (65efa06; scorecard notice of
+    # 2026-10-23): every scalar rose by 0.020 to 0.101 (cluster 7, 4.606 to
+    # 4.707) and every offset fell by 0.000 to 0.150 m/s; accepted years
+    # unchanged. On the old ENTSO-E files the same code reproduces the
+    # previous pin byte for byte.
     "fr_country_k10": (
         "configs/regions/scorecard/fr_country.toml",
         "input/combined",

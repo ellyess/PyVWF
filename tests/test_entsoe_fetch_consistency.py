@@ -15,6 +15,7 @@ import pandas as pd
 import pytest
 
 from pyvwf.datasets.fetch_entsoe_capacity_factors import (
+    NORWAY_ZONES,
     ENTSOEWindDataFetcher,
     _wind_kinds,
 )
@@ -93,3 +94,41 @@ def test_unlabelled_queries_are_not_blocked():
     """A single-psr_type fetch records no coverage, and must still work rather
     than failing closed on missing metadata."""
     assert calculate(fetcher_with(None, None))["capacity_factor"].iloc[0] == pytest.approx(0.1)
+
+
+def belgian_offshore_query():
+    """A generation result shaped as entsoe-py returned Belgium's in 2021 and 2023.
+
+    Offshore output and consumption as tuple columns, and the year's last chunk,
+    which had no consumption, as a plain column on its own hours.
+    """
+    index = pd.date_range("2023-12-28 22:00", periods=4, freq="h", tz="UTC")
+    return pd.DataFrame(
+        {
+            ("Wind Offshore", "Actual Consumption"): [3.0, None, None, None],
+            ("Wind Offshore", "Actual Aggregated"): [100.0, 200.0, None, None],
+            "Wind Offshore": [None, None, 300.0, 400.0],
+        },
+        index=index,
+    )
+
+
+def fetcher_returning(frame):
+    obj = object.__new__(ENTSOEWindDataFetcher)  # no API key needed
+    obj.client = type("Client", (), {"query_generation": lambda self, **k: frame})()
+    return obj
+
+
+@pytest.mark.parametrize("country, zones", [("BE", 1), ("NO", len(NORWAY_ZONES))])
+@pytest.mark.parametrize("psr_type", ["all", "offshore"])
+def test_consumption_is_not_counted_as_output(psr_type, country, zones):
+    """Belgium's offshore wind reports consumption, which was summed into
+    output; the last chunk's plain column is output and must stay. Norway sums
+    its zones, each answered here with the same frame."""
+    gen = fetcher_returning(belgian_offshore_query()).fetch_generation(
+        country,
+        pd.Timestamp("2023-12-28", tz="UTC"),
+        pd.Timestamp("2024-01-01", tz="UTC"),
+        psr_type=psr_type,
+    )
+    assert gen["generation_mw"].tolist() == [zones * v for v in (100.0, 200.0, 300.0, 400.0)]

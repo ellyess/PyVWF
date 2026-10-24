@@ -129,6 +129,22 @@ def _wind_kinds(columns) -> set[str]:
     return kinds
 
 
+def _output_columns(columns) -> list:
+    """The columns of an entsoe-py generation result that hold output.
+
+    Where a type also draws power, entsoe-py splits it into
+    ``(type, "Actual Aggregated")`` and ``(type, "Actual Consumption")``, and
+    summing both adds consumption to output: Belgian offshore wind reports it,
+    0.2 to 0.3% of output in 2021 and 2023. A query chunk with no consumption
+    returns the type as a plain column on its own hours (Belgium's last three
+    days of each year), so the consumption column is left out rather than the
+    aggregated one picked, which would drop those hours.
+    """
+    return [
+        col for col in columns if not (isinstance(col, tuple) and col[-1] == "Actual Consumption")
+    ]
+
+
 class ENTSOEWindDataFetcher:
     """Fetch wind generation and capacity data from ENTSO-E API."""
 
@@ -197,7 +213,7 @@ class ENTSOEWindDataFetcher:
                 )
 
                 # Filter wind columns
-                wind_cols = [col for col in gen_data.columns if "Wind" in str(col)]
+                wind_cols = [col for col in _output_columns(gen_data.columns) if "Wind" in str(col)]
                 if not wind_cols:
                     raise NoMatchingDataError(f"No wind generation data found for {country}")
 
@@ -218,6 +234,7 @@ class ENTSOEWindDataFetcher:
                 )
                 # Handle case where result is already a DataFrame
                 if isinstance(gen, pd.DataFrame):
+                    gen = gen[_output_columns(gen.columns)]
                     # If multiple columns, sum them
                     if len(gen.columns) > 1:
                         gen = gen.sum(axis=1).to_frame(name="generation_mw")
@@ -271,7 +288,9 @@ class ENTSOEWindDataFetcher:
                         end=end,
                         psr_type=None,
                     )
-                    wind_cols = [col for col in gen_data.columns if "Wind" in str(col)]
+                    wind_cols = [
+                        col for col in _output_columns(gen_data.columns) if "Wind" in str(col)
+                    ]
                     if wind_cols:
                         gen = gen_data[wind_cols].sum(axis=1)
                         all_zones_data.append(gen)
@@ -288,7 +307,7 @@ class ENTSOEWindDataFetcher:
                         psr_type=psr_code,
                     )
                     if isinstance(gen, pd.DataFrame):
-                        gen = gen.sum(axis=1)
+                        gen = gen[_output_columns(gen.columns)].sum(axis=1)
                     all_zones_data.append(gen)
                     summed.append(zone_code)
                     logger.info(f"    ✓ {zone_code}: {len(gen)} data points")
