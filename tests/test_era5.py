@@ -1,7 +1,5 @@
 """ERA5 loading: longitude normalisation, config-driven paths, precomputed fields."""
 
-import warnings
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -165,19 +163,18 @@ def test_log_roughness_inverts_the_log_profile_and_masks_what_it_cannot():
     assert z0[3] == pytest.approx(Z0_BOUNDS[0], rel=1e-12)
 
 
-# --- years: load only a window, identical to the whole record cut to it ---
+# --- the fill stays inside each calendar year, so a window of years is exact ---
 
 WINDOW_BBOX = (7.9, 8.4, 54.9, 55.4)
 
 
-def _hourly_archive(era5_dir, end, flat=()):
+def _hourly_archive(era5_dir, end="2020-03-31T23", flat=()):
     """Monthly hourly files on a 2x2 grid from November 2019 up to ``end``.
 
     One file per month, as ERA5 is stored. The winds are the same draws
-    whatever ``end`` is, so two archives differ only in where they stop.
-    ``flat`` holds ``(lat_index, lon_index, first_hour, last_hour)`` spans where
-    the 100 m wind equals the 10 m wind, so the profile cannot be inverted and
-    the roughness is missing until the back-fill reaches a valid hour.
+    whatever ``end`` is. ``flat`` holds ``(lat_index, lon_index, first_hour,
+    last_hour)`` spans where the 100 m wind equals the 10 m wind, so the
+    profile cannot be inverted and the roughness is undefined there.
     """
     era5_dir.mkdir(parents=True)
     times = pd.date_range("2019-11-01", "2020-03-31T23", freq="h")
@@ -200,59 +197,97 @@ def _hourly_archive(era5_dir, end, flat=()):
         part.to_netcdf(era5_dir / f"era5_zz_{part.time.dt.year.values[0]}_{month:02d}.nc")
 
 
-def _prep(era5_dir, years=None):
-    return prep_era5("ZZ", bbox=WINDOW_BBOX, era5_dir=era5_dir, years=years)
+def _prep(era5_dir, **kwargs):
+    return prep_era5("ZZ", bbox=WINDOW_BBOX, era5_dir=era5_dir, **kwargs)
 
 
-def _assert_same(windowed, whole):
-    """Identical values, dtypes and coordinates; the window attribute aside."""
-    windowed = windowed.copy()
-    del windowed.attrs["pyvwf_era5_window"]
+def _hourly_roughness(era5_dir, cell):
+    return _prep(era5_dir, resample_daily=False)["roughness"].isel(lat=cell[0], lon=cell[1])
+
+
+# The last 2019 hours at one cell are undefined, and so are the first 2020 ones.
+YEAR_END_GAP = [(0, 0, "2019-12-31T20", "2020-01-02T05")]
+
+
+def test_a_years_trailing_gap_takes_that_years_last_defined_value(tmp_path):
+    _hourly_archive(tmp_path / "era5", flat=YEAR_END_GAP)
+    z0 = _hourly_roughness(tmp_path / "era5", (0, 0))
+
+    last_2019 = z0.sel(time="2019-12-31T19").item()
+    np.testing.assert_array_equal(z0.sel(time=slice("2019-12-31T20", "2019-12-31T23")), last_2019)
+
+
+def test_a_years_leading_gap_is_not_filled_from_the_year_before(tmp_path):
+    _hourly_archive(tmp_path / "era5", flat=YEAR_END_GAP)
+    z0 = _hourly_roughness(tmp_path / "era5", (0, 0))
+
+    first_2020 = z0.sel(time="2020-01-02T06").item()
+    leading = z0.sel(time=slice("2020-01-01T00", "2020-01-02T05"))
+    np.testing.assert_array_equal(leading, first_2020)
+    assert first_2020 != z0.sel(time="2019-12-31T19").item()
+
+
+def test_filling_along_the_whole_record_gives_another_value_at_the_years_end(tmp_path):
+    """Known positive: the previous fill, along the whole record, differs here.
+
+    It gave the last 2019 hours the first defined 2020 value; the year-local
+    fill gives them the last defined 2019 value.
+    """
+    from pyvwf.era5 import WIND_SPEED_FLOOR, log_roughness_from_shear
+
+    _hourly_archive(tmp_path / "era5", flat=YEAR_END_GAP)
+    z0 = _hourly_roughness(tmp_path / "era5", (0, 0))
+    raw = xr.open_mfdataset(str(tmp_path / "era5" / "*.nc")).isel(latitude=0, longitude=0).load()
+    w10 = np.sqrt(raw["u10"] ** 2 + raw["v10"] ** 2).clip(min=WIND_SPEED_FLOOR)
+    w100 = np.sqrt(raw["u100"] ** 2 + raw["v100"] ** 2).clip(min=WIND_SPEED_FLOOR)
+    record_wide = np.exp(log_roughness_from_shear(w10, w100)).clip(min=1e-6)
+
+    hour = "2019-12-31T22"
+    assert record_wide.sel(time=hour).item() == z0.sel(time="2020-01-02T06").item()
+    assert z0.sel(time=hour).item() != record_wide.sel(time=hour).item()
+
+
+def test_a_cell_undefined_for_a_whole_year_stays_missing_and_warns(tmp_path):
+    # The archive's 2020 is January to March; this cell has no defined hour in it.
+    _hourly_archive(tmp_path / "era5", flat=[(1, 1, "2020-01-01T00", "2020-03-31T23")])
+    with pytest.warns(UserWarning, match=r"undefined for a whole year .* 2020: 1"):
+        z0 = _hourly_roughness(tmp_path / "era5", (1, 1))
+
+    assert z0.sel(time="2020").isnull().all()
+    assert z0.sel(time="2019").notnull().all()
+
+
+def test_a_window_matches_the_whole_record_cut_with_no_margin(tmp_path):
+    # The gap crosses the year end, so a fill reading past 2019 would differ.
+    _hourly_archive(tmp_path / "era5", flat=YEAR_END_GAP)
+    whole = _prep(tmp_path / "era5").sel(time=slice("2019-01-01", "2019-12-31"))
+    windowed = _prep(tmp_path / "era5", years=(2019, 2019))
+
+    assert windowed.attrs.pop("pyvwf_era5_window") == "2019-2019"
+    assert "pyvwf_era5_window" not in whole.attrs
     xr.testing.assert_identical(windowed, whole)
     for name in windowed.variables:
         assert windowed[name].dtype == whole[name].dtype
 
 
-def test_a_window_reads_the_january_after_it_and_matches_the_whole_record(tmp_path):
-    # The last 2019 hours at one cell are filled from 2 January 2020, inside
-    # the January the window reads past its end.
-    flat = [(0, 0, "2019-12-31T20", "2020-01-02T05")]
-    _hourly_archive(tmp_path / "era5", "2020-03-31T23", flat)
-    whole = _prep(tmp_path / "era5")
-    windowed = _prep(tmp_path / "era5", years=(2019, 2019))
+def test_the_fill_rule_is_recorded_for_the_derived_roughness_only(tmp_path):
+    _hourly_archive(tmp_path / "era5")
+    derived = _prep(tmp_path / "era5")
+    no_roughness = _prep(tmp_path / "era5", calc_z0=False)
 
-    assert "pyvwf_era5_window" not in whole.attrs
-    assert windowed.attrs["pyvwf_era5_window"] == "2019-2019"  # no whole-record reload
-    assert str(windowed.time.values[-1])[:10] == "2019-12-31"
-    _assert_same(windowed, whole.sel(time=slice("2019-01-01", "2019-12-31")))
+    stored_dir = tmp_path / "stored"
+    stored_dir.mkdir()
+    times = pd.date_range("2019-01-01", periods=2, freq="D")
+    xr.Dataset(
+        {
+            "wnd100m": (("time", "lat", "lon"), np.full((2, 2, 2), 8.0)),
+            "roughness": (("time", "lat", "lon"), np.full((2, 2, 2), 0.05)),
+        },
+        coords={"time": times, "lat": [55.0, 55.25], "lon": [8.0, 8.25]},
+    ).to_netcdf(stored_dir / "combined.nc")
+    stored = _prep(stored_dir, roughness="stored")
 
-
-def test_without_the_january_the_windows_last_day_differs(tmp_path):
-    """Known positive for the test above: the margin is what makes them equal.
-
-    The same hours with the archive stopping at the window's end leave the
-    last day unfilled at that cell, so its roughness is not the whole record's.
-    No reload is attempted, since there is nothing past the window to read.
-    """
-    flat = [(0, 0, "2019-12-31T20", "2020-01-02T05")]
-    _hourly_archive(tmp_path / "with", "2020-03-31T23", flat)
-    _hourly_archive(tmp_path / "without", "2019-12-31T23", flat)
-    whole = _prep(tmp_path / "with").sel(time="2019-12-31")
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", UserWarning)
-        cut = _prep(tmp_path / "without", years=(2019, 2019)).sel(time="2019-12-31")
-
-    assert cut["roughness"].values[0, 0] != whole["roughness"].values[0, 0]
-    np.testing.assert_array_equal(cut["roughness"].values[1:], whole["roughness"].values[1:])
-
-
-def test_a_gap_past_the_january_loads_the_whole_record(tmp_path):
-    # Unfilled from the last day of 2019 to 10 February 2020, past the January.
-    flat = [(1, 1, "2019-12-31T10", "2020-02-10T00")]
-    _hourly_archive(tmp_path / "era5", "2020-03-31T23", flat)
-    whole = _prep(tmp_path / "era5")
-    with pytest.warns(UserWarning, match="loading the whole record"):
-        windowed = _prep(tmp_path / "era5", years=(2019, 2019))
-
-    assert windowed.attrs["pyvwf_era5_window"] == "2019-2019, whole record loaded"
-    _assert_same(windowed, whole.sel(time=slice("2019-01-01", "2019-12-31")))
+    assert derived.attrs["pyvwf_roughness_fill"] == "within each calendar year"
+    assert stored.attrs["pyvwf_roughness_treatment"] == "stored"
+    assert "pyvwf_roughness_fill" not in stored.attrs
+    assert "pyvwf_roughness_fill" not in no_roughness.attrs
