@@ -132,3 +132,51 @@ def test_consumption_is_not_counted_as_output(psr_type, country, zones):
         psr_type=psr_type,
     )
     assert gen["generation_mw"].tolist() == [zones * v for v in (100.0, 200.0, 300.0, 400.0)]
+
+
+def mixed_hours_query():
+    """Onshore and offshore output across five hours: offshore first reports in
+    the second hour, onshore is missing in the third, and nothing reports in
+    the fourth."""
+    index = pd.date_range("2023-07-20 05:00", periods=5, freq="h", tz="UTC")
+    nan = float("nan")
+    return pd.DataFrame(
+        {
+            ("Wind Onshore", "Actual Aggregated"): [90.0, 100.0, nan, nan, 120.0],
+            ("Wind Offshore", "Actual Aggregated"): [nan, 50.0, 3.0, nan, 60.0],
+        },
+        index=index,
+    )
+
+
+def test_an_hour_missing_one_wind_type_is_dropped_not_reported_as_the_fleet():
+    """France's 2023-07-20 07:00 UTC had offshore output and no onshore value,
+    and was kept as 3 MW against the whole fleet's capacity. An hour with no
+    value at all became zero output. Both are dropped; the hour before offshore
+    first reports is kept, as offshore output not yet in the series."""
+    gen = fetcher_returning(mixed_hours_query()).fetch_generation(
+        "FR",
+        pd.Timestamp("2023-07-20", tz="UTC"),
+        pd.Timestamp("2023-07-21", tz="UTC"),
+        psr_type="all",
+    )
+    assert [t.hour for t in gen.index] == [5, 6, 9]
+    assert gen["generation_mw"].tolist() == [90.0, 150.0, 180.0]
+
+
+def test_an_hour_with_no_output_is_dropped_not_zero():
+    index = pd.date_range("2023-07-20 05:00", periods=3, freq="h", tz="UTC")
+    frame = pd.DataFrame(
+        {
+            ("Wind Offshore", "Actual Aggregated"): [50.0, float("nan"), 60.0],
+            "Wind Offshore": [float("nan")] * 3,
+        },
+        index=index,
+    )
+    gen = fetcher_returning(frame).fetch_generation(
+        "FR",
+        pd.Timestamp("2023-07-20", tz="UTC"),
+        pd.Timestamp("2023-07-21", tz="UTC"),
+        psr_type="offshore",
+    )
+    assert gen["generation_mw"].tolist() == [50.0, 60.0]
