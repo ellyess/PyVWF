@@ -399,7 +399,7 @@ availability. Per-unit data teaches none of them.
 | 2 | T2 fails. Features beyond relief add less than the margin in at least 3 of 7. | Held |
 | 3 | T3 passes: DK shows no terrain gain. | Failed |
 | 4 | BR shows the largest spatial gain of the `relief-only` arm over `no-terrain`, having the steepest training-year gradient. | Failed: AU-NEM largest |
-| 5 | The secondary national scoring is worse than Study A's transfer arm in the median over the six gated country-level folds. | Depends on the arm: `full` better, `no-terrain` and `relief-only` worse |
+| 5 | The secondary national scoring is worse than Study A's transfer arm in the median over the six gated country-level folds. | Depends on the arm: `full` better, `no-terrain` and `relief-only` worse. *[2026-10-25: withdrawn; Belgium's and France's 2023 files were defective, and on the corrected files `full` and `relief-only` are undecided and `no-terrain` is still worse (`method-physics-informed-turbine.md`, notice of 2026-10-25).]* |
 | 6 | T5 passes: `full` beats `gwa-ratio` in at least 5 of 7 gated regions. | Failed |
 | 7 | `gwa-ratio` beats `no-terrain` on spatial RMSE by more than the margin in fewer than 4 of 7 gated regions. Gruber et al. (2022) found GWA correction of reanalysis gave little or negative improvement, and Nayak et al. (2025) found raw ERA5 beat GWA scaling in several countries. | Failed: 6 of 7 |
 

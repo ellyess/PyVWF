@@ -23,6 +23,50 @@ deviations of 2026-09-20 and 2026-10-16 recorded before any fit; run at
 `285fd80` from a clean tree on 2026-10-16. Issue #12. Terms follow
 `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: the secondary scoring's Belgian and French
+rows were scored against observations that did not measure the whole fleet;
+their figures and prediction 5's outcome are withdrawn.** Belgium's 2023 test
+file held onshore generation alone, and France's left out offshore output
+(`scorecard.md`, notices of 2026-10-22 and 2026-10-23). The corrected 2023
+monthly observed capacity factor is higher on average by 0.0771 in Belgium and
+0.0083 in France. T0 to T5, the full tables, predictions 1 to 4, 6 and 7, the
+German check and the turbine arms' other secondary rows stand: none of them
+trains or scores on either country's observations.
+
+The secondary arms trained on the nine turbine-level regions' fold training
+years alone, so only the observed series changes. Their monthly predictions
+were not stored: MBE re-scores exactly, and RMSE is bounded from the stored
+MBE, RMSE and Pearson r and the old and new series (each range is the mean over
+seeds of per-seed bounds). Those bounds contain the exact re-score in all 44
+Belgian and French cases of Studies A and B, whose predictions are stored.
+`uncorrected` is exact, from the same caches' stored series. Test year 2023.
+Data: `output/pinn_turbine_rescore_2026-10-25/` (driver and output).
+
+| Fold | Arm | MBE, stored → re-scored | RMSE, stored → re-scored |
+|---|---|---|---|
+| FR | uncorrected | -0.0015 → -0.0098 | 0.0204 → 0.0182 |
+| FR | no-terrain | -0.0169 → -0.0251 | 0.0190 → 0.0259 to 0.0336 |
+| FR | relief-only | +0.0065 → -0.0017 | 0.0192 → 0.0054 to 0.0309 |
+| FR | full | -0.0156 → -0.0239 | 0.0203 → 0.0240 to 0.0355 |
+| BE | uncorrected | +0.1164 → +0.0393 | 0.1226 → 0.0439 |
+| BE | no-terrain | +0.0857 → +0.0086 | 0.0877 → 0.0155 to 0.0418 |
+| BE | relief-only | +0.0567 → -0.0204 | 0.0617 → 0.0243 to 0.0511 |
+| BE | full | +0.0293 → -0.0479 | 0.0335 → 0.0504 to 0.0611 |
+
+In France `full` and `no-terrain` are now worse than `uncorrected`. In Belgium
+`full`, the best arm on the old file, is worse than `uncorrected`, and
+`no-terrain`, the worst, is better than both: the arm order reverses.
+`relief-only` is undecided against `uncorrected` in both. Prediction 5: Study
+A's transfer median over the six folds is 0.0447 re-scored (BE 0.0515, FR
+0.0461, `method-physics-informed-loco.md`), against 0.0353 stored. The `full`
+median lies between 0.0372 and 0.0483 and `relief-only`'s between 0.0407 and
+0.0484, so both are undecided; `no-terrain`'s, 0.0479 to 0.0559, is still
+worse. Withdrawn: the medians 0.0269, 0.0788 and 0.0537 and "`full` better".
+Study A's other four folds (training 2015-21, IE 2017-21) trained with both old
+files in their pools, which moves them by an amount not measured. A rerun of
+the secondary scoring, scored on the corrected files, will give the exact
+figures and decide prediction 5.
+
 **T0 passes; of the five skill gates, T1 and T4 pass and T2, T3 and T5 fail.
 Because T3, the negative control, fails, the registration fixes that T1 and T2
 are not read as evidence about terrain, whatever their counts.** In Denmark,
@@ -135,7 +179,7 @@ learned terrain term is not worth its data where an atlas exists".
 | 2 | T2 fails | **Held** (2 of 7) |
 | 3 | T3 passes: DK shows no terrain gain | **Failed**: `full` gains 0.021 in DK |
 | 4 | BR shows the largest relief-only gain over no-terrain | **Failed**: AU-NEM's is largest (0.0218); BR's is third (0.0059), after AR (0.0124) |
-| 5 | Secondary national scoring worse than Study A's transfer arm in the median over FR, BE, ES, IE, IT, NO | **Depends on the arm, which the prediction does not name**: median 0.0269 for `full` against Study A's 0.0353 (better); 0.0788 for `no-terrain` and 0.0537 for `relief-only` (worse) |
+| 5 | Secondary national scoring worse than Study A's transfer arm in the median over FR, BE, ES, IE, IT, NO | **Depends on the arm, which the prediction does not name**: median 0.0269 for `full` against Study A's 0.0353 (better); 0.0788 for `no-terrain` and 0.0537 for `relief-only` (worse). *[2026-10-25: withdrawn; on the corrected BE and FR files `full` and `relief-only` are undecided and `no-terrain` is still worse; see the notice.]* |
 | 6 | T5 passes | **Failed** (2 of 7) |
 | 7 | gwa-ratio beats no-terrain beyond the margin in fewer than 4 of 7 | **Failed**: 6 of 7 (all but CL) |
 
@@ -162,6 +206,9 @@ A's transfer arm from `method-physics-informed-loco.md`, on the same caches.
 The country caches carry their 2023 grids as built on 2026-09-16, before the
 fleet-register rebuild (#76) and the offshore grid points (#100), and Italy and
 Portugal are suspended in the scorecard; these figures are as of those grids.
+
+*[2026-10-25: the FR and BE rows were scored against defective observation
+files and are withdrawn; the notice at the top re-scores them.]*
 
 ## Reported check, not a gate: did moving Germany's locations help?
 
