@@ -17,6 +17,46 @@ re-run on `era5/EU_2026-09`. Pre-registered in `method-eu-rerun-prereg.md`; the
 method decision it implements is `method-roughness-treatment.md`. Terms follow
 `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: Belgium's and France's observations did not
+measure the whole fleet, and their absolute figures are withdrawn until both
+rows are rerun; the observations do not change their treatment differences.**
+Both rows (training 2015-21, test 2023, every grid point on the 100 kW
+fallback curve) read national files later found defective and since rebuilt
+(`scorecard.md`, notices of 2026-10-22 and 2026-10-23). Belgium's held onshore
+generation alone in 2015-19 and in the 2023 test year, and onshore plus
+offshore in 2020-21. France's 2023 test file left out offshore output, and its
+2018-19 capacity fell 1.0 to 2.9 GW below RTE's fleet. Withdrawn: the BE and
+FR rows of the metrics table, which the notice of 2026-09-25 below already
+marks as not re-measured, and of the fit-quality table, including the scalar
+ranges that notice left standing. The corrected figures and scalars were
+fitted to the old files and are not known; a rerun on the rebuilt files will
+produce them. BE's training observations averaged 0.209 of capacity against
+0.271 on the rebuilt series (`method-country-level.md`, notice of 2026-10-25),
+a lower target that pulls its scalars of 0.314 to 0.527 down; by how much is
+not measured.
+
+An uncorrected prediction reads no observation, so the uncorrected figures are
+re-scored exactly against the rebuilt 2023 files, from the stored frames with
+the harness's national pairing. The script first reproduces every stored
+metric of both rows' runs to 4e-16 and every stored paired-bootstrap row to
+1e-12:
+
+| Row | Uncorr RMSE, stored → re-scored | Uncorr MBE, stored → re-scored |
+|---|---|---|
+| FR | 0.1711 → 0.1615 | +0.1648 → +0.1567 |
+| BE | 0.3399 → 0.2611 | +0.3367 → +0.2595 |
+
+Each treatment difference compares two simulations scored against one set of
+observations. Re-scored against the rebuilt files, the stored corrected frames
+give FR +0.000021 (-0.000062 to +0.000092), still consistent with zero, and
+BE +4.8e-09 (+3.9e-09 to +5.7e-09), zero to every digit the table carries. At
+nine digits BE's interval excludes zero; that is the floating-point residual
+the Belgian paragraph below describes, not a treatment effect. Both sides'
+fits were trained on the old files, so these are re-scores, not
+re-measurements. Belgium's zero still follows from its 100 m hub height. Data:
+`output/eu_rerun_2026-09-12/rescore_2026-10-25/` (`rescore.py` and its output,
+`rescore_points.csv`, `rescore_bootstrap.csv`).
+
 **Correction notice, 2026-09-25: the country-level fits with more than one
 cluster used the per-cluster solver, not the joint national fit.**
 `country_obs_is_per_cluster` read the rounding differences between clusters'
@@ -110,6 +150,10 @@ been, every grid point falling back to the first column of `power_curves.csv`.
 | IT | season_3 | 0.0703 | 0.0168 | -0.0692 | -0.0031 | 0.971 | 0 |
 | PT | season_1 | 0.0893 | 0.0274 | -0.0847 | +0.0176 | 0.966 | 0 |
 
+*[2026-10-25: the FR and BE rows were fitted to and scored against
+observation files later found defective, and are withdrawn; the uncorrected
+figures are re-scored in the notice of 2026-10-25.]*
+
 Fit quality, from the same files. **No row has an implausible scalar and no
 offset failed anywhere**, so no row carries a dagger:
 
@@ -127,6 +171,9 @@ offset failed anywhere**, so no row carries a dagger:
 | IT | 1.041 to 2.649 | 0.2435 | 1.03e-02 | 69 |
 | PT | 1.485 to 1.655 | 0.0029 | 1.72e-03 | 11 |
 
+*[2026-10-25: the FR and BE fits were trained on observation files later found
+defective; see the notice of 2026-10-25.]*
+
 ## The treatment, measured
 
 Published against new, scored on the rows common to both, 1,000 paired draws
@@ -142,6 +189,10 @@ rows and months for the country-level ones. Both sides reproduce their own
 | FR | 12 | 0.012202 | 0.012234 | +0.000032 | -0.000041 to +0.000088 | no |
 | BE | 12 | 0.020081 | 0.020081 | 0.000000 | -0.000000 to +0.000000 | no |
 | IE | 12 | 0.021177 | 0.021234 | +0.000057 | -0.000117 to +0.000206 | no |
+
+*[2026-10-25: FR's and BE's rows were scored against old 2023 files; their
+differences re-scored against the rebuilt ones are in the notice of
+2026-10-25.]*
 
 **Denmark is the only row that resolves, and the hub-height geometry predicted
 exactly that.** The roughness reaches a capacity factor only through

@@ -15,6 +15,49 @@ national monthly capacity factor on each country's single test year. Registered
 design and gates: `method-physics-informed-loco-prereg.md`. The model is
 `method-physics-informed.md`. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: Belgium's and France's observations did not
+measure the whole fleet, and the figures that rest on them are withdrawn until
+both studies are rerun.** Every run here read national observation files that
+were later found defective (`scorecard.md`, notices of 2026-10-22 and
+2026-10-23). Belgium's held onshore generation alone in 2015-19 and in the 2023
+test year, and onshore plus offshore in 2020-21. France's 2023 test year left
+out offshore output, and its 2018-19 capacity fell 1.0 to 2.9 GW below the
+fleet. Both are gated folds, and each is in the training pool of every other
+fold, so every transfer and features-off arm below was trained with them. The
+corrected figures are not yet known; rerunning both studies on the corrected
+files will produce them.
+
+Re-scored against the corrected 2023 observations, with every arm's predictions
+as stored. This replaces the two folds' test observations only: it does not take
+the old files out of any training pool, and the in-country arm, which trained
+on them, is kept as stored. Belgium's uncorrected error differs from the
+scorecard's 0.081 because these caches predate offshore sites on their own grid
+points (`fc8c7f5`). Data: `output/pinn_loco_rescore_2026-10-25/` (driver,
+output, and both studies' re-scored `raw.csv`); the driver first reproduces
+every stored figure of both folds.
+
+| Fold | Arm | Study A RMSE, stored → re-scored | Study B RMSE, stored → re-scored |
+|---|---|---|---|
+| BE | uncorrected | 0.1226 → 0.0439 | 0.1226 → 0.0439 |
+| BE | transfer | 0.0343 → 0.0515 | 0.0423 → 0.0465 |
+| BE | features-off | 0.0842 → 0.0317 | 0.0830 → 0.0323 |
+| FR | uncorrected | 0.0204 → 0.0182 | 0.0204 → 0.0182 |
+| FR | transfer | 0.0362 → 0.0461 | 0.0131 → 0.0220 |
+| FR | features-off | 0.0200 → 0.0222 | 0.0217 → 0.0222 |
+
+On these re-scores, transfer is below uncorrected in 7 of 9 gated folds in each
+study. In Study A France is 154% worse and Belgium 17% worse, G1 still fails, G3
+passes 6 of 9, and the median transfer error is 40% of uncorrected. In Study B
+France is 21% worse and Belgium 6% worse, so B's G1 fails; G3 passes 5 of 9, at
+its threshold, and the median is 72%. Prediction 4's Spearman is +0.917 in A
+and +0.850 in B. G2 is not re-scored, because its recovery ratio uses the stale
+in-country arm. Withdrawn on this evidence: the lead's eight of nine and median
+29%; "it repairs France, so no country is made worse" and B's G1 pass (Study B
+section); France as the fold "already unbiased" (its uncorrected MBE is -0.0098,
+still the least biased gated fold); and Belgium's and France's recovery ratios.
+The other folds' figures stand as computed, but each was trained with both old
+files in its pool, and how much that moves them is not measured.
+
 **Correction notice, 2026-09-25: the country-level fits with more than one
 cluster used the per-cluster solver, not the joint national fit.**
 `country_obs_is_per_cluster` read the rounding differences between clusters'

@@ -16,6 +16,58 @@ tree; the override tables and the paired comparisons record none.
 conditions have run: C1 and C2 at country level, T1 and T2 at turbine level.
 Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: Belgium's and France's observations did not
+measure the whole fleet, and both rows' corrected figures are withdrawn until
+they are rerun.** Every C0, C1 and C2 run of both rows (training 2015-21, test
+year 2023) read national observation files later found defective
+(`scorecard.md`, notices of 2026-10-22 and 2026-10-23). Belgium's held onshore
+generation alone in 2015-19 and in 2023, and onshore plus offshore in 2020-21.
+France's 2023 file left out offshore output, and its 2018-19 capacity fell 1.0
+to 2.9 GW below the fleet. Every fit of both rows was trained on them, so their
+corrected figures are not known; rerunning the two rows on the corrected files
+will produce them.
+
+Re-scored against the corrected 2023 files, uncorrected figures only, which use
+no observation and so are exact. The driver pairs the stored per-grid frames
+with the harness's own national pairing and first reproduces every stored
+national metric of the six runs to 2e-16, on the 2023 grids in use on
+2026-09-13 (`output/grid_regen_2026-09-29/before/`); the scorecard's rows run on
+grids rebuilt since, so these are not its figures. Data:
+`output/curve_library_study_2026-09-13/rescore_2026-10-25/`.
+
+| Row | Condition | Uncorrected RMSE, stored → re-scored | Uncorrected MBE, stored → re-scored |
+|---|---|---|---|
+| BE | C0 | 0.3399 → 0.2611 | +0.3367 → +0.2595 |
+| BE | C1 | 0.1226 → 0.0438 | +0.1164 → +0.0391 |
+| BE | C2 | 0.1862 → 0.1063 | +0.1785 → +0.1013 |
+| FR | C0 | 0.1711 → 0.1615 | +0.1648 → +0.1567 |
+| FR | C1 | 0.0204 → 0.0181 | -0.0015 → -0.0097 |
+| FR | C2 | 0.0270 → 0.0185 | +0.0150 → +0.0069 |
+
+**Standing:** every mean-bias change between conditions (the mechanism table's
+changes, the tier table, the 0.942 correlation, P1, and C2's 72 to 101%), since
+every condition's uncorrected MBE shifts by the same -0.0773 (BE) or -0.0081
+(FR). The split stands, with its threshold moved from +0.165 to +0.157
+(France's C0), and C1 still helps both rows. "Up to 0.217" stands (Belgium's C0
+minus C1, 0.2173 on both files). G1 fails whatever the refits give: no other
+row's A uses these files, and it reaches three passes at most against the four
+it needs. For any positive C0 correction gain, A is at least 0.83 for Belgium
+and 0.89 for France (C0 minus C1 uncorrected RMSE over C0's uncorrected RMSE).
+
+**Withdrawn:** Belgium's and France's corrected RMSE and every figure built on
+it. In the first table, both rows' corrected change, share and resolution, and
+so its count of four rows resolving (France is one). Both rows of the C1 paired
+comparison, and so P2's outcome of 5 of 8. Both rows' corrected columns in the
+C2 table, "Belgium is the only row where the substitute improves corrected
+skill", and their entries in P2b's tier means, and so P2b's outcome (Belgium is
+in the far tier, France in the moderate). A of 0.68 (BE) and 0.95 (FR), with
+their denominators. The upper end of the correction's gain of 0.05 to 0.32,
+which is Belgium's. Both rows of the training-side comparison, and so its five
+of eight resolving (Belgium's -0.01032 is one). France's degenerate scalars
+under C1 and C2 (P6) were fitted on its old training files and are not rerun;
+the scorecard's France row is still degenerate on the corrected files (maximum
+scalar 4.61 to 4.71, notice of 2026-10-23), and P6 is refuted without France.
+
 **Note, 2026-09-25 (curves): condition C1 is now the scorecard's country
 rows.** From `a4f6f9b` a country-level run refuses a curve the loaded library
 lacks, and the eight rows run on the licensed library, as C1 did, with the
@@ -96,6 +148,9 @@ over-producing by +0.165 or more and are repaired by it; five sat at +0.085 or
 below and are pushed further wrong by the same change. G1 fails, at three of
 the seven scoreable countries against the four it required.
 
+*[2026-10-25: on Belgium's and France's corrected observations the three rows
+start at +0.157 or more; the split and G1's failure stand. See the notice.]*
+
 **At turbine level the curve assignment barely matters, and ERA5 bias is 8 to
 43 times the larger error source.** Reading the machine designation the Danish,
 British and American registers already record, or moving every unit onto
@@ -136,6 +191,10 @@ interval excludes zero in four of the eight rows, and C2 is worse in all four.
 | SE | -0.0257 | +0.00337 | 13.1% | no |
 | ES | +0.0442 | +0.00710 | 16.1% | **yes** |
 | IT | +0.0732 | +0.01398 | 19.1% | **yes** |
+
+*[2026-10-25: BE's and FR's corrected change, share and resolution are
+withdrawn, and with them "four of the eight rows". Their uncorrected changes on
+the corrected observations are -0.1548 (BE) and -0.1430 (FR). See the notice.]*
 
 So a curve error of this size is **not** invisible to a scorecard row, which is
 what the withdrawn figures said. It is heavily damped, by roughly an order of
@@ -180,6 +239,9 @@ without the licensed library reproduces the mean-bias result and loses up to
 0.014 of corrected RMSE, which is small beside the correction's own gain of
 0.05 to 0.32 but is not nothing.
 
+*[2026-10-25: Belgium's and France's corrected figures are withdrawn, France
+among the four resolving and 0.32 being Belgium's gain. See the notice.]*
+
 *[Corrected 2026-09-13: this paragraph said "leaves corrected skill
 indistinguishable from C0 in six of the eight countries", from the withdrawn
 hybrid fits. The corrected runs give four of eight.]*
@@ -219,6 +281,9 @@ cluster count, time slice, ERA5 input.
 Monotone and universal: eight countries, eight falls, between 0.082 and 0.220.
 This is the result, and it does not depend on the ratio the gate is built from.
 
+*[2026-10-25: on the corrected observations BE reads +0.2595 and +0.0391, FR
++0.1567 and -0.0097; every change stands. See the notice.]*
+
 It is what the curves' specific powers predict. The fallback rates 167 W/m2
 and the machines the grids name rate 314, 398 and 472, so the fallback reaches
 rated output at a far lower wind speed and over-produces at moderate speeds by
@@ -253,6 +318,10 @@ The three rows the change helps are exactly the three whose uncorrected MBE was
 two of them already negative. Nothing else separates the groups: the Vestas key
 does not (each of the three keys appears on both sides), and the hub height
 does not (100 m and 90 m appear on both sides).
+
+*[2026-10-25: on the corrected observations BE's uncorrected RMSE is 0.2611 and
+0.0438 and FR's 0.1615 and 0.0181, so both are still helped, but the threshold
+is +0.157 (FR), not +0.165. See the notice.]*
 
 **The candidate explanation, and it is not settled here.** Five countries sat
 near zero uncorrected bias *with* a curve that over-produces by construction.
@@ -291,6 +360,9 @@ none excluded, and each side reproduces its own `metrics.csv` to 1e-12.
 corrected RMSE moves by at most 0.037, and in five of eight the interval covers
 zero. Where it does not, C1 is worse, never better.
 
+*[2026-10-25: the BE and FR rows are withdrawn, and so are "five of eight" and
+P2's outcome. See the notice.]*
+
 ## C2 per tier, and P2b refuted
 
 *[Replaced 2026-09-13: the corrected-RMSE column and every interval below come
@@ -317,6 +389,11 @@ fell back. Runs: `output/curve_library_study_2026-09-13/C2/`.
 Four rows resolve and all four agree in direction: C2 is worse than C0. Belgium
 is the only row where the substitute improves corrected skill, and its interval
 covers zero.
+
+*[2026-10-25: the BE and FR corrected columns and both sentences above are
+withdrawn, as are their entries in the tier means below and so P2b's outcome.
+On the corrected observations their uncorrected RMSE runs 0.2611 to 0.1063 (BE)
+and 0.1615 to 0.0185 (FR). See the notice.]*
 
 **P2b is refuted, and more clearly than the withdrawn figures said.** It
 predicted the far tier would move further from C0 than the near tier in
@@ -361,6 +438,10 @@ non-positive gain.
 | ES | **-22.38** | **0.0019** |
 
 **A is at least 0.5 in three of seven. G1 required four. It fails.**
+
+*[2026-10-25: BE's 0.68 and FR's 0.95 and their denominators are withdrawn;
+for any positive C0 gain on the corrected files they are at least 0.83 and
+0.89. G1's failure stands. See the notice.]*
 
 **Registered limitation, found in the result rather than in advance.** G1
 divides by C0's correction gain, and the rule anticipated a gain that is not
@@ -593,6 +674,9 @@ across the board; the turbine rows move 24 to 71% of capacity between real
 machines whose curves are similar in shape, so the fleet aggregate barely
 shifts.
 
+*[2026-10-25: the BE and FR rows, and with BE "five of eight resolving", are
+withdrawn. See the notice.]*
+
 The uncorrected side is identical between the two versions, to the digit, in
 all fifteen. That is not a coincidence but the check on the diagnosis: no
 factor enters an uncorrected figure, so a defect in the fit cannot reach one.
@@ -612,6 +696,9 @@ an offset that did not converge.
 | C2 | IT | 0 → **6** | cluster 0 in all four seasons, cluster 1 summer, cluster 2 summer |
 | C2 | FR | 0 → 1 | cluster 7, fixed (2.027→3.839) |
 | T1 | US | 5 → 6 | a row already daggered; its worst cluster, 38, moves 46.394→17.987 |
+
+*[2026-10-25: France's two rows were fitted on its old training files and are
+not rerun; P6 is refuted without them. See the notice.]*
 
 **The mechanism, stated precisely.** A wrong power curve is close to a
 multiplicative bias on output: a 167 W/m2 machine reaches rated power at a far

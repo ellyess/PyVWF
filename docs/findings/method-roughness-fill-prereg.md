@@ -5,11 +5,40 @@
 route, `prep_era5`) fills the hours its inversion leaves undefined. Terms follow
 `docs/CONTEXT.md`; the routes are in `docs/design/roughness-temporal-treatment.md`.
 
+**Correction notice, 2026-10-25: four rows' observation files were rebuilt
+after the Outcome, so R1 cannot be met for France as written, and R2 compares
+Belgium, Italy and Portugal with runs on their old files.** Every run here read
+the files then in `input/combined/`. France's 2023 test file left out offshore
+output and its 2018-19 capacity fell 1.0 to 2.9 GW below the fleet; Belgium's
+held onshore output alone in 2015-19 and 2023 and onshore plus offshore in
+2020-21; Italy's and Portugal's 2023 test files left out offshore output
+(`scorecard.md`, notices of 2026-10-22 and 2026-10-23 and the note under its
+suspended rows). Each row has since been rerun on its rebuilt files, on the
+record-wide fill. R1 asks France's refreshed `metrics.csv` to equal the
+Outcome's new-fill one, made on the old files, and stops the refresh on a
+mismatch, so on the rebuilt files it would stop for a reason other than the
+fill. The amendment of 2026-10-25 below, made after the outcome, says what the
+four rows are compared with instead. No gate or threshold changes.
+
+G3 stands, as do the Outcome's tables as measured on the old files, G4's breach
+included. That breach, FR country N=10 season (training years 2015-2021, test
+year 2023), is a difference between two simulations of the same twelve months,
+so its ΔMBE does not depend on the observations: re-scored against the rebuilt
+2023 file it is again -1.61e-4, while ΔRMSE goes from -2.3e-5 to -2.9e-6. But
+those factors were fitted to the old training file. Fitted to RTE's, France's
+N=10 scalars are 4.71 fixed and 9.62 season, not 4.61 and 9.94, and the fill's
+effect on those fits is not measured: the breach stands in kind, and its size
+on the rebuilt files is not known. Data: `output/roughness_fill_2026-10-25/`
+(re-score script and output; it reproduces both Outcome figures on the old
+file) and `output/fr_rte_2026-10-23/promote/train-promoted-2026-10-24/`.
+
 **Correction notice, 2026-10-22: the Rows table called FR country N=10 "not
 degenerate", and it is degenerate.** `docs/findings/scorecard.md` already marks
 France's N=10 fixed fit with a dagger for a scalar of 4.61, outside the 0.2 to
 3.0 a degenerate fit is defined by (`docs/CONTEXT.md`), and in this study's own
-runs the N=10 fits reach scalars of 4.61 (fixed) and 9.94 (season). The error
+runs the N=10 fits reach scalars of 4.61 (fixed) and 9.94 (season).
+*[2026-10-25: those runs read France's old files; on RTE's the scorecard daggers
+4.71, and the season fit reaches 9.62. See the notice of that date.]* The error
 was in the registration, made before any run; it was found after G4's results
 were seen, while reading the row that breached G4. The Rows table keeps the
 wrong entry, marked. G4 is judged as registered, with FR among the gating
@@ -82,7 +111,7 @@ The fill was never chosen on evidence: it came from a notebook (`6cdac5b`,
 | DK k100 | `dk_k100.toml` | turbine | `input/combined` | 2015-2019 | 2020 | not degenerate |
 | CL k10 | `cl_k10.toml` | turbine | `input` | 2021-2023 | 2024 | degenerate † |
 | DE k100 | `de_k100.toml` | turbine | `input/combined` | 2015-2018 | 2019 | degenerate † |
-| FR country N=10 | `fr_country.toml` | country | `input/combined` | 2015-2021 | 2023 | not degenerate [wrong, corrected 2026-10-22: degenerate †, scalar 4.61; see the correction notice] |
+| FR country N=10 | `fr_country.toml` | country | `input/combined` | 2015-2021 | 2023 | not degenerate [wrong, corrected 2026-10-22: degenerate †, scalar 4.61; see the correction notice] [2026-10-25: 4.71 on RTE's files] |
 | ES country N=4 | `es_country.toml` | country | `input/combined` | 2015-2021 | 2023 | not degenerate |
 
 DK, CL, FR and ES are the four pinned fits, so their movement is measured by
@@ -301,7 +330,8 @@ maintainer's decision.
 Read after the breach, and not part of any gate:
 
 - The breaching fit is degenerate. Its largest scalar is 9.94, and the N=10
-  fixed fit's is 4.61, the value the scorecard daggers. The Rows table had
+  fixed fit's is 4.61, the value the scorecard daggers. *[2026-10-25: on the
+  old files; the scorecard now daggers 4.71, from RTE's.]* The Rows table had
   classified FR N=10 as not degenerate, which was wrong (correction notice at
   the top). Had it been classified correctly, the registration's own rule
   would have reported this row rather than gated on it. That reclassification
@@ -349,6 +379,9 @@ peak memory first, nothing else running, and peak memory logged per process.
 | AU-NEM k45 | `au_nem_k45.toml` | `input/combined` | 2020-2022 | 2023 | training `refresh_2026-09-20/AU-NEM`, `967b485`; evaluation `c1_turbine_order_2026-09-24/after`, `a94670c` | 14 |
 | NO country | `no_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/NO`, `6b3e6d9` | 15 |
 
+*[2026-10-25: the BE, PT, IT and FR published runs read observation files since
+rebuilt; the amendment of 2026-10-25 names the runs that replace them.]*
+
 Published runs are under `output/` (`output/validation/` for the
 `refresh_2026-09-20` ones). Input roots are read from each published run's
 manifest (`curve_library.power_curves_path`), not assumed. Peak memory
@@ -364,14 +397,16 @@ the old-fill runs of the Outcome section reproduced the published runs'
 commits and the registration commit moves them except the fill. The commit the
 refresh runs at adds only `#142`, which keeps `add_models` on an object column,
 the column it already had under the local pandas 2.3.3; the realdata stamp
-passed 43 of 43 on the merged code.
+passed 43 of 43 on the merged code. *[2026-10-25: for FR this holds on the old
+files only; see the amendment of 2026-10-25.]*
 
 **Expectations, fixed now:**
 
 - **R1, the five measured rows (DK, DE, CL, FR, ES).** Every row of each
   refreshed `metrics.csv` equals the new-fill `metrics.csv` of the Outcome
   section exactly. A mismatch means something other than the fill moved, and
-  stops the refresh before anything is published.
+  stops the refresh before anything is published. *[2026-10-25: for FR, read
+  on the old files; see the amendment of 2026-10-25.]*
 - **R2, the other ten.** Against each row's published `metrics.csv`, on every
   row of the file: the non-degenerate rows (NZ, BE, IE, SE) move by at most
   1e-4 in RMSE and in MBE; the degenerate rows (AR, AU-NEM, UK, NO) are
@@ -396,6 +431,43 @@ saying the rows were refreshed and by how much they moved; the paragraph that
 says every row comes from one refresh says instead that fifteen come from this
 refresh and US and BR from `refresh_2026-09-20`; and the README's copy of the
 table follows. The diff is shown to the maintainer before it is committed.
+
+## Amendment, 2026-10-25: rows whose observations changed, after the outcome
+
+**Post hoc: made after G4's results and after the reruns below were seen, and
+before any refresh run.** It changes what four rows are compared with, and no
+threshold; R1 to R4 otherwise stand as fixed on 2026-10-22.
+
+The four rows were rerun on their rebuilt files (correction notice of
+2026-10-25) at commits that do not contain the year-local fill (`5350fac`), and
+no manifest of these runs records a `fill` key, which means the record-wide
+back-fill. Training years 2015-2021, test year 2023, `input/combined`:
+
+| Row | Rebuilt files | Run on them, record-wide fill | Commit |
+|---|---|---|---|
+| BE country | Elia `ods031`, every split | `be_elia_2026-10-22/promote/` | `dc2ce83` (the code of `6c5272d`) |
+| PT country (suspended) | 2023 test file, with offshore | `it_pt_2023_2026-10-24/PT/{train-offshore,evaluate-2023-offshore}-2026-10-24/` | `7fc0e16` |
+| IT country (suspended) | 2023 test file, with offshore | `it_pt_2023_2026-10-24/IT/{train-offshore,evaluate-2023-offshore}-2026-10-24/` | `7fc0e16` |
+| FR country | RTE, every split | `fr_rte_2026-10-23/promote/` | `65efa06` |
+
+All under `output/`. For these rows they replace the published runs of the
+2026-10-22 table as the baseline of R2 and R3: against the old runs, each row
+would move by its observations' change as well as the fill's.
+
+- **R1, FR, is kept as written, as a check of the code.** The refresh also
+  trains and evaluates FR at the refresh commit on an input root that differs
+  from `input/combined/` only in holding France's old files
+  (`fr_*.entsoe.bak.csv`), into a `control/` subdirectory that is not
+  published. Every row of its `metrics.csv` must equal the Outcome's new-fill
+  `metrics.csv`; a mismatch stops the refresh, as registered.
+- **FR's published row, on RTE's files, is held to R2's rule for degenerate
+  rows** (its N=10 fits are; correction notice of 2026-10-22): against
+  `fr_rte_2026-10-23/promote/`, predicted to move by less than 1e-3, and
+  reported with its fit quality. This is weaker than R1, which no row on
+  rebuilt files can meet: no new-fill run on them exists to equal.
+- **BE** stays among R2's non-degenerate rows (at most 1e-4); **IT and PT** are
+  reported and stay suspended. Each is measured against the run above.
+- **R3** applies to all four, against the same runs.
 
 ## Caveats
 

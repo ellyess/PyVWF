@@ -123,7 +123,7 @@ Read in order. A gate is not read until the one before it has been.
 | Gate | Requirement | Outcome |
 |---|---|---|
 | **G0** records | The cache and study manifests record `git_dirty: false` and the same commit, which contains this document. The library has `power_curves_sha256` `689cfee71dc9e1aa5408cff4e2dbf5c205e30bd5f0b416ba8ee99691391ee00d`. Every cache records zero substituted units and `era5_roughness.applied` of `derived`. Every country cache resolves each year's grid by its own name. **A failure means no metric is read until it is explained.** | **Pass.** Cache and study manifests: `5960efd`, `git_dirty: false`, and the commit contains this document. Library hash matches. No substituted unit, `derived` in all 36 caches, every per-year grid resolved by its own name. |
-| **G1** floor | `transfer` national RMSE below `uncorrected` in at least 7 of the 9 gated folds, and in no gated fold above `uncorrected` by more than 10% relative. | **Fail.** Below in 8 of 9; FR above by 78% (0.0362 against 0.0204). |
+| **G1** floor | `transfer` national RMSE below `uncorrected` in at least 7 of the 9 gated folds, and in no gated fold above `uncorrected` by more than 10% relative. | **Fail.** Below in 8 of 9; FR above by 78% (0.0362 against 0.0204). *[2026-10-25: Belgium's and France's observations were defective; re-scored on the corrected 2023 files, below in 7 of 9, FR above by 154% and BE by 17%. See the notice of that date in `method-physics-informed-loco.md`.]* |
 | **G2** recovery | The recovery ratio is at least 0.5 in more than half of the gated folds where it is defined. Not readable, and reported as such, if fewer than 5 are defined. | **Pass.** Defined in 9 of 9, at least 0.5 in 7 (not UK, FR). |
 | **G3** place | `transfer` national RMSE is below `features-off` by more than max(0.002, twice the square root of the mean of the two arms' seed variances) in at least 5 of 9 gated folds. | **Pass.** 7 of 9 (not FR, UK). |
 
@@ -339,7 +339,10 @@ match Study A exactly, as they must, since neither uses the pool. No month was
 excluded, and the off-curve share is zero.
 
 **Study B's own G1 to G3, reported and not gated:** G1 9 of 9 below uncorrected
-and none worse by more than 10%; G2 8 of 9; G3 7 of 9.
+and none worse by more than 10%; G2 8 of 9; G3 7 of 9. *[2026-10-25: re-scored
+on Belgium's and France's corrected 2023 observations, G1 is 7 of 9 with FR
+worse by 21% and BE by 6%, so it would fail; G3 is 5 of 9; G2 is not re-scored.
+See the notice of that date in `method-physics-informed-loco.md`.]*
 
 ## Seen before registration
 

@@ -14,6 +14,70 @@ their own manifests.
 **Scope:** the `obs_level = "country"` path against the turbine-level path, plus
 an audit of the nine ENTSO-E observation series on disk.
 
+**Correction notice, 2026-10-25: Belgium's and France's observation files did
+not measure the whole fleet, section 2's audit passed both, and the figures
+that rest on them are withdrawn.** Every BE and FR figure here read national
+files later found defective and since rebuilt (`scorecard.md`, notices of
+2026-10-22 and 2026-10-23). Belgium's held onshore generation over onshore
+capacity in 2015-19 and in the 2023 test year, and onshore plus offshore in
+2020-21. France's 2023 test file left out offshore output, and its 2018-19
+capacity fell 1.0 to 2.9 GW below RTE's fleet. The current files are built
+from Elia's `ods031` and RTE's eCO2mix; the old ones are kept beside them as
+`*.entsoe-mixed.bak.csv` and `*.entsoe.bak.csv`.
+
+Section 2's four BE and FR rows, recomputed with `check_country_cf` on both
+versions of the training 2015-21 and test 2023 splits, the splits that
+reproduce the table's old figures exactly. Data:
+`output/country_level_obs_recheck_2026-10-25/` (`audit_cf.py` and its output).
+
+| Split | mean CF, old → current | peak CF, old → current |
+|---|---|---|
+| BE train 2015-21 | 0.209 → 0.271 | 1.295 → 1.574 |
+| BE test 2023 | 0.234 → 0.312 | 0.794 → 0.889 |
+| FR train 2015-21 | 0.231 → 0.236 | 0.936 → 0.870 |
+| FR test 2023 | 0.257 → 0.265 | 0.809 → 0.832 |
+
+BE's training peak is still one isolated hour, 2015-03-30 00:00, in both
+versions. FR's old training peak was inflated by the understated 2018-19
+capacity.
+
+Withdrawn: section 2's verdict that BE's means are plausible and its test
+split clean (the old 2023 file held 6.27 of Elia's 14.35 TWh, `scorecard.md`),
+and the FR rows' pass; and the support section 2 draws from the good regions
+being the ones whose series pass, since two of its four passed while
+defective. The physical gates cannot see a series that measures part of the
+fleet when its capacity covers the same part. What now catches Belgium's is
+the comparison of each year's energy with Eurostat's national wind production
+in `scripts/analysis/audit_country_observations.py` (`dbb5352`): the old BE
+files' onshore-only years sit at 0.34 to 0.44 of it and fail, the new files
+pass. It does not catch France's: the old FR files sit at 0.896 to 0.942 of
+the statistic (`scorecard.md`, notice of 2026-10-23), inside its band, and an
+understated capacity register is a fault of the denominator, which an energy
+comparison does not test. The earlier notices' statements that section 2 stands
+no longer hold for these four rows; its other rows, and sections 3 and 4, are
+unaffected.
+
+Sections 6 and 7 (fallback curve, `country_baseline_2026-07-23`, training
+2015-21, test 2023) trained and scored BE and FR on the old files, so their
+rows are withdrawn as well as qualified by the notices below: section 6's BE
+and FR rows, two of the six of eight regions where clusters beat N=1; section
+7's BE row, the largest fall from uncorrected (0.3399 to 0.0214, against
+0.1633 with the scalar alone), and FR's, both behind "a factor of four to
+seven", and FR's -0.999 correlation. BE's training observations averaged 0.209
+against 0.271 on the full series, a lower target that pulls the scalars down;
+the reported N=3 fit's scalars are 0.37 to 0.50
+(`BE/train-be/factors_fixed_3.csv`), and how much of that is the observation
+mismatch rather than the fallback curve or the reanalysis is not measured.
+BE's support for the reading that the offsets repair the scalar's cube-law
+overshoot is withdrawn with it. Only the uncorrected bias can be re-scored
+without a rerun, since the monthly predictions were not stored: against the
+current 2023 files the uncorrected MBE moves from +0.337 to +0.260 for BE and
+from +0.165 to +0.157 for FR (`monthly_shift.py` and its output, same
+directory). The corrected figures on the fallback curve are not known, and the current code refuses that curve
+(`a4f6f9b`), so producing them would need the older code run on the new files.
+The scorecard's BE and FR rows, on the licensed curves, have been rerun on the
+corrected files.
+
 **Correction notice, 2026-09-25 (curves): the scorecard's country rows now run
 on each grid's own Vestas curve.** Every figure in this document from a
 country-level run was made on the 100 kW fallback curve, as the notice of
@@ -171,13 +235,17 @@ across seven years, implying 2.8 TWh/yr against a real Dutch output near 11 to
 derived capacity factor and driving 5.7% of test rows onto the fetcher's
 `clip(0, 1.5)` ceiling. BE, PT and NO fail on isolated spikes rather than a
 systematic error; their means are plausible and their test splits are clean.
+*[2026-10-25: not true of BE, whose files held onshore generation alone in
+2015-19 and 2023; see the notice of 2026-10-25.]*
 
 The correlation with the recorded results matters: the regions the earlier
 evaluation called good (FR, ES, BE, NO) are the ones whose series pass, and NL,
 the catastrophic one, has the worst series. **The country-level failures observed
 so far are more attributable to the observation construction than to the
 correction maths**, and that has to be separated before any methodological
-conclusion is drawn from them.
+conclusion is drawn from them. *[2026-10-25: FR and BE passed while
+defective, so a passing series is not shown to be sound; see the notice of
+2026-10-25.]*
 
 ## 3. Spatial weighting
 
@@ -364,7 +432,8 @@ single-cluster baseline in six of eight usable regions, ties in one and loses in
 one, so it extracts something real rather than fitting noise. But **this does
 not show the offsets are meaningful**: an N-cluster run has N *identified*
 scalars as well as N under-determined offsets, and the improvement could come
-entirely from the scalars.
+entirely from the scalars. *[2026-10-25: the BE and FR rows were trained and
+scored on defective observations; see the notice of 2026-10-25.]*
 
 Two further caveats. One test year per region, so the ordering of two close
 variants is not meaningful (FR and IT differ by under 0.002, and IE's two
@@ -486,7 +555,10 @@ The offsets do enormous work, often a factor of four to seven. But not because
 they capture a spatial additive wind-speed bias. **The offset is mostly
 repairing the scalar.** A CF ratio of 0.4 corresponds to a wind-speed factor
 near `0.4^(1/3) = 0.74`, not 0.4; applied directly the scalar over-corrects and
-the offset pulls it back. Four lines of evidence:
+the offset pulls it back. Four lines of evidence: *[2026-10-25: the BE and FR
+rows and FR's correlation rest on defective observations, and BE's scalars
+were fitted to a series that was onshore only in five of seven training years;
+see the notice of 2026-10-25.]*
 
 - Across 320 fitted (cluster, slice) pairs, **corr(scalar, offset) = -0.79**,
   below -0.86 in nine regions of ten and below -0.97 in six: FR -0.999,

@@ -26,6 +26,17 @@ this file stay in step with it.
   with every review and judgement under `scripts/dev/agent_evals/runs/`. It did
   not pass its pre-registered bar. `docs/design/ai-native-development.md`
   gains a section on it.
+- **The country-level observation audit compares each year's energy with
+  Eurostat's** (`scripts/analysis/audit_country_observations.py`, #144). Its
+  physical gates cannot see a series that measures only part of the fleet:
+  when the capacity-factor denominator is partial too, the capacity factors
+  look ordinary, as Belgium's did. Each covered year's observed energy is now
+  divided by Eurostat's gross wind production
+  (`configs/curation/eurostat_wind_gwh.csv`). A ratio outside a wide band
+  fails the series and one outside a narrower band is noted. The bands were
+  set after seeing the data, and screen for a missing segment; they are not a
+  precision check. NL and SE-BZ have no Eurostat reference and are not
+  compared.
 
 ### Changed
 
@@ -45,6 +56,53 @@ this file stay in step with it.
   block records `fill`. Results move slightly; the offset-fit pins are
   re-recorded and the route-B scorecard rows lag the code until the next
   refresh (`docs/findings/method-roughness-fill-prereg.md`).
+- **The country-level generator fetches every wind type by default**
+  (`generate_country_level_training_data --psr-type`, #145). It defaulted to
+  onshore while the grids simulate every farm, offshore included, so the
+  files built with the default left out offshore output in some or all of
+  their years. `--psr-type onshore` restores the old behaviour.
+
+### Fixed
+
+- **Belgium's country-level observations are rebuilt from Elia** (#144). The
+  ENTSO-E files held onshore generation alone in most years and onshore plus
+  offshore in others, each over a matching capacity, so the correction was
+  fitted to a fleet that changed from year to year while the grid simulates
+  the whole one. `scripts/region_tools/build_be_obs_from_elia.py` builds every
+  split from Elia's Open Data series `ods031`: onshore and offshore output
+  over the monitored capacity behind it, so both cover the same fleet in
+  every hour. The old files are kept beside the new ones as
+  `.entsoe-mixed.bak.csv`. The country row moves; the scorecard's notice of
+  2026-10-22 has the figures.
+- **France's country-level observations are rebuilt from RTE** (#144). The
+  ENTSO-E test file was onshore alone, since ENTSO-E holds no French offshore
+  output before June 2023, and the training capacity fell behind the fleet in
+  some training years, which overstated their capacity factors.
+  `scripts/region_tools/build_fr_obs_from_rte.py` divides RTE's definitive
+  eCO2mix national wind output, onshore and offshore, by RTE's year-end wind
+  fleet from ODRE (`parc-prod-par-filiere`), interpolated through the year.
+  The old files are kept as `.entsoe.bak.csv`, and the France offset-fit pin
+  is re-recorded. The country row moves; the scorecard's notice of 2026-10-23
+  has the figures.
+- **Italy's and Portugal's test files for 2023 include offshore output**
+  (#144). Built with the generator's onshore default, they left out the
+  Taranto and WindFloat Atlantic offshore farms. They are rebuilt from
+  ENTSO-E with every wind type, and the old files are kept as
+  `.entsoe-onshore.bak.csv`. Both rows stay suspended.
+- **The ENTSO-E fetcher leaves consumption columns out of wind generation**
+  (`pyvwf.datasets.fetch_entsoe_capacity_factors`, #144). entsoe-py splits a
+  type that also draws power into its output and its consumption, and every
+  generation path summed the two. Belgian offshore reports consumption in some
+  hours. Only output is kept now. No stored file was rebuilt for this change
+  alone.
+- **The ENTSO-E fetcher drops an hour in which a wind type that reports is
+  missing** (#145). It summed whichever types had a value, so an hour missing
+  onshore kept the offshore output alone against the whole fleet's capacity,
+  and an hour with no value at all became zero output. Each type is now
+  required between its first and last reported hour. Outside that span it is
+  taken not to exist yet, which cannot tell a farm not yet built from one not
+  yet reported, so that case is left to the audit. Rebuilt with it, Italy's
+  and Portugal's test files are unchanged.
 
 ### Documentation
 
@@ -56,6 +114,24 @@ this file stay in step with it.
   uncorrected and corrected error per region, its markers explained directly
   under it. The table is a copy of the scorecard's, and
   `tests/test_readme_results.py` fails when the two disagree.
+- **The findings that rest on Belgium's and France's old observation files
+  carry correction notices of 2026-10-25.** The physics-informed (leave one
+  country out, and turbine), country-level, curve-library, country weighting,
+  roughness treatment, EU re-run, correction identifiability, transfer,
+  scalar bounds and joint-fit reachability findings, with their
+  pre-registrations where those are affected, withdraw the figures that read
+  the old files, re-score what can be re-scored exactly from stored frames,
+  and say what stands and what waits on a rerun. The roughness-fill
+  pre-registration carries a notice too, and amends its refresh checks for the
+  rows whose files were rebuilt.
+- **The ENTSO-E runbook and the data-sources guide build Belgium's and
+  France's observations with their builders** (`docs/runbooks/entsoe.md`,
+  `docs/guides/data-sources.md`). The generator still builds both grids, with
+  `--skip-observations`, since without it the generator overwrites the
+  builders' files with ENTSO-E's. The guide says what the fetch keeps and
+  what each builder does, and its source table gains Elia, RTE, ODRE and
+  Eurostat with their terms; RTE's do not allow its eCO2mix files to be
+  redistributed.
 
 ## [0.6.0] - 2026-10-16
 

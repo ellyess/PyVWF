@@ -7,16 +7,61 @@ on 2026-10-16 with offshore farms at their own points (#100). Registered in
 `method-country-weighting-prereg.md` (`eaddb85`, editorial fix `c52f516`)
 before any of the figures below existed. Issue #67. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: France's and Belgium's rows were computed on
+observation files later found defective, and their figures are withdrawn; on
+the rebuilt files both rows are still excluded, so the stop stands.** The table
+read the training files as they stood on 2026-10-16 (`scorecard.md`, notices
+of 2026-10-22 and 2026-10-23). Belgium's held onshore generation and capacity
+alone in 2015-19 and onshore plus offshore in 2020-21, so its 1 January figure
+stepped where the two fetches were joined. France's capacity was ENTSO-E's
+register, which falls 1.0 to 2.9 GW below RTE's fleet in 2018-19. Both files
+have since been rebuilt, France's from RTE and Belgium's from Elia (`ods031`).
+The study's driver, unchanged since `b6cc1b2`, re-run on the rebuilt files
+(training years 2015-21, test year not read), with the grid totals of the
+table below unchanged. Observed denominators in MW:
+
+| Year | FR denominator | FR disagreement | BE denominator | BE disagreement |
+|---|---|---|---|---|
+| 2015 | 9,808 | 24.2% | 1,898 | 27.8% |
+| 2016 | 11,054 | 22.4% | 1,961 | 22.0% |
+| 2017 | 12,651 | 20.8% | 2,291 | 24.5% |
+| 2018 | 14,288 | 18.4% | 2,890 | 28.6% |
+| 2019 | 15,763 | 16.3% | 3,477 | 28.3% |
+| 2020 | 17,003 | 14.7% | 4,234 | 26.7% |
+
+France is excluded at 24.2% (was 29.7%) and Belgium at 28.6% (was 33.6%), under
+each of the three January readings (France 24.2%, 22.9% and 23.5%; Belgium
+28.6% under all three). Belgium's 1 January figures are equal in 2016 and 2017
+only (1,961 MW), so it is excluded by disagreement, not by flatness. IE, SE, NO
+and ES are unchanged to the megawatt; Spain is still the one scoreable row
+against the three the registration needs, and the stop stands. Withdrawn: the
+FR and BE rows of both tables, "France by up to 30%", "Belgium 34%", Belgium's
+flat 1 January figures, and the reading of its denominator as stepping. Its
+grid is now smaller than its denominator in every compared year, the opposite
+sign from France and Norway. The grids are built from the Global Wind Power
+Tracker, which lists no farm below 10 MW, and Belgium's 2023 grid holds 1,608
+MW onshore against Elia's 2,991 MW monitored (`scorecard.md`, notice of
+2026-10-22); that the cutoff explains the training years too is not measured
+here. Data:
+`output/country_weighting_2026-10-16/denominators_2026-10-25/` (the driver's
+`denominators.csv`, `row_rule.json` and log on the rebuilt files, and
+`recompute_denominators.py` with its output, which first reproduces the stored
+FR and BE rows from the old files to within 2e-12 and recomputes the other two
+readings).
+
 **The study stops at its row rule: one of the six rows is scoreable, and the
 registration needs at least three.** For five rows the mid-year grid total and
 the observed capacity-factor denominator disagree by more than 10% in at least
 one compared year (France by up to 30%, Belgium 34%, Ireland 17%, Sweden 54%,
 Norway 31%), and Belgium's and Sweden's 1 January figures are also flat over
-three or more consecutive years. Only Spain stays within 10% (at most 8.3%).
-So the question is not tested here: Stage 0 and Stage 1 did not run, nothing
-was fitted, and the 2023 test year was not read. What the table does show is
-that the grid capacity these rows are simulated with does not track the
-capacity their observations are divided by, in five of six rows.
+three or more consecutive years. *[2026-10-25: France's and Belgium's figures
+are from the old observation files; on the rebuilt files they are 24% and 29%,
+and Belgium's are not flat. See the correction notice.]* Only Spain stays
+within 10% (at most 8.3%). So the question is not tested here: Stage 0 and
+Stage 1 did not run, nothing was fitted, and the 2023 test year was not read.
+What the table does show is that the grid capacity these rows are simulated
+with does not track the capacity their observations are divided by, in five of
+six rows.
 
 ## The table
 
@@ -74,6 +119,9 @@ consecutive training years. All values in MW.
 | NO | 30.8% | no | excluded |
 | ES | 8.3% | no | scoreable |
 
+*[2026-10-25: the FR and BE rows of both tables read the old observation files
+and are withdrawn; the correction notice gives them on the rebuilt files.]*
+
 Data: `output/country_weighting_2026-10-16/denominators/` (`denominators.csv`,
 `row_rule.json`, `reading_check.txt`), written at `b6cc1b2` from a clean tree
 through the run lock; the mid-year grids at `0d2ff5e`
@@ -102,21 +150,28 @@ The disagreements have two different shapes:
   Power Tracker than in ENTSO-E's installed-capacity figures, in every compared
   year. A fixed ratio would not matter to a capacity factor, but these ratios
   move from year to year, so per-year weighting would track the tracker's
-  growth, not the denominator's.
+  growth, not the denominator's. *[2026-10-25: on RTE's denominator France's
+  disagreement is 15% to 24%, falling every year, and the grid is still the
+  larger.]*
 - **The denominator stepping, or not moving at all.** Belgium's figure holds
   at 1,249 MW for three years and then more than doubles between 1 January 2019
   and 1 January 2020, while the grid grows steadily; Sweden's holds at 8,354 MW
   for five years, the defect the 2026-09-15 correction notice in
-  `method-country-level.md` names.
+  `method-country-level.md` names. *[2026-10-25: Belgium's step was the old
+  file's join of onshore figures (2015-19) to onshore plus offshore (2020-21),
+  and the hold was in those onshore figures, not the fleet. On Elia's figures
+  the denominator is flat only from 1 January 2016 to 1 January 2017, and is
+  22.0% to 28.6% above the grid in every compared year.]*
 
 ## Checks made after the table was seen
 
 - **The reading of "1 January figure".** The driver reads it at the first
   timestamp of the year's January rows. Several January series step within the
-  month (France's 2016 January rows span 1,439 MW), so the table was re-read
-  with the last January timestamp and with the January median. The verdict is
-  the same under all three: five rows excluded, Spain scoreable at 8.3%, 6.5%
-  and 6.5% (`reading_check.txt`).
+  month (France's 2016 January rows span 1,439 MW *[2026-10-25: in the old
+  file; 125 MW in RTE's, whose capacity is interpolated through the year]*),
+  so the table was re-read with the last January timestamp and with the
+  January median. The verdict is the same under all three: five rows excluded,
+  Spain scoreable at 8.3%, 6.5% and 6.5% (`reading_check.txt`).
 - Nothing else was changed or re-run after the table was seen.
 
 ## Caveats

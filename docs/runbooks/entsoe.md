@@ -1,9 +1,12 @@
 # Country-level regions (ENTSO-E)
 
-**Data source:** the ENTSO-E Transparency Platform: national wind generation
-and installed capacity, and per bidding zone for Norway and Sweden.
+**Data sources:** the ENTSO-E Transparency Platform: national wind generation
+and installed capacity, and per bidding zone for Norway and Sweden. Belgium's
+and France's observations come from their transmission system operators
+instead: Elia for BE and RTE for FR.
 **Adapters:** `entsoe-country`, and `entsoe-zonal` for Sweden's per-zone
-region (SE-BZ) · country-level · unit = country · open.
+region (SE-BZ) · country-level · unit = country · open, except FR
+(see [Licence](#licence)).
 **Regions:** BE, ES, FR, IE, IT, NO, PT and SE in the scorecard. NL is
 excluded; see [`scorecard.md`](../findings/scorecard.md).
 **Configs:** `configs/regions/<cc>.toml`; each scorecard row is
@@ -17,18 +20,38 @@ country is in
 
 ## 1. Observations and grid points
 
-1. Generate the grid points and the ENTSO-E observations. The fetch needs the
-   `data` extra. Pass your key in the environment for this one command:
+1. Generate the grid points of every region, and the ENTSO-E observations of
+   every region but Belgium and France. The fetch needs the `data` extra.
+   Pass your key in the environment for this one command:
 
    ```bash
    ENTSOE_API_KEY=<key> python -m pyvwf.datasets.generate_country_level_training_data \
-       --countries BE ES FR IE IT NO PT SE
+       --countries ES IE IT NO PT SE
+   python -m pyvwf.datasets.generate_country_level_training_data \
+       --countries BE FR --skip-observations
    ```
+
+   **Never run the generator for BE or FR without `--skip-observations`.** It
+   would overwrite their observations with ENTSO-E's series, which do not
+   measure their whole fleet in every year.
 
    The files go to `<input root>/observations/country/`, in the layout
    [`data-sources.md`](../guides/data-sources.md#4-country-level-entso-e-layout)
-   describes. `--help` lists the year options.
-2. Replace the synthetic capacity with GWPT capacity, one grid per year:
+   describes, with what the fetch keeps. It fetches every wind type unless
+   `--psr-type` says otherwise. `--help` lists the year options.
+2. Build Belgium's observations from Elia and France's from RTE. Neither needs
+   a key:
+
+   ```bash
+   python scripts/region_tools/build_be_obs_from_elia.py --replace
+   python scripts/region_tools/build_fr_obs_from_rte.py --replace
+   ```
+
+   Each writes the splits the configs read, in the same layout. Without
+   `--replace` an existing file stops the build; with it, the old file is kept
+   beside the new one as `.entsoe-mixed.bak.csv` (BE) or `.entsoe.bak.csv`
+   (FR). `--out <dir>` writes somewhere else.
+3. Replace the synthetic capacity with GWPT capacity, one grid per year:
 
    ```bash
    python scripts/region_tools/weight_country_grid_points.py --all --per-year 2015 2024
@@ -36,14 +59,16 @@ country is in
 
    Add `--zone-aware` for Norway and Sweden. Capacity is then never summed
    across a bidding-zone boundary.
-3. Audit the observed series before any fit:
+4. Audit the observed series before any fit:
 
    ```bash
    python scripts/analysis/audit_country_observations.py
    ```
 
    The affine correction absorbs a constant observation error, so a series that
-   is wrong everywhere still fits well in sample.
+   is wrong everywhere still fits well in sample. The audit also compares each
+   year's observed energy with Eurostat's national wind production, which
+   catches a series that measures only part of the fleet.
 
 ## 2. ERA5
 
@@ -82,10 +107,12 @@ because most of their joint fits are refused (`docs/findings/scorecard.md`).
 
 ## Licence
 
-ENTSO-E data are public by regulation (the
-[source table](../guides/data-sources.md#source-urls)). Nothing from them is
-committed. The capacity weights come from the Global Wind Power Tracker (Global
-Energy Monitor, CC-BY-4.0), which requires attribution. The bidding-zone
-polygons committed under `configs/curation/zones/` carry their own sources and
-licences in that folder's README. Results computed from these data may be
-shared.
+ENTSO-E, Elia, RTE and Eurostat each publish under their own terms, listed in
+the [source table](../guides/data-sources.md#source-urls). RTE's terms do not
+allow its eCO2mix files to be redistributed. Nothing from any of them is
+committed except the Eurostat annual totals in
+`configs/curation/eurostat_wind_gwh.csv`. The capacity weights come from the
+Global Wind Power Tracker (Global Energy Monitor, CC-BY-4.0), which requires
+attribution. The bidding-zone polygons committed under `configs/curation/zones/`
+carry their own sources and licences in that folder's README. Results computed
+from these data may be shared.
