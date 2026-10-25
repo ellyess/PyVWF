@@ -14,6 +14,40 @@ elimination) and `8a7bcb8` (`output/regime_coverage_2026-09-16/`).
 correction in an unseen one, whether by spatial interpolation (thesis chapter
 4) or by a learned model (chapter 5). Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: Belgium's and France's holdout folds were
+scored on control points fitted to observation files that did not measure the
+whole fleet; their errors are withdrawn, and the coverage elimination stands
+without them.** The pool's 3 BE and 10 FR points are country-level fits on
+training years 2015-21 (single test year 2023) that read national files later
+found defective and since rebuilt (`scorecard.md`, notices of 2026-10-22 and
+2026-10-23): Belgium's held onshore generation alone in 2015-19 and onshore plus
+offshore in 2020-21, and France's capacity fell 1.0 to 2.9 GW below the fleet in
+2018-19. Withdrawn: the BE and FR rows' LOCO MAE and R-squared in section 4
+(0.201 and +0.378; 4.483 and -0.141). Their coverage columns depend on the
+points' locations and terrain, not on the observations, and stand. The corrected
+errors are not known; a refit of the pool's BE and FR rows on the rebuilt files
+will produce them (see the notice of 2026-10-25 in
+`method-correction-identifiability.md`).
+
+The signs of the coverage correlations do not depend on either fold. Data:
+`output/loco_reference_2026-09-16/obs_sensitivity_2026-10-25/`
+(`obs_sensitivity.py` and its output), Pearson then Spearman against LOCO MAE:
+
+| Coverage measure | n=12, as reported | without BE, n=11 | without BE and FR, n=10 | BE and FR out of training too, n=10 |
+|---|---|---|---|---|
+| median feature distance | -0.016, +0.070 | -0.039, +0.136 | -0.035, +0.164 | -0.036, +0.164 |
+| 90th percentile distance | +0.408, +0.308 | +0.388, +0.182 | +0.397, +0.188 | +0.394, +0.188 |
+| share outside training cells | -0.158, -0.114 | -0.253, -0.331 | -0.251, -0.320 | -0.255, -0.320 |
+
+The last column reruns the other ten folds' interpolation and coverage with BE's
+and FR's points out of every training set. With the other eleven folds as
+stored, every sign holds for any BE MAE from 0 to 15 m/s; for FR every sign
+holds except the median distance's Pearson, which turns positive below an FR MAE
+of 2.27 m/s. Without BE's and FR's points the other folds' MAEs move by at most
+0.047 m/s (Portugal, 13.811 to 13.857), so the Netherlands, Portugal and Norway
+still carry the argument; the dense folds' R-squared spans -0.15 to -0.25 rather
+than -0.14 to -0.21, Germany's moving most.
+
 **Four candidate explanations have been tested and none survives.** It is not
 sample count, not the target's conditioning, not the identifiability defect in
 the fitted pair, and not regime coverage. What remains is the reading
@@ -106,6 +140,10 @@ already measured. Data: `output/regime_coverage_2026-09-16/`, from
 | FR | 10 | 0.324 | 0.100 | 4.483 | -0.141 |
 | IT | 3 | 0.630 | 0.333 | 8.755 | +0.010 |
 | PT | 3 | 0.321 | 0.000 | 13.811 | -1.488 |
+
+*[2026-10-25: the BE and FR rows' MAE and R-squared rest on control points
+fitted to defective observations and are withdrawn; the correlations below
+keep their signs without them. See the notice of 2026-10-25.]*
 
 | Coverage measure against LOCO MAE | Pearson | Spearman |
 |---|---|---|
