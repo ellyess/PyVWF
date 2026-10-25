@@ -458,6 +458,15 @@ published run by at most 6e-6 in RMSE and MBE with identical scalars, within
 R2's 1e-4 for a non-degenerate row, and the run on the rebuilt files
 (`se_register_2026-10-25/promote/`) is Sweden's baseline for R3. Data:
 `output/se_register_2026-10-25/`.]*
+*[2026-10-25: France's files were then rebuilt from ODRE's copy of the same
+RTE series (`scorecard.md`, bracket in the notice of 2026-10-23), which equals
+them hour by hour except one March hour a year and one 2021 value. Its runs
+are at `9a5682c`, which contains the year-local fill. A control on the RTE
+files differs from `fr_rte_2026-10-23/promote/` by at most 6.5e-5 in RMSE,
+5.4e-5 in MBE and 9e-7 in the largest scalar, within the 1e-3 predicted above
+for FR's degenerate row, so R2 is measured for FR here. The run on the ODRE
+files (`fr_odre_2026-10-25/promote/`) is FR's baseline for R3. Data:
+`output/fr_odre_2026-10-25/`.]*
 
 All under `output/`. For these rows they replace the published runs of the
 2026-10-22 table as the baseline of R2 and R3: against the old runs, each row
