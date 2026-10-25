@@ -129,7 +129,7 @@ on each grid's representative turbine.
 | France (FR) | country | 2015-21 → 2023 | 0.019 | 0.022 † (worse) |
 | Belgium (BE) | country | 2015-21 → 2023 | 0.081 | **0.018** |
 | Ireland (IE) | country | 2017-21 → 2023 | 0.045 | **0.021** |
-| Sweden (SE) | country | 2015-21 → 2023 | 0.098 | **0.035** |
+| Sweden (SE) | country | 2015-21 → 2023 | 0.092 | **0.027** |
 | Norway (NO) | country | 2015-21 → 2023 | 0.128 | **0.026** † |
 | Spain (ES) | country | 2015-21 → 2023 | 0.071 | **0.030** |
 

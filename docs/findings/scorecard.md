@@ -22,6 +22,78 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-10-25: Sweden's capacity-factor denominator was
+built from its own generation in 2015-19, and the row is rerun on
+Energimyndigheten's fleet.** Training years 2015-21, test year 2023, national
+scope, the scorecard config `configs/regions/scorecard/se_country.toml`,
+licensed curve library (`power_curves.csv` sha256 `689cfee7…`, one curve,
+Vestas.V90.3000, origin `external`, 0% substituted, 0% extrapolated), roughness
+filled within each calendar year (#140).
+
+*What was wrong.* Sweden's generation is sound: each year's energy is 0.976 to
+1.007 of Energimyndigheten's official wind production. Its denominator is not.
+The training file, summed from the four bidding zones, carries 8,354 MW in
+every year from 2015 to 2019: the sum of four zonal capacities an old fetcher
+derived as peak generation over 0.9 when ENTSO-E returned none
+(`method-country-level.md`). The 2020-21 values are ENTSO-E's register, and
+the 2023 value its four zones' sum. Both count onshore wind at the start of the
+year, so they leave out the year's growth and about 200 MW offshore that the
+generation includes.
+
+| Year | Stored capacity, MW | ENTSO-E register, MW | Energimyndigheten, previous to this 31 Dec, MW | Mean CF stored | Mean CF rebuilt |
+|---|---|---|---|---|---|
+| 2015 | 8,354 | 3,500 | 5,088 to 5,818 | 0.227 | 0.347 |
+| 2016 | 8,354 | 5,493 | 5,818 to 6,434 | 0.213 | 0.289 |
+| 2017 | 8,354 | 5,960 | 6,434 to 6,611 | 0.236 | 0.303 |
+| 2018 | 8,354 | 6,247 | 6,611 to 7,300 | 0.223 | 0.267 |
+| 2019 | 8,354 | 7,506 | 7,300 to 8,681 | 0.266 | 0.280 |
+| 2020 | 9,648 | 9,648 | 8,681 to 10,082 | 0.317 | 0.328 |
+| 2021 | 10,016 | 10,017 | 10,082 to 12,116 | 0.304 | 0.274 |
+| 2023 (test) | 14,765 | 14,700 | 14,278 to 16,224 | 0.264 | 0.257 |
+
+*What changed.* `scripts/region_tools/build_se_capacity_from_energimyndigheten.py`
+(`768a278`) keeps every national Swedish file's generation and hours and
+divides by Energimyndigheten's 31 December fleet (table EN0105_1, onshore plus
+offshore), interpolated linearly through the year as France's builder does
+with RTE's. The files were built first in a separate input root,
+`input/combined-se-em/`, and then promoted into `input/combined/` with the
+builder's `--replace`, which keeps each old file as
+`.entsoe-capacity.bak.csv`. Every file passes the physical gates, and the
+training file no longer fails the frozen-capacity one. Data:
+`output/se_register_2026-10-25/` (comparison, build log, checksums, and the
+runs below).
+
+Every variant: the published run of 2026-10-16 (`6b3e6d9`, record-wide fill),
+a control at `768a278` on the old files, and the run at `768a278` on the
+rebuilt files, both from a clean tree. The control differs from the published
+run by at most 6e-6 in RMSE and MBE, the year-local fill's effect, and its
+scalars are identical, so the change from control to rebuilt is the
+denominator's. Rerun on `input/combined/` after the promotion, every output file
+except the manifest is byte-identical to the rebuilt run, `metrics.csv`
+included.
+
+| Variant | RMSE published | RMSE control | RMSE rebuilt | MBE control | MBE rebuilt | Max scalar control / rebuilt | Implausible / failed rebuilt | Months scored |
+|---|---|---|---|---|---|---|---|---|
+| uncorrected | 0.0980 | 0.0980 | 0.0922 | -0.0963 | -0.0891 |  |  | 12 of 12 |
+| fixed N=1 | 0.0358 | 0.0358 | 0.0261 | -0.0330 | +0.0124 | 1.37 / 1.60 | 0 / 0 | 12 of 12 |
+| **fixed N=4** (reported) | 0.0347 | 0.0347 | 0.0272 | -0.0310 | +0.0148 | 1.64 / 1.92 | 0 / 0 | 12 of 12 |
+| season N=1 | 0.0360 | 0.0360 | 0.0199 | -0.0336 | +0.0114 | 1.47 / 1.70 | 0 / 0 | 12 of 12 |
+| season N=4 | 0.0335 | 0.0335 | 0.0234 | -0.0304 | +0.0146 | 1.84 / 2.14 | 0 / 0 | 12 of 12 |
+
+Every variant's error falls, and every corrected bias changes sign, from about
+-0.03 to between +0.011 and +0.015. The rebuilt scalars lie between 0.96 and
+2.14, so no fit is degenerate. The reported configuration stays fixed N=4: it
+was chosen on the 2023 test year before this change, and season N=1 now has
+the lowest error.
+
+*Still open, not corrected here.*
+- The four zonal files (`se_1` to `se_4`), which only `se_bz.toml` reads, keep
+  their derived zonal capacities; Energimyndigheten publishes the same fleet
+  per bidding zone (table EN0105_2).
+- Energimyndigheten's register keeps a decommissioned turbine for up to three
+  years, so the fleet is slightly overstated.
+- The interpolation spreads each year's additions evenly through it.
+
 **Correction notice, 2026-10-23: France's observations left out offshore
 generation in the test year and understated the fleet in 2018 and 2019, and
 the row is rerun on RTE's complete series.** Training years 2015-21, test year
@@ -1275,12 +1347,18 @@ observations (total wind over RTE's interpolated fleet), now in
 corrected, still worse than uncorrected, its uncorrected MBE -0.004 to -0.012,
 on a fit as degenerate as before (scalar 4.71). See the notice of that date.]*
 
+*[Note, 2026-10-25: Sweden's row is rerun at `768a278` with its generation
+divided by Energimyndigheten's fleet instead of a denominator built from its
+own generation, on the year-local roughness fill. Sweden moves 0.098 to 0.092
+uncorrected and 0.035 to 0.027 corrected, its corrected MBE -0.031 to +0.015.
+See the notice of that date.]*
+
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
 | France (FR) | 0.019 | 0.022 | -0.012 | +0.009 | N=10 fixed † | per timestep | 0% |
 | Belgium (BE) | 0.081 | **0.018** | +0.079 | +0.001 | N=3 season | per timestep | 0% |
 | Ireland (IE) | 0.045 | **0.021** | +0.036 | +0.006 | N=1 season | per timestep | 0% |
-| Sweden (SE) | 0.098 | **0.035** | -0.096 | -0.031 | N=4 fixed | per timestep | 0% |
+| Sweden (SE) | 0.092 | **0.027** | -0.089 | +0.015 | N=4 fixed | per timestep | 0% |
 | Norway (NO) | 0.128 | **0.026** | -0.124 | -0.014 | N=4 fixed † | per timestep | 0% |
 | Spain (ES) | 0.071 | **0.030** | -0.070 | +0.010 | N=4 fixed | per timestep | 0% |
 
@@ -1419,9 +1497,11 @@ that left out offshore generation. See the notice of that date.]*
   from 0.020 to 0.027. Italy and Portugal are suspended. See the third notice
   of that date.]*
 - **Sweden's training capacity for 2015-19 is built from its own generation.**
-  *[Added 2026-10-24.]* The training file carries 8,354 MW in every one of those
-  five years: the sum of four zonal capacities that the fetcher of the time
-  derived as peak generation over 0.9 when ENTSO-E returned none
+  *[Added 2026-10-24. 2026-10-25: corrected; the row is rerun on
+  Energimyndigheten's fleet, see the notice of that date.]* The training file
+  carries 8,354 MW in every one of those five years: the sum of four zonal
+  capacities that the fetcher of the time derived as peak generation over 0.9
+  when ENTSO-E returned none
   (`method-country-level.md`). ENTSO-E's national register gives 3,500 to
   7,506 MW over the same years and the GWPT grid 4,048 to 6,082 MW
   (`output/entsoe_audit_2026-10-23/classification.csv`). 8,354 MW is above
@@ -1457,3 +1537,5 @@ country-level rows now need the licensed curve library; CL and AR are the open
 rows.]* *[Note, 2026-10-22: Belgium's country-level observations come from Elia
 Open Data `ods031`, not ENTSO-E.]* *[Note, 2026-10-23: France's come from
 RTE's eCO2mix definitive series and its annual wind fleet, not ENTSO-E.]*
+*[Note, 2026-10-25: Sweden's generation is ENTSO-E's and its capacity-factor
+denominator Energimyndigheten's wind fleet.]*

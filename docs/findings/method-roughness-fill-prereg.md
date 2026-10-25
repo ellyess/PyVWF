@@ -375,7 +375,7 @@ peak memory first, nothing else running, and peak memory logged per process.
 | IT country (suspended) | `it_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/IT`, `6b3e6d9` | 10 |
 | FR country | `fr_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/FR`, `6b3e6d9` | 11 |
 | UK k50 | `uk_k50.toml` | `input/combined` | 2015-2018 | 2019 | `refresh_2026-09-20/UK`, `967b485` | 12 |
-| SE country | `se_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/SE`, `6b3e6d9` | 13 |
+| SE country | `se_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/SE`, `6b3e6d9` [2026-10-25: superseded; see the bracket under the amendment's table] | 13 |
 | AU-NEM k45 | `au_nem_k45.toml` | `input/combined` | 2020-2022 | 2023 | training `refresh_2026-09-20/AU-NEM`, `967b485`; evaluation `c1_turbine_order_2026-09-24/after`, `a94670c` | 14 |
 | NO country | `no_country.toml` | `input/combined` | 2015-2021 | 2023 | `offshore_regen_2026-10-16/after/NO`, `6b3e6d9` | 15 |
 
@@ -449,6 +449,15 @@ back-fill. Training years 2015-2021, test year 2023, `input/combined`:
 | PT country (suspended) | 2023 test file, with offshore | `it_pt_2023_2026-10-24/PT/{train-offshore,evaluate-2023-offshore}-2026-10-24/` | `7fc0e16` |
 | IT country (suspended) | 2023 test file, with offshore | `it_pt_2023_2026-10-24/IT/{train-offshore,evaluate-2023-offshore}-2026-10-24/` | `7fc0e16` |
 | FR country | RTE, every split | `fr_rte_2026-10-23/promote/` | `65efa06` |
+
+*[2026-10-25: Sweden's capacity-factor denominator was rebuilt from
+Energimyndigheten's fleet after this amendment (`scorecard.md`, notice of that
+date). Its runs are at `768a278`, which contains the year-local fill, so they
+measure R2 directly: a control on the old files differs from Sweden's
+published run by at most 6e-6 in RMSE and MBE with identical scalars, within
+R2's 1e-4 for a non-degenerate row, and the run on the rebuilt files
+(`se_register_2026-10-25/promote/`) is Sweden's baseline for R3. Data:
+`output/se_register_2026-10-25/`.]*
 
 All under `output/`. For these rows they replace the published runs of the
 2026-10-22 table as the baseline of R2 and R3: against the old runs, each row

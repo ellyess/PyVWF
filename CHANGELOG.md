@@ -84,6 +84,17 @@ this file stay in step with it.
   The old files are kept as `.entsoe.bak.csv`, and the France offset-fit pin
   is re-recorded. The country row moves; the scorecard's notice of 2026-10-23
   has the figures.
+- **Sweden's country-level observations are divided by Energimyndigheten's
+  wind fleet.** Their generation from ENTSO-E was sound, but their
+  capacity-factor denominator was not: flat over 2015-19, built by an old
+  fetcher from the generation itself, and elsewhere ENTSO-E's start-of-year
+  onshore register, which leaves out each year's growth and the offshore
+  output the generation includes.
+  `scripts/region_tools/build_se_capacity_from_energimyndigheten.py` keeps the
+  generation and divides it by Energimyndigheten's year-end fleet, onshore and
+  offshore, interpolated through the year. The old files are kept as
+  `.entsoe-capacity.bak.csv`. The zonal files are not changed. The country row
+  moves; the scorecard's notice of 2026-10-25 has the figures.
 - **Italy's and Portugal's test files for 2023 include offshore output**
   (#144). Built with the generator's onshore default, they left out the
   Taranto and WindFloat Atlantic offshore farms. They are rebuilt from
