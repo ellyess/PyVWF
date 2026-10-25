@@ -16,6 +16,46 @@ written are `074f648` (`output/identifiability_2026-09-16/`), `a284d4d`
 data they are fitted to, and what follows for thesis chapters 4 and 5. Terms
 follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: Belgium's and France's control points were
+fitted to observation files that did not measure the whole fleet, and the
+figures that rest on them are withdrawn.** The pool's 3 BE and 10 FR points are
+country-level fits on training years 2015-21 (single test year 2023) that read
+national files later found defective and since rebuilt (`scorecard.md`, notices
+of 2026-10-22 and 2026-10-23). Belgium's training file held onshore generation
+alone in 2015-19 and onshore plus offshore in 2020-21. France's training
+capacity fell 1.0 to 2.9 GW below RTE's fleet in 2018-19, overstating those
+years' mean capacity factors by 8% and 12%, and RTE's energy is 3 to 8% above
+the file's in each year. The pool's BE and FR points equal the factors in the
+chapter's runs,
+`output/runs/turbine_grid/{BE,FR}-all-obs_country-corrected-calc_z0/`, whose
+stored 2023 observations equal the old files.
+
+Withdrawn: the per-row table's FR row (r = +0.355, pivot -0.12 m/s); the BE and
+FR holdout rows (MAE 0.201 and 4.483 m/s, R-squared +0.378 and -0.141), whose
+targets are those points; and "one fold of twelve has a positive R-squared worth
+the name", which is Belgium's, on three points fitted to the defective series.
+Of the other eleven folds only Italy's R-squared is positive, +0.010 on three
+points. The corrected values are not known. A refit of the pool's BE and FR rows
+on the rebuilt files will produce them; the pipeline that built the pool was
+removed after `d039608` (`docs/publications.md`), so that means either that code
+on the new files or a harness refit at the pool's cluster counts, which is
+cross-pipeline.
+
+What stands, checked by taking BE's and FR's points out. Data:
+`output/loco_reference_2026-09-16/obs_sensitivity_2026-10-25/`
+(`obs_sensitivity.py`, which first reproduces the stored IDW fold table to 1e-9,
+`legacy_files_check.py`, and their outputs). Pooled over the other 1,716 points
+r = -0.895 against -0.867, so pooling still understates the per-row
+collinearity. The four dense rows, their pivots and the probe are turbine-level
+fits that read neither file; the reparameterisation result is analytic, and
+kriging's largest measured disagreement, 0.209 m/s, is in Portugal's fold.
+Without the 13 points the reference-wind target's within-row shares are 0.711
+and 0.730 against the coefficients' 0.749 and 0.761, still no flatter. The
+median MAE over the other ten folds, as stored, is still 2.87 m/s (2.57 for
+kriging). With BE's and FR's points removed from every other fold's training
+set, those ten folds' IDW MAEs move by at most 0.047 m/s (Portugal) and every
+R-squared keeps its sign; Germany's moves from -0.143 to -0.249.
+
 **The fit solves one equation in two unknowns.** For each cluster, time slice
 and year it matches a single number, the capacity-weighted mean observed
 capacity factor, by choosing two parameters. The solutions form a curve, every
@@ -68,6 +108,9 @@ support the statistic:
 | DK onshore | 884 | **-0.989** | 0.995 | 4.06 |
 | UK offshore | 10 | -0.979 | 0.989 | 3.81 |
 | FR | 10 | +0.355 | 0.678 | -0.12 |
+
+*[2026-10-25: the FR row was fitted to defective observations and is
+withdrawn; see the notice of 2026-10-25.]*
 
 In the four dense rows, **99% or more of the joint variation lies along a
 single line**. The pooled figure mixes rows whose lines differ, which is why it
@@ -284,8 +327,10 @@ great-circle distance. Data: `output/loco_reference_2026-09-16/`.
 | IT | 3 | 8.755 | +0.010 |
 | PT | 3 | **13.811** | -1.488 |
 
-One fold of twelve has a positive R-squared worth the name. Median MAE across
-folds is 2.87 m/s for this method and 2.57 for kriging, against a mean
+One fold of twelve has a positive R-squared worth the name. *[2026-10-25:
+that fold is Belgium's, on three points fitted to defective observations;
+withdrawn with the BE and FR rows, see the notice of 2026-10-25.]* Median MAE
+across folds is 2.87 m/s for this method and 2.57 for kriging, against a mean
 corrected speed of 7.49 m/s. The three dense folds score best on MAE and are
 still negative on R-squared: a fold's own mean beats the interpolation.
 
