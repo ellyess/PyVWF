@@ -11,6 +11,46 @@ classifies training fits. Registered in
 a follow-up added after its table was seen (`b23b2b9`). Issue #68. Terms follow
 `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: Belgium's and France's rows were fitted to
+observation files later found defective, and their classes and ranges are
+withdrawn; the lead's figures, which concern the 90 refusals, do not involve
+them.** Both rows read the files as they stood on 2026-09-25 (`scorecard.md`,
+notices of 2026-10-22 and 2026-10-23). Belgium's held onshore generation alone
+in 2015-19 and onshore plus offshore in 2020-21. France's 2018-19 capacity fell
+1.0 to 2.9 GW below the fleet, overstating those years' capacity factors by 8%
+and 12%. Withdrawn: their 140 periods, all accepted and reachable on both
+ranges (140 of the pass's 418 accepted reachable periods and of the
+follow-up's 450), and their median floors and ceilings (BE 0.0000 and 0.8996,
+FR 0.0107 and 0.9351), all computed at scalars fitted to those files. "No
+accepted fit is unreachable" stands for the other six rows. The 90 refusals,
+the 12 that stay unreachable and every Italian and Portuguese figure involve
+neither row and stand.
+
+The two rows are not re-measured; rerunning the pass and the follow-up on the
+current files will give their classes. What the evidence shows without a rerun
+(training years 2015-21, no test year read): the scorecard's fits on the
+rebuilt files, on later grids, accept all 70 periods in each row
+(`output/be_elia_2026-10-22/train-elia-2026-10-22/`,
+`output/fr_rte_2026-10-23/train-rte-2026-10-23/`). Every rebuilt training
+observation lies inside the range recorded here: Belgium's 0.1566 to 0.4268
+against floors up to 0.0244 and ceilings from 0.8559, France's 0.1226 to 0.3961
+against 0.0386 and 0.9134, so the smallest margins are 0.1566 and 0.1109,
+against the near-miss threshold of 0.05. But the range moves with the scalars:
+over all eight rows the median cluster floor is 0.003 at scalars up to 1.0 and
+0.071 at 1.5 to 1.75. France's scalars barely move (one cluster, -2% to +6%;
+ten, 0.785 to 9.94 here, 0.815 to 9.62 on RTE's files), and its national floors
+at the old scalars were at most 0.0386, so its classes are very unlikely to
+change. Belgium's rise (one cluster, +11% to +16%; three, 0.593 to 1.227 here,
+0.640 to 1.651 on Elia's). Giving each Belgian cluster the largest cluster
+floor this pass recorded, in any row, at its scalar or below puts its national
+floor at most 0.0774, 0.0792 below the lowest observation it is compared with
+(summer, three clusters), so an unreachable or near-miss Belgian period is
+unlikely but not ruled out. The same bound says nothing for France, where it
+exceeds the lowest summer observation with one cluster and with ten. Data:
+`output/reachability_2026-09-25/recheck_2026-10-25/` (scripts and outputs; the
+period observations, formed as the harness forms them, reproduce every
+recorded old-file observation to 1e-16).
+
 **The 90 refused national fits split into 73 whose observation lies below
 anything the fit can produce and 17 whose target is within reach, but 61 of
 those 73 become reachable once an off-curve value counts as zero output
