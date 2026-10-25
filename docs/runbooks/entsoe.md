@@ -107,10 +107,9 @@ because most of their joint fits are refused (`docs/findings/scorecard.md`).
 
 ## Licence
 
-ENTSO-E, Elia, RTE and Eurostat each publish under their own terms, listed in
-the [source table](../guides/data-sources.md#source-urls). RTE's terms do not
-allow its eCO2mix files to be redistributed. Nothing from any of them is
-committed except the Eurostat annual totals in
+ENTSO-E, Elia, ODRE and Eurostat each publish under their own terms, listed in
+the [source table](../guides/data-sources.md#source-urls). Nothing from any of
+them is committed except the Eurostat annual totals in
 `configs/curation/eurostat_wind_gwh.csv`. The capacity weights come from the
 Global Wind Power Tracker (Global Energy Monitor, CC-BY-4.0), which requires
 attribution. The bidding-zone polygons committed under `configs/curation/zones/`
