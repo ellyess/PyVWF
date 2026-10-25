@@ -15,6 +15,43 @@ byte (`tests/test_pin_bootstrap_reproduction.py`).
 uses. Pre-registered in `method-roughness-treatment-prereg.md`; the background
 is `../design/roughness-temporal-treatment.md`. Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-25: France's observations did not measure the
+whole fleet, and the FR figures that rest on them are withdrawn until the row
+is rerun; the observations do not change G2's reading, and the adoption
+decision stands.** Both FR runs (training 2015-21, test 2023) read national
+files later found defective and since rebuilt from RTE's eCO2mix
+(`scorecard.md`, notice of 2026-10-23): the 2023 test file held onshore output
+alone, and the training capacity fell 1.0 to 2.9 GW below RTE's fleet in
+2018-19, overstating those years' mean capacity factors by 8% and 12%. Every
+FR fit here was trained on those files. Withdrawn: the FR rows of the metrics
+table, including the N=1 rows the notice below left standing; FR's scalars in
+the fit quality; the paired FR correction gains; and the FR corrected
+unit-month counts. The corrected figures are not known; a rerun on the rebuilt
+files will produce them.
+
+Only the uncorrected rows can be re-scored without a rerun, since an
+uncorrected prediction reads no observation. Re-scored against the rebuilt
+2023 file from the stored frames with the harness's national pairing; the
+script first reproduces every stored metric of both runs to 4e-16 and every
+stored paired-bootstrap row to 1e-12:
+
+| Condition | Uncorrected RMSE, stored → re-scored | Uncorrected MBE, stored → re-scored |
+|---|---|---|
+| R0 | 0.17122 → 0.16162 | +0.16484 → +0.15672 |
+| R1 | 0.17111 → 0.16152 | +0.16478 → +0.15665 |
+
+The uncorrected R1 minus R0 difference moves from -0.00011, interval -0.00026
+to +0.00008, to -0.00010, interval -0.00026 to +0.00010. G2 compares two
+simulations scored against one set of observations, and the stored corrected
+frames re-scored against the rebuilt file give +0.000021, interval -0.000062
+to +0.000092, still consistent with zero. Both fits were trained on the old
+files, with the per-cluster solver the notice below describes, so that is a
+re-score and not a re-measurement of G2. "Uninformative" rests on FR's uniform
+90 m hub height, which no observation file touches, and the adoption rests on
+DK, which read no French file. Data:
+`output/roughness_treatment_2026-09-12/rescore_2026-10-25/` (`rescore.py` and
+its output, `rescore_points.csv`, `rescore_bootstrap.csv`).
+
 **Correction notice, 2026-09-25: the country-level fits with more than one
 cluster used the per-cluster solver, not the joint national fit.**
 `country_obs_is_per_cluster` read the rounding differences between clusters'
@@ -100,6 +137,10 @@ national scope, every row of each file. The row the scorecard reports is
 | R1 | affine-wind | 1 | season | +0.00689 | 0.00930 | 0.01258 | 0.9933 |
 | R1 | affine-wind | 10 | season | +0.00637 | 0.00972 | 0.01298 | 0.9922 |
 
+*[2026-10-25: every FR row was fitted to France's old training files and
+scored against its old 2023 file, and is withdrawn; the uncorrected rows are
+re-scored in the notice of 2026-10-25.]*
+
 `excluded_share` is zero in all four runs, so every variant of every run is
 scored on all of its rows.
 
@@ -111,7 +152,8 @@ unreported `season_10` variant is degenerate in both conditions**, carrying one
 implausible scalar (3.070 under R0, 3.062 under R1) in cluster 7. It is listed
 in the table above because the pre-registration commits to reporting every row
 of the cited files, and it enters the common-row scoring of both conditions
-equally; nothing was excluded on its account.
+equally; nothing was excluded on its account. *[2026-10-25: FR's scalars were
+fitted to its old training files; see the notice of 2026-10-25.]*
 
 ## The paired comparison
 
@@ -131,6 +173,10 @@ is resampled. Data: `output/roughness_treatment_2026-09-12/analysis/`.
 | FR | uncorrected RMSE, R1 minus R0 | -0.00011 | -0.00026 to +0.00008 | 0.00034 |
 | FR | R0 correction gain | 0.1590 | 0.1381 to 0.1788 | 0.0407 |
 | FR | R1 correction gain | 0.1589 | 0.1379 to 0.1785 | 0.0407 |
+
+*[2026-10-25: the FR rows were scored against France's old 2023 file, and its
+gains are withdrawn; both differences are re-scored in the notice of
+2026-10-25 and stay consistent with zero.]*
 
 **G1 resolved: R1 better.** The DK interval excludes zero.
 
