@@ -10,7 +10,11 @@ third group went with the legacy batch path on 2026-09-24, and its file
 with it; the pins of every other file were left as recorded. On 2026-09-25 the
 FR, BE, NL and NO grid pins were re-recorded when the generator's short keys
 ("V80", "V90") became the full keys the grids on disk carry; restoring the
-old key in each new file reproduces its old hash, so nothing else moved.
+old key in each new file reproduces its old hash, so nothing else moved. On
+2026-10-25 every observation pin was re-recorded when ``--psr-type`` came to
+default to ``all`` instead of ``onshore``: ``FakeFetcher`` seeds its series on
+the wind type, so all 36 observation files moved, and passing
+``--psr-type onshore`` reproduces every old hash; no grid file moved.
 
 The ENTSO-E fetch needs an API key and the network, so ``FakeFetcher`` stands
 in for ``ENTSOEWindDataFetcher``: a deterministic hourly series per country or
@@ -195,3 +199,23 @@ def test_a_country_whose_grid_fails_stops_the_run(how, tmp_path, monkeypatch, ca
     ok = ["generate", "--countries", "BE", *YEARS, "--output-dir", str(tmp_path / "ok")]
     monkeypatch.setattr(sys, "argv", ok)
     assert gen.main() in (None, 0)
+
+
+def test_observations_default_to_the_whole_fleet(tmp_path, monkeypatch):
+    """The generator fetched onshore alone unless told otherwise, and the
+    files it built that way left out offshore output while the grids simulate
+    it. A fetch without --psr-type now asks for every wind type."""
+    seen = []
+
+    class Recording(FakeFetcher):
+        def calculate_capacity_factor(self, country, start, end, psr_type="all"):
+            seen.append(psr_type)
+            return super().calculate_capacity_factor(country, start, end, psr_type)
+
+    monkeypatch.setattr(gen, "ENTSOEWindDataFetcher", Recording)
+    monkeypatch.setenv("ENTSOE_API_KEY", "not-a-real-key")
+    monkeypatch.chdir(ROOT)
+    argv = ["generate", "--countries", "BE", "--skip-grids", *YEARS, "--output-dir", str(tmp_path)]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert gen.main() in (None, 0)
+    assert seen and set(seen) == {"all"}

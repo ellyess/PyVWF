@@ -64,11 +64,17 @@ def main():
         default=2019,
         help="Test year (default: 2019)",
     )
+    # The grids simulate every farm, offshore sites included since fc8c7f5, so
+    # the observations have to measure every farm too. Until 2026-10-25 this
+    # defaulted to onshore, and the Belgian, French, Italian, Portuguese and
+    # Dutch files built with it left out offshore output in some or all of
+    # their years (docs/findings/scorecard.md, notices of 2026-10-22 and
+    # 2026-10-23).
     parser.add_argument(
         "--psr-type",
         choices=["onshore", "offshore", "all"],
-        default="onshore",
-        help="Wind type (default: onshore)",
+        default="all",
+        help="Wind type (default: all, onshore and offshore)",
     )
     parser.add_argument(
         "--output-dir",
