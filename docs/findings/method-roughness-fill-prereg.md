@@ -458,6 +458,14 @@ published run by at most 6e-6 in RMSE and MBE with identical scalars, within
 R2's 1e-4 for a non-degenerate row, and the run on the rebuilt files
 (`se_register_2026-10-25/promote/`) is Sweden's baseline for R3. Data:
 `output/se_register_2026-10-25/`.]*
+*[2026-10-25: Norway's observations were then rebuilt from NVE's metered farm
+output and turbine register (`scorecard.md`, second notice of that date). Its
+runs are at `b9e812b`, which contains the year-local fill. A control on the
+old files differs from `offshore_regen_2026-10-16/after/NO` by at most 2.9e-4
+in RMSE and MBE and 4e-5 in the largest scalar, within the 1e-3 predicted
+above for NO's degenerate row, so R2 is measured for NO here. The run on the
+rebuilt files (`no_nve_2026-10-25/promote/`) is NO's baseline for R3. Data:
+`output/no_nve_2026-10-25/`.]*
 
 All under `output/`. For these rows they replace the published runs of the
 2026-10-22 table as the baseline of R2 and R3: against the old runs, each row
