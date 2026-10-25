@@ -14,6 +14,37 @@ physically plausible bounds for a fitted wind scalar, judged against every fit i
 the archive rather than intuition? (2) Does `min_cluster_size` actually fix
 degenerate fits, and what does it cost?
 
+**Correction notice, 2026-10-25: Belgium's survey scalars were fitted to
+observation files that measured onshore generation alone in most years, so
+Belgium's margin, the reason given for a floor of 0.2 rather than 0.3, is
+withdrawn. The bound itself is not changed here.** Belgium's 60 scalars are one
+fit's 20, three times over (`country_baseline_2026-07-23/BE/train-be` and both
+`zero_offset_2026-07-24/BE` runs; training years 2015-21, test year 2023 not
+read). Its files held onshore generation alone in 2015-19 and onshore plus
+offshore in 2020-21, while the grid simulates the whole fleet (`scorecard.md`,
+notice of 2026-10-22). The same runs read the bundled open library, which has no
+curve for the grid's Vestas.V90.3000, so every point was on the fallback curve;
+how much of the low scalars each defect produced is not separable here. On
+Elia's rebuilt files the scorecard's fit (licensed library, the same four
+variants) has scalars 0.640 to 1.651, and cluster 0, the offshore and coastal
+points, moves from 0.48 to 0.52 to 0.64 to 0.67 (same notice;
+`output/be_elia_2026-10-22/train-elia-2026-10-22/`). Withdrawn: "Belgium's
+minimum is 0.314, only 4.7% clear" as a reason, and Belgium as an example of the
+country-level path legitimately fitting low scalars. Without Belgium, the
+regions whose lowest scalar lies just above 0.3 are Brazil, at 0.314 in a k=120
+table that is itself degenerate (26 scalars above 3.0, maximum 8.20), and Spain,
+at 0.330, 10% clear, a country-level fit from the same July runs, also on the
+fallback curve. Whether a floor of 0.3 would fire on healthy fits today is not
+measured. France is in the survey but not in the table: 165 scalars from 0.493
+to 3.070, three above 3.0, on ENTSO-E's French files, whose 2018-19 capacity
+fell 1.0 to 2.9 GW below the fleet (`scorecard.md`, notice of 2026-10-23).
+Without Belgium and France the pooled shares are unchanged, 0.66% below 0.3 and
+0.23% above 3.0. The ceiling and Part 2 rest on neither file and stand. Data:
+`output/scalar_bounds_recheck_2026-10-25/` (`survey_recheck.py` and its output;
+it reproduces the survey's 585 files, 373,179 scalars and 19 regions, and each
+row's count, minimum, maximum and counts outside 0.3 and 3.0, but not its
+medians, which differ by up to 0.04 and are not used here).
+
 **Correction notice, 2026-09-11: Part 2 compared corrected and uncorrected
 scores on different plants.** Each `min_cluster_size` run scored its
 uncorrected variant on all 59 plants, but its corrected variant only on the
@@ -73,7 +104,10 @@ to converge.
   too fine a margin to rely on across other years. The floor is therefore set at
   **0.2**: it still catches the unambiguous (US 0.003, DK 0.090, UK 0.096) and
   stays quiet on legitimate fits. A warning that fires on good fits is one people
-  learn to ignore.
+  learn to ignore. *[2026-10-25: Belgium's low scalars were fitted on the
+  fallback curve to observations that were onshore alone in five of seven
+  training years, so they are not evidence of a legitimate low fit; on Elia's
+  files its lowest is 0.640. See the correction notice.]*
 
 An unplanned corroboration: the floor independently flags 57 of 60 Netherlands
 scalars. The Netherlands was already excluded for an unrelated ENTSO-E coverage
