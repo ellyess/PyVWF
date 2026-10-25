@@ -56,7 +56,10 @@ different ones. The per-year grids
 (`input/observations/country/grid_points/<c>/<c>_grid_points_<year>.csv`)
 count a project from its start year, so each is the fleet at the end of its
 year. ENTSO-E's installed capacity, the observed denominator of every row but
-Ireland, is dated 1 January.
+Ireland, is dated 1 January. *[2026-10-25: France's and Belgium's training
+files have since been rebuilt from RTE's and Elia's series, whose capacity is
+now their denominator (`scorecard.md`, notices of 2026-10-22 and 2026-10-23);
+the row rule on the rebuilt files is in `method-country-weighting.md`.]*
 
 Condition B uses **the fleet at mid-year**: a project counts at full capacity in
 a year it ran throughout, at half capacity in its start year and in its
@@ -102,8 +105,11 @@ that note.
 **Scoreable rows** are the rows the rule keeps. FR (maximum scalar 4.61) and NO
 (3.05) are degenerate fits in the scorecard before the offshore change, and
 whatever their fit on the offshore grids they stay in if the rule keeps them,
-marked with a dagger. **If fewer than three rows are scoreable, the study stops
-here** and reports the table: a majority of one or two rows is not a test.
+marked with a dagger. *[2026-10-25: 4.61 was fitted on ENTSO-E's French
+observations; the scorecard's row on RTE's carries 4.71 (`scorecard.md`, notice
+of 2026-10-23). The row rule excluded FR on both.]* **If fewer than three rows
+are scoreable, the study stops here** and reports the table: a majority of one
+or two rows is not a test.
 
 ## Stage 0: no fitting
 
