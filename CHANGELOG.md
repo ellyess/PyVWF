@@ -61,6 +61,14 @@ this file stay in step with it.
   onshore while the grids simulate every farm, offshore included, so the
   files built with the default left out offshore output in some or all of
   their years. `--psr-type onshore` restores the old behaviour.
+- **France's observations are read from ODRE, under Licence Ouverte v2.0.**
+  `scripts/region_tools/build_fr_obs_from_rte.py` read RTE's annual eCO2mix
+  files, whose terms forbid redistributing them; it now reads the same
+  definitive national series from ODRE (`eco2mix-national-cons-def`), RTE's
+  open-data portal. ODRE's UTC stamps inherit the series' clock-change
+  ambiguity, so the builder also leaves March's clock-change hour empty, which
+  it kept before. Every other hour is unchanged except the last of 2021, which
+  RTE's 2022 file and ODRE give differently.
 
 ### Fixed
 
