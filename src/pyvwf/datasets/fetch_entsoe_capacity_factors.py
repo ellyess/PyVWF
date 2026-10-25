@@ -145,6 +145,32 @@ def _output_columns(columns) -> list:
     ]
 
 
+def _wind_output(frame: pd.DataFrame) -> pd.Series:
+    """Wind output summed over its kinds, for the hours every kind reports.
+
+    A kind can arrive under more than one column on disjoint hours (see
+    ``_output_columns``), so its columns are combined first. Each kind is then
+    required between its first and last reported hour, where a missing hour is
+    missing data. Summing whatever was there reported one kind as the whole
+    fleet, as France's onshore gap at 2023-07-20 07:00 UTC became 3 MW of
+    offshore against a 21 GW denominator, and an hour with nothing at all as
+    zero output; both are dropped. Outside its span a kind is taken not to
+    exist yet, which cannot tell a farm not yet built from one not yet
+    reported: ENTSO-E has no French offshore output before June 2023, though
+    Saint-Nazaire ran all year.
+    """
+    columns: dict[str, list] = {}
+    for col in frame.columns:
+        (kind,) = _wind_kinds([col])
+        columns.setdefault(kind, []).append(col)
+    per_kind = pd.DataFrame({k: frame[c].sum(axis=1, min_count=1) for k, c in columns.items()})
+    reported = per_kind.notna()
+    flags = reported.astype(int)
+    inside = (flags.cummax() * flags[::-1].cummax()[::-1]).astype(bool)
+    complete = (reported | ~inside).all(axis=1) & reported.any(axis=1)
+    return per_kind[complete].sum(axis=1)
+
+
 class ENTSOEWindDataFetcher:
     """Fetch wind generation and capacity data from ENTSO-E API."""
 
@@ -217,31 +243,21 @@ class ENTSOEWindDataFetcher:
                 if not wind_cols:
                     raise NoMatchingDataError(f"No wind generation data found for {country}")
 
-                # Sum onshore + offshore
-                gen = gen_data[wind_cols].sum(axis=1)
-                if not isinstance(gen, pd.DataFrame):
-                    gen = gen.to_frame(name="generation_mw")
+                gen = _wind_output(gen_data[wind_cols]).to_frame(name="generation_mw")
                 gen.attrs["wind_columns"] = _wind_kinds(wind_cols)
 
             else:
                 # Fetch specific type
                 psr_code = PSR_TYPES[psr_type]
-                gen = self.client.query_generation(
+                result = self.client.query_generation(
                     country_code=country_code,
                     start=start,
                     end=end,
                     psr_type=psr_code,
                 )
-                # Handle case where result is already a DataFrame
-                if isinstance(gen, pd.DataFrame):
-                    gen = gen[_output_columns(gen.columns)]
-                    # If multiple columns, sum them
-                    if len(gen.columns) > 1:
-                        gen = gen.sum(axis=1).to_frame(name="generation_mw")
-                    else:
-                        gen.columns = ["generation_mw"]
-                else:
-                    gen = gen.to_frame(name="generation_mw")
+                if isinstance(result, pd.DataFrame):
+                    result = _wind_output(result[_output_columns(result.columns)])
+                gen = result.dropna().to_frame(name="generation_mw")
 
             logger.info(f"  ✓ Fetched {len(gen)} data points")
             return gen
@@ -292,7 +308,7 @@ class ENTSOEWindDataFetcher:
                         col for col in _output_columns(gen_data.columns) if "Wind" in str(col)
                     ]
                     if wind_cols:
-                        gen = gen_data[wind_cols].sum(axis=1)
+                        gen = _wind_output(gen_data[wind_cols])
                         all_zones_data.append(gen)
                         summed.append(zone_code)
                         logger.info(f"    ✓ {zone_code}: {len(gen)} data points")
@@ -307,8 +323,8 @@ class ENTSOEWindDataFetcher:
                         psr_type=psr_code,
                     )
                     if isinstance(gen, pd.DataFrame):
-                        gen = gen[_output_columns(gen.columns)].sum(axis=1)
-                    all_zones_data.append(gen)
+                        gen = _wind_output(gen[_output_columns(gen.columns)])
+                    all_zones_data.append(gen.dropna())
                     summed.append(zone_code)
                     logger.info(f"    ✓ {zone_code}: {len(gen)} data points")
 
