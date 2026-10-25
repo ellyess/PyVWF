@@ -49,7 +49,9 @@ reduced to a **monthly capacity factor** before correction.
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 9 ENTSO-E countries | BE ES FR IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| 7 ENTSO-E countries | ES IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Belgium | BE | `entsoe-country` | Elia Open Data `ods031` output and monitored capacity | open | `region_tools/build_be_obs_from_elia.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| France | FR | `entsoe-country` | RTE eCO2mix definitive output + ODRE year-end fleet | mixed | `region_tools/build_fr_obs_from_rte.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
 
 ## 2. What the processing does (per region)
@@ -116,6 +118,10 @@ the [built-in adapters](adding-an-adapter.md#built-in-adapters) table.
 | CEN Chile | `sipub.api.coordinador.cl` (SIP) | API (free key) | public transparency |
 | CAMMESA (AR) | `cammesaweb.cammesa.com/erenovables/` | download | public |
 | ENTSO-E | `transparency.entsoe.eu` | API (free key) | public-by-regulation |
+| Elia (BE) | `opendata.elia.be`, dataset `ods031` | open portal | Elia Open Data Licence |
+| RTE eCO2mix (FR) | `eco2mix.rte-france.com/download/eco2mix/` (annual definitive files) | download | RTE terms of use: reuse with the source credited, no redistribution |
+| ODRE (FR fleet) | `odre.opendatasoft.com`, dataset `parc-prod-par-filiere` | open portal | Licence Ouverte v2.0 |
+| Eurostat (audit) | `nrg_bal_peh`, gross wind production | download | reuse with the source acknowledged |
 | WindStats (DE, ES) | commercial subscription | (none) | confidential, commercial |
 
 ---
@@ -206,13 +212,34 @@ for clustering (committed).
 
 ## 4. Country-level (ENTSO-E) layout
 
-The nine ENTSO-E regions use grid-sampled ERA5 against a national observed
-series. `python -m pyvwf.datasets.generate_country_level_training_data` fetches
-ENTSO-E generation and builds the grid points; the harness then trains and
-evaluates like any region. The steps, including the capacity weighting and the
-observation audit, are in
-[A country-level region](adding-a-region.md#a-country-level-region). The
-generator writes this layout:
+The nine country-level regions use grid-sampled ERA5 against a national
+observed series. `python -m pyvwf.datasets.generate_country_level_training_data`
+builds the grid points of all nine and fetches the ENTSO-E observations of
+seven; the harness then trains and evaluates like any region. The steps,
+including the capacity weighting and the observation audit, are in
+[A country-level region](adding-a-region.md#a-country-level-region), and the
+order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md).
+
+- **ENTSO-E (ES, IE, IT, NL, NO, PT, SE).** The fetch takes every wind type,
+  onshore and offshore, unless `--psr-type` names one; until 2026-10-25 it
+  took onshore alone. Generation is the wind types' output, with any
+  consumption column left out. An hour in which a wind type that reports is
+  missing is dropped, so the remaining types are never taken for the whole
+  fleet; outside a type's first and last reported hour it is taken not to
+  exist yet. The capacity-factor denominator is ENTSO-E's installed capacity.
+- **BE: Elia.** `scripts/region_tools/build_be_obs_from_elia.py` sums Elia's
+  onshore and offshore output and monitored capacity every 15 minutes,
+  averages each hour, and divides output by monitored capacity, so both cover
+  the same fleet in every hour. A step with no monitored capacity is a gap.
+- **FR: RTE.** `scripts/region_tools/build_fr_obs_from_rte.py` averages RTE's
+  half-hourly national wind output (onshore and offshore) to hours and divides
+  it by RTE's 31 December wind fleet from ODRE, interpolated linearly through
+  the year. The 02:00 and 02:30 rows of each year's two clock-change days are
+  dropped, because RTE's files cannot place them.
+
+The generator run for BE or FR without `--skip-observations` overwrites the
+builders' files with ENTSO-E's ([runbook](../runbooks/entsoe.md)). The
+generator and both builders write this layout:
 
 ```
 input/observations/country/
@@ -222,6 +249,11 @@ input/observations/country/
 
 Zonal regions (NO, SE) also carry per-zone files and an `_aggregated` national
 series.
+
+`scripts/analysis/audit_country_observations.py` divides each year's observed
+energy by Eurostat's gross wind production, from
+`configs/curation/eurostat_wind_gwh.csv`. The physical gates cannot see a
+series that measures only part of the fleet; this comparison can.
 
 ---
 
