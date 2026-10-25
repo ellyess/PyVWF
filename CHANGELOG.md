@@ -95,6 +95,16 @@ this file stay in step with it.
   offshore, interpolated through the year. The old files are kept as
   `.entsoe-capacity.bak.csv`. The zonal files are not changed. The country row
   moves; the scorecard's notice of 2026-10-25 has the figures.
+- **Norway's country-level observations are rebuilt from NVE.** ENTSO-E's
+  zone-summed generation fell short of the official totals by a different
+  share in each training year, and its capacity was ENTSO-E's register.
+  `scripts/region_tools/build_no_obs_from_nve.py` builds the training years
+  from NVE's hourly output per farm, metered at the grid connection, over
+  NVE's turbine register, counting a farm in a month only when its output
+  and registered capacity agree; the test year keeps ENTSO-E's generation over
+  the register. The old files are kept as `.entsoe.bak.csv`. The zonal files
+  are not changed. The country row moves; the scorecard's second notice of
+  2026-10-25 has the figures.
 - **Italy's and Portugal's test files for 2023 include offshore output**
   (#144). Built with the generator's onshore default, they left out the
   Taranto and WindFloat Atlantic offshore farms. They are rebuilt from
