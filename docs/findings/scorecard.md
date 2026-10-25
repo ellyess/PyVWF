@@ -22,6 +22,86 @@ number is read from a `metrics.csv` under `output/validation/`, with the source
 path given so each is auditable. Screening-level validation, one test year per
 region, not an accredited yield assessment.
 
+**Correction notice, 2026-10-25 (second): Norway's observations measured a
+different share of its fleet in each training year, and the row is rerun on
+NVE's metered farm output.** Training years 2015-21, test year 2023, national
+scope, the scorecard config `configs/regions/scorecard/no_country.toml`,
+licensed curve library (`power_curves.csv` sha256 `689cfee7…`, one curve,
+Vestas.V90.3000, origin `external`, 0% substituted, 0% extrapolated), roughness
+filled within each calendar year (#140).
+
+*What was wrong.* Norway's training file summed the bidding zones ENTSO-E
+reports. Matched hour by hour, it held 0.873 to 0.990 of the output NVE's
+farms metered each year, and Statistics Norway's official monthly wind
+production (table 12824) equals that metered output in every month of
+2015-21. In October 2015-18 it also doubled the clock-change hour. Its
+capacity was ENTSO-E's register, 26% below NVE's turbine register in 2015 and
+32% above it in 2020. In the 2023 test year ENTSO-E's generation matches
+Statistics Norway (0.974 to 1.006 by month), and only the capacity was off.
+
+| Year | ENTSO-E file, GWh | NVE metered, counted, GWh | Statistics Norway, GWh | ENTSO-E / NVE metered | Stored capacity, mean MW | NVE register, mean MW (counted) | Mean CF stored | Mean CF rebuilt |
+|---|---|---|---|---|---|---|---|---|
+| 2015 | 2,293 | 2,488 | 2,515 | 0.916 | 627 | 852 (841) | 0.421 | 0.338 |
+| 2016 | 2,103 | 2,121 | 2,116 | 0.990 | 692 | 869 (866) | 0.346 | 0.279 |
+| 2017 | 2,660 | 2,708 | 2,850 | 0.934 | 903 | 959 (932) | 0.336 | 0.326 |
+| 2018 | 3,380 | 3,705 | 3,876 | 0.873 | 1,231 | 1,435 (1,322) | 0.314 | 0.316 |
+| 2019 | 5,231 | 5,353 | 5,536 | 0.946 | 2,259 | 1,988 (1,899) | 0.265 | 0.324 |
+| 2020 | 9,293 | 8,991 | 9,911 | 0.938 | 3,861 | 3,015 (2,758) | 0.274 | 0.370 |
+| 2021 | 10,656 | 11,480 | 11,767 | 0.906 | 5,102 | 4,118 (3,999) | 0.238 | 0.326 |
+| 2023 (test) | 13,901 | (ENTSO-E) | 13,965 | | 5,130 | 5,080 | 0.309 | 0.312 |
+
+*What changed.* `scripts/region_tools/build_no_obs_from_nve.py` (`b9e812b`)
+builds the training files and the 2019 test file from NVE's hourly output per
+farm, metered by Statnett at the grid connection
+(`vindprod2002-2021_kraftverk_utcplus1.xlsx`; NVE's 2021 report, MEV WS
+2022-001, section 2.5), over NVE's turbine register. A farm counts in a month,
+output and capacity alike, only when it is metered every hour, its registered
+capacity is above zero and fixed all month, and its output never exceeds 1.05
+times that capacity: the register dates turbines when they are formally
+commissioned, often months after they start producing. That keeps 0.907 to
+0.998 of each year's metered energy, which is why the counted energy above
+falls short of Statistics Norway's in the build-out years. NVE's other file,
+`timeseries_utc_kwh_2022_all.zip`, is modelled back to 2003 for every farm and
+is not used. The 2023 test file keeps ENTSO-E's generation over the register's
+whole fleet, since the metered file ends in 2021. The files were built first in
+a separate directory and promoted into `input/combined/` with the builder's
+`--replace`, which keeps each old file as `.entsoe.bak.csv`; each promoted file
+is byte-identical to the separate build, and every split passes the physical
+gates. Data: `output/no_sources_2026-10-25/` (sources, alignment and rule
+checks) and `output/no_nve_2026-10-25/` (old files, build, runs).
+
+Every variant: the published run of 2026-10-16 (`6b3e6d9`, record-wide fill),
+a control at `b9e812b` on the old files, and the run at `b9e812b` on the
+rebuilt files, both from a clean tree. The control differs from the published
+run by at most 2.9e-4 in RMSE and MBE, the year-local fill's effect, with the
+same scalars to 4e-5, so the change from control to rebuilt is the
+observations'.
+
+| Variant | RMSE published | RMSE control | RMSE rebuilt | MBE control | MBE rebuilt | Max scalar control / rebuilt | Implausible / failed rebuilt | Months scored |
+|---|---|---|---|---|---|---|---|---|
+| uncorrected | 0.1277 | 0.1277 | 0.1308 | -0.1236 | -0.1267 |  |  | 12 of 12 |
+| fixed N=1 | 0.0376 | 0.0376 | 0.0359 | -0.0313 | -0.0293 | 1.47 / 1.52 | 0 / 0 | 12 of 12 |
+| **fixed N=4** (reported) | 0.0260 | 0.0260 | 0.0257 | -0.0138 | -0.0119 | 3.05 / 3.18 | 1 / 0 | 12 of 12 |
+| season N=1 | 0.0382 | 0.0385 | 0.0347 | -0.0314 | -0.0286 | 1.57 / 1.60 | 0 / 0 | 12 of 12 |
+| season N=4 | 0.0258 | 0.0258 | 0.0227 | -0.0147 | -0.0111 | 3.30 / 3.49 | 4 / 0 | 12 of 12 |
+
+Every corrected variant's error falls and its bias shrinks; the uncorrected
+error rises from 0.128 to 0.131, because the test year's capacity is now the
+register's 5,080 MW rather than ENTSO-E's 5,130. The reported fit stays
+degenerate: cluster 0 carries a scalar of 3.18. The reported configuration
+stays fixed N=4: it was chosen on the 2023 test year before this change, and
+season N=4, also degenerate, now has the lowest error.
+
+*Still open, not corrected here.*
+- The 1.05 test finds a farm's unregistered turbines only in hours windy
+  enough to exceed its registered capacity, so a calm build-out month can
+  still count against too small a capacity.
+- The last hour of 2021 is missing: NVE's file ends at 22:00 UTC.
+- The zonal files (`no_1` to `no_4`) keep ENTSO-E's data, and the fetcher
+  still sums an hour missing a zone as a smaller fleet and adds both October
+  clock-change hours; neither is read by this row any more.
+- NVE allows its data to be used with NVE credited and the content unchanged.
+
 **Correction notice, 2026-10-25: Sweden's capacity-factor denominator was
 built from its own generation in 2015-19, and the row is rerun on
 Energimyndigheten's fleet.** Training years 2015-21, test year 2023, national
@@ -1352,6 +1432,12 @@ divided by Energimyndigheten's fleet instead of a denominator built from its
 own generation, on the year-local roughness fill. Sweden moves 0.098 to 0.092
 uncorrected and 0.035 to 0.027 corrected, its corrected MBE -0.031 to +0.015.
 See the notice of that date.]*
+*[Note, 2026-10-25: Norway's row is rerun at `b9e812b` on NVE's metered farm
+output over its turbine register for 2015-21, and ENTSO-E's 2023 generation
+over that register, on the year-local roughness fill. Norway moves 0.128 to
+0.131 uncorrected and stays at 0.026 corrected, its corrected MBE -0.014 to
+-0.012, on a fit still degenerate (scalar 3.18). See the second notice of that
+date.]*
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Roughness | Substituted |
 |---|---|---|---|---|---|---|---|
@@ -1359,7 +1445,7 @@ See the notice of that date.]*
 | Belgium (BE) | 0.081 | **0.018** | +0.079 | +0.001 | N=3 season | per timestep | 0% |
 | Ireland (IE) | 0.045 | **0.021** | +0.036 | +0.006 | N=1 season | per timestep | 0% |
 | Sweden (SE) | 0.092 | **0.027** | -0.089 | +0.015 | N=4 fixed | per timestep | 0% |
-| Norway (NO) | 0.128 | **0.026** | -0.124 | -0.014 | N=4 fixed † | per timestep | 0% |
+| Norway (NO) | 0.131 | **0.026** | -0.127 | -0.012 | N=4 fixed † | per timestep | 0% |
 | Spain (ES) | 0.071 | **0.030** | -0.070 | +0.010 | N=4 fixed | per timestep | 0% |
 
 France's corrected RMSE, 0.022, is above its uncorrected 0.019: the
@@ -1372,7 +1458,7 @@ table):
 | Region | Config | Max scalar | Implausible scalars | Failed offsets |
 |---|---|---|---|---|
 | France (FR) | N=10 fixed | **4.71** | 1 | 0 |
-| Norway (NO) | N=4 fixed | **3.05** | 1 | 0 |
+| Norway (NO) | N=4 fixed | **3.18** | 1 | 0 |
 
 **Suspended rows, 2026-09-25.** On their grids' own curves most of their
 joint fits are refused, so Italy scores no month and Portugal 3 of 12 (third
@@ -1538,4 +1624,6 @@ rows.]* *[Note, 2026-10-22: Belgium's country-level observations come from Elia
 Open Data `ods031`, not ENTSO-E.]* *[Note, 2026-10-23: France's come from
 RTE's eCO2mix definitive series and its annual wind fleet, not ENTSO-E.]*
 *[Note, 2026-10-25: Sweden's generation is ENTSO-E's and its capacity-factor
-denominator Energimyndigheten's wind fleet.]*
+denominator Energimyndigheten's wind fleet.]* *[Note, 2026-10-25: Norway's
+training years come from NVE's metered farm output and its capacity from NVE's
+turbine register; its 2023 generation is ENTSO-E's.]*
