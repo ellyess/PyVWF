@@ -159,11 +159,11 @@ def shipped(name: str) -> RegionSpec:
 
 def test_all_shipped_configs_load():
     paths = sorted(CONFIG_DIR.glob("*.toml"))
-    assert len(paths) == 20
+    assert len(paths) == 19
     specs = [load_region(p) for p in paths]
     # Codes stay unique even for variant regions over the same country: ES-WS
     # is Spain through WindStats, SE-BZ is Sweden through per-zone observations.
-    assert len({s.code for s in specs}) == 20
+    assert len({s.code for s in specs}) == 19
 
 
 def test_shipped_granularity_classification():
@@ -191,7 +191,7 @@ def test_shipped_granularity_classification():
     ar = shipped("ar")
     assert ar.obs_unit == "plant"  # CAMMESA reports per central (plant)
     assert ar.obs_level == "turbine"
-    for name in ("nl", "fr", "be", "no", "se", "es", "it", "pt", "ie"):
+    for name in ("fr", "be", "no", "se", "es", "it", "pt", "ie"):
         spec = shipped(name)
         assert spec.obs_level == "country"
         assert spec.obs_unit == "country"

@@ -49,6 +49,10 @@ this file stay in step with it.
   the ML transfer, EU re-run, regression-compare and #155 check scripts,
   `scripts/dev/repo_stats.py`, and their tests. The four scorecard audits
   move from `scripts/studies/scorecard/` to `scripts/analysis/`.
+- **The study, superseded and LOCO region configs are archived** at the same
+  tag: `configs/regions/study/`, `configs/regions/scorecard/superseded/`,
+  `configs/regions/pinn_loco/`, and `configs/regions/nl.toml`, a region with no
+  scorecard row.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.
