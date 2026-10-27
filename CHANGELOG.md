@@ -53,6 +53,9 @@ this file stay in step with it.
   tag: `configs/regions/study/`, `configs/regions/scorecard/superseded/`,
   `configs/regions/pinn_loco/`, and `configs/regions/nl.toml`, a region with no
   scorecard row.
+- **The 2026-10-16 run of the review-agent evaluation is archived** at the same
+  tag. The harness, its five cases and the run's results summary
+  (`scripts/dev/agent_evals/results-2026-10-16.md`) stay.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.
