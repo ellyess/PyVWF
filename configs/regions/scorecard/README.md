@@ -1,16 +1,22 @@
 # Scorecard configurations
 
-The exact region configuration behind each row of
-[`docs/findings/scorecard.md`](../../../docs/findings/scorecard.md), one file
-per row, byte-identical to the file each run was made from.
+The region configuration behind each row of the
+[scorecard](../../../docs/scorecard.md), one file per row. Each is the file its
+run was made from, with three later edits that keep each run's meaning:
+`br_k60.toml` and `us_k250.toml` gained `roughness = "stored"` (`a023b4d`,
+2026-09-20), the treatment they had run under, when the default changed to
+derived; and a comment in `uk_k50.toml` and `us_k250.toml` names the renamed
+package (`4d06163`). *[Corrected 2026-10-27: this file said every
+configuration was byte-identical to its run's.]*
 
 **The canonical name always points at the row standing today.** When a row is
-superseded, its configuration moves unchanged to `superseded/<date>/` under the
-same name and the new one takes the canonical name, so a reader reaching for
-`fr_country.toml` gets the current row and the scorecard's Superseded section
-cites the dated path. The six rows never superseded still date from 2026-08-24
-(commit `41462e9`, clean tree); the eleven European rows were superseded on
-2026-09-13 (`../../../docs/findings/method-eu-rerun.md`).
+superseded, the new configuration takes the canonical name, so a reader
+reaching for `fr_country.toml` gets the current row; the old file stays in the
+history. The eleven European rows superseded on 2026-09-13 are kept under
+`superseded/2026-09-13/` at tag `archive/research-2026-10-27`. Those gained
+`roughness = "stored"` on 2026-10-27, after their runs (`8105277`), the
+treatment they had run under, and the superseded `uk_k50.toml` the same
+comment edit (`4d06163`).
 
 These are records, not the maintained region configs. `configs/regions/<code>.toml`
 carries the cluster sweep a region is developed with; the files here fix the

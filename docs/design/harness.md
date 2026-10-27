@@ -3,7 +3,7 @@
 Why the seams in `pyvwf/harness/` are where they are. The seams themselves are
 readable from the code; the reasoning behind them is not, which is what this
 document is for. Region-by-region results are in
-[`../findings/scorecard.md`](../findings/scorecard.md).
+the [scorecard](../scorecard.md).
 
 The harness is **additive**. The legacy `PyVWF` training loop, `pyvwf/metrics.py`,
 `pyvwf/data.py` and the legacy scripts all keep working unchanged, and the

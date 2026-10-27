@@ -61,6 +61,15 @@ this file stay in step with it.
   on the critics' models, all six reviewers run from one `--agents` JSON
   without `AGENTS.md` loaded, and a gate on the critics' margin over the baseline.
   Run folders under `scripts/dev/agent_evals/runs/` are no longer committed.
+- **The scorecard is published in short form at `docs/scorecard.md`**, on the
+  documentation site. It keeps both results tables, the fit-quality,
+  suspended and superseded tables and the overclaim list, and adds a table
+  naming each row's run, commit, roughness fill and curve library. Each dated
+  notice becomes one line of a corrections log linking the full scorecard at
+  tag `archive/research-2026-10-27`. It states that the reported
+  configuration is not the lowest-error variant of its run in most rows, and
+  that some scorecard configurations were edited after their runs, which
+  `configs/regions/scorecard/README.md` had called byte-identical.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.

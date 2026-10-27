@@ -107,7 +107,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | run directory | The self-contained output folder of one run, under `output/validation/<CODE>/`. | run folder, results folder |
 | manifest | A run's `run_manifest.json`: version, git state, config, and curve library identity. | metadata file, run log |
 | maintained config | A region's `configs/regions/<stem>.toml`, which may carry a cluster sweep. | main config, live config |
-| scorecard config | The byte-identical copy of the configuration behind one scorecard row, in `configs/regions/scorecard/` (`<stem>_k<N>.toml` or `<stem>_country.toml`). | refresh config |
+| scorecard config | The configuration behind one scorecard row, as it ran, in `configs/regions/scorecard/` (`<stem>_k<N>.toml` or `<stem>_country.toml`). | refresh config |
 | third-party reproducible | Regenerable by anyone from committed files, public data and the open library. | open (for a result), public (for a result) |
 | loaded extent | The lon/lat range of the ERA5 grid a run loaded, after its bbox slice. A unit inside it has its winds interpolated. Inside is a statement about position, not a check of the data in those cells. | ERA5 coverage, covered (for inside the loaded extent) |
 | off-curve value | A simulated speed below the power curve table's first speed or above its last. It has no value on the curve, so the capacity factor is missing, not zero. | out-of-range value, clipped value |
@@ -122,7 +122,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | correction notice | A dated statement that a published claim was wrong: at the top of a findings document, or bracketed in the CHANGELOG. | correction (alone, in this sense), erratum, limitation (for a correction notice) |
 | screening-level | Validation that ranks and diagnoses, and is not an accredited yield assessment. | preliminary (for validation status), indicative (for validation status) |
 | findings document | A dated research record under `docs/findings/`, named `<type>-<subject>.md`. | report (as a document type), write-up (as a document type) |
-| scorecard | `docs/findings/scorecard.md`: the index of per-region results, and the entry point to the findings. | results table, league table |
+| scorecard | `docs/scorecard.md`: the per-region results, with each row's run and fit quality. | results table, league table |
 | scorecard row | One region's reported result in the scorecard: one configuration, with its scorecard config and run directory. | headline row, best row |
 | study | One research question, with its own findings document, usually a pre-registration, its drivers in `scripts/studies/<stem>/` (the stem of the findings document) and its run directories under `output/<name>_<date>/`. | experiment (for a study), analysis (for a study) |
 | driver | A script that produces a study's numbers: a thin entry point over `pyvwf`, in the study's directory, whose recorded command line is pinned by a test. | runner, analysis script (for a driver) |

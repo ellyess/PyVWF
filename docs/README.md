@@ -71,12 +71,11 @@ which is right. These are the homes of the facts most often repeated:
 | The rules for agents | `AGENTS.md` |
 | How agents are used in development, and the counts that describe it | `design/ai-native-development.md` |
 | The commit behind a published result | `publications.md` |
-| Each region's uncorrected and corrected error, and its markers | `findings/scorecard.md`; the project README's results table is a copy, checked against it by `tests/test_readme_results.py` |
+| Each region's uncorrected and corrected error, and its markers | `scorecard.md`; the project README's results table is a copy, checked against it by `tests/test_readme_results.py` |
 
 `findings/` names carry their document type as a prefix, so two files sharing a
 prefix share a shape:
 
-- `scorecard.md` is the index of per-region results, and the entry point.
 - `region-*.md` reports one region's validation, e.g. `region-nz.md`.
 - `method-*.md` studies one method question across regions, e.g.
   `method-cluster-count.md`. A `-<code>` suffix marks a single-region deep dive

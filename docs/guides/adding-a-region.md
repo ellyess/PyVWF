@@ -37,7 +37,7 @@ copy. Chile (`cen-cl`) is the cross-check.
 | 12 | The [built-in adapters](adding-an-adapter.md#built-in-adapters) table | One row. |
 | 13 | `docs/runbooks/<stem>.md` | Acquisition and processing steps, the licence, the capacity-factor denominator and its source, and how to refresh. |
 | 14 | `docs/findings/region-<stem>.md` | The region's findings document, written after the runs. [`docs/README.md`](../README.md) sets its name and shape. |
-| 15 | `docs/findings/scorecard.md` row, and its scorecard config | The scorecard row, and a byte-identical copy of the configuration behind it, `configs/regions/scorecard/<stem>_k<N>.toml`. |
+| 15 | `docs/scorecard.md` row, and its scorecard config | The scorecard row, and an unchanged copy of the configuration its run was made from, `configs/regions/scorecard/<stem>_k<N>.toml`. |
 
 Between steps 13 and 14, run the region through the harness:
 
@@ -114,7 +114,7 @@ path. Their inputs are built by one module, not by `scripts/fetch/` and
 | 5 | `scripts/region_tools/weight_country_grid_points.py` | Replaces the uniform synthetic capacity with GWPT capacity. Add `--per-year <start> <end>`, an inclusive pair, so each year sees its own fleet. Add `--zone-aware` beside it for a region with bidding zones; it needs `--per-year`. |
 | 6 | `scripts/analysis/audit_country_observations.py` | Checks the observed series. Run it before you trust any fit. |
 | 7 | `tests/test_harness_regions.py` | Raise the shipped-config count. Pin the region's `obs_level`. |
-| 8 | `docs/findings/scorecard.md` row, and its scorecard config | As for a turbine-level region: `configs/regions/scorecard/<stem>_country.toml`. |
+| 8 | `docs/scorecard.md` row, and its scorecard config | As for a turbine-level region: `configs/regions/scorecard/<stem>_country.toml`. |
 
 Set `cluster_list` to `1`, or to the grid's own cluster count. Any other value
 raises. The value `1` gives one national cluster, an exactly determined fit.

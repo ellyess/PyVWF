@@ -208,9 +208,9 @@ unit its author has in mind.
 
 ## Scorecard rows
 
-When a result enters `docs/findings/scorecard.md`:
+When a result enters `docs/scorecard.md`:
 
-- Commit the exact configuration behind it, byte-identical, to
+- Commit the configuration its run was made from, unchanged, to
   `configs/regions/scorecard/` (`<stem>_k<N>.toml`, or `<stem>_country.toml`).
 - For a turbine-level row, fill the other brand, reference curve and
   unverifiable columns from `scripts/analysis/curve_match_audit.py`. For a
@@ -222,6 +222,10 @@ When a result enters `docs/findings/scorecard.md`:
   rule holds even when the region opted in (`[era5] allow_extrapolation =
   true`): opting in lets the run finish, and does not make the number sound.
   The markers and their rules are in `docs/README.md`.
+- Add the row's run, commit, roughness fill and curve library to the
+  scorecard's "Reproducing a row" table.
+- A correction to a row is a dated line in the scorecard's corrections log,
+  linking the notice that holds the figures before and after.
 
 ## CHANGELOG
 
