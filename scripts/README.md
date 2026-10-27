@@ -44,7 +44,6 @@ scripts/
   region_tools/     one-region helpers
     apply_turbine_specs.py         power curves and hub heights from a spec table (CL, AR)
     assign_au_curves.py            curve assignment for the AU fleet, per curve library
-    assign_country_zones.py        grid points to the bidding zone that contains them
     backfill_gwpt_start_years.py   start years for undated GWPT records, from national registers
     repair_country_capacity.py     a country CF series rebuilt on a capacity register
     weight_country_grid_points.py  GWPT capacity weights for country-level grid points
@@ -55,7 +54,6 @@ scripts/
     repo_stats.py                  count commits, PRs, tests and records at one commit: --rev <commit>
     agent_evals/evals.py           score the review agents on pre-registered cases: prepare, judge, score
   analysis/         tools that run across regions
-    validate_region.py             train, evaluate or transfer one region (also pyvwf-validate)
     run_hindcast.py                national monthly CF hindcast against the record
     export_correction_field.py     a region's gridded factor field, as NetCDF
     audit_country_observations.py  physical-bound check of every country-level series
