@@ -467,6 +467,14 @@ files differs from `fr_rte_2026-10-23/promote/` by at most 6.5e-5 in RMSE,
 for FR's degenerate row, so R2 is measured for FR here. The run on the ODRE
 files (`fr_odre_2026-10-25/promote/`) is FR's baseline for R3. Data:
 `output/fr_odre_2026-10-25/`.]*
+*[2026-10-25: Norway's observations were then rebuilt from NVE's metered farm
+output and turbine register (`scorecard.md`, second notice of that date). Its
+runs are at `b9e812b`, which contains the year-local fill. A control on the
+old files differs from `offshore_regen_2026-10-16/after/NO` by at most 2.9e-4
+in RMSE and MBE and 4e-5 in the largest scalar, within the 1e-3 predicted
+above for NO's degenerate row, so R2 is measured for NO here. The run on the
+rebuilt files (`no_nve_2026-10-25/promote/`) is NO's baseline for R3. Data:
+`output/no_nve_2026-10-25/`.]*
 
 All under `output/`. For these rows they replace the published runs of the
 2026-10-22 table as the baseline of R2 and R3: against the old runs, each row
