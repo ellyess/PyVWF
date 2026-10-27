@@ -97,8 +97,8 @@ the future vintage-aware per-plant assignment, but is never itself the curve key
 ## 4. Run the validation harness
 
 ```bash
-python scripts/analysis/validate_region.py train    --region configs/regions/us.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/us.toml \
+pyvwf-validate train    --region configs/regions/us.toml
+pyvwf-validate evaluate --region configs/regions/us.toml \
     --train-run output/validation/US/train-<timestamp>
 ```
 
