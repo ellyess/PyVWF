@@ -108,6 +108,15 @@ this file stay in step with it.
   Taranto and WindFloat Atlantic offshore farms. They are rebuilt from
   ENTSO-E with every wind type, and the old files are kept as
   `.entsoe-onshore.bak.csv`. Both rows stay suspended.
+- **Portugal's country-level observations are divided by REN's wind fleet.**
+  Their generation from ENTSO-E was sound, but their capacity-factor
+  denominator was a register ENTSO-E stopped updating in 2015-19 and, from
+  2020, an onshore register while the generation includes offshore.
+  `scripts/region_tools/build_pt_capacity_from_ren.py` keeps the generation and
+  divides it by REN Data Hub's month-end wind fleet, onshore and offshore,
+  interpolated through each month. The old files are kept as
+  `.entsoe-capacity.bak.csv`. The row stays suspended; the scorecard's note of
+  2026-10-27 has the figures.
 - **The ENTSO-E fetcher leaves consumption columns out of wind generation**
   (`pyvwf.datasets.fetch_entsoe_capacity_factors`, #144). entsoe-py splits a
   type that also draws power into its output and its consumption, and every
