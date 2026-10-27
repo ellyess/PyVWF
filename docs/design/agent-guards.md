@@ -28,7 +28,7 @@ than worked around.
 
 ## The critics' models
 
-`idea-review` sends a proposal to three critics for independent judgements.
+The three critics judge a proposal independently.
 Until 2026-10-16 all three ran on the session's own model (`model: inherit`),
 so three verdicts were one model prompted three ways. Each now names its own:
 `method-critic` and `red-team` run on `opus`, `implementation-critic` on

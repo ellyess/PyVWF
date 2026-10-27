@@ -9,7 +9,7 @@ repository as it stood before the fix, so the fix and its write-up are not
 there to find.
 
 The critics are Claude Code subagents (`.claude/agents/`), so a Claude Code
-session makes the agent calls, the way `idea-review` does; this script writes
+session makes the agent calls; this script writes
 what each call is given and scores what comes back. Three steps:
 
     python scripts/dev/agent_evals/evals.py prepare --label 2026-10-16 \\
