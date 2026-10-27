@@ -73,7 +73,7 @@ that has it, so a legacy run can still be checked out and re-run.
 | The legacy `PyVWF` class (`src/vwf/vwf.py`), `pyvwf-train`, the batch scripts `train_all_bias_corrections.py` and `evaluate_all_pyvwf_runs.py`, the year-specific grid loader, the config writer, and the harness-versus-legacy runners `regression_run_legacy.py` and `regression_run_harness.py` | `d039608`, 2026-09-24, merged through pull request #49 | 2026-09-24, so that the harness is the one path ([training guide](guides/training.md#the-legacy-path-removed)) |
 
 The thesis-era runs under `output/runs/` and the harness-regression check in
-`docs/findings/method-harness-regression.md` were made with that code.
+`docs/results.md#harness-reproduces-the-legacy-pipeline` were made with that code.
 
 ## How the commits were chosen
 

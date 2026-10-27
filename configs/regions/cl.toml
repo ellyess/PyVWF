@@ -29,7 +29,7 @@ test_years = [2024]
 # fails even in-sample. ERA5 exaggerates the north-south wind gradient (Atacama
 # too calm, Patagonia too windy) while the real fleet runs at a nearly uniform
 # capacity factor. Not a working corrected region as-is. See
-# docs/findings/region-south-america.md.
+# docs/results.md#chile-and-argentina.
 
 [era5]
 # Fleet-bounded box: 63 of 64 operating farms sit between -42.3 and -22.5;
@@ -41,7 +41,7 @@ file_tag = "CL"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 8]  # 8 avoids the k=3,5 northern extreme-scalar blow-up (docs/findings/method-cluster-count.md)
+cluster_list = [1, 8]  # 8 avoids the k=3,5 northern extreme-scalar blow-up (docs/results.md#cluster-count-per-region)
 time_slices = ["fixed", "season"]
 
 [seasons]

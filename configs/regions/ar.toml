@@ -28,7 +28,7 @@ test_years = [2024]
 # Chile: ERA5 exaggerates the wind gradient (north too calm, Patagonia too
 # windy). Partial-build plants (Villalonga II, Pomona II, ...) with obs CF near
 # 0.03-0.05 against full nameplate explain ~1/3 of the Patagonian over-
-# prediction. See docs/findings/region-south-america.md.
+# prediction. See docs/results.md#chile-and-argentina.
 
 [era5]
 # Fleet-bounded box (scripts/fetch/era5.py --region ar): GWPT AR operating farms span
@@ -39,7 +39,7 @@ file_tag = "AR"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 12]  # sweep knee (docs/findings/method-cluster-count.md)
+cluster_list = [1, 12]  # sweep knee (docs/results.md#cluster-count-per-region)
 time_slices = ["fixed", "season"]
 
 [seasons]

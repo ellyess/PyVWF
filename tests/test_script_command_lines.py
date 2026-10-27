@@ -197,9 +197,6 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    # The country weighting study's denominator table and row rule.
-    # The country weighting study's Stage 0 (method-country-weighting-prereg.md).
-    # docs/findings/method-wake-unit-prereg.md, section "Commands".
 }
 
 

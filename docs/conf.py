@@ -42,14 +42,9 @@ exclude_patterns = [
     # Instructions for coding agents, loaded by the tools, not for readers.
     "AGENTS.md",
     "CLAUDE.md",
-    # Working notes from specific research runs rather than maintained
-    # documentation. They stay in the repository, and are readable on GitHub,
-    # but are not published, so the site does not present stale run-specific
-    # numbers as guidance. The whole findings/ tree is excluded on that same
-    # reasoning: each document answers one research question against a single
-    # test year, and several record negative results whose value is the
-    # reasoning rather than the number. The maintained documentation is
-    # guides/, runbooks/ and design/, all of which are in the toctree.
+    # The records of active studies, which are not yet results. A finished
+    # study's result is published in results.md, and its records leave at the
+    # next archive tag (archive.md).
     "findings/**",
 ]
 

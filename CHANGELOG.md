@@ -70,6 +70,15 @@ this file stay in step with it.
   configuration is not the lowest-error variant of its run in most rows, and
   that some scorecard configurations were edited after their runs, which
   `configs/regions/scorecard/README.md` had called byte-identical.
+- **Finished studies' findings documents are archived** at tag
+  `archive/research-2026-10-27`, and each result has an entry on a new
+  results page, `docs/results.md`, with its years, its gates and a link to the
+  full record; negative results sit beside positive ones, and a closing section
+  lists where two records disagree. A new `docs/archive.md` says what left the
+  main branch, where it is, how to cite the Zenodo record and how to reproduce
+  from the tag. `docs/findings/` keeps only the active review-agent study.
+  Links, comments and the preregistration test move with them; the test's
+  complete-document case reads a fixture copy.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.

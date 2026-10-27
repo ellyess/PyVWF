@@ -17,7 +17,8 @@ category, so a name never repeats it: the training guide is
 | [`guides/`](guides) | How to use PyVWF: installing it, data, training, outputs, Docker, and extending it with a region, an adapter or a study (`adding-a-*.md`). Maintained, and published to the site. | procedural | `<topic>.md` |
 | [`runbooks/`](runbooks) | Per-region acquisition and processing steps, one file per region. Published. | procedural | `<iso-code>.md`; `au_nem.md` and `entsoe.md` for the NEM and the country-level regions |
 | [`design/`](design) | Why the code is shaped as it is. Published. | argumentative | `<component>.md` |
-| [`findings/`](findings) | Research records, one question each, including the negative results. Kept in the repository, readable on GitHub, deliberately **not** published to the site. | argumentative | `<type>-<subject>.md` |
+| [`findings/`](findings) | The records of active studies only, one question each. A finished study's records leave at the next archive tag. Deliberately **not** published to the site. | argumentative | `<type>-<subject>.md` |
+| [`results.md`](results.md), [`scorecard.md`](scorecard.md), [`archive.md`](archive.md) | One entry per finished result, the per-region scorecard, and where the full records are. Published. | reference | fixed names |
 | [`api.md`](api.md), [`CONTEXT.md`](CONTEXT.md) | The API reference, and the controlled vocabulary. Published. | reference | fixed names |
 | [`publications.md`](publications.md) | The published results, legacy, with the commit that produced each. Published. | reference | fixed name |
 
@@ -70,6 +71,7 @@ which is right. These are the homes of the facts most often repeated:
 | The rules for agents | `AGENTS.md` |
 | How agents are used in development, and the counts that describe it | `design/ai-native-development.md` |
 | The commit behind a published result | `publications.md` |
+| Every finished study's result, with its years and a link to its record | `results.md` |
 | Each region's uncorrected and corrected error, and its markers | `scorecard.md`; the project README's results table is a copy, checked against it by `tests/test_readme_results.py` |
 
 `findings/` names carry their document type as a prefix, so two files sharing a
@@ -116,9 +118,10 @@ opted in to extrapolation. Opting in lets the run finish; it does not make the
 number sound. For a row run before the field existed, the share comes from the
 region's extent check, and the row cites it.
 
-The findings tree is excluded from the built site on purpose. Several documents
-record negative results whose value is the reasoning rather than the number.
-Publishing them as site pages would present run-specific figures as guidance.
+The findings tree is excluded from the built site on purpose. An active
+study's record is not yet a result. When the study finishes, its result gets an
+entry in `results.md`, and its records leave at the next archive tag
+(`archive.md`).
 
 ## Two kinds of document
 

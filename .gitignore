@@ -153,5 +153,6 @@ htmlcov/
 .pytest_cache/
 
 # Private drafting space: manuscripts in preparation are not part of the
-# repository. docs/findings/ is the versioned research record.
+# repository. docs/findings/ holds active studies; finished ones are at the
+# archive tag (docs/archive.md).
 docs/manuscript/

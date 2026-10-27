@@ -9,7 +9,7 @@ come from your own CDS account for ERA5. No raw data or processed input is
 committed, because `input/` is git-ignored. This runbook is how you build them.
 
 NZ was the first pick of the July 2026 dataset survey
-(`docs/findings/dataset-survey.md`). It has open half-hourly metered generation
+(`docs/results.md#dataset-survey`). It has open half-hourly metered generation
 per plant. Its Southern-Hemisphere temperate-westerly climate over complex
 terrain is not yet in the validation set. It also has per-farm hub heights, which no other region outside
 Europe has, apart from Canada.

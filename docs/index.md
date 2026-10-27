@@ -31,14 +31,17 @@ slice your observations support.
 - **Looking for a function?** Go to the {doc}`api`.
 - **Want the validation numbers?** The {doc}`scorecard` gives each region's
   error before and after correction, on a single held-out test year, with its
-  fit quality and the run behind it. The research records behind it live in
-  `docs/findings/` in the repository rather than on this site.
+  fit quality and the run behind it. The {doc}`results` page has one entry per
+  study, negative results included, and the {doc}`archive` says where the full
+  records are.
 
 ```{toctree}
 :maxdepth: 1
 :caption: Results
 
 scorecard
+results
+archive
 ```
 
 ```{toctree}

@@ -16,12 +16,11 @@ documents use today:
   pass that reads training fits only;
 - **gates**: a non-empty ``## Gates`` (or ``## Gate``) section.
 
-Eight documents state their years by reference ("its training years and its
-test year", "the same test years") rather than naming them, and one registers
-readings instead of gates. The evaluation of the review agents
-(``agent-critics-prereg.md``) fits no data, so it has no years, and calls its
-gate "the bar". They are listed in ``PREDATES_FORM`` with the
-reason, field by field. A registered design is amended only by a dated
+Only active studies keep their documents in ``docs/findings/``; a finished
+study's documents leave at the next archive tag (``docs/archive.md``). The
+evaluation of the review agents (``agent-critics-prereg.md``) fits no data, so
+it has no years, and calls its gate "the bar". It is listed in
+``PREDATES_FORM`` with the reason, field by field. A registered design is amended only by a dated
 amendment, so they are listed rather than edited. The list is exact: a new
 document missing a field fails, and so does an entry whose field has since been
 added, so the list can only shrink.
@@ -40,49 +39,13 @@ PREREGS = sorted(FINDINGS.glob("*-prereg.md"))
 
 FIELDS = ("registration", "training_years", "test_year", "gates")
 
-_BY_REFERENCE = "states its years by reference to {}, without naming them"
-
-#: Documents missing a field, with the reason, per field.
+#: Documents missing a field, with the reason, per field. The nine other
+#: entries left with their documents at tag ``archive/research-2026-10-27``.
 PREDATES_FORM: dict[str, dict[str, str]] = {
-    "method-cluster-selection-prereg.md": {
-        "training_years": _BY_REFERENCE.format("each configuration"),
-        "test_year": _BY_REFERENCE.format("each configuration"),
-    },
-    "method-curve-library-prereg.md": {
-        "training_years": _BY_REFERENCE.format("each row's scorecard config"),
-        "test_year": _BY_REFERENCE.format("each row's scorecard config"),
-    },
-    "method-domain-split-prereg.md": {
-        "training_years": _BY_REFERENCE.format("the chapter-era control points"),
-        "test_year": _BY_REFERENCE.format("the chapter-era observations"),
-    },
-    "method-eu-rerun-prereg.md": {
-        "training_years": _BY_REFERENCE.format("each row's scorecard config"),
-        "test_year": _BY_REFERENCE.format("each row's scorecard config"),
-    },
-    "method-grid-nl-holdout-prereg.md": {
-        "training_years": _BY_REFERENCE.format("the chapter-era control points"),
-    },
-    "method-loco-interpolation-prereg.md": {
-        "training_years": _BY_REFERENCE.format("the chapter-era control points"),
-        "test_year": _BY_REFERENCE.format("the chapter-era control points"),
-    },
-    "method-national-single-cluster-prereg.md": {
-        "training_years": _BY_REFERENCE.format("the parent registration"),
-        "test_year": _BY_REFERENCE.format("the parent registration"),
-    },
-    "method-offshore-pool-prereg.md": {
-        "training_years": _BY_REFERENCE.format("the chapter-era control points"),
-        "test_year": _BY_REFERENCE.format("the chapter's evaluation"),
-    },
     "agent-critics-prereg.md": {
         "training_years": "evaluates the review agents on written proposals; no data is fitted",
         "test_year": "evaluates the review agents on written proposals; no data is fitted",
         "gates": "registers its pass criterion under 'The bar', fixed before the run (1bd9607)",
-    },
-    "method-joint-fit-reachability-prereg.md": {
-        "gates": "a classification pass that decides nothing about the method; "
-        "its fixed-in-advance readings are under 'Readings, fixed now'",
     },
 }
 
@@ -177,7 +140,7 @@ def missing_fields(text: str) -> set[str]:
 
 
 def test_the_preregistrations_are_found():
-    assert len(PREREGS) >= 16, [p.name for p in PREREGS]
+    assert PREREGS, "no preregistration in docs/findings/"
 
 
 @pytest.mark.parametrize("path", PREREGS, ids=lambda p: p.name)
@@ -204,9 +167,10 @@ def test_every_allowlisted_document_exists():
 
 
 # The check, both ways: a complete document passes, and a copy with one field
-# removed fails on that field and no other.
+# removed fails on that field and no other. The complete document is a copy of
+# the archived method-wake-unit-prereg.md, which states all four fields.
 
-COMPLETE = FINDINGS / "method-wake-unit-prereg.md"
+COMPLETE = ROOT / "tests" / "data" / "prereg" / "complete.md"
 
 REMOVALS = {
     "registration": lambda t: t.replace("**Date:**", "**Note:**"),

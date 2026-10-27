@@ -10,7 +10,7 @@ turbine-level path in ways nothing detected:
 - ``num_clu`` was ignored outright, so a file named ``factors_fixed_5.csv``
   could hold four clusters and a manifest could claim five.
 
-See docs/findings/method-country-level.md.
+See docs/results.md#the-country-level-estimator.
 """
 
 from __future__ import annotations
