@@ -28,7 +28,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "offset_fits"
 
-pytestmark = [pytest.mark.realdata, pytest.mark.slow]
+pytestmark = pytest.mark.realdata
 
 # case: (scorecard config, input root, cluster count, ERA5 directory the config reads)
 CASES = {

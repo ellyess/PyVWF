@@ -113,7 +113,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             pytest tests -q $COV
           else
-            pytest tests -q $COV -m "not slow and not realdata"
+            pytest tests -q $COV -m "not realdata"
           fi
 
   extras:
@@ -146,7 +146,7 @@ jobs:
         # shell: bash adds pipefail; the default shell does not set it, so a
         # failing pytest piped into tee passed this step until it was added.
         shell: bash
-        run: pytest tests -rs -m "not slow and not realdata" | tee /tmp/extras.log
+        run: pytest tests -rs -m "not realdata" | tee /tmp/extras.log
 
       - name: No test skipped for a missing import
         run: |

@@ -40,6 +40,10 @@ this file stay in step with it.
 
 ### Changed
 
+- **The `slow` test marker is removed.** Every test it marked is also
+  `realdata`, so it selected nothing on its own. The fast set is now
+  `pytest -m "not realdata"`, in CI, `scripts/dev/ci_local.py` and the
+  contributor guides.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.

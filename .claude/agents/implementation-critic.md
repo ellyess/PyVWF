@@ -22,7 +22,7 @@ Read `AGENTS.md`, `CONTRIBUTING.md` and `.importlinter` first.
   not a branch in calling code.
 - **Provenance.** The manifest still records what produced the numbers. New
   config keys are recorded and have defaults that reproduce current results.
-- **Tests.** What new tests are needed, fast set versus `realdata` or `slow`,
+- **Tests.** What new tests are needed, fast set versus `realdata`,
   and a known-positive case for any new check.
 - **Standing rules.** No input data committed, no credentials in files, no run
   started from outside the repository root, nothing created in the tree while a
