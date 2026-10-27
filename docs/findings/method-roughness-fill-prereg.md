@@ -485,6 +485,13 @@ would move by its observations' change as well as the fill's.
   rebuilt files can meet: no new-fill run on them exists to equal.
 - **BE** stays among R2's non-degenerate rows (at most 1e-4); **IT and PT** are
   reported and stay suspended. Each is measured against the run above.
+  *[2026-10-27: Portugal's capacity was then rebuilt from REN's month-end
+  fleet (`scorecard.md`, note of that date under the suspended rows). A control
+  at `4ccab24`, which contains the year-local fill, on the old files differs
+  from `it_pt_2023_2026-10-24/PT/` by at most 1.7e-3 in RMSE and 1.8e-3 in MBE
+  on its 3 scored months, more than R3's 1e-3; the row is suspended, so this
+  publishes nothing. The run on the rebuilt files (`pt_ren_2026-10-27/promote/`)
+  is PT's baseline. Data: `output/pt_ren_2026-10-27/`.]*
 - **R3** applies to all four, against the same runs.
 
 ## Caveats
