@@ -43,7 +43,8 @@ The rest are in `CONTRIBUTING.md`.
 - Start runs from the repository root, into `output/`, on a clean tree,
   through `scripts/dev/run_locked.py`.
 - While a run holds the lock, create or edit nothing in the tree. A hook blocks
-  file edits and tree-changing git commands; shell writes are on you.
+  file edits, tree-changing git commands, and redirects, `tee` and `sed -i`
+  into the tree; other shell writes are on you.
 
 ## Acting on state
 
