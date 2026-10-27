@@ -191,9 +191,9 @@ the rest are counted in every year.
   `https://geo.api.gouv.fr/communes?fields=code,nom,centre` (Licence Ouverte).
 
 **Bidding-zone geometry.** Real polygons vendored under
-`configs/curation/zones/` (SE/DK/IT from entsoe-py, MIT; NO from NVE, NLOD).
-Used by `scripts/region_tools/assign_country_zones.py` and the zone-aware
-weighting so a grid-point cluster is the bidding zone its observations describe.
+`configs/curation/zones/` (SE from entsoe-py, MIT; NO from NVE, NLOD).
+Used by the zone-aware weighting in
+`scripts/region_tools/weight_country_grid_points.py` so a grid-point cluster is the bidding zone its observations describe.
 That directory's README carries provenance and caveats. Not used:
 electricitymaps-contrib (AGPL) or PyPSA-Eur's derived zones.
 

@@ -35,9 +35,9 @@ hard error. Read `join_report.md` and `cl_coord_residual.csv` after processing.
 
 ```bash
 python scripts/fetch/era5.py --region cl          # 48 months 2021-2024, mainland box
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=<input root> pyvwf-validate train \
     --region configs/regions/cl.toml
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=<input root> pyvwf-validate evaluate \
     --region configs/regions/cl.toml --train-run output/validation/CL/train-<stamp>
 ```
 
