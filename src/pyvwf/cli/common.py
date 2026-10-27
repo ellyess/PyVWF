@@ -22,7 +22,7 @@ of provenance on every run makes it visible at the top of the log.
 
 Registered study constants are not arguments. A pre-registration fixes its
 seeds, gates and grids in code; a flag would let a run differ from its record
-without trace (``scripts/studies/README.md``).
+without trace (``docs/guides/adding-a-study.md``).
 """
 
 from __future__ import annotations

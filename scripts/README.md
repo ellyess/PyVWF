@@ -1,14 +1,11 @@
 # Scripts
 
-Entry points over the `pyvwf` package: data acquisition and processing, tools
-that run across regions, and the drivers of each study. Logic that more than
-one script needs belongs in `src/pyvwf/`. Every Python script parses its
-arguments with `argparse`, so `--help` lists its options. The exceptions are
-seven drivers in `studies/physics-informed/` (`d0` to `d4`, `d6` and
-`prep_rf_features.py`), the two ML transfer scripts, and two rule modules in
-`studies/method-curve-library/` (`curve_library_assign.py` and
-`curve_library_match.py`), which the study's driver and tests import and which
-have no entry point of their own.
+Entry points over the `pyvwf` package: data acquisition and processing, and
+tools that run across regions. Logic that more than one script needs belongs in
+`src/pyvwf/`. Every Python script parses its arguments with `argparse`, so
+`--help` lists its options. The drivers of the finished studies are at tag
+`archive/research-2026-10-27`; a new study's drivers go in
+`scripts/studies/<stem>/` ([`adding-a-study.md`](../docs/guides/adding-a-study.md)).
 
 The download scripts are user-executed: they use your own credentials, passed
 in the environment for one command. No raw or derived data is committed
@@ -52,7 +49,6 @@ scripts/
     run_locked.py                  run a command holding the run lock: -- <command>
     stamp.py                       run a local-only suite (realdata, pinn) and stamp the code it tested
     lock.py                        write the CI constraints files (constraints/), or --check them
-    repo_stats.py                  count commits, PRs, tests and records at one commit: --rev <commit>
     agent_evals/evals.py           score the review agents on pre-registered cases: prepare, judge, score
   analysis/         tools that run across regions
     validate_region.py             train, evaluate or transfer one region (also pyvwf-validate)
@@ -63,24 +59,19 @@ scripts/
     extent_audit.py                each scorecard row's fleet against its loaded extent
     baseline_bootstrap.py          paired bootstrap intervals for a scorecard row
     common_row_rescore.py          a scorecard row rescored on common rows
-    eu_rerun_compare.py            paired comparison of evaluate runs of one row
-    regression_compare.py          frame-level diff of two runs' outputs
+    unit_concentration.py          how concentrated a turbine-level row's error is across units
+    missing_value_audit.py         where a row's corrected capacity factors are missing, and why
+    off_curve_sensitivity.py       how much a row's result depends on dropping off-curve days
+    training_objective_check.py    whether a country-level fit's objective drops off-curve days
     export_voronoi_frames.py       cluster maps for TouchDesigner (the touchdesigner extra)
-    ml_transfer_retest.py          ML transfer, round one (also imported by physics-informed drivers)
-    ml_transfer_expanded.py        ML transfer, round two
-  studies/          one directory per study, named by its findings document (studies/README.md)
 ```
 
 ## Importing another script
 
 Logic that more than one script needs belongs in `src/pyvwf/`. A script may
 still import a sibling in its own directory, or a tool in `analysis/`, by
-putting that directory on `sys.path`. These reach further and are kept as they
-are rather than rewritten: `analysis/eu_rerun_compare.py` imports the
-roughness study's driver, and `studies/physics-informed/e1_loro.py`,
-`prep_rf_features.py` and `d0` to `d4` import from `analysis/` through the
-`scripts/` root. A new script does not add another: move the shared code into
-the package instead.
+putting that directory on `sys.path`. A new script does not reach further:
+move the shared code into the package instead.
 
 ## Retiring a script
 
@@ -88,9 +79,8 @@ A script is retired when nothing runs it any more: no test, no guide or
 runbook, no other script, and no command a findings document or pre-registration
 records as current. Delete it in its own commit, and say in that commit why,
 and which commit last had it. A script whose output a findings document reports
-stays as long as that document stands, so its numbers can be regenerated;
-`scripts/studies/README.md` maps a moved script's old path to its new one, and
-records a removal the same way. Pre-registrations keep the command lines they
+stays as long as that document stands, so its numbers can be regenerated, or
+until an archive tag preserves both. Pre-registrations keep the command lines they
 registered, whatever happens to the script.
 
 Region curation data (coordinate and capacity overrides, curated farm tables,

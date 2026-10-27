@@ -1,11 +1,11 @@
 """Pin every recorded paired-bootstrap output before the bootstrap is promoted.
 
-Five scripts compute paired bootstrap intervals, each with its own copy of the
-resampling: ``baseline_bootstrap.py``, ``unit_concentration.py``,
-``common_row_rescore.py``, ``roughness_treatment_study.py`` and
-``eu_rerun_compare.py``. Their outputs are the evidence behind correction
-notices in the scorecard and behind the roughness and European re-run
-findings. Promoting the resampling into ``pyvwf`` must leave every one of those
+Three scripts compute paired bootstrap intervals: ``baseline_bootstrap.py``,
+``unit_concentration.py`` and ``common_row_rescore.py``. Their outputs are the
+evidence behind correction notices in the scorecard. Two more,
+``roughness_treatment_study.py`` and ``eu_rerun_compare.py``, were pinned here
+until their studies were archived at tag ``archive/research-2026-10-27``.
+Promoting the resampling into ``pyvwf`` must leave every one of those
 files byte for byte as it is.
 
 Each case reruns one script for one row, in its own process with the input
@@ -15,8 +15,7 @@ file under ``output/``. The inputs (the run frames under the git-ignored
 cases skip where they are absent, which includes CI.
 
 Before this file was written, every case was run at 51807f8 and every file
-matched. The eu_rerun_compare invocation is not recorded anywhere; the one
-below is the one that reproduces all eight recorded comparisons exactly.
+matched.
 
 The files were recorded under pandas 2.3.3. Each file is compared as a table:
 non-numeric columns exactly, numeric ones to 1e-15. Byte comparison was used
@@ -51,8 +50,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 STUDY = ROOT / "output" / "curve_library_study_2026-09-11"
 BACKFILL = ROOT / "output" / "validation" / "curve_resolution_backfill_2026-09-11"
-ROUGHNESS = ROOT / "output" / "roughness_treatment_2026-09-12"
-EU_RERUN = ROOT / "output" / "eu_rerun_2026-09-12"
 
 # The input root each row's manifest records.
 COMBINED = {"DE", "DK", "UK", "US", "BR", "AU-NEM", "NZ"}
@@ -104,12 +101,12 @@ def _root(code: str) -> str:
     return "input/combined" if code in COMBINED else "input"
 
 
-def _run(script: str, args: list[str], code: str, *, extra_path: str = "") -> None:
+def _run(script: str, args: list[str], code: str) -> None:
     """Run ``scripts/<script>`` for one row, as its own process."""
     env = dict(
         os.environ,
         PYVWF_INPUT=_root(code),
-        PYTHONPATH=os.pathsep.join(p for p in ("src", extra_path) if p),
+        PYTHONPATH="src",
     )
     done = subprocess.run(
         [sys.executable, str(SCRIPTS / script), *args],
@@ -145,7 +142,7 @@ def test_baseline_bootstrap_reproduces(code, tmp_path):
 def test_unit_concentration_reproduces(code, tmp_path):
     recorded = STUDY / "baseline_bootstrap"
     _need(BACKFILL / code, recorded / f"{code}_concentration.csv")
-    _run("studies/scorecard/unit_concentration.py", [code, str(tmp_path)], code)
+    _run("analysis/unit_concentration.py", [code, str(tmp_path)], code)
     _same(tmp_path, recorded, [f"{code}_concentration.csv", f"{code}_top5_units.csv"])
 
 
@@ -158,46 +155,3 @@ def test_common_row_rescore_reproduces(code, tmp_path):
     if (recorded / f"{code}_common_rows_bootstrap.csv").exists():
         names.append(f"{code}_common_rows_bootstrap.csv")
     _same(tmp_path, recorded, names)
-
-
-@pytest.mark.parametrize("code", ["DK"])  # FR: see REGRIDDED
-def test_roughness_treatment_study_reproduces(code, tmp_path):
-    _need(ROUGHNESS / "R0" / code, ROUGHNESS / "R1" / code)
-    r0 = next((ROUGHNESS / "R0" / code).glob("evaluate-*"))
-    r1 = next((ROUGHNESS / "R1" / code).glob("evaluate-*"))
-    _run(
-        "studies/method-roughness-treatment/roughness_treatment_study.py",
-        [code, str(r0), str(r1), str(tmp_path)],
-        code,
-    )
-    # DK's recorded files sit in a subdirectory, FR's at the top level.
-    recorded = ROUGHNESS / "analysis" / code
-    if not recorded.is_dir():
-        recorded = ROUGHNESS / "analysis"
-    _same(
-        tmp_path,
-        recorded,
-        [f"{code}_roughness_{kind}.csv" for kind in ("comparison", "losses", "excluded_rows")],
-    )
-
-
-@pytest.mark.parametrize("code", ["DE", "DK", "UK"])  # BE, FR, IE, NO, SE: see REGRIDDED
-def test_eu_rerun_compare_reproduces(code, tmp_path):
-    _need(BACKFILL / code, EU_RERUN / "new" / code)
-    conditions = [f"published={next((BACKFILL / code).glob('evaluate-*-backfill'))}"]
-    if (EU_RERUN / "oldfiles_derived" / code).is_dir():
-        conditions.append(
-            f"oldfiles_derived={next((EU_RERUN / 'oldfiles_derived' / code).glob('evaluate-*'))}"
-        )
-    conditions.append(f"new={next((EU_RERUN / 'new' / code).glob('evaluate-*'))}")
-    _run(
-        "analysis/eu_rerun_compare.py",
-        [code, str(tmp_path), *conditions],
-        code,
-        extra_path="scripts/analysis",
-    )
-    _same(
-        tmp_path,
-        EU_RERUN / "analysis",
-        [f"{code}_rerun_comparison.csv", f"{code}_rerun_excluded_rows.csv"],
-    )

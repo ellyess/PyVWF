@@ -24,9 +24,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 ANALYSIS = ROOT / "scripts" / "analysis"
 BACKFILL = Path("output/validation/curve_resolution_backfill_2026-09-11")
-POOL = Path("output/pyvwf_to_grid/all_corrections_centroids.csv")
-RUNS = Path("output/runs/turbine_grid")
-SHAPES = Path("input/reference/shapes")
 
 # script: [(argv, (entry function, positional args, keyword args)), ...]
 RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
@@ -34,10 +31,10 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
     # the ones AGENTS.md and src/pyvwf/AGENTS.md give.
     "scripts/dev/run_locked.py": [
         (
-            ["--", "bash", "scripts/studies/physics-informed/run_overnight.sh"],
+            ["--", "pyvwf-validate", "train", "--region", "configs/regions/nz.toml"],
             (
                 "main",
-                (["bash", "scripts/studies/physics-informed/run_overnight.sh"],),
+                (["pyvwf-validate", "train", "--region", "configs/regions/nz.toml"],),
                 {"allow_dirty": False},
             ),
         ),
@@ -68,10 +65,6 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         (["--skip", "docs", "--skip", "pytest"], ("main", ({"docs", "pytest"}, False), {})),
     ],
     # The command docs/design/ai-native-development.md gives.
-    "scripts/dev/repo_stats.py": [
-        ([], ("main", ("HEAD",), {})),
-        (["--rev", "219567a"], ("main", ("219567a",), {})),
-    ],
     # The commands the driver's docstring and docs/findings/agent-critics-prereg.md give.
     "scripts/dev/agent_evals/evals.py": [
         (
@@ -152,41 +145,6 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    "scripts/analysis/eu_rerun_compare.py": [
-        (
-            [
-                "SE",
-                "output/eu_rerun_2026-09-12/analysis",
-                "published=A",
-                "oldfiles_derived=B",
-                "new=C",
-            ],
-            (
-                "main",
-                (
-                    "SE",
-                    "output/eu_rerun_2026-09-12/analysis",
-                    ["published=A", "oldfiles_derived=B", "new=C"],
-                ),
-                {"tag": "rerun"},
-            ),
-        ),
-        (
-            ["DK", "output/curve_library_study_2026-09-13/analysis", "--tag=T1", "T0=A", "T1=B"],
-            (
-                "main",
-                ("DK", "output/curve_library_study_2026-09-13/analysis", ["T0=A", "T1=B"]),
-                {"tag": "T1"},
-            ),
-        ),
-    ],
-    "scripts/analysis/check_issue155.py": [
-        (
-            [part, "output/issue155_check_2026-10-27"],
-            ("main", (part, "output/issue155_check_2026-10-27"), {}),
-        )
-        for part in ("r1", "r2", "pinn")
-    ],
     "scripts/analysis/extent_audit.py": [
         (["output/extent_audit_2026-09-12"], ("main", ("output/extent_audit_2026-09-12", []), {})),
         (
@@ -194,7 +152,7 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ("main", ("output/extent_audit_2026-09-12", ["DK", "FR"]), {}),
         ),
     ],
-    "scripts/studies/scorecard/missing_value_audit.py": [
+    "scripts/analysis/missing_value_audit.py": [
         (
             ["DK", "output/curve_library_study_2026-09-11/missing_value_audit"],
             (
@@ -204,7 +162,7 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    "scripts/studies/scorecard/off_curve_sensitivity.py": [
+    "scripts/analysis/off_curve_sensitivity.py": [
         (
             ["DK", "output/curve_library_study_2026-09-11/off_curve_sensitivity"],
             (
@@ -214,7 +172,7 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    "scripts/studies/scorecard/unit_concentration.py": [
+    "scripts/analysis/unit_concentration.py": [
         (
             ["DK", "output/curve_library_study_2026-09-11/unit_concentration"],
             (
@@ -224,7 +182,7 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    "scripts/studies/scorecard/training_objective_check.py": [
+    "scripts/analysis/training_objective_check.py": [
         (
             ["ES", "fixed", "4", "output/curve_library_study_2026-09-11/training_objective_check"],
             (
@@ -239,374 +197,9 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
-    "scripts/studies/physics-informed/mastr_match.py": [
-        (
-            [],
-            (
-                "main",
-                (),
-                {
-                    "archive": Path("input/raw/mastr/Gesamtdatenexport_20260918_26.1.zip"),
-                    "out": Path("output/pinn_turbine_2026-09-18/mastr"),
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-terrain-wind-deficit/terrain_deficit.py": [
-        # The registered command line takes no arguments: every path is a flag
-        # whose default is the registered one, and the years, clusters, seed
-        # and gates are constants (method-terrain-wind-deficit-prereg.md).
-        (
-            [],
-            (
-                "main",
-                (),
-                {
-                    "config": Path("configs/regions/scorecard/us_k250.toml"),
-                    "train_run": Path("output/validation/bracketed_2026-09-19/US/train-bracketed"),
-                    "evaluate_run": Path(
-                        "output/validation/bracketed_2026-09-19/US/evaluate-2022-bracketed"
-                    ),
-                    "etopo": Path("input/reference/terrain/etopo_global.nc"),
-                    "audit": Path("scripts/analysis/curve_match_audit.py"),
-                    "out": Path("output/terrain_wind_deficit_2026-09-20_corrected"),
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-cluster-selection/cluster_selection_study.py": [
-        (
-            ["output/cluster_selection_2026-09-15"],
-            ("main", ("output/cluster_selection_2026-09-15",), {}),
-        ),
-        (
-            ["output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"],
-            ("main", ("output/cluster_selection_2026-09-15", "DK onshore", "UK offshore"), {}),
-        ),
-    ],
-    "scripts/studies/method-cluster-selection/cluster_selection_gaps.py": [
-        (
-            ["output/cluster_selection_2026-09-15", "UK offshore", "50"],
-            ("main", ("output/cluster_selection_2026-09-15", "UK offshore", "50"), {}),
-        ),
-    ],
-    "scripts/studies/method-cluster-selection/cluster_sweep_cost.py": [
-        # The mode is now passed explicitly; "all" is main's own default.
-        (
-            ["be", "output/cluster_sweep_cost_2026-09-15"],
-            ("main", ("be", "output/cluster_sweep_cost_2026-09-15", "all"), {"pool": POOL}),
-        ),
-        (
-            ["dk", "output/cluster_sweep_cost_2026-09-15", "onshore"],
-            ("main", ("dk", "output/cluster_sweep_cost_2026-09-15", "onshore"), {"pool": POOL}),
-        ),
-    ],
-    "scripts/studies/method-correction-identifiability/correction_identifiability.py": [
-        (
-            ["output/identifiability_2026-09-16"],
-            ("main", ("output/identifiability_2026-09-16",), {"pool_path": POOL}),
-        ),
-    ],
-    "scripts/studies/method-correction-identifiability/loco_reference_wind.py": [
-        (
-            ["output/loco_reference_2026-09-16"],
-            ("main", ("output/loco_reference_2026-09-16",), {"pool_path": ROOT / POOL}),
-        ),
-    ],
-    "scripts/studies/method-correction-identifiability/pivot_probe.py": [
-        (
-            ["output/pivot_probe_2026-09-16"],
-            (
-                "main",
-                ("output/pivot_probe_2026-09-16",),
-                {
-                    "selection": ROOT / "output/cluster_selection_2026-09-15",
-                    "era5_dir": ROOT / "input/era5/EU_2026-09",
-                },
-            ),
-        ),
-        (
-            ["output/pivot_probe_2026-09-16", "DK", "UK"],
-            (
-                "main",
-                ("output/pivot_probe_2026-09-16", "DK", "UK"),
-                {
-                    "selection": ROOT / "output/cluster_selection_2026-09-15",
-                    "era5_dir": ROOT / "input/era5/EU_2026-09",
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-country-level/chapter_capacity_weights.py": [
-        (
-            ["output/chapter_capacity_weights_2026-09-16"],
-            (
-                "main",
-                ("output/chapter_capacity_weights_2026-09-16",),
-                {
-                    "runs": ROOT / "output/runs/turbine_grid",
-                    "gwpt": ROOT
-                    / "input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx",
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/manuscript-chapters-45/refit_control_points.py": [
-        (
-            ["output/refit_control_points_2026-09-15"],
-            ("main", ("output/refit_control_points_2026-09-15",), {"pool_path": POOL}),
-        ),
-        (
-            ["output/refit_control_points_2026-09-15", "dk", "uk"],
-            ("main", ("output/refit_control_points_2026-09-15", "dk", "uk"), {"pool_path": POOL}),
-        ),
-    ],
-    "scripts/studies/method-curve-library/curve_library_study.py": [
-        (
-            [
-                "DK",
-                "T1",
-                "output/curve_library_study_2026-09-13/T1",
-                "output/curve_library_study_2026-09-13/tables/T1_overrides.csv",
-            ],
-            (
-                "main",
-                (
-                    "DK",
-                    "T1",
-                    "output/curve_library_study_2026-09-13/T1",
-                    "output/curve_library_study_2026-09-13/tables/T1_overrides.csv",
-                ),
-                {},
-            ),
-        ),
-    ],
-    "scripts/studies/method-curve-library/curve_library_tables.py": [
-        (
-            ["output/curve_library_study_2026-09-13/tables"],
-            (
-                "main",
-                (
-                    "output/curve_library_study_2026-09-13/tables",
-                    (
-                        Path("input/reference/models.csv"),
-                        Path("input/combined/reference/models_with_library.csv"),
-                        Path("output/eu_rerun_2026-09-12/new"),
-                        Path("output/validation/refresh_2026-08-24"),
-                    ),
-                ),
-                {},
-            ),
-        ),
-    ],
-    "scripts/studies/method-distance-mask/unmasked_surface_bands.py": [
-        (
-            ["output/unmasked_bands_2026-09-15"],
-            ("main", ("output/unmasked_bands_2026-09-15",), {"pool_path": POOL, "shapes": SHAPES}),
-        ),
-    ],
-    "scripts/studies/method-domain-split/domain_split_study.py": [
-        (
-            ["output/domain_split_2026-09-15"],
-            (
-                "main",
-                ("output/domain_split_2026-09-15",),
-                {
-                    "pool_path": POOL,
-                    "runs": RUNS,
-                    "shapes": SHAPES,
-                    "era5": Path("input/era5/EU_2026-09"),
-                    "era5_chapter": Path("input/era5/EU"),
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-eu-rerun/era5_overlap_check.py": [
-        (
-            ["output/era5_overlap_2026-09-12"],
-            (
-                "main",
-                ("output/era5_overlap_2026-09-12",),
-                {"old_dir": Path("input/era5/EU"), "new_dir": Path("input/era5/EU_2026-09")},
-            ),
-        ),
-    ],
-    "scripts/studies/method-hourly-resolution/hourly_resolution_test.py": [
-        (
-            [],
-            (
-                "main",
-                (),
-                {
-                    "out": Path("output/hourly_test"),
-                    "train_run": Path("output/validation/cl_matched_2026-07-24/CL/train-matched"),
-                    "raw_cen": Path("input/raw/cen"),
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-joint-fit-reachability/reachability_pass.py": [
-        (
-            ["output/reachability_2026-09-25", "fr"],
-            ("main", ("output/reachability_2026-09-25", "fr"), {}),
-        ),
-    ],
-    "scripts/studies/method-joint-fit-reachability/reachability_offcurve.py": [
-        (
-            ["output/reachability_2026-09-25", "it"],
-            ("main", ("output/reachability_2026-09-25", "it"), {}),
-        ),
-    ],
-    "scripts/studies/method-joint-fit-reachability/reachability_tables.py": [
-        (["output/reachability_2026-09-25"], ("main", ("output/reachability_2026-09-25",), {})),
-    ],
-    "scripts/studies/method-joint-fit-reachability/offcurve_tables.py": [
-        (["output/reachability_2026-09-25"], ("main", ("output/reachability_2026-09-25",), {})),
-    ],
     # The country weighting study's denominator table and row rule.
-    "scripts/studies/method-country-weighting/denominators.py": [
-        (
-            ["output/country_weighting_2026-10-16/denominators"],
-            ("main", ("output/country_weighting_2026-10-16/denominators",), {}),
-        ),
-    ],
     # The country weighting study's Stage 0 (method-country-weighting-prereg.md).
-    "scripts/studies/method-country-weighting/stage0.py": [
-        (
-            [
-                "configs/regions/scorecard/fr_country.toml",
-                "output/country_weighting_2026-10-16/stage0",
-            ],
-            (
-                "main",
-                (
-                    "configs/regions/scorecard/fr_country.toml",
-                    "output/country_weighting_2026-10-16/stage0",
-                ),
-                {},
-            ),
-        ),
-    ],
-    "scripts/studies/method-loco-interpolation/loco_interpolation.py": [
-        (["output/loco_2026-09-13"], ("main", ("output/loco_2026-09-13",), {"pool_path": POOL})),
-    ],
-    "scripts/studies/method-national-single-cluster/national_single_cluster_study.py": [
-        (
-            ["output/national_single_cluster_2026-09-16"],
-            ("main", ("output/national_single_cluster_2026-09-16",), {}),
-        ),
-        (
-            ["output/national_single_cluster_2026-09-16", "be", "fr"],
-            ("main", ("output/national_single_cluster_2026-09-16", "be", "fr"), {}),
-        ),
-    ],
-    "scripts/studies/method-offshore-pool/offshore_pool_study.py": [
-        (
-            ["output/offshore_pool_2026-09-13"],
-            (
-                "main",
-                ("output/offshore_pool_2026-09-13",),
-                {"pool_path": POOL, "runs": RUNS, "shapes": SHAPES},
-            ),
-        ),
-    ],
-    "scripts/studies/method-roughness-treatment/roughness_treatment_study.py": [
-        (
-            ["DK", "R0_DIR", "R1_DIR", "output/roughness_treatment_2026-09-12/analysis"],
-            (
-                "main",
-                ("DK", "R0_DIR", "R1_DIR", "output/roughness_treatment_2026-09-12/analysis"),
-                {},
-            ),
-        ),
-    ],
-    "scripts/studies/method-scalar-bounds/min_cluster_size_tradeoff.py": [
-        ([], ("main", (), {"out": Path("output/min_cluster_size")})),
-    ],
     # docs/findings/method-wake-unit-prereg.md, section "Commands".
-    "scripts/studies/method-wake-unit/k0_density_slopes.py": [
-        (
-            [
-                "--cache",
-                "output/pinn_rerun_2026-09-16/cache",
-                "--config",
-                "DK=configs/regions/scorecard/dk_k100.toml",
-                "--config",
-                "DE=configs/regions/scorecard/de_k100.toml",
-                "--config",
-                "UK=configs/regions/scorecard/uk_k50.toml",
-                "--config",
-                "US=configs/regions/scorecard/us_k250.toml",
-                "--config",
-                "BR=configs/regions/scorecard/br_k60.toml",
-                "--sensitivity",
-                "DE=output/pinn_turbine_2026-09-18/cache_mastr",
-                "--seeds",
-                "0",
-                "1",
-                "2",
-                "3",
-                "42",
-                "--epochs",
-                "60",
-                "--hidden",
-                "0",
-                "--draws",
-                "1000",
-                "--out",
-                "output/method_wake_unit_<run date>/k0",
-                "--registration",
-                "docs/findings/method-wake-unit-prereg.md",
-            ],
-            (
-                "main",
-                (),
-                {
-                    "cache": Path("output/pinn_rerun_2026-09-16/cache"),
-                    "configs": [
-                        "DK=configs/regions/scorecard/dk_k100.toml",
-                        "DE=configs/regions/scorecard/de_k100.toml",
-                        "UK=configs/regions/scorecard/uk_k50.toml",
-                        "US=configs/regions/scorecard/us_k250.toml",
-                        "BR=configs/regions/scorecard/br_k60.toml",
-                    ],
-                    "sensitivity": ["DE=output/pinn_turbine_2026-09-18/cache_mastr"],
-                    "out": Path("output/method_wake_unit_<run date>/k0"),
-                    "registration": "docs/findings/method-wake-unit-prereg.md",
-                    "e1_raw": Path("output/pinn_rerun_2026-09-16/e1/e1_primary_raw.csv"),
-                    "allow_dirty": False,
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-why-corrections-do-not-transfer/pool_as_training_set.py": [
-        (
-            ["output/pool_training_2026-09-16"],
-            (
-                "main",
-                ("output/pool_training_2026-09-16",),
-                {
-                    "pool_path": ROOT / POOL,
-                    "runs": ROOT / RUNS,
-                    "selection": ROOT / "output/cluster_selection_2026-09-15",
-                },
-            ),
-        ),
-    ],
-    "scripts/studies/method-why-corrections-do-not-transfer/regime_coverage.py": [
-        (
-            ["output/regime_coverage_2026-09-16"],
-            (
-                "main",
-                ("output/regime_coverage_2026-09-16",),
-                {
-                    "pool_path": ROOT / POOL,
-                    "loco_path": ROOT / "output/loco_reference_2026-09-16/loco_reference_wind.csv",
-                    "refresh": ROOT / "output/validation/refresh_2026-08-24",
-                },
-            ),
-        ),
-    ],
 }
 
 
@@ -651,7 +244,7 @@ def test_no_driver_reads_its_arguments_by_position_and_every_parser_is_pinned():
     for path in sorted((ROOT / "scripts").rglob("*.py")):
         rel = path.relative_to(ROOT).as_posix()
         text = path.read_text()
-        if rel.startswith("scripts/studies/physics-informed/") or "__main__" not in text:
+        if "__main__" not in text:
             continue
         if "sys.argv[" in text:
             positional.append(rel)

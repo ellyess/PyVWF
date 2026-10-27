@@ -32,16 +32,14 @@ cannot run it.
 
 Usage, from the repository root:
 
-    PYTHONPATH=src python scripts/studies/scorecard/training_objective_check.py <CODE> <time_res> <k> <out_dir>
+    PYTHONPATH=src python scripts/analysis/training_objective_check.py <CODE> <time_res> <k> <out_dir>
 """
 
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "analysis"))  # the shared tools
 import baseline_bootstrap as bb
 from pyvwf.cli.common import make_parser
 from pyvwf.data import cluster_train_set, train_set

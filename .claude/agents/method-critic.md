@@ -49,7 +49,7 @@ Ask instead:
 - **Validation where it is not needed.** Every holdout has observations, so it
   is drawn from the data-rich regions, not the regions the method is for. Are
   the target regions' terrain and climate inside the range the training
-  regions cover (`scripts/studies/physics-informed/d5_regime_coverage.py`)? A
+  regions cover (`d5_regime_coverage.py`, at tag `archive/research-2026-10-27`)? A
   gain inside the covered range says little outside it.
 - **Spatial inputs as region labels.** A feature that separates regions well
   can let the model memorise region identity rather than learn physics, which
