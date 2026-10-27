@@ -16,6 +16,14 @@ written are `074f648` (`output/identifiability_2026-09-16/`), `a284d4d`
 data they are fitted to, and what follows for thesis chapters 4 and 5. Terms
 follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-27: inverse distance weighting's largest
+disagreement between the two bases is 2.7e-15 m/s, floating point, not "0.0,
+exactly".** Nearest neighbour's is exactly zero. Read as the maximum of
+`prediction_difference` per method over both distance metrics in
+`output/loco_reference_2026-09-16/loco_reference_wind.csv`. The conclusion, that
+the basis is a relabelling for every method whose weights are fixed by geometry,
+stands.
+
 **Correction notice, 2026-10-25: Belgium's and France's control points were
 fitted to observation files that did not measure the whole fleet, and the
 figures that rest on them are withdrawn.** The pool's 3 BE and 10 FR points are
@@ -274,7 +282,7 @@ reference-wind target directly:
 
 | method | largest disagreement, m/s |
 |---|---|
-| inverse distance weighting | **0.0, exactly** |
+| inverse distance weighting | **0.0, exactly** *[2026-10-27: 2.7e-15, floating point; see the correction notice]* |
 | nearest neighbour | **0.0, exactly** |
 | radial basis function | 2.3e-8, floating point |
 | ordinary kriging | **0.209** |
