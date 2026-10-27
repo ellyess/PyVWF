@@ -56,6 +56,11 @@ this file stay in step with it.
 - **The 2026-10-16 run of the review-agent evaluation is archived** at the same
   tag. The harness, its five cases and the run's results summary
   (`scripts/dev/agent_evals/results-2026-10-16.md`) stay.
+- **The review-agent evaluation gains a no-agent baseline arm**, pre-registered
+  in `docs/findings/agent-critics-baseline-prereg.md`: three generic reviewers
+  on the critics' models, all six reviewers run from one `--agents` JSON
+  without `AGENTS.md` loaded, and a gate on the critics' margin over the baseline.
+  Run folders under `scripts/dev/agent_evals/runs/` are no longer committed.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.

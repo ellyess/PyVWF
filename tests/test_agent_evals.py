@@ -101,8 +101,51 @@ def test_tokens_are_stable_and_distinct():
     assert evals.token("r", "a", "defect", "red-team") == evals.token(
         "r", "a", "defect", "red-team"
     )
-    names = {evals.token("r", p, a, c) for p in "abcde" for a in evals.ARMS for c in evals.CRITICS}
-    assert len(names) == 30
+    names = {
+        evals.token("r", p, a, c) for p in "abcde" for a in evals.ARMS for c in evals.REVIEWERS
+    }
+    assert len(names) == 60
+
+
+# ------------------------------------------------------------- reviewers
+
+
+def test_a_definition_is_read_as_flat_frontmatter_and_a_body():
+    meta, body = evals.read_definition(ROOT / ".claude" / "agents" / "method-critic.md")
+    assert (meta["name"], meta["tools"], meta["model"]) == (
+        "method-critic",
+        "Read, Grep, Glob",
+        "opus",
+    )
+    assert body.startswith("You review") and "---" not in body[:5]
+
+
+def test_the_agents_json_defines_six_read_only_reviewers_without_claude_md():
+    agents, hashes = evals.agents_json()
+    assert sorted(agents) == sorted(evals.REVIEWERS)
+    assert all(a["omitClaudeMd"] is True for a in agents.values())
+    assert all(a["tools"] == ["Read", "Grep", "Glob"] for a in agents.values())
+    for baseline, critic in evals.BASELINES.items():
+        assert agents[baseline]["model"] == agents[critic]["model"]
+        assert agents[baseline]["prompt"] == agents["baseline-1"]["prompt"]
+    assert sorted(hashes) == sorted([*evals.CRITICS, "baseline-reviewer"])
+    assert all(len(h) == 64 for h in hashes.values())
+
+
+def test_the_baseline_definition_says_nothing_about_this_repository():
+    _, body = evals.read_definition(evals.BASELINE_DEFINITION)
+    for word in (
+        "pyvwf",
+        "harness",
+        "scalar",
+        "offset",
+        "glob",
+        "AGENTS",
+        "docs/",
+        "known positive",
+    ):
+        assert word.lower() not in body.lower(), word
+    assert "Verdict: REVISE" in body
 
 
 # ---------------------------------------------------------------- parsing
@@ -228,11 +271,83 @@ def _rows(hit_pairs: set[str], alarm_pairs: set[str], pairs: list[str]) -> list[
 PAIRS = ["a", "b", "c", "d", "e"]
 
 
+def _panel_rows(kind: str, caught: set[str], alarms: set[str], pairs: list[str]) -> list[dict]:
+    """One kind's three reviewers: the first catches `caught`, the last alarms on `alarms`."""
+    names = evals.CRITICS if kind == "critic" else tuple(evals.BASELINES)
+    rows = []
+    for pair in pairs:
+        for name in names:
+            for arm, outcome in (
+                ("defect", "hit" if pair in caught and name == names[0] else "miss"),
+                ("control", "false alarm" if pair in alarms and name == names[-1] else "clear"),
+            ):
+                rows.append(
+                    {
+                        "pair": pair,
+                        "arm": arm,
+                        "critic": name,
+                        "kind": kind,
+                        "verdict": "REVISE",
+                        "outcome": outcome,
+                    }
+                )
+    return rows
+
+
+@pytest.mark.parametrize(
+    "baseline_caught, expected",
+    [
+        ({"a", "b", "c"}, "value shown"),  # 5 against 3
+        ({"a", "b", "c", "d"}, "no measurable difference"),  # 5 against 4
+        (set(PAIRS), "no measurable difference"),  # 5 against 5
+    ],
+)
+def test_the_comparison_reads_the_margin(baseline_caught, expected):
+    rows = _panel_rows("critic", set(PAIRS), set(), PAIRS)
+    rows += _panel_rows("baseline", baseline_caught, set(), PAIRS)
+    result = evals.tally(rows, PAIRS)
+    assert result["comparison"] == expected
+    assert (result["panel_hits"], result["baseline_hits"]) == (5, len(baseline_caught))
+
+
+def test_the_comparison_can_find_the_critics_worse():
+    rows = _panel_rows("critic", {"a", "b", "c", "d"}, {"a", "b"}, PAIRS)  # 4 - 2 = 2
+    rows += _panel_rows("baseline", {"a", "b", "c", "d"}, set(), PAIRS)  # 4 - 0 = 4
+    result = evals.tally(rows, PAIRS)
+    assert (result["critic_score"], result["baseline_score"]) == (2, 4)
+    assert result["comparison"] == "worse than baseline"
+
+
+def test_false_alarms_count_against_a_panel():
+    rows = _panel_rows("critic", set(PAIRS), {"a", "b", "c"}, PAIRS)  # 5 - 3 = 2
+    rows += _panel_rows("baseline", set(PAIRS), set(), PAIRS)  # 5 - 0 = 5
+    assert evals.tally(rows, PAIRS)["comparison"] == "worse than baseline"
+
+
+def test_the_clean_pair_readout_counts_only_its_two_pairs():
+    pairs = ["ftol-stall", "manifest-key", "obs-routing", "sorted-glob", "stale-affine"]
+    rows = _panel_rows("critic", {"sorted-glob", "ftol-stall"}, {"stale-affine"}, pairs)
+    rows += _panel_rows("baseline", {"ftol-stall"}, set(), pairs)
+    clean = evals.tally(rows, pairs)["clean_pairs"]
+    assert clean == {
+        "pairs": ["sorted-glob", "stale-affine"],
+        "critic caught": 1,
+        "critic false alarms": 1,
+        "baseline caught": 0,
+        "baseline false alarms": 0,
+    }
+
+
+def test_a_run_without_baseline_rows_reads_only_the_first_bar():
+    result = evals.tally(_rows(set(PAIRS), set(), PAIRS), PAIRS)
+    assert "comparison" not in result and result["passes"] is True
+
+
 def test_the_bar_passes_at_four_caught_and_one_false_alarm():
     result = evals.tally(_rows({"a", "b", "c", "d"}, {"e"}, PAIRS), PAIRS)
     assert (result["panel_hits"], result["panel_false_alarms"], result["passes"]) == (4, 1, True)
-    assert result["per_critic"]["implementation-critic"]["hits"] == 4
-    assert result["per_critic"]["red-team"]["false alarms"] == 1
+    assert result["per_reviewer"]["implementation-critic"]["hits"] == 4
+    assert result["per_reviewer"]["red-team"]["false alarms"] == 1
 
 
 def test_the_bar_fails_at_three_caught():
@@ -254,7 +369,7 @@ def test_a_pair_counts_once_however_many_critics_catch_it():
 
 
 def test_blocking_verdicts_are_counted_per_arm():
-    counts = evals.tally(_rows(set(), set(), PAIRS), PAIRS)["per_critic"]["method-critic"]
+    counts = evals.tally(_rows(set(), set(), PAIRS), PAIRS)["per_reviewer"]["method-critic"]
     assert counts["blocking verdicts, defect arm"] == 5
     assert counts["blocking verdicts, control arm"] == 0
 
@@ -262,8 +377,11 @@ def test_blocking_verdicts_are_counted_per_arm():
 # ------------------------------------------------------------ end to end
 
 
-def _scored_run(tmp_path, monkeypatch, calibration_answer):
-    """A run of two reviews, judged, with every calibration answered the same way."""
+def _scored_run(tmp_path, monkeypatch, calibration_answer, baseline=False):
+    """A run of two reviews, judged, with every calibration answered the same way.
+
+    With ``baseline``, a third review by a baseline reviewer, which misses.
+    """
     monkeypatch.setattr(evals, "RUNS", tmp_path)
     run_dir = tmp_path / "t"
     (run_dir / "responses").mkdir(parents=True)
@@ -273,6 +391,16 @@ def _scored_run(tmp_path, monkeypatch, calibration_answer):
         {"token": "t1", "pair": "obs-routing", "arm": "defect", "critic": "implementation-critic"},
         {"token": "t2", "pair": "obs-routing", "arm": "control", "critic": "red-team"},
     ]
+    if baseline:
+        tasks.append(
+            {
+                "token": "t3",
+                "pair": "obs-routing",
+                "arm": "defect",
+                "critic": "baseline-2",
+                "kind": "baseline",
+            }
+        )
     record = {
         "label": "t",
         "critic_model": "m",
@@ -286,6 +414,8 @@ def _scored_run(tmp_path, monkeypatch, calibration_answer):
     (run_dir / "responses" / "t2.md").write_text(
         "**Verdict:** PROCEED\n\nFiles read:\n/elsewhere/AGENTS.md\n"
     )
+    if baseline:
+        (run_dir / "responses" / "t3.md").write_text("**Verdict:** PROCEED\n\nLooks fine.\n")
     evals.judge(run_dir, "t")
     record = evals.json.loads((run_dir / "run.json").read_text())
     for cal in record["calibration"]:
@@ -297,6 +427,8 @@ def _scored_run(tmp_path, monkeypatch, calibration_answer):
         "FOUND: YES\nQUOTE: counts distinct `obs` values with `nunique`"
     )
     (run_dir / "judgements" / "t2.md").write_text("FOUND: NO\nQUOTE: NONE")
+    if baseline:
+        (run_dir / "judgements" / "t3.md").write_text("FOUND: NO\nQUOTE: NONE")
     return evals.score(run_dir)
 
 
@@ -337,3 +469,20 @@ def test_judging_is_refused_while_a_review_is_missing(tmp_path, monkeypatch):
     (run_dir / "run.json").write_text(evals.json.dumps({"tasks": [task]}))
     with pytest.raises(SystemExit, match="1 responses missing"):
         evals.judge(run_dir, "t")
+
+
+def test_a_scored_run_with_a_baseline_reads_the_comparison(tmp_path, monkeypatch):
+    result = _scored_run(tmp_path, monkeypatch, _honest, baseline=True)
+    assert (result["panel_hits"], result["baseline_hits"]) == (1, 0)
+    assert result["comparison"] == "no measurable difference"  # 1 against 0
+    summary = (tmp_path / "t" / "results.md").read_text()
+    assert "Comparison: critic score 1, baseline score 0: no measurable difference" in summary
+    assert "implementation-critic against baseline-2: hits 1 and 0" in summary
+
+
+def test_an_uncalibrated_judge_leaves_the_comparison_unread(tmp_path, monkeypatch):
+    result = _scored_run(
+        tmp_path, monkeypatch, lambda kind, text: _honest("positive", text), baseline=True
+    )
+    assert (result["passes"], result["baseline_passes"], result["comparison"]) == (None, None, None)
+    assert "baseline score 0: not read" in (tmp_path / "t" / "results.md").read_text()
