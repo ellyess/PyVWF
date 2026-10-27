@@ -14,6 +14,13 @@ elimination) and `8a7bcb8` (`output/regime_coverage_2026-09-16/`).
 correction in an unseen one, whether by spatial interpolation (thesis chapter
 4) or by a learned model (chapter 5). Terms follow `CONTEXT.md`.
 
+**Correction notice, 2026-10-27: the caveats said five of the twelve folds hold
+five points or fewer; the fold table shows eight.** BE, IE, IT and PT hold 3
+points, ES and SE 4, NO and NL 5 (the fold table of elimination 4, from
+`output/regime_coverage_2026-09-16/`). No other figure changes, and the
+argument, which already treats every small fold's R-squared as uninformative,
+stands.
+
 **Correction notice, 2026-10-25: Belgium's and France's holdout folds were
 scored on control points fitted to observation files that did not measure the
 whole fleet; their errors are withdrawn, and the coverage elimination stands
@@ -246,7 +253,8 @@ tests the surviving claim. Named, not costed in hours, and not started.
 ## Caveats
 
 - **Twelve folds, one held-out year each**, and five of the twelve hold five
-  points or fewer. Screening-level throughout.
+  points or fewer. *[2026-10-27: eight of the twelve; see the correction
+  notice.]* Screening-level throughout.
 - **The feature space is terrain only**: elevation, slope, roughness and
   curvature from ETOPO at 30 arcseconds, the same derivation the
   machine-learning work used. A regime that differs climatically but not
