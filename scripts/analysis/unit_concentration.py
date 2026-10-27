@@ -17,7 +17,8 @@ frames as ``baseline_bootstrap.py``:
   fragility is specific to RMSE.
 
 It is the evidence for the concentration figures in the 2026-09-11 correction
-notice in ``docs/findings/scorecard.md``.
+notice in the full scorecard at tag ``archive/research-2026-10-27``
+(``docs/findings/scorecard.md``).
 
 What was decided when:
 

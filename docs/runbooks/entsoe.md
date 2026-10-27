@@ -8,7 +8,7 @@ instead: Elia for BE and RTE for FR.
 region (SE-BZ) · country-level · unit = country · open, except FR
 (see [Licence](#licence)).
 **Regions:** BE, ES, FR, IE, IT, NO, PT and SE in the scorecard. NL is
-excluded; see [`scorecard.md`](../findings/scorecard.md).
+excluded; see the [scorecard](../scorecard.md).
 **Configs:** `configs/regions/<cc>.toml`; each scorecard row is
 `configs/regions/scorecard/<cc>_country.toml`.
 
@@ -117,7 +117,7 @@ raises.
 2026-09-25 they ran on the default root, where every unit was simulated on the
 open library's 100 kW fallback curve; `curve_resolution.csv` recorded it, and
 the run went on. Italy and Portugal are suspended on the licensed curves,
-because most of their joint fits are refused (`docs/findings/scorecard.md`).
+because most of their joint fits are refused (`docs/scorecard.md`).
 
 ## Licence
 

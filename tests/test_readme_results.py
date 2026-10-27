@@ -1,6 +1,6 @@
 """The README's results table is a copy of the scorecard's, and must agree with it.
 
-``docs/findings/scorecard.md`` is the home of every per-region result
+``docs/scorecard.md`` is the home of every per-region result
 (``docs/README.md``, "One home per fact"). The README carries a short copy so a
 reader meets the numbers before the caveats, and a copy drifts: a re-run
 updates the scorecard and leaves the README behind. This reads both tables and
@@ -55,7 +55,7 @@ def _code(cell: str) -> str:
 
 
 def _scorecard() -> dict[str, dict]:
-    tables = _tables((ROOT / "docs/findings/scorecard.md").read_text())
+    tables = _tables((ROOT / "docs/scorecard.md").read_text())
     rows = {}
     turbine = _one(tables, {"Region", "Fleet (test)", "Uncorr RMSE", "Corr RMSE"}, "scorecard")
     for r in turbine:
@@ -116,10 +116,10 @@ def test_each_readme_row_matches_the_scorecard(code):
 
 def test_a_changed_scorecard_number_is_caught(tmp_path, monkeypatch):
     """The check fires: move one scorecard figure and the README no longer agrees."""
-    text = (ROOT / "docs/findings/scorecard.md").read_text()
+    text = (ROOT / "docs/scorecard.md").read_text()
     moved = text.replace("| 0.086 | **0.057** |", "| 0.086 | **0.058** |", 1)
     assert moved != text, "the Germany row was not found to move"
-    (tmp_path / "docs/findings").mkdir(parents=True)
-    (tmp_path / "docs/findings/scorecard.md").write_text(moved)
+    (tmp_path / "docs").mkdir(parents=True)
+    (tmp_path / "docs/scorecard.md").write_text(moved)
     monkeypatch.setattr(sys.modules[__name__], "ROOT", tmp_path)
     assert _scorecard()["DE"]["corrected"] != README["DE"]["corrected"]

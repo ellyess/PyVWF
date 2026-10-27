@@ -16,7 +16,8 @@ resamples, and reports 95% percentile intervals for:
 It was written to size the curve library study's baseline conditions (C0 for
 the country-level rows, T0 for the turbine-level rows) before its gates were
 fixed. The same output is the evidence for the 2026-09-11 correction notice
-in ``docs/findings/scorecard.md``.
+in the full scorecard at tag ``archive/research-2026-10-27``
+(``docs/findings/scorecard.md``).
 
 Fixed before any interval was computed, on 2026-09-11:
 

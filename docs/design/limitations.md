@@ -5,9 +5,8 @@ home of the full list. The project README carries the three limitations that
 decide whether someone should use the package at all, and links here for the
 rest.
 
-Per-region results and their caveats are separate, and live in the scorecard,
-[`docs/findings/scorecard.md`](https://github.com/ellyess/PyVWF/blob/main/docs/findings/scorecard.md)
-in the repository.
+Per-region results and their caveats are separate, and live in the
+[scorecard](../scorecard.md).
 
 ## The correction is statistical, not physical
 

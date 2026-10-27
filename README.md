@@ -52,7 +52,7 @@ including maps of what the correction learned per cluster.
 - **What it does, and how well:** the [results table](#results) below, corrected
   against uncorrected error in fifteen regions, each on a test year it never
   saw, including the region where the correction makes things worse.
-- **Where each number comes from:** the [scorecard](docs/findings/scorecard.md),
+- **Where each number comes from:** the [scorecard](docs/scorecard.md),
   with the run directory and the fit quality behind every row.
 - **How it is built:** [development with coding agents](docs/design/ai-native-development.md),
   and its [case study](docs/design/ai-native-development.md#case-study-a-stale-comparison-in-the-physics-informed-study)
@@ -153,9 +153,9 @@ numbers with their markers:
   yield assessment.
 
 Every number, its source path, its fit quality and the size of each marked
-share are in the [scorecard](docs/findings/scorecard.md), which is their home;
+share are in the [scorecard](docs/scorecard.md), which is their home;
 `tests/test_readme_results.py` checks this table against it. The regions where
-the correction does not help are written up beside it in
+the correction does not help are written up in
 [docs/findings/](docs/findings/).
 
 ## Physics-informed correction (experimental)
