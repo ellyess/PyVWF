@@ -102,7 +102,6 @@ SUITES = {
             "tests/test_pinn_era5_record.py",
             "tests/test_pinn_country_cache.py",
             "tests/test_pinn_level_spatial_gwa.py",
-            "tests/test_pinn_cache_override.py",
         ),
         requires=("torch", "rasterio"),
     ),

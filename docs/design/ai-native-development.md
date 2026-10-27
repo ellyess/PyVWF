@@ -107,9 +107,8 @@ run measures the review agents, not a correction.
 
 ## Counts
 
-`scripts/dev/repo_stats.py` produces this table from git and the tracked tree
-at one commit. `tests/test_repo_stats.py` checks each count on a repository
-built to known counts, and on one with none.
+`scripts/dev/repo_stats.py` produced this table from git and the tracked tree
+at one commit; it and its test are at tag `archive/research-2026-10-27`.
 
 Counts at `219567a` (2026-10-16), from
 `python scripts/dev/repo_stats.py --rev 219567a`.
@@ -153,7 +152,8 @@ in-region affine correction in 3 of 4 regions never used as holdouts. Since
 matched Brazil's own fitted correction to 0.8%. Both rested on an
 "affine, in region" column with two faults:
 
-- `scripts/studies/physics-informed/e1_report.py` read it from the cluster
+- `scripts/studies/physics-informed/e1_report.py` (now at tag
+  `archive/research-2026-10-27`) read it from the cluster
   sweep of 2026-07-24 (its `SWEEP` constant). The scorecard had replaced that
   sweep four times since.
 - It was scored on the harness's common rows, which leave out every unit in a
@@ -169,7 +169,7 @@ so the chains are not the difference. The explanation was dropped, and the
 commit message of `46a039f` records it as tested and wrong.
 
 **The rescoring was checked against a known answer first.** The driver
-`scripts/studies/physics-informed/affine_on_pinn_rows.py` scores the current
+`scripts/studies/physics-informed/affine_on_pinn_rows.py` (at the same tag) scores the current
 scorecard rows on the model's rows, the way the model's drivers score. Before
 its result was used, a dry run reproduced the scorecard's affine RMSE where the
 affine rows cover all the model's rows (DK 0.0853, NZ 0.1046). The run was made

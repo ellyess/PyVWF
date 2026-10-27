@@ -42,7 +42,7 @@ that exists to catch a failure rather than to compute a number, confirm it has
 been proved to catch that failure, and record when it was. Proving one is
 cheap: point it at input you know is wrong and watch it refuse.
 
-Three are in play, and their state as of 2026-09-13 (the override refusal updated 2026-10-16):
+Three were in play, and their state as of 2026-09-13 (the override refusal updated 2026-10-16). The curve library study, and its two guards, are now at tag `archive/research-2026-10-27`; the extent guard is in the package:
 
 | Guard | What it refuses | Proved to fire |
 |---|---|---|

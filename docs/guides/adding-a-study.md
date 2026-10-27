@@ -92,6 +92,7 @@ output was written.
 The link then runs both ways. Every driver is named by the header of its
 findings document, so an audit of the two directories is mechanical.
 
-A driver that moves keeps a row in the path map of
-[`scripts/studies/README.md`](../../scripts/studies/README.md). A dated
-command that names the old path then still resolves.
+A driver that moves says so in its commit message, with the old path, so a
+dated command that names the old path can still be traced. The drivers of the
+studies finished before 2026-10-27, and their path map, are at tag
+`archive/research-2026-10-27`.

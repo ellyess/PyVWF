@@ -44,6 +44,11 @@ this file stay in step with it.
   `realdata`, so it selected nothing on its own. The fast set is now
   `pytest -m "not realdata"`, in CI, `scripts/dev/ci_local.py` and the
   contributor guides.
+- **The finished studies' scripts are archived** at tag
+  `archive/research-2026-10-27`: `scripts/studies/` (21 study directories),
+  the ML transfer, EU re-run, regression-compare and #155 check scripts,
+  `scripts/dev/repo_stats.py`, and their tests. The four scorecard audits
+  move from `scripts/studies/scorecard/` to `scripts/analysis/`.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.
