@@ -1,25 +1,30 @@
 """Measure whether the review agents catch defects this repository has caught.
 
 The cases, the scoring rule and the pass bar are pre-registered in
-`docs/findings/agent-critics-prereg.md`; this script carries them out and
-changes none of them. Each case in `cases/` is a matched pair: a proposal
+`docs/findings/agent-critics-prereg.md`, and the comparison with a no-agent
+baseline in `docs/findings/agent-critics-baseline-prereg.md`; this script
+carries them out and changes none of them. Each case in `cases/` is a matched pair: a proposal
 carrying a defect the repository found and fixed, and the same proposal with
 the defect removed. A critic reviews one proposal against a checkout of the
 repository as it stood before the fix, so the fix and its write-up are not
 there to find.
 
-The critics are Claude Code subagents (`.claude/agents/`), so a Claude Code
-session makes the agent calls; this script writes
-what each call is given and scores what comes back. Three steps:
+Six reviewers review each proposal: the three critics (`.claude/agents/`)
+and three replicates of a generic baseline (`baseline-reviewer.md`), each on
+its matched critic's model. A Claude Code session makes the calls; this script
+writes what each call is given and scores what comes back. Three steps:
 
-    python scripts/dev/agent_evals/evals.py prepare --label 2026-10-16 \\
-        --critic-model claude-opus-5-5 --judge-model claude-sonnet-5-5
-    # the session sends prompts/<token>.md to the critic run.json names for it,
-    # and saves each reply, unedited, as responses/<token>.md
-    python scripts/dev/agent_evals/evals.py judge --label 2026-10-16
+    python scripts/dev/agent_evals/evals.py prepare --label 2026-11-01 \\
+        --judge-model claude-sonnet-5-5
+    claude --agents "$(cat scripts/dev/agent_evals/runs/2026-11-01/agents.json)"
+    # in that session, send prompts/<token>.md to the reviewer run.json names
+    # for it, and save each reply, unedited, as responses/<token>.md. The JSON
+    # defines all six reviewers with omitClaudeMd, so none has AGENTS.md
+    # loaded; each can still open the snapshot's copy with Read.
+    python scripts/dev/agent_evals/evals.py judge --label 2026-11-01
     # the session gives each judge_prompts/<token>.md to the judge model, and
     # saves each answer as judgements/<token>.md
-    python scripts/dev/agent_evals/evals.py score --label 2026-10-16
+    python scripts/dev/agent_evals/evals.py score --label 2026-11-01
 
 Nothing here touches the network; the agent calls are the session's.
 """
@@ -49,6 +54,14 @@ RUNS = HERE / "runs"
 SNAPSHOT_ROOT = Path(tempfile.gettempdir()) / "pyvwf-checkouts"
 
 CRITICS = ("method-critic", "implementation-critic", "red-team")
+#: The baseline replicates, each on its matched critic's model.
+BASELINES = {
+    "baseline-1": "method-critic",
+    "baseline-2": "implementation-critic",
+    "baseline-3": "red-team",
+}
+REVIEWERS = CRITICS + tuple(BASELINES)
+BASELINE_DEFINITION = HERE / "baseline-reviewer.md"
 ARMS = ("defect", "control")
 VERDICTS = ("PROCEED", "REVISE", "REJECT")
 BLOCKING = frozenset({"REVISE", "REJECT"})
@@ -60,6 +73,12 @@ MIN_QUOTE = 15
 PANEL_HITS_TO_PASS = 4
 # ... and raises the paired defect on at most this many of the five controls.
 PANEL_FALSE_ALARMS_ALLOWED = 1
+# The comparison with the baseline, fixed in the second pre-registration: the
+# critic panel's score (defects caught minus controls with a false alarm) must
+# beat the baseline panel's by this much to show value.
+VALUE_MARGIN = 2
+# The two pairs no critic definition could have been shaped by.
+CLEAN_PAIRS = ("sorted-glob", "stale-affine")
 
 PAIR_FIELDS = ("pair", "snapshot", "source_commit", "source_document", "expected_catchers")
 KEY_FIELDS = ("defect", "judge_positive", "judge_negative")
@@ -187,6 +206,43 @@ def extract_snapshot(sha: str, dest: Path) -> None:
             tar.extractall(dest)  # noqa: S202 - our own repository's archive
 
 
+def read_definition(path: Path) -> tuple[dict[str, str], str]:
+    """An agent definition's flat frontmatter, and its body."""
+    _, front, body = path.read_text().split("---\n", 2)
+    meta = {}
+    for line in front.splitlines():
+        key, _, value = line.partition(":")
+        if key.strip():
+            meta[key.strip()] = value.strip()
+    return meta, body.strip()
+
+
+def agent_entry(meta: dict[str, str], body: str, model: str) -> dict:
+    """One reviewer for `claude --agents`, kept from reading CLAUDE.md."""
+    return {
+        "description": meta["description"],
+        "prompt": body,
+        "tools": [t.strip() for t in meta["tools"].split(",")],
+        "model": model,
+        "omitClaudeMd": True,
+    }
+
+
+def agents_json() -> tuple[dict[str, dict], dict[str, str]]:
+    """The six reviewers as `--agents` JSON, and each definition file's sha256."""
+    agents, hashes = {}, {}
+    for critic in CRITICS:
+        path = ROOT / ".claude" / "agents" / f"{critic}.md"
+        meta, body = read_definition(path)
+        agents[critic] = agent_entry(meta, body, meta["model"])
+        hashes[critic] = _sha256(path)
+    meta, body = read_definition(BASELINE_DEFINITION)
+    for name, matched in BASELINES.items():
+        agents[name] = agent_entry(meta, body, agents[matched]["model"])
+    hashes["baseline-reviewer"] = _sha256(BASELINE_DEFINITION)
+    return agents, hashes
+
+
 def critic_prompt(text: str, snapshot: Path) -> str:
     return CRITIC_PROMPT.format(snapshot=snapshot, proposal=text)
 
@@ -202,9 +258,9 @@ def judge_prompt(defect: str, review: str) -> str:
 
 
 def prepare(
-    run_dir: Path, label: str, critic_model: str, judge_model: str, snapshot_root: Path
+    run_dir: Path, label: str, critic_model: str | None, judge_model: str, snapshot_root: Path
 ) -> dict:
-    """Extract the snapshots and write one prompt per (case, arm, critic)."""
+    """Extract the snapshots and write one prompt per (case, arm, reviewer)."""
     if run_dir.exists():
         raise SystemExit(f"{run_dir} exists; a run is prepared once")
     pairs = load_cases()
@@ -215,6 +271,8 @@ def prepare(
             if tells:
                 raise SystemExit(f"{case['pair']} {arm} proposal is not blind: {tells}")
     (run_dir / "prompts").mkdir(parents=True)
+    agents, definitions = agents_json()
+    (run_dir / "agents.json").write_text(json.dumps(agents, indent=2) + "\n")
     snapshots, tasks = {}, []
     for case in pairs:
         sha = _git("rev-parse", case["snapshot"])
@@ -223,12 +281,21 @@ def prepare(
             extract_snapshot(sha, where)
         snapshots[case["pair"]] = {"rev": case["snapshot"], "sha": sha, "dir": str(where)}
         for arm in ARMS:
-            for critic in CRITICS:
-                name = token(label, case["pair"], arm, critic)
+            for reviewer in REVIEWERS:
+                name = token(label, case["pair"], arm, reviewer)
                 (run_dir / "prompts" / f"{name}.md").write_text(
                     critic_prompt(proposal(case, arm), where)
                 )
-                tasks.append({"token": name, "pair": case["pair"], "arm": arm, "critic": critic})
+                tasks.append(
+                    {
+                        "token": name,
+                        "pair": case["pair"],
+                        "arm": arm,
+                        "critic": reviewer,
+                        "kind": "baseline" if reviewer in BASELINES else "critic",
+                        "model": agents[reviewer]["model"],
+                    }
+                )
     tasks.sort(key=lambda t: t["token"])
     record = {
         "label": label,
@@ -237,14 +304,17 @@ def prepare(
         "judge_model": judge_model,
         "harness_commit": _git("rev-parse", "HEAD"),
         "harness_dirty": bool(_git("status", "--porcelain")),
-        "critic_definitions": {
-            c: _sha256(ROOT / ".claude" / "agents" / f"{c}.md") for c in CRITICS
-        },
+        "definitions": definitions,
+        "omit_claude_md": True,
         "snapshots": snapshots,
         "tasks": tasks,
     }
     (run_dir / "run.json").write_text(json.dumps(record, indent=2) + "\n")
-    print(f"{len(tasks)} prompts in {run_dir / 'prompts'}; send each to the critic run.json names")
+    print(
+        f"{len(tasks)} prompts in {run_dir / 'prompts'}; start the session with "
+        f'claude --agents "$(cat {run_dir / "agents.json"})" and send each prompt to '
+        "the reviewer run.json names for it"
+    )
     return record
 
 
@@ -344,12 +414,43 @@ def outcome(arm: str, verdict: str | None, found: bool, excluded: bool) -> str:
     return "false alarm" if found else "clear"
 
 
+def panel(rows: list[dict], pairs: list[str]) -> tuple[dict, int, int]:
+    """Per pair, whether any of these reviewers caught the defect or raised a false alarm."""
+    result = {}
+    for pair in pairs:
+        defect = [r["outcome"] for r in rows if r["pair"] == pair and r["arm"] == "defect"]
+        control = [r["outcome"] for r in rows if r["pair"] == pair and r["arm"] == "control"]
+        result[pair] = {
+            "defect caught": "hit" in defect,
+            "control false alarm": "false alarm" in control,
+        }
+    hits = sum(p["defect caught"] for p in result.values())
+    alarms = sum(p["control false alarm"] for p in result.values())
+    return result, hits, alarms
+
+
+def absolute_bar(hits: int, alarms: int) -> bool:
+    """The first registration's bar, applied to one panel."""
+    return hits >= PANEL_HITS_TO_PASS and alarms <= PANEL_FALSE_ALARMS_ALLOWED
+
+
+def compare(critic_score: int, baseline_score: int) -> str:
+    """The second registration's gate on the two panel scores."""
+    if critic_score >= baseline_score + VALUE_MARGIN:
+        return "value shown"
+    if critic_score <= baseline_score - VALUE_MARGIN:
+        return "worse than baseline"
+    return "no measurable difference"
+
+
 def tally(rows: list[dict], pairs: list[str]) -> dict:
-    """Per-critic counts, the panel's per-pair result, and the pass bar."""
-    per_critic = {}
-    for critic in CRITICS:
-        mine = [r for r in rows if r["critic"] == critic]
-        per_critic[critic] = {
+    """Per-reviewer counts, a panel per kind, both bars, and the clean-pair readout."""
+    per_reviewer = {}
+    for name in REVIEWERS:
+        mine = [r for r in rows if r["critic"] == name]
+        if not mine:
+            continue
+        per_reviewer[name] = {
             "hits": sum(r["outcome"] == "hit" for r in mine),
             "noted": sum(r["outcome"] == "noted" for r in mine),
             "misses": sum(r["outcome"] == "miss" for r in mine),
@@ -363,23 +464,41 @@ def tally(rows: list[dict], pairs: list[str]) -> dict:
                 r["verdict"] in BLOCKING for r in mine if r["arm"] == "control"
             ),
         }
-    panel = {}
-    for pair in pairs:
-        defect = [r["outcome"] for r in rows if r["pair"] == pair and r["arm"] == "defect"]
-        control = [r["outcome"] for r in rows if r["pair"] == pair and r["arm"] == "control"]
-        panel[pair] = {
-            "defect caught": "hit" in defect,
-            "control false alarm": "false alarm" in control,
-        }
-    hits = sum(p["defect caught"] for p in panel.values())
-    alarms = sum(p["control false alarm"] for p in panel.values())
-    return {
-        "per_critic": per_critic,
-        "panel": panel,
+    critic_panel, hits, alarms = panel(
+        [r for r in rows if r.get("kind", "critic") == "critic"], pairs
+    )
+    result = {
+        "per_reviewer": per_reviewer,
+        "panel": critic_panel,
         "panel_hits": hits,
         "panel_false_alarms": alarms,
-        "passes": hits >= PANEL_HITS_TO_PASS and alarms <= PANEL_FALSE_ALARMS_ALLOWED,
+        "passes": absolute_bar(hits, alarms),
     }
+    baseline_rows = [r for r in rows if r.get("kind") == "baseline"]
+    if baseline_rows:
+        baseline_panel, b_hits, b_alarms = panel(baseline_rows, pairs)
+        clean = [p for p in CLEAN_PAIRS if p in pairs]
+        result.update(
+            baseline_panel=baseline_panel,
+            baseline_hits=b_hits,
+            baseline_false_alarms=b_alarms,
+            baseline_passes=absolute_bar(b_hits, b_alarms),
+            critic_score=hits - alarms,
+            baseline_score=b_hits - b_alarms,
+            comparison=compare(hits - alarms, b_hits - b_alarms),
+            clean_pairs={
+                "pairs": clean,
+                **{
+                    f"{who} {what}": sum(table[p][key] for p in clean)
+                    for who, table in (("critic", critic_panel), ("baseline", baseline_panel))
+                    for what, key in (
+                        ("caught", "defect caught"),
+                        ("false alarms", "control false alarm"),
+                    )
+                },
+            },
+        )
+    return result
 
 
 def score(run_dir: Path) -> dict:
@@ -431,7 +550,7 @@ def score(run_dir: Path) -> dict:
                 "quote": judged["quote"],
             }
         )
-    rows.sort(key=lambda r: (r["pair"], ARMS.index(r["arm"]), CRITICS.index(r["critic"])))
+    rows.sort(key=lambda r: (r["pair"], ARMS.index(r["arm"]), REVIEWERS.index(r["critic"])))
     result = {
         "label": record["label"],
         "critic_model": record["critic_model"],
@@ -443,7 +562,9 @@ def score(run_dir: Path) -> dict:
         **tally(rows, sorted(pairs)),
     }
     if not calibrated:
-        result["passes"] = None
+        for key in ("passes", "baseline_passes", "comparison"):
+            if key in result:
+                result[key] = None
     (run_dir / "results.json").write_text(json.dumps(result, indent=2) + "\n")
     table = render(result)
     (run_dir / "results.md").write_text(table + "\n")
@@ -454,10 +575,10 @@ def score(run_dir: Path) -> dict:
 def render(result: dict) -> str:
     """The raw table first, then the counts, then the bar."""
     lines = [
-        f"Run {result['label']}: critics {result['critic_model']}, judge {result['judge_model']}, "
-        f"harness at {result['harness_commit'][:7]}.",
+        f"Run {result['label']}: critics {result['critic_model'] or 'on their own models'}, "
+        f"judge {result['judge_model']}, harness at {result['harness_commit'][:7]}.",
         "",
-        "| Pair | Arm | Critic | Verdict | Judge | Quote in review | Files read | Outcome |",
+        "| Pair | Arm | Reviewer | Verdict | Judge | Quote in review | Files read | Outcome |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for r in result["rows"]:
@@ -468,26 +589,47 @@ def render(result: dict) -> str:
         )
     lines += [
         "",
-        "| Critic | Hits | Noted | Misses | False alarms | Clear | Excluded |",
+        "| Reviewer | Hits | Noted | Misses | False alarms | Clear | Excluded |",
         "|---|---|---|---|---|---|---|",
     ]
-    for critic, c in result["per_critic"].items():
+    for name, c in result["per_reviewer"].items():
         lines.append(
-            f"| {critic} | {c['hits']} | {c['noted']} | {c['misses']} | {c['false alarms']} | "
+            f"| {name} | {c['hits']} | {c['noted']} | {c['misses']} | {c['false alarms']} | "
             f"{c['clear']} | {c['excluded']} |"
         )
+    unread = {True: "passed", False: "not passed", None: "not read (judge calibration failed)"}
+    n = len(result["panel"])
     cal_failed = [f"{c['pair']} {c['kind']}" for c in result["calibration"] if not c["passed"]]
     lines += [
         "",
         f"Judge calibration: {'passed' if not cal_failed else 'FAILED on ' + ', '.join(cal_failed)}.",
-        f"Panel: {result['panel_hits']} of {len(result['panel'])} defects caught, "
-        f"{result['panel_false_alarms']} of {len(result['panel'])} controls with a false alarm.",
-        "Bar: "
-        + {True: "passed", False: "not passed", None: "not read (judge calibration failed)"}[
-            result["passes"]
-        ]
-        + f" (at least {PANEL_HITS_TO_PASS} caught, at most {PANEL_FALSE_ALARMS_ALLOWED} false alarm).",
+        f"Panel: {result['panel_hits']} of {n} defects caught, "
+        f"{result['panel_false_alarms']} of {n} controls with a false alarm.",
+        f"Bar: {unread[result['passes']]} (at least {PANEL_HITS_TO_PASS} caught, "
+        f"at most {PANEL_FALSE_ALARMS_ALLOWED} false alarm).",
     ]
+    if "comparison" in result:
+        clean = result["clean_pairs"]
+        lines += [
+            f"Baseline panel: {result['baseline_hits']} of {n} defects caught, "
+            f"{result['baseline_false_alarms']} of {n} controls with a false alarm; "
+            f"absolute bar {unread[result['baseline_passes']]}.",
+            f"Comparison: critic score {result['critic_score']}, baseline score "
+            f"{result['baseline_score']}: "
+            + (result["comparison"] or "not read (judge calibration failed)")
+            + f" (value shown needs the critics {VALUE_MARGIN} or more ahead).",
+            f"Clean pairs ({', '.join(clean['pairs'])}), no bar: critics caught "
+            f"{clean['critic caught']}, false alarms {clean['critic false alarms']}; "
+            f"baseline caught {clean['baseline caught']}, "
+            f"false alarms {clean['baseline false alarms']}.",
+        ]
+        for name, matched in BASELINES.items():
+            c, b = result["per_reviewer"].get(matched), result["per_reviewer"].get(name)
+            if c and b:
+                lines.append(
+                    f"{matched} against {name}: hits {c['hits']} and {b['hits']}, "
+                    f"false alarms {c['false alarms']} and {b['false alarms']}."
+                )
     return "\n".join(lines)
 
 
@@ -503,10 +645,8 @@ def main(
 ) -> object:
     run_dir = RUNS / label
     if command == "prepare":
-        if not critic_model or not judge_model:
-            raise SystemExit(
-                "prepare needs --critic-model and --judge-model, recorded with the run"
-            )
+        if not judge_model:
+            raise SystemExit("prepare needs --judge-model, recorded with the run")
         return prepare(run_dir, label, critic_model, judge_model, snapshot_root or SNAPSHOT_ROOT)
     if command == "judge":
         return judge(run_dir, label)
@@ -517,7 +657,10 @@ def cli(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("command", choices=("prepare", "judge", "score"))
     parser.add_argument("--label", required=True, help="the run's name, its directory under runs/")
-    parser.add_argument("--critic-model", help="the model the critics ran on (prepare)")
+    parser.add_argument(
+        "--critic-model",
+        help="the critics' model, for runs before each reviewer named its own (prepare)",
+    )
     parser.add_argument("--judge-model", help="the model the judge ran on (prepare)")
     parser.add_argument(
         "--snapshot-root",
