@@ -216,6 +216,17 @@ and then promoted into `input/combined/` with the builder's `--replace`, which
 keeps each old file as `.entsoe.bak.csv`. Checksums:
 `output/fr_rte_2026-10-23/rte_obs.sha256`, and for the downloads
 `rte_downloads.sha256` beside it. Every split passes the physical gates.
+*[2026-10-25: the builder now reads the same definitive series and fleet from
+ODRE (`eco2mix-national-cons-def`, `parc-prod-par-filiere`, Licence Ouverte
+v2.0) instead of RTE's eCO2mix files, whose terms forbid redistribution
+(`09df0ae`). Hour by hour the promoted files equal the ones they replace,
+except that each year's March clock-change hour is now empty as well, three
+hours a year in all, and 2021-12-31 23:00 UTC reads 3,187.5 MW, not 3,182.0.
+Training years 2015-21, test year 2023: rerun at `9a5682c`, every variant's
+RMSE and MBE is within 4e-5 of a control on the old files at the same commit,
+and the control within 7e-5 of the after column below, the year-local
+roughness fill's effect (#140). No figure of France's row moves at its
+displayed precision. Data: `output/fr_odre_2026-10-25/`.]*
 
 Every variant, before (`6b3e6d9`, the notice of 2026-10-16) and after
 (`65efa06`, clean tree, `PYVWF_INPUT=input/combined-fr-rte`). Data:
@@ -1426,6 +1437,10 @@ observations (total wind over RTE's interpolated fleet), now in
 `input/combined/`. France moves 0.020 to 0.019 uncorrected and 0.026 to 0.022
 corrected, still worse than uncorrected, its uncorrected MBE -0.004 to -0.012,
 on a fit as degenerate as before (scalar 4.71). See the notice of that date.]*
+*[Note, 2026-10-25: France's row is rerun at `9a5682c` on ODRE's openly
+licensed copy of the same RTE series, with the year-local roughness fill; no
+figure moves at the precision shown. See the bracket in the notice of
+2026-10-23.]*
 
 *[Note, 2026-10-25: Sweden's row is rerun at `768a278` with its generation
 divided by Energimyndigheten's fleet instead of a denominator built from its
@@ -1623,6 +1638,8 @@ country-level rows now need the licensed curve library; CL and AR are the open
 rows.]* *[Note, 2026-10-22: Belgium's country-level observations come from Elia
 Open Data `ods031`, not ENTSO-E.]* *[Note, 2026-10-23: France's come from
 RTE's eCO2mix definitive series and its annual wind fleet, not ENTSO-E.]*
+*[Note, 2026-10-25: France's are read from ODRE, RTE's open-data portal, under
+Licence Ouverte v2.0.]*
 *[Note, 2026-10-25: Sweden's generation is ENTSO-E's and its capacity-factor
 denominator Energimyndigheten's wind fleet.]* *[Note, 2026-10-25: Norway's
 training years come from NVE's metered farm output and its capacity from NVE's

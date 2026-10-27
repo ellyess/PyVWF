@@ -51,7 +51,7 @@ reduced to a **monthly capacity factor** before correction.
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
 | 7 ENTSO-E countries | ES IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Belgium | BE | `entsoe-country` | Elia Open Data `ods031` output and monitored capacity | open | `region_tools/build_be_obs_from_elia.py` | [ENTSO-E](../runbooks/entsoe.md) |
-| France | FR | `entsoe-country` | RTE eCO2mix definitive output + ODRE year-end fleet | mixed | `region_tools/build_fr_obs_from_rte.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| France | FR | `entsoe-country` | RTE eCO2mix definitive output and year-end fleet, from ODRE | open | `region_tools/build_fr_obs_from_rte.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
 
 ## 2. What the processing does (per region)
@@ -119,8 +119,7 @@ the [built-in adapters](adding-an-adapter.md#built-in-adapters) table.
 | CAMMESA (AR) | `cammesaweb.cammesa.com/erenovables/` | download | public |
 | ENTSO-E | `transparency.entsoe.eu` | API (free key) | public-by-regulation |
 | Elia (BE) | `opendata.elia.be`, dataset `ods031` | open portal | Elia Open Data Licence |
-| RTE eCO2mix (FR) | `eco2mix.rte-france.com/download/eco2mix/` (annual definitive files) | download | RTE terms of use: reuse with the source credited, no redistribution |
-| ODRE (FR fleet) | `odre.opendatasoft.com`, dataset `parc-prod-par-filiere` | open portal | Licence Ouverte v2.0 |
+| ODRE (FR) | `odre.opendatasoft.com`, datasets `eco2mix-national-cons-def` and `parc-prod-par-filiere` | open portal | Licence Ouverte v2.0 |
 | Eurostat (audit) | `nrg_bal_peh`, gross wind production | download | reuse with the source acknowledged |
 | WindStats (DE, ES) | commercial subscription | (none) | confidential, commercial |
 
@@ -233,9 +232,9 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
   the same fleet in every hour. A step with no monitored capacity is a gap.
 - **FR: RTE.** `scripts/region_tools/build_fr_obs_from_rte.py` averages RTE's
   half-hourly national wind output (onshore and offshore) to hours and divides
-  it by RTE's 31 December wind fleet from ODRE, interpolated linearly through
-  the year. The 02:00 and 02:30 rows of each year's two clock-change days are
-  dropped, because RTE's files cannot place them.
+  it by RTE's 31 December wind fleet, interpolated linearly through the year.
+  It reads both from ODRE. Three hours of each year's two clock-change days are
+  left empty, because RTE's series cannot place them.
 
 The generator run for BE or FR without `--skip-observations` overwrites the
 builders' files with ENTSO-E's ([runbook](../runbooks/entsoe.md)). The
