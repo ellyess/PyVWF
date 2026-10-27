@@ -21,7 +21,12 @@ reviewer runs with `omitClaudeMd: true`, so none reads `AGENTS.md`. A probe on
 in context". `AGENTS.md` carries two rules that describe cases here ("never
 sort a glob and take the last entry", and "show it fires on a known
 positive"), so a run with it loaded would measure those rules as well as the
-definitions.
+definitions. *[2026-10-27, before any review: "none reads `AGENTS.md`" above
+means that none has it loaded into context. Each reviewer can still open the
+snapshot's `AGENTS.md` with Read, and `implementation-critic`'s definition tells
+it to. At the manifest-key and sorted-glob snapshots (`cc9fc14^`, `9b0d26e^`)
+that file holds neither rule; the three snapshots whose `AGENTS.md` holds both
+belong to other cases.]*
 
 ## Design
 
