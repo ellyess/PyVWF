@@ -97,9 +97,9 @@ BR and US boxes.
 ## 3. Train and evaluate
 
 ```bash
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=<input root> pyvwf-validate train \
     --region configs/regions/nz.toml
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=<input root> pyvwf-validate evaluate \
     --region configs/regions/nz.toml --train-run output/validation/NZ/train-<stamp>
 ```
 

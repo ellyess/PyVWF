@@ -13,14 +13,13 @@ Files are named `<CC>_<n>.geojson`, one per numbered zone. Cluster index is
 `n - 1`, matching how `generate_country_level_training_data` stamps zones onto
 grid points and how `EntsoeZonalFileSource` tags observations.
 
-Used by `scripts/region_tools/assign_country_zones.py` and by
-`weight_country_grid_points.py --zone-aware`.
+Used by `scripts/region_tools/weight_country_grid_points.py --zone-aware`.
 
 ## Sources and licences
 
 | Zones | Source | Licence |
 |---|---|---|
-| `SE_1`..`SE_4`, `DK_1`, `DK_2` | [EnergieID/entsoe-py](https://github.com/EnergieID/entsoe-py), `entsoe/geo/geojson/` | MIT |
+| `SE_1`..`SE_4` | [EnergieID/entsoe-py](https://github.com/EnergieID/entsoe-py), `entsoe/geo/geojson/` | MIT |
 | `NO_1`..`NO_5` | [NVE](https://www.nve.no/karttjenester/) `Nettomraader/MapServer/0` (`Budomraade`) | NLOD 1.0 |
 
 Both permit redistribution with attribution.
@@ -41,7 +40,7 @@ derived from it.
 Refresh:
 
 ```bash
-for z in SE_1 SE_2 SE_3 SE_4 DK_1 DK_2; do
+for z in SE_1 SE_2 SE_3 SE_4; do
   curl -sfL "https://raw.githubusercontent.com/EnergieID/entsoe-py/master/entsoe/geo/geojson/${z}.geojson" -o "${z}.geojson"
 done
 curl -sfL "https://kart.nve.no/enterprise/rest/services/Nettomraader/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=geojson" -o nve_all.geojson
@@ -52,19 +51,19 @@ the space) into `NO_1.geojson` .. `NO_5.geojson`.
 
 ## Caveats
 
-- **Sweden and Denmark are land-only.** Every offshore point falls outside every
+- **Sweden is land-only.** Every offshore point falls outside every
   polygon, so callers fall back to the nearest polygon and report how often.
   Norway's polygons do extend offshore.
 - **Sweden is the weakest geometry.** `entsoe-py`'s Swedish shapes are a manual
   redraw of a proprietary map (Internaut AB / natomraden.se), and Swedish
   elomrade membership is defined per grid area rather than by a geographic line,
   so no polygon is exactly right. Treat SE as approximate and disclose it.
-- **Denmark's DK2 is missing Bornholm** (`DK_2` stops at 12.675 E; Bornholm is
-  near 14.9 E). Bornholm is in DK2 despite being cabled to SE4. Not patched here
-  because no Danish zonal run exists yet; patch from Natural Earth 10m admin-1
-  (public domain) if one is added.
-- **Zone stability:** SE1-SE4 unchanged since 2011, NO1-NO5 since 2010, DK1/DK2
-  unchanged. The ENTSO-E Bidding Zone Review could change Nordic zones later this
+- **Denmark is not vendored**, because no Danish zonal run exists. To add one,
+  fetch `DK_1` and `DK_2` from the same `entsoe-py` directory, and patch
+  Bornholm in from Natural Earth 10m admin-1 (public domain): `entsoe-py`'s
+  `DK_2` stops at 12.675 E, and Bornholm, near 14.9 E, is in DK2 despite being
+  cabled to SE4.
+- **Zone stability:** SE1-SE4 unchanged since 2011, NO1-NO5 since 2010. The ENTSO-E Bidding Zone Review could change Nordic zones later this
   decade, so pin the file version alongside any published result.
 - **Zone code spellings differ**: NVE writes `NO 1` (with a space), `entsoe-py`
   writes `NO_1`, ENTSO-E EIC uses `NO1` / `10Y1001A1001A48H`. Normalise on ingest.

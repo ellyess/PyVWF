@@ -1,43 +1,27 @@
-# Editor temporary/working/backup files #
-#########################################
-.#*
-[#]*#
-*~
-*$
-*.bak
-*.diff
-.idea/
-*.iml
-*.ipr
-*.iws
-*.org
-.project
-pmip
-*.rej
-.settings/
-.*.sw[nop]
-.sw[nop]
-*.tmp
-*.vim
-.vscode
-tags
-cscope.out
-# gnu global
-GPATH
-GRTAGS
-GSYMS
-GTAGS
+# Python, tests and editors
+__pycache__
+*.pyc
 .cache
 .mypy_cache/
+.pytest_cache/
 *.ipynb_checkpoints/
-*.lapce/
-*.pyc
-__pycache__
+.coverage
+coverage.xml
+htmlcov/
+.idea/
+.vscode
+*~
+.*.sw[nop]
+.DS_Store*
+*.DS_Store
 
-# Packages #
-############
-# it's better to unpack these files and commit the raw source
-# git has its own built in compression methods
+# Build artefacts
+build/
+/dist/
+/docs/_build/
+**/pyvwf.egg-info/
+
+# Archives: unpack and commit the source instead
 *.7z
 *.bz2
 *.bzip2
@@ -51,108 +35,22 @@ __pycache__
 *.tgz
 *.zip
 
-
-# OS generated files #
-######################
-.DS_Store*
-*.DS_Store
-.DS_Store
-
-
-# Things specific to this project #
-###################################
-run/
-input/era5
-input/merra2
-/input/country-data/DK/shape
-*.nc
-# Bundled synthetic example NetCDF for examples/run_minimal.py (small; overrides *.nc).
-!examples/data/era5/era5_example.nc
-*.png
-# README references docs/img/*.png; keep those tracked even though *.png is ignored generally.
-!docs/img/*.png
-input/country-data/EMHIRES_WIND_COUNTRY_June2019.xlsx
-input/country-data/EMHIRES_WIND_NUTS2_June2019.xlsx
-/input/country-data
-/tools
-# Build artefacts (catch both legacy root and src/ layout locations)
-**/pyvwf.egg-info/
-/dist/
-/build/
-/docs/_build/
-/input/reference/terrain
-# Real power-curve library (renewables.ninja / VWF / thewindpower.net): kept
-# local-only and never redistributed. The repo ships the open turbine curve
-# library (NatLabRockies/turbine-models, BSD-3) at input/reference/power_curves.csv
-# and input/reference/models.csv instead. See input/README.md.
-input/reference/power_curves.real.csv
-input/reference/models.real.csv
-# Turbine metadata and observed generation are typically proprietary and are
-# never committed (README "Input data"). Redundant with the blanket /input
-# rule below, but kept explicit so the intent survives if that rule changes.
-input/turbine_level_data/
+# Data, runs and outputs are never committed (tests/test_committed_files.py).
+# Input data is often licensed or confidential; see docs/guides/data-sources.md.
 /input
 /output
-/out
-/overleaf
+*.nc
+# The small synthetic example examples/run_minimal.py reads.
+!examples/data/era5/era5_example.nc
+*.png
+# The figures docs/guides/visualisation.md shows.
+!docs/img/*.png
+# The licensed curve library is never redistributed. /input already covers
+# these; they stay explicit so the rule survives if /input is ever narrowed.
+# See input/README.md.
+input/reference/power_curves.real.csv
+input/reference/models.real.csv
 
-# Internal research-log docs kept local-only (research dates, "next steps"
-# language not appropriate for the public-facing docs/ folder). Paths updated
-# after the docs/ reorganisation moved these under findings/.
-docs/TRAINING_2015_2021_SUMMARY.md
-docs/TURBINE_GRID_EVALUATION_ANALYSIS.md
-docs/findings/TRAINING_2015_2021_SUMMARY.md
-docs/findings/TURBINE_GRID_EVALUATION_ANALYSIS.md
-
-# The multi-region validation running log: a checkpoint-by-checkpoint record of
-# what was decided and why, written for the branch rather than for readers of
-# the repository. It carries sign-off language, open questions addressed to
-# reviewers, and references to conversations that are not public. The findings
-# it produced live in docs/findings/ as standalone documents; the log itself
-# stays local.
-/validation_progress.md
-
-# Local working notes for AI coding sessions (CLAUDE.md): records the real local
-# environment, standing caveats, and what must never be committed. Deliberately
-# not shipped -- CONTRIBUTING.md is the public contributor guide.
+# Local working notes for AI coding sessions. CONTRIBUTING.md is the public
+# contributor guide.
 /CLAUDE.md
-
-# Session state: what is running, queued and open at the close of a session.
-# It goes stale by design, so it stays local. Tracked until 3dbb83b; findings
-# that cite it link to that version. Queued work that must outlive a session
-# goes in a GitHub issue.
-/STATUS.md
-
-# The maintainer's private research notes. They record decisions that are not
-# yet made, about work outside this repository, and they are not documentation
-# for anyone else. docs/README.md says where they sit. manuscript-chapters-45.md
-# was tracked until ce20ead; the findings that cite it link to that version.
-/docs/design/manuscript-chapters-45.md
-
-# Commercial / career material never belongs in this public repo. The working
-# copies live outside the repository entirely (../../Career/); these patterns are
-# a safety net in case anything is ever dropped in here by mistake.
-Career/
-career/
-docs/career/
-docs/commercial/
-docs/notes/
-**/PASSIVE_INCOME.md
-**/BUSINESS_SETUP.md
-**/NEXT_STEPS.md
-**/FACTS.md
-
-# Python build artifacts
-build/
-
-# Test and coverage artifacts: regenerated by every pytest/coverage run, so
-# they never belong in a release archive.
-.coverage
-coverage.xml
-htmlcov/
-.pytest_cache/
-
-# Private drafting space: manuscripts in preparation are not part of the
-# repository. docs/findings/ holds active studies; finished ones are at the
-# archive tag (docs/archive.md).
-docs/manuscript/

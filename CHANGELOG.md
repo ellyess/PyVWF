@@ -109,6 +109,17 @@ this file stay in step with it.
   it kept before. Every other hour is unchanged except the last of 2021, which
   RTE's 2022 file and ODRE give differently.
 
+### Removed
+
+- **`scripts/analysis/validate_region.py`**, a wrapper identical to the
+  `pyvwf-validate` console entry. The runbooks and guides now use
+  `pyvwf-validate`.
+- **`scripts/region_tools/assign_country_zones.py`**, superseded by
+  `weight_country_grid_points.py --zone-aware`, which derives the zones itself.
+- **The Danish bidding-zone polygons** (`configs/curation/zones/DK_1`, `DK_2`),
+  which nothing read. The zones README says how to fetch them if a Danish
+  zonal run is added.
+
 ### Fixed
 
 - **Belgium's country-level observations are rebuilt from Elia** (#144). The
