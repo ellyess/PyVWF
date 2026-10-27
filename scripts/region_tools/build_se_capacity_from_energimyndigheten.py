@@ -5,7 +5,7 @@ of Energimyndigheten's official wind production (audited 2026-10-25). Its
 capacity is not. The files built from the four bidding zones carry 8,354 MW in
 every year from 2015 to 2019, the sum of four zonal capacities an old fetcher
 derived as peak generation over 0.9 when ENTSO-E returned none
-(``docs/findings/method-country-level.md``). The files built from the national
+(``docs/results.md#the-country-level-estimator``). The files built from the national
 series carry ENTSO-E's register, which counts onshore wind at the start of each
 year: it leaves out the year's growth and about 200 MW offshore that the
 generation includes, and its 2015 value, 3,500 MW, puts that year's capacity

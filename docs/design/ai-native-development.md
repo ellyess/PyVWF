@@ -102,7 +102,8 @@ five defects and blocked on them. The panel also raised the paired defect on
 2 of the 5 fixed proposals, where the bar allowed 1, and no critic gave
 PROCEED on any of the 30 proposals, fixed or not. The table, the quoted
 passages and the departures from the registration are in
-`docs/findings/agent-critics.md`. No training year or test year applies: the
+`docs/findings/agent-critics.md` at tag `archive/research-2026-10-27`, and
+summarised in `scripts/dev/agent_evals/results-2026-10-16.md`. No training year or test year applies: the
 run measures the review agents, not a correction.
 
 ## Counts
@@ -137,7 +138,8 @@ repository.
 
 The physics-informed study compares a model applied zero-shot, to a region it
 was not trained on, with the affine correction fitted in that region. Its
-findings document is `docs/findings/method-physics-informed.md`. The error and
+findings document is `docs/findings/method-physics-informed.md`, at tag
+`archive/research-2026-10-27`. The error and
 its first explanation are recorded there, in the correction notice of
 2026-10-16, and in two commits: `8dd2c2c`, which adds the driver that rescored
 the comparison, and `46a039f`, which adds the correction notice. The

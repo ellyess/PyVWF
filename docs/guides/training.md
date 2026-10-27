@@ -109,7 +109,7 @@ Selected by `[correction] model`:
 
 `cluster_list` fits each cluster count in one run. `k`-means needs `k` at most
 the number of units reaching the trainer, and `k` near that ceiling is
-one-unit-per-cluster (a fake plateau, `docs/findings/region-us-br.md`). For
+one-unit-per-cluster (a fake plateau, `docs/results.md#united-states-and-brazil`). For
 country-level regions, `cluster_list` must be `1` or the grid's own cluster
 count (see [A country-level region](adding-a-region.md#a-country-level-region)).
 

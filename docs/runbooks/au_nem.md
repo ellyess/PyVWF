@@ -8,8 +8,8 @@ Generation Information workbook.
 
 All observation inputs are open AEMO data. ERA5 needs your own CDS account. No
 raw data or processed input is committed, because `input/` is git-ignored.
-This runbook builds them. The results are in
-[`region-au-nem.md`](../findings/region-au-nem.md).
+This runbook builds them. The results are on the
+[results page](../results.md#australia-nem).
 
 ## 1. Observations
 

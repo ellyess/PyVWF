@@ -50,7 +50,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | roughness | The surface roughness length z0, derived by inverting the log wind profile between the reanalysis 10 m and 100 m winds. The hub-height wind is `w100 ln(h/z0) / ln(100/z0)`. | roughness length (except on first use), z0 in prose |
 | roughness treatment | How a run's roughness varies in time: an annual mean, or per timestep. It names the temporal behaviour, not where the value is computed. | roughness method, roughness mode |
 | annual-mean roughness | The treatment that applies one static field per year, computed by `src/pyvwf/datasets/combine_era5_files.py` and carried by `era5/EU`. | climatological roughness, static roughness |
-| per-timestep roughness | The treatment that derives z0 for every timestep and averages it to daily with the winds. The method since 2026-09-12 (`docs/findings/method-roughness-treatment.md`). | hourly roughness (for the treatment), derived roughness (for the treatment) |
+| per-timestep roughness | The treatment that derives z0 for every timestep and averages it to daily with the winds. The method since 2026-09-12 (`docs/results.md#roughness-treatment`). | hourly roughness (for the treatment), derived roughness (for the treatment) |
 | roughness route | Where a run's roughness comes from. **Three routes, 2026-09-16:** a stored annual-mean field the file carries, which `prep_era5` uses when present; a per-timestep derivation at load in `prep_era5`, used when no stored field exists; and a per-timestep derivation ahead of time in `scripts/era5/combine.py`, which the file then carries. The first route produces the annual-mean treatment and the other two the per-timestep one, so three routes give two treatments. This row previously said two routes and one treatment, counting only the per-timestep ones. | roughness source, roughness pipeline |
 
 ## Regions and observations
@@ -121,7 +121,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | pre-registration | Recording gates and predictions before the run, in a commit that precedes the results. | pre-specification (except the existing file name) |
 | correction notice | A dated statement that a published claim was wrong: at the top of a findings document, or bracketed in the CHANGELOG. | correction (alone, in this sense), erratum, limitation (for a correction notice) |
 | screening-level | Validation that ranks and diagnoses, and is not an accredited yield assessment. | preliminary (for validation status), indicative (for validation status) |
-| findings document | A dated research record under `docs/findings/`, named `<type>-<subject>.md`. | report (as a document type), write-up (as a document type) |
+| findings document | A dated research record, named `<type>-<subject>.md`: under `docs/findings/` while its study is active, at the archive tag once it is finished. | report (as a document type), write-up (as a document type) |
 | scorecard | `docs/scorecard.md`: the per-region results, with each row's run and fit quality. | results table, league table |
 | scorecard row | One region's reported result in the scorecard: one configuration, with its scorecard config and run directory. | headline row, best row |
 | study | One research question, with its own findings document, usually a pre-registration, its drivers in `scripts/studies/<stem>/` (the stem of the findings document) and its run directories under `output/<name>_<date>/`. | experiment (for a study), analysis (for a study) |

@@ -4,7 +4,7 @@
 USER-EXECUTED. Turkey is the only surveyed candidate with BOTH per-plant
 hourly generation and a national turbine register (TÜREB) carrying turbine
 models, so hub heights become derivable per plant; see
-docs/runbooks/tr.md and docs/findings/dataset-survey.md.
+docs/runbooks/tr.md and docs/results.md#dataset-survey.
 
 CREDENTIALS
 -----------

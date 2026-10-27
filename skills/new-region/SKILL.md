@@ -79,8 +79,8 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
   `tests/test_harness_regions.py` passes.
 - Stop: the human reviews the seasons, years, box and `cluster_list`. The
   largest usable cluster count is the number of units that reach the clusterer
-  in the training years. See `docs/guides/training.md` and the k=10 crash in
-  `docs/findings/region-nz.md`.
+  in the training years. See `docs/guides/training.md` and the k=10 crash recorded in
+  `docs/findings/region-nz.md` at tag `archive/research-2026-10-27`.
 
 ### 2. Fetch
 

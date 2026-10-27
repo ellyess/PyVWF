@@ -48,7 +48,7 @@ file and leaves a month's trailing hours undefined. So an undefined hour at a
 month's end is filled in B and not in C. That is an edge-level difference and
 has not been measured. Until 2026-10-22 B back-filled along the whole loaded
 record, which let a year's last hours take the next year's value, for a
-training run its test year (`docs/findings/method-roughness-fill-prereg.md`).
+training run its test year (`docs/results.md#roughness-back-fill-within-each-year`).
 
 **The record cannot tell A from C.** This matters for the archive rather
 than for a new run, since no current row is on route A. A run's manifest reports
@@ -153,12 +153,13 @@ Two consequences, and neither follows the split between the treatments:
 The exposure is in the turbine-level rows that carry real hub heights, and most
 of all in DK, whose median unit stands at 45 m. That is why DK is the row the
 pre-registered comparison rests on
-(`../findings/method-roughness-treatment-prereg.md`, deviation D1).
+(`docs/findings/method-roughness-treatment-prereg.md` at tag
+`archive/research-2026-10-27`, deviation D1).
 
 ## Which treatment the method uses
 
 **The per-timestep derivation is the method, adopted on 2026-09-12**
-(`../findings/method-roughness-treatment.md`). It was adopted on method
+(`../results.md#roughness-treatment`). It was adopted on method
 fidelity and comparability: it is what the published method describes, most
 rows cannot show any difference between the treatments at all, and a single
 treatment removes a split that confounds every comparison between regions. The

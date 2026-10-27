@@ -3,7 +3,7 @@
 Every region derives the roughness length from the 10 m to 100 m shear. The
 question is whether the result varies in time, and the per-timestep derivation
 is the method, adopted on 2026-09-12
-(``docs/findings/method-roughness-treatment.md``). So ``derived`` is the
+(``docs/results.md#roughness-treatment``). So ``derived`` is the
 default, and ``stored`` has to be asked for: the ``era5/EU`` archive stores an
 annual mean, the superseded treatment, and the daily pre-combined files store a
 per-timestep roughness they also cannot re-derive. These tests pin the default,
@@ -127,7 +127,7 @@ def test_region_config_parses_the_treatment(tmp_path):
 def test_every_european_row_asks_for_the_per_timestep_treatment():
     """What the shipped rows are set to, asserted where it belongs: the
     European rows were re-run on the derived treatment on 2026-09-13
-    (docs/findings/method-eu-rerun.md), and a configuration that quietly went
+    (docs/results.md#european-re-run), and a configuration that quietly went
     back to the stored annual mean would be a silent method change."""
     european = [
         "de_k100",

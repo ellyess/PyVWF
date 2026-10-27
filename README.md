@@ -58,11 +58,11 @@ including maps of what the correction learned per cluster.
   and its [case study](docs/design/ai-native-development.md#case-study-a-stale-comparison-in-the-physics-informed-study)
   of an agent's error caught, tested and withdrawn on the record.
 - **One study from registration to result:** the turbine-only terrain study,
-  [registered](docs/findings/method-physics-informed-turbine-prereg.md) before
-  any fit and [reported](docs/findings/method-physics-informed-turbine.md) with
+  [registered](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/method-physics-informed-turbine-prereg.md) before
+  any fit and [reported](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/method-physics-informed-turbine.md) with
   the control that failed it.
 - **A negative result:** [why correction factors do not
-  transfer](docs/findings/method-why-corrections-do-not-transfer.md) between
+  transfer](docs/results.md#why-corrections-do-not-transfer) between
   regions.
 
 ## Installation
@@ -106,7 +106,7 @@ plain Markdown in [`docs/`](docs/README.md), which indexes every page.
 - [Training and evaluation](docs/guides/training.md): the region config, the input root, and train / evaluate / transfer.
 - [Adding a region](docs/guides/adding-a-region.md): every file a new region touches, in order.
 - [Adding a study](docs/guides/adding-a-study.md): where a study's documents, driver and runs go.
-- [Findings](docs/findings/): the validation results, including the negative ones.
+- [Results](docs/results.md): every study's result, including the negative ones, and the [research archive](docs/archive.md) that holds the full records.
 
 ## Results
 
@@ -155,8 +155,8 @@ numbers with their markers:
 Every number, its source path, its fit quality and the size of each marked
 share are in the [scorecard](docs/scorecard.md), which is their home;
 `tests/test_readme_results.py` checks this table against it. The regions where
-the correction does not help are written up in
-[docs/findings/](docs/findings/).
+the correction does not help are on the
+[results page](docs/results.md).
 
 ## Physics-informed correction (experimental)
 
@@ -165,7 +165,7 @@ with no observed generation to fit against. It replaces the fitted factors with
 four bounded physical quantities learned inside a differentiable forward
 operator. It is under active study, is not wired into the harness, has no
 stable API, and needs the optional `pinn` extra; the method and its results are
-in [method-physics-informed.md](docs/findings/method-physics-informed.md).
+on the [results page](docs/results.md#physics-informed-correction).
 
 ## Limitations
 

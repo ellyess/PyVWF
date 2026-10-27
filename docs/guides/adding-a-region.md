@@ -123,7 +123,7 @@ The audit in step 6 matters because the affine correction absorbs a constant
 observation error into the scalar. A uniformly wrong series therefore still
 fits well in sample. NL fails this audit and is excluded. IE failed it once,
 on a frozen capacity denominator, and was repaired; it is now a scorecard row.
-Both are in [`method-country-level.md`](../findings/method-country-level.md).
+Both are on the [results page](../results.md#the-country-level-estimator).
 
 [`data-sources.md`](data-sources.md) describes the file layout the generator
 writes.

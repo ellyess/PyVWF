@@ -54,7 +54,7 @@ CASES = {
     # gained only zero-capacity offshore points, and its offsets moved by at
     # most 1.3e-5 m/s, scalars unchanged. Accepted years unchanged in both.
     # DK, FR and ES re-recorded 2026-10-22, when the derived roughness fill was
-    # confined to each calendar year (docs/findings/method-roughness-fill-prereg.md):
+    # confined to each calendar year (docs/results.md#roughness-back-fill-within-each-year):
     # DK 63 of 100 factors moved, scalars by at most 6.4e-6 and offsets by
     # 3.0e-5 m/s; FR's scalars by 1.5e-6 and offsets by 0.0054 m/s; ES's
     # scalars by 7.0e-7 and offsets by 0.0085 m/s; CL unchanged. Accepted

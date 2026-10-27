@@ -38,7 +38,7 @@ roughness = "stored"
 
 [correction]
 model = "affine-wind"
-cluster_list = [1, 20]  # sweep knee (docs/findings/method-cluster-count.md)
+cluster_list = [1, 20]  # sweep knee (docs/results.md#cluster-count-per-region)
 time_slices = ["fixed", "season"]
 
 [seasons]
