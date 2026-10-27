@@ -180,6 +180,13 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
             ),
         ),
     ],
+    "scripts/analysis/check_issue155.py": [
+        (
+            [part, "output/issue155_check_2026-10-27"],
+            ("main", (part, "output/issue155_check_2026-10-27"), {}),
+        )
+        for part in ("r1", "r2", "pinn")
+    ],
     "scripts/analysis/extent_audit.py": [
         (["output/extent_audit_2026-09-12"], ("main", ("output/extent_audit_2026-09-12", []), {})),
         (
