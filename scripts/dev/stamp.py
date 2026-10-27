@@ -62,7 +62,7 @@ class Suite(NamedTuple):
     max_workers: int = 1
 
 
-# The realdata paths are also named in src/pyvwf/AGENTS.md and CONTRIBUTING.md;
+# CONTRIBUTING.md names the realdata paths and src/pyvwf/AGENTS.md states their rule;
 # change them together. The pinn suite requires its extra outright, because
 # its tests skip without it and a run of skips would stamp nothing tested.
 SUITES = {
