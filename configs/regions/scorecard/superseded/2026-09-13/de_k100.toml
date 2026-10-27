@@ -15,6 +15,7 @@ test_years = [2019]
 location_resolution = "postcode"
 
 [era5]
+roughness = "stored"
 path = "era5/EU"
 bbox = [5.0, 16.0, 47.0, 55.2]
 file_tag = "EU"

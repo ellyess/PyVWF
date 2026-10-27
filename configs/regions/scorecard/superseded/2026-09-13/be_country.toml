@@ -13,6 +13,7 @@ train_years = [2015, 2021]
 test_years = [2023]
 
 [era5]
+roughness = "stored"
 path = "era5/EU"
 bbox = [2.2, 6.6, 49.3, 51.8]
 file_tag = "EU"
