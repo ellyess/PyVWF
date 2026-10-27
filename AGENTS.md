@@ -113,5 +113,6 @@ In `.claude/skills/` and `.claude/agents/`:
 - `new-region`: add a turbine-level region, in gated phases. Invoke by name.
 - `findings-doc`: write or correct a findings document or a scorecard row.
 - `provenance-guard`: run before any release-shaped action.
-- `idea-review`: take an idea through a scout, a proposal and three independent
-  critiques, then stop. Invoke by name.
+- The review agents `method-critic`, `implementation-critic` and `red-team`
+  each judge a proposal independently. Ask for them by name. Their evaluation is
+  `scripts/dev/agent_evals/`.
