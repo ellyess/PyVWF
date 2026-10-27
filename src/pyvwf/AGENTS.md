@@ -4,57 +4,31 @@ The root `AGENTS.md` applies too. These rules cover the package code.
 
 ## The affine path
 
-- **Touching the code the real-data pins reach moves them, and CI cannot see
-  them.** That is `harness/`, `sources/`, `datasets/`, `extensions/`,
-  `loaders/`, `metrics.py`, `correction.py`, `data.py`, `wind.py`,
-  `curves.py`, `clustering.py`, `era5.py`, `country_level.py`, `sampling.py`,
-  `config.py`, `time_utils.py`, `geospatial.py`, `utils.py` and
-  `provenance.py`: everything except
-  `pinn/`, `viz/` and `cli/`. They skip where inputs are absent.
-  Run `python scripts/dev/stamp.py realdata` from the root, read the output,
-  and state the counts and the skips in the pull request. A pin that moves is
-  re-recorded in the same commit, with the size of the movement in the
-  message. A hook refuses the commit unless the staged code matches a passing
-  stamp.
-- **Rerun a row the way its test runs it.** `tests/test_pin_bootstrap_reproduction.py`
-  sets `PYVWF_INPUT` per row. The wrong input root looks exactly like a code
-  change.
+- **The real-data pins reach every module except `pinn/`, `viz/` and `cli/`,
+  and CI cannot run them.** After touching one, run
+  `python scripts/dev/stamp.py realdata` from the root and state the counts and
+  skips in the pull request. Re-record a pin that moves in the same commit,
+  with the size of the movement in the message. A hook refuses the commit
+  without a matching passing stamp. The exact list is `SUITES` in
+  `scripts/dev/stamp.py`.
+- **Rerun a row the way its test runs it.** The tests set `PYVWF_INPUT` per
+  row; the wrong input root looks exactly like a code change.
 - **New affine-path work goes through the harness,** and a new correction model
-  or source through its registry, not a branch in calling code.
-- **Provenance never aborts a run.** Keep `write_manifest_safe`'s contract, and
-  record any new config key in the manifest with a default that reproduces
-  current results.
+  or source through its registry.
+- **Provenance never aborts a run.** Record any new config key in the manifest,
+  with a default that reproduces current results.
 
 ## The physics-informed correction, `pinn/`
 
-- **What `pinn/` is for.** The affine correction needs observed generation in
-  the region it corrects, so it cannot serve regions without data. `pinn/`
-  tests whether a correction learned from spatial inputs such as terrain can
-  produce capacity-factor series in regions it never saw.
-- **It is research code with no stable API, and not wired into the harness
-  yet.** Its evaluation is cross-region and zero-shot, which the harness's
-  train and evaluate verbs do not fit. Do not wire it in, register it as a
-  correction model, or export its names from `pyvwf` unless the task says so in
-  those words. The harness and registry rules above do not apply to it.
-- **CI runs its tests only in the extras job.** They need the `pinn` extra
-  (torch, rasterio), which the test matrix does not install; the `extras` job
-  installs every extra and runs them on each pull request (since `db76ff1`).
-  Before committing, run `python scripts/dev/stamp.py pinn`, which refuses to
-  run without the extra rather than stamping a run of skips. A hook refuses a
-  commit touching `pinn/` without a matching passing stamp, so a change is
-  checked before it is pushed, not only after.
-- **Drivers live in `scripts/studies/physics-informed/`.** Like every other
-  script they use public `pyvwf` names only. Launch a programme through
-  `scripts/dev/run_locked.py`, the whole programme under one lock:
-  `run_overnight.sh` launches each stage fresh, so a file written in the
-  evening makes the night's later stages refuse or run dirty.
+- **Research code with no stable API, not wired into the harness.** Do not wire
+  it in, register it or export it from `pyvwf` unless the task says so.
+- **Its tests run only in CI's extras job.** Before committing, run
+  `python scripts/dev/stamp.py pinn`; a hook refuses the commit otherwise.
 - **Gated results use the seeds their preregistration specifies.** A difference
-  smaller than the known seed spread is not an effect.
+  smaller than the seed spread is not an effect.
 
 ## Every change
 
-- Respect the layers in `.importlinter`. A module imports only from layers
-  below it. Scripts use only public `pyvwf` names
-  (`tests/test_public_analysis_api.py`), with no directory excepted.
-- Before committing: `mypy` (with `pandas-stubs`) and `lint-imports`, and the
-  test files the change touches.
+- Respect the layers in `.importlinter`. Scripts use only public `pyvwf` names.
+- Before committing: `mypy` (with `pandas-stubs`), `lint-imports`, and the test
+  files the change touches.

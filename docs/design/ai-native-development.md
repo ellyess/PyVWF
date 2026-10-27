@@ -45,7 +45,7 @@ Each piece is a committed file, so a reader can open it.
 
 | Piece | Where | What it does |
 |---|---|---|
-| Instructions | `AGENTS.md`, `src/pyvwf/AGENTS.md`, `docs/AGENTS.md` | The root file holds the maintainer's decisions and the rules for acting on state. The other two load where they apply: for package code, and for documents, where `docs/AGENTS.md` imports `CONTEXT.md`. Each `CLAUDE.md` imports its `AGENTS.md`. |
+| Instructions | `AGENTS.md`, `src/pyvwf/AGENTS.md` | The root file holds the maintainer's decisions and the rules for AI-assisted contributions and for acting on state. The second loads for package code. Each `CLAUDE.md` imports its `AGENTS.md`. |
 | Skills | `.claude/skills/` | `new-region` adds a region in gated phases and stops for sign-off at each. `findings-doc` keeps every number traceable, keeps negative results and dates every correction. `provenance-guard` checks a release, read-only, and never performs it. |
 | Subagents | `.claude/agents/` | `method-critic`, `implementation-critic` and `red-team` review a proposal independently, with read-only tools. A scout, a size critic and the skill that chained them with the critics are kept on the maintainer's machine rather than in the repository: none was evaluated. |
 | Guards | `.claude/settings.json`, `.claude/hooks/`, `.pre-commit-config.yaml` | Deny rules for release-shaped commands; a hook that blocks edits while a run holds the lock; a hook that refuses a commit of code a local-only suite covers without a passing stamp; a pre-commit hook against em dashes. |

@@ -552,7 +552,8 @@ def test_covered_paths_exist_and_agree_with_the_written_rules():
             assert (ROOT / rel).exists(), rel
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     code_rules = (ROOT / "src/pyvwf/AGENTS.md").read_text(encoding="utf-8")
+    # src/pyvwf/AGENTS.md states the rule NOT_REALDATA encodes, not the list.
+    assert "every module except `pinn/`, `viz/` and `cli/`" in code_rules
     for rel in suites["realdata"].covered:
         short = rel.removeprefix("src/pyvwf/")
         assert f"pyvwf/{short}" in contributing, rel
-        assert f"`{short}`" in code_rules, rel
