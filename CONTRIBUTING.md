@@ -39,12 +39,11 @@ Both routes, and what each of the six extras adds, are in
 ## Running the tests and linter
 
 The test suite uses synthetic data and needs no ERA5 downloads or API access.
-Two markers split it:
+One marker splits it:
 
 - `realdata` tests read git-ignored data under `input/` or `output/`, such as
   the pins that record what the code produces on real inputs. They skip where
   the data is absent, which includes CI.
-- `slow` tests are pins that take seconds per case.
 
 **Real-data pins are change detectors, not guards.** The repository aims at
 the most accurate results it can produce, not at reproducing earlier ones.
@@ -113,8 +112,8 @@ The tree was reformatted once with `ruff format`. To keep that commit out of
 `git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 ```bash
-pytest -m "not slow and not realdata"   # the fast set: what CI runs on a push or pull request
-pytest -n 4 --dist loadfile -m "not realdata"   # the same and the slow set, in four processes
+pytest -m "not realdata"                # the fast set: what CI runs on a push or pull request
+pytest -n 4 --dist loadfile -m "not realdata"   # the same, in four processes
 pytest                                  # every test: what CI runs on a manual dispatch
 pytest --cov=pyvwf           # with coverage
 ruff check src tests scripts examples   # lint, as CI does
@@ -180,7 +179,7 @@ versioning and stays in step with `CITATION.cff`.
 3. **Add or update tests.** New scientific functionality should come with tests;
    prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
    and dependency-light.
-4. Ensure `pytest -m "not slow and not realdata"` and `ruff check src tests
+4. Ensure `pytest -m "not realdata"` and `ruff check src tests
    scripts examples` pass locally. That is the set CI runs on a pull request.
 5. Open a pull request describing the change and its motivation. Link any
    related issue.

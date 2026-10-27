@@ -45,7 +45,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-pytestmark = [pytest.mark.realdata, pytest.mark.slow]
+pytestmark = pytest.mark.realdata
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"

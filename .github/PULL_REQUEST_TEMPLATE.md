@@ -4,7 +4,7 @@
 
 ## Checks
 
-- [ ] `pytest -m "not slow and not realdata"` passes locally
+- [ ] `pytest -m "not realdata"` passes locally
 - [ ] `ruff check` and `ruff format --check` over `src tests scripts examples`
 - [ ] `mypy` passes, from an environment that has `pandas-stubs`
 
