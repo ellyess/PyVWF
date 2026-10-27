@@ -1547,7 +1547,10 @@ short of Bornholm. The marker rule is in `docs/README.md`.
 kept for the record and replaced in the tables above. All eleven ran on
 `era5/EU`, the annual-mean roughness, and the narrower ERA5 box; their
 configurations are in `configs/regions/scorecard/superseded/2026-09-13/`, under
-their own names and unchanged. The canonical name in
+their own names and unchanged. *[2026-10-27: they now name `roughness =
+"stored"`, the treatment they ran under, since the default changed to derived
+on 2026-09-20 (`8105277`), and they are at tag `archive/research-2026-10-27`,
+no longer on the main branch.]* The canonical name in
 `configs/regions/scorecard/` points at the row standing today.
 What moved, and why, is in `method-eu-rerun.md`.
 

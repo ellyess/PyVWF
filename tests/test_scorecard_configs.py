@@ -35,10 +35,6 @@ def committed_configs() -> list[Path]:
     return sorted(CONFIG_DIR.glob("*.toml"))
 
 
-def superseded_configs() -> list[Path]:
-    return sorted(CONFIG_DIR.glob("superseded/*/*.toml"))
-
-
 def test_the_scorecard_tables_are_readable():
     """A parser that silently matched nothing would make the rest vacuous."""
     codes = scorecard_codes()
@@ -51,13 +47,6 @@ def test_every_committed_scorecard_config_loads():
     assert paths, "no scorecard configurations are committed"
     for path in paths:
         load_region(path)  # raises with the file named if it does not
-
-
-def test_every_superseded_config_still_loads():
-    """The Superseded section of the scorecard cites these by path, so they
-    have to keep resolving. They are records: never edited, only moved."""
-    for path in superseded_configs():
-        load_region(path)
 
 
 def test_one_current_configuration_per_region():
