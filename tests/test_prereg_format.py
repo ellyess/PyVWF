@@ -9,7 +9,8 @@ documents use today:
   the design was fixed *before* something (a run, a fold, a download);
 - **training years**: "Training years 2015-21", "Training years: DK 2015 to
   2019", "trained 2015 to 2019", or a table with a "Training years" column
-  holding a span in every row;
+  holding a span in every row, or "No training years are involved" for a study
+  that fits nothing;
 - **test year**: "test year 2023", "tested on 2020", a table with a "Test year"
   column holding one year in every row, or "No test year is involved" for a
   pass that reads training fits only;
@@ -91,6 +92,7 @@ _SPAN = rf"{_YEAR}(?:\s*-\s*\d{{2}}(?:\d{{2}})?|\s+to\s+{_YEAR})"
 _TRAINING_PROSE = (
     rf"\btraining years:?\s+(?:[A-Z]{{2}}\s+)?{_SPAN}",
     rf"\btrained\s+{_SPAN}",
+    r"\bno training years are involved\b",
 )
 _TEST_PROSE = (
     rf"\btest year\s+{_YEAR}\b(?!\s*-|\s+to\b)",
@@ -237,6 +239,8 @@ BOTH = {"training_years", "test_year"}
         ("**Training years 2019 to 2021** ... **Test year 2022** only", set()),
         ("`fixed`, trained 2015 to 2021, tested on 2023.", set()),
         ("Training years\n2015-21. No test year is involved: training fits.", set()),
+        ("No training years are involved, and no test year is involved.", set()),
+        ("No training data is read; no test year is involved.", {"training_years"}),
         ("held at its training years and its test year", BOTH),
         ("Training years 2015-21, with test years 2019 and 2023", {"test_year"}),
         ("Training years 2015-21, test year 2019-2023", {"test_year"}),
