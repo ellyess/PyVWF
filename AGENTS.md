@@ -89,7 +89,7 @@ For the lines a change adds or edits:
 
 ## Skills and agents
 
-- Skills (`.claude/skills/`): `new-region` adds a region in gated phases;
+- Skills (`skills/`, linked as `.claude/skills`): `new-region` adds a region in gated phases;
   `findings-doc` writes a findings document or scorecard row;
   `provenance-guard` checks before any release-shaped action.
 - Agents (`.claude/agents/`): `method-critic`, `implementation-critic` and

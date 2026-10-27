@@ -53,9 +53,10 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
   `source` for a non-web source). Leave no cell blank.
 - **Check each source's terms** before committing cells transcribed from it.
   Keep anything licensed or confidential local.
-- **Run under `output/`, from the repository root, on a clean tree.** Never run
-  from a temporary or session directory. Do not edit tracked files while a run
-  writes its manifest.
+- **Run under `output/`, from the repository root, on a clean tree,** through
+  `scripts/dev/run_locked.py`. Never run from a temporary or session directory.
+  While the run holds the lock, create or edit nothing in the tree, untracked
+  files included: one new file marks every manifest of the run `git_dirty`.
 
 ## Phases
 
