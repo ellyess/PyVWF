@@ -92,6 +92,13 @@ A reader does these checks; no search replaces them.
 Existing tables that predate the per-row source rule are not failures. List
 them as known gaps.
 
+## 3a. Published pages
+
+Run the `docs-critic` agent on the diff since the last release, restricted to
+`README.md`, `docs/results.md`, `docs/archive.md`, the scorecard and
+`CHANGELOG.md`. A release needs its verdict to be PASS. Report its findings
+unedited.
+
 ## 4. Report
 
 - One line per check: pass, fail, or not run, with the reason.

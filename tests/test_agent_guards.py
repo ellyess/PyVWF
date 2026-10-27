@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -138,6 +139,73 @@ def test_run_lock_allows_shell_writes_outside_the_repository(repo, tmp_path):
 
 def test_run_lock_lets_shell_writes_through_without_a_lock(repo):
     assert _hook(repo, RUN_LOCK, "Bash", {"command": "echo x > new.py"}) == 0
+
+
+# guard_docs_critic: the docs-critic agent's Bash is read-only git and wc
+
+DOCS_CRITIC = ".claude/hooks/guard_docs_critic.py"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git diff",
+        "git diff --stat HEAD~1",
+        "git show 8105277:README.md",
+        "git log --oneline -5",
+        "git diff | wc -l",
+        "git diff && git log -1",
+    ],
+)
+def test_docs_critic_allows_read_only_git_and_wc(repo, command):
+    assert _hook(repo, DOCS_CRITIC, "Bash", {"command": command}) == 0
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git diff --output=x.md",
+        "git show HEAD --output /tmp/a",
+        "git -C . diff",
+        "git commit -m x",
+        "git diff > x.md",
+        "cat README.md",
+        "git diff; touch y",
+        "echo $(git diff)",
+        "git diff 'unterminated",
+    ],
+)
+def test_docs_critic_blocks_everything_else(repo, command):
+    assert _hook(repo, DOCS_CRITIC, "Bash", {"command": command}) == 2
+
+
+def _deny_matches(rule: str, command: str) -> bool:
+    """A Bash deny rule against a command, by the documented wildcard rule.
+
+    https://code.claude.com/docs/en/permissions: a `*` in a Bash rule "matches
+    any text, including spaces". This checks the rules as written against that
+    rule. It does not run Claude Code's own matcher.
+    """
+    inner = rule.removeprefix("Bash(").removesuffix(")")
+    return re.fullmatch(".*".join(map(re.escape, inner.split("*"))), command) is not None
+
+
+def test_output_deny_rules_fire_on_output_and_not_on_a_plain_read():
+    deny = json.loads((ROOT / ".claude/settings.json").read_text())["permissions"]["deny"]
+    rules = [r for r in deny if "--output" in r]
+    assert len(rules) == 3
+    for command in (
+        "git diff --output=x.md",
+        "git diff HEAD~1 --output x.md",
+        "git show HEAD --output=/tmp/a",
+        "git log -p --output=/tmp/b",
+    ):
+        assert any(_deny_matches(r, command) for r in rules), command
+    for command in ("git diff", "git diff --stat", "git show HEAD", "git log --oneline -5"):
+        assert not any(_deny_matches(r, command) for r in deny), command
+    # The matcher reads the existing rules the way they were meant, both ways.
+    assert any(_deny_matches(r, "git push origin main") for r in deny)
+    assert not any(_deny_matches(r, "git push -u origin topic") for r in deny)
 
 
 # guard_local_suites
