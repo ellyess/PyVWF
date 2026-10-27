@@ -14,6 +14,19 @@ physically plausible bounds for a fitted wind scalar, judged against every fit i
 the archive rather than intuition? (2) Does `min_cluster_size` actually fix
 degenerate fits, and what does it cost?
 
+**Correction notice, 2026-10-27: the floor of 0.2 flags 29 of the 60
+Netherlands scalars, not 57.** 57 is the count below 0.3, the bound the survey
+table reports, and was quoted as the 0.2 floor's. Counted at 0.2 by
+`output/scalar_bounds_recheck_2026-10-25/survey_recheck.py`
+(`survey_recheck.out`, NL row: 57 below 0.3, 29 below 0.2). The corroboration
+it was cited for, that the floor fires on the region already excluded for its
+coverage defect, stands at the lower count. The survey table's medians do not
+reproduce either: recomputed from the same 585 files by that script, they
+differ by up to 0.037 (Chile 1.158 against 1.195, the United Kingdom 0.882
+against 0.853), while each row's scalar count, minimum, maximum and counts
+outside 0.3 and 3.0 reproduce; the failed-offset column was not rechecked. No
+conclusion rests on a median; they stay as published, marked.
+
 **Correction notice, 2026-10-25: Belgium's survey scalars were fitted to
 observation files that measured onshore generation alone in most years, so
 Belgium's margin, the reason given for a floor of 0.2 rather than 0.3, is
@@ -88,6 +101,9 @@ fitted scalars, 19 regions.
 | NL | 60 | 0.126 | 0.202 | 0.364 | 57 | 0 | 0 |
 | BE | 60 | 0.314 | 0.439 | 0.527 | 0 | 0 | 0 |
 
+*[2026-10-27: the medians in this table do not reproduce; see the correction
+notice.]*
+
 Pooled: 0.66% of scalars fall below 0.3, 0.23% exceed 3.0, and 58 offsets failed
 to converge.
 
@@ -110,7 +126,8 @@ to converge.
   files its lowest is 0.640. See the correction notice.]*
 
 An unplanned corroboration: the floor independently flags 57 of 60 Netherlands
-scalars. The Netherlands was already excluded for an unrelated ENTSO-E coverage
+scalars. *[2026-10-27: 57 is the count below 0.3; the floor of 0.2 flags 29.
+See the correction notice.]* The Netherlands was already excluded for an unrelated ENTSO-E coverage
 defect, so two independent diagnostics agree on the same region.
 
 ### The result that undercut the premise of Part 2
