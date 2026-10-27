@@ -21,19 +21,19 @@ and what they cite.
 
 ## Check
 
-1. **Counts.** Every number in a changed line that counts something ("five
-   folds", "7 of 9 rows", "57 scalars", "3 of 5") is recounted from the table,
-   file or run output it describes. Show the recount. A count you cannot
-   recount is reported as unverified, not as correct.
+1. **Counts.** Every number in a changed line that counts something (items,
+   rows, files, cases, a share) is recounted from the table, file or output it
+   describes. Show the recount. A count you cannot recount is reported as
+   unverified, not as correct.
 2. **Claims against evidence.** Every claim of a result names its evidence:
-   a run directory, a `metrics.csv`, a test, a commit. Flag a claim stronger
-   than its evidence: "improves" where the interval includes zero, "exactly"
-   where the value is 2.7e-15, "reproduces" where only some rows were rerun,
-   "no fit affected" where nothing was rerun.
-3. **Checks that could fire.** For every check cited as support ("the golden
-   test did not move", "the gate passes", "the audit found nothing"), ask
-   whether it could have failed on this change. A test that never runs the
-   changed branch is not evidence. Name the check and the branch it misses.
+   a run directory, a `metrics.csv`, a test, a commit. Flag any word stronger
+   than that evidence, and give the wording the evidence does support. For
+   example, "always" where one case was checked, or "significant" where no
+   test of significance was run.
+3. **Checks that could fire.** For every check cited as support (a test that
+   passed, a gate, a review), ask whether it could have failed on this change.
+   A check that would pass whether or not the claim is true is not evidence.
+   Name the check and the case it cannot see.
 4. **Years.** Every result states its training years and its single test year.
 5. **Negatives.** No negative result is dropped, softened or moved below its
    positive counterpart.

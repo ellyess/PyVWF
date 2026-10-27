@@ -103,9 +103,9 @@ the loaded library lacks (`CurveSubstitutionError`). For each country, with
 `<cc>` its lower-case code:
 
 ```bash
-PYVWF_INPUT=input/combined python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=input/combined pyvwf-validate train \
     --region configs/regions/scorecard/<cc>_country.toml
-PYVWF_INPUT=input/combined python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=input/combined pyvwf-validate evaluate \
     --region configs/regions/scorecard/<cc>_country.toml \
     --train-run output/validation/<CC>/train-<stamp>
 ```

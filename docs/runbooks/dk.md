@@ -58,9 +58,9 @@ step is needed.
 ## 2. Train and evaluate
 
 ```bash
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=<input root> pyvwf-validate train \
     --region configs/regions/dk.toml
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=<input root> pyvwf-validate evaluate \
     --region configs/regions/dk.toml --train-run output/validation/DK/train-<stamp>
 ```
 

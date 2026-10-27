@@ -45,7 +45,6 @@ src/pyvwf/sources/                 # one ObservationSource adapter per data fami
 src/pyvwf/metrics.py               # the weighted-mean primitive, shared by both paths
 configs/regions/*.toml           # one file per region
 src/pyvwf/cli/validate.py          # the pyvwf-validate console entry point
-scripts/analysis/validate_region.py   # the same CLI, from a checkout
 ```
 
 `configs/` lives at the repository root and is versioned: these are experiment
@@ -241,7 +240,7 @@ and a failure to write it still does not abort them.]*
 ## Driver
 
 The driver exposes three verbs, `train`, `evaluate` and `transfer`, through
-`pyvwf-validate` and `scripts/analysis/validate_region.py`. The commands are in
+`pyvwf-validate`. The commands are in
 the [training guide](../guides/training.md).
 
 Outputs land under `output/validation/<region-code>/<verb>-<suffix>/`: the

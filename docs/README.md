@@ -39,9 +39,10 @@ never revised into guidance.
 
 **Private working notes are kept untracked.** A note that records decisions
 not yet made, about work outside this repository, is the maintainer's and is
-not documentation for anyone else. `.gitignore` names each one and says what
-it held. A document here cites such a note by a permalink to its last tracked
-version, never by a path the repository no longer has.
+not documentation for anyone else. The public `.gitignore` does not list them;
+the maintainer's clone excludes them locally. A document here cites such a
+note by a permalink to its last tracked version, never by a path the
+repository no longer has.
 
 A document serves one of these purposes. When a page starts to serve two, the
 second part moves to the folder that fits it, and the first page links to it.
