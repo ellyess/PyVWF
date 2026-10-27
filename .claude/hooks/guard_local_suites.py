@@ -60,7 +60,7 @@ def _strip_heredocs(command: str) -> str:
     return "\n".join(out)
 
 
-def _tokens(command: str) -> list[str]:
+def shell_tokens(command: str) -> list[str]:
     """Shell tokens, with newlines as separators; raises ValueError on bad quoting."""
     lexer = shlex.shlex(
         _strip_heredocs(command).replace("\n", " ; "), posix=True, punctuation_chars=True
@@ -93,7 +93,7 @@ def git_invocations(command: str, subcommands: set[str]) -> list[tuple[str, list
     The same parsing as ``commit_invocations``, for any set of subcommands.
     """
     try:
-        tokens = _tokens(command)
+        tokens = shell_tokens(command)
     except ValueError:
         return None
     found: list[tuple[str, list[str]]] = []

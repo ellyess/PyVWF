@@ -97,6 +97,49 @@ def test_run_lock_blocks_tree_changing_git_only(repo):
     assert _hook(repo, RUN_LOCK, "Bash", {"command": "git status && ls"}) == 0
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        "echo x > new.py",
+        "printf x >> README.md",
+        "cat <<'EOF' > src/pyvwf/x.py\nbody\nEOF",
+        "echo y | tee -a README.md",
+        "sed -i '' s/a/b/ README.md",
+        "sed -i -e s/a/b/ README.md",
+        "ls &> notes.md",
+    ],
+)
+def test_run_lock_blocks_shell_writes_to_the_tree(repo, command):
+    _lock(repo, os.getpid())
+    assert _hook(repo, RUN_LOCK, "Bash", {"command": command}) == 2
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "echo x > output/log.txt",
+        "ls > /dev/null 2>&1",
+        "cat <<'EOF'\na > not_a_target.py\nEOF",
+        "sed s/a/b/ README.md",
+        "sed -i -e s/a/b/ output/x.md",
+        "grep -n x README.md | tee output/hits.txt",
+        "echo x > $SCRATCH/x.md",
+    ],
+)
+def test_run_lock_allows_shell_writes_outside_the_tree(repo, command):
+    _lock(repo, os.getpid())
+    assert _hook(repo, RUN_LOCK, "Bash", {"command": command}) == 0
+
+
+def test_run_lock_allows_shell_writes_outside_the_repository(repo, tmp_path):
+    _lock(repo, os.getpid())
+    assert _hook(repo, RUN_LOCK, "Bash", {"command": f"echo x > {tmp_path / 'x.py'}"}) == 0
+
+
+def test_run_lock_lets_shell_writes_through_without_a_lock(repo):
+    assert _hook(repo, RUN_LOCK, "Bash", {"command": "echo x > new.py"}) == 0
+
+
 # guard_local_suites
 
 
