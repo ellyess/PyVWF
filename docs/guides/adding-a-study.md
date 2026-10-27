@@ -41,7 +41,7 @@ example `method-roughness-treatment`.
 Step 2 matters. A gate counts only if a commit older than the results fixes it.
 
 <!-- keeps: the skill name and the file it applies to -->
-The `findings-doc` skill, in `.claude/skills/`, holds the rules for the
+The `findings-doc` skill, in `skills/`, holds the rules for the
 findings document. It covers the metrics table, the curve library, fit
 quality and correction notices.
 
