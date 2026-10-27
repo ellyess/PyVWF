@@ -51,6 +51,20 @@ country is in
    `--replace` an existing file stops the build; with it, the old file is kept
    beside the new one as `.entsoe-mixed.bak.csv` (BE) or `.entsoe.bak.csv`
    (FR). `--out <dir>` writes somewhere else.
+
+   Then rebuild Sweden's, Norway's and Portugal's from their national
+   sources. Each reads the files step 1 wrote, so run them after it:
+
+   ```bash
+   python scripts/region_tools/build_se_capacity_from_energimyndigheten.py --replace
+   python scripts/region_tools/build_no_obs_from_nve.py --replace
+   python scripts/region_tools/build_pt_capacity_from_ren.py --replace
+   ```
+
+   The old files are kept as `.entsoe-capacity.bak.csv` (SE, PT) or
+   `.entsoe.bak.csv` (NO). Once a backup exists, a builder reads its
+   ENTSO-E generation from the backup, so a second run reproduces the first;
+   after a new fetch in step 1, move the backups aside before running them.
 3. Replace the synthetic capacity with GWPT capacity, one grid per year:
 
    ```bash
@@ -107,10 +121,12 @@ because most of their joint fits are refused (`docs/findings/scorecard.md`).
 
 ## Licence
 
-ENTSO-E, Elia, ODRE and Eurostat each publish under their own terms, listed in
-the [source table](../guides/data-sources.md#source-urls). Nothing from any of
-them is committed except the Eurostat annual totals in
-`configs/curation/eurostat_wind_gwh.csv`. The capacity weights come from the
+ENTSO-E, Elia, ODRE, Energimyndigheten, NVE, REN and Eurostat each publish
+under their own terms, listed in the
+[source table](../guides/data-sources.md#source-urls). REN publishes no reuse
+licence for its Data Hub. Nothing from any of them is committed except the
+Eurostat annual totals in `configs/curation/eurostat_wind_gwh.csv`. The
+capacity weights come from the
 Global Wind Power Tracker (Global Energy Monitor, CC-BY-4.0), which requires
 attribution. The bidding-zone polygons committed under `configs/curation/zones/`
 carry their own sources and licences in that folder's README. Results computed
