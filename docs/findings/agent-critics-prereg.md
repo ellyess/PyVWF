@@ -79,7 +79,10 @@ reviewed against the same snapshot.
 4. `evals.py score` writes `results.json` and `results.md`.
 
 The run's directory, `scripts/dev/agent_evals/runs/2026-10-16/`, holds every
-prompt, review and judgement, and is committed with the results.
+prompt, review and judgement, and is committed with the results. *[2026-10-27:
+the run directory was moved off the main branch to tag
+`archive/research-2026-10-27`, where it is complete. Its `results.md` stays on
+the main branch as `scripts/dev/agent_evals/results-2026-10-16.md`.]*
 
 ## Scoring rule
 

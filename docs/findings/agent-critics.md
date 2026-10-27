@@ -14,7 +14,10 @@ fixed control.
 
 Data: `scripts/dev/agent_evals/runs/2026-10-16/` (`run.json`, `prompts/`,
 `responses/`, `judge_prompts/`, `judgements/`, `results.json`, `results.md`,
-`read_audit.json`), produced by `scripts/dev/agent_evals/evals.py` at
+`read_audit.json`) *[2026-10-27: at tag `archive/research-2026-10-27`; the
+main branch keeps `results.md` as
+`scripts/dev/agent_evals/results-2026-10-16.md`]*, produced by
+`scripts/dev/agent_evals/evals.py` at
 `654ad76`. The registration was committed first, at `1bd9607`. Critics ran on
 `claude-opus-5-5` and the judge on `claude-sonnet-5-5`, both read from the
 transcripts of every call.

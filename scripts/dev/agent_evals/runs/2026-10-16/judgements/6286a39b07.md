@@ -1,2 +1,0 @@
-FOUND: NO
-QUOTE: NONE
