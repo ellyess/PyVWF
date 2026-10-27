@@ -5,6 +5,49 @@
 them in an unseen one? Two pre-registered rounds are recorded here: five
 regions, then eight after adding complex terrain.
 
+**Correction notice, 2026-10-27: the leave-one-region-out folds below scale
+longitude and latitude over every region, the held-out one included. Rescaled
+from the training regions only, one fold moves by at most 1.2e-5, and no
+printed figure or gate changes.** Both drivers set the span from the pooled
+centroids before the fold split (`ml_transfer_retest.py:72-74`,
+`ml_transfer_expanded.py:91-93`). Issue #155 registered a check, and its gate,
+before the check ran:
+
+- recompute the span from the training regions only;
+- rerun with the same five seeds;
+- require every per-seed and seed-mean R² and MAE to agree within 1e-9.
+
+Of 580 per-seed scores across both rounds, 578 agree exactly. The two that do
+not are both the US fold of round one's high-k tier, one seed each:
+
+- Set A, scalar (seed 0): R² +1.2e-6, MAE -1.2e-5;
+- Set C, offset (seed 2): R² -4.0e-6, MAE +1.9e-6.
+
+That misses the gate. No R² changes sign, so these counts stand:
+
+- round one's gate, at 1 of 5;
+- the high-k tier, at 3 of 5 ("US +0.05" below);
+- round two's G1 to G3.
+
+The check ran under scikit-learn 1.7.2. The round-one table below now shows the
+1.9.1 rerun, which was not rechecked.
+
+Training years of the factor files:
+
+| Region | Training years |
+|---|---|
+| DK | 2015-2019 |
+| DE, UK | 2015-2018 |
+| US | 2019-2021 |
+| BR | 2021-2023 |
+| NZ | 2019-2023 |
+| CL, AR | 2021-2023 |
+
+The folds score fitted factors, so no test year is read.
+
+Driver: `scripts/analysis/check_issue155.py` (`8712764`). The full comparison
+and its controls are on issue #155.
+
 **Headline: the negative transfer result stands, in both rounds.** Under the
 pre-specified gate (leave-one-region-out scalar R² > 0 in at least 3 of 5
 regions, primary configuration), round one scores **1/5**: only Brazil is
@@ -47,7 +90,9 @@ no geographic distance):
 Centroid = mean lon/lat of cluster members. Features are computed exactly as
 the prior experiment: ETOPO-derived elevation/slope/aspect/roughness/curvature
 (here from `etopo_global.nc`, 30 arc-sec, same formulas) plus abs_lat and
-normalised lon/lat (Set A). Model: RandomForest(100, max_depth=10,
+normalised lon/lat (Set A) *[2026-10-27: scaled over every region's
+centroids, the held-out one included; see the correction notice of that
+date]*. Model: RandomForest(100, max_depth=10,
 min_samples_split=10), identical hyperparameters. 5 seeds; mean ± std.
 
 ### T1 (primary, gated): leave-one-region-out, Set A
