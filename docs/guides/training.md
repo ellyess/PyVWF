@@ -56,9 +56,8 @@ pyvwf-validate evaluate --region configs/regions/nz.toml \
     --train-run output/validation/NZ/train-<timestamp>
 ```
 
-`pyvwf-validate` is installed with the package. In a checkout without an
-install, `python scripts/analysis/validate_region.py` takes the same
-arguments.
+`pyvwf-validate` is installed with the package (`pip install -e .` in a
+checkout).
 
 Set `PYVWF_INPUT` on both commands when the run uses another input root; see
 [Choose the input root](#choose-the-input-root).

@@ -90,8 +90,8 @@ pass its key.
 ## 4. Run the validation harness
 
 ```bash
-python scripts/analysis/validate_region.py train    --region configs/regions/br.toml
-python scripts/analysis/validate_region.py evaluate --region configs/regions/br.toml \
+pyvwf-validate train    --region configs/regions/br.toml
+pyvwf-validate evaluate --region configs/regions/br.toml \
     --train-run output/validation/BR/train-<timestamp>
 ```
 
