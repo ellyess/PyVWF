@@ -368,7 +368,12 @@ one, because the alternatives have been tested and eliminated.
   search and its scipy fallback now check the residual and refuse rather than
   return a non-root. It affected no fit in this repository, the shipped initial
   step being 10.0 and the only other value it has ever had 3.0, which give
-  identical results, and the golden regression test did not move.
+  identical results, and the golden regression test did not move. [Corrected
+  2026-10-27: "affected no fit" is false, as the CHANGELOG's correction of
+  2026-09-19 records. The residual test also refused genuine fits that the
+  search had left short of the root, and its fallback returned a closer root,
+  so fitted offsets outside the golden test moved by small refinements, the
+  Chile row's among them. See issue #18.]
 - **Rows with three to five points** are reported for completeness and support
   no statistic. Denmark offshore has two and is omitted.
 - **Every result rests on the chapter-era pool**, built on the uniform grids,
