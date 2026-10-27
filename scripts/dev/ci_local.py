@@ -65,7 +65,7 @@ CHECKS = {
     "vulture": ("dev", ["vulture"]),
     "pytest": (
         "dev",
-        ["pytest", "tests", "-n", "4", "--dist", "loadfile", "-m", "not slow and not realdata"],
+        ["pytest", "tests", "-n", "4", "--dist", "loadfile", "-m", "not realdata"],
     ),
     "docs": ("docs", ["sphinx-build", "-b", "html", "docs", "{out}", "-W"]),
 }
