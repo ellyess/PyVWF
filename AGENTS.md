@@ -94,4 +94,8 @@ For the lines a change adds or edits:
   `provenance-guard` checks before any release-shaped action.
 - Agents (`.claude/agents/`): `method-critic`, `implementation-critic` and
   `red-team` judge a proposal independently, evaluated in
-  `scripts/dev/agent_evals/`.
+  `scripts/dev/agent_evals/`. `docs-critic` reviews a change to a published
+  page.
+- **Before committing a change to `README.md`, `docs/results.md`,
+  `docs/archive.md`, the scorecard or `CHANGELOG.md`, run `docs-critic` on the
+  diff** and fix what it reports.

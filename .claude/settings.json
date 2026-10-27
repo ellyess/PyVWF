@@ -14,7 +14,10 @@
       "Bash(git push *--all*)",
       "Bash(git push *refs/tags/*)",
       "Bash(git push * tag *)",
-      "Bash(git push * v*.*)"
+      "Bash(git push * v*.*)",
+      "Bash(git diff *--output*)",
+      "Bash(git show *--output*)",
+      "Bash(git log *--output*)"
     ]
   },
   "hooks": {
