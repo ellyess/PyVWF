@@ -131,7 +131,7 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 
 - **Before running,** write down which configuration will be reported, and
   why. Fix that rule before seeing any result.
-- Run `scripts/analysis/validate_region.py` train, then evaluate, as in the
+- Run `pyvwf-validate` train, then evaluate, as in the
   guide. Set `PYVWF_INPUT` on both commands.
 - Add the region to `RUNS` and `own_manufacturer` in
   `scripts/analysis/curve_match_audit.py`. Run the audit.

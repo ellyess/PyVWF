@@ -32,7 +32,7 @@ part of a row's design.
 Re-run a row from its file here:
 
 ```bash
-python scripts/analysis/validate_region.py train --region configs/regions/scorecard/ie_country.toml
+pyvwf-validate train --region configs/regions/scorecard/ie_country.toml
 ```
 
 A configuration does not fix the curve library. Each run's `run_manifest.json`

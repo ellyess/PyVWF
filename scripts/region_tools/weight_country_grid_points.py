@@ -300,9 +300,8 @@ def process_per_year(
     if zone_aware:
         # Zones are re-derived here rather than read from the grid's cluster
         # column, because the point set above comes from the uniform backup,
-        # which predates any zone assignment. Deriving them removes the ordering
-        # trap: this step is correct whether or not assign_country_zones.py has
-        # run, and it writes the cluster it used.
+        # which predates any zone assignment. This step writes the cluster it
+        # used.
         grid = tag_zones(grid, code)
         grid["cluster"] = grid["zone"].str.rsplit("_", n=1).str[-1].astype(int) - 1
 
