@@ -49,7 +49,10 @@ reduced to a **monthly capacity factor** before correction.
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 7 ENTSO-E countries | ES IE IT NL NO PT SE | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| 4 ENTSO-E countries | ES IE IT NL | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Sweden | SE | `entsoe-country` | ENTSO-E generation over Energimyndigheten's year-end wind fleet | open | generator → `region_tools/build_se_capacity_from_energimyndigheten.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Norway | NO | `entsoe-country` | NVE metered farm output over NVE's turbine register (2015-21); ENTSO-E generation over the register (2023) | open, attribution | generator → `region_tools/build_no_obs_from_nve.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Portugal | PT | `entsoe-country` | ENTSO-E generation over REN Data Hub's month-end wind fleet | mixed | generator → `region_tools/build_pt_capacity_from_ren.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Belgium | BE | `entsoe-country` | Elia Open Data `ods031` output and monitored capacity | open | `region_tools/build_be_obs_from_elia.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | France | FR | `entsoe-country` | RTE eCO2mix definitive output and year-end fleet, from ODRE | open | `region_tools/build_fr_obs_from_rte.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden (per zone) | SE-BZ | `entsoe-zonal` | The same fetch, read per bidding zone | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
@@ -120,6 +123,9 @@ the [built-in adapters](adding-an-adapter.md#built-in-adapters) table.
 | ENTSO-E | `transparency.entsoe.eu` | API (free key) | public-by-regulation |
 | Elia (BE) | `opendata.elia.be`, dataset `ods031` | open portal | Elia Open Data Licence |
 | ODRE (FR) | `odre.opendatasoft.com`, datasets `eco2mix-national-cons-def` and `parc-prod-par-filiere` | open portal | Licence Ouverte v2.0 |
+| Energimyndigheten (SE) | `pxexternal.energimyndigheten.se`, table `Vindkraftsstatistik/EN0105_1` | API | Swedish official statistics; no licence stated |
+| NVE (NO) | `nve.no/media/13399/vindprod2002-2021_kraftverk_utcplus1.xlsx`; `api.nve.no/web/WindPowerplant/GetWindPowerPlants` | download / API | NVE credited, content unchanged; register NLOD |
+| REN Data Hub (PT) | `servicebus.ren.pt/datahubapi/electricity/ElectricityInstalledPowerMonthly` | API | no reuse licence published ("All rights reserved"); kept local |
 | Eurostat (audit) | `nrg_bal_peh`, gross wind production | download | reuse with the source acknowledged |
 | WindStats (DE, ES) | commercial subscription | (none) | confidential, commercial |
 
@@ -219,13 +225,29 @@ including the capacity weighting and the observation audit, are in
 [A country-level region](adding-a-region.md#a-country-level-region), and the
 order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md).
 
-- **ENTSO-E (ES, IE, IT, NL, NO, PT, SE).** The fetch takes every wind type,
-  onshore and offshore, unless `--psr-type` names one; until 2026-10-25 it
-  took onshore alone. Generation is the wind types' output, with any
-  consumption column left out. An hour in which a wind type that reports is
-  missing is dropped, so the remaining types are never taken for the whole
-  fleet; outside a type's first and last reported hour it is taken not to
-  exist yet. The capacity-factor denominator is ENTSO-E's installed capacity.
+- **ENTSO-E (ES, IE, IT, NL, and the files the SE, NO and PT builders start
+  from).** The fetch takes every wind type, onshore and offshore, unless
+  `--psr-type` names one; until 2026-10-25 it took onshore alone. Generation is
+  the wind types' output, with any consumption column left out. An hour in
+  which a wind type that reports is missing is dropped, so the remaining types
+  are never taken for the whole fleet; outside a type's first and last reported
+  hour it is taken not to exist yet. The capacity-factor denominator is
+  ENTSO-E's installed capacity.
+- **SE: Energimyndigheten.**
+  `scripts/region_tools/build_se_capacity_from_energimyndigheten.py` keeps
+  ENTSO-E's generation and divides it by Energimyndigheten's 31 December wind
+  fleet, onshore and offshore, interpolated linearly through the year. The
+  per-zone files are not changed.
+- **NO: NVE.** `scripts/region_tools/build_no_obs_from_nve.py` builds 2015-21
+  from NVE's hourly output per farm, metered at the grid connection, over
+  NVE's turbine register. A farm counts in a month only when it is metered
+  every hour, its registered capacity is above zero and fixed, and its output
+  stays within 1.05 times that capacity. NVE's metered file ends in 2021, so
+  2023 keeps ENTSO-E's generation over the register. The per-zone files are
+  not changed.
+- **PT: REN.** `scripts/region_tools/build_pt_capacity_from_ren.py` keeps
+  ENTSO-E's generation and divides it by REN Data Hub's month-end wind fleet,
+  onshore and offshore, interpolated linearly through each month.
 - **BE: Elia.** `scripts/region_tools/build_be_obs_from_elia.py` sums Elia's
   onshore and offshore output and monitored capacity every 15 minutes,
   averages each hour, and divides output by monitored capacity, so both cover
@@ -237,8 +259,9 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
   left empty, because RTE's series cannot place them.
 
 The generator run for BE or FR without `--skip-observations` overwrites the
-builders' files with ENTSO-E's ([runbook](../runbooks/entsoe.md)). The
-generator and both builders write this layout:
+builders' files with ENTSO-E's ([runbook](../runbooks/entsoe.md)); for SE,
+NO and PT, a new fetch is followed by their builders again. The generator and
+the builders write this layout:
 
 ```
 input/observations/country/
