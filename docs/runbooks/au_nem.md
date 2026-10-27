@@ -64,9 +64,9 @@ commands; see
 [Choose the input root](../guides/training.md#choose-the-input-root).
 
 ```bash
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py train \
+PYVWF_INPUT=<input root> pyvwf-validate train \
     --region configs/regions/scorecard/au_nem_k45.toml
-PYVWF_INPUT=<input root> python scripts/analysis/validate_region.py evaluate \
+PYVWF_INPUT=<input root> pyvwf-validate evaluate \
     --region configs/regions/scorecard/au_nem_k45.toml \
     --train-run output/validation/AU-NEM/train-<stamp>
 ```
