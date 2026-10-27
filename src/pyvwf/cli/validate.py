@@ -13,7 +13,6 @@ Examples:
         --source-region configs/regions/au_nem.toml \\
         --source-run output/validation/AU-NEM/train-20260715T120000Z
 
-``scripts/analysis/validate_region.py`` runs the same command from a checkout.
 """
 
 from __future__ import annotations

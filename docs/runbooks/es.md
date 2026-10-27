@@ -36,8 +36,8 @@ the uniform default (as BR/CL/AR do), matched by specific power downstream via
 
 ```bash
 python scripts/fetch/era5.py --region es-ws          # 1998-2000 mainland Spain
-PYVWF_INPUT=input python scripts/analysis/validate_region.py train    --region configs/regions/es_ws.toml
-PYVWF_INPUT=input python scripts/analysis/validate_region.py evaluate --region configs/regions/es_ws.toml --train-run output/validation/ES-WS/train-<stamp>
+PYVWF_INPUT=input pyvwf-validate train    --region configs/regions/es_ws.toml
+PYVWF_INPUT=input pyvwf-validate evaluate --region configs/regions/es_ws.toml --train-run output/validation/ES-WS/train-<stamp>
 ```
 
 ## Sweden & Finland
