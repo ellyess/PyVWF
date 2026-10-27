@@ -1508,6 +1508,35 @@ months:*
 
 *Both rows stay suspended. Data: `output/it_pt_2023_2026-10-24/`.]*
 
+*[Note, 2026-10-27: Portugal's capacity-factor denominator was 4,486 MW in every
+year 2015-19, a register ENTSO-E stopped updating, and from 2020 ENTSO-E's
+onshore register while the generation includes WindFloat Atlantic.
+`scripts/region_tools/build_pt_capacity_from_ren.py` (`4ccab24`) keeps each
+file's generation and hours and divides them by REN Data Hub's month-end wind
+fleet (mainland, offshore included), interpolated through each month. The
+stored capacity was 0.865 to 0.992 of REN's in 2015-21 and 0.996 in 2023, so
+the training years' mean CF falls by up to 0.047 (2019: 0.342 to 0.295). The
+old files are kept as `.entsoe-capacity.bak.csv`; the promoted files are
+byte-identical to a separate build and pass the physical gates. REN publishes
+no reuse licence for the Data Hub, so its table stays local. The row was rerun
+at `4ccab24` from a clean tree (training years 2015-21, test year 2023,
+licensed library, 0% substituted, year-local roughness fill); a control on the
+old files is within 1.8e-3 of the run above, the fill's effect. It still
+scores 3 of 12 months:*
+
+| Variant | RMSE before (2026-10-24) | RMSE control | RMSE after | MBE control | MBE after | Max scalar after | Implausible / failed after |
+|---|---|---|---|---|---|---|---|
+| uncorrected | 0.2206 | 0.2206 | 0.2193 | -0.2202 | -0.2189 |  |  |
+| fixed N=1 | 0.0493 | 0.0489 | 0.0727 | -0.0367 | -0.0629 | 2.78 | 0 / 0 |
+| fixed N=2 | 0.0135 | 0.0128 | 0.0436 | -0.0077 | -0.0421 | 3.68 | 1 / 0 |
+| **season N=1** (reported) | 0.0304 | 0.0305 | 0.0573 | -0.0079 | -0.0451 | 2.83 | 0 / 1 |
+| season N=2 | 0.1021 | 0.1038 | 0.0536 | +0.1024 | -0.0479 | 3.09 | 1 / 6 |
+
+*Every corrected variant except season N=2 is worse on REN's capacity, and
+every corrected bias is now between -0.042 and -0.063. On 3 scored months none
+of this is a result, and the row stays suspended. Data:
+`output/pt_ren_2026-10-27/`.]*
+
 **No country-level row carries § any more.** Sweden and Norway did, at 0.8%
 and 4.4% of capacity, and the wider download of 2026-09-12 covers both fleets;
 their re-runs record an extrapolated share of zero. Denmark is the only
