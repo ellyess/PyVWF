@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from pyvwf.config import PyVWFPaths
 from pyvwf.era5 import _normalise_longitudes, _slice_bbox, prep_era5
 
 
@@ -69,12 +68,11 @@ def test_prep_era5_normalises_0_360_on_load(tmp_path, monkeypatch):
         },
         coords={"time": times, "lat": lats, "lon": lons_0360},
     ).to_netcdf(era5_dir / "era5_synthetic_ZZ.nc")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", era5_dir)
-
     ds = prep_era5(
-        "ZZ",  # no BoundingBoxes entry: the bbox comes from the caller
+        "ZZ",
         calc_z0=False,
         bbox=(-11.0, -5.0, 49.0, 53.0),
+        era5_dir=era5_dir,
     )
 
     assert ds.sizes["lon"] == 3
@@ -133,7 +131,7 @@ def test_prep_era5_reads_from_era5_dir_and_normalises(tmp_path):
     ).to_netcdf(era5_dir / "era5_synthetic_ZZ.nc")
 
     ds = prep_era5(
-        "ZZ",  # no BoundingBoxes entry: bbox comes from the caller, like the harness
+        "ZZ",
         calc_z0=False,
         bbox=(-11.0, -5.0, 49.0, 53.0),
         era5_dir=era5_dir,

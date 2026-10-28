@@ -2,12 +2,15 @@
 
 The region configuration behind each row of the
 [scorecard](../../../docs/scorecard.md), one file per row. Each is the file its
-run was made from, with three later edits that keep each run's meaning:
+run was made from, with later edits that keep each run's meaning:
 `br_k60.toml` and `us_k250.toml` gained `roughness = "stored"` (`a023b4d`,
 2026-09-20), the treatment they had run under, when the default changed to
 derived; and a comment in `uk_k50.toml` and `us_k250.toml` names the renamed
 package (`4d06163`). *[Corrected 2026-10-27: this file said every
 configuration was byte-identical to its run's.]*
+On 2026-10-28 the comments in every file were repointed from documents that
+left the main branch to `docs/design/harness.md` and `docs/results.md`; no key
+or value changed.
 
 **The canonical name always points at the row standing today.** When a row is
 superseded, the new configuration takes the canonical name, so a reader

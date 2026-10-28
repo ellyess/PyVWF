@@ -34,7 +34,7 @@ PINNED = ("3.10", "3.11", "3.12")
 #: Other pinned jobs: file stem -> (Python version, extras). Checked against
 #: the workflow by tests/test_tooling.py.
 JOBS = {
-    "py312-extras": ("3.12", ("dev", "pinn", "grid", "data", "parallel")),
+    "py312-extras": ("3.12", ("dev", "pinn", "data", "parallel")),
     "py312-docs": ("3.12", ("docs",)),
 }
 

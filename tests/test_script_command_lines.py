@@ -27,7 +27,7 @@ BACKFILL = Path("output/validation/curve_resolution_backfill_2026-09-11")
 
 # script: [(argv, (entry function, positional args, keyword args)), ...]
 RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
-    # Development guards (docs/design/agent-guards.md). The command lines are
+    # Development guards (docs/design/ai-native-development.md). The command lines are
     # the ones AGENTS.md and src/pyvwf/AGENTS.md give.
     "scripts/dev/run_locked.py": [
         (
