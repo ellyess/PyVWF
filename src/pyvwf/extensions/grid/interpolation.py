@@ -5,8 +5,8 @@ Ported on 2026-09-13 from
 where these lived inside a driver script. They are library code here because
 two registered studies depend on them and a second implementation would be a
 second definition of the same number
-(``docs/findings/method-loco-interpolation-prereg.md``,
-``docs/findings/method-offshore-pool-prereg.md``).
+(``docs/results.md#leave-one-country-out-interpolation``,
+``docs/results.md#offshore-pool-and-domain-split``).
 
 **Distance is Euclidean in degrees, not great-circle.** That is what the
 chapter did, and it is how its published figures reproduce: IDW over the 1,729

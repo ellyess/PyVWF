@@ -1,7 +1,7 @@
 """Machine-learning transfer of correction factors across regions.
 
 Holds the shared machinery of the leave-one-region-out transfer studies
-(``docs/findings/method-ml-transfer.md``). It needs only the core
+(``docs/results.md#machine-learning-transfer``). It needs only the core
 dependencies: scikit-learn is one of them.
 """
 

@@ -2,8 +2,8 @@
 
 Ported on 2026-09-13 from ``development:src/pyvwf/extensions/grid/atlite_export.py``.
 This is the piece both registered studies were blocked on
-(``docs/findings/method-offshore-pool-prereg.md``,
-``docs/findings/method-grid-nl-holdout-prereg.md``), because both need a surface
+(``docs/results.md#offshore-pool-and-domain-split``,
+``docs/results.md#netherlands-holdout``), because both need a surface
 built from a control-point set that is not the whole pool.
 
 **The set is a parameter, not a variant.** :func:`correction_surface` takes the
@@ -78,8 +78,8 @@ NEUTRAL_SCALAR, NEUTRAL_OFFSET = 1.0, 0.0
 
 #: Beyond this many degrees from any control point, a kriged value has reverted
 #: to the pool mean and carries no information about the place it is applied to
-#: (``docs/findings/method-distance-mask.md``,
-#: ``docs/findings/method-loco-interpolation-prereg.md``). It is a statement
+#: (``docs/results.md#the-distance-mask``,
+#: ``docs/results.md#leave-one-country-out-interpolation``). It is a statement
 #: about provenance, not about safety. Cutting the grid here would delete 8,269
 #: cells to remove 1,218 of the 2,659 whose correction is unusable, so it
 #: catches under half the defect and discards 7,051 cells that are fine.
@@ -369,7 +369,7 @@ def correction_surface(
         to do it. Kriging variance adds nothing, being nearly a monotone
         function of distance. Which cells count as unusable also depends on the
         screen, and the two screens measured disagree about where they live
-        (``docs/findings/method-distance-mask.md``). A flag on the correction's
+        (``docs/results.md#the-distance-mask``). A flag on the correction's
         own behaviour needs neither a threshold on geometry nor a choice
         between the screens.
 
@@ -522,7 +522,7 @@ def correction_surface(
         f"{max_zero_crossing_speed} m/s. Filter on this rather than on "
         "distance: a 5 degree cut catches under half the unusable cells "
         "and discards thousands of sound ones "
-        "(docs/findings/method-distance-mask.md).",
+        "(docs/results.md#the-distance-mask).",
     )
     out.attrs.update(
         title="PyVWF gridded bias correction field",
@@ -547,7 +547,7 @@ def correction_surface(
             "and carries no information about the place it is applied to. This is a "
             "statement about provenance, not about safety: use `plausible` for safety, "
             "since a cut here removes under half the unusable cells and thousands of "
-            "sound ones. See docs/findings/method-distance-mask.md and the "
+            "sound ones. See docs/results.md#the-distance-mask and the "
             "leave-one-country-out result it cites."
         ),
         recommended_filter=(

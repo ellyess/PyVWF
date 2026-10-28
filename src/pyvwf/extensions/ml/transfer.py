@@ -1,6 +1,6 @@
 """Leave-one-region-out transfer of correction factors by a random forest.
 
-The machinery of the transfer re-test (``docs/findings/method-ml-transfer.md``):
+The machinery of the transfer re-test (``docs/results.md#machine-learning-transfer``):
 per-cluster centroids with their fitted factors, terrain features at those
 centroids, and a random forest scored by leave-one-region-out and by random
 cross-validation. The run list, the gate and the output belong to the study

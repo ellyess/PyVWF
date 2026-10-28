@@ -523,7 +523,7 @@ class ENTSOEWindDataFetcher:
         # used to fall back to gen.max() / 0.9, a denominator derived from its
         # own numerator: every series built that way peaks at exactly 0.900
         # and holds a flat capacity whatever the fleet did, which is how
-        # Sweden's zonal files were made (docs/findings/method-country-level.md).
+        # Sweden's zonal files were made (docs/results.md#the-country-level-estimator).
         # Those capacity factors look like observations and are not, so the
         # fetch stops here and the caller has to find a real register.
         cap = self.fetch_installed_capacity(country, start, end, psr_type)

@@ -202,7 +202,7 @@ def _apply_roughness(ds, country, calc_z0, roughness):
             # year's roughness depends on that year's ERA5 alone. Filled along
             # the whole record, a year's last undefined hours took the next
             # year's value, which for a training run can be its test year
-            # (docs/findings/method-roughness-fill-prereg.md).
+            # (docs/results.md#roughness-back-fill-within-each-year).
             year = ds["time"].dt.year.values
             axis = wnd10m.get_axis_num("time")
             z0_log = None
@@ -280,7 +280,7 @@ def prep_era5(
             ``"derived"`` (default) ignores any stored field and inverts the
             log profile per timestep from the 10 m and 100 m winds. That is
             the method, adopted on 2026-09-12
-            (``docs/findings/method-roughness-treatment.md``), so it is what a
+            (``docs/results.md#roughness-treatment``), so it is what a
             caller gets without asking.
 
             ``"stored"`` uses a roughness field the files already carry, and

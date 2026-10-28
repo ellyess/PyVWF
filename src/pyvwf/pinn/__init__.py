@@ -3,8 +3,8 @@
 The affine correction in :mod:`pyvwf.correction` fits two free parameters per
 cluster per time slice, directly against observed generation, and those
 parameters do not transfer to regions they were not fitted on
-(``docs/findings/method-ml-transfer.md``). The diagnostics in
-``docs/findings/method-physics-informed.md`` locate the problem in the
+(``docs/results.md#machine-learning-transfer``). The diagnostics in
+``docs/results.md#zero-shot-transfer`` locate the problem in the
 two-stage design rather than in the choice of regressor: free per-cluster factors are
 estimated noisily, depend on an arbitrary k-means partition, and collapse every
 turbine-month into ~100 cluster summaries before any model sees them.
