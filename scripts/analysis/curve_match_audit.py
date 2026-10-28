@@ -186,7 +186,6 @@ def _models_file(lib: dict) -> Path:
     """
     candidates = [
         Path(lib["models_path"]),
-        Path("input/reference/models.csv"),
         Path("input/combined/reference/models.csv"),
         Path("src/pyvwf/resources/models.csv"),
     ]

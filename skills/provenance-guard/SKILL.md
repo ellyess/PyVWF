@@ -20,10 +20,11 @@ Terms follow `docs/CONTEXT.md`.
 Run each file in its own process:
 
 - `tests/test_committed_files.py`: no tracked file is excluded by `.gitignore`,
-  apart from a stated allowlist; no licensed-library file is tracked; and
-  both copies of the open library match their recorded sha256.
+  apart from a stated allowlist; no licensed-library file is tracked; the
+  open library matches its recorded sha256; and the default root holds no
+  curve table that would replace it.
 - `tests/test_curve_library.py`: the open library is internally consistent,
-  its two copies are byte-identical, and every curve has a provenance row.
+  and every curve has a provenance row.
 - `tests/test_packaging.py`: `pyvwf.__version__`, the newest CHANGELOG release,
   its compare links and `CITATION.cff` agree.
 - `tests/test_scorecard_configs.py`: every configuration in

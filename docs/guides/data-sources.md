@@ -10,8 +10,8 @@ Full step-by-step acquisition lives in the per-region runbooks
 **mixed** = open coordinates over a confidential generation series;
 **confidential** = confidential or commercial, never redistributed.
 
-Nothing under `input/` is committed (`/input` is git-ignored) except the open
-curve library in `input/reference/`. Every fetch script is **user-executed**: it
+Nothing under `input/` is committed (`/input` is git-ignored) except the region
+shapes in `input/reference/shapes/`; the open library ships in the package. Every fetch script is **user-executed**: it
 runs under your own credentials (CDS, ENTSO-E, CEN keys), never bundled data.
 Results *derived* from confidential inputs are shareable; the inputs are not.
 
@@ -25,7 +25,7 @@ Paths are defined centrally in [`src/pyvwf/config.py`](../../src/pyvwf/config.py
 | ERA5 winds | NetCDF | `input/era5/<TAG>/*.nc` |
 | Turbine metadata + generation | CSV | `input/observations/turbine/<CC>/` |
 | Country grid points + observations | CSV | `input/observations/country/{grid_points,observations}/<cc>/` |
-| Power curves + models | CSV | `input/reference/{power_curves,models}.csv` |
+| Power curves + models | CSV | `src/pyvwf/resources/{power_curves,models}.csv` (the open library), or `<input root>/reference/` for another |
 
 `<CC>` is the upper-case code, `<cc>` lower-case.
 
@@ -207,10 +207,10 @@ coverage, a fallback where the source omits height. NZ, CL and AR use curated
 per-farm heights instead.
 
 **Power curves and turbine models.**
-- *Open (shipped, committed):* `input/reference/{power_curves,models}.csv`, the
-  NREL/turbine-models library (BSD-3-Clause, DOI 10.11578/dc.20210112.1,
-  VWF-smoothed). Bundled in the package too, so an installed PyVWF runs outside
-  a checkout. Provenance in `power_curves_provenance.csv`.
+- *Open (shipped, committed):* `src/pyvwf/resources/{power_curves,models}.csv`,
+  the NREL/turbine-models library (BSD-3-Clause, DOI 10.11578/dc.20210112.1,
+  VWF-smoothed), the default for any input root without curve tables.
+  Provenance in `power_curves_provenance.csv`.
 - *Licensed (local only, confidential):* `input/reference/{power_curves,models}.real.csv`,
   the renewables.ninja/VWF library from thewindpower.net. Swap in for production
   runs; the merged set is under `input/combined/reference/` (`PYVWF_INPUT=input/combined`).
