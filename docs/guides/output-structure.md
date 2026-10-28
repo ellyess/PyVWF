@@ -112,16 +112,20 @@ Full provenance so any output is attributable: `pyvwf_version`, `git_commit` and
 `git_dirty`, `created_utc`, the resolved `region`, `observations` (source, unit,
 time convention), `correction`, `seasons`, the `curve_library` identity (whether
 the open or a licensed library was used), the `curve_resolution` summary, and,
-for evaluate runs, `evaluation_year` and `trained_from`. Design §6. Evaluate and
-transfer runs also carry the `common_row_scoring` summary and the `off_curve`
-record per variant. Every harness run carries the `era5_extent` block (see
-below) and an `era5_roughness` block, which records the roughness treatment the
-run requested and the one it applied. The two differ when a region asks for a
-stored field and its ERA5 files carry none. `applied` reports `stored` whenever
-the file carries a roughness field, whatever that field is, so it does not
-distinguish an annual-mean roughness from a per-timestep one a combine step
-stored ahead of time. The route per ERA5 directory is in
-`../design/roughness-temporal-treatment.md`.
+for evaluate runs, `evaluation_year` and `trained_from`. Evaluate and transfer
+runs also carry the `common_row_scoring` summary and the `off_curve` record per
+variant. Every harness run carries the `era5_extent` block (below) and an
+`era5_roughness` block:
+
+- **`requested` and `applied`:** the roughness treatment the run asked for and
+  the one it got. They differ when a region asks for a stored field and its
+  ERA5 files carry none. `applied` reports `stored` whenever the file carries a
+  roughness field, so it does not distinguish an annual-mean roughness from a
+  per-timestep one stored ahead of time; the route per ERA5 directory is in
+  `../design/roughness-temporal-treatment.md`.
+- **`fill`**, for the derived treatment: `"within each calendar year"`. A
+  manifest without it comes from before 2026-10-22, when the derived roughness
+  was filled along the whole loaded record.
 
 ## Curve resolution (`curve_resolution.csv`)
 
@@ -156,13 +160,11 @@ right machine. `pyvwf.curves.add_models` matches manufacturers fuzzily, and can
 assign another manufacturer's model at the same specific power (see its
 docstring). That shows up in `assigned_by`, not in `status`.
 
-**Known gap.** This file is written by the harness's train, evaluate and
-transfer runs only. `pyvwf.harness.hindcast.run_hindcast` returns frames and
-writes no run directory or manifest, so there is nowhere to put the record.
-There, a substitution is visible only as the run-time warning.
-
-*[Changed 2026-10-16: the legacy `PyVWF` path was a second gap until it was
-removed on 2026-09-24.]*
+**Known gap.** Only the harness's train, evaluate and transfer runs write this
+file. `pyvwf.harness.hindcast.run_hindcast` writes no run directory or
+manifest, so there a substitution shows only as the run-time warning. *[Changed
+2026-10-16: the legacy `PyVWF` path was a second gap until it was removed on
+2026-09-24.]*
 
 ## Loaded ERA5 extent (`era5_extent`)
 
@@ -188,11 +190,6 @@ every year, because the derived roughness is filled within each calendar year
 and nothing else `prep_era5` computes reads across a year's end. A run that
 read every year, such as a country-level training run, records
 `"whole record"`.
-
-The `era5_roughness` block records the roughness treatment requested and
-applied, and, for the derived treatment, `fill`: `"within each calendar year"`.
-A manifest without `fill` comes from before 2026-10-22, when the derived
-roughness was filled along the whole loaded record.
 
 Inside the loaded extent is a statement about position only. It does not
 check the data in those cells. A unit can sit inside the extent over cells

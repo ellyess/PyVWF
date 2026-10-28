@@ -299,6 +299,10 @@ and each summary from 0.2.0 on links to its own.
 - **The CHANGELOG summarises each released version** and links to its full
   notes at tag `archive/research-2026-10-27`. Each dated correction of a
   claim the summary keeps stays beside it.
+- **`docs/README.md` is shorter**: the folder and one-home tables merge rows
+  that shared a home, and the findings naming loses the types no file uses.
+  The output-structure guide states the roughness block once, and the
+  limitations page names the archived country-level record it cites.
 - **The README gives a reviewer a short route through the project.** A line
   near the top links how it is built, an "If you have five minutes" section
   points to the results, the scorecard, the account of development with
