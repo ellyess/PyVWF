@@ -27,12 +27,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "constraints"
 
-#: The Python versions CI runs pinned. tests/test_constraints.py checks that
+#: The Python versions CI runs pinned. tests/test_tooling.py checks that
 #: the workflow's pinned cells and these files agree.
 PINNED = ("3.10", "3.11", "3.12")
 
 #: Other pinned jobs: file stem -> (Python version, extras). Checked against
-#: the workflow by tests/test_constraints.py.
+#: the workflow by tests/test_tooling.py.
 JOBS = {
     "py312-extras": ("3.12", ("dev", "pinn", "grid", "data", "parallel")),
     "py312-docs": ("3.12", ("docs",)),
