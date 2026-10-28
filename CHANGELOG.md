@@ -49,6 +49,14 @@ and each summary from 0.2.0 on links to its own.
 
 ### Changed
 
+- **Breaking: `prep_era5`, `train_set` and `val_set` take `era5_dir` as a
+  required keyword**, and `bbox=None` now reads the files' whole extent.
+  `PyVWFPaths.ERA5_DATA` (the superseded `era5/EU` archive), which filled in a
+  missing directory, and the `BoundingBoxes` table, which filled in a missing
+  box, are removed, with two unused `PyVWFPaths` helpers (`get_country_shapes`,
+  `get_turbine_metadata`). A region config already names both its `[era5]`
+  `path` and `bbox`, so no harness run changes; a direct call now says which
+  files it reads.
 - **The `slow` test marker is removed.** Every test it marked is also
   `realdata`, so it selected nothing on its own. The fast set is now
   `pytest -m "not realdata"`, in CI, `scripts/dev/ci_local.py` and the

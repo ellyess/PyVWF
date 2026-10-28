@@ -194,7 +194,7 @@ def test_train_set_country_level_without_source_raises_not_implemented():
     This must raise before any ERA5 or power-curve file is touched.
     """
     with pytest.raises(NotImplementedError, match="No country-level observation source"):
-        train_set("NL", True, obs_level="country")
+        train_set("NL", True, obs_level="country", era5_dir="never-read")
 
 
 # ---------------------------------------------------------------------------
@@ -365,7 +365,7 @@ def test_custom_source_drives_the_country_level_pipeline(
     monkeypatch.setattr(data, "prep_era5", lambda country, train, calc_z0, **kwargs: reanalysis)
     monkeypatch.setattr(data, "load_power_curves", lambda: power_curve)
 
-    gen_cf, turb_info, _, _ = train_set("ZZ", True, obs_level="country")
+    gen_cf, turb_info, _, _ = train_set("ZZ", True, obs_level="country", era5_dir="stubbed")
 
     assert not gen_cf.empty
     assert {"year", "month", "ID", "sim", "obs", "season", "fixed"}.issubset(gen_cf.columns)

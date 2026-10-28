@@ -110,5 +110,4 @@ def synthetic_dk(tmp_path, monkeypatch):
     fleet = support.write_fleet(tmp_path / "observations/turbine" / "DK")
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", tmp_path / "observations/turbine")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
-    return {"root": tmp_path, "fleet": fleet}
+    return {"root": tmp_path, "fleet": fleet, "era5": tmp_path / "era5"}

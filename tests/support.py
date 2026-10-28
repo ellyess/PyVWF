@@ -131,6 +131,11 @@ NH = {
 }
 
 
+# The box the removed BoundingBoxes table gave Denmark, which the synthetic
+# grid lies inside; tests pass it explicitly as a region config would.
+DK_BBOX = (7.5, 13.5, 54.0, 58.2)
+
+
 def make_spec(**overrides) -> RegionSpec:
     base = dict(
         code="DK",
@@ -141,7 +146,7 @@ def make_spec(**overrides) -> RegionSpec:
         train_years=(2015, 2015),
         test_years=(2016,),
         era5_path="era5",
-        bbox=(7.5, 13.5, 54.0, 58.2),
+        bbox=DK_BBOX,
         file_tag="SYN",
         correction_model="affine-wind",
         cluster_list=(2,),
