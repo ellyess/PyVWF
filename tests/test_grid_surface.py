@@ -150,7 +150,7 @@ def test_the_horizon_is_recorded_as_provenance_not_as_safety(tmp_path):
     meaning = got.attrs["information_horizon_meaning"]
     assert "carries no information" in meaning
     assert "not about safety" in meaning
-    assert "method-distance-mask" in meaning
+    assert "results.md#the-distance-mask" in meaning
     assert "plausible" in got.attrs["recommended_filter"]
 
 

@@ -63,7 +63,11 @@ CASES = {
     # 2026-10-23): every scalar rose by 0.020 to 0.101 (cluster 7, 4.606 to
     # 4.707) and every offset fell by 0.000 to 0.150 m/s; accepted years
     # unchanged. On the old ENTSO-E files the same code reproduces the
-    # previous pin byte for byte.
+    # previous pin byte for byte. FR re-recorded 2026-10-28: its observations
+    # moved to ODRE's copy of RTE's series on 2026-10-25 (09df0ae) and the pin
+    # was not re-recorded then, so it failed on main. All ten scalars rose, by
+    # 2.9e-6 to 1.4e-5, and the offsets moved by up to 0.014 m/s either way;
+    # accepted years unchanged.
     "fr_country_k10": (
         "configs/regions/scorecard/fr_country.toml",
         "input/combined",

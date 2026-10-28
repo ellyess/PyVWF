@@ -68,7 +68,7 @@ def main():
     # the observations have to measure every farm too. Until 2026-10-25 this
     # defaulted to onshore, and the Belgian, French, Italian, Portuguese and
     # Dutch files built with it left out offshore output in some or all of
-    # their years (docs/findings/scorecard.md, notices of 2026-10-22 and
+    # their years (docs/scorecard.md, corrections log, 2026-10-22 and
     # 2026-10-23).
     parser.add_argument(
         "--psr-type",

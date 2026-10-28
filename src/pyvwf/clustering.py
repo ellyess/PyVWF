@@ -247,7 +247,7 @@ def _merge_undersized(labels, centres, min_size):
 
     A cluster with one or two members is fitted to those members' idiosyncrasy,
     which is how a correction ends up with a wind scalar of 80 (see
-    docs/findings/method-hourly-resolution.md: every degenerate Chilean cluster was
+    docs/results.md#hourly-resolution: every degenerate Chilean cluster was
     both tiny and in the Atacama, where ERA5 badly under-resolves the wind).
     Merging the smallest cluster into its nearest neighbour and repeating is a
     cheap structural guard against fitting one farm.

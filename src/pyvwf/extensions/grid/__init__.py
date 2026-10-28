@@ -2,8 +2,8 @@
 
 Ported from the `development` branch for the chapters 4 and 5 manuscript. The
 interpolators are the chapter's own, and they are the single definition the two
-registered studies use: ``docs/findings/method-loco-interpolation-prereg.md``
-and ``docs/findings/method-offshore-pool-prereg.md``.
+registered studies use: ``docs/results.md#leave-one-country-out-interpolation``
+and ``docs/results.md#offshore-pool-and-domain-split``.
 
 Needs the ``grid`` extra for kriging: ``pip install -e '.[grid]'``.
 """

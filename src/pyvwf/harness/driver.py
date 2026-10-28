@@ -441,7 +441,7 @@ def run_evaluate(
                 f"{quality['n_failed_offset']} failed offset fit(s) in "
                 f"cluster(s) {quality['degenerate_clusters']}. "
                 "The skill metric can still look good; see "
-                "docs/findings/method-hourly-resolution.md."
+                "docs/results.md#hourly-resolution."
             )
         variants.append(
             {

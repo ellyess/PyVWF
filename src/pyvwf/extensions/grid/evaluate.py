@@ -10,8 +10,8 @@ Both registered studies state their gates in capacity-factor error at
 observation locations, which is why they wait for this rather than substituting
 a surface-level proxy: a proxy could not contradict the chapter's own offshore
 failure case, which is stated in those terms
-(``docs/findings/method-offshore-pool-prereg.md``,
-``docs/findings/method-grid-nl-holdout-prereg.md``).
+(``docs/results.md#offshore-pool-and-domain-split``,
+``docs/results.md#netherlands-holdout``).
 
 **Neutral fills are counted and returned.** A unit outside the grid, or inside
 a masked region, receives scalar 1 and offset 0, which is the correction
