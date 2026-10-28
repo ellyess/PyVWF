@@ -20,18 +20,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import sys
 import warnings
 from pathlib import Path
 
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "src"))
+from pyvwf.harness.driver import resolve_source
+from pyvwf.harness.regions import load_region
+from pyvwf.loaders.country_obs_checks import check_country_cf
 
-from pyvwf.harness.driver import resolve_source  # noqa: E402
-from pyvwf.harness.regions import load_region  # noqa: E402
-from pyvwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 CONFIG_DIR = REPO_ROOT / "configs" / "regions"
 REFERENCE = REPO_ROOT / "configs" / "curation" / "eurostat_wind_gwh.csv"

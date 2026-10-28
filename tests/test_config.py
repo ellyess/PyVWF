@@ -7,11 +7,9 @@ and "works when installed".
 user working anywhere other than a repository checkout got a FileNotFoundError
 before they could simulate anything. They now resolve through
 ``PyVWFPaths.reference_file``, which prefers the user's own tables and falls
-back to the open curve library bundled with the package.
-
-The fallback must *warn*. The bundled curves are real, but a fleet is matched
-to them by specific power rather than machine identity; the user has to know
-their turbines are being represented by class proxies.
+back to the open library bundled with the package, silently: since 2026-10-28
+it is the only copy and the default, and a harness run records which library
+and which curves it used.
 """
 
 from __future__ import annotations
@@ -55,27 +53,15 @@ def test_reference_file_prefers_the_users_own_table(tmp_path, monkeypatch):
     assert "MyTurbine.5000" in pd.read_csv(resolved).columns
 
 
-def test_reference_file_falls_back_to_the_bundled_table(no_input_root):
-    with pytest.warns(UserWarning, match="BUNDLED"):
+def test_reference_file_falls_back_to_the_bundled_table_silently(no_input_root):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         resolved = PyVWFPaths.reference_file("power_curves.csv")
 
     assert resolved.is_file()
     assert resolved.name == "power_curves.csv"
     # It came from inside the installed package, not the working directory.
     assert "pyvwf" in resolved.parts and "resources" in resolved.parts
-
-
-def test_reference_file_fallback_warning_names_the_risk(no_input_root):
-    """The warning has to say what the bundled curves are and are not (class
-    proxies, not the user's actual machines), not merely that a default was
-    used."""
-    with pytest.warns(UserWarning) as record:
-        PyVWFPaths.reference_file("models.csv")
-
-    message = str(record[0].message)
-    assert "BUNDLED" in message
-    assert "not by actual machine identity" in message
-    assert "PYVWF_INPUT" in message
 
 
 def test_reference_file_raises_for_an_unknown_table(no_input_root):
@@ -91,8 +77,7 @@ def test_reference_file_raises_for_an_unknown_table(no_input_root):
 def test_load_power_curves_works_outside_a_checkout(no_input_root):
     """Regression: this raised FileNotFoundError for every pip-installed user
     whose working directory was not a repository checkout."""
-    with pytest.warns(UserWarning, match="BUNDLED"):
-        curves = load_power_curves()
+    curves = load_power_curves()
 
     assert "data$speed" in curves.columns
     # The bundled open library carries the market-average composite that the
@@ -113,28 +98,12 @@ def test_add_models_works_outside_a_checkout(no_input_root):
             "lat": [55.5, 56.0],
         }
     )
-    with pytest.warns(UserWarning, match="BUNDLED"):
-        out = add_models(fleet)
+    out = add_models(fleet)
 
     assert out["model"].notna().all()
     # Models must resolve to columns that actually exist in the power curves,
     # or the simulation blows up later with a KeyError.
-    with pytest.warns(UserWarning):
-        curves = load_power_curves()
-    assert out["model"].isin(curves.columns).all()
-
-
-def test_repo_checkout_still_uses_its_own_input_dir():
-    """In a checkout (the default INPUT_ROOT), the repo's own tables are used and
-    nothing warns; the existing workflow is untouched."""
-    if not Path("input/reference/power_curves.csv").is_file():
-        pytest.skip("not running from a repository checkout")
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        curves = load_power_curves()
-
-    assert "data$speed" in curves.columns
+    assert out["model"].isin(load_power_curves().columns).all()
 
 
 def test_pyvwf_input_env_var_redirects_the_root(tmp_path):
@@ -158,12 +127,11 @@ def test_pyvwf_input_env_var_redirects_the_root(tmp_path):
     env = {**os.environ, "PYVWF_INPUT": str(tmp_path)}
     probe = (
         "import json;from pyvwf.config import PyVWFPaths as P;"
-        "print(json.dumps([str(P.INPUT_ROOT), str(P.ERA5_DATA), str(P.TURBINE_DATA)]))"
+        "print(json.dumps([str(P.INPUT_ROOT), str(P.TURBINE_DATA)]))"
     )
     out = subprocess.run(
         [sys.executable, "-c", probe], env=env, capture_output=True, text=True, check=True
     )
-    root, era5, turbine = (Path(p) for p in json.loads(out.stdout))
+    root, turbine = (Path(p) for p in json.loads(out.stdout))
     assert root == tmp_path
-    assert era5 == tmp_path / "era5" / "EU"
     assert turbine == tmp_path / "observations" / "turbine"

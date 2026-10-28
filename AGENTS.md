@@ -2,7 +2,7 @@
 
 These rules apply to any agent working in PyVWF, and to anyone using one.
 `src/pyvwf/AGENTS.md` adds the rules for package code. Why each rule exists,
-and what each guard misses, is in `docs/design/agent-guards.md`.
+and what each guard misses, is in `docs/design/ai-native-development.md`.
 
 ## Commands
 
@@ -91,7 +91,9 @@ For the lines a change adds or edits:
 
 - Skills (`skills/`, linked as `.claude/skills`): `new-region` adds a region in gated phases;
   `findings-doc` writes a findings document or scorecard row;
-  `provenance-guard` checks before any release-shaped action.
+  `provenance-guard` checks before any release-shaped action; `run-pyvwf`
+  helps a user install PyVWF, run a region or their own fleet, and read the
+  output.
 - Agents (`.claude/agents/`): `method-critic`, `implementation-critic` and
   `red-team` judge a proposal independently, evaluated in
   `scripts/dev/agent_evals/`. `docs-critic` reviews a change to a published

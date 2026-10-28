@@ -21,8 +21,8 @@ so a name never repeats it (`guides/training.md`, not
 | [`results.md`](results.md), [`scorecard.md`](scorecard.md), [`archive.md`](archive.md) | One entry per finished result, the per-region scorecard, and where the full records are. Published. | reference | fixed names |
 | [`api.md`](api.md), [`CONTEXT.md`](CONTEXT.md), [`publications.md`](publications.md) | The API reference, the controlled vocabulary, and the commit behind each published result. Published. | reference | fixed names |
 
-The folders follow the Diataxis split. **Learning** is the project README's
-quickstart and `examples/run_minimal.py`. **Doing** is `guides/` and
+The folders follow the Diataxis split. **Learning** is the project README's "Install
+and run" and `examples/run_minimal.py`. **Doing** is `guides/` and
 `runbooks/`. **Looking something up** is `api.md`, `CONTEXT.md`, and two
 guides that are reference in kind, `data-sources.md` and
 `output-structure.md`. **Understanding** is `design/`. `findings/` sits

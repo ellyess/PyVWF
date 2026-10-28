@@ -157,7 +157,6 @@ def au_paths(au_world, monkeypatch):
     root = au_world["root"]
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", root)
     monkeypatch.setattr(PyVWFPaths, "TURBINE_DATA", root / "observations/turbine")
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", root / "era5")
     return au_world
 
 
@@ -185,10 +184,9 @@ def trained(au_world, tmp_path_factory):
     """Train + evaluate once through the real driver; shared by the tests."""
     root = au_world["root"]
     # module-scoped, so patch paths manually rather than via the fixture.
-    old = (PyVWFPaths.INPUT_ROOT, PyVWFPaths.TURBINE_DATA, PyVWFPaths.ERA5_DATA)
+    old = (PyVWFPaths.INPUT_ROOT, PyVWFPaths.TURBINE_DATA)
     PyVWFPaths.INPUT_ROOT = root
     PyVWFPaths.TURBINE_DATA = root / "observations/turbine"
-    PyVWFPaths.ERA5_DATA = root / "era5"
     try:
         out = tmp_path_factory.mktemp("runs")
         spec = au_spec()
@@ -197,7 +195,7 @@ def trained(au_world, tmp_path_factory):
         factors = pd.read_csv(train_dir / "factors_season_1.csv")
         metrics = pd.read_csv(eval_dir / "metrics.csv")
     finally:
-        PyVWFPaths.INPUT_ROOT, PyVWFPaths.TURBINE_DATA, PyVWFPaths.ERA5_DATA = old
+        PyVWFPaths.INPUT_ROOT, PyVWFPaths.TURBINE_DATA = old
     return {"factors": factors, "metrics": metrics, "spec": spec}
 
 

@@ -33,7 +33,7 @@ def load_power_curves():
     """Load turbine power curves.
 
     Reads ``power_curves.csv`` from the configured input root, falling back to
-    the open curve library bundled with the package (with a warning). See
+    the open curve library bundled with the package. See
     :meth:`pyvwf.config.PyVWFPaths.reference_file`.
 
     Returns:

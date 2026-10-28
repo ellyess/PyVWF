@@ -49,7 +49,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | hindcast | Applying trained factors over a long reanalysis window to rank one period against the record. | back-cast, reanalysis replay |
 | roughness | The surface roughness length z0, derived by inverting the log wind profile between the reanalysis 10 m and 100 m winds. The hub-height wind is `w100 ln(h/z0) / ln(100/z0)`. | roughness length (except on first use), z0 in prose |
 | roughness treatment | How a run's roughness varies in time: an annual mean, or per timestep. It names the temporal behaviour, not where the value is computed. | roughness method, roughness mode |
-| annual-mean roughness | The treatment that applies one static field per year, computed by `src/pyvwf/datasets/combine_era5_files.py` and carried by `era5/EU`. | climatological roughness, static roughness |
+| annual-mean roughness | The treatment that applies one static field per year, computed by `src/pyvwf/datasets/combine_era5_files.py` (at tag `archive/research-2026-10-27`) and carried by `era5/EU`. | climatological roughness, static roughness |
 | per-timestep roughness | The treatment that derives z0 for every timestep and averages it to daily with the winds. The method since 2026-09-12 (`docs/results.md#roughness-treatment`). | hourly roughness (for the treatment), derived roughness (for the treatment) |
 | roughness route | Where a run's roughness comes from. **Three routes, 2026-09-16:** a stored annual-mean field the file carries, which `prep_era5` uses when present; a per-timestep derivation at load in `prep_era5`, used when no stored field exists; and a per-timestep derivation ahead of time in `scripts/era5/combine.py`, which the file then carries. The first route produces the annual-mean treatment and the other two the per-timestep one, so three routes give two treatments. This row previously said two routes and one treatment, counting only the per-timestep ones. | roughness source, roughness pipeline |
 
@@ -80,7 +80,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | model key | The name that selects a unit's power curve: its `model` value, matching a column of `power_curves.csv`. | curve key, power curve key, model name |
 | `power_curves.csv` | The file of power curves: a speed column and one column per model key. Always named by file. | curve table, power-curve table, curve file |
 | `models.csv` | The model catalogue: one row per model key, with manufacturer, rating, rotor diameter and specific power. Always named by file. | curve table, models table, catalogue (alone) |
-| curve library | One `power_curves.csv` with its `models.csv`, under an input root's `reference/`. | curve set, library (alone, where ambiguous) |
+| curve library | One `power_curves.csv` with its `models.csv`: the open library in `pyvwf.resources`, or another under an input root's `reference/`. | curve set, library (alone, where ambiguous) |
 | open library | The curve library shipped with PyVWF, derived from the NREL turbine-models archive (BSD-3). | bundled library, synthetic library, open curve library |
 | licensed library | A curve library whose terms do not allow redistribution. It is kept local and identified by sha256. | real library, real curve library, proprietary library, external library |
 | combined library | The open and licensed libraries merged under `input/combined`. Which curve wins for a model key in both is not yet defined. | merged library |

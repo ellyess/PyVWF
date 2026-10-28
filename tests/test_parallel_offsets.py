@@ -18,12 +18,15 @@ import pytest
 import pyvwf.correction as correction
 from pyvwf.data import cluster_train_set, train_set
 from pyvwf.harness import corrections
+from support import DK_BBOX
 
 
 @pytest.fixture
 def rows(synthetic_dk):
     """The valid rows, clusters, reanalysis and curves of one synthetic fit."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, reanalysis, power_curves = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
     bias_df, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
     valid = bias_df[bias_df["obs"].notna() & (bias_df["obs"] > 0)].copy()
     return valid, clus_info, reanalysis, power_curves

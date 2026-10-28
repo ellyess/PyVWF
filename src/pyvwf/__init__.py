@@ -38,7 +38,7 @@ from pyvwf.sources import (
     register,
     resolve,
 )
-from pyvwf.config import PyVWFPaths, BoundingBoxes
+from pyvwf.config import PyVWFPaths
 
 # ============================================================================
 # VISUALISATION
@@ -84,7 +84,6 @@ __all__ = [
     "resolve",
     # Configuration
     "PyVWFPaths",
-    "BoundingBoxes",
     # Visualisation
     "Results",
     "load_results",

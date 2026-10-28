@@ -37,17 +37,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from pyvwf.config import PyVWFPaths  # noqa: E402
-from pyvwf.datasets.eia_us import assign_curves_from_library  # noqa: E402
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.eia_us import assign_curves_from_library
 
 #: Region code to the metadata directory and file stem.
 REGION_DIR = {"CL": "CL", "AR": "AR", "AU-NEM": "AU_NEM", "BR": "BR"}

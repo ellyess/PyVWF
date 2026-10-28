@@ -17,6 +17,7 @@ from pyvwf.data import cluster_train_set, format_bc_factors, train_set
 from pyvwf.harness import available_corrections, get_correction
 from pyvwf.harness.corrections import CorrectionModel, register_correction
 from pyvwf.wind import correct_wind_speed
+from support import DK_BBOX
 
 SH_SEASONS = {
     "summer": [12, 1, 2],
@@ -51,7 +52,9 @@ def test_register_rejects_duplicates_and_non_models():
 
 def test_affine_golden_regression_bit_for_bit(synthetic_dk):
     """AffineWindCorrection(seasons=None) == the legacy path, exactly."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, reanalysis, power_curves = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
 
     # --- the core functions called directly, as the removed PyVWF.train ran them ---
     bias_df, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
@@ -153,7 +156,9 @@ def test_correct_wind_speed_uses_explicit_seasons():
 
 def test_simulate_wind_forwards_seasons(synthetic_dk):
     """seasons= must flow through simulate_wind to the correction merge."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, reanalysis, power_curves = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
     _, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
     factors = pd.DataFrame(
         {
@@ -188,7 +193,9 @@ def test_scaled_affine_reduces_to_affine_when_no_loss(synthetic_dk):
     """On a fleet the affine correction already levels, every availability is
     1.0, so scaled-affine must match affine. The synthetic-DK fixture is such a
     fleet: it is planted with a wind-speed bias and nothing else."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, reanalysis, power_curves = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
     affine = get_correction("affine-wind")
     scaled = get_correction("scaled-affine")
 
@@ -223,7 +230,9 @@ def test_scaled_affine_availability_is_redundant_with_the_offset(synthetic_dk):
     availability term only bites when the affine fit cannot reach the level, not
     in the ordinary case. Halving every observation is exactly such an ordinary
     level shift, and availability stays at its ceiling."""
-    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, reanalysis, power_curves = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
     scaled = get_correction("scaled-affine")
     lossy = gen_cf.copy()
     lossy["obs"] = lossy["obs"] * 0.5

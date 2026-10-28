@@ -105,7 +105,6 @@ def test_prep_era5_warns_when_the_data_stops_short_of_the_bbox(tmp_path):
     assert ds.attrs[EXTRAPOLATION_ATTR] is False
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
-        warnings.filterwarnings("ignore", message=".*BUNDLED.*")
         ds = prep_era5(
             "ZZ",
             False,

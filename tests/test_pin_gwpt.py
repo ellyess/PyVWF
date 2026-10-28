@@ -47,8 +47,8 @@ from pyvwf.datasets.aemo_au import normalise_farm_name
 from pyvwf.datasets.cammesa_ar import ar_plant_key
 from pyvwf.datasets.cen_cl import cl_plant_key
 from pyvwf.datasets.windstats import _norm as windstats_norm
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 CURATION = ROOT / "configs" / "curation"
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "gwpt"
 GWPT = ROOT / "input" / "reference" / "gwpt" / "Global-Wind-Power-Tracker-February-2026.xlsx"
