@@ -90,12 +90,10 @@ def _make_observations(turbines: pd.DataFrame) -> pd.DataFrame:
     import pandas as pd  # local, so the file top stays import-light
     from importlib import resources
 
-    from pyvwf.config import PyVWFPaths
     from pyvwf.era5 import prep_era5
     from pyvwf.wind import train_simulate_wind
 
-    PyVWFPaths.ERA5_DATA = ERA5_DIR
-    ds = prep_era5("example", train=False, calc_z0=True, bbox=None)
+    ds = prep_era5("example", train=False, calc_z0=True, era5_dir=ERA5_DIR)
     # The open library, whatever PYVWF_INPUT names: the example data is committed.
     power_curves = pd.read_csv(str(resources.files("pyvwf.resources") / "power_curves.csv"))
 

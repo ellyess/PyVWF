@@ -26,7 +26,7 @@ category, so a name never repeats it: the training guide is
 
 The folders follow the Diataxis split, by what the reader is doing:
 
-- **Learning** the tool from nothing: the project README's quickstart and
+- **Learning** the tool from nothing: the project README's "Install and run" and
   `examples/run_minimal.py`. There is no separate tutorial folder.
 - **Doing** a task: `guides/` for a task on any region, `runbooks/` for one
   region's data.

@@ -29,24 +29,22 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "src"))
-
-from pyvwf.config import PyVWFPaths  # noqa: E402
-from pyvwf.datasets.gwpt import (  # noqa: E402
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.gwpt import (
     COUNTRY_NAME,
     fleet_for,
     load_exclusions,
     load_gwpt,
     load_start_years,
 )
-from pyvwf.datasets.gwpt import default_path as gwpt_default_path  # noqa: E402
+from pyvwf.datasets.gwpt import default_path as gwpt_default_path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 GWPT_PATH = gwpt_default_path()
 

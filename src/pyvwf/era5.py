@@ -8,8 +8,6 @@ import warnings
 
 import numpy as np
 
-from pyvwf.config import BoundingBoxes, PyVWFPaths
-
 
 def unify_time_coordinate(ds):
     """Ensure the dataset uses a single ``time`` coordinate.
@@ -119,16 +117,16 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     Inverts the log wind profile between the two heights:
     ``ln z0 = (w100 ln 10 - w10 ln 100) / (w100 - w10)``. The one definition
     all three roughness routes use (``CONTEXT.md``, roughness route): the
-    derivation at load in :func:`prep_era5`, the annual-mean field of
-    ``combine_era5_files.py`` and the daily files of
-    ``scripts/era5/combine.py``.
+    derivation at load in :func:`prep_era5`, the annual-mean field of the
+    archived ``combine_era5_files.py`` (at tag ``archive/research-2026-10-27``)
+    and the daily files of ``scripts/era5/combine.py``.
 
     Where the shear is near zero (``|w100 - w10| <= 1e-4``) or the result would
     give z0 of 1 m or more, the value is missing, then back-filled along time
     over whatever the caller passes. The routes pass different spans, so the
     fill reaches differently: :func:`prep_era5` passes one calendar year at a
     time (and then fills a year's trailing gap forward), ``scripts/era5/combine.py``
-    one month, and ``combine_era5_files.py`` its whole record. The result is
+    one month, and the archived combiner its whole record. The result is
     clipped to the logs of :data:`Z0_BOUNDS`. The caller clips the speeds first
     and takes the exponential, because the routes differ there.
 
@@ -246,7 +244,8 @@ def prep_era5(
     train=False,
     calc_z0=True,
     bbox=None,
-    era5_dir=None,
+    *,
+    era5_dir,
     resample_daily=True,
     allow_extrapolation=False,
     roughness="derived",
@@ -255,14 +254,13 @@ def prep_era5(
     """Preprocess ERA5 reanalysis data.
 
     Args:
-        country: Country code used to select data paths and defaults.
+        country: Region code, used in messages only.
         train: If True, use training-period files where applicable.
         calc_z0: If True, compute surface roughness length from 10m/100m winds.
-        bbox: Optional ``(lon_min, lon_max, lat_min, lat_max)`` tuple. If None,
-            uses ``BoundingBoxes.get(country)`` when available.
-        era5_dir: Optional directory holding the ERA5 ``*.nc`` files (the
-            validation harness passes the region config's path). Default None
-            keeps the legacy ``PyVWFPaths.ERA5_DATA`` location.
+        bbox: Optional ``(lon_min, lon_max, lat_min, lat_max)`` tuple, the
+            region config's ``[era5] bbox``. None reads the files' whole extent.
+        era5_dir: Directory holding the ERA5 ``*.nc`` files, the region
+            config's ``[era5] path`` under the input root.
         resample_daily: If True (default), average to daily means, which is what
             every published PyVWF result is built on. Set False to keep the
             file's native resolution, which for the raw hourly downloads is
@@ -312,7 +310,7 @@ def prep_era5(
     """
     print(f"prepping ERA5 data for {country}, train={train}, calc_z0={calc_z0}")
 
-    data_dir = Path(era5_dir) if era5_dir is not None else PyVWFPaths.ERA5_DATA
+    data_dir = Path(era5_dir)
     path = str(data_dir / "*.nc")
     ds = xr.open_mfdataset(path, combine="by_coords", parallel=False)
     ds = unify_time_coordinate(ds)
@@ -326,8 +324,6 @@ def prep_era5(
     ds = _normalise_longitudes(ds)
 
     # Apply bbox slice early (big memory/time win before .load())
-    if bbox is None and BoundingBoxes.has_bbox(country):
-        bbox = BoundingBoxes.get(country)
     if bbox is not None:
         ds = _slice_bbox(ds, bbox)
         # The cheap check: a download that stops short of the box would leave

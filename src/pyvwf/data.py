@@ -28,7 +28,9 @@ Examples:
         ...     country='DK',
         ...     calc_z0=True,
         ...     mode='onshore',
-        ...     obs_level='turbine'
+        ...     obs_level='turbine',
+        ...     era5_dir='input/era5/EU_2026-09',
+        ...     bbox=(7.5, 13.5, 54.0, 58.2),
         ... )
         >>> bias_df, clus_info = cluster_train_set(gen_cf, 'season', 10, turb_info)
 
@@ -41,6 +43,7 @@ Examples:
         ...     calc_z0=True,
         ...     obs_level='country',
         ...     source=source,
+        ...     era5_dir='input/era5/EU_2026-09',
         ... )
 """
 
@@ -184,7 +187,7 @@ def train_set(
     *,
     obs_level: str = "turbine",
     source: ObservationSource | None = None,
-    era5_dir=None,
+    era5_dir,
     bbox=None,
     allow_extrapolation=False,
     roughness="derived",
@@ -202,10 +205,9 @@ def train_set(
         fix_turb: Turbine model name to fix to a single model.
         obs_level: Observation level ("turbine" or "country").
         source: Observation source. Resolved from ``country`` when omitted.
-        era5_dir: Optional ERA5 directory forwarded to prep_era5 (validation
-            harness). Default None keeps the legacy location.
-        bbox: Optional bounding box forwarded to prep_era5. Default None keeps
-            the legacy BoundingBoxes lookup.
+        era5_dir: ERA5 directory forwarded to prep_era5.
+        bbox: Optional bounding box forwarded to prep_era5. None reads the
+            files' whole extent.
         train_years: Inclusive window forwarded to :func:`prep_country` for
             turbine-level observations, and to :func:`prep_era5` so only those
             years are read. Default None keeps the source's own default window
@@ -361,7 +363,7 @@ def val_set(
     *,
     obs_level: str = "turbine",
     source: ObservationSource | None = None,
-    era5_dir=None,
+    era5_dir,
     bbox=None,
     allow_extrapolation=False,
     roughness="derived",
@@ -376,10 +378,9 @@ def val_set(
         fix_turb: Optional turbine model override.
         obs_level: ``"turbine"`` or ``"country"``.
         source: Observation source. Resolved from ``country`` when omitted.
-        era5_dir: Optional ERA5 directory forwarded to prep_era5 (validation
-            harness). Default None keeps the legacy location.
-        bbox: Optional bounding box forwarded to prep_era5. Default None keeps
-            the legacy BoundingBoxes lookup.
+        era5_dir: ERA5 directory forwarded to prep_era5.
+        bbox: Optional bounding box forwarded to prep_era5. None reads the
+            files' whole extent.
         allow_extrapolation: Forwarded to prep_era5. Default False refuses
             units outside the loaded ERA5 extent.
         roughness: Forwarded to prep_era5: "derived" (default) or "stored".

@@ -7,13 +7,11 @@ the pick was harmless; nothing would have noticed the day they did not.
 """
 
 import sys
-from pathlib import Path
 
 import pandas as pd
 import pytest
-from support import load_script
+from support import ROOT, load_script
 
-ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts" / "analysis"))
 audit = load_script(
     ROOT / "scripts" / "analysis" / "curve_match_audit.py", "curve_match_audit_under_test"

@@ -3,8 +3,8 @@
 A guard that has never been seen to fire is an assumption (AGENTS.md). Each
 hook in `.claude/hooks/` is run here as Claude Code runs it, a JSON event on
 stdin, against a scratch repository, and its exit code is checked both ways:
-2 blocks the tool call, 0 lets it through. `docs/design/agent-guards.md` says
-what each guard is for.
+2 blocks the tool call, 0 lets it through. `docs/design/ai-native-development.md`
+says what each guard is for.
 """
 
 from __future__ import annotations
@@ -18,8 +18,8 @@ import sys
 from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 RUN_LOCK = ".claude/hooks/guard_run_lock.py"
 SUITES = ".claude/hooks/guard_local_suites.py"
 

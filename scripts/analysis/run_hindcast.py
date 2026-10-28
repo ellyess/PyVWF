@@ -21,9 +21,6 @@ import argparse
 import warnings
 from pathlib import Path
 
-import sys
-
-sys.path.insert(0, "src")
 
 warnings.simplefilter("ignore")
 

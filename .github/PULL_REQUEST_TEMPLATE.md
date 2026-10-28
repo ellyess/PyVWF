@@ -6,24 +6,20 @@
 
 - [ ] `pytest -m "not realdata"` passes locally
 - [ ] `ruff check` and `ruff format --check` over `src tests scripts examples`
-- [ ] `mypy` passes, from an environment that has `pandas-stubs`
+- [ ] For a change under `src/pyvwf`: `mypy` (with `pandas-stubs`) and `lint-imports`
 
 ## Real-data pins
 
-Tick the first box or the second, not both.
+Tick one.
 
-- [ ] This pull request changes nothing under `pyvwf/harness/`,
-      `pyvwf/metrics.py`, `pyvwf/correction.py` or `pyvwf/data.py`, so the
-      real-data pins cannot be affected.
-- [ ] I ran `pytest -m realdata` locally and the result is below.
+- [ ] This changes none of the code the real-data pins reach (the paths are
+      listed in `CONTRIBUTING.md`).
+- [ ] I ran `python scripts/dev/stamp.py realdata` and the result is below.
 
 <!--
-CI never runs these: they read local inputs and skip where those are absent,
-so only a local run can tell you a pin moved. Give the counts, name any pin
-that skipped for want of its inputs, and for each pin that moved, give the
-size of the movement. Resolve each row's input root the way its test does:
-a row that runs on input/combined and is rerun under the default input/
-answers differently, because the curve library differs.
+CI cannot run these. Give the counts, name any pin that skipped for want of
+its inputs, and give the size of each movement. Resolve each row's input root
+the way its test does.
 -->
 
 ```
@@ -38,3 +34,10 @@ skipped for want of inputs:
 - [ ] A pinned output moved. It is re-recorded in the same commit, the
       CHANGELOG says what moved and why under `[Unreleased]`, and the size of
       each movement is above.
+
+## AI assistance
+
+- [ ] No coding agent was used.
+- [ ] A coding agent was used. I am accountable for the change, AI-drafted
+      text here is marked with a `> [!NOTE]` alert, I write the replies, and
+      there is no AI co-author line.

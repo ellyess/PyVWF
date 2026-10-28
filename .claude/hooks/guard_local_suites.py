@@ -8,7 +8,7 @@ have passed. `git commit -a` is blocked outright, because it stages at commit
 time and the paths should be named anyway. So is anything else that stages
 covered code after this hook has read the index: `git commit <paths>`, and a
 `git add`, `stage`, `rm` or `mv` in the same command as the commit.
-`docs/design/agent-guards.md` says why.
+`docs/design/ai-native-development.md` says why.
 
 Exit 2 blocks the tool call and shows stderr to Claude. Any unexpected error
 exits 1, which lets the call through and shows the error to the user.

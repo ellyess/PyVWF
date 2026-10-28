@@ -31,9 +31,8 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from pyvwf.era5 import Z0_BOUNDS, log_roughness_from_shear  # noqa: E402
-from pyvwf.harness.regions import load_region_by_code  # noqa: E402
+from pyvwf.era5 import Z0_BOUNDS, log_roughness_from_shear
+from pyvwf.harness.regions import load_region_by_code
 
 
 def combine_year(in_dir: Path, out_dir: Path, code: str, year: int) -> Path:

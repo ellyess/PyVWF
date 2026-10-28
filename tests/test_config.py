@@ -127,12 +127,11 @@ def test_pyvwf_input_env_var_redirects_the_root(tmp_path):
     env = {**os.environ, "PYVWF_INPUT": str(tmp_path)}
     probe = (
         "import json;from pyvwf.config import PyVWFPaths as P;"
-        "print(json.dumps([str(P.INPUT_ROOT), str(P.ERA5_DATA), str(P.TURBINE_DATA)]))"
+        "print(json.dumps([str(P.INPUT_ROOT), str(P.TURBINE_DATA)]))"
     )
     out = subprocess.run(
         [sys.executable, "-c", probe], env=env, capture_output=True, text=True, check=True
     )
-    root, era5, turbine = (Path(p) for p in json.loads(out.stdout))
+    root, turbine = (Path(p) for p in json.loads(out.stdout))
     assert root == tmp_path
-    assert era5 == tmp_path / "era5" / "EU"
     assert turbine == tmp_path / "observations" / "turbine"
