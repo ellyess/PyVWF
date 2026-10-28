@@ -65,7 +65,8 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
         (["--skip", "docs", "--skip", "pytest"], ("main", ({"docs", "pytest"}, False), {})),
     ],
     # The command docs/design/ai-native-development.md gives.
-    # The commands the driver's docstring and docs/findings/agent-critics-prereg.md give.
+    # The commands the driver's docstring and docs/findings/agent-critics-prereg.md
+    # give, and the docs suite's from docs/findings/agent-critics-docs-prereg.md.
     "scripts/dev/agent_evals/evals.py": [
         (
             [
@@ -77,15 +78,38 @@ RECORDED: dict[str, list[tuple[list[str], tuple[str, tuple, dict]]]] = {
                 "--judge-model",
                 "claude-sonnet-5-5",
             ],
-            ("main", ("prepare", "2026-10-16", "claude-opus-5-5", "claude-sonnet-5-5", None), {}),
+            (
+                "main",
+                (
+                    "prepare",
+                    "2026-10-16",
+                    "claude-opus-5-5",
+                    "claude-sonnet-5-5",
+                    None,
+                    "proposals",
+                ),
+                {},
+            ),
         ),
         (
             ["judge", "--label", "2026-10-16"],
-            ("main", ("judge", "2026-10-16", None, None, None), {}),
+            ("main", ("judge", "2026-10-16", None, None, None, "proposals"), {}),
         ),
         (
             ["score", "--label", "2026-10-16"],
-            ("main", ("score", "2026-10-16", None, None, None), {}),
+            ("main", ("score", "2026-10-16", None, None, None, "proposals"), {}),
+        ),
+        (
+            [
+                "prepare",
+                "--suite",
+                "docs",
+                "--label",
+                "<date>",
+                "--judge-model",
+                "claude-sonnet-5-5",
+            ],
+            ("main", ("prepare", "<date>", None, "claude-sonnet-5-5", None, "docs"), {}),
         ),
     ],
     # The start-year backfill's own docstring gives both.

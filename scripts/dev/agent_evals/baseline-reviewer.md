@@ -1,7 +1,6 @@
 ---
 name: baseline-reviewer
-description: Generic reviewer, the no-agent baseline arm of the review-agent evaluation. Used only through the --agents JSON that scripts/dev/agent_evals/evals.py writes; not a general-purpose agent.
-tools: Read, Grep, Glob
+description: Generic reviewer, the no-agent baseline arm of the review-agent evaluation. Used only through the --agents JSON that scripts/dev/agent_evals/evals.py writes, which gives it its matched critic's model, tools and hooks; not a general-purpose agent.
 ---
 
 You are reviewing a proposed change to this repository before it is made.

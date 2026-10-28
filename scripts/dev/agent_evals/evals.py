@@ -1,9 +1,10 @@
 """Measure whether the review agents catch defects this repository has caught.
 
 The cases, the scoring rule and the pass bar are pre-registered in
-`docs/findings/agent-critics-prereg.md`, and the comparison with a no-agent
-baseline in `docs/findings/agent-critics-baseline-prereg.md`; this script
-carries them out and changes none of them. Each case in `cases/` is a matched pair: a proposal
+`docs/findings/agent-critics-prereg.md`, the comparison with a no-agent
+baseline in `docs/findings/agent-critics-baseline-prereg.md`, and the docs
+suite in `docs/findings/agent-critics-docs-prereg.md`; this script carries
+them out and changes none of them. Each case in `cases/` is a matched pair: a proposal
 carrying a defect the repository found and fixed, and the same proposal with
 the defect removed. A critic reviews one proposal against a checkout of the
 repository as it stood before the fix, so the fix and its write-up are not
@@ -26,6 +27,12 @@ writes what each call is given and scores what comes back. Three steps:
     # saves each answer as judgements/<token>.md
     python scripts/dev/agent_evals/evals.py score --label 2026-11-01
 
+The docs suite (`--suite docs`, cases in `cases/docs/`) runs docs-critic and
+one baseline on changes to published pages. Its session starts from the
+empty directory `prepare` prints, outside any git repository, so the
+reviewers' `git log` and `git show` cannot read the history that holds the
+fixes.
+
 Nothing here touches the network; the agent calls are the session's.
 """
 
@@ -41,6 +48,8 @@ import tarfile
 import tempfile
 from datetime import date
 from pathlib import Path
+
+import yaml  # a dask dependency, so installed wherever pyvwf is
 
 try:  # tomllib entered the stdlib in 3.11; 3.10 uses the tomli backport.
     import tomllib
@@ -63,8 +72,9 @@ BASELINES = {
 REVIEWERS = CRITICS + tuple(BASELINES)
 BASELINE_DEFINITION = HERE / "baseline-reviewer.md"
 ARMS = ("defect", "control")
-VERDICTS = ("PROCEED", "REVISE", "REJECT")
-BLOCKING = frozenset({"REVISE", "REJECT"})
+# docs-critic answers PASS or FIX; FIX blocks as REVISE does.
+VERDICTS = ("PROCEED", "REVISE", "REJECT", "PASS", "FIX")
+BLOCKING = frozenset({"REVISE", "REJECT", "FIX"})
 # A judge's quote shorter than this cannot carry a mechanism, so it does not
 # count as evidence that the review found the defect.
 MIN_QUOTE = 15
@@ -93,8 +103,11 @@ TELLS = re.compile(
     re.IGNORECASE,
 )
 
-VERDICT = re.compile(r"\*{0,2}Verdict:?\*{0,2}:?\s*\*{0,2}\s*(PROCEED|REVISE|REJECT)\b", re.I)
+VERDICT = re.compile(
+    r"\*{0,2}Verdict:?\*{0,2}:?\s*\*{0,2}\s*(PROCEED|REVISE|REJECT|PASS|FIX)\b", re.I
+)
 FILES_READ = re.compile(r"^\s*\**Files read:?\**:?\s*$", re.IGNORECASE | re.MULTILINE)
+COMMANDS_RUN = re.compile(r"^\s*\**Commands run:?\**:?\s*$", re.IGNORECASE | re.MULTILINE)
 FOUND = re.compile(r"^\s*FOUND:\s*(YES|NO)\b", re.IGNORECASE | re.MULTILINE)
 QUOTE = re.compile(r"^\s*QUOTE:\s*(.*)\Z", re.IGNORECASE | re.MULTILINE | re.DOTALL)
 
@@ -112,6 +125,51 @@ absolute path of every file you opened, one per line.
 
 {proposal}
 """
+
+DOCS_PROMPT = """\
+Review this change to a published PyVWF page.
+
+The repository is checked out at {snapshot}, as it stood when the change was
+proposed. Treat that directory as the repository root: resolve every path in
+your instructions and in the change against it, and read nothing outside it.
+The checkout has no git history; the change is given in full below.
+
+After your review, end your reply with a line "Commands run:" followed by
+every shell command you ran, one per line (or "none"), and then a line
+"Files read:" followed by the absolute path of every file you opened, one per
+line.
+
+## Change
+
+{proposal}
+"""
+
+#: What differs between the two sets of cases: where they live, who reviews
+#: them, the prompt, and whether the session must start outside the repository.
+SUITES = {
+    "proposals": {
+        "cases": CASES,
+        "critics": CRITICS,
+        "baselines": BASELINES,
+        "clean": CLEAN_PAIRS,
+        "prompt": CRITIC_PROMPT,
+        "session": False,
+    },
+    "docs": {
+        "cases": CASES / "docs",
+        "critics": ("docs-critic",),
+        "baselines": {"baseline-docs": "docs-critic"},
+        "clean": (),
+        "prompt": DOCS_PROMPT,
+        "session": True,
+    },
+}
+
+
+def reviewers(suite: str) -> tuple[str, ...]:
+    """The suite's critics, then its baselines."""
+    return SUITES[suite]["critics"] + tuple(SUITES[suite]["baselines"])
+
 
 JUDGE_PROMPT = """\
 You are grading one review of a proposal. You do not see the proposal. Below
@@ -142,7 +200,7 @@ character for character; or NONE
 # ---------------------------------------------------------------- the cases
 
 
-def load_cases(cases_dir: Path = CASES) -> list[dict]:
+def load_cases(cases_dir: Path = CASES, critics: tuple[str, ...] = CRITICS) -> list[dict]:
     """Read every pair, checking each carries the fields the run needs."""
     pairs = []
     for path in sorted(cases_dir.glob("*.toml")):
@@ -156,7 +214,7 @@ def load_cases(cases_dir: Path = CASES) -> list[dict]:
             raise ValueError(f"{path.name} lacks {', '.join(missing)}")
         if case["pair"] != path.stem:
             raise ValueError(f"{path.name} names its pair {case['pair']!r}")
-        unknown = set(case["expected_catchers"]) - set(CRITICS)
+        unknown = set(case["expected_catchers"]) - set(critics)
         if unknown:
             raise ValueError(f"{path.name} expects unknown critics {sorted(unknown)}")
         pairs.append(case)
@@ -167,8 +225,14 @@ def proposal(case: dict, arm: str) -> str:
     return case[f"{arm}_arm"]["proposal"].strip()
 
 
-def blinding_problems(text: str, pair_names: list[str]) -> list[str]:
-    """What in a proposal could tell a critic which case it is, or that it is one."""
+def blinding_problems(text: str, pair_names: list[str], allow: list[str] = ()) -> list[str]:
+    """What in a proposal could tell a critic which case it is, or that it is one.
+
+    `allow` names strings a case must carry, such as the path of the page a
+    docs change edits, which are removed before the check.
+    """
+    for allowed in allow:
+        text = text.replace(allowed, "")
     found = [m.group(0) for m in HEX.finditer(text)]
     found += [m.group(0) for m in TELLS.finditer(text)]
     found += [name for name in pair_names if name in text]
@@ -206,72 +270,103 @@ def extract_snapshot(sha: str, dest: Path) -> None:
             tar.extractall(dest)  # noqa: S202 - our own repository's archive
 
 
-def read_definition(path: Path) -> tuple[dict[str, str], str]:
-    """An agent definition's flat frontmatter, and its body."""
+def read_definition(path: Path) -> tuple[dict, str]:
+    """An agent definition's frontmatter, hooks included, and its body."""
     _, front, body = path.read_text().split("---\n", 2)
-    meta = {}
-    for line in front.splitlines():
-        key, _, value = line.partition(":")
-        if key.strip():
-            meta[key.strip()] = value.strip()
-    return meta, body.strip()
+    return yaml.safe_load(front), body.strip()
 
 
-def agent_entry(meta: dict[str, str], body: str, model: str) -> dict:
-    """One reviewer for `claude --agents`, kept from reading CLAUDE.md."""
-    return {
+def agent_entry(meta: dict, body: str, settings: dict) -> dict:
+    """One reviewer for `claude --agents`, kept from reading CLAUDE.md.
+
+    The description and prompt come from `meta`; the model, tools and hooks
+    from `settings`, so a baseline can take its matched critic's. A hook path
+    is made absolute, because the docs session runs outside the repository.
+    """
+    entry = {
         "description": meta["description"],
         "prompt": body,
-        "tools": [t.strip() for t in meta["tools"].split(",")],
-        "model": model,
+        "tools": [t.strip() for t in settings["tools"].split(",")],
+        "model": settings["model"],
         "omitClaudeMd": True,
     }
+    if settings.get("hooks"):
+        hooks = json.dumps(settings["hooks"]).replace("$CLAUDE_PROJECT_DIR", str(ROOT))
+        entry["hooks"] = json.loads(hooks)
+    return entry
 
 
-def agents_json() -> tuple[dict[str, dict], dict[str, str]]:
-    """The six reviewers as `--agents` JSON, and each definition file's sha256."""
-    agents, hashes = {}, {}
-    for critic in CRITICS:
+def agents_json(suite: str = "proposals") -> tuple[dict[str, dict], dict[str, str]]:
+    """The suite's reviewers as `--agents` JSON, and each definition file's sha256.
+
+    A baseline takes its matched critic's model, tools and hooks, so only the
+    instruction differs.
+    """
+    agents, hashes, settings = {}, {}, {}
+    for critic in SUITES[suite]["critics"]:
         path = ROOT / ".claude" / "agents" / f"{critic}.md"
         meta, body = read_definition(path)
-        agents[critic] = agent_entry(meta, body, meta["model"])
+        agents[critic] = agent_entry(meta, body, meta)
+        settings[critic] = meta
         hashes[critic] = _sha256(path)
     meta, body = read_definition(BASELINE_DEFINITION)
-    for name, matched in BASELINES.items():
-        agents[name] = agent_entry(meta, body, agents[matched]["model"])
+    for name, matched in SUITES[suite]["baselines"].items():
+        agents[name] = agent_entry(meta, body, settings[matched])
     hashes["baseline-reviewer"] = _sha256(BASELINE_DEFINITION)
     return agents, hashes
 
 
-def critic_prompt(text: str, snapshot: Path) -> str:
-    return CRITIC_PROMPT.format(snapshot=snapshot, proposal=text)
+def critic_prompt(text: str, snapshot: Path, template: str = CRITIC_PROMPT) -> str:
+    return template.format(snapshot=snapshot, proposal=text)
 
 
 def strip_files_read(review: str) -> str:
-    """The review without its closing list of files, which the judge does not need."""
-    match = FILES_READ.search(review)
-    return review[: match.start()].rstrip() if match else review.rstrip()
+    """The review without its closing lists of commands and files, which the judge does not need."""
+    starts = [m.start() for m in (COMMANDS_RUN.search(review), FILES_READ.search(review)) if m]
+    return review[: min(starts)].rstrip() if starts else review.rstrip()
 
 
 def judge_prompt(defect: str, review: str) -> str:
     return JUDGE_PROMPT.format(defect=defect.strip(), review=strip_files_read(review))
 
 
+def outside_git(directory: Path) -> bool:
+    """Whether `directory` lies outside every git work tree."""
+    probe = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"], cwd=directory, capture_output=True
+    )
+    return probe.returncode != 0
+
+
 def prepare(
-    run_dir: Path, label: str, critic_model: str | None, judge_model: str, snapshot_root: Path
+    run_dir: Path,
+    label: str,
+    critic_model: str | None,
+    judge_model: str,
+    snapshot_root: Path,
+    suite: str = "proposals",
 ) -> dict:
     """Extract the snapshots and write one prompt per (case, arm, reviewer)."""
     if run_dir.exists():
         raise SystemExit(f"{run_dir} exists; a run is prepared once")
-    pairs = load_cases()
+    spec = SUITES[suite]
+    session = None
+    if spec["session"]:
+        session = snapshot_root / f"session-{label}"
+        session.mkdir(parents=True, exist_ok=True)
+        if not outside_git(session):
+            raise SystemExit(
+                f"{session} is inside a git repository; choose --snapshot-root outside one"
+            )
+    pairs = load_cases(spec["cases"], spec["critics"])
     names = [c["pair"] for c in pairs]
     for case in pairs:
         for arm in ARMS:
-            tells = blinding_problems(proposal(case, arm), names)
+            tells = blinding_problems(proposal(case, arm), names, case.get("allow", []))
             if tells:
                 raise SystemExit(f"{case['pair']} {arm} proposal is not blind: {tells}")
     (run_dir / "prompts").mkdir(parents=True)
-    agents, definitions = agents_json()
+    agents, definitions = agents_json(suite)
     (run_dir / "agents.json").write_text(json.dumps(agents, indent=2) + "\n")
     snapshots, tasks = {}, []
     for case in pairs:
@@ -281,10 +376,10 @@ def prepare(
             extract_snapshot(sha, where)
         snapshots[case["pair"]] = {"rev": case["snapshot"], "sha": sha, "dir": str(where)}
         for arm in ARMS:
-            for reviewer in REVIEWERS:
+            for reviewer in reviewers(suite):
                 name = token(label, case["pair"], arm, reviewer)
                 (run_dir / "prompts" / f"{name}.md").write_text(
-                    critic_prompt(proposal(case, arm), where)
+                    critic_prompt(proposal(case, arm), where, spec["prompt"])
                 )
                 tasks.append(
                     {
@@ -292,13 +387,15 @@ def prepare(
                         "pair": case["pair"],
                         "arm": arm,
                         "critic": reviewer,
-                        "kind": "baseline" if reviewer in BASELINES else "critic",
+                        "kind": "baseline" if reviewer in spec["baselines"] else "critic",
                         "model": agents[reviewer]["model"],
                     }
                 )
     tasks.sort(key=lambda t: t["token"])
     record = {
         "label": label,
+        "suite": suite,
+        "session_dir": str(session) if session else None,
         "prepared": date.today().isoformat(),
         "critic_model": critic_model,
         "judge_model": judge_model,
@@ -310,8 +407,9 @@ def prepare(
         "tasks": tasks,
     }
     (run_dir / "run.json").write_text(json.dumps(record, indent=2) + "\n")
+    where_to_start = f"from {session} " if session else ""
     print(
-        f"{len(tasks)} prompts in {run_dir / 'prompts'}; start the session with "
+        f"{len(tasks)} prompts in {run_dir / 'prompts'}; start the session {where_to_start}with "
         f'claude --agents "$(cat {run_dir / "agents.json"})" and send each prompt to '
         "the reviewer run.json names for it"
     )
@@ -321,7 +419,7 @@ def prepare(
 def judge(run_dir: Path, label: str) -> list[str]:
     """Write one judge prompt per review, and two calibration prompts per pair."""
     record = json.loads((run_dir / "run.json").read_text())
-    pairs = {c["pair"]: c for c in load_cases()}
+    pairs = {c["pair"]: c for c in _suite_cases(record)}
     missing = [
         t["token"]
         for t in record["tasks"]
@@ -349,6 +447,12 @@ def judge(run_dir: Path, label: str) -> list[str]:
     return written
 
 
+def _suite_cases(record: dict) -> list[dict]:
+    """The cases of the suite a run was prepared for; runs before suites are proposals."""
+    spec = SUITES[record.get("suite", "proposals")]
+    return load_cases(spec["cases"], spec["critics"])
+
+
 # ------------------------------------------------------------- the scoring
 
 
@@ -365,6 +469,28 @@ def parse_files_read(review: str) -> list[str] | None:
         return None
     lines = review[match.end() :].splitlines()
     return [ln.strip().lstrip("-* ").strip("`") for ln in lines if ln.strip()]
+
+
+def parse_commands(review: str) -> list[str]:
+    """The commands listed after "Commands run:", up to the files list; none if absent."""
+    match = COMMANDS_RUN.search(review)
+    if not match:
+        return []
+    files = FILES_READ.search(review, match.end())
+    block = review[match.end() : files.start() if files else len(review)]
+    lines = [ln.strip().lstrip("-* ").strip("`") for ln in block.splitlines() if ln.strip()]
+    return [ln for ln in lines if ln.lower() != "none"]
+
+
+def paths_outside(commands: list[str], snapshot: str) -> list[str]:
+    """Absolute paths a listed command names outside the snapshot."""
+    root = snapshot.rstrip("/") + "/"
+    found = []
+    for command in commands:
+        for word in re.findall(r"""(?<![\w.])/[^\s'"`;|&<>]+""", command):
+            if not (word + "/").startswith(root):
+                found.append(word)
+    return found
 
 
 def leaked(paths: list[str] | None, snapshot: str) -> list[str] | None:
@@ -443,10 +569,10 @@ def compare(critic_score: int, baseline_score: int) -> str:
     return "no measurable difference"
 
 
-def tally(rows: list[dict], pairs: list[str]) -> dict:
+def tally(rows: list[dict], pairs: list[str], suite: str = "proposals") -> dict:
     """Per-reviewer counts, a panel per kind, both bars, and the clean-pair readout."""
     per_reviewer = {}
-    for name in REVIEWERS:
+    for name in reviewers(suite):
         mine = [r for r in rows if r["critic"] == name]
         if not mine:
             continue
@@ -477,7 +603,7 @@ def tally(rows: list[dict], pairs: list[str]) -> dict:
     baseline_rows = [r for r in rows if r.get("kind") == "baseline"]
     if baseline_rows:
         baseline_panel, b_hits, b_alarms = panel(baseline_rows, pairs)
-        clean = [p for p in CLEAN_PAIRS if p in pairs]
+        clean = [p for p in SUITES[suite]["clean"] if p in pairs]
         result.update(
             baseline_panel=baseline_panel,
             baseline_hits=b_hits,
@@ -506,7 +632,8 @@ def score(run_dir: Path) -> dict:
     record = json.loads((run_dir / "run.json").read_text())
     if "calibration" not in record:
         raise SystemExit("run judge first")
-    pairs = {c["pair"]: c for c in load_cases()}
+    suite = record.get("suite", "proposals")
+    pairs = {c["pair"]: c for c in _suite_cases(record)}
 
     def answer(name: str) -> str:
         path = run_dir / "judgements" / f"{name}.md"
@@ -532,6 +659,8 @@ def score(run_dir: Path) -> dict:
         review = (run_dir / "responses" / f"{t['token']}.md").read_text()
         snapshot = record["snapshots"][t["pair"]]["dir"]
         outside = leaked(parse_files_read(review), snapshot)
+        if outside is not None:
+            outside += paths_outside(parse_commands(review), snapshot)
         judged = parse_judgement(answer(t["token"]), review)
         verdict = parse_verdict(review)
         excluded = bool(outside)
@@ -550,16 +679,17 @@ def score(run_dir: Path) -> dict:
                 "quote": judged["quote"],
             }
         )
-    rows.sort(key=lambda r: (r["pair"], ARMS.index(r["arm"]), REVIEWERS.index(r["critic"])))
+    rows.sort(key=lambda r: (r["pair"], ARMS.index(r["arm"]), reviewers(suite).index(r["critic"])))
     result = {
         "label": record["label"],
+        "suite": suite,
         "critic_model": record["critic_model"],
         "judge_model": record["judge_model"],
         "harness_commit": record["harness_commit"],
         "calibration": calibration,
         "judge_calibrated": calibrated,
         "rows": rows,
-        **tally(rows, sorted(pairs)),
+        **tally(rows, sorted(pairs), suite),
     }
     if not calibrated:
         for key in ("passes", "baseline_passes", "comparison"):
@@ -610,6 +740,7 @@ def render(result: dict) -> str:
     ]
     if "comparison" in result:
         clean = result["clean_pairs"]
+        suite = result.get("suite", "proposals")
         lines += [
             f"Baseline panel: {result['baseline_hits']} of {n} defects caught, "
             f"{result['baseline_false_alarms']} of {n} controls with a false alarm; "
@@ -618,12 +749,15 @@ def render(result: dict) -> str:
             f"{result['baseline_score']}: "
             + (result["comparison"] or "not read (judge calibration failed)")
             + f" (value shown needs the critics {VALUE_MARGIN} or more ahead).",
-            f"Clean pairs ({', '.join(clean['pairs'])}), no bar: critics caught "
-            f"{clean['critic caught']}, false alarms {clean['critic false alarms']}; "
-            f"baseline caught {clean['baseline caught']}, "
-            f"false alarms {clean['baseline false alarms']}.",
         ]
-        for name, matched in BASELINES.items():
+        if clean["pairs"]:
+            lines.append(
+                f"Clean pairs ({', '.join(clean['pairs'])}), no bar: critics caught "
+                f"{clean['critic caught']}, false alarms {clean['critic false alarms']}; "
+                f"baseline caught {clean['baseline caught']}, "
+                f"false alarms {clean['baseline false alarms']}."
+            )
+        for name, matched in SUITES[suite]["baselines"].items():
             c, b = result["per_reviewer"].get(matched), result["per_reviewer"].get(name)
             if c and b:
                 lines.append(
@@ -642,12 +776,15 @@ def main(
     critic_model: str | None = None,
     judge_model: str | None = None,
     snapshot_root: Path | None = None,
+    suite: str = "proposals",
 ) -> object:
     run_dir = RUNS / label
     if command == "prepare":
         if not judge_model:
             raise SystemExit("prepare needs --judge-model, recorded with the run")
-        return prepare(run_dir, label, critic_model, judge_model, snapshot_root or SNAPSHOT_ROOT)
+        return prepare(
+            run_dir, label, critic_model, judge_model, snapshot_root or SNAPSHOT_ROOT, suite
+        )
     if command == "judge":
         return judge(run_dir, label)
     return score(run_dir)
@@ -667,8 +804,21 @@ def cli(argv: list[str] | None = None) -> None:
         type=Path,
         help=f"where the checkouts the critics read are written (default {SNAPSHOT_ROOT})",
     )
+    parser.add_argument(
+        "--suite",
+        choices=tuple(SUITES),
+        default="proposals",
+        help="which cases and reviewers (prepare; judge and score read it from run.json)",
+    )
     args = parser.parse_args(argv)
-    main(args.command, args.label, args.critic_model, args.judge_model, args.snapshot_root)
+    main(
+        args.command,
+        args.label,
+        args.critic_model,
+        args.judge_model,
+        args.snapshot_root,
+        args.suite,
+    )
 
 
 if __name__ == "__main__":

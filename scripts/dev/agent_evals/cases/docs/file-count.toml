@@ -1,0 +1,42 @@
+# One matched pair for the docs suite. The reviewer sees only `proposal`,
+# against a checkout of `snapshot`; everything else is the key.
+
+pair = "file-count"
+snapshot = "5194a21^"
+source_commit = "31b1b30"
+source_document = "docs/design/agent-guards.md, mistake C084"
+expected_catchers = ["docs-critic"]
+allow = []
+defect = "The entry says all 43 test files pass, but the repository has 52 test files (tests/test_*.py), so the count does not match the tree: either the number is misstated or the run covered only part of the suite."
+judge_positive = "**Verdict:** FIX. CHANGELOG.md | counts | 'All 43 test files pass' does not recount: tests/ holds 52 files matching test_*.py, so either the figure is misstated or nine files were not run."
+judge_negative = "**Verdict:** FIX. CHANGELOG.md | checks | the entry says three threads are provably alive at once, but does not say whether the barrier has a timeout, so a hung pool would hang the suite rather than fail it."
+
+[defect_arm]
+proposal = '''
+**Summary:** fix two tests CI caught.
+
+**Change** to `CHANGELOG.md`, under Unreleased, Fixed:
+
+```markdown
+- **Two tests CI caught are fixed.** `test_region_config_parses_the_treatment`
+  now builds its three cases in a temporary directory instead of asserting
+  what the shipped Denmark configuration reads, and
+  `test_each_thread_builds_its_own_client` holds a barrier, so three threads
+  are provably alive at once. All 43 test files pass, one process each.
+```
+'''
+
+[control_arm]
+proposal = '''
+**Summary:** fix two tests CI caught.
+
+**Change** to `CHANGELOG.md`, under Unreleased, Fixed:
+
+```markdown
+- **Two tests CI caught are fixed.** `test_region_config_parses_the_treatment`
+  now builds its three cases in a temporary directory instead of asserting
+  what the shipped Denmark configuration reads, and
+  `test_each_thread_builds_its_own_client` holds a barrier, so three threads
+  are provably alive at once. All 52 test files pass, one process each.
+```
+'''

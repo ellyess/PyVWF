@@ -1,7 +1,8 @@
 """`scripts/dev/agent_evals/evals.py` scores the critics the way it was registered.
 
 The scoring rule and the pass bar are fixed in
-`docs/findings/agent-critics-prereg.md`. Each piece is checked both ways: the
+`docs/findings/agent-critics-prereg.md`, and the docs suite in
+`docs/findings/agent-critics-docs-prereg.md`. Each piece is checked both ways: the
 parsers on replies that should and should not count, the blinding check on a
 proposal that leaks and on the real ones, and the bar on either side of its
 boundary.
@@ -110,7 +111,7 @@ def test_tokens_are_stable_and_distinct():
 # ------------------------------------------------------------- reviewers
 
 
-def test_a_definition_is_read_as_flat_frontmatter_and_a_body():
+def test_a_definition_is_read_as_frontmatter_and_a_body():
     meta, body = evals.read_definition(ROOT / ".claude" / "agents" / "method-critic.md")
     assert (meta["name"], meta["tools"], meta["model"]) == (
         "method-critic",
@@ -130,6 +131,58 @@ def test_the_agents_json_defines_six_read_only_reviewers_without_claude_md():
         assert agents[baseline]["prompt"] == agents["baseline-1"]["prompt"]
     assert sorted(hashes) == sorted([*evals.CRITICS, "baseline-reviewer"])
     assert all(len(h) == 64 for h in hashes.values())
+
+
+DOCS = evals.SUITES["docs"]
+
+
+def test_every_docs_pair_loads_blind_with_both_arms():
+    cases = evals.load_cases(DOCS["cases"], DOCS["critics"])
+    names = [c["pair"] for c in cases]
+    assert names == [
+        "cited-test",
+        "dropped-caveat",
+        "file-count",
+        "pinned-halves",
+        "reproduction-claim",
+    ]
+    for case in cases:
+        assert evals.proposal(case, "defect") != evals.proposal(case, "control")
+        for arm in evals.ARMS:
+            assert evals.blinding_problems(evals.proposal(case, arm), names, case["allow"]) == []
+
+
+def test_a_page_path_is_a_tell_unless_its_case_allows_it():
+    case = {c["pair"]: c for c in evals.load_cases(DOCS["cases"], DOCS["critics"])}[
+        "dropped-caveat"
+    ]
+    text = evals.proposal(case, "defect")
+    assert evals.blinding_problems(text, [], []) != []
+    assert evals.blinding_problems(text, [], case["allow"]) == []
+
+
+def test_the_docs_baseline_takes_the_critics_model_tools_and_absolute_hook():
+    agents, hashes = evals.agents_json("docs")
+    critic, baseline = agents["docs-critic"], agents["baseline-docs"]
+    assert sorted(agents) == ["baseline-docs", "docs-critic"]
+    assert critic["tools"] == baseline["tools"] == ["Read", "Grep", "Glob", "Bash"]
+    assert critic["model"] == baseline["model"] == "opus"
+    assert critic["hooks"] == baseline["hooks"]
+    command = critic["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+    assert str(ROOT) in command and "$CLAUDE_PROJECT_DIR" not in command
+    assert critic["prompt"] != baseline["prompt"]
+    assert all(a["omitClaudeMd"] is True for a in agents.values())
+    assert sorted(hashes) == ["baseline-reviewer", "docs-critic"]
+
+
+def test_the_proposal_reviewers_carry_no_hooks():
+    agents, _ = evals.agents_json()
+    assert all("hooks" not in a for a in agents.values())
+
+
+def test_a_session_directory_must_lie_outside_git(tmp_path):
+    assert evals.outside_git(tmp_path)
+    assert not evals.outside_git(ROOT)
 
 
 def test_the_baseline_definition_says_nothing_about_this_repository():
@@ -158,6 +211,8 @@ def test_the_baseline_definition_says_nothing_about_this_repository():
         ("Verdict: reject, because", "REJECT"),
         ("**Verdict: PROCEED**", "PROCEED"),
         ("**Verdict:** REVISE. Later: Verdict: REJECT", "REVISE"),
+        ("**Verdict:** FIX.\nThen one row per finding", "FIX"),
+        ("**Verdict:** PASS", "PASS"),
         ("I would revise this.", None),
         ("", None),
     ],
@@ -228,6 +283,9 @@ def test_a_no_or_no_answer_is_not_found(answer):
         ("defect", "REVISE", True, False, "hit"),
         ("defect", "REJECT", True, False, "hit"),
         ("defect", "PROCEED", True, False, "noted"),
+        ("defect", "FIX", True, False, "hit"),
+        ("defect", "PASS", True, False, "noted"),
+        ("control", "PASS", False, False, "clear"),
         ("defect", None, True, False, "noted"),
         ("defect", "REJECT", False, False, "miss"),
         ("control", "REJECT", True, False, "false alarm"),
@@ -239,6 +297,69 @@ def test_a_no_or_no_answer_is_not_found(answer):
 )
 def test_each_review_gets_its_registered_outcome(arm, verdict, found, excluded, expected):
     assert evals.outcome(arm, verdict, found, excluded) == expected
+
+
+DOCS_REVIEW = """**Verdict:** FIX. CHANGELOG.md | counts | the count does not recount.
+
+Commands run:
+wc -l /tmp/pyvwf-checkouts/abcd1234/CHANGELOG.md
+{extra}
+Files read:
+/tmp/pyvwf-checkouts/abcd1234/CHANGELOG.md
+"""
+SNAP = "/tmp/pyvwf-checkouts/abcd1234"
+
+
+def test_commands_inside_the_checkout_are_not_a_leak():
+    review = DOCS_REVIEW.format(extra="none")
+    assert evals.parse_commands(review) == ["wc -l /tmp/pyvwf-checkouts/abcd1234/CHANGELOG.md"]
+    assert evals.paths_outside(evals.parse_commands(review), SNAP) == []
+
+
+def test_a_command_naming_a_path_outside_the_checkout_is_a_leak():
+    review = DOCS_REVIEW.format(extra="wc -l '/Users/me/repo/CHANGELOG.md'")
+    assert evals.paths_outside(evals.parse_commands(review), SNAP) == [
+        "/Users/me/repo/CHANGELOG.md"
+    ]
+
+
+def test_the_judge_sees_neither_the_commands_nor_the_files():
+    stripped = evals.strip_files_read(DOCS_REVIEW.format(extra="none"))
+    assert stripped.endswith("does not recount.") and "wc -l" not in stripped
+
+
+def test_a_docs_run_reads_one_reviewer_against_one_baseline():
+    rows = []
+    for name, kind, caught in (
+        ("docs-critic", "critic", set(PAIRS)),
+        ("baseline-docs", "baseline", {"a", "b", "c"}),
+    ):
+        for pair in PAIRS:
+            rows.append(
+                {
+                    "pair": pair,
+                    "arm": "defect",
+                    "critic": name,
+                    "kind": kind,
+                    "verdict": "FIX",
+                    "outcome": "hit" if pair in caught else "miss",
+                }
+            )
+            rows.append(
+                {
+                    "pair": pair,
+                    "arm": "control",
+                    "critic": name,
+                    "kind": kind,
+                    "verdict": "PASS",
+                    "outcome": "clear",
+                }
+            )
+    result = evals.tally(rows, PAIRS, "docs")
+    assert (result["critic_score"], result["baseline_score"]) == (5, 3)
+    assert result["comparison"] == "value shown"
+    assert sorted(result["per_reviewer"]) == ["baseline-docs", "docs-critic"]
+    assert result["clean_pairs"]["pairs"] == []
 
 
 def _rows(hit_pairs: set[str], alarm_pairs: set[str], pairs: list[str]) -> list[dict]:
@@ -486,3 +607,58 @@ def test_an_uncalibrated_judge_leaves_the_comparison_unread(tmp_path, monkeypatc
     )
     assert (result["passes"], result["baseline_passes"], result["comparison"]) == (None, None, None)
     assert "baseline score 0: not read" in (tmp_path / "t" / "results.md").read_text()
+
+
+def test_a_scored_docs_run_excludes_a_command_outside_the_checkout(tmp_path, monkeypatch):
+    """End to end on the docs suite: a hit, and a review excluded for its command."""
+    monkeypatch.setattr(evals, "RUNS", tmp_path)
+    run_dir = tmp_path / "d"
+    (run_dir / "responses").mkdir(parents=True)
+    (run_dir / "judgements").mkdir()
+    tasks = [
+        {
+            "token": "d1",
+            "pair": "file-count",
+            "arm": "defect",
+            "critic": "docs-critic",
+            "kind": "critic",
+        },
+        {
+            "token": "d2",
+            "pair": "file-count",
+            "arm": "defect",
+            "critic": "baseline-docs",
+            "kind": "baseline",
+        },
+    ]
+    record = {
+        "label": "d",
+        "suite": "docs",
+        "critic_model": None,
+        "judge_model": "j",
+        "harness_commit": "0" * 40,
+        "snapshots": {"file-count": {"dir": SNAP}},
+        "tasks": tasks,
+    }
+    (run_dir / "run.json").write_text(evals.json.dumps(record))
+    (run_dir / "responses" / "d1.md").write_text(DOCS_REVIEW.format(extra="none"))
+    (run_dir / "responses" / "d2.md").write_text(
+        DOCS_REVIEW.format(extra="wc -l /Users/me/repo/CHANGELOG.md")
+    )
+    evals.judge(run_dir, "d")
+    record = evals.json.loads((run_dir / "run.json").read_text())
+    cases = {c["pair"]: c for c in evals.load_cases(DOCS["cases"], DOCS["critics"])}
+    assert sorted({c["pair"] for c in record["calibration"]}) == sorted(cases)
+    for cal in record["calibration"]:
+        text = cases[cal["pair"]][f"judge_{cal['kind']}"]
+        (run_dir / "judgements" / f"{cal['token']}.md").write_text(_honest(cal["kind"], text))
+    for name in ("d1", "d2"):
+        (run_dir / "judgements" / f"{name}.md").write_text(
+            "FOUND: YES\nQUOTE: the count does not recount"
+        )
+    result = evals.score(run_dir)
+    outcomes = {r["critic"]: r["outcome"] for r in result["rows"]}
+    assert outcomes == {"docs-critic": "hit", "baseline-docs": "excluded"}
+    assert result["judge_calibrated"] is True
+    table = (run_dir / "results.md").read_text()
+    assert "docs-critic against baseline-docs" in table and "Clean pairs" not in table

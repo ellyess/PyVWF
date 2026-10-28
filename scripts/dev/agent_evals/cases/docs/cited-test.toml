@@ -1,0 +1,44 @@
+# One matched pair for the docs suite. The reviewer sees only `proposal`,
+# against a checkout of `snapshot`; everything else is the key.
+
+pair = "cited-test"
+snapshot = "c3859a0^"
+source_commit = "c3859a0"
+source_document = "docs/design/agent-guards.md, mistake C172"
+expected_catchers = ["docs-critic"]
+allow = []
+defect = "The entry cites a test as evidence that the clipped count reaches the run manifest and metrics.csv, but that test only builds the in-memory record and round-trips it through JSON; it never runs the driver's writes, so it would pass if the count reached neither file."
+judge_positive = "**Verdict:** FIX. CHANGELOG.md | checks | the cited test calls _record_observation_quality and round-trips the dict through json; it never writes a manifest or metrics.csv, so it could not fail if the count never reached either file. It is not evidence for the claim."
+judge_negative = "**Verdict:** FIX. CHANGELOG.md | counts | the entry names the 1.5 ceiling but not how many rows sit on it in any region, so a reader cannot tell whether the share matters."
+
+[defect_arm]
+proposal = '''
+**Summary:** record the clipped observation count with each run.
+
+**Change** to `CHANGELOG.md`, under Unreleased, Added:
+
+```markdown
+- **The clipped observation count travels with the run.** The share of
+  observed values sitting on the fetcher's 1.5 capacity-factor ceiling now
+  reaches the run manifest and `metrics.csv`, so a metric computed over fewer
+  observations than it claims says so. Tested by
+  `tests/test_harness_driver.py::test_the_clipped_count_reaches_the_manifest_and_the_metrics`.
+```
+'''
+
+[control_arm]
+proposal = '''
+**Summary:** record the clipped observation count with each run.
+
+**Change** to `CHANGELOG.md`, under Unreleased, Added:
+
+```markdown
+- **The clipped observation count travels with the run.** The share of
+  observed values sitting on the fetcher's 1.5 capacity-factor ceiling now
+  reaches the run manifest and `metrics.csv`, so a metric computed over fewer
+  observations than it claims says so.
+  `tests/test_harness_driver.py::test_the_clipped_count_reaches_the_manifest_and_the_metrics` checks the record the driver
+  builds and that it survives a JSON round trip; the driver's writes to the
+  manifest and to `metrics.csv` are not tested.
+```
+'''
