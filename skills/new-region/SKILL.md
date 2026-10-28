@@ -1,6 +1,6 @@
 ---
 name: new-region
-description: Add a turbine-level validation region to PyVWF (units may be turbines, farms, plants or complexes) as a gated pipeline from licence check to scorecard row, stopping for human sign-off at every phase. Use when asked to add a region, a country, or a new data source for validation.
+description: Add a turbine-level validation region to PyVWF (units may be turbines, farms, plants or complexes) as a gated pipeline from licence check to scorecard row, stopping for human sign-off at every phase. Use when asked to add a turbine-level region, or a new data source for one; country-level regions are out of its scope. Do not use to run an existing region; docs/guides/training.md covers that.
 argument-hint: "<region-stem> <source-module>"
 disable-model-invocation: true
 ---
