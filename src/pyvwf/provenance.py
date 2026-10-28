@@ -57,7 +57,6 @@ ENVIRONMENT_PACKAGES = (
     "pyproj",
     "matplotlib",
     "torch",
-    "pykrige",
     "rasterio",
 )
 

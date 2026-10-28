@@ -114,7 +114,9 @@ Selected by `[correction] model`:
 
 `cluster_list` fits each cluster count in one run. `k`-means needs `k` at most
 the number of units reaching the trainer, and `k` near that ceiling is
-one-unit-per-cluster (a fake plateau, `docs/results.md#united-states-and-brazil`). For
+one-unit-per-cluster (a fake plateau, recorded in
+[`region-us-br.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/region-us-br.md)
+at the archive tag). For
 country-level regions, `cluster_list` must be `1` or the grid's own cluster
 count (see [A country-level region](adding-a-region.md#a-country-level-region)).
 

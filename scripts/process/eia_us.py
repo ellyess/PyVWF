@@ -206,9 +206,14 @@ def main() -> None:
             "Pass --bbox with the region's [era5] bbox."
         ),
         "",
-        "Height source is per-plant (height_source column). Model is a UNIFORM "
-        f"default ({args.model}); the USWTDB manufacturer/model string travels in "
-        "uswtdb_model for a future vintage-aware assignment but is never the curve key.",
+        "Height source is per-plant (height_source column). Curves: "
+        + (
+            f"matched by specific power, with {args.model} where USWTDB has no rotor diameter"
+            if args.curve_assignment == "match"
+            else f"a UNIFORM default ({args.model})"
+        )
+        + " (model_source column); the USWTDB manufacturer/model string travels in "
+        "uswtdb_model but is never the curve key.",
         "Capacity is EIA-860 nameplate (static over the window); staged build-outs "
         "bias early months low (partial-staging follow-up, as for AU).",
         "EIA-923 Netgen is NET of station use; annual respondents are imputed and "
