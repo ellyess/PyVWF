@@ -2,7 +2,8 @@
 
 A study is one research question. It has its own findings document, usually a
 pre-registration, its drivers and its run directories. `CONTEXT.md` defines
-the terms. This guide says where each piece goes, and in what order.
+the terms. This guide says where each piece goes, in what order, and where it
+goes when the study finishes: `docs/findings/` holds active studies only.
 
 ## Where each piece goes
 
@@ -16,8 +17,8 @@ the terms. This guide says where each piece goes, and in what order.
 | Test of each driver's command line | `tests/test_script_command_lines.py` |
 
 A study that has only a pre-registration so far drops the `-prereg` from its
-directory name. The drivers of `method-offshore-pool-prereg.md` are in
-`scripts/studies/method-offshore-pool/`.
+directory name: the drivers of `method-example-prereg.md` go in
+`scripts/studies/method-example/`.
 
 `<stem>` follows the findings naming in [`docs/README.md`](../README.md), for
 example `method-roughness-treatment`.
@@ -33,10 +34,14 @@ example `method-roughness-treatment`.
 4. Add the driver's recorded command line to `RECORDED` in
    `tests/test_script_command_lines.py`.
 5. Commit the driver and its test before the driver runs.
-6. Start the run from the repository root, on a clean tree.
+6. Start the run from the repository root, on a clean tree, through
+   `scripts/dev/run_locked.py`.
 7. Write its output to `output/<name>_<date>/`.
 8. Read the gates against the output before you quote a number anywhere else.
 9. Write the findings document.
+10. When the study finishes, give its result an entry on `docs/results.md`.
+    Its documents, drivers and configs then leave main at the next archive
+    tag; see [When the study finishes](#when-the-study-finishes).
 
 Step 2 matters. A gate counts only if a commit older than the results fixes it.
 
@@ -96,3 +101,18 @@ A driver that moves says so in its commit message, with the old path, so a
 dated command that names the old path can still be traced. The drivers of the
 studies finished before 2026-10-27, and their path map, are at tag
 `archive/research-2026-10-27`.
+
+## When the study finishes
+
+A finished study's record moves off the main branch, so that `docs/findings/`
+shows only what is still open. Before it moves:
+
+- **Close its gates.** Read every registered gate against the output before
+  the result is quoted anywhere else.
+- **Write its results entry.** One entry on `docs/results.md`, in the section
+  it belongs to, with its training years and single test year, every failed
+  gate named plainly, and a link to the record at the archive tag. A negative
+  result sits beside the positive ones.
+- **Move it at the next archive tag.** The findings documents, the drivers,
+  the study-only configs and the tests of those drivers leave together, and
+  `docs/archive.md` gains a row saying where they are.

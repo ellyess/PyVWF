@@ -79,6 +79,15 @@ this file stay in step with it.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **Guides are merged in pairs:** the Docker guide into
+  `installation.md`, running on your own fleet data into `training.md`, and
+  the adapter contract into `adding-a-region.md`. The installation guide lists
+  every extra, and states what the conda environment and continuous
+  integration install. The input-root table in `training.md` puts every
+  country-level row on `input/combined`, where it has run since country-level
+  runs began refusing a missing curve. `adding-a-study.md` says what happens
+  when a study finishes: a results entry, and its record leaves at the next
+  archive tag.
 - **Evaluate and transfer runs read ERA5 for their test year only, and
   turbine-level training runs for their training years only.** Country-level
   training still reads every year.
@@ -1661,7 +1670,8 @@ changes the numbers the evaluation layer reports.
   `InMemoryCountrySource` for caller-supplied frames. `train_set` and `val_set`
   take a `source=` argument; the existing `external_grid_points` /
   `external_obs_data` arguments still work and are wrapped automatically. See
-  [docs/guides/adding-an-adapter.md](docs/guides/adding-an-adapter.md).
+  docs/guides/adding-an-adapter.md *[2026-10-28: merged into
+  [docs/guides/adding-a-region.md](docs/guides/adding-a-region.md#adding-an-adapter)]*.
 - **Correction-factor and evaluation diagnostics in `vwf.viz`.** Four figures
   promoted from the thesis plotting scripts, generalised (no hard-coded country
   or paths) and matplotlib-only:

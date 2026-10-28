@@ -33,7 +33,7 @@ conda env create -f environment.yaml
 conda activate pyvwf
 ```
 
-Both routes, and what each of the six extras adds, are in
+The routes, and what each of the seven extras adds, are in
 [docs/guides/installation.md](docs/guides/installation.md).
 
 ## Running the tests and linter
@@ -149,7 +149,7 @@ and every push to `main`:
 - a Docker build, which runs the image's default command on bundled data and
   checks that the example corrected something, that the console script and
   the curve library resolve, and that the image does not run as root
-  ([docs/guides/docker.md](docs/guides/docker.md)).
+  ([docs/guides/installation.md](docs/guides/installation.md#docker)).
 
 `python scripts/dev/ci_local.py` runs the lint job's checks, the fast set and
 the docs build locally, installed as those jobs install them; `--skip <check>`

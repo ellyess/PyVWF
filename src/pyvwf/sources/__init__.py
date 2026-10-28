@@ -3,7 +3,7 @@
 Importing this package registers the built-in adapters. To add a new region,
 subclass :class:`ObservationSource`, decorate it with :func:`register`, and
 import the module so the decorator runs. See
-``docs/guides/adding-an-adapter.md``.
+``docs/guides/adding-a-region.md``, Adding an adapter.
 """
 
 from pyvwf.sources.base import ObservationSource, ObsLevel

@@ -123,7 +123,7 @@ Terms follow `docs/CONTEXT.md`. Use only its approved terms.
 - Write `src/pyvwf/sources/$1.py` with `@register`, and its import line in
   `src/pyvwf/sources/__init__.py`.
 - Write the adapter tests, and a row in the built-in adapters table of
-  `docs/guides/adding-an-adapter.md`.
+  `docs/guides/adding-a-region.md`.
 - Check: `pyvwf.sources.get_source("<registry-name>", "<CODE>")` resolves. The
   tests pass. `pre-commit run --all-files` and `lint-imports` pass.
 - Stop: code review.
