@@ -66,7 +66,9 @@ scripts/
 
 ## Importing another script
 
-Logic that more than one script needs belongs in `src/pyvwf/`. A script may
+Scripts import `pyvwf` as an installed package (`pip install -e .` in a
+checkout); none puts `src/` on `sys.path`. Logic that more than one script
+needs belongs in `src/pyvwf/`. A script may
 still import a sibling in its own directory, or a tool in `analysis/`, by
 putting that directory on `sys.path`. A new script does not reach further:
 move the shared code into the package instead.
