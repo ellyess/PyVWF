@@ -8,7 +8,7 @@ writes `output/.stamp-<suite>.json`, recording a fingerprint of the code the
 suite covers as it was on disk. The Claude Code hook
 `.claude/hooks/guard_local_suites.py` refuses a commit that stages covered code
 unless the staged content matches a passing stamp for that suite.
-`docs/design/agent-guards.md` says why.
+`docs/design/ai-native-development.md` says why.
 
     python scripts/dev/stamp.py realdata
     python scripts/dev/stamp.py pinn
@@ -20,7 +20,7 @@ processes, one test file per process; serial is the default, and the count is
 recorded in the stamp. A suite accepts only the counts it has been measured
 at (`max_workers`). On 2026-10-16 the realdata suite passed 43 of 43 serially
 in 728 s, with 2 workers in 404 s and with 3 in 340 s, on a 16 GB machine
-where 3 left under 1 GB of swap free. `docs/design/agent-guards.md` has the
+where 3 left under 1 GB of swap free. `docs/design/ai-native-development.md` has the
 table.
 
 The fingerprint ignores what cannot change a result. A covered `.py` file is
@@ -33,7 +33,7 @@ is written out by `_canonical`, not `ast.dump`, whose text differs between
 Python versions, because the hook may run under another interpreter than the
 stamp did. This is safe because no covered code reads its own source or a
 docstring to compute anything; the one `__doc__` it reads is an argparse
-epilog. `docs/design/agent-guards.md` says more.
+epilog. `docs/design/ai-native-development.md` says more.
 """
 
 from __future__ import annotations

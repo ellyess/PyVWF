@@ -44,7 +44,7 @@ scripts/
     backfill_gwpt_start_years.py   start years for undated GWPT records, from national registers
     repair_country_capacity.py     a country CF series rebuilt on a capacity register
     weight_country_grid_points.py  GWPT capacity weights for country-level grid points
-  dev/              development guards (docs/design/agent-guards.md)
+  dev/              development guards (docs/design/ai-native-development.md)
     run_locked.py                  run a command holding the run lock: -- <command>
     stamp.py                       run a local-only suite (realdata, pinn) and stamp the code it tested
     lock.py                        write the CI constraints files (constraints/), or --check them
