@@ -73,7 +73,7 @@ library a run uses:
 
 | Input root | Curve library | Used for |
 |---|---|---|
-| `input/` (the default) | the open library | the test suite (the offset-fit pins for DK, FR and ES set `input/combined` themselves), and the scorecard rows CL and AR |
+| `input/` (the default) | the open library, bundled in the package | the test suite (the offset-fit pins for DK, FR and ES set `input/combined` themselves), and the scorecard rows CL and AR |
 | `input/combined` | the combined library: open and licensed | the turbine-level rows DE, DK, UK, US, BR, AU-NEM and NZ, and every country-level row |
 
 Every country-level row needs `input/combined` because each country grid names
@@ -90,12 +90,11 @@ Follow these rules:
 - **Build a separate input root for another library.** Give it the same
   `era5/`, `observations/` and `raw/` as `input/`; symbolic links work. Put
   your `power_curves.csv` and `models.csv` in its own `reference/`.
-- **Never copy a licensed library over `input/reference/power_curves.csv`.**
-  That file is the open library, which is committed.
-  `tests/test_committed_files.py` fails if its content changes.
-- **Expect a warning without a library.** An input root with no
-  `power_curves.csv` uses the open library shipped inside the package, and
-  PyVWF warns.
+- **Keep `input/reference/` free of curve tables.** An input root with no
+  `power_curves.csv` uses the open library shipped inside the package
+  (`src/pyvwf/resources/`), which is how `input/` gets it. A table you put in
+  `input/reference/` would silently replace it for the test suite and the CL
+  and AR rows; use a separate root instead.
 
 The fetch and process scripts resolve their default paths under the same input
 root.

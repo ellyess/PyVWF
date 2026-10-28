@@ -60,8 +60,8 @@ it ([curve matching](../scorecard.md#curve-matching-the-last-three-turbine-level
 
 ```bash
 PYVWF_INPUT=input/combined python scripts/region_tools/assign_au_curves.py \
-    --open-models input/reference/models.csv \
-    --open-curves input/reference/power_curves.csv
+    --open-models src/pyvwf/resources/models.csv \
+    --open-curves src/pyvwf/resources/power_curves.csv
 cp input/combined/observations/turbine/AU_NEM/au_nem_md_open.csv \
    input/combined/observations/turbine/AU_NEM/au_nem_md.csv
 ```

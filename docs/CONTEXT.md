@@ -80,7 +80,7 @@ The root `AGENTS.md` points agents here. A human writer reads it from here.
 | model key | The name that selects a unit's power curve: its `model` value, matching a column of `power_curves.csv`. | curve key, power curve key, model name |
 | `power_curves.csv` | The file of power curves: a speed column and one column per model key. Always named by file. | curve table, power-curve table, curve file |
 | `models.csv` | The model catalogue: one row per model key, with manufacturer, rating, rotor diameter and specific power. Always named by file. | curve table, models table, catalogue (alone) |
-| curve library | One `power_curves.csv` with its `models.csv`, under an input root's `reference/`. | curve set, library (alone, where ambiguous) |
+| curve library | One `power_curves.csv` with its `models.csv`: the open library in `pyvwf.resources`, or another under an input root's `reference/`. | curve set, library (alone, where ambiguous) |
 | open library | The curve library shipped with PyVWF, derived from the NREL turbine-models archive (BSD-3). | bundled library, synthetic library, open curve library |
 | licensed library | A curve library whose terms do not allow redistribution. It is kept local and identified by sha256. | real library, real curve library, proprietary library, external library |
 | combined library | The open and licensed libraries merged under `input/combined`. Which curve wins for a model key in both is not yet defined. | merged library |

@@ -22,24 +22,17 @@ from support import ROOT
 
 
 #: Tracked files the ignore rules exclude, deliberately. Each is redistributable:
-#: the open curve library (BSD-3, with its provenance table) and the region
-#: shapes, force-added under the otherwise git-ignored input/.
+#: the region shapes, force-added under the otherwise git-ignored input/.
 ALLOWED_DESPITE_IGNORE = {
     "input/README.md",
-    "input/reference/models.csv",
-    "input/reference/power_curves.csv",
-    "input/reference/power_curves_provenance.csv",
     "input/reference/shapes/country_shapes.geojson",
     "input/reference/shapes/offshore_shapes.geojson",
 }
 
 
-#: sha256 of the open library, as committed. The two copies (the repository's
-#: input/reference/ and the wheel's pyvwf/resources/) must both match. A filename
-#: check cannot see the mistake input/README.md walks a user towards, copying the
-#: licensed library over power_curves.csv; nor can the byte-identity test in
-#: test_curve_library.py, since overwriting both copies keeps them identical.
-#: A deliberate library update therefore means editing these hashes, in the same
+#: sha256 of the open library, as committed in pyvwf/resources/, its one copy. A
+#: filename check cannot see a licensed library copied over power_curves.csv. A
+#: deliberate library update therefore means editing these hashes, in the same
 #: commit, which is the kind of change that should be explicit.
 OPEN_LIBRARY_SHA256 = {
     "power_curves.csv": "56314f390d9bc2135125ea1b0e7a4d400503a6e3911d8513eafbc68f1fa8bb50",
@@ -81,17 +74,28 @@ def test_no_licensed_curve_file_is_tracked():
     assert not [p for p in tracked if p.endswith(".real.csv")]
 
 
-@pytest.mark.parametrize("copy", ["input/reference", "src/pyvwf/resources"])
 @pytest.mark.parametrize("name", sorted(OPEN_LIBRARY_SHA256))
-def test_open_library_content_is_the_recorded_one(copy, name):
-    path = ROOT / copy / name
+def test_open_library_content_is_the_recorded_one(name):
+    path = ROOT / "src/pyvwf/resources" / name
     if not path.is_file():
-        pytest.skip(f"{copy}/{name} not present outside a repository checkout")
+        pytest.skip(f"{name} not present outside a repository checkout")
     # Normalise line endings, so a Windows checkout with autocrlf does not fail
     # a file whose content is unchanged.
     digest = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     assert digest == OPEN_LIBRARY_SHA256[name], (
-        f"{copy}/{name} is not the recorded open library. If it was replaced by "
+        f"{name} is not the recorded open library. If it was replaced by "
         "another library, restore it. If the open library was deliberately "
         "updated, record the new sha256 here in the same commit."
+    )
+
+
+def test_the_default_root_holds_no_curve_table():
+    """A curve table in input/reference/ would silently replace the open library
+    for the default root, which the test suite and the open-library scorecard
+    rows read. Another library goes in its own input root. Local only: input/
+    is git-ignored, so in CI this passes on an absent directory."""
+    found = [n for n in OPEN_LIBRARY_SHA256 if (ROOT / "input/reference" / n).exists()]
+    assert not found, (
+        f"input/reference/ holds {found}; move it to its own input root "
+        "(docs/guides/training.md, Choose the input root)"
     )
