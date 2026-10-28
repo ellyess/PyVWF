@@ -16,11 +16,10 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
-from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parent.parent
 
 #: Tracked files the ignore rules exclude, deliberately. Each is redistributable:
 #: the open curve library (BSD-3, with its provenance table) and the region

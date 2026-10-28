@@ -53,23 +53,21 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "src"))
-
-from pyvwf.config import PyVWFPaths  # noqa: E402
-from pyvwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
-from pyvwf.datasets.gwpt import (  # noqa: E402
+from pyvwf.config import PyVWFPaths
+from pyvwf.loaders.country_obs_checks import check_country_cf
+from pyvwf.datasets.gwpt import (
     default_path,
     fleet_for,
     load_exclusions,
     load_gwpt,
     load_start_years,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 GWPT_PATH = default_path()
 EXCLUSIONS_PATH = REPO_ROOT / "configs" / "curation" / "gwpt_exclusions.csv"

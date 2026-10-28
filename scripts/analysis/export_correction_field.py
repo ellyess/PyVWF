@@ -15,9 +15,6 @@ Thin wrapper over :func:`pyvwf.harness.export.export_correction_field`.
 import argparse
 from pathlib import Path
 
-import sys
-
-sys.path.insert(0, "src")
 
 from pyvwf.harness.export import export_correction_field
 from pyvwf.harness.regions import load_region

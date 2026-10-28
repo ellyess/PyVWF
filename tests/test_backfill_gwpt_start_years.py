@@ -8,13 +8,10 @@ refuses one it should not.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from support import load_script
-
-ROOT = Path(__file__).resolve().parents[1]
+from support import ROOT, load_script
 
 
 def _module():
