@@ -1,20 +1,17 @@
 # Contributing to PyVWF
 
-Thank you for your interest in PyVWF! Contributions of all kinds are welcome:
-bug reports, documentation, new bias-correction methods, validation case
-studies, and performance improvements.
+Contributions of all kinds are welcome: bug reports, documentation, new
+bias-correction methods, validation case studies and performance work.
 
-## Getting help and support
+## Getting help
 
-- **Questions / usage help:** open a [GitHub Discussion] or an issue with the
-  `question` label.
-- **Bug reports:** open a [GitHub Issue]. Please include:
-  - what you ran (command or minimal code snippet) and what you expected,
-  - the full error traceback,
-  - your OS, Python version, and `pip show pyvwf` / `conda list` output,
-  - a minimal reproducible example where possible.
-- **Feature requests:** open an issue describing the use case and, ideally, a
-  sketch of the proposed API.
+- **Questions:** open a [GitHub Discussion] or an issue with the `question`
+  label.
+- **Bugs:** open a [GitHub Issue] with what you ran and what you expected, the
+  full traceback, your OS, Python version and `pip show pyvwf` output, and a
+  minimal example where you can.
+- **Features:** open an issue with the use case and, ideally, a sketch of the
+  API. Open one before a large change.
 
 [GitHub Issue]: https://github.com/ellyess/PyVWF/issues
 [GitHub Discussion]: https://github.com/ellyess/PyVWF/discussions
@@ -24,49 +21,43 @@ studies, and performance improvements.
 ```bash
 git clone https://github.com/ellyess/PyVWF.git
 cd PyVWF
-
-# Option A: pip, the same install CI uses
-pip install -e ".[dev,docs]"
-
-# Option B: conda, the conda-forge stack with the data extra
-conda env create -f environment.yaml
-conda activate pyvwf
+pip install -e ".[dev,docs]"   # the install CI's test jobs use, plus the docs build
+pre-commit install             # ruff, the file checks, nbstripout and the em-dash hooks on every commit
+git config blame.ignoreRevsFile .git-blame-ignore-revs   # keeps the one formatting commit out of blame
 ```
 
-The routes, and what each of the seven extras adds, are in
+The conda route and what each of the seven extras adds are in
 [docs/guides/installation.md](docs/guides/installation.md).
 
-## Running the tests and linter
+## Tests and checks
 
-The test suite uses synthetic data and needs no ERA5 downloads or API access.
-One marker splits it:
+The test suite uses synthetic data and needs no downloads or API access.
 
-- `realdata` tests read git-ignored data under `input/` or `output/`, such as
-  the pins that record what the code produces on real inputs. They skip where
-  the data is absent, which includes CI.
+```bash
+pytest -m "not realdata"                        # the fast set: what CI runs on a push or pull request
+pytest -n 4 --dist loadfile -m "not realdata"   # the same, in four processes
+pytest                                          # every test: what CI runs on a manual dispatch
+ruff check src tests scripts examples && ruff format --check src tests scripts examples
+mypy && lint-imports                            # for any change under src/pyvwf; mypy needs pandas-stubs
+python scripts/dev/ci_local.py                  # the lint job's checks but pre-commit, the fast set and the docs build, in CI's 3.12 environment
+pre-commit run --all-files                      # every commit hook over the whole tree, as the lint job runs it
+pytest --cov=pyvwf -m "not realdata"            # with coverage, which the test jobs gate
+sphinx-build -b html docs docs/_build/html -W   # the docs, failing on any warning
+```
 
-**Real-data pins are change detectors, not guards.** The repository aims at
-the most accurate results it can produce, not at reproducing earlier ones.
-[Published results](docs/publications.md) are legacy, and a recorded output
-is superseded by a better one rather than preserved. A pin records what the
-code produces now, so that a change to it is seen and measured, not so that
-the change is prevented. When a deliberate improvement changes a pinned
-output:
+`scripts/dev/ci_local.py` builds Python 3.12 environments from the CI
+constraints under `output/ci-local/`, without the `data` extra, so it sees
+pandas 3 and a missing `entsoe` as CI does; `--skip <check>` leaves one out.
+Refresh the constraints with `python scripts/dev/lock.py` (needs `uv`), and
+check them with `--check`.
 
-- re-record the fixture in the same commit as the change;
-- say in the CHANGELOG, under `[Unreleased]`, what moved and why;
-- give the size of each movement in the commit message or the pull request,
-  since the CHANGELOG carries no metrics.
+### The real-data pins
 
-A pinned output that moves without a deliberate change is a regression until
-shown otherwise, which is the case the detector exists for.
-
-**Run the real-data set when you touch the code the pins cover.** The pins
-that read real inputs carry the `realdata` marker, and they skip where the
-inputs are absent, which includes CI. So continuous integration cannot tell
-you that a pin moved: only a local run can. A pull request that changes
-code the pins reach runs them and states the result in its description.
-That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions/`,
+`realdata` tests read git-ignored data under `input/` or `output/`, such as
+the pins that record what the code produces on real inputs. They skip where the
+data is absent, which includes CI, so **only a local run can tell you a pin
+moved.** A pull request that changes code the pins reach runs them and states
+the result in its description. That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions/`,
 `pyvwf/loaders/`, `pyvwf/metrics.py`, `pyvwf/correction.py`, `pyvwf/data.py`,
 `pyvwf/wind.py`, `pyvwf/curves.py`, `pyvwf/clustering.py`, `pyvwf/era5.py`,
 `pyvwf/country_level.py`, `pyvwf/sampling.py`, `pyvwf/config.py`,
@@ -74,145 +65,110 @@ That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions
 `pyvwf/provenance.py`:
 
 ```bash
-pytest -m realdata                     # every pin that reads local inputs
-python scripts/dev/ci_local.py         # first: CI's checks, in CI's Python 3.12 environment
-python scripts/dev/stamp.py realdata   # the same pins, stamped for the commit guard
+python scripts/dev/stamp.py realdata               # the pins, stamped for the commit guard
 python scripts/dev/stamp.py realdata --workers 2   # the same in two processes, in about half the time
 ```
 
-Run `scripts/dev/ci_local.py` before the stamp, so a commit CI would fail does
-not cost a stamp. It builds Python 3.12 environments from the CI constraints
-under `output/ci-local/`, without the `data` extra, so it sees pandas 3 and a
-missing `entsoe` as CI does, and runs the lint job's checks, the fast set and
-the docs build in a minute or two once the environments exist. A stamp
-survives a later edit to comments or docstrings only, so a fix to code that CI
-asks for needs a new one.
+Run `ci_local.py` first, so a commit CI would fail does not cost a stamp. A
+stamp survives a later edit to comments or docstrings only.
 
-State the counts, and for each pin that moved, the size of the movement.
-"No pin moved" is a claim about output you have seen, not an expectation.
-Where the inputs for a pin are absent, say which ones skipped, so a reader
-knows what was not covered.
+- **State what you saw.** Give the counts, the size of each movement, and
+  which pins skipped for want of inputs. "No pin moved" is a claim about output
+  you have seen, not an expectation.
+- **Resolve each row's input root the way its test does.** A row on
+  `input/combined` rerun under the default `input/` answers differently,
+  because the curve library differs, and the difference looks exactly like a
+  code change. The pin tests (`tests/test_pin_offset_fits.py`,
+  `tests/test_pin_bootstrap_reproduction.py`) set `PYVWF_INPUT` per row; read
+  what they pass.
+- **Pins are change detectors, not guards.** The repository aims at the most
+  accurate results it can produce; [published results](docs/publications.md)
+  are legacy, and a recorded output is superseded by a better one. When a
+  deliberate improvement moves a pin, re-record it in the same commit, say in
+  the CHANGELOG under `[Unreleased]` what moved and why, and give the size of
+  each movement in the commit message or the pull request. A pin that moves
+  without a deliberate change is a regression until shown otherwise.
 
-**Resolve each row's input root the way its test does.** A row that runs on
-`input/combined` and is rerun under the default `input/` produces a different
-answer, because the curve library differs, and the difference looks exactly
-like a code change. `tests/test_pin_bootstrap_reproduction.py` sets
-`PYVWF_INPUT` per row for this reason. Read what the test passes rather than
-assuming the default.
+### What continuous integration runs
 
-Install the commit hooks once, after the dev extra. They run `ruff check`,
-`ruff format`, the whitespace and file checks and `nbstripout` on each commit:
+On every pull request and push to `main`, `.github/workflows/ci.yml` runs:
 
-```bash
-pre-commit install
-pre-commit run --all-files   # the same checks over the whole tree
-```
+- **lint:** `ruff check` and `ruff format --check`, `mypy` (the package ships
+  `py.typed`), `lint-imports` for the layering in `.importlinter`, `deptry`,
+  `vulture`, and every pre-commit hook;
+- **tests:** the fast set on Python 3.10 to 3.13 with the `dev` extra only,
+  installed from `pyproject.toml`, with coverage gated. 3.10 to 3.12 install
+  through `constraints/`, so their result depends on the repository rather
+  than that day's releases (3.10 resolves pandas 2, 3.11 and 3.12 pandas 3);
+  3.13 is unpinned;
+- **extras:** the same fast set on 3.12 with `pinn`, `grid`, `data` and
+  `parallel` installed, failing if any test still skips for a missing import;
+- **examples:** every file in `examples/`, `run_minimal.py` included. The
+  tracked tree must be unchanged afterwards, except the regenerated example
+  data, which must equal the committed data to a relative 1e-12 (the last bit
+  differs between platforms);
+- **docs:** a Sphinx build with `-W`, installed with the `docs` extra;
+- **package:** an sdist and wheel, `twine` validation, and a clean install and
+  import of the wheel;
+- **docker:** the image, its default command and its runtime checks
+  ([installation guide](docs/guides/installation.md#docker)).
 
-The tree was reformatted once with `ruff format`. To keep that commit out of
-`git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
-
-```bash
-pytest -m "not realdata"                # the fast set: what CI runs on a push or pull request
-pytest -n 4 --dist loadfile -m "not realdata"   # the same, in four processes
-pytest                                  # every test: what CI runs on a manual dispatch
-pytest --cov=pyvwf           # with coverage
-ruff check src tests scripts examples   # lint, as CI does
-mypy                       # type check; needs pandas-stubs, from the dev extra
-```
-
-Continuous integration (`.github/workflows/ci.yml`) runs, for every pull request
-and every push to `main`:
-
-- `ruff check` and `ruff format --check` over `src tests scripts examples`,
-  then `mypy` (the package ships `py.typed`, so type information reaches
-  downstream users), `lint-imports` for the layering in `.importlinter`,
-  `deptry src` for declared dependencies, `vulture` for dead code, and
-  every pre-commit hook over the tracked tree;
-- the suite plus `examples/run_minimal.py` on Python 3.10 to 3.13, installed
-  from `pyproject.toml` so the declared dependencies are exercised as a fresh
-  `pip install` would get them, with coverage gated. Python 3.10 to 3.12 and
-  the lint job install through the pinned files in `constraints/`, so their
-  result depends on the repository rather than on that day's releases; 3.10
-  resolves pandas 2 and 3.11 and 3.12 pandas 3. Python 3.13 and the extras job
-  stay unpinned and see new releases first. Refresh the files with
-  `python scripts/dev/lock.py` (needs `uv`), and check them with `--check`;
-- the same fast set on Python 3.12 with every extra installed (`pinn`, `grid`
-  and `data`, torch from its CPU index), failing if any test still skips for a
-  missing import;
-- every file in `examples/`, which then must leave the tracked tree unchanged,
-  with the regenerated example data equal to the committed data to a relative
-  1e-12 (the last bit differs between platforms);
-- a Sphinx build of the docs with `-W`, so a broken docstring or an orphaned
-  page fails rather than quietly degrading the site;
-- an sdist and wheel build, `twine` metadata validation, then a clean-environment
-  install and import of the wheel with no repository on `sys.path`;
-- a Docker build, which runs the image's default command on bundled data and
-  checks that the example corrected something, that the console script and
-  the curve library resolve, and that the image does not run as root
-  ([docs/guides/installation.md](docs/guides/installation.md#docker)).
-
-`python scripts/dev/ci_local.py` runs the lint job's checks, the fast set and
-the docs build locally, installed as those jobs install them; `--skip <check>`
-leaves one out.
-
-CI installs neither the `data` extra nor the other optional extras, so the
-suite and the example must pass without them. Tests that need `torch`,
-`pykrige` or `rasterio` skip themselves where those are missing.
-
-To build the docs locally:
-
-```bash
-pip install -e ".[docs]"
-sphinx-build -b html docs docs/_build/html -W
-```
-
-The version lives in one place, `pyvwf.__version__`, from which `pyproject.toml`
-reads it dynamically; `tests/test_packaging.py` asserts it is valid semantic
-versioning and stays in step with `CITATION.cff`.
+So the suite and the example must pass with only the `dev` extra: a test that
+needs `torch`, `pykrige` or `rasterio` skips itself where it is missing.
 
 ## Submitting a pull request
 
-1. Fork the repository and create a feature branch from `main`.
-2. Make your change, keeping it focused and well documented (Google-style
-   docstrings, with `Args:` and `Returns:` sections, as used throughout
-   `pyvwf/`).
-3. **Add or update tests.** New scientific functionality should come with tests;
-   prefer synthetic fixtures (see `tests/conftest.py`) so the suite stays fast
-   and dependency-light.
-4. Ensure `pytest -m "not realdata"` and `ruff check src tests
-   scripts examples` pass locally. That is the set CI runs on a pull request.
-5. Open a pull request describing the change and its motivation. Link any
-   related issue.
+1. Fork the repository and branch from `main`.
+2. Keep the change to one concern, with Google-style docstrings (`Args:`,
+   `Returns:`) on anything public.
+3. Add or update tests, preferring synthetic fixtures (`tests/conftest.py`).
+4. Run the fast set and the lint locally; for code the pins reach, the stamp
+   too.
+5. Open the pull request with the template, which asks for the checks and the
+   pins.
+
+## AI-assisted contributions
+
+PyVWF is itself developed with a coding agent
+([docs/design/ai-native-development.md](docs/design/ai-native-development.md)).
+Contributions written with one are welcome on the same terms:
+
+- **A human is accountable for every change.** Do not add an AI co-author
+  line.
+- **Mark AI-drafted text** in a pull request, issue or comment with a
+  `> [!NOTE]` alert. You write the replies.
+- **Agents do not act on GitHub alone.** An agent opens, comments on or closes
+  an issue or pull request only when you ask it to.
+
+`AGENTS.md` holds the rules an agent working in this repository follows.
 
 ## Coding conventions
 
-- Target Python 3.10+.
-- Follow the existing module style: small, documented functions with type hints
-  where helpful, Google-style docstrings, and `ruff`-clean code (`E`, `F` rules;
-  see `pyproject.toml`).
-- Keep new heavy/optional dependencies behind `try/except` imports, mirroring the
-  optional visualisation import in `pyvwf/__init__.py`.
-- Split a long function on the pinned path when a change has to open it
-  anyway, not as a refactor of its own. These functions sit under the real-data
-  pins, so a split for its own sake costs a stamp and can move a pin. Split
-  only alongside a change, and run `python scripts/dev/stamp.py realdata` for
-  that change. The longest, as of 2026-09-29 (#91):
-  `sampling.cluster_with_geometries`, `sampling.create_sampling_points`,
-  `harness.driver.run_evaluate`, `data.train_set` (its country and turbine
-  branches), `correction.find_offsets_country_level`,
+- Target Python 3.10+, `ruff`-clean, with type hints where they help.
+- Keep a heavy or optional dependency behind a guarded import, as the optional
+  visualisation import in `pyvwf/__init__.py` is.
+- Split a long function on the pinned path only alongside a change that opens
+  it, never as a refactor of its own: a split costs a stamp and can move a pin.
+  The longest, as of 2026-09-29 (#91): `sampling.cluster_with_geometries`,
+  `sampling.create_sampling_points`, `harness.driver.run_evaluate`,
+  `data.train_set`, `correction.find_offsets_country_level`,
   `harness.driver.run_transfer`, `harness.regions.load_region`,
   `harness.export.export_correction_field`, `era5.prep_era5` and
   `extensions.grid.surface.correction_surface`.
+- The version lives in `pyvwf.__version__`; `tests/test_packaging.py` keeps it
+  in step with `CITATION.cff`.
 
 ## Scientific contributions
 
-New bias-correction methods are especially welcome. Where possible, include a
-short validation (e.g. against the Denmark case study, reporting RMSE/MAE/MBE)
-and the diagnostic distribution / QQ plots from `pyvwf.viz`.
+New bias-correction methods are especially welcome. Include a short validation
+(for example on the Denmark case, with RMSE, MAE and MBE on its training years
+and single test year) and the diagnostic plots from `pyvwf.viz`. A study goes
+through [docs/guides/adding-a-study.md](docs/guides/adding-a-study.md):
+pre-registered gates, with a failed gate reported as a failure.
 
 ## Code of conduct
 
-By participating in this project you agree to uphold our
-[Code of Conduct](CODE_OF_CONDUCT.md): a welcoming, harassment-free environment
-for everyone, and honest representation of what the software actually does.
-Report unacceptable behaviour to benmoufok.ellyess@gmail.com.
+By participating you agree to uphold the [Code of Conduct](CODE_OF_CONDUCT.md):
+a welcoming, harassment-free environment for everyone, and honest
+representation of what the software does. Report unacceptable behaviour to
+benmoufok.ellyess@gmail.com.

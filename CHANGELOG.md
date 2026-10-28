@@ -120,6 +120,13 @@ this file stay in step with it.
   reached publication. The full log stays at tag
   `archive/research-2026-10-27`. References outside dated records point at the
   merged page; the pre-registrations and evaluation cases keep theirs.
+- **`CONTRIBUTING.md` and the pull-request template are rewritten.** The
+  contributing guide gives each command once, describes the CI jobs correctly
+  (it said CI installs no optional extras, beside a line describing the job
+  that installs them, and credited the test jobs with running the example), and gains a section on AI-assisted contributions. The
+  template's real-data section names the code the pins now reach, not the
+  narrower set they covered before, and the template asks whether a coding
+  agent was used.
 - **Guides are merged in pairs:** the Docker guide into
   `installation.md`, running on your own fleet data into `training.md`, and
   the adapter contract into `adding-a-region.md`. The installation guide lists
