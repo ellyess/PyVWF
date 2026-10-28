@@ -1,6 +1,6 @@
 ---
 name: provenance-guard
-description: Check PyVWF's provenance before any release-shaped action (a version bump, a CHANGELOG promotion, CITATION.cff, a tag, a release, a Zenodo archive, a merge to main). Runs the committed-files and packaging tests, checks the scorecard's reproducibility claims against the run records, and walks the licence checklist. Read-only; it ends with a report and never performs the release.
+description: Check PyVWF's provenance before any release-shaped action (a version bump, a CHANGELOG promotion, CITATION.cff, a tag, a release, a Zenodo archive, a merge to main). Runs the committed-files and packaging tests, checks the scorecard's reproducibility claims against the run records, and walks the licence checklist. Read-only; it ends with a report and never performs the release. Not for a commit or pull request that changes no version, CHANGELOG release, CITATION.cff or scorecard row.
 ---
 
 # provenance-guard
