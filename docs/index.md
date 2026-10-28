@@ -82,7 +82,6 @@ design/harness
 design/limitations
 design/roughness-temporal-treatment
 design/undefined-roughness-in-complex-terrain
-design/agent-guards
 design/ai-native-development
 ```
 

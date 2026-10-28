@@ -8,7 +8,7 @@ agent's Bash. Every subcommand must be `git diff`, `git show`, `git log` or
 
 Unlike the repository's other hooks, this one fails closed: a command it cannot
 parse, or an error, blocks the call, because the agent it guards has no other
-limit on Bash. `docs/design/agent-guards.md` says why.
+limit on Bash. `docs/design/ai-native-development.md` says why.
 """
 
 from __future__ import annotations

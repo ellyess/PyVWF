@@ -59,15 +59,195 @@ Each piece is a committed file, so a reader can open it.
 
 A written rule alone did not stop a tag and a release that were the
 maintainer's to make. Since then, a rule a machine can check becomes a guard,
-and the written rule stays for what the guard misses.
-[`agent-guards.md`](agent-guards.md) lists each guard with what it misses, and
-keeps the incident behind each rule in `AGENTS.md`.
+and the written rule stays for what the guard misses. Every guard is tested in
+both directions, firing on a known positive and passing a known negative
+(`tests/test_agent_guards.py`), because a guard never seen to fire is an
+assumption.
+
+| Guard | Enforces | Misses |
+|---|---|---|
+| Deny rules, `.claude/settings.json` | `git tag`, `gh release`, `gh pr merge`, a bare `git push`, a push naming `main`, `HEAD`, tags or a version, and `git diff`, `show` or `log` with `--output` | Anything that reaches git by another text: `git -C . push`, a full path, `sh -c`, a script. A branch whose name contains `main` or `HEAD` is blocked too. |
+| `.claude/hooks/guard_run_lock.py` | While `scripts/dev/run_locked.py` holds `output/.run-lock`: no file edit on a path git does not ignore, no tree-changing git command, and no shell write to such a path by a redirect, `tee` or `sed -i` | A run not started through the wrapper; a write by any other program (`cp`, `mv`, `python -c`, a script), to a target held in a variable, or after a `cd`; a reused process id. The liveness check assumes a POSIX system. |
+| `.claude/hooks/guard_local_suites.py` | A commit that stages code a local-only suite in `scripts/dev/stamp.py` covers (`realdata`, the real-data pins; `pinn`, the physics-informed tests) needs a passing stamp whose fingerprint matches the staged content. The fingerprint ignores comments and docstrings. `git commit -a`, and staging covered code in the same command as the commit, are refused | A commit made outside Claude Code or by a script it cannot see into; a commit hidden in `sh -c` or an alias gets the staged-code check, by a plain text match, but not the `-a` refusal; a same-command `git add` after a `cd` into a subdirectory, or with `-C`, is judged against the wrong base; a `realdata` run where every pin skipped still passes, which is why the skips are read and stated. Changes to the physics-informed study drivers are not covered, because no test exercises them. |
+| `.claude/hooks/guard_docs_critic.py`, registered in `.claude/agents/docs-critic.md` | The docs-critic agent's Bash: only `git diff`, `git show`, `git log` and `wc`, with no git option before the subcommand, no `--output` and no redirect. It fails closed | Nothing outside that agent. |
+| `no-em-dash` hooks, `.pre-commit-config.yaml` | No em dash in a committed file or a commit message | Nothing, once `pre-commit install` has run for both hook types. |
+
+The run-lock and stamp hooks fail open: an unexpected error lets the tool call
+through and shows the error, so a broken guard cannot block all work and is
+visible rather than silent.
 
 Taken together, the guards have two limits. They see only the tool calls Claude
 Code makes, so a commit made outside it, or by a script it cannot read, is not
 checked. They match command text, so they are not a security boundary: a
 denied command routed through another text would pass, and `AGENTS.md`
-forbids that route rather than preventing it.
+forbids that route rather than preventing it. A denied command means stop, and
+the command goes to the maintainer.
+
+## The rules, and the incidents behind them
+
+Each rule in `AGENTS.md` came from a failure. The accounts, briefly:
+
+- **Create nothing in the tree while a run is in flight.** A run stamps
+  `git_dirty` from `git status --porcelain`, which counts an untracked file, so
+  one file created mid-run marks every manifest of the run dirty, and the only
+  repair is to repeat the run.
+- **Read the state now, not the state you expect.** In one day a CI run
+  dispatched with the push tested the commit before it, `git add -A` swept an
+  unrelated file into a commit, and a message stated a test-file count from
+  memory. A grep of a batch's output also kept an exception and dropped the
+  line that named its cause.
+- **Resolve a file the way the code does.** Globbing `no_grid_points_20*.csv`
+  and taking the last entry returned a `.zonemixed.bak.csv` backup, which
+  sorts after `.csv`; the loader resolves by exact name. Two retractions came
+  from that glob.
+- **Test a check both ways.** Three clean answers in two days came from checks
+  that never ran, among them an audit reading `cluster_list` at the wrong level
+  of the manifest, which flagged none of 224 runs when nine known positives
+  were available. The next day a reproduction check flagged everything, by
+  comparing full precision against values recorded to five decimals.
+- **List a path before overwriting or deleting it.** Clearing two
+  contaminated regions deleted two clean rows' manifests with them, and the
+  reproduction meant to restore them overwrote the originals it was to be
+  checked against.
+- **Run the real-data pins when you touch the code they cover, the way their
+  tests run them.** CI cannot run them, so no pull request check shows a pin
+  moving. Until 2026-09-24 the covered list was `harness/`, `metrics.py`,
+  `correction.py` and `data.py`, so a change to `wind.py` that moved two
+  published rows (AU-NEM and NZ) needed no stamp; the list is now every module
+  under `src/pyvwf` except `pinn/`, `viz/` and `cli/`. A UK pin was once reported as moving by 0.0014 in MBE when the row had
+  been run on the wrong input root; the movement was 1e-16. The stamp
+  fingerprints each covered file's syntax tree without its docstrings, so a
+  comment or docstring edit keeps a stamp valid; this is safe because no
+  covered code reads its own source or a docstring to compute anything. The
+  realdata suite may run in two or three processes:
+
+  | Workers | Wall time | Passed / failed / skipped | Largest process |
+  |---|---|---|---|
+  | 1 | 728 s | 43 / 0 / 0 | not measured |
+  | 2 | 404 s | 43 / 0 / 0 | 9.6 GB |
+  | 3 | 340 s | 43 / 0 / 0 | 8.8 GB |
+
+  Measured on 2026-10-16 on a 16 GB machine (parallel runs at `8dd2c2c`, the
+  serial stamp at `83442de`). Three workers left under 1 GB of swap free, so
+  two is the count to use there; the script refuses more than three. The
+  physics-informed suite accepts only one worker.
+- **Run the checks, read them, then write the message.** A message that says a
+  check passed is a claim about output already seen.
+
+## The critics' models
+
+`method-critic` and `red-team` run on `opus` and `implementation-critic` on
+`sonnet`, so two of the three share a model. Until 2026-10-16 all three ran on
+the session's own model, so three verdicts were one model prompted three ways;
+from 2026-10-16 to 2026-10-22 `red-team` ran on `fable`, so the three used three
+models. Different models should make errors less correlated, which has not been
+measured, but not uncorrelated: all three are Claude models, reading the same
+proposal and the same repository. A blocker all three raise is weaker evidence
+than three independent referees would give. The aliases resolve to whichever
+version Claude Code maps them to, and nothing records which model produced a
+critique, or how often a critic's blocker was right.
+
+## The mistake log
+
+An audit of the history, from 2026-05-20 to 2026-10-27, confirmed 98 mistakes.
+It counted inverse diffs, fix chains (a commit after merge changing lines
+another made in the previous 14 days, found with `git blame`), correction
+notices and re-recorded pins, and the incidents above. Of the 188 candidate
+records, 80 were not mistakes (refinements, plan changes, refactors and the
+like), and the other 108 were 98 distinct mistakes. Who made each was
+read from the Claude Code transcripts, which cover the whole period except the
+session behind the commits of 2026-05-20, 12:52 to 13:21; rows marked "git
+only" rest on git history alone. **The full log, every row with its
+commits, class and catch, is at tag `archive/research-2026-10-27`:
+[`docs/design/agent-guards.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/design/agent-guards.md).** This page keeps its
+summary and the mistakes that reached publication.
+
+Who made the 98: agents 85, agents at the maintainer's request 4, the
+maintainer 4 (all in code from before agents), and cannot tell 5.
+
+| Stage reached | Mistakes | Agent itself | Audit | CI | Maintainer | Test | Critic agent |
+|---|---|---|---|---|---|---|---|
+| After publication | 31 | 10 | 15 | 0 | 3 | 1 | 2 |
+| After merge | 13 | 4 | 6 | 3 | 0 | 0 | 0 |
+| Before merge | 44 | 34 | 2 | 3 | 2 | 2 | 1 |
+| Before commit | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
+| Total | 98 | 58 | 23 | 6 | 5 | 3 | 3 |
+
+"Audit" is an audit the maintainer commissioned, by an agent, or in three cases
+by a session in another project. 31 mistakes reached publication; agents made
+25 of them, 19 of those in the period before written rules. Audits, not
+standing guards, found 15 of the 31. Agents caught 58 of their own mistakes, 44
+before merge. No hook caught a live mistake.
+
+Per 100 commits on main, counting only fix chains and inverse diffs, which were
+recorded the same way throughout:
+
+| Period | Commits on main | Agent-made | Per 100 commits | All confirmed | Per 100 commits |
+|---|---|---|---|---|---|
+| P1 | 228 | 18 | 7.9 | 20 | 8.8 |
+| P2 | 319 | 10 | 3.1 | 10 | 3.1 |
+| P3 | 216 | 3 | 1.4 | 3 | 1.4 |
+
+P1 is 2026-05-20 to 09-10 (no written rules), P2 09-11 to 09-22 (rules and
+skills), P3 09-23 onwards (rules, skills and hooks). Correction notices and
+incident accounts are left out of the rates because they begin on 2026-09-11,
+with the written rules, and so undercount P1 by construction. The fall
+coincides with the rules and the hooks, and **does not show that they caused
+it**:
+
+- **Dating.** Dated by fix instead of introduction, the agent-made counts are
+  15, 5 and 11: P3 is then above P2.
+- **Eligibility.** Fix chains count only fixes made after merge. P1 committed
+  straight to main, so every fix was eligible; P2 worked on long branches, so
+  most of its fixes came before merge and are not counted; P3 used 84 small
+  pull requests.
+- **Time to be found.** P3 work was at most five weeks old when counted; P1
+  work had been searched by the audits of 2026-09-11 and 2026-09-24.
+- **Kind of work and models.** P1 was mostly new code, P2 studies and
+  pre-registrations, P3 refactors, guards and the observation rebuild, and the
+  models changed between periods.
+- **Small counts and the window.** P3 has three. Fix chains look back 14 days,
+  so most published mistakes, which lived longer, appear only through notices,
+  which cannot give a rate.
+
+### Mistakes that reached publication (31)
+
+Publication means a findings document, the scorecard, the CHANGELOG, the README
+or the paper on main, or a release, tag or Zenodo version. In date order:
+
+| ID | Date | Mistake | Introduced | Fixed | Period | Who | Class | Caught by | Time to catch | Guard or eval case today |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C008 | 2026-02-13 | Metrics hard-coded to a 2015 to 2019 window | `a95e134` | `3775bb5`, `9680157` | before P1 | cannot tell (git only) | `untested-path` | test | >=151 d | none (path retired) |
+| C017 | 2026-02-13 | Usage document said roughness comes from terrain data | `a95e134` | `9f26e32` | before P1 | cannot tell (git only) | `doc-drift` | agent itself | 211 d | none |
+| C071 | 2026-02-13 | Joint-fit tolerance stopped 47 of 540 fits at their starting point | `a95e134` | `26e0b67` | before P1 | maintainer (git only) | `numerical-method` | critic agent | 224 d | machine: `test_country_joint_fit_tolerance.py`; eval `ftol-stall` |
+| C153 | 2026-02-13 | Country offset fit accepted non-converged and on-bound results | `a95e134` | `1a19b52` | before P1 | maintainer (git only) | `numerical-method` | audit agent | 223 d | machine: `test_country_offset_refusal.py` |
+| C186 | 2026-02-13 | An hour missing one wind type reported as the whole fleet | `a95e134` | `84dd1a9` | before P1 | maintainer (git only) | `numerical-method` | agent itself | 252 d | machine: `test_entsoe_fetch_consistency.py` |
+| C097 | 2026-05-20 | Quantile mapping added unasked, and written into the README and paper | `4e416b1` | `5ebc741` | P1 | cannot tell (git only) | `scope-creep` | maintainer | 8 d | rule: Propose, then stop |
+| C014 | 2026-07-06 | Country rows simulated on the 100 kW fallback curve | `f4b80b5` | `bcf4dfa` | P1 | agent | `silent-fallback` | audit agent | 67 d | machine: country runs refuse a missing curve |
+| C121 | 2026-07-14 | Landing-page math rendered as raw text; shipped in v0.2.0 | `4b1bbe4` | `be4c0c5` | P1 | agent | `untested-path` | maintainer | 2 d | none (`sphinx-build -W` passes) |
+| C162 | 2026-07-14 | Test fixture set INPUT_ROOT for only some of its users | `3775bb5` | `1a5548a` | P1 | agent | `env-divergence` | audit agent | 73 d | none |
+| C050 | 2026-07-15 | A finding cited a document that was never committed | `af99418` | `4f32990` | P1 | agent | `data-provenance` | audit agent | 65 d | rule: findings-doc |
+| C012 | 2026-07-23 | UK and NZ presented as corrected wins | `7a2f010` | `4253985` | P1 | agent | `overclaiming` | agent itself | 50 d | rule: findings-doc |
+| C013 | 2026-08-12 | Corrected and uncorrected output scored on different units | `3dd8498` | `513f57c`, `37bba11` | P1 | agent | `numerical-method` | agent itself | 30 d | machine: `test_common_row_scoring.py` |
+| C015 | 2026-08-12 | Italy, Portugal and Spain winds extrapolated beyond the loaded extent | `7d634dc` | `d5fd5a5`, `c480f46` | P1 | agent | `silent-fallback` | agent itself | 30 d | machine: `ExtrapolationError` |
+| C016 | 2026-08-12 | Rows on different roughness treatments compared without saying so | `7d634dc` | `9f26e32` | P1 | agent | `data-provenance` | agent itself | 31 d | rule: findings-doc |
+| C018 | 2026-08-12 | A Denmark study presented as a reproduction of the published paper | `3dd8498` | `cef131d` | P1 | agent | `overclaiming` | agent itself | 31 d | rule: findings-doc |
+| C036 | 2026-08-12 | Sweden's zonal capacity-factor denominators back-derived | `dd87232` | `40317ee` | P1 | agent | `data-provenance` | agent itself | 34 d | machine: fetcher refuses derived capacity |
+| C046 | 2026-08-12 | National multi-cluster fits routed to the per-cluster solver | `56ab195` | `ac26f6a`, `dc14687` | P1 | agent | `numerical-method` | critic agent | 44 d | machine: `test_country_zonal.py`; eval `obs-routing` |
+| C052 | 2026-08-12 | Offshore capacity summed onto land grid points | `dd87232` | `643499a`, `fc8c7f5` | P1 | agent | `numerical-method` | audit agent | 44 d | machine: `test_weight_country_grid_points.py` |
+| C055-A | 2026-08-12 | Belgium's observations left onshore-only while its offshore capacity joined the fleet | `dd87232` | `63bb2e2`, `7fc0e16` | P1 | agent | `data-provenance` | audit (session in another project) | 71 d | partly machine: fetch default is now all types; fleet coverage is rule only |
+| C055-B | 2026-08-12 | Gates that cannot see a partial-fleet series reported as validating Belgium and France | `dd87232` | `b567df4` | P1 | agent | `one-direction-check` | audit (session in another project) | 71 d | rule: Test a check both ways |
+| C059-D | 2026-08-12 | Scalar floor set so that it stayed quiet on Belgium | `569a00a` | `232ee52` | P1 | agent | `one-direction-check` | audit (session in another project) | 71 d | rule: Test a check both ways |
+| C064 | 2026-08-12 | "57" Netherlands scalars flagged where the count is 29 | `569a00a` | `a087b92` | P1 | agent | `miscount` | audit agent | 71 d | rule: Count what you assert |
+| C074 | 2026-08-12 | GWPT filter built today's fleet for every year | `dd87232` | `acfbbfa` | P1 | agent | `data-provenance` | audit agent | 44 d | machine: `test_gwpt.py` |
+| C053 | 2026-08-23 | Physics-informed scores taken on a mismatched row basis | `cb91ac9` | `46a039f` | P1 | agent | `numerical-method` | agent itself | 53 d | rule: findings-doc; eval `stale-affine` |
+| C009 | 2026-08-24 | CHANGELOG said the rows reproduce without the licensed library | `2795bb0` | `c96090f` | P1 | agent | `overclaiming` | audit agent | 18 d | rule: provenance-guard |
+| C010 | 2026-09-11 | "Seven rows" shipped in the v0.5.1 tag and Zenodo version; four was right | `c96090f` | `ef0d79a` | P2 | agent | `overclaiming` | agent itself | 51 min | rule: provenance-guard |
+| C095 | 2026-09-11 | Tag, release and DOI for v0.5.1 that were the maintainer's to make | not committed | `7a3bfd5` | P2 | agent, at request | `authority` | maintainer | 1 h | machine: deny rules |
+| C060 | 2026-09-15 | Sweden's row republished without its denominator caveat | `40317ee` | `ec35db7`, `293b01c` | P2 | agent | `overclaiming` | audit agent | 37 d | rule: findings-doc |
+| C011 | 2026-09-16 | "No fit affected" inferred from a golden test that cannot fire on the changed branch | `724ab1b` | `027608b` | P2 | agent | `one-direction-check` | audit agent | 2.6 d | partly machine: offset pins |
+| C063 | 2026-09-16 | "Five" small folds where the fold table shows eight | `2f300ad` | `68874fb` | P2 | agent | `miscount` | audit agent | 39 d | rule: Count what you assert |
+| C065 | 2026-09-16 | Inverse distance weighting disagreement stated as 0.0 exactly; it is 2.7e-15 | `020199e` | `4ea8bfe` | P2 | agent | `overclaiming` | audit agent | 39 d | rule: Read a command's whole output |
 
 ## What this record does not show
 
@@ -103,8 +283,16 @@ five defects and blocked on them. The panel also raised the paired defect on
 PROCEED on any of the 30 proposals, fixed or not. The table, the quoted
 passages and the departures from the registration are in
 `docs/findings/agent-critics.md` at tag `archive/research-2026-10-27`, and
-summarised in `scripts/dev/agent_evals/results-2026-10-16.md`. No training year or test year applies: the
-run measures the review agents, not a correction.
+summarised in `scripts/dev/agent_evals/results-2026-10-16.md`. No training
+year or test year applies: the run measures the review agents, not a
+correction.
+
+Two further runs are registered and not yet run: the three critics against a
+generic reviewer on the same models
+(`docs/findings/agent-critics-baseline-prereg.md`), and `docs-critic` against
+one on five held-out page changes (`docs/findings/agent-critics-docs-prereg.md`).
+Each is gated on the critic beating the baseline by a margin fixed before any
+review, and a "no measurable difference" outcome stands as the finding.
 
 ## Counts
 

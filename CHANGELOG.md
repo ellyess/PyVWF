@@ -106,6 +106,13 @@ this file stay in step with it.
   config and the maintained one. The Turkey runbook and its probe are archived at tag
   `archive/research-2026-10-27`; `docs/guides/data-sources.md` keeps what the
   evaluation found.
+- **The agent design docs are one page.** `docs/design/agent-guards.md` is
+  merged into `docs/design/ai-native-development.md`: the guard table with
+  what each guard misses, the incident behind each rule in brief, the
+  critics' models, the mistake log's summary and rates, and the mistakes that
+  reached publication. The full log stays at tag
+  `archive/research-2026-10-27`. References outside dated records point at the
+  merged page; the pre-registrations and evaluation cases keep theirs.
 - **Guides are merged in pairs:** the Docker guide into
   `installation.md`, running on your own fleet data into `training.md`, and
   the adapter contract into `adding-a-region.md`. The installation guide lists
