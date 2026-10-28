@@ -197,7 +197,7 @@ typing-extensions==4.16.0
     # via
     #   import-linter
     #   mypy
-virtualenv==21.12.1
+virtualenv==21.14.11
     # via pre-commit
 vulture==2.16
     # via pyvwf (pyproject.toml)
