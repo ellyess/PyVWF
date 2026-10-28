@@ -177,6 +177,11 @@ and each summary from 0.2.0 on links to its own.
 
 ### Removed
 
+- **Unused plotting helpers in `pyvwf.viz.style`**
+  (`apply_spatial_resolution_axis`, `add_resolution_markers`,
+  `format_axes_standard` and their private helpers) and
+  **`pyvwf.viz.palettes.EXISTING_NEW_COLOURS`**. Nothing in the package, the
+  scripts, the examples, the tests or the docs used them.
 - **`scripts/analysis/validate_region.py`**, a wrapper identical to the
   `pyvwf-validate` console entry. The runbooks and guides now use
   `pyvwf-validate`.
