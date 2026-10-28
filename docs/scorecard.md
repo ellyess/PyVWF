@@ -283,13 +283,16 @@ not in the repository.
   rows run under both fills moved by at most 2.8e-5 in RMSE. France's
   registered gate for the change was breached, and the change was adopted by
   the maintainer's decision.
-- **Configurations.** Each file is the one its run was made from, with three
-  later edits that keep each run's meaning: `br_k60.toml` and `us_k250.toml`
-  gained `roughness = "stored"` (`a023b4d`), the treatment they already ran
-  under, when the default changed to derived; and a comment in `uk_k50.toml`
-  and `us_k250.toml` names the renamed package (`4d06163`).
+- **Configurations.** Each file is the one its run was made from, with later
+  edits that keep each run's meaning: `br_k60.toml` and `us_k250.toml` gained
+  `roughness = "stored"` (`a023b4d`), the treatment they already ran under,
+  when the default changed to derived; a comment in `uk_k50.toml` and
+  `us_k250.toml` names the renamed package (`4d06163`); and on 2026-10-28 every
+  file's comments were repointed from documents that left the main branch. No
+  key or value changed.
 - **Observations.** Turbine and plant level: DK Danish Energy Agency; DE the
-  public turbine register; UK REPD and Ofgem; US EIA-923; BR ONS; AU-NEM AEMO;
+  licensed WindStats extract, for both metadata and monthly generation, placed
+  by the postcode table in the same folder; UK REPD and Ofgem; US EIA-923; BR ONS; AU-NEM AEMO;
   NZ EMI; CL Coordinador (CEN); AR CAMMESA, with capacities rebuilt from turbine
   specifications. Country level: ENTSO-E Transparency for IE and ES, for
   Sweden's generation and for Norway's 2023 generation; Elia Open Data (`ods031`) for BE;
@@ -326,3 +329,4 @@ tables, in the full scorecard at the archive tag.
 | 2026-10-25 | Norway's observations measured a different share of its fleet each year; rerun on NVE's metered output | [L25](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/scorecard.md?plain=1#L25) |
 | 2026-10-27 | Portugal's denominator replaced by REN's month-end fleet; rerun, still suspended | [L1511](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/scorecard.md?plain=1#L1511) |
 | 2026-10-27 | This short form replaced the full scorecard. It adds that the reported configuration is not the lowest-RMSE variant in BR, CL and AR, (the full scorecard said so for all six country rows), and that three scorecard configurations were edited after their runs | this page |
+| 2026-10-28 | The provenance line called Germany's source a public turbine register. Germany's row reads only the licensed WindStats extract; no public register feeds it | this page |

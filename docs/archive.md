@@ -28,6 +28,7 @@ says, with its own authors.
 | Finished analysis scripts | `scripts/analysis/{eu_rerun_compare,ml_transfer_retest,ml_transfer_expanded,regression_compare,check_issue155}.py`, `scripts/dev/repo_stats.py` |
 | Study and superseded configurations | `configs/regions/study/`, `configs/regions/scorecard/superseded/`, `configs/regions/pinn_loco/`, `configs/regions/nl.toml` |
 | Review-agent evaluation run | `scripts/dev/agent_evals/runs/2026-10-16/`: 30 critic prompts and reviews, 40 judge prompts and judgements, and the run record. The harness, its five cases and a results summary stay on main |
+| Turkey evaluation, not shipped | `docs/runbooks/tr.md`, `scripts/fetch/epias_tr.py`. `docs/guides/data-sources.md`, section 5, keeps what was found |
 | Agent definitions now kept locally | `.claude/agents/prior-work-scout.md`, `.claude/agents/simplicity-critic.md`, `.claude/skills/idea-review/`. The three evaluated critics stay on main |
 | Their tests | `tests/`, as named in each finding's reproduction record |
 
