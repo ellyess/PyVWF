@@ -72,7 +72,6 @@ runbooks/cl
 runbooks/ar
 runbooks/au_nem
 runbooks/entsoe
-runbooks/tr
 ```
 
 ```{toctree}

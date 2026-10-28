@@ -88,6 +88,16 @@ this file stay in step with it.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **The region runbooks share one template** (source and licence,
+  observations, ERA5, train and evaluate, caveats) and quote no results; each
+  points to the scorecard instead. Stale instructions are fixed: test-year
+  files missing from the US and Brazil steps, the country-level generator's
+  years, the Ireland repair and Norway's manual inputs, cluster counts that did
+  not match the configs, and curve-assignment claims that did not match the
+  processing scripts. Each runbook with a scorecard row names its scorecard
+  config and the maintained one. The Turkey runbook and its probe are archived at tag
+  `archive/research-2026-10-27`; `docs/guides/data-sources.md` keeps what the
+  evaluation found.
 - **Guides are merged in pairs:** the Docker guide into
   `installation.md`, running on your own fleet data into `training.md`, and
   the adapter contract into `adding-a-region.md`. The installation guide lists

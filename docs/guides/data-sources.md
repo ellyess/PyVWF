@@ -281,10 +281,17 @@ series that measures only part of the fleet; this comparison can.
 
 ## 5. Evaluated but not shipped
 
-- **Turkey (TR):** EPİAŞ Şeffaflık. The per-plant licensed-realtime endpoint
-  returns 403 under the public subscription and aggregates ignore
-  `powerPlantId`, so per-plant wind is not obtainable openly.
-  `fetch/epias_tr.py` + [TR runbook](../runbooks/tr.md) document the gap.
+- **Turkey (TR):** EPİAŞ Şeffaflık, evaluated in July 2026 and not shipped.
+  Authentication works and the plant list downloads, but no reachable endpoint
+  returns per-plant generation: the injection-quantity (UEVM) endpoint answers
+  200 for any `powerPlantId` and silently returns the national series, and
+  the licensed real-time endpoint returns 403 under the Data Consultation
+  subscription. The false positive was caught by asking for two different
+  plants and finding byte-identical numbers. A subscription covering
+  `renewables-service` would be the way to retest it. The runbook and the probe
+  are at the archive tag:
+  [`docs/runbooks/tr.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/runbooks/tr.md),
+  [`scripts/fetch/epias_tr.py`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/scripts/fetch/epias_tr.py).
 - **Sweden & Finland (WindStats):** the format supports them, but GWPT matches
   only 7-9% of their fragmented fleets. Parked pending a thewindpower.net
   coordinate table ([ES runbook](../runbooks/es.md)).

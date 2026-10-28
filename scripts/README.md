@@ -30,7 +30,6 @@ scripts/
     cen_cl.py         CL  observations (Coordinador SIP API; CEN_API_KEY in the environment)
     dk.py             DK  observations (Danish Energy Agency register .xlsx)
     emi_nz.py         NZ  observations (EA EMI Generation_MD)
-    epias_tr.py       TR  observations (EPIAS; credentials in the environment); not shipped, see the runbook
     uk.py             UK  metadata (REPD) and the Ofgem ROC export steps; see the runbook
   era5/
     combine.py        monthly ERA5 to yearly daily files, with per-timestep roughness: --region <code>
