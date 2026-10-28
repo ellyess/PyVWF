@@ -15,6 +15,10 @@ this file stay in step with it.
 
 ### Added
 
+- **A `run-pyvwf` skill for users** (`skills/run-pyvwf/SKILL.md`). It takes a
+  coding agent through installing PyVWF, the synthetic example, a shipped
+  region or the user's own fleet, and reading `metrics.csv` with its fit-quality
+  columns and caveats. It points to the guides rather than repeating them.
 - An evaluation of the three review agents (`method-critic`,
   `implementation-critic`, `red-team`) on proposals carrying defects this
   repository has already found, each matched with the same proposal fixed.
