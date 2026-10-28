@@ -119,16 +119,16 @@ def log_roughness_from_shear(wind10: xr.DataArray, wind100: xr.DataArray) -> xr.
     Inverts the log wind profile between the two heights:
     ``ln z0 = (w100 ln 10 - w10 ln 100) / (w100 - w10)``. The one definition
     all three roughness routes use (``CONTEXT.md``, roughness route): the
-    derivation at load in :func:`prep_era5`, the annual-mean field of
-    ``combine_era5_files.py`` and the daily files of
-    ``scripts/era5/combine.py``.
+    derivation at load in :func:`prep_era5`, the annual-mean field of the
+    archived ``combine_era5_files.py`` (at tag ``archive/research-2026-10-27``)
+    and the daily files of ``scripts/era5/combine.py``.
 
     Where the shear is near zero (``|w100 - w10| <= 1e-4``) or the result would
     give z0 of 1 m or more, the value is missing, then back-filled along time
     over whatever the caller passes. The routes pass different spans, so the
     fill reaches differently: :func:`prep_era5` passes one calendar year at a
     time (and then fills a year's trailing gap forward), ``scripts/era5/combine.py``
-    one month, and ``combine_era5_files.py`` its whole record. The result is
+    one month, and the archived combiner its whole record. The result is
     clipped to the logs of :data:`Z0_BOUNDS`. The caller clips the speeds first
     and takes the exponential, because the routes differ there.
 
