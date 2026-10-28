@@ -96,13 +96,8 @@ def curve_library_identity() -> dict[str, Any]:
     only hashes and counts, so licensed curve libraries stay out of every
     output artifact.
     """
-    with warnings.catch_warnings():
-        # reference_file warns when falling back to the bundled synthetic
-        # tables; here that fallback is exactly what we are recording, not a
-        # condition to warn about.
-        warnings.simplefilter("ignore", UserWarning)
-        curves_path = PyVWFPaths.reference_file("power_curves.csv")
-        models_path = PyVWFPaths.reference_file("models.csv")
+    curves_path = PyVWFPaths.reference_file("power_curves.csv")
+    models_path = PyVWFPaths.reference_file("models.csv")
 
     curves_sha = _sha256(curves_path)
     models_sha = _sha256(models_path)

@@ -40,6 +40,15 @@ this file stay in step with it.
 
 ### Changed
 
+- **The open library has one copy, in `pyvwf.resources`, and an input root
+  without curve tables uses it silently.** The byte-identical copy under
+  `input/reference/` is removed, so `input/`, the default root, now reads the
+  packaged copy, with the same bytes and therefore the same numbers. The
+  fallback no longer warns: every harness train, evaluate and transfer run
+  records the library it used by sha256 and the curve each unit used in
+  `curve_resolution.csv`. A test now fails if `input/reference/` holds a curve
+  table. A licensed library still goes in its own input root, such as
+  `input/combined`.
 - **The `slow` test marker is removed.** Every test it marked is also
   `realdata`, so it selected nothing on its own. The fast set is now
   `pytest -m "not realdata"`, in CI, `scripts/dev/ci_local.py` and the

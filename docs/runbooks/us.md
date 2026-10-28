@@ -77,8 +77,8 @@ wherever the harness should read.
 
 ## 3. Power curves (bundled open library, or your own)
 
-The bundled `input/reference/power_curves.csv` / `models.csv` are now a REAL open curve
-library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
+The bundled `power_curves.csv` / `models.csv` (in `src/pyvwf/resources/`) are a
+REAL open curve library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
 VWF-smoothed), so runs against them are physically meaningful. `process_eia_us.py`
 assigns every plant a UNIFORM representative curve, the default
 `2019COE_Market_Average_2.6MW_121` (the most recent market-average utility curve),

@@ -16,7 +16,6 @@ installed copy of PyVWF works outside a checkout::
 from __future__ import annotations
 
 import os
-import warnings
 from importlib import resources
 from pathlib import Path
 
@@ -58,7 +57,8 @@ class PyVWFPaths:
     #   raw/<source>/         upstream downloads (provenance)
     #   observations/{turbine,country}/  processed CF the adapters read
     #   era5/                 reanalysis, per region
-    #   reference/            static shared lookups (curves, models, shapes, terrain)
+    #   reference/            static shared lookups (shapes, terrain); curve tables
+    #                         only in a root that supplies its own library
     TURBINE_DATA = INPUT_ROOT / "observations" / "turbine"
     COUNTRY_LEVEL_DATA = INPUT_ROOT / "observations" / "country"
     REGIONS = INPUT_ROOT / "reference" / "shapes"
@@ -78,15 +78,14 @@ class PyVWFPaths:
 
         Resolution order:
 
-        1. ``INPUT_ROOT/reference/<filename>``: your own copy. Manufacturer-
-           specific curve libraries are licensed and not redistributable, so a
-           local file always wins.
-        2. The open curve library bundled in ``pyvwf.resources``, so an
-           installed PyVWF runs outside a repository checkout.
+        1. ``INPUT_ROOT/reference/<filename>``: a library the input root
+           supplies, such as the licensed one under ``input/combined``. A local
+           file always wins.
+        2. The open curve library bundled in ``pyvwf.resources``, the default.
 
-        Falling back to (2) emits a ``UserWarning``: the bundled curves are
-        real, but a fleet is matched to them by specific power rather than
-        machine identity, and the user has to know that.
+        The fallback does not warn: a harness train, evaluate or transfer run
+        records the library it used by sha256 in its manifest, and the curve
+        each unit used in ``curve_resolution.csv``.
 
         Args:
             filename: File to locate, e.g. ``"power_curves.csv"``.
@@ -109,17 +108,6 @@ class PyVWFPaths:
                 "Set PYVWF_INPUT (or PyVWFPaths.INPUT_ROOT) to the directory "
                 "holding your input data."
             )
-
-        warnings.warn(
-            f"Using the BUNDLED open-library {filename} shipped with PyVWF "
-            f"({packaged}) because none was found at {local}. These are real, "
-            "redistributable curves (NREL/turbine-models, VWF-"
-            "smoothed), but your fleet is matched to them by specific power, "
-            "not by actual machine identity. For production results, supply "
-            "your own power-curve library and point PYVWF_INPUT at it.",
-            UserWarning,
-            stacklevel=2,
-        )
         return packaged
 
     @classmethod
