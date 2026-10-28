@@ -2,7 +2,7 @@
 
 These rules apply to any agent working in PyVWF, and to anyone using one.
 `src/pyvwf/AGENTS.md` adds the rules for package code. Why each rule exists,
-and what each guard misses, is in `docs/design/agent-guards.md`.
+and what each guard misses, is in `docs/design/ai-native-development.md`.
 
 ## Commands
 

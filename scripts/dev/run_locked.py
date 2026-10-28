@@ -5,7 +5,7 @@ A run stamps `git_dirty` into every manifest it writes, from
 the whole run dirty. This wrapper refuses to start on a dirty tree, writes
 `output/.run-lock` for the run's duration, and reports afterwards if the tree
 changed during the run. The Claude Code hook `.claude/hooks/guard_run_lock.py`
-blocks edits to the tree while the lock is held. `docs/design/agent-guards.md`
+blocks edits to the tree while the lock is held. `docs/design/ai-native-development.md`
 says why.
 
     python scripts/dev/run_locked.py -- pyvwf-validate train --region configs/regions/nz.toml

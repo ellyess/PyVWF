@@ -210,11 +210,11 @@ developed AI-natively, with Claude Code, a coding agent, under written rules and
 guards a machine checks. The maintainer still owns the method, the gates and
 every scientific decision; agents implement changes, write tests, draft
 documents and critique proposals, and each diff is shown to the maintainer
-before it is committed. The rules are in [AGENTS.md](AGENTS.md), and
-[agent-guards.md](docs/design/agent-guards.md) records the failures behind
-each guard and what each guard misses. How agents are used, with counts and a
-worked example of an error the process caught, is in
-[ai-native-development.md](docs/design/ai-native-development.md).
+before it is committed. The rules are in [AGENTS.md](AGENTS.md).
+[ai-native-development.md](docs/design/ai-native-development.md) says how agents
+are used, which guards a machine enforces and what each misses, the failure
+behind each rule, a log of the mistakes that reached publication, and a worked
+example of an error the process caught.
 
 ## Contributing
 
