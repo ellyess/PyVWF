@@ -155,9 +155,9 @@ fixed.
 
 Two additive changes to `pyvwf/era5.py`. Longitude is normalised to
 [-180, 180] on load if any value exceeds 180, and re-sorted, which closes the
-silent empty-subset hazard. The loader accepts a directory and file tag from
-`RegionSpec` rather than only the module-level constant, which remains as the
-legacy default.
+silent empty-subset hazard. The loader reads the directory `RegionSpec` gives
+it, which every caller passes; until 2026-10-28 a module-level constant filled
+in a missing one.
 
 ## Correction models
 
@@ -305,6 +305,9 @@ synthetic, no network.
   rule above. *[Note, 2026-10-16: the legacy entry points went with the legacy
   path on 2026-09-24, so every run reads TOML. The dict defaults left in
   `pyvwf.config`, such as `BoundingBoxes`, serve direct calls that pass no
-  config value; they are not a second config system.]*
+  config value; they are not a second config system.]* *[2026-10-28:
+  `BoundingBoxes` and `PyVWFPaths.ERA5_DATA` are removed and no dict defaults
+  remain in `pyvwf.config`; a direct call passes `era5_dir`, and `bbox=None`
+  reads the files' whole extent.]*
 - **Antimeridian-crossing ERA5 subsets are not supported.** No current region
   needs one.

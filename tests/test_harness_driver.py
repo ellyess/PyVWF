@@ -79,7 +79,12 @@ def test_country_level_fit_is_a_delegation_wrapper(synthetic_dk):
 
     source = InMemoryCountrySource(grid_points, obs)
     gen_cf, turb_info, reanalysis, power_curves = train_set(
-        "ZZ", calc_z0=True, mode="all", obs_level="country", source=source
+        "ZZ",
+        calc_z0=True,
+        mode="all",
+        obs_level="country",
+        source=source,
+        era5_dir=synthetic_dk["era5"],
     )
 
     model = get_correction("affine-wind")

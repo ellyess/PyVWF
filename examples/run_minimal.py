@@ -35,8 +35,7 @@ def main() -> None:
     # 1. Point the ERA5 loader at the bundled synthetic NetCDF and prep it. This
     #    computes 100 m wind speed and derives surface roughness from the
     #    10 m/100 m shear, the inputs to hub-height extrapolation.
-    PyVWFPaths.ERA5_DATA = DATA / "era5"
-    reanalysis = prep_era5("example", train=False, calc_z0=True, bbox=None)
+    reanalysis = prep_era5("example", train=False, calc_z0=True, era5_dir=DATA / "era5")
 
     turbines = pd.read_csv(DATA / "turbines_example.csv")
     observations = pd.read_csv(DATA / "observations_example.csv").set_index("cluster")

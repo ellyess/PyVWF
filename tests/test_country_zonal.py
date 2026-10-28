@@ -176,7 +176,6 @@ def country_fixture(tmp_path, monkeypatch):
 
     tp.write_era5(tmp_path / "era5")
     monkeypatch.setattr(PyVWFPaths, "INPUT_ROOT", tmp_path)
-    monkeypatch.setattr(PyVWFPaths, "ERA5_DATA", tmp_path / "era5")
 
     grid = pd.DataFrame(
         {
@@ -197,6 +196,7 @@ def country_fixture(tmp_path, monkeypatch):
 def fit_with(grid, obs, monkeypatch, forbid):
     """Fit the country path, with one of the two solvers wired to explode."""
     import pyvwf.correction as correction
+    from pyvwf.config import PyVWFPaths
     from pyvwf.data import train_set
     from pyvwf.harness.corrections import get_correction
     from pyvwf.sources.in_memory import InMemoryCountrySource
@@ -212,6 +212,7 @@ def fit_with(grid, obs, monkeypatch, forbid):
         mode="all",
         obs_level="country",
         source=InMemoryCountrySource(grid, obs),
+        era5_dir=PyVWFPaths.INPUT_ROOT / "era5",
     )
     return get_correction("affine-wind").fit(
         gen_cf,
