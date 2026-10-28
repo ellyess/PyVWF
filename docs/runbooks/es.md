@@ -1,51 +1,61 @@
-# Spain (WindStats, historical 1998-2000)
+# Spain, historical (WindStats)
 
-**MIXED LICENCE.** Generation is **CONFIDENTIAL / commercial WindStats**;
-coordinates are **open GWPT** (CC-BY-4.0). Neither the data nor the derived
-observation/metadata tables may be committed or redistributed. `input/` is
-git-ignored; the script below only reshapes files you already hold.
+**Data source:** WindStats per-turbine monthly output, 1998-2000, with GWPT coordinates. **Adapter:** `windstats` · turbine-level · unit = turbine · mixed: confidential generation, open coordinates.
 
-**Data caveat, read first.** The WindStats Spain extract is **1998-2000
-only** (an old ~600 kW fleet). This is a *historical, three-year* region, not a
-contemporary of the 2015-2019 reference set: useful as a legacy check, not a
-modern benchmark. It also needs ERA5 for 1998-2000 (not the repo's 2015+
-`era5/EU_2026-09`). The region code is **`ES-WS`** so it does not collide with the
-country-level ENTSO-E `ES`.
+ES-WS, a legacy check rather than a modern benchmark, is coded so it does not
+collide with the country-level `ES` ([ENTSO-E runbook](entsoe.md)). It has no
+[scorecard](../scorecard.md) row; its config is `configs/regions/es_ws.toml`.
 
-## Build the inputs
+## Source and licence
+
+**Mixed licence.** Generation is confidential, commercial WindStats data;
+coordinates are the open Global Wind Power Tracker (CC-BY-4.0). Neither the
+data nor the observation and metadata tables derived from them may be
+committed or redistributed. `input/` is git-ignored, and the script below only
+reshapes files you already hold.
+
+## 1. Observations
 
 ```bash
 python scripts/process/windstats.py --country ES --src "<WindStats folder>"
 ```
 
-Reads `ES_md.csv`, `ES_data.csv`, `geolocate.spain.csv` from `--src` and the
-Global Wind Power Tracker, and writes to `input/observations/turbine/ES/`:
-`es_md.csv`, `es_obs.csv`, `es_join_report.md`.
+It reads `ES_md.csv`, `ES_data.csv` and `geolocate.spain.csv` from `--src`,
+and the GWPT from `<input root>/reference/gwpt/` (`--gwpt` names another
+file), and writes `es_md.csv`, `es_obs.csv` and `es_join_report.md` to
+`<input root>/observations/turbine/ES/`. About 80% of turbines match a GWPT
+project; the rest are dropped and listed in the join report.
 
-The pipeline: WindStats per-turbine monthly `Output` (kWh) → CF against
-nameplate kW; coordinates via **WindStats id → `geolocate` thewindpower name →
-GWPT project name** (fuzzy match). On the current extract: **1,158 of 1,450
-turbines geolocate (80%)**; the 291 turbines whose farm has no GWPT match are
-dropped and reported. Canary-Islands turbines (lat < 30) fall outside the
-mainland ERA5 box and are excluded. WindStats manufacturer strings are kept as
-provenance (`windstats_manufacturer`) but are not curve keys: the curve key is
-the uniform default (as BR/CL/AR do), matched by specific power downstream via
-`diameter`.
+**Sweden and Finland** share this pipeline, but the GWPT matches only 7-9% of
+their farms. To add one, supply the thewindpower.net coordinate table the
+`twp` names point at, add `SE-WS` or `FI-WS` to `countries` in
+`src/pyvwf/sources/windstats.py`, and run
+`scripts/process/windstats.py --country SE`. The extracts cover SE 1998-2013 and FI 2005-2012; the script
+defaults to 1998-2013 outside Spain, so pass `--years 2005 2012` for FI.
 
-## Train (needs 1998-2000 ERA5)
+## 2. ERA5
+
+ES-WS needs its own 1998-2000 ERA5 over the mainland box in `es_ws.toml`, not
+`era5/EU_2026-09`; it goes to `<input root>/era5/ES/` ([general fetch](../guides/data-sources.md#3-shared-inputs-all-regions)).
 
 ```bash
-python scripts/fetch/era5.py --region es-ws          # 1998-2000 mainland Spain
-PYVWF_INPUT=input pyvwf-validate train    --region configs/regions/es_ws.toml
-PYVWF_INPUT=input pyvwf-validate evaluate --region configs/regions/es_ws.toml --train-run output/validation/ES-WS/train-<stamp>
+python scripts/fetch/era5.py --region es-ws
 ```
 
-## Sweden & Finland
+## 3. Train and evaluate
 
-`SE`/`FI` share the WindStats format and this exact pipeline, but **GWPT only
-matches 7-9% of their farms** (it under-covers the fragmented Nordic fleets),
-so they are not usable via the open coordinate path. Supply the
-thewindpower.net coordinate table the `twp` names point at, register `SE-WS`/
-`FI-WS` in `pyvwf/sources/windstats.py`, and run
-`scripts/process/windstats.py --country SE`. Their extracts cover SE 1998-2013,
-FI 2005-2012.
+ES-WS runs on the default input root, `input/`, training on 1998-99 and
+testing on 2000 with `cluster_list = [10]`:
+
+```bash
+PYVWF_INPUT=input pyvwf-validate train    --region configs/regions/es_ws.toml
+PYVWF_INPUT=input pyvwf-validate evaluate --region configs/regions/es_ws.toml \
+    --train-run output/validation/ES-WS/train-<stamp>
+```
+
+## Caveats
+
+- **One curve for the whole fleet:** the open library's
+  `2019COE_Market_Average_2.6MW_121` stands in for machines of about 600 kW.
+- **Canary Islands turbines** (latitude below 30) fall outside the box and are excluded.
+- **One test year,** 2000; the fleet predates the 2015-onward regions.
