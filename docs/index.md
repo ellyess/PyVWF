@@ -23,7 +23,7 @@ slice your observations support.
 - **New here?** The [project README](https://github.com/ellyess/PyVWF#readme)
   says what PyVWF is and what it is for, in two minutes.
 - **Installing it?** The {doc}`installation guide <guides/installation>` covers
-  the two routes and the six extras, and {doc}`guides/docker` covers the image.
+  pip, conda and Docker, and the seven extras.
 - **Want to see it run?** `python examples/run_minimal.py` executes the whole
   workflow end-to-end in a few seconds on bundled data (synthetic weather and
   observations, open-library power curves), with no ERA5 download and no private
@@ -54,10 +54,7 @@ guides/training
 guides/output-structure
 guides/visualisation
 guides/adding-a-region
-guides/adding-an-adapter
 guides/adding-a-study
-guides/your-own-data
-guides/docker
 ```
 
 ```{toctree}

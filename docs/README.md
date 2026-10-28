@@ -57,7 +57,7 @@ which is right. These are the homes of the facts most often repeated:
 | Fact | Home |
 |---|---|
 | Installing PyVWF, and what each extra adds | `guides/installation.md` |
-| Running PyVWF in a container | `guides/docker.md` |
+| Running PyVWF in a container | `guides/installation.md`, Docker |
 | What PyVWF does not do, and what its numbers do not support | `design/limitations.md` |
 | Running the tests and the other CI checks | `CONTRIBUTING.md` |
 | Which module may import which | `.importlinter`, at the repository root |
@@ -65,7 +65,7 @@ which is right. These are the homes of the facts most often repeated:
 | Running a region through the harness | `guides/training.md` |
 | The legacy batch path | the last section of `guides/training.md` |
 | What a run directory contains | `guides/output-structure.md` |
-| Adding a region, an adapter or a study | `guides/adding-a-region.md`, `adding-an-adapter.md`, `adding-a-study.md` |
+| Adding a region, an adapter or a study | `guides/adding-a-region.md`, `adding-a-study.md` |
 | Each data source, its licence and its processing | `guides/data-sources.md` |
 | Fetching and combining ERA5 | `guides/data-sources.md`, section 3 |
 | The approved term for a concept | `CONTEXT.md` |

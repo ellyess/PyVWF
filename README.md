@@ -71,11 +71,12 @@ including maps of what the correction learned per cluster.
 conda env create -f environment.yaml && conda activate pyvwf
 ```
 
-Or into any Python >= 3.10 environment, `pip install -e .`. Six extras add
+Or into any Python >= 3.10 environment, `pip install -e .`. Seven extras add
 data acquisition, the development tools, the docs build, the gridded surfaces,
-the physics-informed correction and the TouchDesigner export; the
+the parallel offset fit, the physics-informed correction and the TouchDesigner
+export; the
 [installation guide](docs/guides/installation.md) says what each needs, and a
-[Docker image](docs/guides/docker.md) carries the scientific stack ready built.
+[Docker image](docs/guides/installation.md#docker) carries the scientific stack ready built.
 
 ## Quickstart
 

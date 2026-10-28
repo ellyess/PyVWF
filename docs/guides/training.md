@@ -73,8 +73,13 @@ library a run uses:
 
 | Input root | Curve library | Used for |
 |---|---|---|
-| `input/` (the default) | the open library | the test suite, the country-level rows, CL and AR |
-| `input/combined` | the combined library: open and licensed | the turbine-level rows DE, DK, UK, US, BR, AU-NEM and NZ |
+| `input/` (the default) | the open library | the test suite (the offset-fit pins for DK, FR and ES set `input/combined` themselves), and the scorecard rows CL and AR |
+| `input/combined` | the combined library: open and licensed | the turbine-level rows DE, DK, UK, US, BR, AU-NEM and NZ, and every country-level row |
+
+Every country-level row needs `input/combined` because each country grid names
+its own Vestas model, which only the licensed library holds, and since
+2026-09-25 a country-level run refuses a model key with no curve rather than
+falling back.
 
 Follow these rules:
 
@@ -133,20 +138,111 @@ pyvwf-validate transfer \
 ## Adding a region
 
 No core module changes. [`adding-a-region.md`](adding-a-region.md) lists the
-files a new region touches, in order, and
-[`adding-an-adapter.md`](adding-an-adapter.md) covers a new data source. For where
+files a new region touches, in order, including a new data source. For where
 each region's data comes from and how it is preprocessed, see
 [`data-sources.md`](data-sources.md).
 
+## Your own fleet data
+
+PyVWF ships adapters for a number of public national datasets, but you can also
+point it at your own fleet without writing any adapter code: supply two CSV files
+and use [`ClientCsvTurbineSource`](https://github.com/ellyess/PyVWF/blob/main/src/pyvwf/sources/client_csv.py). Use this
+when your observations are private, one-off, or otherwise not worth a dedicated
+source module.
+
+### What you provide
+
+**1. Fleet metadata** (one row per unit). Column names are remappable, so you can
+keep your own headers and supply a `column_map`. Required after mapping:
+
+| Standard column | Meaning |
+| --- | --- |
+| `ID` | Unit identifier (string) |
+| `lon`, `lat` | Location, degrees |
+| `capacity` | Rated capacity (kW, or MW with `capacity_unit="mw"`) |
+| `height` | Hub height, metres (> 1) |
+
+Plus **one of**: a `model` key per unit (used directly), or a rotor
+`diameter`, in which case a curve is matched from the curve library by specific
+power through `pyvwf.curves.add_models`, the same routine the Danish and German
+fleets use (a `manufacturer` column sharpens the match). Optional `type`
+(`onshore`/`offshore`) defaults to onshore.
+
+**2. Monthly generation** (long form, one row per unit-month), with columns
+`ID`, `year`, `month`, and a value column that is either generated energy
+(default; converted to capacity factor using the unit's capacity and the hours
+in the month) or a capacity factor directly (`generation_is_cf=True`).
+
+### Worked example
+
+```python
+import dataclasses
+from pathlib import Path
+from pyvwf.harness.regions import load_region
+from pyvwf.harness.driver import run_train, run_evaluate
+from pyvwf.sources.client_csv import ClientCsvTurbineSource
+
+column_map = {
+    "ID": "site_id", "lon": "longitude", "lat": "latitude",
+    "capacity": "rated_mw", "height": "hub_m", "diameter": "rotor_m",
+}
+
+def make_source():  # a fresh instance per split keeps train/test clean
+    return ClientCsvTurbineSource(
+        "my_meta.csv", "my_gen.csv",
+        country="DK",                       # selects the ERA5 subset
+        column_map=column_map,
+        capacity_unit="mw",
+        generation_column="generation_mwh",
+    )
+
+# Start from any region config for its ERA5 box and seasons, then point it at
+# your source and choose the split and resolution.
+base = load_region(Path("configs/regions/dk.toml"))
+spec = dataclasses.replace(
+    base,
+    source="client-csv-turbine",
+    train_years=(2015, 2019),
+    test_years=(2020,),
+    cluster_list=(1, 50),
+    time_slices=("fixed", "season"),
+)
+
+out = Path("output/my_run")
+train_dir = run_train(spec, out, source=make_source())
+eval_dir = run_evaluate(spec, train_dir, out, source=make_source())
+# eval_dir/metrics.csv holds the uncorrected baseline and each corrected variant.
+```
+
+Two further outputs follow directly from `train_dir`:
+
+- **Gridded correction field**: `scripts/analysis/export_correction_field.py`
+  writes an atlite-ready NetCDF of the fitted corrections for the region.
+- **Resource in context**: `scripts/analysis/run_hindcast.py` applies the
+  correction across every ERA5 year available and ranks each month against the
+  record.
+
+### Region box and ERA5
+
+`country=` on the source, and the region config you clone, select which ERA5
+subset is used. If your fleet lies outside the boxes already on disk, fetch that
+subset first (`scripts/fetch/era5.py`) and point the config's `[era5]`
+`path`/`bbox` at it. The correction maths, clustering, curves, and metrics are
+region-agnostic; only the ERA5 box and the two CSVs change.
+
+### Handling private data
+
+The input root is git-ignored, so private turbine or SCADA data stays out of
+version control if you keep it there. Nothing on this path writes your raw
+generation records into an output artefact: the correction field and the metrics
+contain fitted parameters and skill scores only. As with any PyVWF result, treat
+the output as screening-level analysis rather than an accredited yield
+assessment.
+
 ## The legacy path, removed
 
-Until 2026-09-24 PyVWF also carried a second path: the `PyVWF` class in
-`src/vwf/vwf.py`, its `pyvwf-train` console script and the batch scripts
-`train_all_bias_corrections.py` and `evaluate_all_pyvwf_runs.py`, which
-produced the thesis-era runs under `output/runs/`. It duplicated the harness's
-orchestration with its own defaults and output layout, and diverged from it on
-the country level, so it was removed and the harness is the only path. The
-harness still runs the same correction functions (`pyvwf.correction`,
-`pyvwf.wind`, `pyvwf.data`), and `tests/test_harness_corrections.py` pins that
-equivalence bit for bit. To reproduce a legacy run, check out the last commit
-that has the class, recorded in [`publications.md`](../publications.md).
+Until 2026-09-24 PyVWF also carried the `PyVWF` class, its `pyvwf-train`
+console script and two batch scripts, which produced the thesis-era runs. The
+harness is now the only path; it runs the same correction functions, and
+`tests/test_harness_corrections.py` pins that equivalence bit for bit. The last
+commit with the class is recorded in [`publications.md`](../publications.md).

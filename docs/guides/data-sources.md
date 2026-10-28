@@ -4,7 +4,7 @@ The single reference for the data PyVWF uses: what each source is, its licence,
 how it is fetched, and **what the processing does to it** for every region.
 Full step-by-step acquisition lives in the per-region runbooks
 (`docs/runbooks/<cc>.md`); the adapter contract is in
-[`adding-an-adapter.md`](adding-an-adapter.md).
+[adding an adapter](adding-a-region.md#adding-an-adapter).
 
 **Licence key**, used in the `Lic.` column below: **open** = redistributable;
 **mixed** = open coordinates over a confidential generation series;
@@ -104,7 +104,7 @@ source lacks them. The region-specific work:
 
 Turbine-level sources report at different native units (turbine / farm / plant /
 complex); the per-adapter unit, time convention, and curtailment handling are in
-the [built-in adapters](adding-an-adapter.md#built-in-adapters) table.
+the [built-in adapters](adding-a-region.md#built-in-adapters) table.
 
 ### Source URLs
 

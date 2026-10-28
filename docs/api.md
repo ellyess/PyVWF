@@ -45,7 +45,7 @@ config. The commands are in {doc}`guides/training`, and the design in
 
 Observed generation and unit metadata come from adapters, so supporting a new
 data source means writing an adapter rather than editing the core pipeline.
-See {doc}`guides/adding-an-adapter`.
+See {doc}`guides/adding-a-region`, Adding an adapter.
 
 ```{eval-rst}
 .. automodule:: pyvwf.sources.base
