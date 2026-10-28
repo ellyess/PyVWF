@@ -1,87 +1,91 @@
 # Chile (Coordinador Eléctrico Nacional)
 
-**Source:** Coordinador SIP API `generacion-real`, per-plant hourly delivered
-energy (free API key). **Adapter:** `cen-cl` · turbine-level · unit = plant ·
-open. **Fleet:** 60 plants, ~6.5 GW, spanning three climates absent from the
-rest of the set: Atacama coastal desert (BW), Mediterranean central Chile (Csb),
-maritime south (Cfb).
+**Data source:** Coordinador SIP API `generacion-real`, per-plant hourly
+delivered energy (free API key). **Adapter:** `cen-cl` · turbine-level · unit =
+plant · open.
 
-CEN carries no coordinates or hub heights, so both are joined externally.
+The scorecard row's 59 plants span the Atacama, central Chile and the maritime
+south; CEN has no coordinates or hub heights, so both are joined externally.
+Result: [scorecard](../scorecard.md), [results](../results.md#chile-and-argentina).
 
-## 1. Fetch and process
+## Source and licence
+
+The generation data are public transparency data from the Coordinador
+Eléctrico Nacional, through its SIP API with a free key (the
+[source table](../guides/data-sources.md#source-urls)). Nothing from them is
+committed. Plant coordinates come from the Global Wind Power Tracker (Global
+Energy Monitor, CC-BY-4.0), which requires attribution. The committed curation
+tables are `configs/curation/cl_turbine_specs.csv`, every row of which cites
+its source in `source_url`; `cl_coord_overrides.csv`, which carries a `note`
+per row but no source column; and `cl_fleet_exclusions.csv`, which gives each
+excluded plant's reason.
+
+## 1. Observations
 
 ```bash
 export CEN_API_KEY=<your Información Pública (SIP) user_key>
 python scripts/fetch/cen_cl.py --probe            # verify access, writes nothing
 python scripts/fetch/cen_cl.py --years 2021 2024  # -> input/raw/cen/
 python scripts/process/cen_cl.py                  # -> input/observations/turbine/CL/
-python scripts/region_tools/apply_turbine_specs.py CL \
-    --specs configs/curation/cl_turbine_specs.csv # real curves + hub heights
 ```
 
-`process` reduces the hourly delivered energy to monthly CF against registered
-capacity (fixed UTC-4, no DST), strips leading pre-operational months, and joins
-coordinates from GWPT. `apply_turbine_specs` assigns each plant a real curve by
-scale and specific power from the per-farm turbine table, and its real hub
-height where known.
+The key must be for **Información Pública (SIP)**, not Operación (aggregate
+GWh only); the API's traps are in the fetch's docstring, and a re-run skips
+completed months. `process` makes monthly CF against registered capacity
+(fixed UTC-4, no DST), strips leading pre-operational months, and joins
+coordinates from `input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx`
+by name, confirmed on capacity; co-located phases (for example Malleco Norte
+and Sur) take the parent's coordinate. `configs/curation/cl_coord_overrides.csv`
+holds six hand-curated plants; `configs/curation/cl_fleet_exclusions.csv` drops
+four tiny PMGD plants absent from GWPT (add a coordinate override to reinstate
+one). A plant with no coordinate is a hard error. Read `join_report.md` and
+`cl_coord_residual.csv` afterwards.
 
-The coordinate join: 54 plants auto-matched to GWPT by name confirmed on
-capacity, 6 hand-curated in `configs/curation/cl_coord_overrides.csv`, and 4 tiny
-PMGD plants excluded (5-9 MW, absent from GWPT; listed in
-`configs/curation/cl_fleet_exclusions.csv`, add coordinates to reinstate). A plant reaching training with no coordinate is a
-hard error. Read `join_report.md` and `cl_coord_residual.csv` after processing.
-
-## 2. Run
+## 2. ERA5 and power curves
 
 ```bash
-python scripts/fetch/era5.py --region cl          # 48 months 2021-2024, mainland box
-PYVWF_INPUT=<input root> pyvwf-validate train \
-    --region configs/regions/cl.toml
-PYVWF_INPUT=<input root> pyvwf-validate evaluate \
-    --region configs/regions/cl.toml --train-run output/validation/CL/train-<stamp>
+python scripts/fetch/era5.py --region cl   # 48 months 2021-2024
+python scripts/region_tools/apply_turbine_specs.py CL \
+    --specs configs/curation/cl_turbine_specs.csv
 ```
 
-Trains 2021-2023, tests 2024. With matched curves the affine correction helps
-(uncorrected RMSE 0.123 → corrected 0.104, r 0.32 → 0.45).
+The box, `bbox = [-75.0, -68.0, -44.0, -21.0]` ([W, E, S, N]) in
+`configs/regions/cl.toml`, goes to `era5/CL` ([data sources](../guides/data-sources.md#3-shared-inputs-all-regions));
+the lone Magallanes plant, off the SEN, falls outside it. After `process`,
+`apply_turbine_specs.py` gives each plant an open-library curve by scale and
+specific power, and its hub height where known; the rest keep the uniform
+default, recorded in `model_source` and `height_source`. `--dry-run` writes
+nothing.
+
+## 3. Train and evaluate
+
+The scorecard row uses the default input root, `input/`, with no `PYVWF_INPUT`
+([Choose the input root](../guides/training.md#choose-the-input-root)). Both
+configs train 2021-2023 and test 2024. The maintained config sweeps
+`cluster_list = [1, 8]`; the scorecard row (`cluster_list = [10]`) reruns at
+the commit and through the lock that [Reproducing a row](../scorecard.md#reproducing-a-row) gives.
+
+```bash
+pyvwf-validate train --region configs/regions/cl.toml               # maintained
+pyvwf-validate evaluate --region configs/regions/cl.toml \
+    --train-run output/validation/CL/train-<timestamp>
+pyvwf-validate train --region configs/regions/scorecard/cl_k10.toml # scorecard row
+pyvwf-validate evaluate --region configs/regions/scorecard/cl_k10.toml \
+    --train-run output/validation/CL/train-<timestamp>
+```
 
 ## Caveats
 
-- **Northern under-prediction is the ceiling.** In the Atacama ERA5 gives ~3.9
-  m/s, which no correctly-specified turbine turns into the observed 21% CF;
-  matched curves confirmed it is the reanalysis wind, not the turbine. Fixable
-  only with a higher-resolution wind product. See
-  the [results page](../results.md#chile-and-argentina).
-- **Curtailment.** `gen_real_mw` is delivered energy, and Chile's northern grid
-  curtails wind, so delivered CF sits below the resource. No screen: the SIP API
-  exposes no vertimiento series (`factor_ernc` is flat at 1.0), and there is no
-  known endpoint under the public key.
-- **Static nameplate.** `potencia_maxima` is full from day one;
-  `strip_commissioning_prefix` removes the leading pre-operational run, but a
-  partial-build farm still reads low against the static value.
-
-## API notes (verified July 2026)
-
-| Trap | Reality |
-| --- | --- |
-| Host | `sipub.api.coordinador.cl` (no `servers` block in the spec; found by DNS). |
-| Subscription | **Información Pública (SIP)**, not Operación (which is aggregate GWh only). |
-| `page`/`limit` | Return HTTP 502; send `pageSize` alone, above the day's row count. |
-| Envelope | Results in `data`, not the `content` the schema advertises. |
-| `tipoTecnologia` | Must be `Eólica`, accented; the unaccented spelling returns an empty list. |
-| Coordinates | Absent from the whole API; joined from GWPT. |
-| Timestamps | Fixed UTC-4, no DST (7 Sep 2024 has 24 rows, not 23). |
-
-Endpoints: `/generacion-real/v3/findByDate` (per-plant generation),
-`/centrales/v4/findByDate` (registry), `/capacidad-instalada/v4/findByDate`
-(capacity history). Auth is `user_key` as a query parameter.
-
-## Licence
-
-The generation data are public transparency data from the Coordinador
-Eléctrico Nacional, through its SIP API with a free key (the [source table](../guides/data-sources.md#source-urls)). Nothing
-from them is committed. Plant coordinates come from the Global Wind Power
-Tracker (Global Energy Monitor, CC-BY-4.0), which requires attribution. The
-committed curation tables are `configs/curation/cl_turbine_specs.csv`, every
-row of which cites its source in `source_url`; `cl_coord_overrides.csv`,
-which carries a `note` per row but no source column; and
-`cl_fleet_exclusions.csv`, which gives each excluded plant's reason.
+- **The gain is not resolved (‡):** resampling the test plants gives an
+  interval that includes zero; see the [scorecard](../scorecard.md).
+- **Northern under-prediction.** Atacama ERA5 wind is too calm; matched curves
+  made it worse, so the limit is the reanalysis wind, fixable only with a finer
+  wind product.
+- **Cluster count does not predict fit health.** The sweep avoids 3 and 5,
+  which blew up in the north, but the k10 row is flagged † with two refused
+  clusters. Check `fit_quality` on the factors table.
+- **Curtailment.** `gen_real_mw` is delivered energy and the northern grid
+  curtails wind; the SIP API has no vertimiento series (`factor_ernc` is flat
+  at 1.0), so CF is unscreened and sits below the resource.
+- **Static nameplate.** `potencia_maxima` is full from day one, so a
+  partial-build farm reads low after the pre-operational months are stripped.

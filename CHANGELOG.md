@@ -96,6 +96,16 @@ this file stay in step with it.
   data-sources guide gains Ireland's capacity repair, the region guide says the
   country-level generator writes to a fixed path, and the scorecard configs'
   comments point at documents that are still on the main branch.
+- **The region runbooks share one template** (source and licence,
+  observations, ERA5, train and evaluate, caveats) and quote no results; each
+  points to the scorecard instead. Stale instructions are fixed: test-year
+  files missing from the US and Brazil steps, the country-level generator's
+  years, the Ireland repair and Norway's manual inputs, cluster counts that did
+  not match the configs, and curve-assignment claims that did not match the
+  processing scripts. Each runbook with a scorecard row names its scorecard
+  config and the maintained one. The Turkey runbook and its probe are archived at tag
+  `archive/research-2026-10-27`; `docs/guides/data-sources.md` keeps what the
+  evaluation found.
 - **Guides are merged in pairs:** the Docker guide into
   `installation.md`, running on your own fleet data into `training.md`, and
   the adapter contract into `adding-a-region.md`. The installation guide lists
