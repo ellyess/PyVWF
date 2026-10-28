@@ -182,6 +182,16 @@ and each summary from 0.2.0 on links to its own.
   `format_axes_standard` and their private helpers) and
   **`pyvwf.viz.palettes.EXISTING_NEW_COLOURS`**. Nothing in the package, the
   scripts, the examples, the tests or the docs used them.
+- **Breaking: `pyvwf.extensions`, `pyvwf.geospatial` and the `grid` extra are
+  removed**, with `calculate_error`, `prepare_monthly_data` and
+  `weighted_average_vectorized` from `pyvwf.metrics`. The gridded correction
+  surface and the machine-learning transfer served studies whose results are
+  void, negative or never run, no maintained script or config used them, and
+  `pyvwf.harness.export` still writes a nearest-centroid gridded correction
+  field. They are at
+  tag `archive/research-2026-10-27`, and `docs/archive.md` says how to run them
+  there. `rasterio` moves to the `pinn` extra, which reads the Global Wind
+  Atlas with it.
 - **`scripts/analysis/validate_region.py`**, a wrapper identical to the
   `pyvwf-validate` console entry. The runbooks and guides now use
   `pyvwf-validate`.
