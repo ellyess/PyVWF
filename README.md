@@ -10,27 +10,23 @@ PyVWF turns atmospheric reanalysis (ERA5) into bias-corrected wind power
 generation. It began as a Python implementation of the
 [VWF model](https://github.com/renewables-ninja/pyvwf) by Iain Staffell, which
 underpins the wind simulations on
-[Renewables.ninja](https://www.renewables.ninja/), and has grown into its own
-model: it implements the granular bias-correction method of
-[Benmoufok et al. (2024)](https://doi.org/10.1016/j.energy.2024.133759), and
-extends it with a validation harness that fits and scores the correction
-against observed generation in fifteen regions, at turbine and country level.
-
-It was written by hand during a PhD from 2022 and has been developed AI-natively,
-with Claude Code, since mid-2026: [how it is built, and an error the process
-caught](docs/design/ai-native-development.md).
+[Renewables.ninja](https://www.renewables.ninja/), and implements the granular
+bias-correction method of
+[Benmoufok et al. (2024)](https://doi.org/10.1016/j.energy.2024.133759), with a
+validation harness that fits and scores the correction against observed
+generation in fifteen regions, at turbine and country level.
 
 Raw reanalysis winds carry systematic, location-dependent biases, so capacity
-factors simulated straight from ERA5 drift away from what fleets actually
-generate. PyVWF learns a per-cluster, per-time-slice affine correction of the
-**wind speed** (`w_corrected = a*w + b`) from observed generation, then converts
-the corrected wind to power, so the non-linear speed-to-power step operates on
-corrected winds. Unlike API-only tools, it exposes the full *training*
-workflow, so the factors are yours to inspect, map and retrain at whatever
-spatial resolution and time slice your observations support. Results here are
-improved on rather than preserved: a recorded output is superseded by a better
-one, and the code state behind each published result is kept in
-[publications.md](docs/publications.md) so the number can still be read.
+factors simulated straight from ERA5 drift away from what fleets generate.
+PyVWF learns a per-cluster, per-time-slice affine correction of the **wind
+speed** (`w_corrected = a*w + b`) from observed generation, then converts the
+corrected wind to power, so the non-linear speed-to-power step operates on
+corrected winds. It exposes the whole training workflow, so the factors are
+yours to inspect, map and retrain at whatever spatial resolution and time slice
+your observations support. Every run writes a manifest recording the package
+version, the git state, the region config and the curve library behind its
+numbers, and [`pyvwf.viz`](docs/guides/visualisation.md) turns it into
+diagnostic figures, including maps of what the correction learned per cluster.
 
 ```mermaid
 flowchart TD
@@ -42,52 +38,30 @@ flowchart TD
     E --> F[Capacity factors]
 ```
 
-Every run writes a manifest recording the package version, the git state, the
-region config and the curve library behind the numbers, and
-[`pyvwf.viz`](docs/guides/visualisation.md) turns it into diagnostic figures,
-including maps of what the correction learned per cluster.
-
-## If you have five minutes
-
-- **What it does, and how well:** the [results table](#results) below, corrected
-  against uncorrected error in fifteen regions, each on a test year it never
-  saw, including the region where the correction makes things worse.
-- **Where each number comes from:** the [scorecard](docs/scorecard.md),
-  with the run directory and the fit quality behind every row.
-- **How it is built:** [development with coding agents](docs/design/ai-native-development.md),
-  and its [case study](docs/design/ai-native-development.md#case-study-a-stale-comparison-in-the-physics-informed-study)
-  of an agent's error caught, tested and withdrawn on the record.
-- **One study from registration to result:** the turbine-only terrain study,
-  [registered](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/method-physics-informed-turbine-prereg.md) before
-  any fit and [reported](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/method-physics-informed-turbine.md) with
-  the control that failed it.
-- **A negative result:** [why correction factors do not
-  transfer](docs/results.md#why-corrections-do-not-transfer) between
-  regions.
-
-## Installation
+## Install and run
 
 ```bash
-conda env create -f environment.yaml && conda activate pyvwf
+git clone https://github.com/ellyess/PyVWF.git
+cd PyVWF
+pip install -e .
+python examples/run_minimal.py   # synthetic data, no downloads, a few seconds
 ```
 
-Or into any Python >= 3.10 environment, `pip install -e .`. Seven extras add
-data acquisition, the development tools, the docs build, the gridded surfaces,
-the parallel offset fit, the physics-informed correction and the TouchDesigner
-export; the
-[installation guide](docs/guides/installation.md) says what each needs, and a
-[Docker image](docs/guides/installation.md#docker) carries the scientific stack ready built.
+With conda, replace the `pip` line with
+`conda env create -f environment.yaml && conda activate pyvwf`.
 
-## Quickstart
+The example runs the whole workflow on bundled synthetic weather and
+observations and prints the error the correction removed. Seven optional extras
+add data acquisition, development tools, the docs build, gridded surfaces, the
+parallel offset fit, the physics-informed correction and a TouchDesigner
+export; the [installation guide](docs/guides/installation.md) says what each
+needs, and covers the Docker image.
 
-No downloads, a few seconds, synthetic weather and observations:
-
-```bash
-python examples/run_minimal.py
-```
-
-With your own data, `pyvwf-validate` runs one region through the harness, the
-preferred path, from its config in `configs/regions/`:
+To correct your own fleet, supply two CSV files, unit metadata and monthly
+generation, and the harness fits and scores the correction:
+[your own fleet data](docs/guides/training.md#your-own-fleet-data). To run a
+shipped region, build its inputs with its [runbook](docs/runbooks/nz.md) (each
+region has one) and run its config:
 
 ```bash
 pyvwf-validate train --region configs/regions/nz.toml
@@ -95,23 +69,22 @@ pyvwf-validate evaluate --region configs/regions/nz.toml \
     --train-run output/validation/NZ/train-<timestamp>
 ```
 
-`transfer` is the third verb: it applies one region's factors to another. See
-the [training guide](docs/guides/training.md), and `pyvwf-validate --help`.
+That is the maintained config, which sweeps its cluster counts. To reproduce a
+row of the table below, run the row's scorecard config under the input root its
+curve library needs, as the scorecard's
+[Reproducing a row](docs/scorecard.md#reproducing-a-row) section describes.
 
-## Documentation
-
-Hosted at [pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/), and readable as
-plain Markdown in [`docs/`](docs/README.md), which indexes every page.
-
-- [Data sources and preprocessing](docs/guides/data-sources.md): input formats, sources per region, preprocessing.
-- [Training and evaluation](docs/guides/training.md): the region config, the input root, and train / evaluate / transfer.
-- [Adding a region](docs/guides/adding-a-region.md): every file a new region touches, in order.
-- [Adding a study](docs/guides/adding-a-study.md): where a study's documents, driver and runs go.
-- [Results](docs/results.md): every study's result, including the negative ones, and the [research archive](docs/archive.md) that holds the full records.
+The [training guide](docs/guides/training.md) covers the region config, the
+input root that decides which power-curve library a run uses, and the
+`transfer` command.
 
 ## Results
 
-Capacity-factor RMSE before and after correction, each region scored on
+The correction lowers the error in fourteen of the fifteen regions below, and
+makes France worse; most fits carry a caveat marker, and the corrections do not
+transfer between regions
+([why](docs/results.md#why-corrections-do-not-transfer)). Capacity-factor RMSE
+before and after correction, each region scored on
 training years and a single test year it never saw. Turbine-level rows score
 each farm or turbine; country-level rows score the national series, simulated
 on each grid's representative turbine.
@@ -153,10 +126,10 @@ numbers with their markers:
 - One test year per region, and screening-level throughout, not an accredited
   yield assessment.
 
-Every number, its source path, its fit quality and the size of each marked
+Every number, the run behind it, its fit quality and the size of each marked
 share are in the [scorecard](docs/scorecard.md), which is their home;
-`tests/test_readme_results.py` checks this table against it. The regions where
-the correction does not help are on the
+`tests/test_readme_results.py` checks this table against it. Every study
+behind it, negative results included, has an entry on the
 [results page](docs/results.md).
 
 ## Physics-informed correction (experimental)
@@ -181,6 +154,36 @@ on the [results page](docs/results.md#physics-informed-correction).
 
 The full list is in [docs/design/limitations.md](docs/design/limitations.md).
 
+## How this is built
+
+PyVWF was written by hand during the maintainer's PhD at Imperial College
+London from 2022: the method, the affine correction and its first validation
+predate any coding agent. Since mid-2026 it has been developed with Claude Code,
+a coding agent, under written rules ([AGENTS.md](AGENTS.md)) and guards a
+machine checks. The maintainer owns the method, the gates and every scientific
+decision, and sees each diff before it is committed.
+
+- [Development with coding agents](docs/design/ai-native-development.md): who
+  decides what, which guards a machine enforces and what each misses, the
+  failure behind each rule, the mistakes that reached publication, and a
+  [case study](docs/design/ai-native-development.md#case-study-a-stale-comparison-in-the-physics-informed-study)
+  of an agent's error caught and withdrawn on the record.
+- Pre-registered studies: gates fixed before the run they judge, and kept when
+  they fail. [One study](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/method-physics-informed-turbine-prereg.md)
+  was registered before any fit and
+  [reported](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/method-physics-informed-turbine.md)
+  with the control that failed it.
+- The research record is archived whole at tag `archive/research-2026-10-27`
+  ([what is there and how to cite it](docs/archive.md)).
+
+## Documentation
+
+Hosted at [pyvwf.readthedocs.io](https://pyvwf.readthedocs.io/), and readable as
+plain Markdown in [`docs/`](docs/README.md): the guides (installation, data
+sources, training, outputs, adding a region or a study), one runbook per region,
+the [scorecard](docs/scorecard.md), the [results](docs/results.md) and the
+design notes.
+
 ## Citation
 
 Please cite both the software and the method paper. The Zenodo DOI is the
@@ -198,30 +201,16 @@ from the [record](https://doi.org/10.5281/zenodo.21236619).
 
 The method is also applied in Wang et al. (2026), *Energy Conversion and
 Management*, [doi:10.1016/j.enconman.2026.121066](https://doi.org/10.1016/j.enconman.2026.121066).
-Machine-readable metadata is in [`CITATION.cff`](CITATION.cff), and the commit
-behind each published result in [publications.md](docs/publications.md).
-
-## How this is built
-
-PyVWF began as the code of the maintainer's PhD at Imperial College London,
-written by hand from 2022 through the thesis: the method, the affine correction
-and its first validation predate any coding agent. Since mid-2026 it has been
-developed AI-natively, with Claude Code, a coding agent, under written rules and
-guards a machine checks. The maintainer still owns the method, the gates and
-every scientific decision; agents implement changes, write tests, draft
-documents and critique proposals, and each diff is shown to the maintainer
-before it is committed. The rules are in [AGENTS.md](AGENTS.md).
-[ai-native-development.md](docs/design/ai-native-development.md) says how agents
-are used, which guards a machine enforces and what each misses, the failure
-behind each rule, a log of the mistakes that reached publication, and a worked
-example of an error the process caught.
+Machine-readable metadata is in [`CITATION.cff`](CITATION.cff), the commit
+behind each published result in [publications.md](docs/publications.md), and
+the research archive's own citation in [archive.md](docs/archive.md).
 
 ## Contributing
 
 Contributions are welcome, especially documentation, new bias-correction
 methods, validation case studies and performance work. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for development setup, tests and pull-request
-guidelines, and open an issue to discuss larger changes first.
+[CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests and pull-request guidelines,
+and open an issue to discuss larger changes first.
 
 ## Credits, contact and licence
 

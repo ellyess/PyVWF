@@ -88,6 +88,13 @@ this file stay in step with it.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **The README leads with installing and running the package.** The
+  quickstart starts from `git clone`, says that a shipped region needs its
+  runbook's inputs, and points a user with their own fleet to the CSV route.
+  The results table is unchanged, and the negative transfer result is named
+  above it. The five-minute list is folded into "How this is built", which now
+  names the pre-registered studies and the research archive, whose citation is
+  linked.
 - **The agent design docs are one page.** `docs/design/agent-guards.md` is
   merged into `docs/design/ai-native-development.md`: the guard table with
   what each guard misses, the incident behind each rule in brief, the
