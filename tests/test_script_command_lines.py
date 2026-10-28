@@ -20,8 +20,8 @@ import sys
 from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 ANALYSIS = ROOT / "scripts" / "analysis"
 BACKFILL = Path("output/validation/curve_resolution_backfill_2026-09-11")
 

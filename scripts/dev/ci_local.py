@@ -54,7 +54,7 @@ ENVS = {
 }
 
 #: name -> (environment, command), in the order CI's jobs run them. The
-#: commands are the workflow's own; `tests/test_ci_local.py` checks that each
+#: commands are the workflow's own; `tests/test_tooling.py` checks that each
 #: still appears in `.github/workflows/ci.yml`.
 CHECKS = {
     "ruff check": ("dev", ["ruff", "check", "src", "tests", "scripts", "examples"]),
