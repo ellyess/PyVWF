@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from pyvwf.harness.regions import load_region
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 SCORECARD = ROOT / "docs" / "scorecard.md"
 CONFIG_DIR = ROOT / "configs" / "regions" / "scorecard"
 # Matches rows that open with a name and a code, such as Germany (DE), Denmark (DK) § 0.6%

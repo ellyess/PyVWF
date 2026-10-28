@@ -9,15 +9,7 @@ file the hook formatted can fail CI with no code change.
 from __future__ import annotations
 
 import re
-import sys
-from pathlib import Path
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # Python 3.10: tomllib is not in the standard library yet.
-    import tomli as tomllib
-
-ROOT = Path(__file__).resolve().parents[1]
+from support import ROOT, tomllib
 
 
 def test_dev_ruff_pin_matches_the_pre_commit_rev():

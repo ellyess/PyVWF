@@ -43,10 +43,10 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from support import ROOT
 
 pytestmark = pytest.mark.realdata
 
-ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 STUDY = ROOT / "output" / "curve_library_study_2026-09-11"
 BACKFILL = ROOT / "output" / "validation" / "curve_resolution_backfill_2026-09-11"

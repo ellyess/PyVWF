@@ -18,8 +18,8 @@ import sys
 from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 RUN_LOCK = ".claude/hooks/guard_run_lock.py"
 SUITES = ".claude/hooks/guard_local_suites.py"
 

@@ -10,18 +10,9 @@ be resolved freely inside an otherwise pinned install.
 from __future__ import annotations
 
 import re
-import sys
-from pathlib import Path
 
 import pytest
-from support import load_script
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-ROOT = Path(__file__).resolve().parents[1]
+from support import ROOT, tomllib, load_script
 
 
 def _lock():

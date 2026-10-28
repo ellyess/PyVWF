@@ -15,8 +15,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 FENCE = re.compile(r"```.*?```", re.S)
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#+\s+(.*)$", re.M)

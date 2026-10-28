@@ -7,12 +7,10 @@ leave the pre-check passing on something CI no longer runs.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
-from support import load_script
+from support import ROOT, load_script
 
-ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
 
 

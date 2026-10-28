@@ -12,11 +12,10 @@ from __future__ import annotations
 
 import re
 import sys
-from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 CODE = re.compile(r"\(([A-Z]{2}(?:-[A-Z]+)?)\)")
 NUMBER = re.compile(r"\d+\.\d+")
 
