@@ -29,6 +29,7 @@ says, with its own authors.
 | Study and superseded configurations | `configs/regions/study/`, `configs/regions/scorecard/superseded/`, `configs/regions/pinn_loco/`, `configs/regions/nl.toml` |
 | Review-agent evaluation run | `scripts/dev/agent_evals/runs/2026-10-16/`: 30 critic prompts and reviews, 40 judge prompts and judgements, and the run record. The harness, its five cases and a results summary stay on main |
 | Turkey evaluation, not shipped | `docs/runbooks/tr.md`, `scripts/fetch/epias_tr.py`. `docs/guides/data-sources.md`, section 5, keeps what was found |
+| The gridded correction and the transfer model, removed from the package on 2026-10-28 | `src/pyvwf/extensions/` (`grid`, `ml`), `src/pyvwf/geospatial.py`, and `calculate_error`, `prepare_monthly_data` and `weighted_average_vectorized` in `src/pyvwf/metrics.py`, with their tests and the `grid` extra. The sections below say how to run them |
 | Agent definitions now kept locally | `.claude/agents/prior-work-scout.md`, `.claude/agents/simplicity-critic.md`, `.claude/skills/idea-review/`. The three evaluated critics stay on main |
 | Their tests | `tests/`, as named in each finding's reproduction record |
 
@@ -59,7 +60,8 @@ the default since 2026-09-20.
 without data:
 
 ```bash
-pytest tests/test_grid_evaluate.py tests/test_grid_geodataframes.py tests/test_grid_surface.py tests/test_geospatial.py
+pytest -m "not realdata" tests/test_grid_evaluate.py tests/test_grid_geodataframes.py \
+    tests/test_grid_interpolation.py tests/test_grid_surface.py tests/test_geospatial.py tests/test_metrics.py
 ```
 
 The studies (distance mask, domain split, leave-one-country-out interpolation,
