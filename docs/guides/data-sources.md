@@ -49,7 +49,7 @@ reduced to a **monthly capacity factor** before correction.
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 4 ENTSO-E countries | ES IE IT NL | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Spain, Ireland, Italy, Netherlands | ES IE IT NL | `entsoe-country` | ENTSO-E national generation; Ireland's capacity rebuilt from GWPT; NL excluded | open | `datasets/generate_country_level_training_data.py`; IE then `region_tools/repair_country_capacity.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden | SE | `entsoe-country` | ENTSO-E generation over Energimyndigheten's year-end wind fleet | open | generator → `region_tools/build_se_capacity_from_energimyndigheten.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Norway | NO | `entsoe-country` | NVE metered farm output over NVE's turbine register (2015-21); ENTSO-E generation over the register (2023) | open, attribution | generator → `region_tools/build_no_obs_from_nve.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Portugal | PT | `entsoe-country` | ENTSO-E generation over REN Data Hub's month-end wind fleet | mixed | generator → `region_tools/build_pt_capacity_from_ren.py` | [ENTSO-E](../runbooks/entsoe.md) |
@@ -233,6 +233,10 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
   are never taken for the whole fleet; outside a type's first and last reported
   hour it is taken not to exist yet. The capacity-factor denominator is
   ENTSO-E's installed capacity.
+- **IE: capacity rebuilt.** ENTSO-E's register is frozen for 2015-21 while the
+  fleet nearly doubled, so `scripts/region_tools/repair_country_capacity.py IE
+  --from-year 2017` rewrites the capacity from GWPT and writes the 2017-21
+  training file the IE row reads.
 - **SE: Energimyndigheten.**
   `scripts/region_tools/build_se_capacity_from_energimyndigheten.py` keeps
   ENTSO-E's generation and divides it by Energimyndigheten's 31 December wind

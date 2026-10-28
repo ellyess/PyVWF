@@ -88,6 +88,14 @@ this file stay in step with it.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **Germany's source is named correctly in the scorecard.** Its provenance
+  line called it a public turbine register; Germany's row reads only the
+  licensed WindStats extract, for metadata and generation alike, and the
+  corrections log records the fix. The results page now says its Denmark
+  figure belongs to the run it reports, not to the scorecard row. The
+  data-sources guide gains Ireland's capacity repair, the region guide says the
+  country-level generator writes to a fixed path, and the scorecard configs'
+  comments point at documents that are still on the main branch.
 - **The region runbooks share one template** (source and licence,
   observations, ERA5, train and evaluate, caveats) and quote no results; each
   points to the scorecard instead. Stale instructions are fixed: test-year
