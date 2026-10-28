@@ -49,7 +49,7 @@ reduced to a **monthly capacity factor** before correction.
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 4 ENTSO-E countries | ES IE IT NL | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Spain, Ireland, Italy, Netherlands | ES IE IT NL | `entsoe-country` | ENTSO-E national generation; Ireland's capacity rebuilt from GWPT; NL excluded | open | `datasets/generate_country_level_training_data.py`; IE then `region_tools/repair_country_capacity.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden | SE | `entsoe-country` | ENTSO-E generation over Energimyndigheten's year-end wind fleet | open | generator → `region_tools/build_se_capacity_from_energimyndigheten.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Norway | NO | `entsoe-country` | NVE metered farm output over NVE's turbine register (2015-21); ENTSO-E generation over the register (2023) | open, attribution | generator → `region_tools/build_no_obs_from_nve.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Portugal | PT | `entsoe-country` | ENTSO-E generation over REN Data Hub's month-end wind fleet | mixed | generator → `region_tools/build_pt_capacity_from_ren.py` | [ENTSO-E](../runbooks/entsoe.md) |
@@ -238,6 +238,10 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
   are never taken for the whole fleet; outside a type's first and last reported
   hour it is taken not to exist yet. The capacity-factor denominator is
   ENTSO-E's installed capacity.
+- **IE: capacity rebuilt.** ENTSO-E's register is frozen for 2015-21 while the
+  fleet nearly doubled, so `scripts/region_tools/repair_country_capacity.py IE
+  --from-year 2017` rewrites the capacity from GWPT and writes the 2017-21
+  training file the IE row reads.
 - **SE: Energimyndigheten.**
   `scripts/region_tools/build_se_capacity_from_energimyndigheten.py` keeps
   ENTSO-E's generation and divides it by Energimyndigheten's 31 December wind
@@ -286,10 +290,17 @@ series that measures only part of the fleet; this comparison can.
 
 ## 5. Evaluated but not shipped
 
-- **Turkey (TR):** EPİAŞ Şeffaflık. The per-plant licensed-realtime endpoint
-  returns 403 under the public subscription and aggregates ignore
-  `powerPlantId`, so per-plant wind is not obtainable openly.
-  `fetch/epias_tr.py` + [TR runbook](../runbooks/tr.md) document the gap.
+- **Turkey (TR):** EPİAŞ Şeffaflık, evaluated in July 2026 and not shipped.
+  Authentication works and the plant list downloads, but no reachable endpoint
+  returns per-plant generation: the injection-quantity (UEVM) endpoint answers
+  200 for any `powerPlantId` and silently returns the national series, and
+  the licensed real-time endpoint returns 403 under the Data Consultation
+  subscription. The false positive was caught by asking for two different
+  plants and finding byte-identical numbers. A subscription covering
+  `renewables-service` would be the way to retest it. The runbook and the probe
+  are at the archive tag:
+  [`docs/runbooks/tr.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/runbooks/tr.md),
+  [`scripts/fetch/epias_tr.py`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/scripts/fetch/epias_tr.py).
 - **Sweden & Finland (WindStats):** the format supports them, but GWPT matches
   only 7-9% of their fragmented fleets. Parked pending a thewindpower.net
   coordinate table ([ES runbook](../runbooks/es.md)).

@@ -1,159 +1,112 @@
 # New Zealand (EMI)
 
-**Data source:** EA EMI `Generation_MD`, half-hourly metered injection.
-**Adapter:** `emi-nz` · turbine-level · unit = farm · open.
-**Fleet:** 13 dispatched farms, about 1.5 GW, with per-farm hub heights.
+**Data source:** Electricity Authority EMI `Generation_MD`, half-hourly metered
+injection per plant. **Adapter:** `emi-nz` · turbine-level · unit = farm ·
+open.
 
-All inputs are open Electricity Authority data, which needs no registration, or
-come from your own CDS account for ERA5. No raw data or processed input is
-committed, because `input/` is git-ignored. This runbook is how you build them.
+New Zealand's dispatched wind fleet: 13 farms, about 1.35 GW at final build,
+with per-farm hub heights. Training years 2019-23, test year 2024. Its result
+is the NZ row of the [scorecard](../scorecard.md) and the
+[results entry](../results.md#new-zealand).
 
-NZ was the first pick of the July 2026 dataset survey
-(`docs/results.md#dataset-survey`). It has open half-hourly metered generation
-per plant. Its Southern-Hemisphere temperate-westerly climate over complex
-terrain is not yet in the validation set. It also has per-farm hub heights, which no other region outside
-Europe has, apart from Canada.
+## Source and licence
 
-## 0. What is already committed
+The generation data are open Electricity Authority EMI datasets, downloaded
+without registration (the
+[source table](../guides/data-sources.md#source-urls)). Nothing from them is
+committed. ERA5 needs your own CDS account. The committed curation tables are:
 
-- `configs/curation/nz_wind_farms.csv`: the curated farm table, 13 dispatched
-  farms. It holds each farm's Gen_Code and POC keys into the EMI files, its
-  coordinates, final-build capacity, turbine model and hub height.
-  `height_source` marks the three unverified hub heights: tararua_3,
-  mill_creek and kaiwera_downs_2. The table was compiled in July 2026 from
-  NZWEA, operator, Wikipedia and EMI register sources. It has no per-row
-  source column yet.
-- `configs/curation/nz_capacity_stages.csv`: stable capacity plateaus for
-  staged builds. At present this is Turitea, from 118.8 MW (North only) to
-  221.4 MW (full).
+- `configs/curation/nz_wind_farms.csv`: the 13 dispatched farms, with each
+  farm's Gen_Code and POC keys into the EMI files, coordinates, final-build
+  capacity, turbine model and hub height. `height_source` marks the three
+  unverified hub heights (tararua_3, mill_creek, kaiwera_downs_2); other notes
+  are in `notes`. There is no general per-row source column.
+- `configs/curation/nz_capacity_stages.csv`: capacity plateaus for staged
+  builds; at present Turitea, 118.8 MW (North only) then 221.4 MW (full).
 - `configs/curation/nz_mask_windows.csv`: commissioning months to mask at load,
   for Waipipi, Turitea (twice), Harapaki, and Kaiwera Downs 1 and 2.
-- The adapter (`pyvwf/sources/emi_nz.py`), the transforms
-  (`pyvwf/datasets/emi_nz.py`) and their tests. Must-distinguish tests pin the
-  trading-period mapping on daylight-saving (DST) days.
 
-Three known exclusions are documented:
-
-- **Mahinerangi** is metered inside the Waipori hydro scheme. It never appears
-  as wind in `Generation_MD`.
-- **Seven small embedded farms** connect to the distribution network, so they
-  are outside the dispatched dataset. They are Brooklyn, Hau Nui, Mt Stuart,
-  Flat Hill, Horseshoe Bend, Weld Cone and Lulworth, about 28 MW in total.
-- **Te Rere Hau** is included, but degraded late in the window: 5 turbines
-  stopped and 2 derated. Its observed CF understates the resource. This is a
-  standing caveat, and it could be excluded later.
-
-## 1. Observations (user-executed, no credentials)
+## 1. Observations
 
 ```bash
 python scripts/fetch/emi_nz.py            # 72 monthly CSVs 2019-2024 + register
 python scripts/process/emi_nz.py          # -> input/observations/turbine/NZ/
 ```
 
-The fetch uses plain HTTP. Each URL returns an HTTP 302 redirect to an open
-Azure blob, about 0.4 to 0.9 MB per month.
+Processing sums multi-POC farms (West Wind, Tararua I and II), takes monthly
+CF against the curated capacity history (the final capacity, or the stage table
+for a staged build; not the EMI register),
+masks the commissioning months, and assigns curves by rating band, then
+specific power, from the library of the input root it runs under. Run it under
+the default root: the scorecard row's farms are on curves the open library
+holds. An unmapped wind `Gen_Code` stops it with an error: add a curated row
+for the new farm, or an entry in `KNOWN_ABSENT` in
+`src/pyvwf/datasets/emi_nz.py` if it never carries wind rows.
 
-The processing step does the following:
+Then read `input/observations/turbine/NZ/join_report.md`: check the farm count
+(13), the final-build capacity (1.35 GW), the matched-curve count and the
+masked months.
 
-- It selects wind rows, where `Fuel_Code` is Wind or WIN.
-- It keys on `Gen_Code`, normalised for case. `Site_Code` is not stable across
-  years.
-- It maps trading periods to UTC through `Pacific/Auckland`. Days of 46, 48 and
-  50 periods (DST days) are handled, and tests pin them.
-- It sums farms with several POCs: West Wind, and Tararua I and II.
-- It computes monthly CF against the capacity history described below.
-- It writes the build mask of commissioning-ramp months from `nz_mask_windows.csv`.
+**Known exclusions.** Mahinerangi is metered inside the Waipori hydro scheme,
+never as wind in `Generation_MD`. Seven small embedded farms (Brooklyn, Hau
+Nui, Mt Stuart, Flat Hill, Horseshoe Bend, Weld Cone, Lulworth; about 28 MW)
+are on the distribution network, outside the dispatched dataset.
 
-An unmapped wind `Gen_Code` stops processing with an error. It means a new farm
-needs a curated row. Kaiwaikawe (Northland, 77 MW) is expected to appear around
-mid-2026.
+### Refresh
 
-Next, read `input/observations/turbine/NZ/join_report.md`. Check the farm count
-(13), the capacity (about 1.5 GW), the matched-curve count and the masked
-months. Trust nothing before this check.
+- **New months:** re-run `scripts/fetch/emi_nz.py` and
+  `scripts/fetch/era5.py --region nz`; both skip existing files. A year outside
+  2019-2024 needs `--years` on each fetch and on the processing step.
+- **New farms** (Kaiwaikawe, Mt Munro, a Te Rere Hau repowering): add a row to
+  `configs/curation/nz_wind_farms.csv`, and for a staged farm rows to
+  `nz_capacity_stages.csv` and `nz_mask_windows.csv`.
+- **Dataset changes:** EMI plans to replace `Generation_MD`; a fetch returning
+  404 across the board is the sign to check the EMI dataset page.
 
-### Capacity-factor denominator
+## 2. ERA5
 
-Each farm's monthly CF is divided by a stable-plateau capacity history. It is
-built from the curated tables, not from the EMI plant register:
-
-- For a staged build, the capacity comes from `nz_capacity_stages.csv`.
-- For any other farm, it is the farm's final capacity in `nz_wind_farms.csv`,
-  from its first generation.
-- Months in `nz_mask_windows.csv` are masked.
-
-The EMI register is fetched for the join report only. The curated tables have
-no per-unit confidence column yet.
-
-## 2. ERA5 (user-executed, your CDS key)
+Box `[166.0, 179.0, -48.0, -36.0]`, west of the antimeridian, written to
+`<input root>/era5/NZ/`, the config's ERA5 path, so no combine step. The rest
+is in [Shared inputs](../guides/data-sources.md#3-shared-inputs-all-regions).
 
 ```bash
-python scripts/fetch/era5.py --region nz           # 72 months, 2019-2024, NZ box
+python scripts/fetch/era5.py --region nz           # 72 months, 2019-2024
 ```
-
-The box is small, 53 by 49 cells. So it needs no daily combine step, unlike the
-BR and US boxes.
 
 ## 3. Train and evaluate
 
+The scorecard row reruns from `configs/regions/scorecard/nz_k7.toml` (k7, fixed
+slice) on the combined library
+([Reproducing a row](../scorecard.md#reproducing-a-row),
+[Choose the input root](../guides/training.md#choose-the-input-root)). The
+maintained `configs/regions/nz.toml` sweeps `cluster_list = [1, 5]` over fixed
+and season slices. Seasons are Southern-Hemisphere (winter June-August).
+
 ```bash
-PYVWF_INPUT=<input root> pyvwf-validate train \
-    --region configs/regions/nz.toml
-PYVWF_INPUT=<input root> pyvwf-validate evaluate \
-    --region configs/regions/nz.toml --train-run output/validation/NZ/train-<stamp>
+PYVWF_INPUT=input/combined pyvwf-validate train \
+    --region configs/regions/scorecard/nz_k7.toml
+PYVWF_INPUT=input/combined pyvwf-validate evaluate \
+    --region configs/regions/scorecard/nz_k7.toml \
+    --train-run output/validation/NZ/train-<stamp>
 ```
 
-Set `PYVWF_INPUT` on both commands. Evaluation resolves the curve library again.
-Without the variable, it silently uses the open library. The manifest records
-which library each run used.
+**Keep the cluster count at 8 or below.** Only 8 of the 13 farms reach the
+clusterer in 2019-2023 (Harapaki and Kaiwera Downs 2 commission later; sparse
+farms drop in `train_set`), and k=10 crashed. Near 8 each cluster holds one
+farm, the fake-plateau regime under
+[United States and Brazil](../results.md#united-states-and-brazil); the
+scorecard's k7 is close. Turitea contributes 2022 (the North plateau) and
+2024, its 2021 and 2023 ramps masked; Harapaki enters in the test year, masked
+until July 2024.
 
-Notes for reading the result:
+## Caveats
 
-- **Bias-structure diagnosis first** (the D2 lesson). Check the uncorrected MBE
-  before judging the correction. NZ capacity factors are among the world's
-  highest, about 40%. ERA5 probably under-resolves the resource in complex
-  terrain, such as the Manawatu Gorge and Cook Strait funnelling. This is the
-  Tehachapi-like regime the ML transfer re-test identified as under-represented
-  globally.
-- **The cluster count is limited.** Only 8 of the 13 farms reach the clusterer
-  in the 2019-2023 training years. Harapaki and Kaiwera Downs 2 commission
-  later, and some farms with sparse coverage drop in `train_set`. k-means needs
-  a cluster count no larger than 8.
-  - k=10 crashed for that reason (`region-nz.md`).
-  - A cluster count near 8 puts one farm in each cluster: the fake-plateau
-    regime (`region-us-br.md`).
-  - The maintained config sweeps `cluster_list = [1, 5]`.
-  - The scorecard row is k7 fixed. Its scorecard config is
-    `configs/regions/scorecard/nz_k7.toml`.
-- **Training years 2019-2023, test year 2024.** Turitea contributes 2022 (the
-  North plateau) and 2024. Its 2021 and 2023 ramps are masked. Harapaki
-  effectively enters in the test year, masked until July 2024. Watch its months
-  in evaluation.
-- **Curtailment is not screened.** Metered injection is net of availability. NZ
-  has little economic wind curtailment in this window, because hydro dominates
-  the system. No curtailment screen exists, unlike for BR. This is a standing
-  caveat.
-
-## 4. Refresh
-
-- **New months:** re-run both fetch scripts. They skip files that already
-  exist.
-- **New farms** (Kaiwaikawe, Mt Munro, a Te Rere Hau repowering): add a row to
-  `configs/curation/nz_wind_farms.csv`.
-  - For a staged farm, also add rows to `nz_capacity_stages.csv` and
-    `nz_mask_windows.csv`.
-  - Processing fails with an error until the row exists.
-- **New register files:** the register filename carries its publication date,
-  about every six months. The fetch script finds the newest in the directory.
-- **Dataset changes:** EMI plans to replace `Generation_MD` with a richer
-  dataset.
-  - A fetch that returns 404 is the sign. Then check the EMI dataset page.
-
-## Licence
-
-The generation data are open Electricity Authority EMI datasets, downloaded
-without registration (the [source table](../guides/data-sources.md#source-urls)). Nothing from them is committed. The committed
-curation tables are `configs/curation/nz_wind_farms.csv`,
-`nz_capacity_stages.csv` and `nz_mask_windows.csv`. The farm table records
-where each hub height came from in `height_source`, and other notes in
-`notes`; it has no general per-row source column.
+- **The gain is not resolved (‡):** resampling the test farms gives an
+  interval that includes zero; see the [scorecard](../scorecard.md).
+- **Te Rere Hau is degraded late in the window** (5 turbines stopped, 2
+  derated), so its observed CF understates the resource. It is included.
+- **Read the uncorrected bias first.** ERA5 may under-resolve complex terrain
+  (Cook Strait, the Manawatu Gorge); judge the correction against that bias.
+- **Curtailment is not screened**, unlike for BR. Metered injection is net of
+  availability; hydro dominance keeps economic wind curtailment low in this
+  window.

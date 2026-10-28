@@ -38,9 +38,8 @@ Each extra adds one capability. Install the ones a task needs, and no more:
 | `data` | `entsoe-py`, `openpyxl`, `pyarrow`, `cdsapi` | Downloading observations and ERA5. Nothing in the simulation path imports these. |
 | `dev` | `pytest`, `ruff`, `mypy`, `pandas-stubs`, `pre-commit`, `import-linter`, `deptry`, `vulture` | Running the tests and the other checks. See [CONTRIBUTING.md](https://github.com/ellyess/PyVWF/blob/main/CONTRIBUTING.md). |
 | `docs` | `sphinx`, `furo`, `myst-parser` | Building the documentation site. |
-| `grid` | `pykrige`, `rasterio` | The gridded correction surfaces (`pyvwf.extensions.grid`). |
 | `parallel` | `dask[distributed]` | Fanning the offset fit across workers (`PYVWF_OFFSET_WORKERS`). |
-| `pinn` | `torch` | The physics-informed correction (`pyvwf.pinn`). It adds close to a gigabyte. |
+| `pinn` | `torch`, `rasterio` | The physics-informed correction (`pyvwf.pinn`). It adds close to a gigabyte. |
 | `touchdesigner` | `mapbox-earcut` | Exporting cluster maps to TouchDesigner. |
 
 ```bash
@@ -50,8 +49,8 @@ pip install -e ".[dev,docs]"
 
 Continuous integration's test matrix installs `dev` only, so the test suite and
 `examples/run_minimal.py` must pass without the other extras; a test that needs
-`torch`, `pykrige` or `rasterio` skips itself where the library is absent. A
-separate job installs `dev`, `pinn`, `grid`, `data` and `parallel` and runs the
+`torch` or `rasterio` skips itself where the library is absent. A
+separate job installs `dev`, `pinn`, `data` and `parallel` and runs the
 same fast set with them, and the docs job installs `docs`.
 
 ## What PyVWF ships, and what it does not

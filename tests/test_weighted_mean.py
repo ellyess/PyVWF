@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pyvwf.metrics import weighted_average_vectorized, weighted_mean, weighted_mean_by
+from pyvwf.metrics import weighted_mean, weighted_mean_by
 
 
 def test_the_plain_case_is_the_weighted_mean():
@@ -77,8 +77,3 @@ def test_grouped_wrapper_applies_the_same_rule():
     got = weighted_mean_by(frame, "v", "w", "g")
     assert got["a"] == pytest.approx(0.2)  # not 0.2 * 1 / 10
     assert np.isnan(got["b"])  # not 0.0
-
-
-def test_the_legacy_name_delegates():
-    frame = pd.DataFrame({"v": [np.nan, 0.4], "w": [3.0, 1.0]})
-    assert weighted_average_vectorized(frame, "v", "w") == pytest.approx(0.4)
