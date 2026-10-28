@@ -61,6 +61,15 @@ this file stay in step with it.
   on the critics' models, all six reviewers run from one `--agents` JSON
   without `AGENTS.md` loaded, and a gate on the critics' margin over the baseline.
   Run folders under `scripts/dev/agent_evals/runs/` are no longer committed.
+- **The evaluation gains a docs suite for `docs-critic`**, pre-registered in
+  `docs/findings/agent-critics-docs-prereg.md`: held-out page changes, each a
+  change carrying a defect and the same change with it fixed, drawn from
+  mistakes the definition's text does not draw on, and a generic baseline with
+  the same model, tools and Bash hook. `evals.py prepare --suite docs` prepares
+  it. Its session starts outside any git repository, so the reviewers' git
+  commands do not reach the history, and a review that lists a file or command
+  path outside its checkout is excluded. A baseline now takes its matched
+  critic's tools and hooks as well as its model.
 - **The scorecard is published in short form at `docs/scorecard.md`**, on the
   documentation site. It keeps both results tables, the fit-quality,
   suspended and superseded tables and the overclaim list, and adds a table

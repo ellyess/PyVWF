@@ -1,0 +1,43 @@
+# One matched pair for the docs suite. The reviewer sees only `proposal`,
+# against a checkout of `snapshot`; everything else is the key.
+
+pair = "pinned-halves"
+snapshot = "cc9fc14"
+source_commit = "69cd22f"
+source_document = "docs/design/agent-guards.md, mistake C173"
+expected_catchers = ["docs-critic"]
+allow = []
+defect = "The entry says two tests pin both halves of the defect, but only one half is pinned: a test checks that the run name carries the fleet mode, and nothing tests the per-row output files, so the second half (one aggregate file per invocation) could return without a test failing."
+judge_positive = "**Verdict:** FIX. CHANGELOG.md | counts / checks | 'two tests pin both halves' does not hold: tests/test_cluster_selection_study.py checks the run tag carries the fleet mode, but no test checks that each row is written to its own file, so the second half is unpinned."
+judge_negative = "**Verdict:** FIX. CHANGELOG.md | years | the entry mentions DK onshore and offshore but gives no training years or test year for the runs it repaired."
+
+[defect_arm]
+proposal = '''
+**Summary:** put the fleet mode in the cluster-selection runner's run path.
+
+**Change** to `CHANGELOG.md`, under Unreleased, Fixed:
+
+```markdown
+- **The cluster-selection runner keys its run directory on the fleet mode,
+  and writes one output file per row.** Its first run keyed the directory on
+  the region code alone, so DK onshore and DK offshore collided, and wrote one
+  aggregate file per invocation, so a per-process loop kept only the last row.
+  Two tests pin both halves.
+```
+'''
+
+[control_arm]
+proposal = '''
+**Summary:** put the fleet mode in the cluster-selection runner's run path.
+
+**Change** to `CHANGELOG.md`, under Unreleased, Fixed:
+
+```markdown
+- **The cluster-selection runner keys its run directory on the fleet mode,
+  and writes one output file per row.** Its first run keyed the directory on
+  the region code alone, so DK onshore and DK offshore collided, and wrote one
+  aggregate file per invocation, so a per-process loop kept only the last row.
+  One test pins the first half, the run name carrying the fleet mode;
+  the per-row output files are not tested.
+```
+'''
