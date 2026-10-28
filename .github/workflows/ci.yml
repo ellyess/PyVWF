@@ -119,9 +119,8 @@ jobs:
   extras:
     name: Test with every extra (Python 3.12)
     runs-on: ubuntu-latest
-    # The test job installs [dev] only, so the physics-informed tests (torch),
-    # the gridded-export tests (pykrige, rasterio) and anything the
-    # acquisition libraries reach skip there. This job installs them and runs
+    # The test job installs [dev] only, so the physics-informed tests (torch,
+    # rasterio) and anything the acquisition libraries reach skip there. This job installs them and runs
     # the same fast set, and fails if any test still skips for a missing import.
 
     steps:
@@ -139,7 +138,7 @@ jobs:
         run: |
           TORCH=$(grep -E '^torch==' constraints/py312-extras.txt | cut -d= -f3)
           pip install "torch==${TORCH}" --index-url https://download.pytorch.org/whl/cpu
-          pip install -e ".[dev,pinn,grid,data,parallel]" -c constraints/py312-extras.txt
+          pip install -e ".[dev,pinn,data,parallel]" -c constraints/py312-extras.txt
 
       - name: Run tests
         # No -q: the ini already sets it, and a second one hides the summary line.

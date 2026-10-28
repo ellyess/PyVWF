@@ -26,7 +26,7 @@ pre-commit install             # ruff, the file checks, nbstripout and the em-da
 git config blame.ignoreRevsFile .git-blame-ignore-revs   # keeps the one formatting commit out of blame
 ```
 
-The conda route and what each of the seven extras adds are in
+The conda route and what each of the six extras adds are in
 [docs/guides/installation.md](docs/guides/installation.md).
 
 ## Tests and checks
@@ -57,11 +57,11 @@ check them with `--check`.
 the pins that record what the code produces on real inputs. They skip where the
 data is absent, which includes CI, so **only a local run can tell you a pin
 moved.** A pull request that changes code the pins reach runs them and states
-the result in its description. That is `pyvwf/harness/`, `pyvwf/sources/`, `pyvwf/datasets/`, `pyvwf/extensions/`,
-`pyvwf/loaders/`, `pyvwf/metrics.py`, `pyvwf/correction.py`, `pyvwf/data.py`,
-`pyvwf/wind.py`, `pyvwf/curves.py`, `pyvwf/clustering.py`, `pyvwf/era5.py`,
-`pyvwf/country_level.py`, `pyvwf/sampling.py`, `pyvwf/config.py`,
-`pyvwf/time_utils.py`, `pyvwf/geospatial.py`, `pyvwf/utils.py` and
+the result in its description. That is `pyvwf/harness/`, `pyvwf/sources/`,
+`pyvwf/datasets/`, `pyvwf/loaders/`, `pyvwf/metrics.py`, `pyvwf/correction.py`,
+`pyvwf/data.py`, `pyvwf/wind.py`, `pyvwf/curves.py`, `pyvwf/clustering.py`,
+`pyvwf/era5.py`, `pyvwf/country_level.py`, `pyvwf/sampling.py`,
+`pyvwf/config.py`, `pyvwf/time_utils.py`, `pyvwf/utils.py` and
 `pyvwf/provenance.py`:
 
 ```bash
@@ -101,8 +101,8 @@ On every pull request and push to `main`, `.github/workflows/ci.yml` runs:
   through `constraints/`, so their result depends on the repository rather
   than that day's releases (3.10 resolves pandas 2, 3.11 and 3.12 pandas 3);
   3.13 is unpinned;
-- **extras:** the same fast set on 3.12 with `pinn`, `grid`, `data` and
-  `parallel` installed, failing if any test still skips for a missing import;
+- **extras:** the same fast set on 3.12 with `pinn`, `data` and `parallel`
+  installed, failing if any test still skips for a missing import;
 - **examples:** every file in `examples/`, `run_minimal.py` included. The
   tracked tree must be unchanged afterwards, except the regenerated example
   data, which must equal the committed data to a relative 1e-12 (the last bit
@@ -114,7 +114,7 @@ On every pull request and push to `main`, `.github/workflows/ci.yml` runs:
   ([installation guide](docs/guides/installation.md#docker)).
 
 So the suite and the example must pass with only the `dev` extra: a test that
-needs `torch`, `pykrige` or `rasterio` skips itself where it is missing.
+needs `torch` or `rasterio` skips itself where it is missing.
 
 ## Submitting a pull request
 
@@ -153,8 +153,7 @@ Contributions written with one are welcome on the same terms:
   `sampling.create_sampling_points`, `harness.driver.run_evaluate`,
   `data.train_set`, `correction.find_offsets_country_level`,
   `harness.driver.run_transfer`, `harness.regions.load_region`,
-  `harness.export.export_correction_field`, `era5.prep_era5` and
-  `extensions.grid.surface.correction_surface`.
+  `harness.export.export_correction_field` and `era5.prep_era5`.
 - The version lives in `pyvwf.__version__`; `tests/test_packaging.py` keeps it
   in step with `CITATION.cff`.
 
