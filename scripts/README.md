@@ -30,7 +30,6 @@ scripts/
     cen_cl.py         CL  observations (Coordinador SIP API; CEN_API_KEY in the environment)
     dk.py             DK  observations (Danish Energy Agency register .xlsx)
     emi_nz.py         NZ  observations (EA EMI Generation_MD)
-    epias_tr.py       TR  observations (EPIAS; credentials in the environment); not shipped, see the runbook
     uk.py             UK  metadata (REPD) and the Ofgem ROC export steps; see the runbook
   era5/
     combine.py        monthly ERA5 to yearly daily files, with per-timestep roughness: --region <code>
@@ -44,7 +43,7 @@ scripts/
     backfill_gwpt_start_years.py   start years for undated GWPT records, from national registers
     repair_country_capacity.py     a country CF series rebuilt on a capacity register
     weight_country_grid_points.py  GWPT capacity weights for country-level grid points
-  dev/              development guards (docs/design/agent-guards.md)
+  dev/              development guards (docs/design/ai-native-development.md)
     run_locked.py                  run a command holding the run lock: -- <command>
     stamp.py                       run a local-only suite (realdata, pinn) and stamp the code it tested
     lock.py                        write the CI constraints files (constraints/), or --check them
@@ -66,7 +65,9 @@ scripts/
 
 ## Importing another script
 
-Logic that more than one script needs belongs in `src/pyvwf/`. A script may
+Scripts import `pyvwf` as an installed package (`pip install -e .` in a
+checkout); none puts `src/` on `sys.path`. Logic that more than one script
+needs belongs in `src/pyvwf/`. A script may
 still import a sibling in its own directory, or a tool in `analysis/`, by
 putting that directory on `sys.path`. A new script does not reach further:
 move the shared code into the package instead.

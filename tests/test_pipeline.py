@@ -25,6 +25,7 @@ from pyvwf.data import cluster_train_set, train_set
 
 
 from support import TRUE_CF, YEARS
+from support import DK_BBOX
 
 
 # ---------------------------------------------------------------------------
@@ -33,7 +34,9 @@ from support import TRUE_CF, YEARS
 
 
 def test_train_set_pairs_observations_with_simulations(synthetic_dk):
-    gen_cf, turb_info, reanalysis, power_curves = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, reanalysis, power_curves = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
 
     assert {"ID", "year", "month", "obs", "sim"} <= set(gen_cf.columns)
     assert len(turb_info) == len(synthetic_dk["fleet"])
@@ -54,7 +57,9 @@ def test_train_set_pairs_observations_with_simulations(synthetic_dk):
 
 
 def test_cluster_train_set_fits_one_scalar_per_cluster(synthetic_dk):
-    gen_cf, turb_info, _, _ = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, _, _ = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
     bias_df, clus_info = cluster_train_set(gen_cf, "fixed", 2, turb_info)
 
     assert set(bias_df["cluster"].unique()) == {0, 1}
@@ -72,7 +77,9 @@ def test_cluster_train_set_respects_temporal_resolution(synthetic_dk):
     slice); the per-year rows are collapsed into a single factor per cluster
     when `train` writes the correction-factor file.
     """
-    gen_cf, turb_info, _, _ = train_set("DK", calc_z0=True, mode="onshore")
+    gen_cf, turb_info, _, _ = train_set(
+        "DK", calc_z0=True, mode="onshore", era5_dir=synthetic_dk["era5"], bbox=DK_BBOX
+    )
     n_years, n_clusters = len(YEARS), 2
 
     fixed, _ = cluster_train_set(gen_cf, "fixed", n_clusters, turb_info)

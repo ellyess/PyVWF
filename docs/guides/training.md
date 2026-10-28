@@ -73,7 +73,7 @@ library a run uses:
 
 | Input root | Curve library | Used for |
 |---|---|---|
-| `input/` (the default) | the open library | the test suite (the offset-fit pins for DK, FR and ES set `input/combined` themselves), and the scorecard rows CL and AR |
+| `input/` (the default) | the open library, bundled in the package | the test suite (the offset-fit pins for DK, FR and ES set `input/combined` themselves), and the scorecard rows CL and AR |
 | `input/combined` | the combined library: open and licensed | the turbine-level rows DE, DK, UK, US, BR, AU-NEM and NZ, and every country-level row |
 
 Every country-level row needs `input/combined` because each country grid names
@@ -90,12 +90,11 @@ Follow these rules:
 - **Build a separate input root for another library.** Give it the same
   `era5/`, `observations/` and `raw/` as `input/`; symbolic links work. Put
   your `power_curves.csv` and `models.csv` in its own `reference/`.
-- **Never copy a licensed library over `input/reference/power_curves.csv`.**
-  That file is the open library, which is committed.
-  `tests/test_committed_files.py` fails if its content changes.
-- **Expect a warning without a library.** An input root with no
-  `power_curves.csv` uses the open library shipped inside the package, and
-  PyVWF warns.
+- **Keep `input/reference/` free of curve tables.** An input root with no
+  `power_curves.csv` uses the open library shipped inside the package
+  (`src/pyvwf/resources/`), which is how `input/` gets it. A table you put in
+  `input/reference/` would silently replace it for the test suite and the CL
+  and AR rows; use a separate root instead.
 
 The fetch and process scripts resolve their default paths under the same input
 root.
@@ -114,7 +113,9 @@ Selected by `[correction] model`:
 
 `cluster_list` fits each cluster count in one run. `k`-means needs `k` at most
 the number of units reaching the trainer, and `k` near that ceiling is
-one-unit-per-cluster (a fake plateau, `docs/results.md#united-states-and-brazil`). For
+one-unit-per-cluster (a fake plateau, recorded in
+[`region-us-br.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/region-us-br.md)
+at the archive tag). For
 country-level regions, `cluster_list` must be `1` or the grid's own cluster
 count (see [A country-level region](adding-a-region.md#a-country-level-region)).
 

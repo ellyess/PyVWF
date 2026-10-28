@@ -54,19 +54,17 @@ import argparse
 import hashlib
 import json
 import re
-import sys
 import unicodedata
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "src"))
+from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.gwpt import COUNTRY_NAME, load_exclusions, load_gwpt
+from pyvwf.datasets.gwpt import default_path as gwpt_default_path
 
-from pyvwf.config import PyVWFPaths  # noqa: E402
-from pyvwf.datasets.gwpt import COUNTRY_NAME, load_exclusions, load_gwpt  # noqa: E402
-from pyvwf.datasets.gwpt import default_path as gwpt_default_path  # noqa: E402
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 REGISTERS = PyVWFPaths.INPUT_ROOT / "reference" / "registers"
 NVE = REGISTERS / "nve_wind_in_operation_2026-09-25.json"

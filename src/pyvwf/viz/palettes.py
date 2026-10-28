@@ -43,11 +43,6 @@ TIME_RES_LINESTYLES = {
     "month": "-",
 }
 
-EXISTING_NEW_COLOURS = {
-    "Yes": OKABE_ITO[4],  # blue
-    "No": OKABE_ITO[5],  # vermillion
-}
-
 TURBINE_TYPE_COLOURS = {
     "onshore": OKABE_ITO[4],  # blue
     "offshore": OKABE_ITO[5],  # vermillion

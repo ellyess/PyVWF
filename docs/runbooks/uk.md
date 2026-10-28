@@ -1,111 +1,110 @@
 # United Kingdom (Ofgem ROC + REPD)
 
-**Read this before assuming the UK data is reproducible like Denmark's. It is
-only partly so.** The committed UK inputs (`uk_md.csv`, `ukobs.csv`) came from
-sources that are gated (Ofgem per-station certificates) or not openly
-redistributable (turbine-spec metadata). This runbook documents what CAN be
-scripted from open data, exactly where the gaps are, and how the pieces map to
-the committed files. The UK keeps its shared `european-turbine` adapter
-(DK/DE/UK); these scripts produce its inputs.
+**Data source:** Ofgem Renewables Obligation certificates (observations) and REPD or curated metadata. **Adapter:** `european-turbine` · turbine-level · unit = farm (ROC station, pseudo-replicated across turbine rows) · mixed: open REPD and RER export, confidential certificate warehouse.
 
-## The two source components (per the co-authored UK methodology)
+The UK is only partly reproducible from open data: the curated inputs the
+adapter reads from `input/observations/turbine/UK/`, `uk_md.csv` and `ukobs.csv`,
+came from gated or not openly redistributable sources. Each `process/uk.py`
+command below writes a differently named file beside them and never overwrites
+them. Its result is the UK row of the [scorecard](../scorecard.md).
 
-| Component | Committed file | Open + scriptable? |
+## Source and licence
+
+| Component | Curated file | Open and scriptable? |
 | --- | --- | --- |
-| **Observations**: Ofgem Renewables Obligation certificates → energy | `ukobs.csv` | **No, not end-to-end.** Per-station monthly ROC issuance is a gated Ofgem RER export; the login-free bulk file is technology-aggregate only. The banding conversion and pseudo-replication ARE scripted; the input export is manual. |
-| **Metadata**: location, capacity, turbine specs | `uk_md.csv` | **Partly.** REPD (open) gives location, capacity, turbine count. It has NO turbine model, NO rotor diameter, and hub height for only ~13% of sites. So the open reconstruction is a location/capacity table with uniform-default specs, materially thinner than the curated file. |
+| **Observations**: Ofgem RO certificates → energy | `ukobs.csv` | **Not end-to-end.** Per-station monthly issuance is a gated Ofgem RER export (manual); the conversion and pseudo-replication are scripted. |
+| **Metadata**: location, capacity, turbine specs | `uk_md.csv` | **Partly.** REPD (open, OGL) gives location, capacity and turbine count, but no model or rotor and a tip height for only about 13% of sites. |
 
-The paper's *second* observed source, **Elexon settlement data** (half-hourly
-metered volumes via the Insights Solution / BMRS), is not what the committed
-`ukobs.csv` holds (those are ROC-derived, keyed by accreditation number); it is
-not scripted here.
+The **confidential** Ofgem "CertificatesExternalPublicDataWarehouse" per-year
+exports are differently licensed, NOT the open RER/REPD data; never commit or
+redistribute them or anything derived. REPD is under the Open Government
+Licence. `input/` is git-ignored.
 
-## 1. Metadata: REPD (fully scriptable, open)
+## 1. Observations
+
+### Metadata: REPD (scriptable, open)
 
 ```bash
 python scripts/fetch/uk.py             # scrapes gov.uk, downloads the current REPD CSV
 python scripts/process/uk.py metadata  # -> uk_md_open.csv + uk_md_open_divergence.md
 ```
 
-`fetch/uk.py` scrapes the [REPD publication page](https://www.gov.uk/government/publications/renewable-energy-planning-database-quarterly-extract)
-for the current quarterly CSV (the direct URL rotates each quarter; OGL
-licence). `process uk.py metadata` reconstructs a per-turbine table:
-OSGB X/Y **reprojected** to lon/lat, installed capacity, turbine count, REPD
-tip height where present else a uniform default, and a **uniform model/rotor**
-default (REPD carries neither), the same approach the AU/BR/CL/AR adapters use
-for metadata-poor regions.
+The fetch saves the current quarterly CSV from the
+[REPD publication page](https://www.gov.uk/government/publications/renewable-energy-planning-database-quarterly-extract)
+as `input/raw/repd/repd_wind.csv` (`--dry-run` shows the plan) and prints the
+manual Ofgem steps below. `metadata` fills the missing specs with a uniform
+height (`--height`, 100 m) where REPD has no tip height and a uniform model
+(`--model`, default `2019COE_Market_Average_2.6MW_121`). The result is today's
+operational fleet, not the 2015-2019 RO-accredited set, and cannot be matched
+to `uk_md.csv` row by row; keep `uk_md.csv` for the scorecard row.
 
-**It does NOT overwrite the curated `uk_md.csv`.** The open table ships as
-`uk_md_open.csv` with a divergence report. On the current data the open table
-is the *whole current operational fleet* (826 stations, ~30 GW, median tip
-height 100 m from defaults) versus the curated *2015-2019 RO-accredited set*
-(360 stations, ~16 GW, real median hub height 70 m). REPD has no ROC
-accreditation key and no historical snapshot, so the fleets are not the same
-population; treat `uk_md_open.csv` as an open reference, and keep the curated
-`uk_md.csv` for reproducing published DK/DE/UK results.
+### Observations, confidential path: the Ofgem certificate warehouse
 
-## 2. Observations: Ofgem ROC (manual export, then scripted)
+If you hold the confidential warehouse exports, they reproduce `ukobs.csv` exactly:
 
-Per-station monthly ROC issuance is only in Ofgem's Renewable Electricity
-Register, behind a gated public-report export (`fetch/uk.py` prints the steps):
+```bash
+python scripts/process/uk.py observations \
+    --ofgem-confidential "<path>/CertificatesExternalPublicDataWarehouse Wind 20*.csv"
+```
+
+Output is `ukobs_confidential.csv`. RO years run April-March, so cover a
+calendar year by passing both adjacent RO-year files. Check: station
+R00116SQSC's January 2015 total is 1709 MWh, the curated 569,666.7 kWh per
+turbine across its three turbine rows.
+
+### Observations, public path: the RER export
 
 1. Go to <https://rer.ofgem.gov.uk/> (View Public Reports, no login), or email
    `renewable.enquiry@ofgem.gov.uk` for the current access link.
 2. Export the ROCs-issued report for the Renewables Obligation, filtered to
-   wind and your output-period window. Save as
-   `input/ofgem_raw/roc_issuance.xlsx`.
+   wind and your output-period window. Save it as
+   `input/ofgem_raw/roc_issuance.xlsx` (or `.csv`).
 3. Process it:
 
 ```bash
 python scripts/process/uk.py observations --roc input/ofgem_raw/roc_issuance.xlsx
 ```
 
-### 2a. Confidential fast path: the Ofgem certificate warehouse
+This converts ROCs to MWh at each technology's default band in
+`pyvwf.datasets.uk_roc` (onshore 0.9 ROC/MWh, offshore 2.0), not per-vintage
+bands, then equal-splits each station's energy across its turbines using the
+counts in `uk_md.csv` (or `--turbine-counts`), into `ukobs_open.csv`. The RER
+column names are unverified: pass `--station-col`, `--period-col` and
+`--certs-col` if matching fails. RER keeps about 7 years of issuance, so the
+full 2015-2019 window may need archived reports.
 
-If you hold the **confidential** Ofgem "CertificatesExternalPublicDataWarehouse"
-per-year exports (differently licensed, NOT the open RER/REPD data; never
-commit or redistribute them or anything derived), they carry the full
-per-station monthly issuance directly and **reproduce the committed `ukobs.csv`
-exactly**:
+## 2. ERA5
+
+The UK slices the shared European box, `era5/EU_2026-09`, to
+`bbox = [-11.0, 3.0, 49.0, 61.0]` ([data sources, section 3](../guides/data-sources.md#3-shared-inputs-all-regions)):
 
 ```bash
-python scripts/process/uk.py observations \\
-    --ofgem-confidential "<path>/CertificatesExternalPublicDataWarehouse Wind 20*.csv"
+python scripts/fetch/era5.py --code eu --file-tag EU_2026-09 \
+    --bbox -12 31.5 36 72 --years 2015 2016 2017 2018 2019 2020 2021 2022 2023
 ```
 
-This reads the warehouse format (blank-line title, `textbox*` SSRS columns),
-keeps **RO** certificates only (REGO would double-count), **drops revoked**
-certificates, and recovers energy with the exact per-row MWh-per-certificate
-factor (`MWh = certificates x factor`); no banding assumption needed. Output
-is `ukobs_confidential.csv` (the command prints a confidentiality banner and
-does not overwrite the committed file). Verified: station R00116SQSC's January
-total comes out at 1709 MWh, i.e. the committed 569,666.7 kWh per turbine ×3.
-Note RO years run April-March, so cover a calendar year by passing both
-adjacent RO-year files. The committed `uk_md.csv`/`ukobs.csv` were built this
-way; this documents and reproduces that route from files you already hold.
+## 3. Train and evaluate
 
-### 2b. Public path: the RER export (banding lookup)
+The UK trains on 2015-2018 and tests on 2019, on the licensed curve library
+([input root](../guides/training.md#choose-the-input-root)). The scorecard row
+reruns from `configs/regions/scorecard/uk_k50.toml` (k=50, fixed slice), at the
+row's commit through `scripts/dev/run_locked.py` ([Reproducing a row](../scorecard.md#reproducing-a-row)):
 
-This converts **ROCs → MWh** with the grandfathered banding (Ofgem RO Guidance,
-Appendix 4: onshore wind 0.9 ROC/MWh for 2013/14+ vintages, 1.0 before; offshore
-2.0 / 1.9 / 1.8 by vintage, decoded from each station's accreditation-number
-technology code when a technology column is absent), then **equal-splits** each
-station's monthly energy across its turbines (from the curated `uk_md.csv`
-station→turbine counts) into the `ukobs.csv` schema. Output is `ukobs_open.csv`
-(not overwriting the committed file). Verified to reproduce the committed
-arithmetic exactly: a 3-turbine station's 1709 MWh January becomes three
-identical 569,666.7 kWh turbine rows.
+```bash
+PYVWF_INPUT=input/combined pyvwf-validate train \
+    --region configs/regions/scorecard/uk_k50.toml
+PYVWF_INPUT=input/combined pyvwf-validate evaluate \
+    --region configs/regions/scorecard/uk_k50.toml --train-run output/validation/UK/train-<stamp>
+```
 
-Caveats: the RER export's exact column names are unverified (the register is
-gated), so the processor matches columns tolerantly and accepts
-`--station-col/--period-col/--certs-col`; and RER retains only ~7 years of
-issuance, so the full 2015-2019 window may need archived reports.
+The maintained config, `configs/regions/uk.toml`, sweeps `cluster_list = [1, 50]`
+over fixed and season slices; swap it into the same commands.
 
-## Bottom line
+## Caveats
 
-- `uk_md_open.csv` + divergence report: **reproducible today** from open REPD,
-  but a location/capacity table, not the curated spec-complete one.
-- `ukobs_open.csv`: **reproducible once you run the one manual Ofgem RER
-  export**; the banding + pseudo-replication are scripted and verified.
-- The committed `uk_md.csv` / `ukobs.csv` remain the inputs for published
-  results; these scripts make the open half reproducible and document the rest.
+- **Pseudo-replicated rows.** Each station's generation is split equally across
+  its turbine rows, so the rows are not independent. Both configs set
+  `pseudo_replicated_rows = true` and `station_id_regex`; distribution comparisons
+  must collapse to stations (`pyvwf.harness.skill.collapse_pseudo_replicates`).
+- **One test year.** The row rests on 2019 alone; its fit carries the
+  scorecard's degenerate-fit marker (†) and its gain the resampling marker (‡).

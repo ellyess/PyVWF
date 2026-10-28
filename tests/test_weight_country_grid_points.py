@@ -8,13 +8,10 @@ sat on two coastal points. These cases check the helpers on synthetic grids.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pandas as pd
 import pytest
-from support import load_script
-
-ROOT = Path(__file__).resolve().parents[1]
+from support import ROOT, load_script
 
 
 def _module():

@@ -220,9 +220,9 @@ def build_windstats_metadata(
     )
     md["diameter"] = pd.to_numeric(md["diameter"], errors="coerce")
     # WindStats manufacturer strings are not curve-library keys (and are often
-    # mojibake), so the curve key is the uniform default (as AU/BR/CL/AR do for
-    # metadata-poor regions) and the raw string is kept as provenance. Diameter
-    # is retained so a specific-power match can upgrade this downstream.
+    # mojibake), so the curve key is the uniform default (as BR's is) and the
+    # raw string is kept as provenance. Diameter is retained, although nothing
+    # downstream re-matches the curve.
     md["windstats_manufacturer"] = md["model"]
     md["model"] = model
     md["model_source"] = "default-uniform"

@@ -6,7 +6,7 @@ path inside the repository that git does not ignore, the git commands that
 change the tree, and shell writes to such a path: a `>`, `>>` or `&>`
 redirect, `tee` and `sed -i`. A target holding a variable, a path after a `cd`,
 and writes by other programs (`cp`, `mv`, `python -c`, a script) are not
-caught; the rule in AGENTS.md still covers them. `docs/design/agent-guards.md`
+caught; the rule in AGENTS.md still covers them. `docs/design/ai-native-development.md`
 says why.
 
 Exit 2 blocks the tool call and shows stderr to Claude. Any unexpected error

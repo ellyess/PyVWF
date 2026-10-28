@@ -42,8 +42,8 @@ import pandas as pd
 import pytest
 
 import pyvwf.datasets.generate_country_level_training_data as gen
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "country_generator"
 
 KMEANS_COUNTRIES = ["NL", "FR", "BE", "ES", "IT", "PT", "IE"]

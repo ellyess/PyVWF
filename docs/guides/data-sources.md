@@ -10,8 +10,8 @@ Full step-by-step acquisition lives in the per-region runbooks
 **mixed** = open coordinates over a confidential generation series;
 **confidential** = confidential or commercial, never redistributed.
 
-Nothing under `input/` is committed (`/input` is git-ignored) except the open
-curve library in `input/reference/`. Every fetch script is **user-executed**: it
+Nothing under `input/` is committed (`/input` is git-ignored) except the region
+shapes in `input/reference/shapes/`; the open library ships in the package. Every fetch script is **user-executed**: it
 runs under your own credentials (CDS, ENTSO-E, CEN keys), never bundled data.
 Results *derived* from confidential inputs are shareable; the inputs are not.
 
@@ -25,7 +25,7 @@ Paths are defined centrally in [`src/pyvwf/config.py`](../../src/pyvwf/config.py
 | ERA5 winds | NetCDF | `input/era5/<TAG>/*.nc` |
 | Turbine metadata + generation | CSV | `input/observations/turbine/<CC>/` |
 | Country grid points + observations | CSV | `input/observations/country/{grid_points,observations}/<cc>/` |
-| Power curves + models | CSV | `input/reference/{power_curves,models}.csv` |
+| Power curves + models | CSV | `src/pyvwf/resources/{power_curves,models}.csv` (the open library), or `<input root>/reference/` for another |
 
 `<CC>` is the upper-case code, `<cc>` lower-case.
 
@@ -49,7 +49,7 @@ reduced to a **monthly capacity factor** before correction.
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| 4 ENTSO-E countries | ES IE IT NL | `entsoe-country` | ENTSO-E national generation | open | `datasets/generate_country_level_training_data.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Spain, Ireland, Italy, Netherlands | ES IE IT NL | `entsoe-country` | ENTSO-E national generation; Ireland's capacity rebuilt from GWPT; NL excluded | open | `datasets/generate_country_level_training_data.py`; IE then `region_tools/repair_country_capacity.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden | SE | `entsoe-country` | ENTSO-E generation over Energimyndigheten's year-end wind fleet | open | generator → `region_tools/build_se_capacity_from_energimyndigheten.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Norway | NO | `entsoe-country` | NVE metered farm output over NVE's turbine register (2015-21); ENTSO-E generation over the register (2023) | open, attribution | generator → `region_tools/build_no_obs_from_nve.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Portugal | PT | `entsoe-country` | ENTSO-E generation over REN Data Hub's month-end wind fleet | mixed | generator → `region_tools/build_pt_capacity_from_ren.py` | [ENTSO-E](../runbooks/entsoe.md) |
@@ -147,18 +147,23 @@ winds and carries `z0`, one static field per year. That field is the annual
 mean of the roughness derived from the 10 m to 100 m shear, so a run on it
 applies the annual-mean treatment. `src/pyvwf/datasets/combine_era5_files.py`
 built the archive from the per-year `era5_u10_v10_<YYYY>_months01-12_EU.nc` and
-`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads:
+`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads. It left the package on
+2026-10-28, since no configuration on main reads what it builds. To rebuild the
+archive, check out tag `archive/research-2026-10-27` first
+([archive.md](../archive.md#reproducing-a-result-from-the-tag)):
 
 ```bash
+git checkout archive/research-2026-10-27
 python src/pyvwf/datasets/combine_era5_files.py --all-years --add-roughness \
     --roughness-source pyvwf
 ```
 
 The archive is kept unchanged, so the rows published on it stay reproducible.
-No shipped configuration reads it any more. Every European config, maintained
-and scorecard alike, reads `era5/EU_2026-09`, which carries no roughness field
-and a wider box, so `prep_era5` derives the roughness per timestep. That is
-also the default now, so a region asks for nothing. The reasons, and the three
+No configuration on main reads it. Every other European config, maintained and
+scorecard alike, reads `era5/EU_2026-09`, and ES-WS reads `era5/ES`. The first
+carries no roughness field and a wider box, so `prep_era5` derives the
+roughness per timestep. That is also the default now, so a region asks for
+nothing. The reasons, and the three
 routes, are in
 [`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
 
@@ -202,10 +207,10 @@ coverage, a fallback where the source omits height. NZ, CL and AR use curated
 per-farm heights instead.
 
 **Power curves and turbine models.**
-- *Open (shipped, committed):* `input/reference/{power_curves,models}.csv`, the
-  NREL/turbine-models library (BSD-3-Clause, DOI 10.11578/dc.20210112.1,
-  VWF-smoothed). Bundled in the package too, so an installed PyVWF runs outside
-  a checkout. Provenance in `power_curves_provenance.csv`.
+- *Open (shipped, committed):* `src/pyvwf/resources/{power_curves,models}.csv`,
+  the NREL/turbine-models library (BSD-3-Clause, DOI 10.11578/dc.20210112.1,
+  VWF-smoothed), the default for any input root without curve tables.
+  Provenance in `power_curves_provenance.csv`.
 - *Licensed (local only, confidential):* `input/reference/{power_curves,models}.real.csv`,
   the renewables.ninja/VWF library from thewindpower.net. Swap in for production
   runs; the merged set is under `input/combined/reference/` (`PYVWF_INPUT=input/combined`).
@@ -233,6 +238,10 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
   are never taken for the whole fleet; outside a type's first and last reported
   hour it is taken not to exist yet. The capacity-factor denominator is
   ENTSO-E's installed capacity.
+- **IE: capacity rebuilt.** ENTSO-E's register is frozen for 2015-21 while the
+  fleet nearly doubled, so `scripts/region_tools/repair_country_capacity.py IE
+  --from-year 2017` rewrites the capacity from GWPT and writes the 2017-21
+  training file the IE row reads.
 - **SE: Energimyndigheten.**
   `scripts/region_tools/build_se_capacity_from_energimyndigheten.py` keeps
   ENTSO-E's generation and divides it by Energimyndigheten's 31 December wind
@@ -281,10 +290,17 @@ series that measures only part of the fleet; this comparison can.
 
 ## 5. Evaluated but not shipped
 
-- **Turkey (TR):** EPİAŞ Şeffaflık. The per-plant licensed-realtime endpoint
-  returns 403 under the public subscription and aggregates ignore
-  `powerPlantId`, so per-plant wind is not obtainable openly.
-  `fetch/epias_tr.py` + [TR runbook](../runbooks/tr.md) document the gap.
+- **Turkey (TR):** EPİAŞ Şeffaflık, evaluated in July 2026 and not shipped.
+  Authentication works and the plant list downloads, but no reachable endpoint
+  returns per-plant generation: the injection-quantity (UEVM) endpoint answers
+  200 for any `powerPlantId` and silently returns the national series, and
+  the licensed real-time endpoint returns 403 under the Data Consultation
+  subscription. The false positive was caught by asking for two different
+  plants and finding byte-identical numbers. A subscription covering
+  `renewables-service` would be the way to retest it. The runbook and the probe
+  are at the archive tag:
+  [`docs/runbooks/tr.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/runbooks/tr.md),
+  [`scripts/fetch/epias_tr.py`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/scripts/fetch/epias_tr.py).
 - **Sweden & Finland (WindStats):** the format supports them, but GWPT matches
   only 7-9% of their fragmented fleets. Parked pending a thewindpower.net
   coordinate table ([ES runbook](../runbooks/es.md)).

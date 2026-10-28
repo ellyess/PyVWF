@@ -14,8 +14,7 @@
 #
 # The code is SE-BZ (not SE) so it does not collide with the national ENTSO-E
 # Sweden region (configs/regions/se.toml), the same convention ES-WS uses.
-# The adapter strips the suffix to find Sweden's files; the bbox is explicit
-# here so nothing needs a BoundingBoxes entry for the variant code.
+# The adapter strips the suffix to find Sweden's files.
 #
 # WINDOW CAVEAT: the per-zone files stop at 2019, so training is 2015-2019
 # rather than se.toml's 2015-2021. For a like-for-like comparison run se.toml

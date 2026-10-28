@@ -2,8 +2,8 @@
 
 ## Power curves and turbine models: the bundled open library
 
-The `power_curves.csv` and `models.csv` shipped in this repository are the
-**open turbine curve library**: 69 real machines plus 7 normalized composites
+The `power_curves.csv` and `models.csv` shipped with the package, in
+`src/pyvwf/resources/`, are the **open turbine curve library**: 69 real machines plus 7 normalized composites
 from the [NREL/turbine-models](https://github.com/NREL/turbine-models)
 (now hosted as NatLabRockies/turbine-models)
 archive (BSD-3-Clause, [DOI 10.11578/dc.20210112.1](https://doi.org/10.11578/dc.20210112.1)),
@@ -38,9 +38,10 @@ Those datasets carry their own licensing terms and are **not redistributed** her
 
 ## Using your own curve library (for production runs)
 
-Do not copy another library over `reference/power_curves.csv`: that file is
-the committed open library, and a test fails if it changes. Build a separate
-input root instead, as `combined/` below is built, and point `PYVWF_INPUT` at
+`input/reference/` holds no curve tables: an input root without them uses the
+bundled open library, which is how `input/` gets it. Do not put another library
+there, where it would silently replace the open one for the test suite. Build a
+separate input root instead, as `combined/` below is built, and point `PYVWF_INPUT` at
 it. The steps are in
 [Choose the input root](../docs/guides/training.md#choose-the-input-root).
 
@@ -53,7 +54,7 @@ input/
   raw/<source>/                  upstream downloads (provenance): aemo, cammesa, cen, eia, emi, ons, repd
   era5/                          reanalysis, per region
   observations/{turbine,country}/  processed capacity factors the adapters read
-  reference/                     static shared lookups: power_curves.csv, models.csv, shapes/, terrain/, gwpt/
+  reference/                     static shared lookups: shapes/, terrain/, gwpt/ (no curve tables: the open library is bundled)
   combined/                      alternate run root: same data via symlink + the merged (open+licensed) curve library
 ```
 

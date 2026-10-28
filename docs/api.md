@@ -143,13 +143,12 @@ than once for a whole country.
 
 ## Metrics
 
-Error metrics between simulated and observed capacity factors. All aggregations
-are capacity-weighted.
+The capacity-weighted mean that ten modules import. The harness error metrics
+are in `pyvwf.harness.skill`.
 
 ```{eval-rst}
 .. automodule:: pyvwf.metrics
-   :members: calculate_error, prepare_monthly_data, weighted_average_vectorized,
-             weighted_mean, weighted_mean_by
+   :members: weighted_mean, weighted_mean_by
 ```
 
 ## Visualisation

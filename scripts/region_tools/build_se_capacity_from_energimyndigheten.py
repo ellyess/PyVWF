@@ -34,17 +34,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import urllib.request
 from pathlib import Path
 
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from pyvwf.config import PyVWFPaths  # noqa: E402
-from pyvwf.loaders.country_obs_checks import check_country_cf  # noqa: E402
+from pyvwf.config import PyVWFPaths
+from pyvwf.loaders.country_obs_checks import check_country_cf
 
 EN0105_1 = (
     "https://pxexternal.energimyndigheten.se/api/v1/sv/Energimyndighetens_statistikdatabas/"

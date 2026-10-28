@@ -32,8 +32,8 @@ import re
 from pathlib import Path
 
 import pytest
+from support import ROOT
 
-ROOT = Path(__file__).resolve().parent.parent
 FINDINGS = ROOT / "docs" / "findings"
 PREREGS = sorted(FINDINGS.glob("*-prereg.md"))
 

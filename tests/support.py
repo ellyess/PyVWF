@@ -10,12 +10,15 @@ reach them, so a test module doubled as a library (#90). They live here now;
   ``make_spec`` is its region config;
 - ``fleet_frame`` builds a fleet in the harness's schema, so a test names only
   the columns it cares about and a schema change is made once;
-- ``load_script`` imports a script under ``scripts/`` by path.
+- ``load_script`` imports a script under ``scripts/`` by path;
+- ``ROOT`` is the repository root, and ``tomllib`` the TOML reader on every
+  supported Python.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import sys
 from calendar import monthrange
 from pathlib import Path
 from types import ModuleType
@@ -26,12 +29,17 @@ import xarray as xr
 
 from pyvwf.harness.regions import RegionSpec
 
+# Re-exported: the test files import tomllib from here.
+if sys.version_info >= (3, 11):
+    import tomllib  # noqa: F401
+else:  # Python 3.10: tomllib is not in the standard library yet.
+    import tomli as tomllib  # noqa: F401
+
 ROOT = Path(__file__).resolve().parents[1]
 
 # The reanalysis spans these years; observations are generated for the same
 # window so the training merge (on year+month) has something to join on.
 YEARS = (2015, 2016)
-YEAR_TEST = 2016
 
 # The planted bias: turbines actually generate at this capacity factor, while
 # the synthetic reanalysis winds are strong enough to simulate well above it.
@@ -131,6 +139,11 @@ NH = {
 }
 
 
+# The box the removed BoundingBoxes table gave Denmark, which the synthetic
+# grid lies inside; tests pass it explicitly as a region config would.
+DK_BBOX = (7.5, 13.5, 54.0, 58.2)
+
+
 def make_spec(**overrides) -> RegionSpec:
     base = dict(
         code="DK",
@@ -141,7 +154,7 @@ def make_spec(**overrides) -> RegionSpec:
         train_years=(2015, 2015),
         test_years=(2016,),
         era5_path="era5",
-        bbox=(7.5, 13.5, 54.0, 58.2),
+        bbox=DK_BBOX,
         file_tag="SYN",
         correction_model="affine-wind",
         cluster_list=(2,),

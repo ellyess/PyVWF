@@ -29,9 +29,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from support import load_script
+from support import ROOT, load_script
 
-ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "process" / "emi_nz.py"
 CURATION = ROOT / "configs" / "curation"
 PINS = Path(__file__).resolve().parent / "data" / "pins" / "nz"
