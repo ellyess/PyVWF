@@ -88,6 +88,24 @@ this file stay in step with it.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **Germany's source is named correctly in the scorecard.** Its provenance
+  line called it a public turbine register; Germany's row reads only the
+  licensed WindStats extract, for metadata and generation alike, and the
+  corrections log records the fix. The results page now says its Denmark
+  figure belongs to the run it reports, not to the scorecard row. The
+  data-sources guide gains Ireland's capacity repair, the region guide says the
+  country-level generator writes to a fixed path, and the scorecard configs'
+  comments point at documents that are still on the main branch.
+- **The region runbooks share one template** (source and licence,
+  observations, ERA5, train and evaluate, caveats) and quote no results; each
+  points to the scorecard instead. Stale instructions are fixed: test-year
+  files missing from the US and Brazil steps, the country-level generator's
+  years, the Ireland repair and Norway's manual inputs, cluster counts that did
+  not match the configs, and curve-assignment claims that did not match the
+  processing scripts. Each runbook with a scorecard row names its scorecard
+  config and the maintained one. The Turkey runbook and its probe are archived at tag
+  `archive/research-2026-10-27`; `docs/guides/data-sources.md` keeps what the
+  evaluation found.
 - **The README leads with installing and running the package.** The
   quickstart starts from `git clone`, says that a shipped region needs its
   runbook's inputs, and points a user with their own fleet to the CSV route.

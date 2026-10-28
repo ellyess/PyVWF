@@ -39,7 +39,7 @@ file_tag = "NZ"
 # Harapaki and Kaiwera Downs 2 commissioned after it, and a few sparse-coverage
 # farms drop in train_set. That 8 is the hard ceiling (k-means needs
 # n_clusters <= n_samples); k near it is one-farm-per-cluster, the fake-plateau
-# regime (docs/results.md#united-states-and-brazil). The sweep stays safely under it.
+# regime (region-us-br.md at tag archive/research-2026-10-27). The sweep stays safely under it.
 model = "affine-wind"
 cluster_list = [1, 5]  # sweep knee (docs/results.md#cluster-count-per-region)
 time_slices = ["fixed", "season"]
