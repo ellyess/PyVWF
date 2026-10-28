@@ -91,7 +91,9 @@ For the lines a change adds or edits:
 
 - Skills (`skills/`, linked as `.claude/skills`): `new-region` adds a region in gated phases;
   `findings-doc` writes a findings document or scorecard row;
-  `provenance-guard` checks before any release-shaped action.
+  `provenance-guard` checks before any release-shaped action; `run-pyvwf`
+  helps a user install PyVWF, run a region or their own fleet, and read the
+  output.
 - Agents (`.claude/agents/`): `method-critic`, `implementation-critic` and
   `red-team` judge a proposal independently, evaluated in
   `scripts/dev/agent_evals/`. `docs-critic` reviews a change to a published
