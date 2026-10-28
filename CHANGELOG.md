@@ -93,6 +93,45 @@ and each summary from 0.2.0 on links to its own.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **Germany's source is named correctly in the scorecard.** Its provenance
+  line called it a public turbine register; Germany's row reads only the
+  licensed WindStats extract, for metadata and generation alike, and the
+  corrections log records the fix. The results page now says its Denmark
+  figure belongs to the run it reports, not to the scorecard row. The
+  data-sources guide gains Ireland's capacity repair, the region guide says the
+  country-level generator writes to a fixed path, and the scorecard configs'
+  comments point at documents that are still on the main branch.
+- **The region runbooks share one template** (source and licence,
+  observations, ERA5, train and evaluate, caveats) and quote no results; each
+  points to the scorecard instead. Stale instructions are fixed: test-year
+  files missing from the US and Brazil steps, the country-level generator's
+  years, the Ireland repair and Norway's manual inputs, cluster counts that did
+  not match the configs, and curve-assignment claims that did not match the
+  processing scripts. Each runbook with a scorecard row names its scorecard
+  config and the maintained one. The Turkey runbook and its probe are archived at tag
+  `archive/research-2026-10-27`; `docs/guides/data-sources.md` keeps what the
+  evaluation found.
+- **The README leads with installing and running the package.** The
+  quickstart starts from `git clone`, says that a shipped region needs its
+  runbook's inputs, and points a user with their own fleet to the CSV route.
+  The results table is unchanged, and the negative transfer result is named
+  above it. The five-minute list is folded into "How this is built", which now
+  names the pre-registered studies and the research archive, whose citation is
+  linked.
+- **The agent design docs are one page.** `docs/design/agent-guards.md` is
+  merged into `docs/design/ai-native-development.md`: the guard table with
+  what each guard misses, the incident behind each rule in brief, the
+  critics' models, the mistake log's summary and rates, and the mistakes that
+  reached publication. The full log stays at tag
+  `archive/research-2026-10-27`. References outside dated records point at the
+  merged page; the pre-registrations and evaluation cases keep theirs.
+- **`CONTRIBUTING.md` and the pull-request template are rewritten.** The
+  contributing guide gives each command once, describes the CI jobs correctly
+  (it said CI installs no optional extras, beside a line describing the job
+  that installs them, and credited the test jobs with running the example), and gains a section on AI-assisted contributions. The
+  template's real-data section names the code the pins now reach, not the
+  narrower set they covered before, and the template asks whether a coding
+  agent was used.
 - **Guides are merged in pairs:** the Docker guide into
   `installation.md`, running on your own fleet data into `training.md`, and
   the adapter contract into `adding-a-region.md`. The installation guide lists

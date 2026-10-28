@@ -1,21 +1,22 @@
 # United States (EIA)
 
-**Source:** EIA-923 net generation + EIA-860 nameplate/coordinates + USWTDB hub
-heights. **Adapter:** `eia-us` · turbine-level · unit = plant · open.
-**Fleet:** ~499 monthly-reporting plants (of 1,279), ~133 GW.
+**Data source:** EIA-923 net generation, EIA-860 nameplate and coordinates,
+USWTDB hub heights and rotors. **Adapter:** `eia-us` · turbine-level ·
+unit = plant · open.
 
-All inputs are public-domain US government data or your own CDS/ERA5
-credentials; none of the raw or derived data is committed (`/input` is
-git-ignored), so this runbook is how you rebuild it.
+The scorecard row covers 520 plants (512 scored) in the contiguous states. The
+result is in the [scorecard](../scorecard.md) and the [results page](../results.md#united-states-and-brazil).
 
-The steps split into two halves: the **credential-free** half (EIA/USWTDB
-acquisition + processing, fully scripted and verified against the real 2021
-files) and the **user-executed** half (ERA5 via your CDS key, and the run
-itself with a real power-curve library).
+## Source and licence
 
-## 1. Observations + metadata (credential-free)
+The observations and metadata are US public-domain data: EIA-923 and EIA-860
+from the Energy Information Administration, and hub heights and rotor
+diameters from the US Wind Turbine Database (USGS). The
+[source table](../guides/data-sources.md#source-urls) records each. Nothing
+from them is committed, because `input/` is git-ignored; this runbook rebuilds
+it. Results computed from them may be shared.
 
-Download the public files (sizes are the 2021 vintage):
+## 1. Observations and metadata
 
 | File | Source |
 | --- | --- |
@@ -23,105 +24,78 @@ Download the public files (sizes are the 2021 vintage):
 | `eia860<year>.zip` (EIA-860) | `eia.gov/electricity/data/eia860/` (recent) or `.../archive/xls/` (older) |
 | `uswtdbCSV.zip` (USWTDB) | `energy.usgs.gov/uswtdb/data/` |
 
-Then build the two on-disk tables the `eia-us` source reads:
+Pass one EIA-923 workbook per year, 2019 to 2022 (`configs/regions/us.toml`),
+and one EIA-860 vintage. Run it under the run's input root, because curve
+matching reads that root's `models.csv`:
 
 ```bash
-python scripts/process/eia_us.py \
+PYVWF_INPUT=input/combined python scripts/process/eia_us.py \
     --eia923 input/raw/eia/f923_2019/EIA923_Schedules_2_3_4_5_M_12_2019_*.xlsx \
              input/raw/eia/f923_2020/EIA923_Schedules_2_3_4_5_M_12_2020_*.xlsx \
              input/raw/eia/f923_2021/EIA923_Schedules_2_3_4_5_M_12_2021_*.xlsx \
-    --eia860-plants     input/raw/eia/eia860_2021/2___Plant_Y2021.xlsx \
-    --eia860-generators input/raw/eia/eia860_2021/3_1_Generator_Y2021.xlsx \
+             input/raw/eia/f923_2022/EIA923_Schedules_2_3_4_5_M_12_2022_*.xlsx \
+    --eia860-plants     input/raw/eia/eia860_2022/2___Plant_Y2022.xlsx \
+    --eia860-generators input/raw/eia/eia860_2022/3_1_Generator_Y2022.xlsx \
     --uswtdb            input/raw/eia/uswtdb/uswtdb_V9_0_*.csv \
-    --bbox -125 -66 24 50 \
-    --out input/observations/turbine/US
+    --bbox -125 -66 24 50
 ```
 
-`--bbox` must match the region's `[era5] bbox`. EIA covers every state but the
-CONUS box does not, so without it the Alaska/Hawaii plants (15 plants, 0.29 GW;
-6 of them monthly reporters) survive into the fleet and are snapped by
-`aggregate_turbines_to_grid`'s unbounded nearest-cell `argmin` to the closest
-in-domain cell: Hawaii simulated with Californian wind, silently. The join
-report records how many were dropped.
+It writes `us_md.csv`, `us_eia923_netgen.csv` and `join_report.md` under
+`<input root>/observations/turbine/US/` (override with `--out`). Read the join
+report afterwards for unmatched plants and hub-height and curve counts.
 
-Writes `us_md.csv`, `us_eia923_netgen.csv`, and `join_report.md`. Pass every
-year of EIA-923 you intend to train/test on (`--eia923` takes several
-workbooks); one EIA-860 vintage supplies the static nameplate + coordinates.
+- **`--bbox` must match the region's `[era5] bbox`,** or Alaska and Hawaii
+  plants are silently simulated with the nearest in-domain cell's wind.
+- **Hub heights are binned to 10 m** (`--height-bin`, default 10; 0 disables);
+  unbinned USWTDB heights run out of memory.
+- **Annual respondents are dropped.** Plant-years flagged `A` in EIA-923 carry
+  EIA-imputed monthly values and are set to NaN by default; months before a
+  plant's commissioning date are masked too.
+- **Curves are matched** by default (`--curve-assignment match`): each plant gets
+  the onshore curve of similar rating nearest its specific power. Plants with no
+  USWTDB rotor or turbine count fall back to `--model` (default
+  `2019COE_Market_Average_2.6MW_121`), recorded in `us_md.csv`'s `model_source`.
+  `--curve-assignment uniform` gives every plant `--model`.
 
-**What the real 2021 file produces** (sanity anchors, verified on the
-`Final_Revision` workbook + USWTDB V9):
-
-- 1,279 wind plants in EIA-923; 1,278 join to EIA-860 coordinates (a handful,
-  e.g. the `99999` placeholder code, do not; listed in the join report).
-- Fleet nameplate ≈ 133 GW; per-plant hub height from USWTDB for 1,168 / 1,278
-  plants (mean ≈ 82 m), the rest on the 100 m uniform default (`height_source`
-  records which, per plant).
-- **777 of the 1,279 plants are annual (`A`) respondents**, whose monthly cells
-  are EIA-imputed, not measured. The source drops them by default, leaving
-  ≈ 499 monthly-reporting plants as the training fleet (still ~5x DK or AU).
-- Fleet capacity-weighted mean CF ≈ 0.34, the published 2021 US wind number.
-
-## 2. ERA5 (user-executed, needs your CDS key)
+## 2. ERA5
 
 ```bash
-pip install cdsapi          # not a PyVWF dependency; ~/.cdsapirc holds your key
-python scripts/fetch/era5.py --region us --dry-run     # inspect the request plan
-python scripts/fetch/era5.py --region us               # 48 months, 2019-2022, CONUS box
-python scripts/era5/combine.py --region us       # reduce to yearly daily files
+python scripts/fetch/era5.py --region us --dry-run   # inspect the request plan
+python scripts/fetch/era5.py --region us             # 48 months, 2019-2022
+python scripts/era5/combine.py --region us           # yearly daily files
 ```
 
-The CONUS box is ~7x the AU-NEM box, so the monthly files are large and a
-multi-year hourly load will not fit in memory; the daily pre-combine is not
-optional here. Point `--in-dir/--out-dir` (or the region's `era5_path`) at
-wherever the harness should read.
+The box is `bbox = [-125.0, -66.0, 24.0, 50.0]` ([W, E, S, N]). The config reads
+the combined daily files in `era5/US_daily` with `roughness = "stored"`; the rest
+is in [data sources, section 3](../guides/data-sources.md#3-shared-inputs-all-regions).
 
-## 3. Power curves (bundled open library, or your own)
-
-The bundled `input/reference/power_curves.csv` / `models.csv` are now a REAL open curve
-library (NatLabRockies/turbine-models, DOI 10.11578/dc.20210112.1, BSD-3-Clause,
-VWF-smoothed), so runs against them are physically meaningful. `process_eia_us.py`
-assigns every plant a UNIFORM representative curve, the default
-`2019COE_Market_Average_2.6MW_121` (the most recent market-average utility curve),
-recorded in `us_md.csv`'s `model_source` column. Override with `--model <key>`
-(any column of `power_curves.csv`, e.g. `NREL_Reference_5MW_126`) for a different
-representative.
-
-The caveat is identity, not realism: the fleet is matched to the library by
-specific power, not by actual machine, so this is a fleet-representative curve,
-not each plant's true one. For identity-matched curves, use an input root with
-your own library; see
-[Choose the input root](../guides/training.md#choose-the-input-root). The USWTDB
-manufacturer/model string is carried in `us_md.csv`'s `uswtdb_model` column for
-the future vintage-aware per-plant assignment, but is never itself the curve key.
-
-## 4. Run the validation harness
+## 3. Train and evaluate
 
 ```bash
-pyvwf-validate train    --region configs/regions/us.toml
-pyvwf-validate evaluate --region configs/regions/us.toml \
+# The scorecard row (k = 250; the row reports k250 fixed)
+PYVWF_INPUT=input/combined python scripts/dev/run_locked.py -- \
+    pyvwf-validate train --region configs/regions/scorecard/us_k250.toml
+PYVWF_INPUT=input/combined python scripts/dev/run_locked.py -- \
+    pyvwf-validate evaluate --region configs/regions/scorecard/us_k250.toml \
+    --train-run output/validation/US/train-<timestamp>
+# The maintained config (cluster_list = [1, 25]; no k = 250)
+PYVWF_INPUT=input/combined pyvwf-validate train --region configs/regions/us.toml
+PYVWF_INPUT=input/combined pyvwf-validate evaluate --region configs/regions/us.toml \
     --train-run output/validation/US/train-<timestamp>
 ```
 
-`train` fits `(cluster, slice)` correction factors for every combination in the
-config (10 clusters × {fixed, season}); `evaluate` scores the held-out test
-year (2022) with the standard skill table. Transfer runs are out of scope for
-the US: the driver's validated-pair guard covers AU and Europe only.
+The scorecard row needs `input/combined`: most of its capacity is on curves only
+the licensed library holds. Both use the fixed and season slices, train on
+2019-2021 and test on 2022. The maintained sweep is the [sweep knee](../results.md#cluster-count-per-region);
+transfer runs are out of scope; the rest is in [training](../guides/training.md).
 
-## Caveats carried into any US result
+## Caveats
 
-- **Net, not gross.** EIA-923 `Netgen` is net of station use; the correction
-  absorbs a small parasitic-load loss the European monthly *generation* data
-  does not.
-- **Curtailment is not yet screened.** ERCOT/SPP curtailment contaminates
-  observed CF where it occurs. The shared `pyvwf.qc` module (research doc §6),
-  generalised from the AU heuristics, is the right home; not yet applied.
-- **Static nameplate.** Staged build-outs bias a plant's early months low; the
-  commissioning mask removes pre-operating months but not partial staging.
-
-## Licence
-
-The observations and metadata are US public-domain data: EIA-923 and EIA-860
-from the Energy Information Administration, and hub heights from the US Wind
-Turbine Database (USGS). The [source table](../guides/data-sources.md#source-urls) records each. Nothing from them is committed:
-`input/` is git-ignored, and this runbook rebuilds it. Results computed from
-them may be shared.
+- **The scorecard row's fit is degenerate (†):** check `fit_quality` before
+  using a per-cluster factor; see the [scorecard](../scorecard.md).
+- **Curtailment is not screened:** ERCOT and SPP curtailment stays in observed CF.
+- **Curves are matched by specific power, not machine identity.** The USWTDB
+  model string (`us_md.csv`'s `uswtdb_model`) is never the curve key.
+- **Net, not gross:** EIA-923 `Netgen` excludes station use, which the correction absorbs.
+- **Static nameplate.** Capacity is the EIA-860 nameplate, fixed over the
+  window, so staged build-outs bias a plant's early months low.

@@ -127,7 +127,8 @@ DK on 2020.
 
 The synthesis argued that the correction helps where reanalysis bias is
 level-dominated and that correction factors do not port between regions. Its
-Denmark result stands: MBE +0.121, corrected RMSE 0.160 to 0.099. A 2026-09-24
+Denmark result stands for the run it reports, which is not the scorecard's DK
+row: MBE +0.121, corrected RMSE 0.160 to 0.099. A 2026-09-24
 notice withdrew every corrected Australia figure, its cycle-tracking gate and
 the DK to AU transfer. A re-run found DK to AU lowers RMSE (0.1153 to 0.1128)
 but worsens MBE and correlation, and **AU to DK worsens RMSE** (0.1482 to
