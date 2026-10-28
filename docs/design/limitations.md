@@ -76,7 +76,8 @@ units from the scored rows of every variant of the run.
 A country-level run fits its offsets against one national series per period.
 The offsets are therefore under-determined, and they largely repair the
 scalar's cube-law overshoot rather than capturing an additive spatial bias.
-The reasoning is in `method-country-level.md`, in the findings tree.
+The reasoning is in `docs/findings/method-country-level.md` at the
+[research archive's tag](../archive.md).
 *[Note, 2026-09-25: until `ac26f6a` the national fits with more than one
 cluster did not run the joint fit: a routing defect sent them to the
 per-cluster solver. The under-determination holds for the joint fit by

@@ -212,6 +212,10 @@ this file stay in step with it.
 
 ### Documentation
 
+- **`docs/README.md` is shorter**: the folder and one-home tables merge rows
+  that shared a home, and the findings naming loses the types no file uses.
+  The output-structure guide states the roughness block once, and the
+  limitations page names the archived country-level record it cites.
 - **The README gives a reviewer a short route through the project.** A line
   near the top links how it is built, an "If you have five minutes" section
   points to the results, the scorecard, the account of development with
