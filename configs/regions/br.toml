@@ -4,7 +4,7 @@
 # Nordeste wind fleet is not thermal at all but the TRADE-WIND maximum in the
 # austral winter/spring (roughly Jun-Nov). The astronomical SH seasons below
 # are a defensible partition; the trade-wind cycle is the physics to read the
-# result against (a candidate custom slicing is noted in the runbook).
+# result against.
 
 [region]
 code = "BR"

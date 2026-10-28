@@ -158,7 +158,7 @@ def cmd_observations(args) -> None:
         f"{station_monthly[station_monthly['ID'].isin(counts.index)]['ID'].nunique()}"
     )
     print(f"observations: {len(obs)} turbine rows -> {out / out_name}")
-    print(f"(saved as {out_name}, not overwriting the committed ukobs.csv)")
+    print(f"(saved as {out_name}, not overwriting the curated ukobs.csv)")
 
 
 def main() -> None:
@@ -181,7 +181,7 @@ def main() -> None:
         nargs="+",
         metavar="GLOB",
         help="CONFIDENTIAL Ofgem certificate-warehouse CSV(s) "
-        "(differently licensed; reproduces the committed ukobs exactly)",
+        "(differently licensed; reproduces the curated ukobs exactly)",
     )
     o.add_argument(
         "--turbine-counts",
