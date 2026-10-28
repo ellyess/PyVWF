@@ -88,6 +88,13 @@ this file stay in step with it.
   from the tag. `docs/findings/` keeps only the active review-agent study.
   Links, comments and the preregistration test move with them; the test's
   complete-document case reads a fixture copy.
+- **`CONTRIBUTING.md` and the pull-request template are rewritten.** The
+  contributing guide gives each command once, describes the CI jobs correctly
+  (it said CI installs no optional extras, beside a line describing the job
+  that installs them, and credited the test jobs with running the example), and gains a section on AI-assisted contributions. The
+  template's real-data section names the code the pins now reach, not the
+  narrower set they covered before, and the template asks whether a coding
+  agent was used.
 - **Guides are merged in pairs:** the Docker guide into
   `installation.md`, running on your own fleet data into `training.md`, and
   the adapter contract into `adding-a-region.md`. The installation guide lists
