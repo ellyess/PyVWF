@@ -147,18 +147,23 @@ winds and carries `z0`, one static field per year. That field is the annual
 mean of the roughness derived from the 10 m to 100 m shear, so a run on it
 applies the annual-mean treatment. `src/pyvwf/datasets/combine_era5_files.py`
 built the archive from the per-year `era5_u10_v10_<YYYY>_months01-12_EU.nc` and
-`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads:
+`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads. It left the package on
+2026-10-28, since no configuration on main reads what it builds. To rebuild the
+archive, check out tag `archive/research-2026-10-27` first
+([archive.md](../archive.md#reproducing-a-result-from-the-tag)):
 
 ```bash
+git checkout archive/research-2026-10-27
 python src/pyvwf/datasets/combine_era5_files.py --all-years --add-roughness \
     --roughness-source pyvwf
 ```
 
 The archive is kept unchanged, so the rows published on it stay reproducible.
-No shipped configuration reads it any more. Every European config, maintained
-and scorecard alike, reads `era5/EU_2026-09`, which carries no roughness field
-and a wider box, so `prep_era5` derives the roughness per timestep. That is
-also the default now, so a region asks for nothing. The reasons, and the three
+No configuration on main reads it. Every other European config, maintained and
+scorecard alike, reads `era5/EU_2026-09`, and ES-WS reads `era5/ES`. The first
+carries no roughness field and a wider box, so `prep_era5` derives the
+roughness per timestep. That is also the default now, so a region asks for
+nothing. The reasons, and the three
 routes, are in
 [`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
 

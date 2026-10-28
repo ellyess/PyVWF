@@ -27,6 +27,7 @@ says, with its own authors.
 | Study drivers | `scripts/studies/<study>/`, mapped in `scripts/studies/README.md`: 21 of the 22 directories. The scorecard audits moved to `scripts/analysis/` |
 | Finished analysis scripts | `scripts/analysis/{eu_rerun_compare,ml_transfer_retest,ml_transfer_expanded,regression_compare,check_issue155}.py`, `scripts/dev/repo_stats.py` |
 | Study and superseded configurations | `configs/regions/study/`, `configs/regions/scorecard/superseded/`, `configs/regions/pinn_loco/`, `configs/regions/nl.toml` |
+| The builder of the superseded `era5/EU` archive, removed on 2026-10-28 | `src/pyvwf/datasets/combine_era5_files.py` and `tests/test_combine_era5_files.py`. `docs/guides/data-sources.md` gives its command |
 | Review-agent evaluation run | `scripts/dev/agent_evals/runs/2026-10-16/`: 30 critic prompts and reviews, 40 judge prompts and judgements, and the run record. The harness, its five cases and a results summary stay on main |
 | Agent definitions now kept locally | `.claude/agents/prior-work-scout.md`, `.claude/agents/simplicity-critic.md`, `.claude/skills/idea-review/`. The three evaluated critics stay on main |
 | Their tests | `tests/`, as named in each finding's reproduction record |

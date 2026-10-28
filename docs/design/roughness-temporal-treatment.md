@@ -12,7 +12,7 @@ There are three routes, not two, and they produce two distinct treatments:
 
 | Route | How it is produced | What the file carries | Scorecard rows |
 |---|---|---|---|
-| **A, annual mean** | The hourly z0 is computed, then averaged over the year into a single static field, in `src/pyvwf/datasets/combine_era5_files.py` | hourly winds and a stored `z0`, one field per year | none |
+| **A, annual mean** | The hourly z0 is computed, then averaged over the year into a single static field, in `src/pyvwf/datasets/combine_era5_files.py`, at tag `archive/research-2026-10-27` since 2026-10-28 | hourly winds and a stored `z0`, one field per year | none |
 | **B, per timestep at load** | The hourly z0 is computed in `pyvwf.era5.prep_era5` when the file carries no roughness, then averaged to daily with the winds | hourly winds only | DE, DK, UK, the eight country-level regions, AU-NEM, NZ, CL and AR: 15 |
 | **C, per timestep, stored daily** | The hourly z0 is computed in `scripts/era5/combine.py` and averaged to daily there, so the file arrives with it | daily `wnd100m` and `roughness`, and **no 10 m winds** | US, BR: 2 |
 
@@ -30,8 +30,8 @@ gets the method. Until this changed, the default was `stored` and every
 maintained `configs/regions/<stem>.toml` for a European region still named
 `era5/EU`, so a reader who ran one of those files, as the guides tell them to,
 got the superseded treatment while the scorecard configs alone carried the
-method's pair. Those thirteen files now name `era5/EU_2026-09` and need no
-`roughness` key.
+method's pair. Those thirteen files then moved to `era5/EU_2026-09`, which
+needs no `roughness` key.
 
 **Route C has to ask.** `era5/US_daily` and `era5/BR_daily` carry no 10 m
 winds, so the per-timestep derivation has nothing to invert and refuses. Those

@@ -137,6 +137,10 @@ this file stay in step with it.
 - **The Danish bidding-zone polygons** (`configs/curation/zones/DK_1`, `DK_2`),
   which nothing read. The zones README says how to fetch them if a Danish
   zonal run is added.
+- **`pyvwf.datasets.combine_era5_files`**, which built the `era5/EU` archive
+  with its annual-mean roughness. No configuration on main reads that archive,
+  and the per-timestep roughness is the default. It is at tag `archive/research-2026-10-27`; the
+  data-sources guide keeps its command.
 
 ### Fixed
 
