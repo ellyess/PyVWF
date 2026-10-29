@@ -1,7 +1,9 @@
 ---
 name: findings-doc
 description: Write, revise or correct a PyVWF findings document under docs/findings/, or a scorecard row, so that every number is traceable, the full metrics table comes before interpretation, negative results are kept, and corrections are dated notices. Use whenever a docs/findings/ file is created or edited, or a result is added to the scorecard. Do not use for guides, runbooks or design pages, which follow the writing rules in docs/README.md.
-paths: "docs/findings/**"
+paths:
+  - "docs/findings/**"
+  - "docs/scorecard.md"
 ---
 
 # findings-doc

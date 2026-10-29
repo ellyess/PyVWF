@@ -78,6 +78,12 @@ The [training guide](docs/guides/training.md) covers the region config, the
 input root that decides which power-curve library a run uses, and the
 `transfer` command.
 
+Working with a coding agent in a checkout? The
+[`run-pyvwf` skill](skills/run-pyvwf/SKILL.md) takes it through the same steps:
+installing, the example, a region or your own fleet, and reading what the run
+wrote. Claude Code finds it through `.claude/skills`; point another agent at
+the file.
+
 ## Results
 
 The correction lowers the error in fourteen of the fifteen regions below, and
