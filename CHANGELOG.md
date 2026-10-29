@@ -221,6 +221,10 @@ and each summary from 0.2.0 on links to its own.
   with its annual-mean roughness. No configuration on main reads that archive,
   and the per-timestep roughness is the default. It is at tag `archive/research-2026-10-27`; the
   data-sources guide keeps its command.
+- **The `touchdesigner` extra and `scripts/analysis/export_voronoi_frames.py`**,
+  which exported cluster maps to TouchDesigner. They are the maintainer's
+  visualisation project, not a package feature, and nothing in the package
+  used them. They are at tag `archive/research-2026-10-27`.
 
 ### Fixed
 

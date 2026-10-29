@@ -26,7 +26,7 @@ pre-commit install             # ruff, the file checks, nbstripout and the em-da
 git config blame.ignoreRevsFile .git-blame-ignore-revs   # keeps the one formatting commit out of blame
 ```
 
-The conda route and what each of the six extras adds are in
+The conda route and what each of the five extras adds are in
 [docs/guides/installation.md](docs/guides/installation.md).
 
 ## Tests and checks

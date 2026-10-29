@@ -60,7 +60,6 @@ scripts/
     missing_value_audit.py         where a row's corrected capacity factors are missing, and why
     off_curve_sensitivity.py       how much a row's result depends on dropping off-curve days
     training_objective_check.py    whether a country-level fit's objective drops off-curve days
-    export_voronoi_frames.py       cluster maps for TouchDesigner (the touchdesigner extra)
 ```
 
 ## Importing another script
