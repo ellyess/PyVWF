@@ -48,6 +48,7 @@ import pandas as pd
 
 
 from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.country_obs_rebuild import split_utc_years, write_keeping_backup
 from pyvwf.loaders.country_obs_checks import check_country_cf
 
 TZ = "Europe/Oslo"
@@ -121,27 +122,6 @@ def national(metered: pd.DataFrame, fleet: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def split(series: pd.DataFrame, first: int, last: int) -> pd.DataFrame:
-    """The UTC calendar years first to last, stamped in Oslo time."""
-    years = series.index.year
-    out = series[(years >= first) & (years <= last)].copy()
-    out.index = out.index.tz_convert(TZ)
-    out.index.name = None
-    return out
-
-
-def write(frame: pd.DataFrame, path: Path, *, replace: bool) -> None:
-    """Write one split, keeping any file it replaces as a backup."""
-    if path.exists():
-        if not replace:
-            raise FileExistsError(f"{path} exists; pass --replace to keep it as a backup")
-        backup = path.with_suffix(BACKUP_SUFFIX)
-        if not backup.exists():
-            path.rename(backup)
-            print(f"  kept the old file as {backup.name}")
-    frame.to_csv(path)
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     obs_dir = PyVWFPaths.COUNTRY_LEVEL_DATA / "observations" / "no"
@@ -180,7 +160,7 @@ def main() -> int:
         )
         print(f"  gates: {'pass' if result.ok else '; '.join(result.issues)}")
         if out_dir == args.obs:
-            write(frame, source, replace=args.replace)
+            write_keeping_backup(frame, source, replace=args.replace, backup_suffix=BACKUP_SUFFIX)
         else:
             frame.to_csv(out_dir / source.name)
 
@@ -188,7 +168,7 @@ def main() -> int:
     series = national(metered, register_fleet(args.register, metered.index))
     for kind, first, last in METERED_SPANS:
         stem = f"no_test_{first}" if kind == "test" else f"no_train_{first}_{last}"
-        save(split(series, first, last), target(stem))
+        save(split_utc_years(series, first, last, TZ), target(stem))
 
     # The 2023 generation is ENTSO-E's; read it from the backup once one
     # exists, so a second run reproduces the first.

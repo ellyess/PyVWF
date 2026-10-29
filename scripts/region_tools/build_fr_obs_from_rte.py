@@ -51,6 +51,11 @@ import pandas as pd
 
 
 from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.country_obs_rebuild import (
+    interpolated_capacity,
+    split_utc_years,
+    write_keeping_backup,
+)
 from pyvwf.loaders.country_obs_checks import check_country_cf
 
 ODRE = "https://odre.opendatasoft.com/api/explore/v2.1/catalog/datasets/{dataset}/exports/csv"
@@ -124,22 +129,6 @@ def hourly_output(raw: pd.DataFrame) -> pd.Series:
     return hourly.mean()[hourly.count() == 2]
 
 
-def interpolated_capacity(index: pd.DatetimeIndex, fleet: pd.Series) -> pd.Series:
-    """The wind fleet at each hour, linear from one 31 December to the next.
-
-    Args:
-        index: UTC hours.
-        fleet: MW connected on 31 December, indexed by year.
-    """
-    year = index.year
-    start = pd.to_datetime(year.astype(str) + "-01-01").tz_localize("UTC")
-    end = pd.to_datetime((year + 1).astype(str) + "-01-01").tz_localize("UTC")
-    fraction = (index - start) / (end - start)
-    before = fleet.reindex(year - 1).to_numpy()
-    after = fleet.reindex(year).to_numpy()
-    return pd.Series(before + (after - before) * fraction, index=index)
-
-
 def national(raw: pd.DataFrame, fleet: pd.Series) -> pd.DataFrame:
     """One hourly national series: generation, capacity, and their ratio."""
     generation = hourly_output(raw)
@@ -148,27 +137,6 @@ def national(raw: pd.DataFrame, fleet: pd.Series) -> pd.DataFrame:
     )
     out["capacity_factor"] = out["generation_mw"] / out["capacity_mw"]
     return out
-
-
-def split(series: pd.DataFrame, first: int, last: int) -> pd.DataFrame:
-    """The UTC calendar years first to last, stamped in Paris time."""
-    years = series.index.year
-    out = series[(years >= first) & (years <= last)].copy()
-    out.index = out.index.tz_convert(TZ)
-    out.index.name = None
-    return out
-
-
-def write(frame: pd.DataFrame, path: Path, *, replace: bool) -> None:
-    """Write one split, keeping any file it replaces as a backup."""
-    if path.exists():
-        if not replace:
-            raise FileExistsError(f"{path} exists; pass --replace to keep it as a backup")
-        backup = path.with_suffix(BACKUP_SUFFIX)
-        if not backup.exists():
-            path.rename(backup)
-            print(f"  kept the old file as {backup.name}")
-    frame.to_csv(path)
 
 
 def main() -> int:
@@ -194,13 +162,15 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     for kind, start, end in SPANS:
         name = f"fr_test_{start}.csv" if kind == "test" else f"fr_train_{start}_{end}.csv"
-        frame = split(series, start, end)
+        frame = split_utc_years(series, start, end, TZ)
         report = check_country_cf(frame, name, warn=False)
         utc_year = frame.index.tz_convert("UTC").year
         energy = (frame["generation_mw"].groupby(utc_year).sum() / 1e3).round(0)
         print(f"{name}: {len(frame)} hours, mean CF {report.mean_cf:.3f}, GWh {energy.to_dict()}")
         print(f"  gates: {'pass' if report.ok else '; '.join(report.issues)}")
-        write(frame, args.out / name, replace=args.replace)
+        write_keeping_backup(
+            frame, args.out / name, replace=args.replace, backup_suffix=BACKUP_SUFFIX
+        )
     return 0
 
 

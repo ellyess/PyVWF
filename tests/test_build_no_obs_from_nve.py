@@ -81,19 +81,8 @@ def test_split_takes_utc_years_and_stamps_oslo_time():
     module = _module()
     index = pd.date_range("2018-12-31 22:00", periods=3, freq="1h", tz="UTC")
     series = pd.DataFrame({"generation_mw": 1.0, "capacity_mw": 2.0}, index=index)
-    out = module.split(series, 2018, 2018)
+    out = module.split_utc_years(series, 2018, 2018, module.TZ)
     assert [t.isoformat() for t in out.index] == [
         "2018-12-31T23:00:00+01:00",
         "2019-01-01T00:00:00+01:00",
     ]
-
-
-def test_write_refuses_to_overwrite_without_replace(tmp_path):
-    module = _module()
-    path = tmp_path / "no_test_2019_aggregated.csv"
-    path.write_text("old\n")
-    frame = pd.DataFrame({"capacity_factor": [0.5]})
-    with pytest.raises(FileExistsError):
-        module.write(frame, path, replace=False)
-    module.write(frame, path, replace=True)
-    assert (tmp_path / "no_test_2019_aggregated.entsoe.bak.csv").read_text() == "old\n"

@@ -30,14 +30,6 @@ def observations(start: str, periods: int) -> pd.DataFrame:
     )
 
 
-def test_capacity_runs_from_one_31_december_to_the_next():
-    module = _module()
-    index = pd.DatetimeIndex(["2023-01-01 00:00", "2023-07-02 12:00"], tz="UTC")
-    capacity = module.interpolated_capacity(index, FLEET)
-    assert capacity.iloc[0] == pytest.approx(1000.0)
-    assert capacity.iloc[1] == pytest.approx(1500.0)
-
-
 def test_generation_and_stamps_are_kept_and_the_ratio_follows():
     frame = observations("2023-01-01 00:00", 3)
     out = _module().recapacitate(frame, FLEET)
@@ -64,14 +56,3 @@ def test_a_second_run_reads_the_backup_not_its_own_output(tmp_path, monkeypatch)
     module.main()
     assert (obs / "se_test_2023_aggregated.csv").read_text() == first
     assert (obs / "se_test_2023_aggregated.entsoe-capacity.bak.csv").exists()
-
-
-def test_write_refuses_to_overwrite_without_replace(tmp_path):
-    module = _module()
-    path = tmp_path / "se_test_2023_aggregated.csv"
-    path.write_text("old\n")
-    frame = pd.DataFrame({"capacity_factor": [0.5]})
-    with pytest.raises(FileExistsError):
-        module.write(frame, path, replace=False)
-    module.write(frame, path, replace=True)
-    assert (tmp_path / "se_test_2023_aggregated.entsoe-capacity.bak.csv").read_text() == "old\n"
