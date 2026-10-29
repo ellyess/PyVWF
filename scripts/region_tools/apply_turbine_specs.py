@@ -28,9 +28,9 @@ Extra columns are ignored. Rows with a blank turbine_count or rotor_diameter_m
 fall back to the uniform curve.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/apply_turbine_specs.py CL \\
+    python scripts/region_tools/apply_turbine_specs.py CL \\
         --specs configs/curation/cl_turbine_specs.csv --dry-run
-    PYTHONPATH=src python scripts/region_tools/apply_turbine_specs.py CL \\
+    python scripts/region_tools/apply_turbine_specs.py CL \\
         --specs configs/curation/cl_turbine_specs.csv
 """
 

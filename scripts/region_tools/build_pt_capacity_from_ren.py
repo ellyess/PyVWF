@@ -22,8 +22,8 @@ Every national Portuguese file is rewritten. Nothing is overwritten unless
 suffix ``.entsoe-capacity.bak.csv``.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/build_pt_capacity_from_ren.py --out <dir>
-    PYTHONPATH=src python scripts/region_tools/build_pt_capacity_from_ren.py --replace
+    python scripts/region_tools/build_pt_capacity_from_ren.py --out <dir>
+    python scripts/region_tools/build_pt_capacity_from_ren.py --replace
 """
 
 from __future__ import annotations

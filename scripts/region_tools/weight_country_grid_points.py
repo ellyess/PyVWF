@@ -20,9 +20,9 @@ cannot represent that at all.
 The GWPT is CC-BY-4.0. See docs/guides/data-sources.md.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py NL --dry-run
-    PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py NL FR ES
-    PYTHONPATH=src python scripts/region_tools/weight_country_grid_points.py --all --year 2021
+    python scripts/region_tools/weight_country_grid_points.py NL --dry-run
+    python scripts/region_tools/weight_country_grid_points.py NL FR ES
+    python scripts/region_tools/weight_country_grid_points.py --all --year 2021
 """
 
 from __future__ import annotations

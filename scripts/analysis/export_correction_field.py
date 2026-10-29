@@ -3,7 +3,7 @@
 
 Thin wrapper over :func:`pyvwf.harness.export.export_correction_field`.
 
-    PYVWF_INPUT=input/combined PYTHONPATH=src python \\
+    PYVWF_INPUT=input/combined python \\
         scripts/analysis/export_correction_field.py \\
         --region configs/regions/dk.toml \\
         --train-run output/validation/.../train-k200 \\

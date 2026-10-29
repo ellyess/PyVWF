@@ -34,8 +34,8 @@ calendar year per year, stamped in Oslo time. Nothing is overwritten unless
 suffix ``.entsoe.bak.csv``.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/build_no_obs_from_nve.py --out <dir>
-    PYTHONPATH=src python scripts/region_tools/build_no_obs_from_nve.py --replace
+    python scripts/region_tools/build_no_obs_from_nve.py --out <dir>
+    python scripts/region_tools/build_no_obs_from_nve.py --replace
 """
 
 from __future__ import annotations

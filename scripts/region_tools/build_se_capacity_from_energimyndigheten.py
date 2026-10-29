@@ -26,8 +26,8 @@ on the split. Nothing is overwritten unless ``--replace`` is given, and then the
 old file is kept beside it with the suffix ``.entsoe-capacity.bak.csv``.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/build_se_capacity_from_energimyndigheten.py --out <dir>
-    PYTHONPATH=src python scripts/region_tools/build_se_capacity_from_energimyndigheten.py --replace
+    python scripts/region_tools/build_se_capacity_from_energimyndigheten.py --out <dir>
+    python scripts/region_tools/build_se_capacity_from_energimyndigheten.py --replace
 """
 
 from __future__ import annotations

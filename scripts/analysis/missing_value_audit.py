@@ -39,7 +39,7 @@ It needs ERA5, the local input root and the git-ignored run tree, so a third
 party cannot run it. Usage, from the repository root, one region per process,
 with ``PYVWF_INPUT`` as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/missing_value_audit.py <CODE> <out_dir>
+    python scripts/analysis/missing_value_audit.py <CODE> <out_dir>
 
 Outputs in ``<out_dir>``: ``<CODE>_missing_summary.csv`` (per variant),
 ``<CODE>_missing_by_cluster.csv`` and ``<CODE>_missing_by_unit.csv``.

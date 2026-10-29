@@ -36,8 +36,8 @@ Nothing is overwritten unless ``--replace`` is given, and then the old file is
 kept beside it with the suffix ``.entsoe.bak.csv``.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/build_fr_obs_from_rte.py --out <dir>
-    PYTHONPATH=src python scripts/region_tools/build_fr_obs_from_rte.py --replace
+    python scripts/region_tools/build_fr_obs_from_rte.py --out <dir>
+    python scripts/region_tools/build_fr_obs_from_rte.py --replace
 """
 
 from __future__ import annotations

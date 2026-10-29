@@ -25,7 +25,7 @@ reads the same metadata the row did.
 
 Usage, from the repository root:
 
-    PYVWF_INPUT=input/combined PYTHONPATH=src python scripts/analysis/extent_audit.py \
+    PYVWF_INPUT=input/combined python scripts/analysis/extent_audit.py \
         <out_dir> [CODE ...]
 
 With no codes it audits every row in ``baseline_bootstrap.CONFIGS``.
