@@ -108,6 +108,11 @@ VERDICT = re.compile(
 )
 FILES_READ = re.compile(r"^\s*\**Files read:?\**:?\s*$", re.IGNORECASE | re.MULTILINE)
 COMMANDS_RUN = re.compile(r"^\s*\**Commands run:?\**:?\s*$", re.IGNORECASE | re.MULTILINE)
+# An absolute path inside a line of prose or a command. Brackets and commas end
+# it, so "(grep only: /a/x.py, /a/y.py)" gives two paths.
+ABSOLUTE_PATH = re.compile(r"""(?<![\w.])/[^\s'"`;|&<>(),]+""")
+# A redirect target, not a read: "2>/dev/null" discards a command's errors.
+NOT_READ = frozenset({"/dev/null"})
 FOUND = re.compile(r"^\s*FOUND:\s*(YES|NO)\b", re.IGNORECASE | re.MULTILINE)
 QUOTE = re.compile(r"^\s*QUOTE:\s*(.*)\Z", re.IGNORECASE | re.MULTILINE | re.DOTALL)
 
@@ -463,12 +468,26 @@ def parse_verdict(review: str) -> str | None:
 
 
 def parse_files_read(review: str) -> list[str] | None:
-    """The paths listed after "Files read:", or None if there is no such list."""
+    """The absolute paths listed after "Files read:", or None if there is no such list.
+
+    The prompt asks for one absolute path per line. A line that starts with one
+    is kept whole, since a path may hold spaces, and so is every other absolute
+    path the line names, so "/snap/a.py, /etc/x" cannot pass as inside. Any
+    other line is a note, such as a closing verdict or "(tried, not found:
+    ...)", and only the absolute paths it names are kept. A note therefore
+    cannot count as a read on its own, as every one did in the runs of
+    2026-10-29, and cannot hide a path outside the snapshot either.
+    """
     match = FILES_READ.search(review)
     if not match:
         return None
-    lines = review[match.end() :].splitlines()
-    return [ln.strip().lstrip("-* ").strip("`") for ln in lines if ln.strip()]
+    paths = []
+    for line in review[match.end() :].splitlines():
+        item = line.strip().lstrip("-* ").strip("`")
+        if item.startswith("/"):
+            paths.append(item)
+        paths.extend(p for p in ABSOLUTE_PATH.findall(item) if p not in paths)
+    return paths
 
 
 def parse_commands(review: str) -> list[str]:
@@ -487,8 +506,8 @@ def paths_outside(commands: list[str], snapshot: str) -> list[str]:
     root = snapshot.rstrip("/") + "/"
     found = []
     for command in commands:
-        for word in re.findall(r"""(?<![\w.])/[^\s'"`;|&<>]+""", command):
-            if not (word + "/").startswith(root):
+        for word in ABSOLUTE_PATH.findall(command):
+            if word not in NOT_READ and not (word + "/").startswith(root):
                 found.append(word)
     return found
 

@@ -238,6 +238,49 @@ def test_a_review_without_a_files_list_is_reported_as_such():
     assert evals.leaked(None, "/tmp/x") is None
 
 
+# Notes the reviews of 2026-10-29 wrote under their files lists; every one was
+# read as a path outside the snapshot, and so excluded its review.
+NOTES = """Files read:
+/tmp/pyvwf-checkouts/abcd1234/src/vwf/data.py
+(docs/CONTEXT.md does not exist at this checkout)
+(grep only: /tmp/pyvwf-checkouts/abcd1234/a.py, /tmp/pyvwf-checkouts/abcd1234/b.py)
+(Tried to open these, but they don't exist: tests/test_harness.py)
+
+Verdict: REVISE
+"""
+
+
+def test_a_note_under_the_files_list_is_not_a_read_outside():
+    paths = evals.parse_files_read(NOTES)
+    assert paths == [
+        "/tmp/pyvwf-checkouts/abcd1234/src/vwf/data.py",
+        "/tmp/pyvwf-checkouts/abcd1234/a.py",
+        "/tmp/pyvwf-checkouts/abcd1234/b.py",
+    ]
+    assert evals.leaked(paths, "/tmp/pyvwf-checkouts/abcd1234") == []
+
+
+def test_a_note_naming_a_path_outside_the_checkout_is_still_a_leak():
+    review = NOTES + "(also grepped /repo/scripts/dev/agent_evals/cases/obs-routing.toml)\n"
+    paths = evals.parse_files_read(review)
+    assert evals.leaked(paths, "/tmp/pyvwf-checkouts/abcd1234") == [
+        "/repo/scripts/dev/agent_evals/cases/obs-routing.toml"
+    ]
+
+
+def test_a_listed_path_with_spaces_is_kept_whole():
+    review = "Files read:\n/Volumes/My Disk/repo/AGENTS.md\n"
+    outside = evals.leaked(evals.parse_files_read(review), "/tmp/pyvwf-checkouts/abcd1234")
+    assert "/Volumes/My Disk/repo/AGENTS.md" in outside
+
+
+def test_a_second_path_on_a_listed_line_is_checked_too():
+    review = "Files read:\n/tmp/pyvwf-checkouts/abcd1234/a.py, /Users/me/repo/AGENTS.md\n"
+    assert evals.leaked(evals.parse_files_read(review), "/tmp/pyvwf-checkouts/abcd1234") == [
+        "/Users/me/repo/AGENTS.md"
+    ]
+
+
 def test_a_yes_counts_with_a_quote_the_review_contains():
     answer = (
         "FOUND: YES\nQUOTE: each cluster's\n  observation is a capacity-weighted mean, so rounding"
@@ -320,6 +363,12 @@ def test_a_command_naming_a_path_outside_the_checkout_is_a_leak():
     assert evals.paths_outside(evals.parse_commands(review), SNAP) == [
         "/Users/me/repo/CHANGELOG.md"
     ]
+
+
+def test_a_redirect_to_dev_null_is_not_a_read():
+    command = "ls /tmp/pyvwf-checkouts/abcd1234/output 2>/dev/null | head"
+    assert evals.paths_outside([command], SNAP) == []
+    assert evals.paths_outside([command + " /Users/me/repo/x"], SNAP) == ["/Users/me/repo/x"]
 
 
 def test_the_judge_sees_neither_the_commands_nor_the_files():
