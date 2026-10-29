@@ -5,19 +5,13 @@ readable from the code; the reasoning behind them is not, which is what this
 document is for. Region-by-region results are in
 the [scorecard](../scorecard.md).
 
-The harness is **additive**. The legacy `PyVWF` training loop, `pyvwf/metrics.py`,
-`pyvwf/data.py` and the legacy scripts all keep working unchanged, and the
-affine baseline is wrapped rather than modified, so an alternative correction
-compares against the validated core in `pyvwf/correction.py` and `pyvwf/wind.py`
-without touching it.
-
-*[Note, 2026-10-16: the legacy `PyVWF` class, its `pyvwf-train` entry point
-and its batch scripts were removed on 2026-09-24 (the last commit with them is
-`d039608`, recorded in `docs/publications.md`), so the harness is now the only
-path. The affine baseline is still wrapped, not modified, and
-`tests/test_harness_corrections.py` pins it bit for bit against the core
-functions called directly. Statements below about the legacy path describe
-the design as it was before the removal.]*
+The harness wraps the affine baseline rather than modifying it, so an
+alternative correction compares against the validated core in
+`pyvwf/correction.py` and `pyvwf/wind.py` without touching it, and
+`tests/test_harness_corrections.py` pins the wrapper bit for bit against the
+core functions called directly. It is the only path: the legacy `PyVWF` class
+and its scripts were removed on 2026-09-24, and `docs/publications.md` records
+the last commit with them.
 
 ## What it is built to make cheap
 
@@ -38,11 +32,11 @@ src/pyvwf/harness/records.py       # what a run records about its inputs, for th
 src/pyvwf/harness/scoring.py       # paired frames per scope, common-row scoring, error metrics
 src/pyvwf/harness/skill.py         # skill metrics on tidy frames
 src/pyvwf/harness/bootstrap.py     # paired bootstrap resampling
-src/pyvwf/provenance.py            # run_manifest.json + curve-library identity (both paths)
+src/pyvwf/provenance.py            # run_manifest.json + curve-library identity
 src/pyvwf/harness/export.py        # gridded correction fields
 src/pyvwf/harness/hindcast.py      # applying fitted factors to other years
 src/pyvwf/sources/                 # one ObservationSource adapter per data family
-src/pyvwf/metrics.py               # the weighted-mean primitive, shared by both paths
+src/pyvwf/metrics.py               # the weighted-mean primitive every score uses
 configs/regions/*.toml           # one file per region
 src/pyvwf/cli/validate.py          # the pyvwf-validate console entry point
 ```
@@ -56,42 +50,16 @@ user-supplied and partly gitignored.
 TOML, because the project already ships `tomli` for Python 3.10 and stdlib
 `tomllib` covers 3.11+, so it costs no new dependency.
 
-```toml
-[region]
-code = "AU-NEM"            # free-form id, NOT restricted to ISO-2
-name = "Australia (National Electricity Market)"
-
-[observations]
-source = "aemo-nem"        # ObservationSource registry name
-obs_level = "turbine"      # which training branch runs: "turbine" | "country"
-obs_unit = "farm"          # the true independent measurement unit
-train_years = [2020, 2022] # inclusive
-test_years  = [2023]
-
-[era5]
-path = "era5/AU"           # relative to PYVWF_INPUT; prep_era5 globs *.nc here
-bbox = [129.0, 154.0, -44.0, -10.0]   # lon_min, lon_max, lat_min, lat_max
-file_tag = "AU"            # the fetch's directory and filename prefix, not a
-                           # selector: era5/<tag>/era5_<tag>_<YYYY>_<MM>.nc
-
-[correction]
-model = "affine-wind"      # CorrectionModel registry name
-cluster_list = [1, 15]
-time_slices = ["fixed", "season"]
-
-[seasons]                  # explicit month groups, no hemisphere heuristics
-summer = [12, 1, 2]
-autumn = [3, 4, 5]
-winter = [6, 7, 8]
-spring = [9, 10, 11]
-```
+[`configs/regions/au_nem.toml`](https://github.com/ellyess/PyVWF/blob/main/configs/regions/au_nem.toml)
+is a complete config, and the
+[training guide](../guides/training.md#the-region-config) lists every section
+and key.
 
 **Seasons are explicit month lists per region, not a hemisphere flag.** A flag
 would fix Australia while leaving the mapping implicit and unauditable, and
 explicit months also serve regions where meteorological seasons are not the
 right split at all, such as monsoon and trade-wind regimes. European configs
-carry the Northern-Hemisphere mapping verbatim, so legacy results reproduce
-bit-for-bit.
+carry the Northern-Hemisphere mapping verbatim.
 
 `[seasons]` is **mandatory even when `"season"` is not among the region's
 `time_slices`**, because season definitions are used beyond seasonal training:
@@ -102,9 +70,6 @@ operations fall back to something, and that something would be the
 Northern-Hemisphere mapping this design exists to eliminate. Configs fail
 validation if `[seasons]` is missing or its month lists do not partition 1 to 12
 exactly.
-
-Precedence with the legacy config machinery is mechanical: the harness reads
-TOML only, legacy entry points read legacy config only.
 
 ## Observation granularity
 
@@ -153,11 +118,10 @@ fixed.
 
 ## ERA5 extraction
 
-Two additive changes to `pyvwf/era5.py`. Longitude is normalised to
-[-180, 180] on load if any value exceeds 180, and re-sorted, which closes the
-silent empty-subset hazard. The loader reads the directory `RegionSpec` gives
-it, which every caller passes; until 2026-10-28 a module-level constant filled
-in a missing one.
+`pyvwf/era5.py` normalises longitude to [-180, 180] on load if any value
+exceeds 180, and re-sorts it, which closes the silent empty-subset hazard. It
+reads the directory `RegionSpec` gives it; there is no default location to
+fall back to.
 
 ## Correction models
 
@@ -185,7 +149,8 @@ and one offset averaged over its accepted years rather than one row per year
 
 `AffineWindCorrection` is a thin delegate to the existing `pyvwf.correction` and
 `pyvwf.wind` paths, pinned by a golden regression test that requires bit-for-bit
-agreement with the legacy pipeline on the synthetic Denmark fixture. Variants
+agreement with those functions called directly, on the synthetic Denmark
+fixture. Variants
 register alongside it and none modify the baseline.
 
 ## Skill metrics
@@ -196,18 +161,11 @@ distribution comparison by 1-D Earth mover's distance with exported Q-Q
 quantiles; and seasonal-cycle RMSE against the mean monthly climatology. All
 reported before and after correction, in sample and held out.
 
-The **error metrics** are defined in `pyvwf/harness/skill.py`
-(`skill_metrics`). The legacy path defined them a second
-time, in `pyvwf/metrics.py` (`calculate_error` in seven modes, and
-`overall_error`); that path was removed on 2026-09-24, its metrics on
-2026-09-25 (last present at `96a6d3e`), and the one mode the gridded correction
-kept on 2026-10-28, when that correction was archived.
-
-The two share one weighted mean. `pyvwf.metrics.weighted_mean` and
+The **error metrics** are defined once, in `pyvwf/harness/skill.py`
+(`skill_metrics`), on one weighted mean. `pyvwf.metrics.weighted_mean` and
 `weighted_mean_by` are the one weighted-mean primitive, at the bottom of the
-layering in `.importlinter`, and ten modules import them,
-`harness/skill.py`, `scoring.py`, `corrections.py` and `hindcast.py` among
-them. One helper means a missing value is treated the same way everywhere: it
+layering in `.importlinter`, and `harness/skill.py`, `scoring.py`,
+`corrections.py` and `hindcast.py` are among the modules that import them. One helper means a missing value is treated the same way everywhere: it
 leaves both the sum and the weights, and a group where nothing has a value is
 NaN rather than zero.
 
@@ -230,11 +188,8 @@ copied over the committed open library; the training guide gives the steps.) The
 mechanical: a result that turns on licensed rather than bundled curves is only
 reportable from a manifest with `library == "external"`.
 
-The legacy `PyVWF.train` and `simulate_cf` write the manifest too. A
-manifest-write failure never aborts a run, in the harness or the legacy path:
-provenance is diagnostic, not load-bearing. *[Note, 2026-10-16: the legacy
-path was removed on 2026-09-24; the harness's runs still write the manifest,
-and a failure to write it still does not abort them.]*
+A manifest-write failure never aborts a run: provenance is diagnostic, not
+load-bearing.
 
 ## Driver
 
@@ -301,13 +256,5 @@ synthetic, no network.
   actual output, so Australian corrections absorb curtailment in a way European
   monthly generation data does not. This caveat travels with every Australian
   finding.
-- **Two config systems** coexist, legacy dicts and TOML, with the precedence
-  rule above. *[Note, 2026-10-16: the legacy entry points went with the legacy
-  path on 2026-09-24, so every run reads TOML. The dict defaults left in
-  `pyvwf.config`, such as `BoundingBoxes`, serve direct calls that pass no
-  config value; they are not a second config system.]* *[2026-10-28:
-  `BoundingBoxes` and `PyVWFPaths.ERA5_DATA` are removed and no dict defaults
-  remain in `pyvwf.config`; a direct call passes `era5_dir`, and `bbox=None`
-  reads the files' whole extent.]*
 - **Antimeridian-crossing ERA5 subsets are not supported.** No current region
   needs one.

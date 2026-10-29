@@ -1,18 +1,17 @@
 # Data sources and preprocessing
 
-The single reference for the data PyVWF uses: what each source is, its licence,
-how it is fetched, and **what the processing does to it** for every region.
-Full step-by-step acquisition lives in the per-region runbooks
-(`docs/runbooks/<cc>.md`); the adapter contract is in
+What each data source is, its licence, how it is fetched, and **what the
+processing does to it**, for every region. The step-by-step acquisition is in
+each region's runbook (`docs/runbooks/<cc>.md`), and the adapter contract in
 [adding an adapter](adding-a-region.md#adding-an-adapter).
 
 **Licence key**, used in the `Lic.` column below: **open** = redistributable;
 **mixed** = open coordinates over a confidential generation series;
 **confidential** = confidential or commercial, never redistributed.
 
-Nothing under `input/` is committed (`/input` is git-ignored) except the region
-shapes in `input/reference/shapes/`; the open library ships in the package. Every fetch script is **user-executed**: it
-runs under your own credentials (CDS, ENTSO-E, CEN keys), never bundled data.
+Nothing under `input/` is committed except the region shapes in
+`input/reference/shapes/`; the open curve library ships in the package. Every
+fetch script runs under your own credentials (CDS, ENTSO-E, CEN keys).
 Results *derived* from confidential inputs are shareable; the inputs are not.
 
 ## Input layout
@@ -140,16 +139,17 @@ the box and years from the region TOML, batches 3 months per CDS request (the
 cost-limit ceiling), and writes per-month `era5_<tag>_<YYYY>_<MM>.nc`. Big boxes
 (US, BR) are reduced to yearly daily means by `scripts/era5/combine.py`.
 
-**The `era5/EU` archive (annual-mean roughness).** The European rows published
-before 2026-09-13 read `era5/EU`. It holds one hourly file per year, 2015 to
-2023, named `era5_combined_<YYYY>_EU.nc`. Each file merges the 10 m and 100 m
-winds and carries `z0`, one static field per year. That field is the annual
-mean of the roughness derived from the 10 m to 100 m shear, so a run on it
-applies the annual-mean treatment. `src/pyvwf/datasets/combine_era5_files.py`
-built the archive from the per-year `era5_u10_v10_<YYYY>_months01-12_EU.nc` and
-`era5_u100_v100_<YYYY>_months01-12_EU.nc` downloads. It left the package on
-2026-10-28, since no configuration on main reads what it builds. To rebuild the
-archive, check out tag `archive/research-2026-10-27` first
+**Which ERA5 each European config reads.** Every European config, maintained
+and scorecard alike, reads `era5/EU_2026-09`, and ES-WS reads `era5/ES`. The
+first carries no roughness field, so `prep_era5` derives the roughness per
+timestep, which is the default. The reasons are in
+[`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
+
+The European rows published before 2026-09-13 read the older `era5/EU`
+archive: one hourly file per year, 2015 to 2023, each carrying `z0` as one
+static field, the annual mean of the roughness derived from the 10 m to 100 m
+shear. No configuration on main reads it, and it is kept unchanged so those
+rows stay reproducible. Its builder is at tag `archive/research-2026-10-27`
 ([archive.md](../archive.md#reproducing-a-result-from-the-tag)):
 
 ```bash
@@ -157,15 +157,6 @@ git checkout archive/research-2026-10-27
 python src/pyvwf/datasets/combine_era5_files.py --all-years --add-roughness \
     --roughness-source pyvwf
 ```
-
-The archive is kept unchanged, so the rows published on it stay reproducible.
-No configuration on main reads it. Every other European config, maintained and
-scorecard alike, reads `era5/EU_2026-09`, and ES-WS reads `era5/ES`. The first
-carries no roughness field and a wider box, so `prep_era5` derives the
-roughness per timestep. That is also the default now, so a region asks for
-nothing. The reasons, and the three
-routes, are in
-[`roughness-temporal-treatment.md`](../design/roughness-temporal-treatment.md).
 
 **Coordinates and capacity: Global Wind Power Tracker (GWPT).** Global Energy
 Monitor, CC-BY-4.0, at `input/reference/gwpt/`. Supplies coordinates (CL, AR,
@@ -232,7 +223,7 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
 
 - **ENTSO-E (ES, IE, IT, NL, and the files the SE, NO and PT builders start
   from).** The fetch takes every wind type, onshore and offshore, unless
-  `--psr-type` names one; until 2026-10-25 it took onshore alone. Generation is
+  `--psr-type` names one. Generation is
   the wind types' output, with any consumption column left out. An hour in
   which a wind type that reports is missing is dropped, so the remaining types
   are never taken for the whole fleet; outside a type's first and last reported
@@ -290,15 +281,12 @@ series that measures only part of the fleet; this comparison can.
 
 ## 5. Evaluated but not shipped
 
-- **Turkey (TR):** EPİAŞ Şeffaflık, evaluated in July 2026 and not shipped.
-  Authentication works and the plant list downloads, but no reachable endpoint
-  returns per-plant generation: the injection-quantity (UEVM) endpoint answers
-  200 for any `powerPlantId` and silently returns the national series, and
-  the licensed real-time endpoint returns 403 under the Data Consultation
-  subscription. The false positive was caught by asking for two different
-  plants and finding byte-identical numbers. A subscription covering
-  `renewables-service` would be the way to retest it. The runbook and the probe
-  are at the archive tag:
+- **Turkey (TR):** EPİAŞ Şeffaflık, evaluated in July 2026. No reachable
+  endpoint returns per-plant generation: the injection-quantity (UEVM) endpoint
+  returns the national series for any `powerPlantId`, which two plants giving
+  byte-identical numbers exposed, and the real-time endpoint refuses the Data
+  Consultation subscription. A subscription covering `renewables-service` would
+  allow a retest. The runbook and the probe are at the archive tag:
   [`docs/runbooks/tr.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/runbooks/tr.md),
   [`scripts/fetch/epias_tr.py`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/scripts/fetch/epias_tr.py).
 - **Sweden & Finland (WindStats):** the format supports them, but GWPT matches
