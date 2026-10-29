@@ -114,6 +114,10 @@ their observations are rebuilt.
 - **Archived at the tag:** `configs/regions/nl.toml`, a region with no
   scorecard row, and the Turkey runbook and probe; the data-sources guide
   keeps what the Turkey evaluation found.
+- **The JOSS paper**, which was not accepted, is archived at the tag and
+  ignored on main; `docs/publications.md` gives its status. The desktop app's
+  `.claude/launch.json` is no longer tracked, and Claude Code's worktrees are
+  ignored.
 
 ### Fixed
 

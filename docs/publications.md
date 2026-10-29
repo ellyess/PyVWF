@@ -41,7 +41,7 @@ it was moved there on 2026-07-06 (`e8208e1`).
 ## Archived submissions
 
 Work submitted from PyVWF that was not published. It is listed here so that a
-reader who finds the file in the tree knows its status, and does not read it
+reader who finds the file in an archive knows its status, and does not read it
 as a current description of the software.
 
 ### The JOSS paper (2026)
@@ -52,7 +52,7 @@ as a current description of the software.
 
 | | |
 |---|---|
-| File | [`paper/paper.md`](https://github.com/ellyess/PyVWF/blob/main/paper/paper.md), with `paper/paper.bib` |
+| File | [`paper/paper.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/paper/paper.md), with `paper/paper.bib`, at the research archive tag. It left the main branch on 2026-10-29 |
 | Outcome | Not accepted. The review is closed and the paper is not under submission. |
 | Commit | `db882d2`, 2026-07-17, "Finalize v0.3.0 release metadata: changelog, citation, and paper dates": the last change to the paper's text before it was marked archived |
 | Tag | `archive/joss-ready` |

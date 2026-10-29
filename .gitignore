@@ -54,3 +54,12 @@ input/reference/models.real.csv
 # Local working notes for AI coding sessions. CONTRIBUTING.md is the public
 # contributor guide.
 /CLAUDE.md
+
+# The archived JOSS paper, kept locally; it is at the research archive tag
+# (docs/archive.md).
+/paper/
+
+# Claude Code's per-machine files: the desktop app's preview servers and its
+# worktrees.
+/.claude/launch.json
+/.claude/worktrees/
