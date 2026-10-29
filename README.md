@@ -51,11 +51,11 @@ With conda, replace the `pip` line with
 `conda env create -f environment.yaml && conda activate pyvwf`.
 
 The example runs the whole workflow on bundled synthetic weather and
-observations and prints the error the correction removed. Seven optional extras
-add data acquisition, development tools, the docs build, gridded surfaces, the
-parallel offset fit, the physics-informed correction and a TouchDesigner
-export; the [installation guide](docs/guides/installation.md) says what each
-needs, and covers the Docker image.
+observations and prints the error the correction removed. Five optional extras
+add data acquisition, development tools, the docs build, the parallel offset
+fit and the physics-informed correction; the
+[installation guide](docs/guides/installation.md) says what each needs, and
+covers the Docker image.
 
 To correct your own fleet, supply two CSV files, unit metadata and monthly
 generation, and the harness fits and scores the correction:

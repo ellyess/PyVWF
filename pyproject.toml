@@ -100,14 +100,6 @@ parallel = [
     "dask[distributed]>=2023.0.0",
 ]
 
-# The TouchDesigner export (scripts/analysis/export_voronoi_frames.py) only:
-# earcut triangulates the clipped Voronoi cells, because TouchDesigner's own
-# Python has numpy but no scipy or shapely, so every polygon has to arrive as
-# flat triangles. Nothing in the package imports it.
-touchdesigner = [
-    "mapbox-earcut>=2.0.0",
-]
-
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -238,15 +230,13 @@ pep621_dev_dependency_groups = ["dev", "docs"]
 
 [tool.deptry.package_module_name_map]
 entsoe-py = "entsoe"
-mapbox-earcut = "mapbox_earcut"
 
 [tool.deptry.per_rule_ignores]
 # Declared but never imported by src/, for a stated reason each:
 # - netCDF4, bottleneck: xarray's backends, loaded by name, never imported;
 # - openpyxl, pyarrow: pandas' Excel and Parquet engines, likewise;
-# - cdsapi, mapbox-earcut: used only by scripts/ (fetch/era5.py,
-#   analysis/export_voronoi_frames.py), which deptry does not scan.
-DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi", "mapbox-earcut"]
+# - cdsapi: used only by scripts/fetch/era5.py, which deptry does not scan.
+DEP002 = ["netCDF4", "bottleneck", "openpyxl", "pyarrow", "cdsapi"]
 
 [tool.vulture]
 # Dead-code scan of src/ at a conservative confidence; CI runs `vulture`.
