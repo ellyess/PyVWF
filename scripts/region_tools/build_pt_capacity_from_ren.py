@@ -37,6 +37,7 @@ import pandas as pd
 
 
 from pyvwf.config import PyVWFPaths
+from pyvwf.datasets.country_obs_rebuild import recapacitate, write_keeping_backup
 from pyvwf.loaders.country_obs_checks import check_country_cf
 
 REN_MONTHLY = (
@@ -66,42 +67,6 @@ def fetch_fleet(cache: Path, first: int, last: int) -> pd.Series:
         print(f"fetched {cache}")
     table = pd.read_csv(cache)
     return pd.Series(table["wind_mw"].to_numpy(), index=pd.PeriodIndex(table["month"], freq="M"))
-
-
-def interpolated_capacity(index: pd.DatetimeIndex, fleet: pd.Series) -> pd.Series:
-    """The fleet at each hour, linear from one month's end to the next.
-
-    Args:
-        index: UTC hours.
-        fleet: MW installed at each month's end, indexed by month.
-    """
-    month = index.tz_convert(None).to_period("M")
-    start = month.to_timestamp().tz_localize("UTC")
-    end = (month + 1).to_timestamp().tz_localize("UTC")
-    fraction = (index - start) / (end - start)
-    before = fleet.reindex(month - 1).to_numpy()
-    after = fleet.reindex(month).to_numpy()
-    return pd.Series(before + (after - before) * fraction, index=index)
-
-
-def recapacitate(frame: pd.DataFrame, fleet: pd.Series) -> pd.DataFrame:
-    """The same generation over the interpolated fleet, stamped as before."""
-    out = frame.copy()
-    utc = pd.DatetimeIndex(pd.to_datetime(out.index, utc=True))
-    out["capacity_mw"] = interpolated_capacity(utc, fleet).to_numpy()
-    out["capacity_factor"] = out["generation_mw"] / out["capacity_mw"]
-    return out
-
-
-def write(frame: pd.DataFrame, path: Path, *, replace: bool) -> None:
-    """Write one file, keeping the one it replaces as a backup."""
-    backup = path.with_suffix(BACKUP_SUFFIX)
-    if path.exists() and not backup.exists():
-        if not replace:
-            raise FileExistsError(f"{path} exists; pass --replace to keep it as a backup")
-        path.rename(backup)
-        print(f"  kept the old file as {backup.name}")
-    frame.to_csv(path)
 
 
 def main() -> int:
@@ -140,7 +105,7 @@ def main() -> int:
         print(f"  gates: {'pass' if report.ok else '; '.join(report.issues)}")
         target = out_dir / path.name
         if target == path:
-            write(new, target, replace=args.replace)
+            write_keeping_backup(new, target, replace=args.replace, backup_suffix=BACKUP_SUFFIX)
         else:
             new.to_csv(target)
     return 0

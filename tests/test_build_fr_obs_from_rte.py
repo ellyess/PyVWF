@@ -62,14 +62,6 @@ def test_the_clock_change_hours_odre_cannot_place_are_dropped():
     assert pd.Timestamp("2023-10-29 01:00", tz="UTC") not in october.index
 
 
-def test_capacity_runs_from_one_31_december_to_the_next():
-    module = _module()
-    index = pd.DatetimeIndex(["2023-01-01 00:00", "2023-07-02 12:00"], tz="UTC")
-    capacity = module.interpolated_capacity(index, FLEET)
-    assert capacity.iloc[0] == pytest.approx(1000.0)
-    assert capacity.iloc[1] == pytest.approx(1500.0)
-
-
 def test_capacity_factor_is_output_over_interpolated_capacity():
     out = _module().national(odre_rows("2023-01-01 00:00", 2), FLEET)
     assert out["capacity_factor"].iloc[0] == pytest.approx(1.0)
@@ -79,21 +71,9 @@ def test_split_takes_utc_years_and_stamps_paris_time():
     module = _module()
     fleet = pd.Series({2022: 1000.0, 2023: 2000.0, 2024: 3000.0})
     series = module.national(odre_rows("2023-12-31 22:00", 6), fleet)
-    out = module.split(series, 2023, 2023)
+    out = module.split_utc_years(series, 2023, 2023, module.TZ)
     # The last UTC hour of 2023 is 1 January in Paris.
     assert [t.isoformat() for t in out.index] == [
         "2023-12-31T23:00:00+01:00",
         "2024-01-01T00:00:00+01:00",
     ]
-
-
-def test_write_refuses_to_overwrite_without_replace(tmp_path):
-    module = _module()
-    path = tmp_path / "fr_test_2023.csv"
-    path.write_text("old\n")
-    frame = pd.DataFrame({"capacity_factor": [0.5]})
-    with pytest.raises(FileExistsError):
-        module.write(frame, path, replace=False)
-    module.write(frame, path, replace=True)
-    assert (tmp_path / "fr_test_2023.entsoe.bak.csv").read_text() == "old\n"
-    assert "capacity_factor" in path.read_text()
