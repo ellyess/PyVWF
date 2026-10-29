@@ -8,7 +8,6 @@ cases check the aggregation on a synthetic Elia export.
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 from support import ROOT, load_script
 
 
@@ -59,20 +58,8 @@ def test_split_takes_utc_years_and_stamps_brussels_time():
     module = _module()
     raw = elia_rows("2022-12-31 22:00", 4 * 4)
     series = module.hourly_national(raw)
-    out = module.split(series, 2023, 2023)
+    out = module.split_utc_years(series, 2023, 2023, module.TZ)
     assert [t.isoformat() for t in out.index] == [
         "2023-01-01T01:00:00+01:00",
         "2023-01-01T02:00:00+01:00",
     ]
-
-
-def test_write_refuses_to_overwrite_without_replace(tmp_path):
-    module = _module()
-    path = tmp_path / "be_test_2023.csv"
-    path.write_text("old\n")
-    frame = pd.DataFrame({"capacity_factor": [0.5]})
-    with pytest.raises(FileExistsError):
-        module.write(frame, path, replace=False)
-    module.write(frame, path, replace=True)
-    assert (tmp_path / "be_test_2023.entsoe-mixed.bak.csv").read_text() == "old\n"
-    assert "capacity_factor" in path.read_text()

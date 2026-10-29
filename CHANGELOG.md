@@ -191,6 +191,13 @@ and each summary from 0.2.0 on links to its own.
   ambiguity, so the builder also leaves March's clock-change hour empty, which
   it kept before. Every other hour is unchanged except the last of 2021, which
   RTE's 2022 file and ODRE give differently.
+- **The country builders' shared steps live in
+  `pyvwf.datasets.country_obs_rebuild`**: splitting a national series into
+  UTC years, writing a file while keeping the one it replaces, and
+  interpolating a year-end or month-end fleet to every hour. Each builder
+  carried its own version of some of them. A rerun of the Portugal or Sweden
+  builder over a file it already rebuilt now needs `--replace`, as the other
+  builders did and as their own docstrings already said.
 
 ### Removed
 
