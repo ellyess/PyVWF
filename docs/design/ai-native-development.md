@@ -251,10 +251,11 @@ or the paper on main, or a release, tag or Zenodo version. In date order:
 
 ## What this record does not show
 
-- **The critics are evaluated once, on five cases.** The run below says
-  whether they named five known defects and left the fixed versions alone. It
-  is one draw per review, not a rate, and it does not record how often a
-  critic's blocker on a new proposal was right.
+- **The critics are evaluated on five cases each.** The runs below say
+  whether they named five known defects and left the fixed versions alone,
+  and whether a generic reviewer did as well. Each is one draw per review, not
+  a rate, and none records how often a critic's blocker on a new proposal was
+  right.
 - **Authorship is not recorded per change.** No commit says whether an agent
   wrote it, so no count below separates agent work from the maintainer's.
 - **The counts measure volume, not correctness.** A correction notice records
@@ -287,12 +288,31 @@ summarised in `scripts/dev/agent_evals/results-2026-10-16.md`. No training
 year or test year applies: the run measures the review agents, not a
 correction.
 
-Two further runs are registered and not yet run: the three critics against a
-generic reviewer on the same models
-(`docs/findings/agent-critics-baseline-prereg.md`), and `docs-critic` against
-one on five held-out page changes (`docs/findings/agent-critics-docs-prereg.md`).
-Each is gated on the critic beating the baseline by a margin fixed before any
-review, and a "no measurable difference" outcome stands as the finding.
+Two further runs, on 2026-10-29, compared the definitions with a generic
+reviewer, each gated on the critic beating the baseline by a margin fixed
+before any review. No training year or test year applies to either.
+**Neither showed a measurable difference.**
+
+- **The three critics against generic reviewers on the same models**
+  (`docs/findings/agent-critics-baseline.md`) scored 3 against 2, where the
+  gate needed 2 ahead. Both panels caught all five defects; the critics raised
+  a false alarm on 2 controls and the baselines on 3. `red-team` caught 2
+  defects where its model-matched baseline caught 4.
+- **`docs-critic` against a generic reviewer with its model, tools and hook**,
+  on five held-out page changes (`docs/findings/agent-critics-docs.md`),
+  scored 1 against 1. It caught 3 defects and raised 2 false alarms, and
+  missed the two defects about what a page claims and what it leaves out. The
+  baseline's score rests on 5 of its 10 reviews.
+- **Every reviewer blocked every proposal**, fixed or not, so a verdict alone
+  carried no information.
+- **After scoring**, the rule that excludes a review for listing a read
+  outside its snapshot was found to misfire on annotation lines. Scored
+  without it, both outcomes still read no measurable difference, but the docs
+  baseline then leads, 2 to 1.
+
+On these cases, then, the critic definitions show nothing measurable over a
+generic reviewer on the same models. These runs do not test the repository's
+guards or its pre-registrations.
 
 ## Counts
 

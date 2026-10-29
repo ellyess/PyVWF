@@ -54,7 +54,7 @@ gate or withdrawn figure on the other.
 | | [Leave one country out](#leave-one-country-out) | Negative: G1 and W1 failed |
 | | [Terrain at turbine level](#terrain-at-turbine-level) | Negative: T2, T3, T5 failed |
 | | [Per-unit wake coefficient](#per-unit-wake-coefficient) | Negative: K0 failed |
-| Tooling | [Review agents](#review-agents) | Negative: bar not passed |
+| Tooling | [Review agents](#review-agents) | Negative: bar not passed, and no measurable difference from a generic reviewer |
 | | [Dataset survey](#dataset-survey) | Mixed: 2 of 4 confirmed |
 
 ## Affine correction by region
@@ -558,16 +558,33 @@ stage 0; transfer was never tested.
 **Years:** none involved.
 **Record:** [`agent-critics.md`](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/agent-critics.md),
 registered in `docs/findings/agent-critics-prereg.md` (on main); summary in
-`scripts/dev/agent_evals/results-2026-10-16.md`.
+`scripts/dev/agent_evals/results-2026-10-16.md`. The two runs against a
+baseline: `docs/findings/agent-critics-baseline.md` and
+`docs/findings/agent-critics-docs.md`, registered in their `-prereg`
+documents; summaries in `scripts/dev/agent_evals/results-2026-10-29.md` and
+`results-2026-10-29-docs.md`.
 
 The three review agents were each run once on ten proposals, five seeded
 defects and their five fixed controls, on 2026-10-16. **They failed the
 pre-registered bar:** every critic caught all five defects, but the panel
 raised a false alarm on 2 of 5 controls, where at most 1 was allowed, and no
 review gave PROCEED. One draw per review, cases written by an agent that knew
-the answers, a model as judge, and no baseline arm. A second run against a
-no-agent baseline is registered in
-`docs/findings/agent-critics-baseline-prereg.md` and has no result yet.
+the answers, a model as judge, and no baseline arm.
+
+**Against a generic reviewer on the same models, on 2026-10-29, neither run
+showed a measurable difference.** The three critics scored 3 and three
+generic reviewers 2, defects caught minus controls with a false alarm, where
+the registered gate needed a margin of 2: both panels caught all five
+defects, and the critics raised a false alarm on 2 controls, the baselines on
+3. `red-team` caught 2 defects where its model-matched baseline caught 4.
+`docs-critic` and a generic reviewer with its model, tools and hook scored 1
+each on five page changes: `docs-critic` caught 3 and raised 2 false alarms,
+missing an overclaimed reproduction and a dropped caveat, and the baseline's
+score rests on 5 of its 10 reviews. Each is one draw per review, and every
+reviewer blocked every proposal, fixed or not. After scoring, the rule that
+excludes a review for listing a read outside its snapshot was found to
+misfire on annotation lines. Scored without it, both outcomes still read no
+measurable difference, but the docs baseline then leads, 2 to 1.
 
 ### Dataset survey
 
