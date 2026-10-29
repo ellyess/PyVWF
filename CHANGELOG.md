@@ -131,6 +131,14 @@ their observations are rebuilt.
 - **The ENTSO-E fetcher leaves consumption out of wind generation, and drops
   an hour in which a wind type that reports is missing**, instead of scoring
   the remaining types against the whole fleet.
+- **The review-agent scorer no longer excludes a review for a note under its
+  files list.** It read every line after "Files read:" as a path, so a closing
+  verdict or a note such as "(tried, not found: ...)" counted as a read outside
+  the snapshot; every exclusion in the runs of 2026-10-29 was one, and one of
+  them also had `/dev/null` in a command. A note now contributes only the
+  absolute paths it names, so one naming a path outside the snapshot still
+  excludes the review, and `/dev/null` in a command is not a read. The
+  recorded results of those runs stand as scored; they are not rescored.
 - **Germany's source is named correctly in the scorecard**: its row reads the
   licensed WindStats extract, not a public register. The results page says
   its Denmark figure belongs to the run it reports, not to the scorecard row.
