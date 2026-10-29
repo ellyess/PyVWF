@@ -327,8 +327,9 @@ def prep_era5(
     if bbox is not None:
         ds = _slice_bbox(ds, bbox)
         # The cheap check: a download that stops short of the box would leave
-        # units beyond the data. The ES, IT and PT country boxes reach south of
-        # the European files' 42N edge, and nothing said so at load time.
+        # units beyond the data. The ES, IT and PT country boxes reached south
+        # of the old `era5/EU` archive's 42N edge, and nothing said so at load
+        # time.
         shortfall = _extent_shortfall(ds, bbox)
         if shortfall:
             sides = ", ".join(f"{side} by {d:.2f} degrees" for side, d in shortfall.items())

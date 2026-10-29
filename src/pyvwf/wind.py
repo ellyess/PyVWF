@@ -37,8 +37,8 @@ def loaded_extent_coverage(reanalysis, turb_info) -> dict[str, Any]:
     after the bbox slice. A unit inside it has its winds interpolated between
     grid cells; a unit outside it would have them extrapolated linearly from
     the edge of the grid, which produces winds from data that does not exist
-    (the European download stops at 42N, and Spanish grid points five degrees
-    south of it were simulated at speeds down to -57.7 m/s).
+    (the old ``era5/EU`` archive stopped at 42N, and Spanish grid points five
+    degrees south of it were simulated at speeds down to -57.7 m/s).
 
     Inside the loaded extent is a statement about position only. It does not
     verify the data in the surrounding cells: a unit can sit inside the extent
