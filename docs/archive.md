@@ -31,6 +31,7 @@ says, with its own authors.
 | Review-agent evaluation run | `scripts/dev/agent_evals/runs/2026-10-16/`: 30 critic prompts and reviews, 40 judge prompts and judgements, and the run record. The harness, its five cases and a results summary stay on main |
 | Turkey evaluation, not shipped | `docs/runbooks/tr.md`, `scripts/fetch/epias_tr.py`. `docs/guides/data-sources.md`, section 5, keeps what was found |
 | The gridded correction and the transfer model, removed from the package on 2026-10-28 | `src/pyvwf/extensions/` (`grid`, `ml`), `src/pyvwf/geospatial.py`, and `calculate_error`, `prepare_monthly_data` and `weighted_average_vectorized` in `src/pyvwf/metrics.py`, with their tests and the `grid` extra. The sections below say how to run them |
+| The TouchDesigner export, removed on 2026-10-29 and now kept locally | `scripts/analysis/export_voronoi_frames.py` and the `touchdesigner` extra in `pyproject.toml`. `docs/guides/visualisation.md` at the tag says how to run it |
 | Agent definitions now kept locally | `.claude/agents/prior-work-scout.md`, `.claude/agents/simplicity-critic.md`, `.claude/skills/idea-review/`. The three evaluated critics stay on main |
 | Their tests | `tests/`, as named in each finding's reproduction record |
 

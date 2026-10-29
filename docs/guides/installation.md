@@ -40,7 +40,6 @@ Each extra adds one capability. Install the ones a task needs, and no more:
 | `docs` | `sphinx`, `furo`, `myst-parser` | Building the documentation site. |
 | `parallel` | `dask[distributed]` | Fanning the offset fit across workers (`PYVWF_OFFSET_WORKERS`). |
 | `pinn` | `torch`, `rasterio` | The physics-informed correction (`pyvwf.pinn`). It adds close to a gigabyte. |
-| `touchdesigner` | `mapbox-earcut` | Exporting cluster maps to TouchDesigner. |
 
 ```bash
 pip install -e ".[data]"
