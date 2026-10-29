@@ -58,7 +58,10 @@ their observations are rebuilt.
   (`docs/findings/agent-critics-prereg.md`), with a no-agent baseline arm and
   a docs suite for `docs-critic`, each pre-registered too. Its first run did
   not pass its bar; its record is at the tag, and run folders are no longer
-  committed.
+  committed. **The baseline and docs runs found no measurable difference**
+  between the critic definitions and a generic reviewer on the same model
+  (`docs/findings/agent-critics-baseline.md`,
+  `docs/findings/agent-critics-docs.md`); no training or test year applies.
 - **The country-level observation audit compares each year's energy with
   Eurostat's**, which catches a series that measures only part of the fleet.
   Its bands were set after seeing the data and screen for a missing segment.
