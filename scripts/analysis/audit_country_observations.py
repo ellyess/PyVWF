@@ -13,8 +13,8 @@ cannot see a series that measures only part of the fleet: Belgium's onshore-only
 years had plausible capacity factors because their capacity was onshore too.
 
 Usage:
-    PYTHONPATH=src python scripts/analysis/audit_country_observations.py
-    PYTHONPATH=src python scripts/analysis/audit_country_observations.py --csv out.csv
+    python scripts/analysis/audit_country_observations.py
+    python scripts/analysis/audit_country_observations.py --csv out.csv
 """
 
 from __future__ import annotations

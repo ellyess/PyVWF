@@ -19,8 +19,8 @@ Nothing is overwritten unless ``--replace`` is given, and then the old file is
 kept beside it with the suffix ``.entsoe-mixed.bak.csv``.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/build_be_obs_from_elia.py --out <dir>
-    PYTHONPATH=src python scripts/region_tools/build_be_obs_from_elia.py --replace
+    python scripts/region_tools/build_be_obs_from_elia.py --out <dir>
+    python scripts/region_tools/build_be_obs_from_elia.py --replace
 """
 
 from __future__ import annotations

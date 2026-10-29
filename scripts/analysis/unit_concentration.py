@@ -47,7 +47,7 @@ cited figures can be regenerated from the runs that produced them.
 Usage, from the repository root, one region per process, with ``PYVWF_INPUT``
 as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/unit_concentration.py <CODE> <out_dir>
+    python scripts/analysis/unit_concentration.py <CODE> <out_dir>
 """
 
 import json

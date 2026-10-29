@@ -51,7 +51,7 @@ It needs ERA5, the local input root and the git-ignored run tree, so a third
 party cannot run it. Usage, from the repository root, one region per process,
 with ``PYVWF_INPUT`` as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/off_curve_sensitivity.py <CODE> <out_dir>
+    python scripts/analysis/off_curve_sensitivity.py <CODE> <out_dir>
 
 Output: ``<CODE>_off_curve_sensitivity.csv``, one row per variant and basis.
 """

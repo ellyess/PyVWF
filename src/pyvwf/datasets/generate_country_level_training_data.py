@@ -17,10 +17,10 @@ in the environment for the one command.
 
 Usage, from the repository root:
 
-    ENTSOE_API_KEY=<key> PYTHONPATH=src python -m pyvwf.datasets.generate_country_level_training_data
-    PYTHONPATH=src python -m pyvwf.datasets.generate_country_level_training_data \
+    ENTSOE_API_KEY=<key> python -m pyvwf.datasets.generate_country_level_training_data
+    python -m pyvwf.datasets.generate_country_level_training_data \
         --countries NL FR --train-years 2018 2019 --test-year 2020
-    PYTHONPATH=src python -m pyvwf.datasets.generate_country_level_training_data \
+    python -m pyvwf.datasets.generate_country_level_training_data \
         --skip-observations
 """
 

@@ -5,7 +5,7 @@ Applies a trained correction over every ERA5 year on disk for the region and
 writes a tidy monthly series with each month ranked against its own calendar
 month across the record.
 
-    PYVWF_INPUT=input/combined PYTHONPATH=src python \\
+    PYVWF_INPUT=input/combined python \\
         scripts/analysis/run_hindcast.py \\
         --region configs/regions/nz.toml \\
         --train-run output/validation/.../train-nz \\

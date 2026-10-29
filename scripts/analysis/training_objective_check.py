@@ -32,7 +32,7 @@ cannot run it.
 
 Usage, from the repository root:
 
-    PYTHONPATH=src python scripts/analysis/training_objective_check.py <CODE> <time_res> <k> <out_dir>
+    python scripts/analysis/training_objective_check.py <CODE> <time_res> <k> <out_dir>
 """
 
 from pathlib import Path

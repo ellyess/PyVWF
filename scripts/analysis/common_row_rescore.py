@@ -50,8 +50,8 @@ can be regenerated.
 Usage, from the repository root, one region per process, with ``PYVWF_INPUT``
 as in the row's manifest:
 
-    PYTHONPATH=src python scripts/analysis/common_row_rescore.py <CODE> <out_dir>
-    PYTHONPATH=src python scripts/analysis/common_row_rescore.py <CODE> <out_dir> --joint DIR...
+    python scripts/analysis/common_row_rescore.py <CODE> <out_dir>
+    python scripts/analysis/common_row_rescore.py <CODE> <out_dir> --joint DIR...
 """
 
 import json

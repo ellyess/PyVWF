@@ -44,8 +44,8 @@ The registers are local and git-ignored, under
 See ``docs/guides/data-sources.md``.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/backfill_gwpt_start_years.py --dry-run
-    PYTHONPATH=src python scripts/region_tools/backfill_gwpt_start_years.py
+    python scripts/region_tools/backfill_gwpt_start_years.py --dry-run
+    python scripts/region_tools/backfill_gwpt_start_years.py
 """
 
 from __future__ import annotations

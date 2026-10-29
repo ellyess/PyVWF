@@ -46,8 +46,8 @@ physically credible for that country, not whether the two registers differ.
 Check the result with scripts/analysis/audit_country_observations.py.
 
 Usage:
-    PYTHONPATH=src python scripts/region_tools/repair_country_capacity.py IE --dry-run
-    PYTHONPATH=src python scripts/region_tools/repair_country_capacity.py IE --from-year 2017
+    python scripts/region_tools/repair_country_capacity.py IE --dry-run
+    python scripts/region_tools/repair_country_capacity.py IE --from-year 2017
 """
 
 from __future__ import annotations

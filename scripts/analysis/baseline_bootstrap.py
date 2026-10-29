@@ -83,7 +83,7 @@ Usage, from the repository root, one region per process, with ``PYVWF_INPUT``
 set to the input root in the row's manifest (``input/combined`` for DE, DK,
 UK, US, BR, AU-NEM and NZ; the default for the others):
 
-    PYTHONPATH=src python scripts/analysis/baseline_bootstrap.py <CODE> <out_dir>
+    python scripts/analysis/baseline_bootstrap.py <CODE> <out_dir>
 """
 
 import json
