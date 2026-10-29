@@ -18,328 +18,133 @@ and each summary from 0.2.0 on links to its own.
 
 ## [Unreleased]
 
+The repository is simplified to the package and how it is built. The research
+record, every finished study's scripts, configs and findings among it, is at
+tag `archive/research-2026-10-27`, and `docs/archive.md` says what left, where
+it is and how to reproduce from it. Several country-level rows move, because
+their observations are rebuilt.
+
+### Breaking
+
+- **`prep_era5`, `train_set` and `val_set` take `era5_dir` as a required
+  keyword**, and `bbox=None` reads the files' whole extent.
+  `PyVWFPaths.ERA5_DATA`, `BoundingBoxes`, `get_country_shapes` and
+  `get_turbine_metadata` are removed. Harness runs are unchanged, since a
+  region config names its ERA5 `path` and `bbox`.
+- **`pyvwf.extensions`, `pyvwf.geospatial` and the `grid` extra are removed**,
+  with `calculate_error`, `prepare_monthly_data` and
+  `weighted_average_vectorized` from `pyvwf.metrics`. The gridded correction
+  and the machine-learning transfer served studies whose results are void,
+  negative or never run; `pyvwf.harness.export` still writes a gridded
+  correction field. `rasterio` moves to the `pinn` extra.
+- **`pyvwf.datasets.combine_era5_files`**, the builder of the old `era5/EU`
+  archive, is removed; no configuration on main reads that archive, and the
+  data-sources guide gives the builder's command at the tag.
+- **`pyvwf.viz.style`'s `apply_spatial_resolution_axis`,
+  `add_resolution_markers` and `format_axes_standard`, and
+  `pyvwf.viz.palettes.EXISTING_NEW_COLOURS`**, are removed. Nothing in the
+  package, scripts, examples, tests or docs used them.
+- **The `touchdesigner` extra and `scripts/analysis/export_voronoi_frames.py`**
+  are removed. Nothing in the package used either; they are at the tag.
+
 ### Added
 
-- **A `run-pyvwf` skill for users** (`skills/run-pyvwf/SKILL.md`). It takes a
-  coding agent through installing PyVWF, the synthetic example, a shipped
-  region or the user's own fleet, and reading `metrics.csv` with its fit-quality
-  columns and caveats. It points to the guides rather than repeating them.
-- An evaluation of the three review agents (`method-critic`,
-  `implementation-critic`, `red-team`) on proposals carrying defects this
-  repository has already found, each matched with the same proposal fixed.
-  The cases, the scoring rule and the pass bar are pre-registered in
-  `docs/findings/agent-critics-prereg.md`; the cases and the driver are in
-  `scripts/dev/agent_evals/`, and `tests/test_agent_evals.py` checks the
-  scoring.
-- The evaluation's first run, recorded in `docs/findings/agent-critics.md`
-  with every review and judgement under `scripts/dev/agent_evals/runs/`. It did
-  not pass its pre-registered bar. `docs/design/ai-native-development.md`
-  gains a section on it.
+- **A `run-pyvwf` skill for users**, which takes a coding agent through
+  installing PyVWF, the example, a region or the user's own fleet, and
+  reading the output.
+- **`prep_era5(years=(start, end))`**, which returns those years identical to
+  the whole record cut the same way.
+- **An evaluation of the review agents**, pre-registered
+  (`docs/findings/agent-critics-prereg.md`), with a no-agent baseline arm and
+  a docs suite for `docs-critic`, each pre-registered too. Its first run did
+  not pass its bar; its record is at the tag, and run folders are no longer
+  committed.
 - **The country-level observation audit compares each year's energy with
-  Eurostat's** (`scripts/analysis/audit_country_observations.py`, #144). Its
-  physical gates cannot see a series that measures only part of the fleet:
-  when the capacity-factor denominator is partial too, the capacity factors
-  look ordinary, as Belgium's did. Each covered year's observed energy is now
-  divided by Eurostat's gross wind production
-  (`configs/curation/eurostat_wind_gwh.csv`). A ratio outside a wide band
-  fails the series and one outside a narrower band is noted. The bands were
-  set after seeing the data, and screen for a missing segment; they are not a
-  precision check. NL and SE-BZ have no Eurostat reference and are not
-  compared.
+  Eurostat's**, which catches a series that measures only part of the fleet.
+  Its bands were set after seeing the data and screen for a missing segment.
+  NL and SE-BZ have no Eurostat reference and are not compared.
+- **`docs/results.md`, `docs/archive.md` and a short-form scorecard** on the
+  documentation site. The scorecard names each row's run, commit, roughness
+  fill and curve library, and says that the reported configuration is not
+  the lowest-error variant of its run in most rows and that some scorecard
+  configs were edited after their runs.
 
 ### Changed
 
-- **Breaking: `prep_era5`, `train_set` and `val_set` take `era5_dir` as a
-  required keyword**, and `bbox=None` now reads the files' whole extent.
-  `PyVWFPaths.ERA5_DATA` (the superseded `era5/EU` archive), which filled in a
-  missing directory, and the `BoundingBoxes` table, which filled in a missing
-  box, are removed, with two unused `PyVWFPaths` helpers (`get_country_shapes`,
-  `get_turbine_metadata`). A region config already names both its `[era5]`
-  `path` and `bbox`, so no harness run changes; a direct call now says which
-  files it reads.
-- **The open library has one copy, in `pyvwf.resources`, and an input root
-  without curve tables uses it silently.** The byte-identical copy under
-  `input/reference/` is removed, so `input/`, the default root, now reads the
-  packaged copy, with the same bytes and therefore the same numbers. The
-  fallback no longer warns: every harness train, evaluate and transfer run
-  records the library it used by sha256 and the curve each unit used in
-  `curve_resolution.csv`. A test now fails if `input/reference/` holds a curve
-  table. A licensed library still goes in its own input root, such as
-  `input/combined`.
-- **The `slow` test marker is removed.** Every test it marked is also
-  `realdata`, so it selected nothing on its own. The fast set is now
-  `pytest -m "not realdata"`, in CI, `scripts/dev/ci_local.py` and the
-  contributor guides.
-- **The finished studies' scripts are archived** at tag
-  `archive/research-2026-10-27`: `scripts/studies/` (21 study directories),
-  the ML transfer, EU re-run, regression-compare and #155 check scripts,
-  `scripts/dev/repo_stats.py`, and their tests. The four scorecard audits
-  move from `scripts/studies/scorecard/` to `scripts/analysis/`.
-- **The study, superseded and LOCO region configs are archived** at the same
-  tag: `configs/regions/study/`, `configs/regions/scorecard/superseded/`,
-  `configs/regions/pinn_loco/`, and `configs/regions/nl.toml`, a region with no
-  scorecard row.
-- **The 2026-10-16 run of the review-agent evaluation is archived** at the same
-  tag. The harness, its five cases and the run's results summary
-  (`scripts/dev/agent_evals/results-2026-10-16.md`) stay.
-- **The review-agent evaluation gains a no-agent baseline arm**, pre-registered
-  in `docs/findings/agent-critics-baseline-prereg.md`: three generic reviewers
-  on the critics' models, all six reviewers run from one `--agents` JSON
-  without `AGENTS.md` loaded, and a gate on the critics' margin over the baseline.
-  Run folders under `scripts/dev/agent_evals/runs/` are no longer committed.
-- **The evaluation gains a docs suite for `docs-critic`**, pre-registered in
-  `docs/findings/agent-critics-docs-prereg.md`: held-out page changes, each a
-  change carrying a defect and the same change with it fixed, drawn from
-  mistakes the definition's text does not draw on, and a generic baseline with
-  the same model, tools and Bash hook. `evals.py prepare --suite docs` prepares
-  it. Its session starts outside any git repository, so the reviewers' git
-  commands do not reach the history, and a review that lists a file or command
-  path outside its checkout is excluded. A baseline now takes its matched
-  critic's tools and hooks as well as its model.
-- **The scorecard is published in short form at `docs/scorecard.md`**, on the
-  documentation site. It keeps both results tables, the fit-quality,
-  suspended and superseded tables and the overclaim list, and adds a table
-  naming each row's run, commit, roughness fill and curve library. Each dated
-  notice becomes one line of a corrections log linking the full scorecard at
-  tag `archive/research-2026-10-27`. It states that the reported
-  configuration is not the lowest-error variant of its run in most rows, and
-  that some scorecard configurations were edited after their runs, which
-  `configs/regions/scorecard/README.md` had called byte-identical.
-- **Finished studies' findings documents are archived** at tag
-  `archive/research-2026-10-27`, and each result has an entry on a new
-  results page, `docs/results.md`, with its years, its gates and a link to the
-  full record; negative results sit beside positive ones, and a closing section
-  lists where two records disagree. A new `docs/archive.md` says what left the
-  main branch, where it is, how to cite the Zenodo record and how to reproduce
-  from the tag. `docs/findings/` keeps only the active review-agent study.
-  Links, comments and the preregistration test move with them; the test's
-  complete-document case reads a fixture copy.
-- **Germany's source is named correctly in the scorecard.** Its provenance
-  line called it a public turbine register; Germany's row reads only the
-  licensed WindStats extract, for metadata and generation alike, and the
-  corrections log records the fix. The results page now says its Denmark
-  figure belongs to the run it reports, not to the scorecard row. The
-  data-sources guide gains Ireland's capacity repair, the region guide says the
-  country-level generator writes to a fixed path, and the scorecard configs'
-  comments point at documents that are still on the main branch.
-- **The region runbooks share one template** (source and licence,
-  observations, ERA5, train and evaluate, caveats) and quote no results; each
-  points to the scorecard instead. Stale instructions are fixed: test-year
-  files missing from the US and Brazil steps, the country-level generator's
-  years, the Ireland repair and Norway's manual inputs, cluster counts that did
-  not match the configs, and curve-assignment claims that did not match the
-  processing scripts. Each runbook with a scorecard row names its scorecard
-  config and the maintained one. The Turkey runbook and its probe are archived at tag
-  `archive/research-2026-10-27`; `docs/guides/data-sources.md` keeps what the
-  evaluation found.
-- **The README leads with installing and running the package.** The
-  quickstart starts from `git clone`, says that a shipped region needs its
-  runbook's inputs, and points a user with their own fleet to the CSV route.
-  The results table is unchanged, and the negative transfer result is named
-  above it. The five-minute list is folded into "How this is built", which now
-  names the pre-registered studies and the research archive, whose citation is
-  linked.
-- **The agent design docs are one page.** `docs/design/agent-guards.md` is
-  merged into `docs/design/ai-native-development.md`: the guard table with
-  what each guard misses, the incident behind each rule in brief, the
-  critics' models, the mistake log's summary and rates, and the mistakes that
-  reached publication. The full log stays at tag
-  `archive/research-2026-10-27`. References outside dated records point at the
-  merged page; the pre-registrations and evaluation cases keep theirs.
-- **`CONTRIBUTING.md` and the pull-request template are rewritten.** The
-  contributing guide gives each command once, describes the CI jobs correctly
-  (it said CI installs no optional extras, beside a line describing the job
-  that installs them, and credited the test jobs with running the example), and gains a section on AI-assisted contributions. The
-  template's real-data section names the code the pins now reach, not the
-  narrower set they covered before, and the template asks whether a coding
-  agent was used.
-- **Guides are merged in pairs:** the Docker guide into
-  `installation.md`, running on your own fleet data into `training.md`, and
-  the adapter contract into `adding-a-region.md`. The installation guide lists
-  every extra, and states what the conda environment and continuous
-  integration install. The input-root table in `training.md` puts every
-  country-level row on `input/combined`, where it has run since country-level
-  runs began refusing a missing curve. `adding-a-study.md` says what happens
-  when a study finishes: a results entry, and its record leaves at the next
-  archive tag.
-- **Evaluate and transfer runs read ERA5 for their test year only, and
-  turbine-level training runs for their training years only.** Country-level
-  training still reads every year.
-  `prep_era5` takes `years=(start, end)` and returns those years identical to
-  the whole record cut the same way. The manifest's `era5_extent` block
-  records `loaded_years`. Loading is faster and holds less in memory.
-- **The derived roughness is filled within each calendar year.** An hour whose
-  wind profile cannot be inverted was back-filled along the whole loaded
-  record, so a year's last hours could take the next year's roughness, which
-  for a training run can be its test year. `prep_era5` now back-fills within
-  the year and fills a year's trailing gap forward; a cell with no defined
-  hour in a year stays missing, with a warning. The January margin
-  `prep_era5` read for that reason is gone. The manifest's `era5_roughness`
-  block records `fill`. Results move slightly; the offset-fit pins are
-  re-recorded and the route-B scorecard rows lag the code until the next
-  refresh (`docs/findings/method-roughness-fill-prereg.md`).
-- **The country-level generator fetches every wind type by default**
-  (`generate_country_level_training_data --psr-type`, #145). It defaulted to
-  onshore while the grids simulate every farm, offshore included, so the
-  files built with the default left out offshore output in some or all of
-  their years. `--psr-type onshore` restores the old behaviour.
-- **France's observations are read from ODRE, under Licence Ouverte v2.0.**
-  `scripts/region_tools/build_fr_obs_from_rte.py` read RTE's annual eCO2mix
-  files, whose terms forbid redistributing them; it now reads the same
-  definitive national series from ODRE (`eco2mix-national-cons-def`), RTE's
-  open-data portal. ODRE's UTC stamps inherit the series' clock-change
-  ambiguity, so the builder also leaves March's clock-change hour empty, which
-  it kept before. Every other hour is unchanged except the last of 2021, which
-  RTE's 2022 file and ODRE give differently.
+- **The derived roughness is filled within each calendar year**, so a
+  training year no longer takes roughness from the next year, which can be its
+  test year. A cell with no defined hour in a year stays missing, with a
+  warning, and the January margin read for the old fill is gone. The manifest
+  records `fill`. Results move slightly; the offset-fit pins are re-recorded,
+  and the route-B scorecard rows lag the code until the next refresh.
+- **Runs read ERA5 for the years they need:** the test year for evaluate and
+  transfer, the training years for turbine-level training. Country-level
+  training still reads every year. The manifest records `loaded_years`.
+- **The open curve library has one copy, in `pyvwf.resources`**, with the same
+  bytes and therefore the same numbers. An input root without curve tables
+  uses it without a warning, and every run records the library it used by hash
+  and each unit's curve in `curve_resolution.csv`. A test fails if
+  `input/reference/` holds a curve table. A licensed library still goes in its
+  own input root, and the country-level rows run on `input/combined`, as
+  they have since 0.6.0.
+- **The country-level generator fetches every wind type by default**;
+  `--psr-type onshore` restores the old behaviour. For Belgium and France,
+  run it with `--skip-observations`, or it overwrites their builders' files
+  with ENTSO-E's; after a new fetch, move aside the backups that the Sweden,
+  Norway and Portugal builders read their generation from
+  (`docs/runbooks/entsoe.md`).
 - **The country builders' shared steps live in
-  `pyvwf.datasets.country_obs_rebuild`**: splitting a national series into
-  UTC years, writing a file while keeping the one it replaces, and
-  interpolating a year-end or month-end fleet to every hour. Each builder
-  carried its own version of some of them. A rerun of the Portugal or Sweden
+  `pyvwf.datasets.country_obs_rebuild`.** A rerun of the Portugal or Sweden
   builder over a file it already rebuilt now needs `--replace`, as the other
   builders did and as their own docstrings already said.
+- **The scorecard audits move** from `scripts/studies/scorecard/` to
+  `scripts/analysis/`.
+- **The `slow` test marker is removed**; the fast set is
+  `pytest -m "not realdata"`.
 
 ### Removed
 
-- **Unused plotting helpers in `pyvwf.viz.style`**
-  (`apply_spatial_resolution_axis`, `add_resolution_markers`,
-  `format_axes_standard` and their private helpers) and
-  **`pyvwf.viz.palettes.EXISTING_NEW_COLOURS`**. Nothing in the package, the
-  scripts, the examples, the tests or the docs used them.
-- **Breaking: `pyvwf.extensions`, `pyvwf.geospatial` and the `grid` extra are
-  removed**, with `calculate_error`, `prepare_monthly_data` and
-  `weighted_average_vectorized` from `pyvwf.metrics`. The gridded correction
-  surface and the machine-learning transfer served studies whose results are
-  void, negative or never run, no maintained script or config used them, and
-  `pyvwf.harness.export` still writes a nearest-centroid gridded correction
-  field. They are at
-  tag `archive/research-2026-10-27`, and `docs/archive.md` says how to run them
-  there. `rasterio` moves to the `pinn` extra, which reads the Global Wind
-  Atlas with it.
-- **`scripts/analysis/validate_region.py`**, a wrapper identical to the
-  `pyvwf-validate` console entry. The runbooks and guides now use
-  `pyvwf-validate`.
-- **`scripts/region_tools/assign_country_zones.py`**, superseded by
-  `weight_country_grid_points.py --zone-aware`, which derives the zones itself.
-- **The Danish bidding-zone polygons** (`configs/curation/zones/DK_1`, `DK_2`),
-  which nothing read. The zones README says how to fetch them if a Danish
-  zonal run is added.
-- **`pyvwf.datasets.combine_era5_files`**, which built the `era5/EU` archive
-  with its annual-mean roughness. No configuration on main reads that archive,
-  and the per-timestep roughness is the default. It is at tag `archive/research-2026-10-27`; the
-  data-sources guide keeps its command.
-- **The `touchdesigner` extra and `scripts/analysis/export_voronoi_frames.py`**,
-  which exported cluster maps to TouchDesigner. They are the maintainer's
-  visualisation project, not a package feature, and nothing in the package
-  used them. They are at tag `archive/research-2026-10-27`.
+- **Two superseded scripts**, `scripts/analysis/validate_region.py` (identical
+  to `pyvwf-validate`) and `scripts/region_tools/assign_country_zones.py`
+  (replaced by `weight_country_grid_points.py --zone-aware`), and the Danish
+  bidding-zone polygons, which nothing read.
+- **Archived at the tag:** `configs/regions/nl.toml`, a region with no
+  scorecard row, and the Turkey runbook and probe; the data-sources guide
+  keeps what the Turkey evaluation found.
 
 ### Fixed
 
-- **Belgium's country-level observations are rebuilt from Elia** (#144). The
-  ENTSO-E files held onshore generation alone in most years and onshore plus
-  offshore in others, each over a matching capacity, so the correction was
-  fitted to a fleet that changed from year to year while the grid simulates
-  the whole one. `scripts/region_tools/build_be_obs_from_elia.py` builds every
-  split from Elia's Open Data series `ods031`: onshore and offshore output
-  over the monitored capacity behind it, so both cover the same fleet in
-  every hour. The old files are kept beside the new ones as
-  `.entsoe-mixed.bak.csv`. The country row moves; the scorecard's notice of
-  2026-10-22 has the figures.
-- **France's country-level observations are rebuilt from RTE** (#144). The
-  ENTSO-E test file was onshore alone, since ENTSO-E holds no French offshore
-  output before June 2023, and the training capacity fell behind the fleet in
-  some training years, which overstated their capacity factors.
-  `scripts/region_tools/build_fr_obs_from_rte.py` divides RTE's definitive
-  eCO2mix national wind output, onshore and offshore, by RTE's year-end wind
-  fleet from ODRE (`parc-prod-par-filiere`), interpolated through the year.
-  The old files are kept as `.entsoe.bak.csv`, and the France offset-fit pin
-  is re-recorded. The country row moves; the scorecard's notice of 2026-10-23
-  has the figures.
-- **Sweden's country-level observations are divided by Energimyndigheten's
-  wind fleet.** Their generation from ENTSO-E was sound, but their
-  capacity-factor denominator was not: flat over 2015-19, built by an old
-  fetcher from the generation itself, and elsewhere ENTSO-E's start-of-year
-  onshore register, which leaves out each year's growth and the offshore
-  output the generation includes.
-  `scripts/region_tools/build_se_capacity_from_energimyndigheten.py` keeps the
-  generation and divides it by Energimyndigheten's year-end fleet, onshore and
-  offshore, interpolated through the year. The old files are kept as
-  `.entsoe-capacity.bak.csv`. The zonal files are not changed. The country row
-  moves; the scorecard's notice of 2026-10-25 has the figures.
-- **Norway's country-level observations are rebuilt from NVE.** ENTSO-E's
-  zone-summed generation fell short of the official totals by a different
-  share in each training year, and its capacity was ENTSO-E's register.
-  `scripts/region_tools/build_no_obs_from_nve.py` builds the training years
-  from NVE's hourly output per farm, metered at the grid connection, over
-  NVE's turbine register, counting a farm in a month only when its output
-  and registered capacity agree; the test year keeps ENTSO-E's generation over
-  the register. The old files are kept as `.entsoe.bak.csv`. The zonal files
-  are not changed. The country row moves; the scorecard's second notice of
-  2026-10-25 has the figures.
-- **Italy's and Portugal's test files for 2023 include offshore output**
-  (#144). Built with the generator's onshore default, they left out the
-  Taranto and WindFloat Atlantic offshore farms. They are rebuilt from
-  ENTSO-E with every wind type, and the old files are kept as
-  `.entsoe-onshore.bak.csv`. Both rows stay suspended.
-- **Portugal's country-level observations are divided by REN's wind fleet.**
-  Their generation from ENTSO-E was sound, but their capacity-factor
-  denominator was a register ENTSO-E stopped updating in 2015-19 and, from
-  2020, an onshore register while the generation includes offshore.
-  `scripts/region_tools/build_pt_capacity_from_ren.py` keeps the generation and
-  divides it by REN Data Hub's month-end wind fleet, onshore and offshore,
-  interpolated through each month. The old files are kept as
-  `.entsoe-capacity.bak.csv`. The row stays suspended; the scorecard's note of
-  2026-10-27 has the figures.
-- **The ENTSO-E fetcher leaves consumption columns out of wind generation**
-  (`pyvwf.datasets.fetch_entsoe_capacity_factors`, #144). entsoe-py splits a
-  type that also draws power into its output and its consumption, and every
-  generation path summed the two. Belgian offshore reports consumption in some
-  hours. Only output is kept now. No stored file was rebuilt for this change
-  alone.
-- **The ENTSO-E fetcher drops an hour in which a wind type that reports is
-  missing** (#145). It summed whichever types had a value, so an hour missing
-  onshore kept the offshore output alone against the whole fleet's capacity,
-  and an hour with no value at all became zero output. Each type is now
-  required between its first and last reported hour. Outside that span it is
-  taken not to exist yet, which cannot tell a farm not yet built from one not
-  yet reported, so that case is left to the audit. Rebuilt with it, Italy's
-  and Portugal's test files are unchanged.
+- **Belgium's, France's, Sweden's, Norway's and Portugal's country-level
+  observations are rebuilt so that generation and capacity cover one fleet**,
+  except Norway's test year. Belgium's are rebuilt from Elia, France's from
+  RTE's series on ODRE (under Licence Ouverte, where RTE's own files may not
+  be redistributed), and Norway's training years from NVE's metered farm
+  output. Sweden and Portugal keep ENTSO-E's generation over
+  Energimyndigheten's and REN's fleets, interpolated through each year or
+  month, and Norway's test year keeps ENTSO-E's generation over NVE's register.
+  Italy's and Portugal's test files for 2023 now include offshore output; both
+  rows stay suspended. Each old file is kept beside the new one as a backup,
+  and the scorecard's corrections log has the figures.
+- **The ENTSO-E fetcher leaves consumption out of wind generation, and drops
+  an hour in which a wind type that reports is missing**, instead of scoring
+  the remaining types against the whole fleet.
+- **Germany's source is named correctly in the scorecard**: its row reads the
+  licensed WindStats extract, not a public register. The results page says
+  its Denmark figure belongs to the run it reports, not to the scorecard row.
 
 ### Documentation
 
-- **The CHANGELOG summarises each released version** and links to its full
-  notes at tag `archive/research-2026-10-27`. Each dated correction of a
-  claim the summary keeps stays beside it.
-- **`docs/README.md` is shorter**: the folder and one-home tables merge rows
-  that shared a home, and the findings naming loses the types no file uses.
-  The output-structure guide states the roughness block once, and the
-  limitations page names the archived country-level record it cites.
-- **The README gives a reviewer a short route through the project.** A line
-  near the top links how it is built, an "If you have five minutes" section
-  points to the results, the scorecard, the account of development with
-  coding agents and its case study, one study from registration to result and
-  one negative result, and the results section leads with a table of
-  uncorrected and corrected error per region, its markers explained directly
-  under it. The table is a copy of the scorecard's, and
-  `tests/test_readme_results.py` fails when the two disagree.
 - **The findings that rest on Belgium's and France's old observation files
-  carry correction notices of 2026-10-25.** The physics-informed (leave one
-  country out, and turbine), country-level, curve-library, country weighting,
-  roughness treatment, EU re-run, correction identifiability, transfer,
-  scalar bounds and joint-fit reachability findings, with their
-  pre-registrations where those are affected, withdraw the figures that read
-  the old files, re-score what can be re-scored exactly from stored frames,
-  and say what stands and what waits on a rerun. The roughness-fill
-  pre-registration carries a notice too, and amends its refresh checks for the
-  rows whose files were rebuilt.
-- **The ENTSO-E runbook and the data-sources guide build Belgium's and
-  France's observations with their builders** (`docs/runbooks/entsoe.md`,
-  `docs/guides/data-sources.md`). The generator still builds both grids, with
-  `--skip-observations`, since without it the generator overwrites the
-  builders' files with ENTSO-E's. The guide says what the fetch keeps and
-  what each builder does, and its source table gains Elia, RTE, ODRE and
-  Eurostat with their terms; RTE's do not allow its eCO2mix files to be
-  redistributed.
+  carry correction notices of 2026-10-25**, which withdraw the figures that
+  read those files and say what stands. Those findings are at the tag.
+- **The README leads with installing and running the package**, and points
+  coding-agent users to `run-pyvwf`. `CONTRIBUTING.md` and the pull-request
+  template are rewritten, with a section on AI-assisted contributions.
+- **Fewer, current pages:** the region runbooks share one template and quote
+  no results; guides are merged in pairs; the agent design pages are one; the
+  harness design page and `docs/README.md` describe the code as it is now; and
+  the released versions from 0.2.0 on are summarised, each with a link to its
+  full notes.
 
 ## [0.6.0] - 2026-10-16
 
