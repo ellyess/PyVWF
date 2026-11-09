@@ -15,6 +15,12 @@ hour and divides by the summed monitored capacity, so numerator and denominator
 cover the same fleet in every hour. The files keep the ENTSO-E layout: one row
 per hour, a UTC calendar year per year, stamped in Brussels time.
 
+Elia says its offshore values, being upscaled, differ from validated metering
+by 100 to 300 MW in about 10% of quarter-hours in 2018-23. The differences do
+not bias a year: Elia's offshore energy is 0.97 to 1.02 of Eurostat's offshore
+net generation (``nrg_cb_pem``, ``RA320``) in every year 2017-24 (checked
+2026-11-09).
+
 Nothing is overwritten unless ``--replace`` is given, and then the old file is
 kept beside it with the suffix ``.entsoe-mixed.bak.csv``.
 

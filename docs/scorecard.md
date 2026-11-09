@@ -42,7 +42,7 @@ units all variants can score.
 **Best cfg** is the configuration each row has reported since it was chosen,
 and it was chosen on the same test year it is scored on. In three rows another
 variant of the same run now scores lower on that year: BR season k60 (0.0896,
-against 0.0967), CL season k10 (0.0997, against 0.1036) and AR season k10
+against 0.0967), CL season k10 (0.0997, against 0.1037) and AR season k10
 (0.1210, against 0.1215). Each of those three carries more failed offsets than
 the reported variant. The US's two variants tie at 0.0960. The reported
 configurations are kept.
@@ -52,7 +52,8 @@ resampled** (1,000 paired draws with replacement,
 `scripts/analysis/baseline_bootstrap.py`). The RMSE gain and its 95% interval
 are 0.052 [-0.032, 0.115] for NZ, on the run in the table. For the UK, 0.031
 [-0.001, 0.069], and for CL, 0.006 [-0.007, 0.021], they come from the runs
-before the 2026-09-20 refresh, so they differ from the gains the table implies
+before the 2026-09-20 refresh (CL's also on its observations before the
+2026-11-09 timestamp correction), so they differ from the gains the table implies
 (the UK's is 0.023). In the UK and NZ a few units the correction makes worse
 decide the result. With 12 farms, 9.3 of them capacity-effective, any one NZ
 farm can decide it, in any test year. The intervals understate the
@@ -142,8 +143,14 @@ per-cluster solver, and it is not re-established for the joint fit.
 joint fits of Italy and Portugal are refused. Italy scores no month and
 Portugal 3 of 12, so neither is a result. Both were rerun on corrected
 observations (2026-10-24, and for Portugal again on 2026-10-27), and neither
-changed that. The figures they carried until 2026-09-25, on the 100 kW
-fallback curve:
+changed that. On 2026-11-09 Italy's capacity-factor denominator was replaced
+by Eurostat's year-end fleet, because ENTSO-E's lagged the fleet and raised
+each year's observed capacity factor. Rerun on that fleet (trained 2015-21,
+tested 2023), Italy still scores no month. Every fixed factor is still
+refused, accepted in at most 1 of 7 training years against the 4 required.
+At N=1 season, spring's factor is now applied as well as winter's, so its
+failed offsets fall from 3 to 2. The figures
+they carried until 2026-09-25, on the 100 kW fallback curve:
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Was |
 |---|---|---|---|---|---|---|
@@ -261,13 +268,14 @@ not in the repository.
 | DE, DK, UK | `967b485` | `validation/refresh_2026-09-20/<CODE>/` | record-wide | licensed |
 | US, BR | `967b485` | `validation/refresh_2026-09-20/<CODE>/` | none (stored daily) | licensed |
 | AU-NEM, NZ | trained `967b485`, evaluated `a94670c` | `c1_turbine_order_2026-09-24/after/<CODE>/` | record-wide | licensed |
-| CL, AR | `967b485` | `validation/refresh_2026-09-20/<CODE>/` | record-wide | open |
+| CL | `76f0fdb` | `validation/CL/train-20261109T173531Z/` and `evaluate-2024-20261109T173539Z/` | year-local | open |
+| AR | `967b485` | `validation/refresh_2026-09-20/AR/` | record-wide | open |
 | FR | `9a5682c` | `fr_odre_2026-10-25/promote/` | year-local | licensed |
 | BE | `6c5272d` | `be_elia_2026-10-22/` | record-wide | licensed |
 | IE, ES | `6b3e6d9` | `offshore_regen_2026-10-16/after/<CODE>/` | record-wide | licensed |
 | SE | `768a278` | `se_register_2026-10-25/promote/` | year-local | licensed |
 | NO | `b9e812b` | `no_nve_2026-10-25/promote/` | year-local | licensed |
-| IT (suspended) | `7fc0e16` | `it_pt_2023_2026-10-24/IT/` | record-wide | licensed |
+| IT (suspended) | `1fdec04` | `validation/IT/train-20261109T170702Z/` and `evaluate-2023-20261109T170757Z/` | year-local | licensed |
 | PT (suspended) | `4ccab24` | `pt_ren_2026-10-27/promote/` | year-local | licensed |
 
 - **Curve library.** Licensed is `power_curves.csv` sha256 `689cfee7…` under
@@ -330,3 +338,5 @@ tables, in the full scorecard at the archive tag.
 | 2026-10-27 | Portugal's denominator replaced by REN's month-end fleet; rerun, still suspended | [L1511](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/scorecard.md?plain=1#L1511) |
 | 2026-10-27 | This short form replaced the full scorecard. It adds that the reported configuration is not the lowest-RMSE variant in BR, CL and AR, (the full scorecard said so for all six country rows), and that three scorecard configurations were edited after their runs | this page |
 | 2026-10-28 | The provenance line called Germany's source a public turbine register. Germany's row reads only the licensed WindStats extract; no public register feeds it | this page |
+| 2026-11-09 | Italy's denominator replaced by Eurostat's year-end fleet; rerun, still suspended | this page |
+| 2026-11-09 | Chile's CEN timestamps had been read as a fixed UTC-4; they are Chilean civil time, with daylight saving. Rerun on the rebinned observations (trained 2021-23, tested 2024), now on the year-local fill; a control on the old observations under the same code reproduces the old run, so the movement is the timestamps'. Uncorrected MBE -0.015355 to -0.015374; corrected RMSE 0.10365 to 0.10366, MBE 0.00120 to 0.00123, r 0.4261 to 0.4263; maximum scalar 3.2457 to 3.2467; accepted years unchanged. In the row nothing moves at the precision shown; the reported variant's 0.1036 in **Best cfg** is now 0.1037 | this page |

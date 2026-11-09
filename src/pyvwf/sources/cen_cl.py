@@ -8,10 +8,10 @@ adapters, where the mechanical ``obs_level`` stays "turbine".
 
 Decisions baked into the finalisation, documented in the region config:
 
-- **UTC bins from fixed Chilean standard time.** CEN publishes hourly data in
-  a fixed UTC-4 offset with NO daylight saving (verified on the 2024
-  spring-forward day); the processing step shifts to UTC before binning,
-  matching the ERA5/simulation convention: ``time_convention =
+- **UTC bins from Chilean civil time.** CEN publishes hourly data in
+  ``America/Santiago`` clock time, with daylight saving (corrected 2026-11-09;
+  this said a fixed UTC-4); the processing step converts to UTC before
+  binning, matching the ERA5/simulation convention: ``time_convention =
   "utc-monthly-bins"``.
 - **Wind filtered on the accented label.** ``tipo_tecnologia == "Eólica"``;
   the unaccented spelling silently returns nothing.

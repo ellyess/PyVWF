@@ -171,15 +171,15 @@ def strip_commissioning_prefix(wide: pd.DataFrame, *, threshold: float = 0.02) -
 def naive_local_to_utc(timestamps: pd.Series, tz: tzinfo, what: str) -> pd.Series:
     """Naive civil timestamps in ``tz`` to naive UTC.
 
-    For a zone with a fixed offset (Chile's standard time, Brasília, AEMO's
-    market time). New Zealand's trading periods, which cross daylight saving,
-    keep their own conversion in ``pyvwf.datasets.emi_nz``.
+    For a zone with a fixed offset (Brasília, AEMO's market time). Chile's and
+    New Zealand's clocks cross daylight saving, so each keeps its own
+    conversion, in ``pyvwf.datasets.cen_cl`` and ``pyvwf.datasets.emi_nz``.
 
     Args:
         timestamps: Naive timestamps, or strings ``pd.to_datetime`` parses.
         tz: The zone they are civil time in.
-        what: How the error names the input, e.g. ``"CEN timestamps must be
-            naive Chilean standard time"``.
+        what: How the error names the input, e.g. ``"ONS timestamps must be
+            naive Brasília civil time"``.
 
     Raises:
         ValueError: If the timestamps are already timezone-aware.

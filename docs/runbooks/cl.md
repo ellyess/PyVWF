@@ -32,7 +32,9 @@ python scripts/process/cen_cl.py                  # -> input/observations/turbin
 The key must be for **Información Pública (SIP)**, not Operación (aggregate
 GWh only); the API's traps are in the fetch's docstring, and a re-run skips
 completed months. `process` makes monthly CF against registered capacity
-(fixed UTC-4, no DST), strips leading pre-operational months, and joins
+(Chilean civil time, with daylight saving; the zero-filled hour the clocks skip
+in spring and the autumn `hora` 25 are dropped), strips leading pre-operational
+months, and joins
 coordinates from `input/reference/gwpt/Global-Wind-Power-Tracker-February-2026.xlsx`
 by name, confirmed on capacity; co-located phases (for example Malleco Norte
 and Sur) take the parent's coordinate. `configs/curation/cl_coord_overrides.csv`

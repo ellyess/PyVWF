@@ -94,7 +94,7 @@ their observations are rebuilt.
   `--psr-type onshore` restores the old behaviour. For Belgium and France,
   run it with `--skip-observations`, or it overwrites their builders' files
   with ENTSO-E's; after a new fetch, move aside the backups that the Sweden,
-  Norway and Portugal builders read their generation from
+  Norway, Portugal and Italy builders read their generation from
   (`docs/runbooks/entsoe.md`).
 - **The country builders' shared steps live in
   `pyvwf.datasets.country_obs_rebuild`.** A rerun of the Portugal or Sweden
@@ -121,8 +121,8 @@ their observations are rebuilt.
 
 ### Fixed
 
-- **Belgium's, France's, Sweden's, Norway's and Portugal's country-level
-  observations are rebuilt so that generation and capacity cover one fleet**,
+- **Belgium's, France's, Sweden's, Norway's, Portugal's and Italy's
+  country-level observations are rebuilt so that generation and capacity cover one fleet**,
   except Norway's test year. Belgium's are rebuilt from Elia, France's from
   RTE's series on ODRE (under Licence Ouverte, where RTE's own files may not
   be redistributed), and Norway's training years from NVE's metered farm
@@ -130,8 +130,15 @@ their observations are rebuilt.
   Energimyndigheten's and REN's fleets, interpolated through each year or
   month, and Norway's test year keeps ENTSO-E's generation over NVE's register.
   Italy's and Portugal's test files for 2023 now include offshore output; both
-  rows stay suspended. Each old file is kept beside the new one as a backup,
+  rows stay suspended. Italy keeps ENTSO-E's generation over Eurostat's
+  year-end fleet, because ENTSO-E's Italian register lags the fleet and so
+  raised each year's observed capacity factor; rerun on that fleet, Italy
+  still scores no month. Each old file is kept beside the new one as a backup,
   and the scorecard's corrections log has the figures.
+- **Chile's observations are read in Chilean civil time, with daylight
+  saving**, not a fixed offset. The hour CEN fills with zeros when the clocks
+  go forward, and the extra hour it adds when they go back, are dropped. The
+  Chile row is rerun; the scorecard's corrections log has the figures.
 - **The ENTSO-E fetcher leaves consumption out of wind generation, and drops
   an hour in which a wind type that reports is missing**, instead of scoring
   the remaining types against the whole fleet.

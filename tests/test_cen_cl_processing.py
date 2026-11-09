@@ -1,8 +1,8 @@
-"""Chile (CEN) processing: wind filter, fixed-offset UTC binning, CF, masks.
+"""Chile (CEN) processing: wind filter, civil-time UTC binning, CF, masks.
 
 All fixtures are synthetic; real CEN acquisition is user-executed. The
-timestamps are Chilean-standard-labelled on purpose: the fixed UTC-4 shift
-(no DST) is part of the contract under test, not an implementation detail.
+timestamps are Chilean civil time (``America/Santiago``, with daylight saving)
+on purpose: how the clock changes are read is part of the contract under test.
 """
 
 import numpy as np
@@ -34,7 +34,8 @@ def gen_hours(
     prop="OWNER",
     subtipo="Onshore",
 ):
-    """Hourly CEN generation rows on [start, end), Chilean-standard-labelled."""
+    """Hourly CEN generation rows on [start, end), in Chilean civil time, with
+    ``hora`` N stamped (N-1):00 as CEN stamps it."""
     times = pd.date_range(start, end, freq="h", inclusive="left")
     return pd.DataFrame(
         {
@@ -42,6 +43,7 @@ def gen_hours(
             "central": name or f"PE {id_central}",
             "tipo_tecnologia": tipo,
             "fecha_hora": times.strftime("%Y-%m-%d %H:%M:%S"),
+            "hora": times.hour + 1,
             "gen_real_mw": float(gen_mw),
             "potencia_maxima": float(cap),
             "propietario": prop,
@@ -71,9 +73,9 @@ def test_monthly_cf_is_gen_over_capacity():
 
 
 def test_monthly_bins_are_utc_not_local():
-    """Fixed UTC-4: 21:00 Chilean-standard on 30 Jun is 01:00 UTC on 1 Jul, so
-    it must land in JULY. Local binning would put it in June, distinguishable
-    on this single-hour fixture (mirrors the AU/BR/NZ market-time tests)."""
+    """In Chilean winter (UTC-4) 21:00 on 30 Jun is 01:00 UTC on 1 Jul, so it
+    must land in JULY. Local binning would put it in June, distinguishable on
+    this single-hour fixture (mirrors the AU/BR/NZ market-time tests)."""
     gen = gen_hours(1, "2024-06-30 21:00", "2024-06-30 22:00", 100, cap=100.0)
     wide = monthly_cf_from_generation(gen, 2024, 2024, min_coverage=0.0)
     row = wide.iloc[0]
@@ -81,12 +83,34 @@ def test_monthly_bins_are_utc_not_local():
     assert row["obs_7"] == pytest.approx(1.0)  # the hour is July UTC
 
 
-def test_no_dst_fixed_offset_all_days_24h():
-    """Every day is a clean 24 h (CEN applies no DST). A whole September at
-    constant CF returns that CF with no spring-forward gap."""
+def test_summer_hours_take_the_daylight_saving_offset():
+    """In Chilean summer (UTC-3) 20:00 on 31 Jan is 23:00 UTC, still JANUARY.
+    A fixed UTC-4 would put it at 00:00 on 1 Feb, in February."""
+    gen = gen_hours(1, "2024-01-31 20:00", "2024-01-31 21:00", 100, cap=100.0)
+    wide = monthly_cf_from_generation(gen, 2024, 2024, min_coverage=0.0)
+    row = wide.iloc[0]
+    assert row["obs_1"] == pytest.approx(1.0)
+    assert np.isnan(row["obs_2"])
+
+
+def test_the_zero_filled_spring_forward_hour_is_dropped():
+    """CEN keeps 24 hours on 8 Sep 2024 and fills 00:00, which the clocks
+    skipped, with zeros. Kept, it would pull September's mean below 0.3."""
     gen = gen_hours(1, "2024-09-01", "2024-10-01", 30, cap=100.0)
+    gen.loc[gen["fecha_hora"] == "2024-09-08 00:00:00", "gen_real_mw"] = 0.0
     wide = monthly_cf_from_generation(gen, 2024, 2024, min_coverage=0.9)
-    assert wide.iloc[0]["obs_9"] == pytest.approx(0.3, abs=1e-6)
+    assert wide.iloc[0]["obs_9"] == pytest.approx(0.3, abs=1e-9)
+
+
+def test_the_autumn_hora_25_is_dropped():
+    """CEN adds a hora 25 on 7 Apr 2024, stamped like hora 1, without saying
+    which hour it repeats. Kept, its full output would lift April above 0.3."""
+    gen = gen_hours(1, "2024-04-01", "2024-05-01", 30, cap=100.0)
+    extra = gen[gen["fecha_hora"] == "2024-04-07 00:00:00"].assign(hora=25, gen_real_mw=100.0)
+    wide = monthly_cf_from_generation(
+        pd.concat([gen, extra], ignore_index=True), 2024, 2024, min_coverage=0.9
+    )
+    assert wide.iloc[0]["obs_4"] == pytest.approx(0.3, abs=1e-9)
 
 
 def test_low_coverage_month_is_nan():

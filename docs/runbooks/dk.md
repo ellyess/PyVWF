@@ -73,5 +73,13 @@ stops with `ExtrapolationError` on the Bornholm units.
   there are extrapolated (the scorecard's § note); `dk.toml` keeps the default,
   `false`, and stops with an `ExtrapolationError`
   ([output structure](../guides/output-structure.md)).
+- **A park's output is split equally across its turbines** in the workbook
+  before 2023, so a turbine in a park carries the park's capacity factor, not
+  its own (the Danish Energy Agency's data page says so). Checked 2026-11-09
+  on 2015-20, counting turbines with output in at least six months: identical
+  monthly series group 32 to 38% of each year's capacity, and no such group
+  mixes rated capacities among turbines with metadata, so the equal split
+  gives each one the park's capacity factor. 102 of 1,472 group-years mix
+  rotor diameters or hub heights, whose differences the split hides.
 - **One test year, licensed curves.** The row rests on 2020 alone and needs the
   licensed library, so it is not third-party reproducible.

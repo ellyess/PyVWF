@@ -17,8 +17,8 @@ obs_unit = "plant"
 train_years = [2021, 2023]
 test_years = [2024]
 # CEN generacion-real is hourly gen_real_mw per central; CF against
-# potencia_maxima (static per plant over this window). Timestamps are fixed
-# Chilean standard time (UTC-4, NO DST) -> UTC at ingest; monthly bins are UTC.
+# potencia_maxima (static per plant over this window). Timestamps are
+# Chilean civil time (America/Santiago, with DST) -> UTC at ingest; monthly bins are UTC.
 # Coordinates are absent from the CEN API and joined from the Global Wind Power
 # Tracker in scripts/process/cen_cl.py. The northern grid is solar-curtailment
 # heavy; wind curtailment ("vertimiento eólico") is not screened here (standing
