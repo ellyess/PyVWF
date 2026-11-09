@@ -142,8 +142,11 @@ per-cluster solver, and it is not re-established for the joint fit.
 joint fits of Italy and Portugal are refused. Italy scores no month and
 Portugal 3 of 12, so neither is a result. Both were rerun on corrected
 observations (2026-10-24, and for Portugal again on 2026-10-27), and neither
-changed that. The figures they carried until 2026-09-25, on the 100 kW
-fallback curve:
+changed that. On 2026-11-09 Italy's capacity-factor denominator was replaced
+by Eurostat's year-end fleet, because ENTSO-E's lagged the fleet and raised
+each year's observed capacity factor; Italy has not been rerun since, so its
+run, `it_pt_2023_2026-10-24/IT/`, read the earlier denominator. The figures
+they carried until 2026-09-25, on the 100 kW fallback curve:
 
 | Region | Uncorr RMSE | Corr RMSE | Uncorr MBE | Corr MBE | Best cfg | Was |
 |---|---|---|---|---|---|---|
@@ -330,3 +333,4 @@ tables, in the full scorecard at the archive tag.
 | 2026-10-27 | Portugal's denominator replaced by REN's month-end fleet; rerun, still suspended | [L1511](https://github.com/ellyess/PyVWF/blob/archive/research-2026-10-27/docs/findings/scorecard.md?plain=1#L1511) |
 | 2026-10-27 | This short form replaced the full scorecard. It adds that the reported configuration is not the lowest-RMSE variant in BR, CL and AR, (the full scorecard said so for all six country rows), and that three scorecard configurations were edited after their runs | this page |
 | 2026-10-28 | The provenance line called Germany's source a public turbine register. Germany's row reads only the licensed WindStats extract; no public register feeds it | this page |
+| 2026-11-09 | Italy's denominator replaced by Eurostat's year-end fleet; not rerun, still suspended | this page |

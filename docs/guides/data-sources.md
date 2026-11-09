@@ -48,7 +48,8 @@ reduced to a **monthly capacity factor** before correction.
 | New Zealand | NZ | `emi-nz` | EA EMI `Generation_MD` half-hourly injection | open | `fetch/emi_nz.py` → `process/emi_nz.py` | [NZ](../runbooks/nz.md) |
 | Chile | CL | `cen-cl` | Coordinador SIP `generacion-real` hourly | open | `fetch/cen_cl.py` → `process/cen_cl.py` | [CL](../runbooks/cl.md) |
 | Argentina | AR | `cammesa-ar` | CAMMESA/MEM monthly generation | open | `fetch/cammesa_ar.py` → `process/cammesa_ar.py` | [AR](../runbooks/ar.md) |
-| Spain, Ireland, Italy, Netherlands | ES IE IT NL | `entsoe-country` | ENTSO-E national generation; Ireland's capacity rebuilt from GWPT; NL excluded | open | `datasets/generate_country_level_training_data.py`; IE then `region_tools/repair_country_capacity.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Spain, Ireland, Netherlands | ES IE NL | `entsoe-country` | ENTSO-E national generation; Ireland's capacity rebuilt from GWPT; NL excluded | open | `datasets/generate_country_level_training_data.py`; IE then `region_tools/repair_country_capacity.py` | [ENTSO-E](../runbooks/entsoe.md) |
+| Italy | IT | `entsoe-country` | ENTSO-E generation over Eurostat's year-end wind fleet | open | generator → `region_tools/build_it_capacity_from_eurostat.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Sweden | SE | `entsoe-country` | ENTSO-E generation over Energimyndigheten's year-end wind fleet | open | generator → `region_tools/build_se_capacity_from_energimyndigheten.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Norway | NO | `entsoe-country` | NVE metered farm output over NVE's turbine register (2015-21); ENTSO-E generation over the register (2023) | open, attribution | generator → `region_tools/build_no_obs_from_nve.py` | [ENTSO-E](../runbooks/entsoe.md) |
 | Portugal | PT | `entsoe-country` | ENTSO-E generation over REN Data Hub's month-end wind fleet | mixed | generator → `region_tools/build_pt_capacity_from_ren.py` | [ENTSO-E](../runbooks/entsoe.md) |
@@ -125,7 +126,7 @@ the [built-in adapters](adding-a-region.md#built-in-adapters) table.
 | Energimyndigheten (SE) | `pxexternal.energimyndigheten.se`, table `Vindkraftsstatistik/EN0105_1` | API | Swedish official statistics; no licence stated |
 | NVE (NO) | `nve.no/media/13399/vindprod2002-2021_kraftverk_utcplus1.xlsx`; `api.nve.no/web/WindPowerplant/GetWindPowerPlants` | download / API | NVE credited, content unchanged; register NLOD |
 | REN Data Hub (PT) | `servicebus.ren.pt/datahubapi/electricity/ElectricityInstalledPowerMonthly` | API | no reuse licence published ("All rights reserved"); kept local |
-| Eurostat (audit) | `nrg_bal_peh`, gross wind production | download | reuse with the source acknowledged |
+| Eurostat (audit; IT capacity) | `nrg_bal_peh`, gross wind production; `nrg_inf_epcrw`, net wind capacity | download | reuse with the source acknowledged |
 | WindStats (DE, ES) | commercial subscription | (none) | confidential, commercial |
 
 ---
@@ -221,7 +222,7 @@ including the capacity weighting and the observation audit, are in
 [A country-level region](adding-a-region.md#a-country-level-region), and the
 order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md).
 
-- **ENTSO-E (ES, IE, IT, NL, and the files the SE, NO and PT builders start
+- **ENTSO-E (ES, IE, NL, and the files the SE, NO, PT and IT builders start
   from).** The fetch takes every wind type, onshore and offshore, unless
   `--psr-type` names one. Generation is
   the wind types' output, with any consumption column left out. An hour in
@@ -248,6 +249,13 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
 - **PT: REN.** `scripts/region_tools/build_pt_capacity_from_ren.py` keeps
   ENTSO-E's generation and divides it by REN Data Hub's month-end wind fleet,
   onshore and offshore, interpolated linearly through each month.
+- **IT: Eurostat.** ENTSO-E's Italian register ran about two years behind
+  the fleet in 2016-23 (checked 2026-11-09), so
+  `scripts/region_tools/build_it_capacity_from_eurostat.py` keeps ENTSO-E's
+  generation and divides it by Eurostat's year-end wind fleet
+  (`nrg_inf_epcrw`), interpolated linearly through the year. Eurostat's
+  metadata page no longer resolves; the 31 December date was checked against
+  Sweden's and France's year-end fleets, which Eurostat matches within 2%.
 - **BE: Elia.** `scripts/region_tools/build_be_obs_from_elia.py` sums Elia's
   onshore and offshore output and monitored capacity every 15 minutes,
   averages each hour, and divides output by monitored capacity, so both cover
@@ -260,7 +268,7 @@ order for the shipped regions is in the [ENTSO-E runbook](../runbooks/entsoe.md)
 
 The generator run for BE or FR without `--skip-observations` overwrites the
 builders' files with ENTSO-E's ([runbook](../runbooks/entsoe.md)); for SE,
-NO and PT, a new fetch is followed by their builders again. The generator and
+NO, PT and IT, a new fetch is followed by their builders again. The generator and
 the builders write this layout:
 
 ```

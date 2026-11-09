@@ -1,6 +1,6 @@
 # Country-level regions (ENTSO-E and national sources)
 
-**Data source:** ENTSO-E Transparency Platform national wind generation and installed capacity, per bidding zone for Norway and Sweden; national sources for BE (Elia), FR (RTE, via ODRE), SE (Energimyndigheten), NO (NVE) and PT (REN). **Adapter:** `entsoe-country`, and `entsoe-zonal` for SE-BZ · country-level · unit = country · open, except PT, whose capacity is REN's (mixed; see [Source and licence](#source-and-licence)).
+**Data source:** ENTSO-E Transparency Platform national wind generation and installed capacity, per bidding zone for Norway and Sweden; national sources for BE (Elia), FR (RTE, via ODRE), SE (Energimyndigheten), NO (NVE) and PT (REN), and Eurostat's fleet for IT. **Adapter:** `entsoe-country`, and `entsoe-zonal` for SE-BZ · country-level · unit = country · open, except PT, whose capacity is REN's (mixed; see [Source and licence](#source-and-licence)).
 
 A country-level region fits one national series per period, with grid points
 standing in for its fleet. The rows (BE, ES, FR, IE, NO, SE; IT and PT
@@ -40,7 +40,7 @@ are in [`data-sources.md`](../guides/data-sources.md#4-country-level-entso-e-lay
 | 1 | Generator: grid points of all eight, ENTSO-E observations of ES, IE, IT, NO, PT and SE | ENTSO-E |
 | 2 | Ireland's capacity repair | step 1's IE files |
 | 3 | Belgium's and France's builders | Elia, ODRE |
-| 4 | Sweden's, Norway's and Portugal's builders | step 1's files, and the national source |
+| 4 | Sweden's, Norway's, Portugal's and Italy's builders | step 1's files, and the national source or Eurostat |
 | 5 | Capacity weighting of the grid points | step 1's grids, GWPT |
 | 6 | Observation audit | everything above |
 
@@ -76,11 +76,11 @@ are in [`data-sources.md`](../guides/data-sources.md#4-country-level-entso-e-lay
    python scripts/region_tools/build_fr_obs_from_rte.py --replace
    ```
 
-4. **Sweden, Norway and Portugal.** SE and PT keep step 1's ENTSO-E generation
-   and replace its capacity; NO replaces its 2015-21 generation with NVE's
-   metered output and keeps ENTSO-E's for 2023. SE and
-   PT download into `<input root>/raw/energimyndigheten/` and
-   `<input root>/raw/ren/`. NO needs two NVE files downloaded by hand into
+4. **Sweden, Norway, Portugal and Italy.** SE, PT and IT keep step 1's ENTSO-E
+   generation and replace its capacity; NO replaces its 2015-21 generation with NVE's
+   metered output and keeps ENTSO-E's for 2023. SE, PT and IT download into
+   `<input root>/raw/energimyndigheten/`, `<input root>/raw/ren/` and
+   `<input root>/raw/eurostat/`. NO needs two NVE files downloaded by hand into
    `<input root>/raw/nve/`: the metered output per farm,
    `https://www.nve.no/media/13399/vindprod2002-2021_kraftverk_utcplus1.xlsx`,
    and the turbine register, `https://api.nve.no/web/WindPowerplant/GetWindPowerPlants`,
@@ -92,10 +92,11 @@ are in [`data-sources.md`](../guides/data-sources.md#4-country-level-entso-e-lay
    python scripts/region_tools/build_se_capacity_from_energimyndigheten.py --replace
    python scripts/region_tools/build_no_obs_from_nve.py --replace
    python scripts/region_tools/build_pt_capacity_from_ren.py --replace
+   python scripts/region_tools/build_it_capacity_from_eurostat.py --replace
    ```
 
-   Steps 2 to 4 keep each old file as `.entsoe-capacity.bak.csv` (IE, SE, PT),
-   `.entsoe-mixed.bak.csv` (BE) or `.entsoe.bak.csv` (FR, NO). SE, NO and PT
+   Steps 2 to 4 keep each old file as `.entsoe-capacity.bak.csv` (IE, SE, PT, IT),
+   `.entsoe-mixed.bak.csv` (BE) or `.entsoe.bak.csv` (FR, NO). SE, NO, PT and IT
    then read their ENTSO-E generation from the backup, so move the backups
    aside after a new step 1 fetch.
 
