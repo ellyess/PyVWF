@@ -135,6 +135,10 @@ their observations are rebuilt.
   raised each year's observed capacity factor; rerun on that fleet, Italy
   still scores no month. Each old file is kept beside the new one as a backup,
   and the scorecard's corrections log has the figures.
+- **Chile's observations are read in Chilean civil time, with daylight
+  saving**, not a fixed offset. The hour CEN fills with zeros when the clocks
+  go forward, and the extra hour it adds when they go back, are dropped. The
+  Chile row is rerun; the scorecard's corrections log has the figures.
 - **The ENTSO-E fetcher leaves consumption out of wind generation, and drops
   an hour in which a wind type that reports is missing**, instead of scoring
   the remaining types against the whole fleet.

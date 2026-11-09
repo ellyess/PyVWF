@@ -305,7 +305,11 @@ failed,** and the registered prediction was wrong. Dropping three degenerate
 clusters moves the change from -15.5% to -1.9%: roughly neutral, still not
 helpful. A notice of 2026-09-11 corrects the monthly reading too: on the same
 plants the monthly gain cannot be told from zero. One region, one year, not
-replicated.
+replicated. Corrected 2026-11-09: the study read CEN's timestamps as a fixed
+UTC-4, but they are Chilean civil time with daylight saving, so in the months
+of daylight saving, about September to early April, each observed hour was
+matched to the ERA5 hour after it. The study is not rerun; its figures stand
+on that misalignment.
 
 ### Terrain and the US wind deficit
 
