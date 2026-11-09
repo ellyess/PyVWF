@@ -132,8 +132,8 @@ their observations are rebuilt.
   Italy's and Portugal's test files for 2023 now include offshore output; both
   rows stay suspended. Italy keeps ENTSO-E's generation over Eurostat's
   year-end fleet, because ENTSO-E's Italian register lags the fleet and so
-  raised each year's observed capacity factor; its row has not been rerun
-  since. Each old file is kept beside the new one as a backup,
+  raised each year's observed capacity factor; rerun on that fleet, Italy
+  still scores no month. Each old file is kept beside the new one as a backup,
   and the scorecard's corrections log has the figures.
 - **The ENTSO-E fetcher leaves consumption out of wind generation, and drops
   an hour in which a wind type that reports is missing**, instead of scoring
