@@ -67,6 +67,10 @@ CASES = {
     # moved to ODRE's copy of RTE's series on 2026-10-25 (09df0ae) and the pin
     # was not re-recorded then, so it failed on main. All ten scalars rose, by
     # 2.9e-6 to 1.4e-5, and the offsets moved by up to 0.014 m/s either way;
+    # accepted years unchanged. CL re-recorded 2026-11-09, when its
+    # observations were rebinned from a fixed UTC-4 to Chilean civil time with
+    # daylight saving: every fitted scalar rose, by 2.0e-5 to 1.0e-3 (cluster
+    # 2, 3.2457 to 3.2467), and the offsets moved by at most 0.0032 m/s;
     # accepted years unchanged.
     "fr_country_k10": (
         "configs/regions/scorecard/fr_country.toml",

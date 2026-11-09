@@ -90,7 +90,8 @@ source lacks them. The region-specific work:
   multi-POC farms, against a staged-capacity history. Curated farm table gives
   coordinates, hub heights, and turbine models; commissioning-ramp months masked.
 - **CL**: hourly `generacion-real` (delivered energy) → monthly CF against
-  registered capacity, fixed UTC-4 (no DST). Coordinates joined from GWPT;
+  registered capacity, in Chilean civil time with daylight saving, the clock
+  changes' unplaceable hours dropped. Coordinates joined from GWPT;
   turbine specs (`configs/curation/cl_turbine_specs.csv`) drive matched curves
   and hub heights; leading pre-operational months stripped.
 - **AR**: monthly GWh (native resolution, no timezone logic). CAMMESA carries

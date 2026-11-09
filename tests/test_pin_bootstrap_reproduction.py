@@ -92,9 +92,14 @@ TURBINE_ROWS = ["DE", "DK", "UK", "US", "BR", "AU-NEM", "NZ", "CL", "AR"]
 # scripts' own reproduction check (Belgium's uncorrected RMSE by 0.075, its
 # 2,256 MW of offshore capacity now simulated at sea). Their recorded runs are
 # fallback-curve figures too, so they leave on the same terms, and the
-# turbine-level rows go on checking the scripts.
-REGRIDDED = {"BE", "ES", "FR", "IE", "IT", "NO", "PT", "SE"}
-RESCORED_ROWS = [c for c in ALL_ROWS if c not in REGRIDDED]
+# turbine-level rows go on checking the scripts. CL left on 2026-11-09, when
+# its observations were rebinned from a fixed UTC-4 to Chilean civil time with
+# daylight saving: monthly capacity factors moved by at most 0.0015, and every
+# CL case failed its script's own reproduction check by up to 2.2e-5 in MBE
+# (unit concentration by 1e-5). The recorded study run stays in output/ as
+# the record of what that study produced.
+NOT_RERUN = {"BE", "ES", "FR", "IE", "IT", "NO", "PT", "SE", "CL"}
+RESCORED_ROWS = [c for c in ALL_ROWS if c not in NOT_RERUN]
 
 
 def _root(code: str) -> str:
@@ -138,7 +143,7 @@ def test_baseline_bootstrap_reproduces(code, tmp_path):
     _same(tmp_path, recorded, [f"{code}_bootstrap.csv", f"{code}_reproduction.csv"])
 
 
-@pytest.mark.parametrize("code", TURBINE_ROWS)
+@pytest.mark.parametrize("code", [c for c in TURBINE_ROWS if c not in NOT_RERUN])
 def test_unit_concentration_reproduces(code, tmp_path):
     recorded = STUDY / "baseline_bootstrap"
     _need(BACKFILL / code, recorded / f"{code}_concentration.csv")

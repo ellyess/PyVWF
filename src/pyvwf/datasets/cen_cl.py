@@ -20,14 +20,16 @@ blank), so lon/lat must be joined from the Global Wind Power Tracker.
 Two facts about the CEN series shape the design, verified against the real
 2021-2024 data (docs/runbooks/cl.md):
 
-- **Fixed offset, no DST.** ``fecha_hora`` runs a clean 24 hours every day,
-  including Chile's 2024 spring-forward (7 Sep 2024 has 24 rows, not 23), so
-  CEN publishes in fixed Chilean standard time, not civil ``America/Santiago``.
-  The conversion to UTC is therefore a single fixed shift with no DST branch,
-  simpler than the AEMO/EMI cases. The offset value (UTC-4 continental
-  standard) is immaterial to a monthly mean, which spans ~720 hours; it only
-  moves a few edge hours across month boundaries, and it is applied only to
-  keep the bins consistent with the UTC-binned ERA5/simulation side.
+- **Chilean civil time, with daylight saving.** ``fecha_hora`` is
+  ``America/Santiago`` clock time, and ``hora`` N is stamped (N-1):00. CEN
+  keeps 24 hours on a spring-forward day and fills the hour the clocks skipped
+  with zeros (all 63 wind plants read 0.0 at 00:00 on 8 Sep 2024, against 59
+  non-zero an hour later), and gives the autumn day a ``hora`` 25 stamped like
+  ``hora`` 1 without saying which hour it repeats. The skipped hour and
+  ``hora`` 25 are dropped. Corrected 2026-11-09: this said fixed UTC-4 with no
+  daylight saving, from 7 Sep 2024 having 24 rows, but the clocks changed going
+  into 8 Sep. The fixed offset moved a monthly capacity factor by at most
+  0.0015 over 2021-24.
 - **Static nameplate.** No wind plant's ``potencia_maxima`` varies across the
   window (checked: 0 of 64), so the CF denominator is a plain per-plant
   constant. It is still divided per hour, which stays correct if a future
@@ -38,9 +40,9 @@ from __future__ import annotations
 
 from typing import cast
 
-from datetime import timedelta, timezone
 from collections.abc import Sequence
 
+import numpy as np
 import pandas as pd
 
 from pyvwf.datasets.gwpt import DROP_CL, plant_key
@@ -48,15 +50,16 @@ from pyvwf.datasets.monthly import (  # noqa: F401 - re-exported names
     DEFAULT_MIN_COVERAGE,
     coverage_mean,
     empty_monthly,
-    naive_local_to_utc,
     strip_commissioning_prefix,
     wide_monthly,
 )
 
-#: CEN generation timestamps are fixed Chilean standard time (UTC-4), with NO
-#: daylight saving applied (verified on the 2024 spring-forward day). Adding
-#: four hours takes them to UTC, matching the ERA5/simulation convention.
-CHILE_STD = timezone(timedelta(hours=-4))
+#: The zone of CEN's ``fecha_hora``: Chilean civil time, with daylight saving.
+CHILE = "America/Santiago"
+
+#: The ``hora`` CEN adds on the day the clocks go back; it does not say which
+#: hour it repeats.
+REPEATED_HOUR = 25
 
 #: ``tipo_tecnologia`` value selecting wind plants. MUST carry the accent: the
 #: unaccented ``"Eolica"`` silently matches nothing in the CEN data.
@@ -64,15 +67,28 @@ WIND = "eólica"
 
 
 def local_to_utc(timestamps: pd.Series) -> pd.Series:
-    """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC, as the adapter does."""
+    """Convert naive Chilean civil timestamps to naive UTC, as the adapter does."""
     return _local_to_utc(timestamps)
 
 
 def _local_to_utc(timestamps: pd.Series) -> pd.Series:
-    """Convert naive Chilean-standard (UTC-4) timestamps to naive UTC."""
-    return naive_local_to_utc(
-        timestamps, CHILE_STD, "CEN timestamps must be naive Chilean standard time"
-    )
+    """Convert naive Chilean civil timestamps to naive UTC.
+
+    An hour the clocks skipped becomes NaT, for the caller to drop. The hour
+    the clocks repeat is read as its first, daylight-saving occurrence, which
+    is the one CEN stamps on the Saturday; its repeat is ``hora`` 25.
+
+    Raises:
+        ValueError: If the timestamps are already timezone-aware.
+    """
+    ts = pd.to_datetime(timestamps)
+    if getattr(ts.dt, "tz", None) is not None:
+        raise ValueError(
+            "CEN timestamps must be naive Chilean civil time; got timezone-aware input"
+        )
+    first = np.ones(len(ts), dtype=bool)
+    local = ts.dt.tz_localize(CHILE, ambiguous=first, nonexistent="NaT")
+    return local.dt.tz_convert("UTC").dt.tz_localize(None)
 
 
 def wind_rows(gen: pd.DataFrame) -> pd.DataFrame:
@@ -128,12 +144,14 @@ def monthly_cf_from_generation(
     the mean of those over the month's UTC-binned hours. Months with less than
     ``min_coverage`` of their expected hourly samples are NaN rather than
     biased by a gap. Rows with a non-positive or missing ``potencia_maxima``
-    are dropped (they carry no usable denominator).
+    are dropped (they carry no usable denominator), and so are the two hours
+    the clock changes leave unplaceable: the zero-filled hour the clocks skip
+    in spring and the ``hora`` 25 CEN adds in autumn.
 
     Args:
         gen: Concatenated ``generacion-real`` frames. Uses ``id_central``,
-            ``tipo_tecnologia``, ``fecha_hora`` (naive Chilean standard),
-            ``gen_real_mw``, ``potencia_maxima``.
+            ``tipo_tecnologia``, ``fecha_hora`` (naive Chilean civil time),
+            ``hora``, ``gen_real_mw``, ``potencia_maxima``.
         year_start, year_end: Inclusive UTC year bounds.
         min_coverage: Minimum fraction of a month's hourly samples required.
 
@@ -145,9 +163,11 @@ def monthly_cf_from_generation(
     wind["ID"] = wind["id_central"].astype(str).str.strip()
     cap = pd.to_numeric(wind["potencia_maxima"], errors="coerce")
     gen_mw = pd.to_numeric(wind["gen_real_mw"], errors="coerce")
-    wind = wind[cap.notna() & (cap > 0) & gen_mw.notna()].copy()
+    repeated = pd.to_numeric(wind["hora"], errors="coerce") == REPEATED_HOUR
+    wind = wind[cap.notna() & (cap > 0) & gen_mw.notna() & ~repeated].copy()
     wind["cf"] = gen_mw[wind.index] / cap[wind.index]
     wind["timestamp"] = _local_to_utc(wind["fecha_hora"])
+    wind = wind.dropna(subset=["timestamp"])
     wind["year"] = wind["timestamp"].dt.year
     wind["month"] = wind["timestamp"].dt.month
     wind = wind[(wind["year"] >= int(year_start)) & (wind["year"] <= int(year_end))]
