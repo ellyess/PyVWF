@@ -9,8 +9,8 @@ P.EOLICO VIENTOS LA RINCONADA,"Buenos Aires, no confident match"
 P.EOLICO VIENTOS OLAVARRIA,"Olavarría self-gen, ambiguous vs Ternium"
 Parque eólico autogeneración ALUAR,"ALUAR smelter self-gen, Puerto Madryn"
 Parques Eólicos del Fin del Mundo SA,"Tierra del Fuego, SOUTH of the ERA5 box"
-ARAUCO EOLICO,zero generation 2021-2024; output reported under ARAUCO SAPEM codes
-ARAUCO EOLICO 2,zero generation 2021-2024; duplicate Arauco code
+ARAUCO EOLICO,"zero generation 2021-2024: CAMMESA's August 2026 name for code ARAUEO, PARQUE EOLICO ARAUCO SAPEM before then"
+ARAUCO EOLICO 2,"zero generation 2021-2024: CAMMESA's August 2026 name for code ARA2EO, PARQUE EOLICO ARAUCO II SAPEM before then"
 NECOCHEA EOLICO,zero generation; same farm as VIENTOS DE NECOCHEA (do not double-count)
 PARQUE EOLICO ARAUCO SAPEM,"steady CF ~0.08 (old IMPSA turbines, weak La Rioja wind); unrepresentative for training"
 PARQUE EOLICO ARAUCO II SAPEM,"steady CF ~0.06, same Arauco cluster; unreliable code->turbine mapping"
