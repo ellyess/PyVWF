@@ -26,7 +26,12 @@ given. The rule keeps 91 to 99.8% of each year's metered energy.
 The 2023 test year keeps ENTSO-E's generation and divides it by the register's
 whole fleet: NVE's metered file ends in 2021. Statistics Norway's monthly
 totals, which NVE's farms sum to in 2015-21 and ENTSO-E's generation matches
-in 2023, tie the two sources to one measure.
+in 2023, tie the two sources to one measure. The overshoot rule cannot be
+applied without per-farm output, but it is not needed: the register dates
+13.6 MW in 2023 (0.3% of its 5,082 MW at the year's end) and nothing in 2024
+or 2025, so no farm can have produced in 2023 against capacity the register
+had not yet given it, beyond that (checked 2026-11-09 on the register of
+2026-09-18).
 
 The files keep their names and the ENTSO-E layout: one row per hour, a UTC
 calendar year per year, stamped in Oslo time. Nothing is overwritten unless
