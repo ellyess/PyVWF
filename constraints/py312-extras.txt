@@ -173,7 +173,7 @@ msgpack==1.2.3
     # via distributed
 multiurl==0.3.9
     # via ecmwf-datastores-client
-mypy==2.4.0
+mypy==2.4.1
     # via
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
@@ -332,7 +332,7 @@ pyproj==3.8.0
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
     #   geopandas
-pytest==9.1.1
+pytest==9.2.0
     # via
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
@@ -382,7 +382,7 @@ rich==15.0.0
     # via
     #   -c constraints/py312.txt
     #   import-linter
-ruff==0.17.0
+ruff==0.17.4
     # via
     #   -c constraints/py312.txt
     #   pyvwf (pyproject.toml)
