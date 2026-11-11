@@ -181,7 +181,7 @@ mypy-extensions==1.1.0
     # via
     #   -c constraints/py312.txt
     #   mypy
-narwhals==2.26.0
+narwhals==2.28.0
     # via
     #   -c constraints/py312.txt
     #   scikit-learn
