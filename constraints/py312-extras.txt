@@ -352,7 +352,7 @@ python-dateutil==2.9.0.post0
     #   matplotlib
     #   multiurl
     #   pandas
-python-discovery==1.6.1
+python-discovery==1.9.5
     # via
     #   -c constraints/py312.txt
     #   virtualenv

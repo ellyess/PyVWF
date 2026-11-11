@@ -155,7 +155,7 @@ python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
-python-discovery==1.6.1
+python-discovery==1.9.5
     # via virtualenv
 pyyaml==6.0.3
     # via
